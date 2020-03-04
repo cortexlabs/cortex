@@ -145,7 +145,7 @@ The following Python packages have been pre-installed and can be used in your im
 
 ```text
 boto3==1.10.45
-cloudpickle==1.2.2
+cloudpickle==1.3.0
 dill==0.3.1.1
 joblib==0.14.1
 Keras==2.3.1
@@ -167,8 +167,8 @@ sympy==1.5
 tensor2tensor==1.15.4
 tensorflow-hub==0.7.0
 tensorflow==2.1.0
-torch==1.3.1
-torchvision==0.4.2
+torch==1.4.0
+torchvision==0.5.0
 xgboost==0.90
 ```
 
