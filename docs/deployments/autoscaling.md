@@ -10,6 +10,8 @@ Cortex autoscales your web services based on your configuration.
 
 * `threads_per_worker` (default: 1): Each worker uses a thread pool of size `threads_per_worker` to process requests. For applications that are not CPU intensive such as high I/O (e.g. downloading files) or GPU-based inference, increasing the number of threads per worker can increase throughput. For CPU-bound applications such as running your model inference on a CPU, using 1 thread per worker is recommended to avoid unnecessary context switching. Some applications are not thread-safe, and therefore must be run with 1 thread per worker.
 
+`workers_per_replica` * `threads_per_worker` represents the number of requests that your replica can work in parallel. For example, if `workers_per_replica` is 2 and `threads_per_worker` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, 1 would be waiting for a thread to become available, and the concurrency for the replica would be 5. If the replica was hit with 3 concurrent requests, all three would begin processing immediately, and the replica concurrency would be 3.
+
 ## Autoscaling Replicas
 
 * `min_replicas`: The lower bound on how many replicas can be running for an API.
@@ -18,7 +20,7 @@ Cortex autoscales your web services based on your configuration.
 
 * `target_replica_concurrency` (default: `workers_per_replica` * `threads_per_worker`): This is the desired number of in-flight requests per replica, and is the metric which the autoscaler uses to make scaling decisions.
 
-  Replica concurrency is simply how many requests have been sent to a replica and have not yet been responded to. Therefore, it includes requests which are currently being processed and requests which are waiting in the replica's queue. For example, if `workers_per_replica` is 2 and `threads_per_worker` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, 1 would be waiting for a thread to become available, and the concurrency for the replica would be 5. With only 3 concurrent requests, all three would begin processing immediately, and the replica concurrency would be 3.
+  Replica concurrency is simply how many requests have been sent to a replica and have not yet been responded to (also referred to as in-flight requests). Therefore, it includes requests which are currently being processed and requests which are waiting in the replica's queue.
 
   The autoscaler uses this formula to determine the number of desired replicas:
 
@@ -30,7 +32,7 @@ Cortex autoscales your web services based on your configuration.
 
   Note (if `workers_per_replica` > 1): Because requests are randomly assigned to workers within a replica (which leads to unbalanced worker queues), clients may receive 503 responses before reaching `max_replica_concurrency`. For example, if you set `workers_per_replica: 2` and `max_replica_concurrency: 100`, each worker will have a maximum queue length of 50 requests. If your replica receives 90 requests, there is a possibility that more than 50 requests are routed to 1 worker, therefore each additional request beyond the 50 requests are responded with a 503.
 
-* `window` (default: 60s): The time over which to average the API's concurrency. The longer the window, the slower the autoscaler will be to react to changes in concurrency, since concurrency values will be averaged over the `window`. Concurrency is calculated by each replica every second, and is reported every 10 seconds, so `window` must be a multiple of 10 seconds.
+* `window` (default: 60s): The time over which to average the API wide in-flight requests (which is the sum of in-flight requests in each replica). The longer the window, the slower the autoscaler will react to changes in API wide in-flight requests, since it is averaged over the `window`. API wide in-flight requests is calculated every 10 seconds, so `window` must be a multiple of 10 seconds.
 
 * `downscale_stabilization_period` (default: 5m): The API will not scale below the highest recommendation made during this period. Every 10 seconds, the autoscaler makes a recommendation based on all of the other configuration parameters described here. It will then take the max of the current recommendation and all recommendations made during the `downscale_stabilization_period`, and use that to determine the final number of replicas to scale to. Increasing this value will cause the cluster to react more slowly to decreased traffic, and will reduce thrashing.
 
