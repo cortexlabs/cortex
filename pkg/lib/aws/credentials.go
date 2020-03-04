@@ -31,8 +31,12 @@ func GetCredentialsFromCLIConfigFile() (string, string, error) {
 		return "", "", err
 	}
 
+	if value.SessionToken != "" {
+		return "", "",
+	}
+
 	if value.AccessKeyID == "" || value.SecretAccessKey == "" {
-		return "", "", ErrorReadCredentials()
+		return "", "", ErrorAWSSessionTokenNotSupported()
 	}
 
 	return value.AccessKeyID, value.SecretAccessKey, nil

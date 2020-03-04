@@ -36,6 +36,7 @@ const (
 	ErrBucketNotFound
 	ErrInstanceTypeLimitIsZero
 	ErrNoValidSpotPrices
+	ErrAWSSessionTokenNotSupported
 	ErrReadCredentials
 )
 
@@ -49,6 +50,7 @@ var _errorKinds = []string{
 	"err_bucket_not_found",
 	"err_instance_type_limit_is_zero",
 	"err_no_valid_spot_prices",
+	"err_aws_session_token_not_supported",
 	"err_read_credentials",
 }
 
@@ -177,6 +179,13 @@ func ErrorNoValidSpotPrices(instanceType string, region string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrNoValidSpotPrices,
 		message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
+	})
+}
+
+func ErrorAWSSessionTokenNotSupported() error {
+	return errors.WithStack(Error{
+		Kind:    ErrAWSSessionTokenNotSupported,
+		message: "aws session tokens are currently not supported",
 	})
 }
 
