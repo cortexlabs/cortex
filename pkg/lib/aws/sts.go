@@ -17,9 +17,6 @@ limitations under the License.
 package aws
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -50,9 +47,7 @@ func (c *Client) AreCredentialsValid() (string, string, bool, error) {
 func (c *Client) CheckCredentials() (string, string, error) {
 	_, _, isValid, err := c.AreCredentialsValid()
 	if !isValid {
-		if os.Getenv("AWS_SESSION_TOKEN") != "" {
-			fmt.Printf("warning: aws session tokens are not supported")
-		}
+		return "", "", ErrorInvalidAWSCredentials()
 	}
 	if err != nil {
 		return "", "", err
