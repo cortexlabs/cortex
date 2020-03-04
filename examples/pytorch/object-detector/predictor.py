@@ -11,7 +11,8 @@ from torchvision import transforms
 
 class PythonPredictor:
     def __init__(self, config):
-        model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+        self.device = config["device"]
+        model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True).to(self.device)
         model.eval()
 
         self.preprocess = transforms.Compose([transforms.ToTensor()])
@@ -25,17 +26,17 @@ class PythonPredictor:
         threshold = float(payload["threshold"])
         image = requests.get(payload["url"]).content
         img_pil = Image.open(BytesIO(image))
-        img_tensor = self.preprocess(img_pil)
+        img_tensor = self.preprocess(img_pil).to(self.device)
         img_tensor.unsqueeze_(0)
 
         with torch.no_grad():
             pred = self.model(img_tensor)
 
-        predicted_class = [self.coco_labels[i] for i in list(pred[0]["labels"].numpy())]
+        predicted_class = [self.coco_labels[i] for i in list(pred[0]["labels"].cpu().numpy())]
         predicted_boxes = [
-            [(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]["boxes"].detach().numpy())
+            [(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]["boxes"].detach().cpu().numpy())
         ]
-        predicted_score = list(pred[0]["scores"].detach().numpy())
+        predicted_score = list(pred[0]["scores"].detach().cpu().numpy())
         predicted_t = [predicted_score.index(x) for x in predicted_score if x > threshold]
         if len(predicted_t) == 0:
             return [], []
