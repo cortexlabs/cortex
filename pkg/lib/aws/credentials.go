@@ -38,7 +38,7 @@ func GetCredentialsFromCLIConfigFile() (string, string, error) {
 	}
 
 	if value.AccessKeyID == "" || value.SecretAccessKey == "" {
-		return "", "", ErrorInvalidAWSCredentials()
+		return "", "", ErrorReadCredentials()
 	}
 
 	return value.AccessKeyID, value.SecretAccessKey, nil
