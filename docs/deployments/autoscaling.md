@@ -4,15 +4,17 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Cortex autoscales your web services based on your configuration.
 
-## Autoscaling Replicas
-
-Cortex adjusts the number of replicas that are serving predictions by monitoring the request queue of each API. The number of replicas will always be at least `min_replicas` and no more than `max_replicas`.
-
-Here are the parameters which affect the autoscaling behavior:
+## Replica Parallelism
 
 * `workers_per_replica` (default: 1): Each replica runs a web server with `workers_per_replica` workers, each of which runs in it's own process. For APIs running with multiple CPUs per replica, using 1-3 workers per unit of CPU generally leads to optimal throughput. For example, if `cpu` is 2, a value between 2 and 6 `workers_per_replica` is reasonable. The optimal number will vary based on the workload and the CPU request for the API.
 
 * `threads_per_worker` (default: 1): Each worker uses a thread pool of size `threads_per_worker` to process requests. For applications that are not CPU intensive such as high I/O (e.g. downloading files) or GPU-based inference, increasing the number of threads per worker can increase throughput. For CPU-bound applications such as running your model inference on a CPU, using 1 thread per worker is recommended to avoid unnecessary context switching. Some applications are not thread-safe, and therefore must be run with 1 thread per worker.
+
+## Autoscaling Replicas
+
+* `min_replicas`: The lower bound on how many replicas can be running for an API.
+
+* `max_replicas`: The upper bound on how many replicas can be running for an API.
 
 * `target_replica_concurrency` (default: `workers_per_replica` * `threads_per_worker`): This is the desired number of in-flight requests per replica, and is the metric which the autoscaler uses to make scaling decisions.
 
@@ -44,4 +46,4 @@ Here are the parameters which affect the autoscaling behavior:
 
 ## Autoscaling Nodes
 
-Cortex spins up and down nodes based on the aggregate resource requests of all APIs. The number of nodes will be at least `min_instances` and no more than `max_instances` (configured during installation and modifiable via `cortex cluster update` or the [AWS console](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-manual-scaling.html)).
+Cortex spins up and down nodes based on the aggregate resource requests of all APIs. The number of nodes will be at least `min_instances` and no more than `max_instances` ([configured during installation](../cluster-management/config.md) and modifiable via `cortex cluster update`).
