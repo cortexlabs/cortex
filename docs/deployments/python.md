@@ -141,7 +141,7 @@ class PythonPredictor:
 
 ## Pre-installed packages
 
-The following packages have been pre-installed and can be used in your implementations:
+The following Python packages have been pre-installed and can be used in your implementations:
 
 ```text
 boto3==1.10.45
@@ -172,4 +172,7 @@ torchvision==0.4.2
 xgboost==0.90
 ```
 
-Learn how to install additional packages [here](../dependency-management/python-packages.md).
+<!-- CORTEX_VERSION_MINOR x2 -->
+The pre-installed system packages are listed in the [python-serve Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU) or the [python-serve-gpu Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU).
+
+If your application requires additional dependencies, you can [install additional Python packages](../dependency-management/python-packages.md) or [install additional system packages](../dependency-management/system-packages.md).

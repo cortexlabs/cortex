@@ -114,7 +114,7 @@ class TensorFlowPredictor:
 
 ## Pre-installed packages
 
-The following packages have been pre-installed and can be used in your implementations:
+The following Python packages have been pre-installed and can be used in your implementations:
 
 ```text
 boto3==1.10.45
@@ -129,4 +129,7 @@ tensorflow-hub==0.7.0
 tensorflow==2.1.0
 ```
 
-Learn how to install additional packages [here](../dependency-management/python-packages.md).
+<!-- CORTEX_VERSION_MINOR -->
+The pre-installed system packages are listed in the [tf-api Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/tf-api/Dockerfile).
+
+If your application requires additional dependencies, you can [install additional Python packages](../dependency-management/python-packages.md) or [install additional system packages](../dependency-management/system-packages.md).
