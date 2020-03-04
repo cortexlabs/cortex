@@ -19,6 +19,7 @@ package operator
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"path"
 	"strings"
 
@@ -560,8 +561,8 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		},
 		kcore.EnvVar{
 			Name: "CORTEX_MAX_WORKER_CONCURRENCY",
-			// first integer divide and add 1 to always round up
-			Value: s.Int64((api.Autoscaling.MaxReplicaConcurrency / int64(api.Autoscaling.WorkersPerReplica)) + 1),
+			// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
+			Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Autoscaling.WorkersPerReplica)))),
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_SO_MAX_CONN",
