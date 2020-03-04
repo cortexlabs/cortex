@@ -1,20 +1,30 @@
-FROM tensorflow/tensorflow:2.1.0-py3
+FROM ubuntu:18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
+        curl \
         libfreetype6-dev \
         libpng-dev \
         libzmq3-dev \
         pkg-config \
+        rsync \
         software-properties-common \
+        unzip \
         zlib1g-dev \
+        python3.6-dev \
+        python3.6-distutils \
         git \
         libsm6 \
         libxext6 \
         libxrender-dev \
         libsndfile1 \
         locales \
-    && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
+    && apt-get clean -qq && rm -rf /var/lib/apt/lists/* && \
+    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.6 get-pip.py && \
+    pip install --upgrade pip && \
+    rm -rf /root/.cache/pip* && \
+    ln -s /usr/bin/python3.6 /usr/local/bin/python
 
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8

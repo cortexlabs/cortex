@@ -1,3 +1,5 @@
+tensorflow-cpu==2.1.0
+
 opencv-python==4.1.2.30
 tensor2tensor==1.15.4
 tensorflow-hub==0.7.0
