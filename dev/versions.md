@@ -99,7 +99,7 @@ It's probably safest to use the minor version of Python that you get when you ru
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
 
-## cuda
+## CUDA
 
 1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-serve-gpu/Dockerfile` and `images/tf-serve-gpu/Dockerfile`) to the desired version based on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu#ubuntu_1804_cuda_101) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
 
