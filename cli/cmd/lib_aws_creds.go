@@ -114,7 +114,7 @@ func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
 func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 	// First check env vars
 	if os.Getenv("AWS_SESSION_TOKEN") != "" {
-		fmt.Println("warning: aws session tokens are not supported")
+		fmt.Println("warning: credentials requiring aws session tokens are not supported")
 	}
 
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {

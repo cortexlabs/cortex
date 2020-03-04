@@ -34,7 +34,7 @@ func GetCredentialsFromCLIConfigFile() (string, string, error) {
 	}
 
 	if value.SessionToken != "" {
-		fmt.Println("warning: aws session tokens are not supported")
+		fmt.Println("warning: credentials requiring aws session tokens are not supported")
 	}
 
 	if value.AccessKeyID == "" || value.SecretAccessKey == "" {
