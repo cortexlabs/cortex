@@ -181,7 +181,7 @@ func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Me
 			{Title: "requested"},
 			{Title: "failed", Hidden: totalFailed == 0},
 			{Title: "last update"},
-			{Title: "avg inference"},
+			{Title: "avg request"},
 			{Title: "2XX"},
 			{Title: "4XX", Hidden: total4XX == 0},
 			{Title: "5XX", Hidden: total5XX == 0},

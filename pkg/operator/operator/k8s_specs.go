@@ -19,6 +19,7 @@ package operator
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"path"
 	"strings"
 
@@ -47,6 +48,10 @@ const (
 	_downloaderLastLog                     = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
+	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
+	_apiReadinessFile                      = "/mnt/api_readiness.txt"
+	_apiLivenessFile                       = "/mnt/api_liveness.txt"
+	_apiLivenessStalePeriod                = 7 // seconds (there is a 2-second buffer to be safe)
 )
 
 var (
@@ -161,7 +166,8 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: _apiReadinessProbe,
+						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:  _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: apiResourceList,
 						},
@@ -312,7 +318,8 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Env:             getEnvVars(api),
 						EnvFrom:         _baseEnvVars,
 						VolumeMounts:    _defaultVolumeMounts,
-						ReadinessProbe:  _apiReadinessProbe,
+						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:   _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -425,7 +432,8 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: _apiReadinessProbe,
+						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:  _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -548,6 +556,19 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
 		},
 		kcore.EnvVar{
+			Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
+			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
+		},
+		kcore.EnvVar{
+			Name: "CORTEX_MAX_WORKER_CONCURRENCY",
+			// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
+			Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Autoscaling.WorkersPerReplica)))),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_SO_MAX_CONN",
+			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
+		},
+		kcore.EnvVar{
 			Name:  "CORTEX_SERVING_PORT",
 			Value: _defaultPortStr,
 		},
@@ -583,6 +604,7 @@ func requestMonitorContainer(api *spec.API) *kcore.Container {
 		Args:            []string{api.Name, config.Cluster.LogGroup},
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    _defaultVolumeMounts,
+		ReadinessProbe:  fileExistsProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    _requestMonitorCPURequest,
@@ -601,13 +623,27 @@ var _apiReadinessProbe = &kcore.Probe{
 	TimeoutSeconds:      5,
 	PeriodSeconds:       5,
 	SuccessThreshold:    1,
-	FailureThreshold:    2,
+	FailureThreshold:    3,
 	Handler: kcore.Handler{
 		Exec: &kcore.ExecAction{
-			// Check the gunicorn master process and at least one other worker is alive
-			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"gunicorn\" | grep -v \"grep\" | wc -l | xargs test 2 -le && test -f /mnt/health_check.txt"},
+			Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(_apiLivenessStalePeriod) + `))" && test "$(cat ` + _apiLivenessFile + ` | tr -d '[:space:]')" -ge "$min"`},
 		},
 	},
+}
+
+func fileExistsProbe(fileName string) *kcore.Probe {
+	return &kcore.Probe{
+		InitialDelaySeconds: 3,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+		SuccessThreshold:    1,
+		FailureThreshold:    1,
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
+				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
+			},
+		},
+	}
 }
 
 var _tolerations = []kcore.Toleration{

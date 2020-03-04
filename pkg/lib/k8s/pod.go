@@ -19,6 +19,7 @@ package k8s
 import (
 	"bytes"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -157,18 +158,20 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.LastTerminationState.Terminated != nil {
 				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-				if exitCode == 137 {
-					return PodStatusKilledOOM
-				}
+				reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
 				if _killStatuses[exitCode] {
+					if strings.Contains(reason, "oom") {
+						return PodStatusKilledOOM
+					}
 					return PodStatusKilled
 				}
 			} else if containerStatus.State.Terminated != nil {
 				exitCode := containerStatus.State.Terminated.ExitCode
-				if exitCode == 137 {
-					return PodStatusKilledOOM
-				}
+				reason := strings.ToLower(containerStatus.State.Terminated.Reason)
 				if _killStatuses[exitCode] {
+					if strings.Contains(reason, "oom") {
+						return PodStatusKilledOOM
+					}
 					return PodStatusKilled
 				}
 			}
@@ -200,23 +203,29 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 			numRunning++
 		} else if containerStatus.State.Terminated != nil {
 			exitCode := containerStatus.State.Terminated.ExitCode
+			reason := strings.ToLower(containerStatus.State.Terminated.Reason)
 			if exitCode == 0 {
 				numSucceeded++
-			} else if exitCode == 137 {
-				numKilledOOM++
 			} else if _killStatuses[exitCode] {
-				numKilled++
+				if strings.Contains(reason, "oom") {
+					numKilledOOM++
+				} else {
+					numKilled++
+				}
 			} else {
 				numFailed++
 			}
 		} else if containerStatus.LastTerminationState.Terminated != nil {
 			exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+			reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
 			if exitCode == 0 {
 				numSucceeded++
-			} else if exitCode == 137 {
-				numKilledOOM++
 			} else if _killStatuses[exitCode] {
-				numKilled++
+				if strings.Contains(reason, "oom") {
+					numKilledOOM++
+				} else {
+					numKilled++
+				}
 			} else {
 				numFailed++
 			}

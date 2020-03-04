@@ -17,12 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"strings"
 	"sync"
 	"time"
 
@@ -79,14 +76,16 @@ func main() {
 	client = cloudwatch.New(sess)
 	requestCounter := Counter{}
 
+	os.OpenFile("/request_monitor_ready.txt", os.O_RDONLY|os.O_CREATE, 0666)
+
 	for {
-		if _, err := os.Stat("/mnt/health_check.txt"); err == nil {
+		if _, err := os.Stat("/mnt/api_readiness.txt"); err == nil {
 			break
 		} else if os.IsNotExist(err) {
-			fmt.Println("waiting...")
+			fmt.Println("waiting for replica to be ready...")
 			time.Sleep(_tickInterval)
 		} else {
-			log.Printf("error encountered while looking for /mnt/health_check.txt") // unexpected
+			log.Printf("error encountered while looking for /mnt/api_readiness.txt") // unexpected
 			time.Sleep(_tickInterval)
 		}
 	}
@@ -164,22 +163,21 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 	}
 }
 
-func updateOpenConnections(requestCounter *Counter, timer *time.Timer) {
-	cmd := exec.Command("ss")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
+func getFileCount() int {
+	dir, err := os.Open("/mnt/requests")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
+	defer dir.Close()
+	fileNames, err := dir.Readdirnames(0)
+	if err != nil {
+		panic(err)
+	}
+	return len(fileNames)
+}
 
-	output := out.String()
-	count := 0
-	for _, str := range strings.Split(output, "\n") {
-		if strings.Contains(str, ":8888 ") && strings.Contains(str, "ESTAB") {
-			count++
-		}
-	}
+func updateOpenConnections(requestCounter *Counter, timer *time.Timer) {
+	count := getFileCount()
 	requestCounter.Append(count)
 	timer.Reset(_requestSampleInterval)
 }

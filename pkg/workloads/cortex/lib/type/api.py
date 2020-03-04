@@ -64,8 +64,8 @@ class API:
     def metric_dimensions(self):
         return [{"Name": "APIName", "Value": self.name}, {"Name": "APIID", "Value": self.id}]
 
-    def post_latency_metrics(self, status_code, start_time):
-        metrics = [self.status_code_metric(status_code), self.latency_metric(start_time)]
+    def post_request_metrics(self, status_code, total_time):
+        metrics = [self.status_code_metric(status_code), self.latency_metric(total_time)]
         self.post_metrics(metrics)
 
     def post_tracker_metrics(self, prediction_value=None):
@@ -99,11 +99,11 @@ class API:
             "Unit": "Count",
         }
 
-    def latency_metric(self, start_time):
+    def latency_metric(self, total_time):
         return {
             "MetricName": "Latency",
             "Dimensions": self.metric_dimensions(),
-            "Value": (time.time() - start_time) * 1000,  # milliseconds
+            "Value": total_time * 1000,  # milliseconds
         }
 
     def prediction_metrics(self, prediction_value):

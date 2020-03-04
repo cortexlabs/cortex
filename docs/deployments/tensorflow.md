@@ -30,8 +30,9 @@ You can deploy TensorFlow models as web services by defining a class that implem
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
     workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
     threads_per_worker: <int>  # the number of threads per worker (default: 1)
-    target_queue_length: <float>  # the desired queue length per replica (default: 0)
-    window: <duration>  # the time over which to average the API's queue length (default: 60s)
+    target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: workers_per_replica * threads_per_worker)
+    max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
+    window: <duration>  # the time over which to average the API's concurrency (default: 60s)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
     upscale_stabilization_period: <duration>  # the API will not scale above the lowest recommendation made during this period (default: 0m)
     max_downscale_factor: <float>  # the maximum factor by which to scale down the API on a single scaling event (default: 0.5)
@@ -122,6 +123,7 @@ msgpack==0.6.2
 numpy==1.18.0
 requests==2.22.0
 opencv-python==4.1.2.30
+pyyaml==5.3
 tensor2tensor==1.15.4
 tensorflow-hub==0.7.0
 tensorflow==2.1.0
