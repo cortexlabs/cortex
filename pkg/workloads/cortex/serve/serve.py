@@ -21,6 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import math
 import asyncio
+from typing import Union, Any
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -141,7 +142,7 @@ def apply_cors_headers(request: Request, response: Response):
 
 
 @app.post("/predict")
-def predict(request: dict, debug=False):
+def predict(request: Union[dict, list, Any], debug=False):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
 
