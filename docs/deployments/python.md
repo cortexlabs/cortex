@@ -171,6 +171,6 @@ xgboost==0.90
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in the [python-serve Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU) or the [python-serve-gpu Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU).
+The pre-installed system packages are listed in the [python-serve Dockerfile](https://github.com/cortexlabs/cortex/tree/0.14/images/python-serve/Dockerfile) (for CPU) or the [python-serve-gpu Dockerfile](https://github.com/cortexlabs/cortex/tree/0.14/images/python-serve-gpu/Dockerfile) (for GPU).
 
 If your application requires additional dependencies, you can [install additional Python packages](../dependency-management/python-packages.md) or [install additional system packages](../dependency-management/system-packages.md).
