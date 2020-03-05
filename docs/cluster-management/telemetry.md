@@ -1,7 +1,5 @@
 # Telemetry
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 By default, the Cortex CLI sends anonymous usage data to Cortex Labs.
 
 ## What data is collected?

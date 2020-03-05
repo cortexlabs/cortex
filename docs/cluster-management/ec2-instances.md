@@ -1,7 +1,5 @@
 # EC2 instances
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can spin up a Cortex cluster on a variety of AWS instance types. If you are unsure about which instance to pick, review these options as a starting point. This is not a comprehensive guide so please refer to the [full documentation](https://aws.amazon.com/ec2/instance-types/) on AWS for more information.
 
 ## T3 instances

@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+# this is an example for cortex release 0.14 and may not deploy correctly on other releases of cortex
 
 # This file includes code which was modified from https://colab.research.google.com/drive/1KTLqiAOdKM_3RnBWfqgrvOQLqumUyOdA
 
