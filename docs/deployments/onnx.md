@@ -122,7 +122,7 @@ class ONNXPredictor:
 
 ## Pre-installed packages
 
-The following packages have been pre-installed and can be used in your implementations:
+The following Python packages have been pre-installed and can be used in your implementations:
 
 ```text
 boto3==1.10.45
@@ -134,4 +134,7 @@ pyyaml==5.3
 requests==2.22.0
 ```
 
-Learn how to install additional packages [here](../dependency-management/python-packages.md).
+<!-- CORTEX_VERSION_MINOR x2 -->
+The pre-installed system packages are listed in the [onnx-serve Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve/Dockerfile) (for CPU) or the [onnx-serve-gpu Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve-gpu/Dockerfile) (for GPU).
+
+If your application requires additional dependencies, you can [install additional Python packages](../dependency-management/python-packages.md) or [install additional system packages](../dependency-management/system-packages.md).
