@@ -4,7 +4,6 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry that your cluster has access to (e.g. [Docker Hub](https://hub.docker.com) or [AWS ECR](https://aws.amazon.com/ecr)).
 
-See the `image paths` section in [cluster configuration](../cluster-management/config.md) for a complete list of customizable images.
 
 ## Create a custom image
 
@@ -14,12 +13,22 @@ Create a Dockerfile to build your custom image:
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
-Specify the base image you want to override followed by your customizations. The sample Dockerfile below inherits from Cortex's Python serving image and installs the `tree` system package.
+The Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image.
 
+<!-- CORTEX_VERSION_README x5 -->
+* Python (CPU): cortexlabs/python-serve:0.14.0
+* Python (GPU): cortexlabs/python-serve-gpu:0.14.0
+* TensorFlow (CPU or GPU): cortexlabs/tf-api:0.14.0
+* ONNX (CPU): cortexlabs/onnx-serve:0.14.0
+* ONNX (GPU): cortexlabs/onnx-serve-gpu:0.14.0
+
+The sample Dockerfile below inherits from Cortex's Python CPU serving image and installs the `tree` system package.
+
+<!-- CORTEX_VERSION_README -->
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-serve
+FROM cortexlabs/python-serve:0.14.0
 
 RUN apt-get update \
     && apt-get install -y tree \
@@ -70,7 +79,7 @@ cortex cluster update --config=cluster.yaml
 
 ## Use system packages in workloads
 
-Cortex will use your image to launch Python serving workloads and you will have access to any packages you added:
+Cortex will use your custom image to launch workloads and you will have access to any packages you added:
 
 ```python
 # predictor.py
