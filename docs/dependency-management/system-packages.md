@@ -22,6 +22,8 @@ The Docker images used to deploy your models are listed below. Based on the Cort
 * ONNX (CPU): cortexlabs/onnx-serve:0.14.0
 * ONNX (GPU): cortexlabs/onnx-serve-gpu:0.14.0
 
+Note that the Docker image version must match your cluster version displayed in `cortex version`.
+
 The sample Dockerfile below inherits from Cortex's Python CPU serving image and installs the `tree` system package.
 
 <!-- CORTEX_VERSION_README -->
