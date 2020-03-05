@@ -22,4 +22,4 @@ echo -e "spinning down the cluster ...\n"
 
 eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT
 
-echo -e "\n✓ please check cloudformation to ensure that all resources for the ${CORTEX_CLUSTER_NAME} cluster are successfully deleted: https://${CORTEX_REGION}.console.aws.amazon.com/cloudformation"
+echo -e "\n✓ please check CloudFormation to ensure that all resources for the ${CORTEX_CLUSTER_NAME} cluster eventually become successfully deleted: https://console.aws.amazon.com/cloudformation/home?region=${CORTEX_REGION}#/stacks?filteringText=-${CORTEX_CLUSTER_NAME}-"
