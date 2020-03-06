@@ -33,8 +33,8 @@ Now let's take a sample image like this one.
 
 Then run the following piped commands
 ```bash
-curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d '{"url":"'${IMAGE_URL}'"}' | 
-sed 's/"//g' | 
+curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d '{"url":"'${IMAGE_URL}'"}' |
+sed 's/"//g' |
 base64 -do prediction.png
 ```
 
