@@ -1,8 +1,18 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-import boto3, base64, cv2, re, os, json
+import boto3, base64, cv2, re, os, requests
 import numpy as np
 from tensorflow.keras.models import load_model
+
+
+def get_url_image(url_image):
+    """
+    Get numpy image from URL image.
+    """
+    resp = requests.get(url_image, stream=True).raw
+    image = np.asarray(bytearray(resp.read()), dtype="uint8")
+    image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
+    return image
 
 
 def image_to_png_nparray(image):
@@ -22,15 +32,6 @@ def image_to_png_bytes(image):
     return byte_im
 
 
-def image_from_bytes(byte_im):
-    """
-    Convert image from bytes representation to numpy array.
-    """
-    nparr = np.frombuffer(byte_im, np.uint8)
-    img_np = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
-    return img_np
-
-
 class PythonPredictor:
     def __init__(self, config):
         # download the model
@@ -47,25 +48,21 @@ class PythonPredictor:
         self.resize_shape = tuple(config["resize_shape"])
 
     def predict(self, payload):
-        # decode image
-        img = payload["img"]
-        img = base64.b64decode(img.encode("utf-8"))
-
-        # convert bytes representation to image
-        image = image_from_bytes(img)
-        image = cv2.resize(image, self.resize_shape)
+        # download image
+        img_url = payload["url"]
+        image = get_url_image(img_url)
+        resized = cv2.resize(image, self.resize_shape)
 
         # prediction
-        pred = self.make_prediction(image)
+        pred = self.make_prediction(resized)
 
         # image represented in bytes
         byte_im = image_to_png_bytes(pred)
 
         # encode image
         image_enc = base64.b64encode(byte_im).decode("utf-8")
-        image_dump = json.dumps({"img_pred": image_enc})
 
-        return image_dump
+        return image_enc
 
     def make_prediction(self, img):
         """

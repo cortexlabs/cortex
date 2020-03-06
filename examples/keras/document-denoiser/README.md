@@ -24,15 +24,18 @@ Make sure this is run on *Python 3.x*.
 Once this model is deployed, get the API endpoint by running `cortex get document-denoiser`. Then export the endpoint by running
 ```bash
 export ENDPOINT=your-api-endpoint
+export IMAGE_URL=https://i.imgur.com/JJLfFxB.png
 ```
 
 Now let's take a sample image like this one.
 
 ![Imgur](https://i.imgur.com/JJLfFxB.png)
 
-Then pass on as an argument the URL link of the above image that has text in it and has to be cleaned of any noise.
+Then run the following piped commands
 ```bash
-python sample_inference.py https://i.imgur.com/JJLfFxB.png
+curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d '{"url":"'${IMAGE_URL}'"}' | 
+sed 's/"//g' | 
+base64 -do prediction.png
 ```
 
 Once this has run, we'll see a `prediction.png` file saved to the disk. This is the result.
@@ -41,7 +44,7 @@ Once this has run, we'll see a `prediction.png` file saved to the disk. This is 
 
 As it can be seen, the text document has been cleaned of any noise. Success!
 
-Here's a short list of URLs of other text documents in image format that can be cleaned using this model:
+Here's a short list of URLs of other text documents in image format that can be cleaned using this model. Export these links to `IMAGE_URL` variable:
 
 * https://i.imgur.com/6COQ46f.png
 * https://i.imgur.com/alLI83b.png
