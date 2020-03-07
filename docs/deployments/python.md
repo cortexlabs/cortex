@@ -58,6 +58,46 @@ In addition to supporting Python models via the Python Predictor interface, Cort
     gpu: 1
 ```
 
+### Note on Parallelism
+
+If the **number of workers** `workers_per_replica` is greater than 1, **GPU(s)** are in place and if a **Tensorflow-based** framework is used (such as Keras), then loading the model in all separate processes at the same time will throw a `CUDA_ERROR_OUT_OF_MEMORY: out of memory` error. This is because the very first process that loads the model will use up all of the GPU's memory and leave none to others. To prevent that from happening, the GPU memory usage has to be limited inside the [predictor](#python-predictor) script. There are 2 ways. Both are in Tensorflow `2.x`:
+
+1. Allow the model to use as much memory as it requires and do not pre-allocate the whole chunk.
+1. Impose a hard limit on how much memory the model can use.
+
+The first option uses `set_memory_growth` function and looks like this
+```python
+import tensorflow as tf
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    for gpu in gpus:
+      tf.config.experimental.set_memory_growth(gpu, True)
+  except RuntimeError as e:
+    print(e)
+
+# PythonPredictor implementation
+# ...
+```
+
+And the second one limits the model's memory to `1GB` by using `set_virtual_device_configuration` function like this
+```python
+gpus = tf.config.experimental.list_physical_devices('GPU')
+mem_limit_mb = 1024
+if gpus:
+  try:
+    for gpu in gpus:
+      tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=mem_limit_mb)])
+  except RuntimeError as e:
+    print(e)
+
+# PythonPredictor implementation
+# ...
+```
+
+[Here](https://medium.com/@starriet87/tensorflow-2-0-wanna-limit-gpu-memory-10ad474e2528) can be found more on this.
+
 ## Debugging
 
 You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
