@@ -144,6 +144,7 @@ The following Python packages have been pre-installed and can be used in your im
 ```text
 boto3==1.10.45
 cloudpickle==1.3.0
+Cython==0.29.15
 dill==0.3.1.1
 joblib==0.14.1
 Keras==2.3.1
