@@ -175,7 +175,7 @@ func ErrorDirDoesNotExist(path string) error {
 func ErrorNotAFile(path string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrNotAFile,
-		message: fmt.Sprintf("%s: not a file path", path),
+		message: fmt.Sprintf("%s: no such file", path),
 	})
 }
 

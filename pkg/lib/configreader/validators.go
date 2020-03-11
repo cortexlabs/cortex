@@ -37,7 +37,6 @@ func init() {
 
 func GetFilePathValidator(baseDir string) func(string) (string, error) {
 	return func(val string) (string, error) {
-		val = files.RelToAbsPath(val, baseDir)
 		if err := files.CheckFile(val); err != nil {
 			return "", err
 		}
