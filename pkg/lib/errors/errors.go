@@ -26,10 +26,63 @@ import (
 	pkgerrors "github.com/pkg/errors"
 )
 
+type Kind string
+
+func (k Kind) String() string {
+	return string(k)
+}
+
+const (
+	KindUnknown Kind = "unknown"
+)
+
+type Error interface {
+	error
+	GetKind() ErrorKind
+	SetUser()
+	IsUser() bool
+}
+
+type ErrorKind interface {
+	String() string
+}
+
+type CortexError struct {
+	Kind    ErrorKind
+	Message string
+	User    bool
+}
+
+func (e *CortexError) Error() string {
+	return e.Message
+}
+
+func (e *CortexError) GetKind() ErrorKind {
+	return e.Kind
+}
+
+func (e *CortexError) SetUser() {
+	e.User = true
+}
+
+func (e *CortexError) IsUser() bool {
+	return e.User
+}
+
+type CortexErrorWithCause struct {
+	CortexError
+	origErr error
+}
+
+func (e *CortexErrorWithCause) Cause() error {
+	return e.origErr
+}
+
 func New(strs ...string) error {
 	strs = removeEmptyStrs(strs)
 	errStr := strings.Join(strs, ": ")
-	return pkgerrors.New(errStr)
+	err := &CortexError{Kind: KindUnknown, Message: errStr, User: false}
+	return pkgerrors.WithStack(err)
 }
 
 func Wrap(err error, strs ...string) error {
@@ -41,11 +94,63 @@ func Wrap(err error, strs ...string) error {
 		return pkgerrors.WithStack(err)
 	}
 	errStr := strings.Join(strs, ": ")
-	return pkgerrors.Wrap(err, errStr)
+
+	cortexError := causeCortexError(err)
+	if cortexError != nil {
+		return pkgerrors.Wrap(err, errStr)
+	}
+	cortexError = &CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: KindUnknown, Message: errStr, User: false}}
+	return pkgerrors.Wrap(cortexError, errStr)
 }
 
 func WithStack(err error) error {
-	return pkgerrors.WithStack(err)
+	if cortexError := causeCortexError(err); cortexError != nil {
+		return pkgerrors.WithStack(err)
+	}
+
+	return pkgerrors.WithStack(&CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: KindUnknown, Message: err.Error(), User: true}})
+}
+
+func SetUser(err error) error {
+	if cortexError := causeCortexError(err); cortexError != nil {
+		cortexError.SetUser()
+		return err
+	}
+	return WithStack(&CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: KindUnknown, Message: err.Error(), User: true}})
+}
+
+func IsUser(err error) bool {
+	if cortexError := causeCortexError(err); cortexError != nil {
+		return cortexError.IsUser()
+	}
+
+	return false
+}
+
+func GetKind(err error) ErrorKind {
+	if cortexError := causeCortexError(err); cortexError != nil {
+		return cortexError.GetKind()
+	}
+
+	return KindUnknown
+}
+
+func causeCortexError(err error) Error {
+	type causer interface {
+		Cause() error
+	}
+
+	for err != nil {
+		if cortexError, ok := err.(Error); ok {
+			return cortexError
+		}
+		cause, ok := err.(causer)
+		if !ok {
+			break
+		}
+		err = cause.Cause()
+	}
+	return nil
 }
 
 func Cause(err error) error {

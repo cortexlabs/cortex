@@ -18,6 +18,8 @@ package telemetry
 
 import (
 	"os"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -169,9 +171,42 @@ func Error(err error) {
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: _config.UserID})
 		scope.SetExtras(_config.Properties)
-		sentry.CaptureException(err)
+		scope.SetTag("is_user", strconv.FormatBool(errors.IsUser(err)))
+		e := EventFromException(err)
+		sentry.CaptureEvent(e)
+
 		go sentry.Flush(10 * time.Second)
 	})
+}
+
+func EventFromException(exception error) *sentry.Event {
+	stacktrace := sentry.ExtractStacktrace(exception)
+
+	if stacktrace == nil {
+		stacktrace = sentry.NewStacktrace()
+	}
+
+	cause := exception
+	// Handle wrapped errors for github.com/pingcap/errors and github.com/pkg/errors
+	if ex, ok := exception.(interface{ Cause() error }); ok {
+		cause = ex.Cause()
+	}
+
+	event := sentry.NewEvent()
+	event.Level = sentry.LevelError
+
+	errTypeString := reflect.TypeOf(cause).String()
+	errKind := errors.GetKind(exception)
+	if errKind == errors.KindUnknown {
+		errTypeString = errKind.String()
+	}
+
+	event.Exception = []sentry.Exception{{
+		Value:      cause.Error(),
+		Type:       errTypeString,
+		Stacktrace: stacktrace,
+	}}
+	return event
 }
 
 func ErrorMessage(message string) {
