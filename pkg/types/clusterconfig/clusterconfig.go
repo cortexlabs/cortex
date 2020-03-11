@@ -395,6 +395,7 @@ func validateImageVersion(image string) (string, error) {
 		tag = image[colonIndex+1:]
 	}
 
+	// in docker, missing tag implies "latest"
 	if tag == "" {
 		tag = "latest"
 	}
