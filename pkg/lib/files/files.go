@@ -138,7 +138,8 @@ func WriteFile(data []byte, path string) error {
 	return nil
 }
 
-// Returns original path if there was an error
+// e.g. ~/path -> /home/ubuntu/path
+// returns original path if there was an error
 func EscapeTilde(path string) (string, error) {
 	if !(path == "~" || strings.HasPrefix(path, "~/")) {
 		return path, nil
@@ -148,6 +149,9 @@ func EscapeTilde(path string) (string, error) {
 		homeDir, err := homedir.Dir()
 		if err != nil {
 			return path, err
+		}
+		if homeDir == "" || homeDir == "/" {
+			return path, nil
 		}
 		_homeDir = homeDir
 	}
@@ -160,6 +164,7 @@ func EscapeTilde(path string) (string, error) {
 	return filepath.Join(_homeDir, path[2:]), nil
 }
 
+// e.g. /home/ubuntu/path -> ~/path
 func ReplacePathWithTilde(absPath string) string {
 	if !strings.HasPrefix(absPath, "/") {
 		return absPath
@@ -167,7 +172,7 @@ func ReplacePathWithTilde(absPath string) string {
 
 	if _homeDir == "" {
 		homeDir, err := homedir.Dir()
-		if err != nil {
+		if err != nil || homeDir == "" || homeDir == "/" {
 			return absPath
 		}
 		_homeDir = homeDir
