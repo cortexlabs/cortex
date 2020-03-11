@@ -15,7 +15,7 @@
 * [TensorFlow and Keras](frameworks/tensorflow.md)
 * [Scikit-learn, XGBoost, and others](frameworks/python.md)
 
-## Cortex Predictors
+## Predictors
 
 * [Python Predictor](predictors/python.md)
 * [TensorFlow Predictor](predictors/tensorflow.md)
