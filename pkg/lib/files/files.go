@@ -160,6 +160,28 @@ func EscapeTilde(path string) (string, error) {
 	return filepath.Join(_homeDir, path[2:]), nil
 }
 
+func ReplacePathWithTilde(absPath string) string {
+	if !strings.HasPrefix(absPath, "/") {
+		return absPath
+	}
+
+	if _homeDir == "" {
+		homeDir, err := homedir.Dir()
+		if err != nil {
+			return absPath
+		}
+		_homeDir = homeDir
+	}
+
+	trimmedHomeDir := strings.TrimSuffix(s.EnsurePrefix(_homeDir, "/"), "/")
+
+	if strings.Index(absPath, trimmedHomeDir) == 0 {
+		return "~" + absPath[len(trimmedHomeDir):]
+	}
+
+	return absPath
+}
+
 func TrimDirPrefix(fullPath string, dirPath string) string {
 	if !strings.HasSuffix(dirPath, "/") {
 		dirPath = dirPath + "/"

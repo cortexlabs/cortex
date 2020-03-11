@@ -891,7 +891,7 @@ func ParseYAMLFile(dest interface{}, validation *StructValidation, filePath stri
 
 	errs := Struct(dest, fileInterface, validation)
 	if errors.HasError(errs) {
-		return errors.WrapAll(errs, files.PathRelativeToCWD(filePath))
+		return errors.WrapAll(errs, files.ReplacePathWithTilde(filePath))
 	}
 
 	return nil
@@ -905,7 +905,7 @@ func ReadYAMLFile(filePath string) (interface{}, error) {
 
 	fileInterface, err := ReadYAMLBytes(fileBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, files.PathRelativeToCWD(filePath))
+		return nil, errors.Wrap(err, files.ReplacePathWithTilde(filePath))
 	}
 
 	return fileInterface, nil
