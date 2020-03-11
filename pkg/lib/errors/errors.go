@@ -26,14 +26,14 @@ import (
 	pkgerrors "github.com/pkg/errors"
 )
 
-type Kind string
+type errorKind string
 
-func (k Kind) String() string {
+func (k errorKind) String() string {
 	return string(k)
 }
 
 const (
-	KindUnknown Kind = "unknown"
+	ErrUnknown errorKind = "err_unknown"
 )
 
 type Error interface {
@@ -81,7 +81,7 @@ func (e *CortexErrorWithCause) Cause() error {
 func New(strs ...string) error {
 	strs = removeEmptyStrs(strs)
 	errStr := strings.Join(strs, ": ")
-	err := &CortexError{Kind: KindUnknown, Message: errStr, User: false}
+	err := &CortexError{Kind: ErrUnknown, Message: errStr, User: false}
 	return pkgerrors.WithStack(err)
 }
 
@@ -99,7 +99,7 @@ func Wrap(err error, strs ...string) error {
 	if cortexError != nil {
 		return pkgerrors.Wrap(err, errStr)
 	}
-	cortexError = &CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: KindUnknown, Message: errStr, User: false}}
+	cortexError = &CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: ErrUnknown, Message: errStr, User: false}}
 	return pkgerrors.Wrap(cortexError, errStr)
 }
 
@@ -108,7 +108,7 @@ func WithStack(err error) error {
 		return pkgerrors.WithStack(err)
 	}
 
-	return pkgerrors.WithStack(&CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: KindUnknown, Message: err.Error(), User: true}})
+	return pkgerrors.WithStack(&CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: ErrUnknown, Message: err.Error(), User: true}})
 }
 
 func SetUser(err error) error {
@@ -116,7 +116,7 @@ func SetUser(err error) error {
 		cortexError.SetUser()
 		return err
 	}
-	return WithStack(&CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: KindUnknown, Message: err.Error(), User: true}})
+	return WithStack(&CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: ErrUnknown, Message: err.Error(), User: true}})
 }
 
 func IsUser(err error) bool {
@@ -132,7 +132,7 @@ func GetKind(err error) ErrorKind {
 		return cortexError.GetKind()
 	}
 
-	return KindUnknown
+	return ErrUnknown
 }
 
 func causeCortexError(err error) Error {
