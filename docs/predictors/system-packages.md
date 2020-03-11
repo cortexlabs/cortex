@@ -4,7 +4,6 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry that your cluster has access to (e.g. [Docker Hub](https://hub.docker.com) or [AWS ECR](https://aws.amazon.com/ecr)).
 
-
 ## Create a custom image
 
 Create a Dockerfile to build your custom image:

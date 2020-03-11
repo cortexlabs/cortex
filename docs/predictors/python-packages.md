@@ -14,7 +14,7 @@ You can install your required PyPI packages and import them in your Python files
 └── requirements.txt
 ```
 
-Note that some packages are pre-installed by default (see [python predictor](../deployments/python.md), [tensorflow predictor](../deployments/tensorflow.md), [onnx predictor](../deployments/onnx.md) depending on which runtime you're using).
+Note that some packages are pre-installed by default (see [Python Predictor](python.md), [TensorFlow Predictor](tensorflow.md), or [ONNX Predictor](onnx.md) depending on which runtime you're using).
 
 ## Private packages on GitHub
 

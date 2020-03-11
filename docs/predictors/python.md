@@ -1,18 +1,17 @@
-# ONNX APIs
+# Python Predictor
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-You can deploy ONNX models as web services by defining a class that implements Cortex's ONNX Predictor interface.
+You can deploy models from any Python framework by defining a class that implements Cortex's Python Predictor interface. The class constructor is responsible for preparing the model for serving, downloading vocabulary files, etc. The `predict()` class function is called on every request and is responsible for responding with a prediction.
 
-## Config
+## API configuration
 
 ```yaml
 - name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<api_name>)
   predictor:
-    type: onnx
-    path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+    type: python
+    path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
     config: <string: value>  # dictionary passed to the constructor of a Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     env: <string: string>  # dictionary of environment variables
@@ -43,43 +42,33 @@ You can deploy ONNX models as web services by defining a class that implements C
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See [packaging ONNX models](../packaging-models/onnx.md) for information about exporting ONNX models.
-
-## Example
+### Example
 
 ```yaml
 - name: my-api
   predictor:
-    type: onnx
+    type: python
     path: predictor.py
-    model: s3://my-bucket/my-model.onnx
   compute:
     gpu: 1
 ```
 
-## Debugging
+## Python Predictor Interface
 
-You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
+A Python Predictor is a Python class that describes how to initialize a model and use it to make a prediction.
 
-1. The payload
-2. The value after running the `predict` function
+The lifecycle of a replica starts with the initialization of the Python Predictor class defined in your implementation file. The constructor is responsible for downloading and initializing the model. It receives the config object, which is an arbitrary dictionary defined in the API configuration (e.g. `cortex.yaml`) that can be used to pass in the path to the exported model, vocabularies, etc. After successfully initializing an instance of the Python Predictor class, the replica is available to serve requests. Upon receiving a request, the replica calls the `predict()` function with the JSON payload. The `predict()` function is responsible for returning a prediction or a batch of predictions. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function.
 
-# ONNX Predictor
-
-An ONNX Predictor is a Python class that describes how to serve your ONNX model to make predictions.
-
-<!-- CORTEX_VERSION_MINOR -->
-Cortex provides an `onnx_client` and a config object to initialize your implementation of the ONNX Predictor class. The `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session and helps make predictions using your model. Once your implementation of the ONNX Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `onnx_client.predict()` to make an inference against your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
-
-## Implementation
+### Implementation
 
 ```python
-class ONNXPredictor:
-    def __init__(self, onnx_client, config):
-        """Called once before the API becomes available. Setup for model serving such as downloading/initializing vocabularies can be done here. Required.
+# initialization code and variables can be declared here in global scope
+
+class PythonPredictor:
+    def __init__(self, config):
+        """Called once before the API becomes available. Setup for model serving such as downloading/initializing the model or downloading vocabulary can be done here. Required.
 
         Args:
-            onnx_client: ONNX client which can be used to make predictions.
             config: Dictionary passed from API configuration (if specified).
         """
         pass
@@ -95,30 +84,52 @@ class ONNXPredictor:
         """
 ```
 
-## Example
+### Example
 
 ```python
-import numpy as np
+import boto3
+from my_model import IrisNet
 
 labels = ["setosa", "versicolor", "virginica"]
 
+class PythonPredictor:
+    def __init__(self, config):
+        # download the model
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
+        s3 = boto3.client("s3")
+        s3.download_file(bucket, key, "model.pth")
 
-class ONNXPredictor:
-    def __init__(self, onnx_client, config):
-        self.client = onnx_client
+        # initialize the model
+        model = IrisNet()
+        model.load_state_dict(torch.load(config['model']))
+        model.eval()
+
+        self.model = model
+
 
     def predict(self, payload):
-        model_input = [
-            payload["sepal_length"],
-            payload["sepal_width"],
-            payload["petal_length"],
-            payload["petal_width"],
-        ]
+        # Convert the request to a tensor and pass it into the model
+        input_tensor = torch.FloatTensor(
+            [
+                [
+                    payload["sepal_length"],
+                    payload["sepal_width"],
+                    payload["petal_length"],
+                    payload["petal_width"],
+                ]
+            ]
+        )
 
-        prediction = self.client.predict(model_input)
-        predicted_class_id = prediction[0][0]
-        return labels[predicted_class_id]
+        # Run the prediction
+        output = self.model(input_tensor)
+
+        # Translate the model output to the corresponding label string
+        return labels[torch.argmax(output[0])]
 ```
+
+## Debugging
+
+You can log information about each request by adding a `?debug=true` parameter to your requests. This will print the payload and the value after running your `predict()` function.
 
 ## Pre-installed packages
 
@@ -126,15 +137,35 @@ The following Python packages have been pre-installed and can be used in your im
 
 ```text
 boto3==1.10.45
+cloudpickle==1.3.0
+Cython==0.29.15
 dill==0.3.1.1
+joblib==0.14.1
+Keras==2.3.1
 msgpack==0.6.2
+nltk==3.4.5
+np-utils==0.5.12.1
 numpy==1.18.0
-onnxruntime==1.1.0
+pandas==0.25.3
+opencv-python==4.1.2.30
+Pillow==6.2.1
 pyyaml==5.3
 requests==2.22.0
+scikit-image==0.16.2
+scikit-learn==0.22
+scipy==1.4.1
+six==1.13.0
+statsmodels==0.10.2
+sympy==1.5
+tensor2tensor==1.15.4
+tensorflow-hub==0.7.0
+tensorflow==2.1.0
+torch==1.4.0
+torchvision==0.5.0
+xgboost==0.90
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in the [onnx-serve Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve/Dockerfile) (for CPU) or the [onnx-serve-gpu Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve-gpu/Dockerfile) (for GPU).
+The pre-installed system packages are listed in the [python-serve Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU) or the [python-serve-gpu Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU).
 
-If your application requires additional dependencies, you can [install additional Python packages](../dependency-management/python-packages.md) or [install additional system packages](../dependency-management/system-packages.md).
+If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) or [system packages](system-packages.md).

@@ -1,20 +1,19 @@
-# TensorFlow APIs
+# ONNX Predictor
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-You can deploy TensorFlow models as web services by defining a class that implements Cortex's TensorFlow Predictor interface.
+You can deploy ONNX models as web services by defining a class that implements Cortex's ONNX Predictor interface.
 
-## Config
+## API configuration
 
 ```yaml
 - name: <string>  # API name (required)
   endpoint: <string>  # the endpoint for the API (default: /<api_name>)
   predictor:
-    type: tensorflow
-    path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
-    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
-    signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-    config: <string: value>  # dictionary that can be used to configure custom values (optional)
+    type: onnx
+    path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
+    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+    config: <string: value>  # dictionary passed to the constructor of a Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     env: <string: string>  # dictionary of environment variables
   tracker:
@@ -44,43 +43,34 @@ You can deploy TensorFlow models as web services by defining a class that implem
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See [packaging TensorFlow models](../packaging-models/tensorflow.md) for how to export a TensorFlow model.
-
-## Example
+### Example
 
 ```yaml
 - name: my-api
   predictor:
-    type: tensorflow
+    type: onnx
     path: predictor.py
-    model: s3://my-bucket/my-model
+    model: s3://my-bucket/my-model.onnx
   compute:
     gpu: 1
 ```
 
-## Debugging
+## ONNX Predictor Interface
 
-You can log information about each request by adding a `?debug=true` parameter to your requests. This will print:
-
-1. The payload
-2. The value after running the `predict` function
-
-# TensorFlow Predictor
-
-A TensorFlow Predictor is a Python class that describes how to serve your TensorFlow model to make predictions.
+An ONNX Predictor is a Python class that describes how to serve your ONNX model to make predictions.
 
 <!-- CORTEX_VERSION_MINOR -->
-Cortex provides a `tensorflow_client` and a config object to initialize your implementation of the TensorFlow Predictor class. The `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container via gRPC to make predictions using your model. Once your implementation of the TensorFlow Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `tensorflow_client.predict()` to make an inference against your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
+Cortex provides an `onnx_client` and a config object to initialize your implementation of the ONNX Predictor class. The `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session and helps make predictions using your model. Once your implementation of the ONNX Predictor class has been initialized, the replica is available to serve requests. Upon receiving a request, your implementation's `predict()` function is called with the JSON payload and is responsible for returning a prediction or batch of predictions. Your `predict()` function should call `onnx_client.predict()` to make an inference against your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-## Implementation
+### Implementation
 
 ```python
-class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config):
+class ONNXPredictor:
+    def __init__(self, onnx_client, config):
         """Called once before the API becomes available. Setup for model serving such as downloading/initializing vocabularies can be done here. Required.
 
         Args:
-            tensorflow_client: TensorFlow client which can be used to make predictions.
+            onnx_client: ONNX client which can be used to make predictions.
             config: Dictionary passed from API configuration (if specified).
         """
         pass
@@ -96,21 +86,34 @@ class TensorFlowPredictor:
         """
 ```
 
-## Example
+### Example
 
 ```python
+import numpy as np
+
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config):
-        self.client = tensorflow_client
+class ONNXPredictor:
+    def __init__(self, onnx_client, config):
+        self.client = onnx_client
 
     def predict(self, payload):
-        prediction = self.client.predict(payload)
-        predicted_class_id = int(prediction["class_ids"][0])
+        model_input = [
+            payload["sepal_length"],
+            payload["sepal_width"],
+            payload["petal_length"],
+            payload["petal_width"],
+        ]
+
+        prediction = self.client.predict(model_input)
+        predicted_class_id = prediction[0][0]
         return labels[predicted_class_id]
 ```
+
+## Debugging
+
+You can log information about each request by adding a `?debug=true` parameter to your requests. This will print the payload and the value after running your `predict()` function.
 
 ## Pre-installed packages
 
@@ -121,15 +124,12 @@ boto3==1.10.45
 dill==0.3.1.1
 msgpack==0.6.2
 numpy==1.18.0
-requests==2.22.0
-opencv-python==4.1.2.30
+onnxruntime==1.1.0
 pyyaml==5.3
-tensor2tensor==1.15.4
-tensorflow-hub==0.7.0
-tensorflow==2.1.0
+requests==2.22.0
 ```
 
-<!-- CORTEX_VERSION_MINOR -->
-The pre-installed system packages are listed in the [tf-api Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/tf-api/Dockerfile).
+<!-- CORTEX_VERSION_MINOR x2 -->
+The pre-installed system packages are listed in the [onnx-serve Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve/Dockerfile) (for CPU) or the [onnx-serve-gpu Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve-gpu/Dockerfile) (for GPU).
 
-If your application requires additional dependencies, you can [install additional Python packages](../dependency-management/python-packages.md) or [install additional system packages](../dependency-management/system-packages.md).
+If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) or [system packages](system-packages.md).
