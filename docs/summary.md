@@ -9,7 +9,7 @@
 * [Email us](mailto:hello@cortex.dev)
 * [We're hiring](https://angel.co/cortex-labs-inc/jobs)
 
-## Model Frameworks
+## ML libraries
 
 * [PyTorch](frameworks/pytorch.md)
 * [TensorFlow and Keras](frameworks/tensorflow.md)
