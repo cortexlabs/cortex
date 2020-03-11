@@ -18,22 +18,6 @@ Now let's take a sample image like this one.
 
 ![Imgur](https://i.imgur.com/JJLfFxB.png)
 
-#### Type 1
-
-Export the endpoint
-```bash
-export ENDPOINT=your-api-endpoint
-```
-
-And then run these piped commands
-```bash
-curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d @sample.json |
-sed 's/"//g' |
-base64 -d >> prediction.png
-```
-
-#### Type 2
-
 Export the endpoint & the image's URL by running
 ```bash
 export ENDPOINT=your-api-endpoint
@@ -47,17 +31,16 @@ sed 's/"//g' |
 base64 -d >> prediction.png
 ```
 
-Here's a short list of URLs of other text documents in image format that can be cleaned using this model. Export these links to `IMAGE_URL` variable:
-
-* https://i.imgur.com/6COQ46f.png
-* https://i.imgur.com/alLI83b.png
-* https://i.imgur.com/QVoSTuu.png
-
-
----
-
 Once this has run, we'll see a `prediction.png` file saved to the disk. This is the result.
 
 ![Imgur](https://i.imgur.com/PRB2oS8.png)
 
 As it can be seen, the text document has been cleaned of any noise. Success!
+
+---
+
+Here's a short list of URLs of other text documents in image format that can be cleaned using this model. Export these links to `IMAGE_URL` variable:
+
+* https://i.imgur.com/6COQ46f.png
+* https://i.imgur.com/alLI83b.png
+* https://i.imgur.com/QVoSTuu.png
