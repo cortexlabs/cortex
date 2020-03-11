@@ -175,12 +175,23 @@ func RelToAbsPath(relativePath string, baseDir string) string {
 }
 
 func UserRelToAbsPath(relativePath string) string {
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return relativePath
+	}
 	return RelToAbsPath(relativePath, cwd)
 }
 
 func PathRelativeToCWD(absPath string) string {
-	cwd, _ := os.Getwd()
+	if !strings.HasPrefix(absPath, "/") {
+		return absPath
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return absPath
+	}
+
 	cwd = s.EnsureSuffix(cwd, "/")
 	return strings.TrimPrefix(absPath, cwd)
 }
