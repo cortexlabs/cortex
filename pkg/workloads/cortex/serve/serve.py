@@ -187,9 +187,7 @@ def get_summary():
 def assert_api_version():
     if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
         raise ValueError(
-            "api version mismatch (operator: {}, image: {})".format(
-                os.environ["CORTEX_VERSION"], consts.CORTEX_VERSION
-            )
+            f"your Cortex operator version ({os.environ["CORTEX_VERSION"]}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your predictor image by modifying the appropriate `image_*` field(s) in your cluster configuration file (e.g. cluster.yaml) and running `cortex cluster update --config cluster.yaml`"
         )
 
 
