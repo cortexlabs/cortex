@@ -227,121 +227,141 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "ImagePythonServe",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/python-serve:" + consts.CortexVersion,
+				Default:   "cortexlabs/python-serve:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImagePythonServeGPU",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/python-serve-gpu:" + consts.CortexVersion,
+				Default:   "cortexlabs/python-serve-gpu:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageTFServe",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-serve:" + consts.CortexVersion,
+				Default:   "cortexlabs/tf-serve:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageTFServeGPU",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-serve-gpu:" + consts.CortexVersion,
+				Default:   "cortexlabs/tf-serve-gpu:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageTFAPI",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/tf-api:" + consts.CortexVersion,
+				Default:   "cortexlabs/tf-api:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageONNXServe",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/onnx-serve:" + consts.CortexVersion,
+				Default:   "cortexlabs/onnx-serve:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageONNXServeGPU",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/onnx-serve-gpu:" + consts.CortexVersion,
+				Default:   "cortexlabs/onnx-serve-gpu:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageOperator",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/operator:" + consts.CortexVersion,
+				Default:   "cortexlabs/operator:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/manager:" + consts.CortexVersion,
+				Default:   "cortexlabs/manager:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageDownloader",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/downloader:" + consts.CortexVersion,
+				Default:   "cortexlabs/downloader:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageRequestMonitor",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/request-monitor:" + consts.CortexVersion,
+				Default:   "cortexlabs/request-monitor:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageClusterAutoscaler",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
+				Default:   "cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageMetricsServer",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/metrics-server:" + consts.CortexVersion,
+				Default:   "cortexlabs/metrics-server:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageNvidia",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/nvidia:" + consts.CortexVersion,
+				Default:   "cortexlabs/nvidia:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageFluentd",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/fluentd:" + consts.CortexVersion,
+				Default:   "cortexlabs/fluentd:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageStatsd",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/statsd:" + consts.CortexVersion,
+				Default:   "cortexlabs/statsd:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioProxy",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-proxy:" + consts.CortexVersion,
+				Default:   "cortexlabs/istio-proxy:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-pilot:" + consts.CortexVersion,
+				Default:   "cortexlabs/istio-pilot:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioCitadel",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-citadel:" + consts.CortexVersion,
+				Default:   "cortexlabs/istio-citadel:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioGalley",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/istio-galley:" + consts.CortexVersion,
+				Default:   "cortexlabs/istio-galley:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		// Extra keys that exist in the cluster config file
@@ -362,6 +382,29 @@ var UserValidation = &cr.StructValidation{
 			Nil: true,
 		},
 	},
+}
+
+func validateImageVersion(image string) (string, error) {
+	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
+		return image, nil
+	}
+
+	var tag string
+
+	if colonIndex := strings.LastIndex(image, ":"); colonIndex != -1 {
+		tag = image[colonIndex+1:]
+	}
+
+	// in docker, missing tag implies "latest"
+	if tag == "" {
+		tag = "latest"
+	}
+
+	if tag != consts.CortexVersion {
+		return "", ErrorImageVersionMismatch(image, tag)
+	}
+
+	return image, nil
 }
 
 var Validation = &cr.StructValidation{
@@ -395,7 +438,8 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default: "cortexlabs/manager:" + consts.CortexVersion,
+				Default:   "cortexlabs/manager:" + consts.CortexVersion,
+				Validator: validateImageVersion,
 			},
 		},
 	},
