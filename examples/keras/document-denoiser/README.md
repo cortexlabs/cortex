@@ -10,8 +10,6 @@ Here's a collage of input texts and predictions.
 
 ## Sample Prediction
 
-### Prediction
-
 Once this model is deployed, get the API endpoint by running `cortex get document-denoiser`.
 
 Now let's take a sample image like this one.
