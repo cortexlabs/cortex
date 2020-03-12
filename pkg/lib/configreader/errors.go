@@ -132,210 +132,201 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorParseConfig() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrParseConfig,
-		message: fmt.Sprintf("failed to parse config file"),
+		Message: fmt.Sprintf("failed to parse config file"),
 	})
 }
 
 func ErrorUnsupportedKey(key interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrUnsupportedKey,
-		message: fmt.Sprintf("key %s is not supported", s.UserStr(key)),
+		Message: fmt.Sprintf("key %s is not supported", s.UserStr(key)),
 	})
 }
 
 func ErrorInvalidYAML(err error) error {
 	str := strings.TrimPrefix(errors.Message(err), "yaml: ")
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidYAML,
-		message: fmt.Sprintf("invalid yaml: %s", str),
+		Message: fmt.Sprintf("invalid yaml: %s", str),
 	})
 }
 
 func ErrorTooLong(provided string, maxLen int) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrTooLong,
-		message: fmt.Sprintf("%s must be no more than %d characters", s.UserStr(provided), maxLen),
+		Message: fmt.Sprintf("%s must be no more than %d characters", s.UserStr(provided), maxLen),
 	})
 }
 
 func ErrorTooShort(provided string, minLen int) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrTooShort,
-		message: fmt.Sprintf("%s must be no fewer than %d characters", s.UserStr(provided), minLen),
+		Message: fmt.Sprintf("%s must be no fewer than %d characters", s.UserStr(provided), minLen),
 	})
 }
 
 func ErrorAlphaNumericDashUnderscore(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAlphaNumericDashUnderscore,
-		message: fmt.Sprintf("%s must contain only letters, numbers, underscores, and dashes", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must contain only letters, numbers, underscores, and dashes", s.UserStr(provided)),
 	})
 }
 
 func ErrorAlphaNumericDashDotUnderscore(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAlphaNumericDashDotUnderscore,
-		message: fmt.Sprintf("%s must contain only letters, numbers, underscores, dashes, and periods", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must contain only letters, numbers, underscores, dashes, and periods", s.UserStr(provided)),
 	})
 }
 
 func ErrorMustHavePrefix(provided string, prefix string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMustHavePrefix,
-		message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStr(prefix)),
+		Message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStr(prefix)),
 	})
 }
 
 func ErrorInvalidInterface(provided interface{}, allowed interface{}, allowedVals ...interface{}) error {
 	allAllowedVals := append(allowedVals, allowed)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidInterface,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
+		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
 func ErrorInvalidFloat64(provided float64, allowed float64, allowedVals ...float64) error {
 	allAllowedVals := append(allowedVals, allowed)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidFloat64,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
+		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
 func ErrorInvalidFloat32(provided float32, allowed float32, allowedVals ...float32) error {
 	allAllowedVals := append(allowedVals, allowed)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidFloat32,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
+		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
 func ErrorInvalidInt64(provided int64, allowed int64, allowedVals ...int64) error {
 	allAllowedVals := append(allowedVals, allowed)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidInt64,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
+		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
 func ErrorInvalidInt32(provided int32, allowed int32, allowedVals ...int32) error {
 	allAllowedVals := append(allowedVals, allowed)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidInt32,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
+		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
 func ErrorInvalidInt(provided int, allowed int, allowedVals ...int) error {
 	allAllowedVals := append(allowedVals, allowed)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidInt,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
+		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
 func ErrorInvalidStr(provided string, allowed string, allowedVals ...string) error {
 	allAllowedVals := append(allowedVals, allowed)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidStr,
-		message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
+		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
 	})
 }
 
 func ErrorMustBeLessThanOrEqualTo(provided interface{}, boundary interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMustBeLessThanOrEqualTo,
-		message: fmt.Sprintf("%s must be less than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("%s must be less than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
 	})
 }
 
 func ErrorMustBeLessThan(provided interface{}, boundary interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMustBeLessThan,
-		message: fmt.Sprintf("%s must be less than %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("%s must be less than %s", s.UserStr(provided), s.UserStr(boundary)),
 	})
 }
 
 func ErrorMustBeGreaterThanOrEqualTo(provided interface{}, boundary interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMustBeGreaterThanOrEqualTo,
-		message: fmt.Sprintf("%s must be greater than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("%s must be greater than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
 	})
 }
 
 func ErrorMustBeGreaterThan(provided interface{}, boundary interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMustBeGreaterThan,
-		message: fmt.Sprintf("%s must be greater than %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("%s must be greater than %s", s.UserStr(provided), s.UserStr(boundary)),
 	})
 }
 
 func ErrorIsNotMultiple(provided interface{}, multiple interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrIsNotMultiple,
-		message: fmt.Sprintf("%s is not a multiple of %s", s.UserStr(provided), s.UserStr(multiple)),
+		Message: fmt.Sprintf("%s is not a multiple of %s", s.UserStr(provided), s.UserStr(multiple)),
 	})
 }
 
 func ErrorNonStringKeyFound(key interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNonStringKeyFound,
-		message: fmt.Sprintf("non string key found: %s", s.ObjFlat(key)),
+		Message: fmt.Sprintf("non string key found: %s", s.ObjFlat(key)),
 	})
 }
 
 func ErrorInvalidPrimitiveType(provided interface{}, allowedType PrimitiveType, allowedTypes ...PrimitiveType) error {
 	allAllowedTypes := append(allowedTypes, allowedType)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidPrimitiveType,
-		message: fmt.Sprintf("%s: invalid type (expected %s)", s.UserStr(provided), s.StrsOr(PrimitiveTypes(allAllowedTypes).StringList())),
+		Message: fmt.Sprintf("%s: invalid type (expected %s)", s.UserStr(provided), s.StrsOr(PrimitiveTypes(allAllowedTypes).StringList())),
 	})
 }
 
 func ErrorDuplicatedValue(val interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDuplicatedValue,
-		message: fmt.Sprintf("%s is duplicated", s.UserStr(val)),
+		Message: fmt.Sprintf("%s is duplicated", s.UserStr(val)),
 	})
 }
 
 func ErrorCannotSetStructField() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCannotSetStructField,
-		message: "unable to set struct field",
+		Message: "unable to set struct field",
 	})
 }
 
 func ErrorCannotBeNull() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCannotBeNull,
-		message: "cannot be null",
+		Message: "cannot be null",
 	})
 }
 
 func ErrorCannotBeEmpty() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCannotBeEmpty,
-		message: "cannot be empty",
+		Message: "cannot be empty",
 	})
 }
 
 func ErrorMustBeDefined() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMustBeDefined,
-		message: "must be defined",
+		Message: "must be defined",
 	})
 }
 
@@ -344,29 +335,29 @@ func ErrorMapMustBeDefined(keys ...string) error {
 	if len(keys) > 0 {
 		message = fmt.Sprintf("must be defined, and contain the following keys: %s", s.UserStrsAnd(keys))
 	}
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMapMustBeDefined,
-		message: message,
+		Message: message,
 	})
 }
 
 func ErrorMustBeEmpty() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMustBeEmpty,
-		message: "must be empty",
+		Message: "must be empty",
 	})
 }
 
 func ErrorCortexResourceOnlyAllowed(invalidStr string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCortexResourceOnlyAllowed,
-		message: fmt.Sprintf("%s: only cortex resource references (which start with @) are allowed in this context", invalidStr),
+		Message: fmt.Sprintf("%s: only cortex resource references (which start with @) are allowed in this context", invalidStr),
 	})
 }
 
 func ErrorCortexResourceNotAllowed(resourceName string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCortexResourceNotAllowed,
-		message: fmt.Sprintf("@%s: cortex resource references (which start with @) are not allowed in this context", resourceName),
+		Message: fmt.Sprintf("@%s: cortex resource references (which start with @) are not allowed in this context", resourceName),
 	})
 }

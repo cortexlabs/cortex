@@ -76,18 +76,9 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorDuplicateZipPath(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDuplicateZipPath,
-		message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
+		Message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
 	})
 }

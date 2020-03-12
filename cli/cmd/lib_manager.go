@@ -59,7 +59,8 @@ func getDockerClient() (*dockerclient.Client, error) {
 
 func wrapDockerError(err error) error {
 	if dockerclient.IsErrConnectionFailed(err) {
-		return errors.New("Unable to connect to the Docker daemon, please confirm Docker is running")
+		err := errors.New("Unable to connect to the Docker daemon, please confirm Docker is running")
+		return errors.SetUser(err)
 	}
 
 	return errors.WithStack(err)

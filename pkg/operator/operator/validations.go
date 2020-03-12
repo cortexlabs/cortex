@@ -367,6 +367,7 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 	}
 
 	if err := validateAPIs(apis, projectFileMap); err != nil {
+		err := errors.SetUser(err)
 		return nil, err
 	}
 

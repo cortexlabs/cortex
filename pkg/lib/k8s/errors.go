@@ -68,18 +68,9 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorParseQuantity(qtyStr string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrParseQuantity,
-		message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/deployments/compute)",
+		Message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/deployments/compute)",
 	})
 }

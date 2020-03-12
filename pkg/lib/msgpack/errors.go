@@ -70,25 +70,16 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorUnmarshalMsgpack() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrUnmarshalMsgpack,
-		message: "invalid messagepack",
+		Message: "invalid messagepack",
 	})
 }
 
 func ErrorMarshalMsgpack() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMarshalMsgpack,
-		message: "invalid messagepack cannot be serialized",
+		Message: "invalid messagepack cannot be serialized",
 	})
 }

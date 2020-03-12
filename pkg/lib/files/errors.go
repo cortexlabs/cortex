@@ -93,95 +93,86 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorCreateDir(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCreateDir,
-		message: fmt.Sprintf("%s: unable to create directory", path),
+		Message: fmt.Sprintf("%s: unable to create directory", path),
 	})
 }
 
 func ErrorDeleteDir(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDeleteDir,
-		message: fmt.Sprintf("%s: unable to delete directory", path),
+		Message: fmt.Sprintf("%s: unable to delete directory", path),
 	})
 }
 
 func ErrorReadFormFile(fileName string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrReadFormFile,
-		message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
+		Message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
 	})
 }
 
 func ErrorCreateFile(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCreateFile,
-		message: fmt.Sprintf("%s: unable to create file", path),
+		Message: fmt.Sprintf("%s: unable to create file", path),
 	})
 }
 
 func ErrorReadDir(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrReadDir,
-		message: fmt.Sprintf("%s: unable to read directory", path),
+		Message: fmt.Sprintf("%s: unable to read directory", path),
 	})
 }
 
 func ErrorReadFile(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrReadFile,
-		message: fmt.Sprintf("%s: unable to read file", path),
+		Message: fmt.Sprintf("%s: unable to read file", path),
 	})
 }
 
 func ErrorFileAlreadyExists(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrFileAlreadyExists,
-		message: fmt.Sprintf("%s: file already exists", path),
+		Message: fmt.Sprintf("%s: file already exists", path),
 	})
 }
 
 func ErrorUnexpected() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrUnexpected,
-		message: "an unexpected error occurred",
+		Message: "an unexpected error occurred",
 	})
 }
 
 func ErrorFileDoesNotExist(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrFileDoesNotExist,
-		message: fmt.Sprintf("%s: file does not exist", path),
+		Message: fmt.Sprintf("%s: file does not exist", path),
 	})
 }
 
 func ErrorDirDoesNotExist(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDirDoesNotExist,
-		message: fmt.Sprintf("%s: directory does not exist", path),
+		Message: fmt.Sprintf("%s: directory does not exist", path),
 	})
 }
 
 func ErrorNotAFile(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNotAFile,
-		message: fmt.Sprintf("%s: not a file path", path),
+		Message: fmt.Sprintf("%s: not a file path", path),
 	})
 }
 
 func ErrorNotADir(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNotADir,
-		message: fmt.Sprintf("%s: not a directory path", path),
+		Message: fmt.Sprintf("%s: not a directory path", path),
 	})
 }

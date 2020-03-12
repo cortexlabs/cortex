@@ -43,7 +43,7 @@ type CortexError struct {
 	User    bool
 }
 
-func (e CortexError) Error() string {
+func (e *CortexError) Error() string {
 	return e.Message
 }
 
@@ -72,7 +72,7 @@ func New(strs ...string) error {
 	strs = removeEmptyStrs(strs)
 	errStr := strings.Join(strs, ": ")
 	err := CortexError{Kind: ErrUnknown, Message: errStr, User: false}
-	return pkgerrors.WithStack(err)
+	return pkgerrors.WithStack(&err)
 }
 
 func Wrap(err error, strs ...string) error {
@@ -99,7 +99,6 @@ func WithStack(err error) error {
 	}
 
 	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: err.Error(), User: false}}
-	fmt.Println(cortexError.Error())
 	return pkgerrors.WithStack(cortexError)
 }
 
@@ -120,8 +119,10 @@ func IsUser(err error) bool {
 	return false
 }
 
+// TODO: add a NotCortexError kind?
 func GetKind(err error) ErrorKind {
 	if cortexError := getCortexError(err); cortexError != nil {
+		fmt.Println("hi")
 		return cortexError.GetKind()
 	}
 

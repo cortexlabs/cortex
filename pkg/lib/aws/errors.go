@@ -115,74 +115,67 @@ func CheckErrCode(err error, errorCode string) bool {
 	return false
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorInvalidAWSCredentials() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidAWSCredentials,
-		message: "invalid AWS credentials",
+		Message: "invalid AWS credentials",
 	})
 }
 
 func ErrorInvalidS3aPath(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidS3aPath,
-		message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/iris-classifier/tensorflow is a valid s3a path)", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/iris-classifier/tensorflow is a valid s3a path)", s.UserStr(provided)),
 	})
 }
 
 func ErrorInvalidS3Path(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidS3Path,
-		message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-classifier/tensorflow is a valid s3 path)", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-classifier/tensorflow is a valid s3 path)", s.UserStr(provided)),
 	})
 }
 
 func ErrorAuth() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuth,
-		message: "unable to authenticate with AWS",
+		Message: "unable to authenticate with AWS",
 	})
 }
 
 func ErrorBucketInaccessible(bucket string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrBucketInaccessible,
-		message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
+		Message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
 	})
 }
 
 func ErrorBucketNotFound(bucket string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrBucketNotFound,
-		message: fmt.Sprintf("bucket \"%s\" not found", bucket),
+		Message: fmt.Sprintf("bucket \"%s\" not found", bucket),
 	})
 }
 
 func ErrorInstanceTypeLimitIsZero(instanceType string, region string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInstanceTypeLimitIsZero,
-		message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances). If you submitted a request and it was recently approved, please allow ~30 minutes for AWS to reflect this change."`, instanceType, region),
+		Message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances). If you submitted a request and it was recently approved, please allow ~30 minutes for AWS to reflect this change."`, instanceType, region),
+		User:    true,
 	})
 }
 
 func ErrorNoValidSpotPrices(instanceType string, region string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNoValidSpotPrices,
-		message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
+		Message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
+		User:    true,
 	})
 }
 
 func ErrorReadCredentials() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrReadCredentials,
-		message: "unable to read AWS credentials from credentials file",
+		Message: "unable to read AWS credentials from credentials file",
 	})
 }

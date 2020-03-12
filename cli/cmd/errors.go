@@ -88,19 +88,10 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorAPINotReady(apiName string, status string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAPINotReady,
-		message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
+		Message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
 	})
 }
 
@@ -115,22 +106,25 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
 	}
 
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrFailedToConnectOperator,
-		message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint, run `cortex cluster info` to show your operator endpoint", originalErrMsg, operatorURLMsg),
+		Message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint, run `cortex cluster info` to show your operator endpoint", originalErrMsg, operatorURLMsg),
+		User:    true,
 	})
 }
 
 func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
-		message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+		User:    true,
 	})
 }
 
 func ErrorDuplicateCLIEnvNames(environment string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDuplicateCLIEnvNames,
-		message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
+		Message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
+		User:    true,
 	})
 }

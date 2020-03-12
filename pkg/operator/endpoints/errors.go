@@ -91,89 +91,91 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAPIVersionMismatch,
-		message: fmt.Sprintf("API version mismatch (Cluster: %s; Client: %s)", operatorVersion, clientVersion),
+		Message: fmt.Sprintf("API version mismatch (Cluster: %s; Client: %s)", operatorVersion, clientVersion),
+		User:    true,
 	})
 }
 
 func ErrorAuthHeaderMissing() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthHeaderMissing,
-		message: "auth header missing",
+		Message: "auth header missing",
+		User:    true,
 	})
 }
 
 func ErrorAuthHeaderMalformed() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthHeaderMalformed,
-		message: "auth header malformed",
+		Message: "auth header malformed",
+		User:    true,
 	})
 }
 
 func ErrorAuthAPIError() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthAPIError,
-		message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster update` to update the operator's AWS credentials",
+		Message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster update` to update the operator's AWS credentials",
+		User:    true,
 	})
 }
 
 func ErrorAuthInvalid() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthInvalid,
-		message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
+		Message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
+		User:    true,
 	})
 }
 
 func ErrorAuthOtherAccount() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthOtherAccount,
-		message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as your cluster",
+		Message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as your cluster",
+		User:    true,
 	})
 }
 
 func ErrorFormFileMustBeProvided(fileName string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrFormFileMustBeProvided,
-		message: fmt.Sprintf("request form file %s must be provided", s.UserStr(fileName)),
+		Message: fmt.Sprintf("request form file %s must be provided", s.UserStr(fileName)),
+		User:    true,
 	})
 }
 func ErrorQueryParamRequired(param string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrQueryParamRequired,
-		message: fmt.Sprintf("query param required: %s", param),
+		Message: fmt.Sprintf("query param required: %s", param),
+		User:    true,
 	})
 }
 
 func ErrorPathParamRequired(param string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrPathParamRequired,
-		message: fmt.Sprintf("path param required: %s", param),
+		Message: fmt.Sprintf("path param required: %s", param),
+		User:    true,
 	})
 }
 
 func ErrorAnyQueryParamRequired(param string, params ...string) error {
 	allParams := append(params, param)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAnyQueryParamRequired,
-		message: fmt.Sprintf("query params required: %s", s.UserStrsOr(allParams)),
+		Message: fmt.Sprintf("query params required: %s", s.UserStrsOr(allParams)),
+		User:    true,
 	})
 }
 
 func ErrorAnyPathParamRequired(param string, params ...string) error {
 	allParams := append(params, param)
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAnyPathParamRequired,
-		message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),
+		Message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),
+		User:    true,
 	})
 }

@@ -81,53 +81,44 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorInvalidURL(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidURL,
-		message: fmt.Sprintf("%s is not a valid URL", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s is not a valid URL", s.UserStr(provided)),
 	})
 }
 
 func ErrorDNS1035(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDNS1035,
-		message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", s.UserStr(provided)),
 	})
 }
 
 func ErrorDNS1123(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDNS1123,
-		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", s.UserStr(provided)),
 	})
 }
 
 func ErrorEndpoint(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrEndpoint,
-		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '/', '-', '_', or '.'", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '/', '-', '_', or '.'", s.UserStr(provided)),
 	})
 }
 
 func ErrorEndpointEmptyPath() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrEndpointEmptyPath,
-		message: fmt.Sprintf("%s is not allowed (a path must be specified)", s.UserStr("/")),
+		Message: fmt.Sprintf("%s is not allowed (a path must be specified)", s.UserStr("/")),
 	})
 }
 
 func ErrorEndpointDoubleSlash(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrEndpointDoubleSlash,
-		message: fmt.Sprintf("%s cannot contain adjacent slashes", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s cannot contain adjacent slashes", s.UserStr(provided)),
 	})
 }
