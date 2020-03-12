@@ -47,24 +47,24 @@ log_group: cortex
 spot: false
 
 # docker image paths
-image_python_serve: cortexlabs/python-serve:0.14.0
-image_python_serve_gpu: cortexlabs/python-serve-gpu:0.14.0
-image_tf_serve: cortexlabs/tf-serve:0.14.0
-image_tf_serve_gpu: cortexlabs/tf-serve-gpu:0.14.0
-image_tf_api: cortexlabs/tf-api:0.14.0
-image_onnx_serve: cortexlabs/onnx-serve:0.14.0
-image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:0.14.0
-image_operator: cortexlabs/operator:0.14.0
-image_manager: cortexlabs/manager:0.14.0
-image_downloader: cortexlabs/downloader:0.14.0
-image_request_monitor: cortexlabs/request-monitor:0.14.0
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.14.0
-image_metrics_server: cortexlabs/metrics-server:0.14.0
-image_nvidia: cortexlabs/nvidia:0.14.0
-image_fluentd: cortexlabs/fluentd:0.14.0
-image_statsd: cortexlabs/statsd:0.14.0
-image_istio_proxy: cortexlabs/istio-proxy:0.14.0
-image_istio_pilot: cortexlabs/istio-pilot:0.14.0
-image_istio_citadel: cortexlabs/istio-citadel:0.14.0
-image_istio_galley: cortexlabs/istio-galley:0.14.0
+image_python_serve: cortexlabs/python-serve:0.14.1
+image_python_serve_gpu: cortexlabs/python-serve-gpu:0.14.1
+image_tf_serve: cortexlabs/tf-serve:0.14.1
+image_tf_serve_gpu: cortexlabs/tf-serve-gpu:0.14.1
+image_tf_api: cortexlabs/tf-api:0.14.1
+image_onnx_serve: cortexlabs/onnx-serve:0.14.1
+image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:0.14.1
+image_operator: cortexlabs/operator:0.14.1
+image_manager: cortexlabs/manager:0.14.1
+image_downloader: cortexlabs/downloader:0.14.1
+image_request_monitor: cortexlabs/request-monitor:0.14.1
+image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.14.1
+image_metrics_server: cortexlabs/metrics-server:0.14.1
+image_nvidia: cortexlabs/nvidia:0.14.1
+image_fluentd: cortexlabs/fluentd:0.14.1
+image_statsd: cortexlabs/statsd:0.14.1
+image_istio_proxy: cortexlabs/istio-proxy:0.14.1
+image_istio_pilot: cortexlabs/istio-pilot:0.14.1
+image_istio_citadel: cortexlabs/istio-citadel:0.14.1
+image_istio_galley: cortexlabs/istio-galley:0.14.1
 ```

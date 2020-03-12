@@ -14,11 +14,11 @@ mkdir my-api && cd my-api && touch Dockerfile
 The Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image.
 
 <!-- CORTEX_VERSION_README x5 -->
-* Python (CPU): cortexlabs/python-serve:0.14.0
-* Python (GPU): cortexlabs/python-serve-gpu:0.14.0
-* TensorFlow (CPU or GPU): cortexlabs/tf-api:0.14.0
-* ONNX (CPU): cortexlabs/onnx-serve:0.14.0
-* ONNX (GPU): cortexlabs/onnx-serve-gpu:0.14.0
+* Python (CPU): cortexlabs/python-serve:0.14.1
+* Python (GPU): cortexlabs/python-serve-gpu:0.14.1
+* TensorFlow (CPU or GPU): cortexlabs/tf-api:0.14.1
+* ONNX (CPU): cortexlabs/onnx-serve:0.14.1
+* ONNX (GPU): cortexlabs/onnx-serve-gpu:0.14.1
 
 Note that the Docker image version must match your cluster version displayed in `cortex version`.
 
@@ -28,7 +28,7 @@ The sample Dockerfile below inherits from Cortex's Python CPU serving image and 
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-serve:0.14.0
+FROM cortexlabs/python-serve:0.14.1
 
 RUN apt-get update \
     && apt-get install -y tree \
