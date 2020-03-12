@@ -11,7 +11,7 @@
 
 ## Deployments
 
-* [Model exporting](deployments/exporting.md)
+* [Exporting models](deployments/exporting.md)
 * [Predictor implementation](deployments/predictors.md)
 * [API configuration](deployments/api-configuration.md)
 * [API deployment](deployments/deployment.md)
