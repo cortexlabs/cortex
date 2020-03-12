@@ -26,16 +26,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 )
 
-type errorKind string
-
-func (k errorKind) String() string {
-	return string(k)
-}
-
-const (
-	ErrUnknown errorKind = "err_unknown"
-)
-
 type Error interface {
 	error
 	GetKind() ErrorKind
@@ -53,7 +43,7 @@ type CortexError struct {
 	User    bool
 }
 
-func (e *CortexError) Error() string {
+func (e CortexError) Error() string {
 	return e.Message
 }
 
@@ -70,7 +60,7 @@ func (e *CortexError) IsUser() bool {
 }
 
 type CortexErrorWithCause struct {
-	CortexError
+	*CortexError
 	origErr error
 }
 
@@ -81,7 +71,7 @@ func (e *CortexErrorWithCause) Cause() error {
 func New(strs ...string) error {
 	strs = removeEmptyStrs(strs)
 	errStr := strings.Join(strs, ": ")
-	err := &CortexError{Kind: ErrUnknown, Message: errStr, User: false}
+	err := CortexError{Kind: ErrUnknown, Message: errStr, User: false}
 	return pkgerrors.WithStack(err)
 }
 
@@ -95,32 +85,35 @@ func Wrap(err error, strs ...string) error {
 	}
 	errStr := strings.Join(strs, ": ")
 
-	cortexError := causeCortexError(err)
-	if cortexError != nil {
+	if cortexError := getCortexError(err); cortexError != nil {
 		return pkgerrors.Wrap(err, errStr)
 	}
-	cortexError = &CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: ErrUnknown, Message: errStr, User: false}}
+
+	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: errStr, User: false}}
 	return pkgerrors.Wrap(cortexError, errStr)
 }
 
 func WithStack(err error) error {
-	if cortexError := causeCortexError(err); cortexError != nil {
+	if cortexError := getCortexError(err); cortexError != nil {
 		return pkgerrors.WithStack(err)
 	}
 
-	return pkgerrors.WithStack(&CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: ErrUnknown, Message: err.Error(), User: true}})
+	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: err.Error(), User: false}}
+	fmt.Println(cortexError.Error())
+	return pkgerrors.WithStack(cortexError)
 }
 
 func SetUser(err error) error {
-	if cortexError := causeCortexError(err); cortexError != nil {
+	if cortexError := getCortexError(err); cortexError != nil {
 		cortexError.SetUser()
 		return err
 	}
-	return WithStack(&CortexErrorWithCause{origErr: err, CortexError: CortexError{Kind: ErrUnknown, Message: err.Error(), User: true}})
+	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: err.Error(), User: true}}
+	return WithStack(cortexError)
 }
 
 func IsUser(err error) bool {
-	if cortexError := causeCortexError(err); cortexError != nil {
+	if cortexError := getCortexError(err); cortexError != nil {
 		return cortexError.IsUser()
 	}
 
@@ -128,14 +121,14 @@ func IsUser(err error) bool {
 }
 
 func GetKind(err error) ErrorKind {
-	if cortexError := causeCortexError(err); cortexError != nil {
+	if cortexError := getCortexError(err); cortexError != nil {
 		return cortexError.GetKind()
 	}
 
 	return ErrUnknown
 }
 
-func causeCortexError(err error) Error {
+func getCortexError(err error) Error {
 	type causer interface {
 		Cause() error
 	}
@@ -144,11 +137,11 @@ func causeCortexError(err error) Error {
 		if cortexError, ok := err.(Error); ok {
 			return cortexError
 		}
-		cause, ok := err.(causer)
+		errCasted, ok := err.(causer)
 		if !ok {
 			break
 		}
-		err = cause.Cause()
+		err = errCasted.Cause()
 	}
 	return nil
 }
@@ -292,4 +285,50 @@ func removeEmptyStrs(strs []string) []string {
 		}
 	}
 	return cleanStrs
+}
+
+type errorKind int
+
+const (
+	ErrUnknown errorKind = iota
+)
+
+var _errorKinds = []string{
+	"err_unknown",
+}
+
+var _ = [1]int{}[int(ErrUnknown)-(len(_errorKinds)-1)] // Ensure list length matches
+
+func (t errorKind) String() string {
+	return _errorKinds[t]
+}
+
+// MarshalText satisfies TextMarshaler
+func (t errorKind) MarshalText() ([]byte, error) {
+	return []byte(t.String()), nil
+}
+
+// UnmarshalText satisfies TextUnmarshaler
+func (t *errorKind) UnmarshalText(text []byte) error {
+	enum := string(text)
+	for i := 0; i < len(_errorKinds); i++ {
+		if enum == _errorKinds[i] {
+			*t = errorKind(i)
+			return nil
+		}
+	}
+
+	*t = ErrUnknown
+	return nil
+}
+
+// UnmarshalBinary satisfies BinaryUnmarshaler
+// Needed for msgpack
+func (t *errorKind) UnmarshalBinary(data []byte) error {
+	return t.UnmarshalText(data)
+}
+
+// MarshalBinary satisfies BinaryMarshaler
+func (t errorKind) MarshalBinary() ([]byte, error) {
+	return []byte(t.String()), nil
 }
