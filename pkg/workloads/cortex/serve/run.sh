@@ -39,4 +39,4 @@ export PYTHONUNBUFFERED=TRUE
 
 mkdir -p /mnt/requests
 
-/usr/bin/python3.6 /src/cortex/serve/start_uvicorn.py
+/opt/conda/bin/python /src/cortex/serve/start_uvicorn.py
