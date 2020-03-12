@@ -66,7 +66,7 @@ deleting my-api
 
 ## Additional resources
 
-<!-- CORTEX_VERSION_README_MINOR -->
+<!-- CORTEX_VERSION_MINOR -->
 * [Tutorial](../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthough of deploying an iris classifier API
 * [CLI documentation](../cluster-management/cli.md) lists all CLI commands
-* [Examples](https://github.com/cortexlabs/cortex/tree/0.14/examples) demonstrate how to deploy models from common ML libraries
+* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples) demonstrate how to deploy models from common ML libraries
