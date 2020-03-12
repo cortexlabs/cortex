@@ -87,7 +87,7 @@ var _predictorValidation = &cr.StructFieldValidation{
 			{
 				StructField: "Model",
 				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: cr.S3PathValidator(),
+					Validator: cr.S3PathValidator,
 				},
 			},
 			{
