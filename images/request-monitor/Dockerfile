@@ -10,7 +10,7 @@ RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o reque
 
 FROM alpine:3.11
 
-RUN apk --no-cache add ca-certificates bash iproute2
+RUN apk --no-cache add ca-certificates bash
 
 COPY --from=builder /go/src/github.com/cortexlabs/cortex/images/request-monitor/request-monitor /root/
 RUN chmod +x /root/request-monitor

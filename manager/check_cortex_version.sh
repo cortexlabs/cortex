@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,14 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+set -e
 
-from gunicorn import glogging
-from cortex.lib.log import formatter_pid
+CORTEX_VERSION=master
 
-
-class CortexGunicornLogger(glogging.Logger):
-    def setup(self, cfg):
-        super().setup(cfg)
-        self._set_handler(self.error_log, cfg.errorlog, formatter_pid)
-        self._set_handler(self.access_log, cfg.accesslog, formatter_pid)
+if [ "$CORTEX_VERSION" != "$CORTEX_CLI_VERSION" ]; then
+  echo "error: your CLI version ($CORTEX_CLI_VERSION) doesn't match your Cortex manager image version ($CORTEX_VERSION); please update your CLI by following the instructions at https://www.cortex.dev/install, or update your Cortex manager image by modifying the value for \`image_manager\` in your cluster configuration file (e.g. cluster.yaml) and running \`cortex cluster update --config cluster.yaml\` (update other image paths in cluster.yaml as well if necessary)"
+  exit 1
+fi

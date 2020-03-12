@@ -86,22 +86,22 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 
-## TensorFlow / TensorFlow Serving / Python / Python base operating system
+## Python
 
-The Python version in the base images for `tf-api` and `onnx-serve-gpu`/`python-serve-gpu` determines the Python version used throughout Cortex.
+The same Python version should be used throughout Cortex (e.g. search for `3.6` and update all accordingly).
 
-1. Update the `tensorflow/tensorflow` base image in `images/tf-api/Dockerfile` to the desired version ([Dockerhub](https://hub.docker.com/r/tensorflow/tensorflow))
-1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-serve-gpu/Dockerfile` and `images/tf-serve-gpu/Dockerfile`) to the desired version based on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu#ubuntu_1804_cuda_101) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
-1. Run `docker run --rm -it tensorflow/tensorflow:***`, and in the container run `python3 --version` and `cat /etc/lsb-release`
-1. Run `docker run --rm -it nvidia/cuda:***`, and in the container run `cat /etc/lsb-release`
-1. The Ubuntu versions should match; if they do not, downgrade whichever one is too advanced
-1. The minor Python version in `tensorflow/tensorflow` must be used in all dockerfiles; search for e.g. `python3.6-dev` and update accordingly
-1. Update TensorFlow version listed in `tensorflow.md` and `python.md`
+It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile))
+
+## TensorFlow / TensorFlow Serving
+
+1. Find the latest release on [GitHub](https://github.com/tensorflow/tensorflow/releases)
 1. Search the codebase for the current minor TensorFlow version (e.g. `2.1`) and update versions as appropriate
-1. Search the codebase for the minor Python version (e.g. `3.6`) and update versions as appropriate
-1. Search the codebase for `ubuntu` and update versions as appropriate
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
+
+## CUDA
+
+1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-serve-gpu/Dockerfile` and `images/tf-serve-gpu/Dockerfile`) to the desired version based on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu#ubuntu_1804_cuda_101) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
 
 ## ONNX runtime
 
@@ -203,6 +203,10 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 1. Find the latest 2.X release on [GitHub](https://github.com/helm/helm/releases) (Istio does not work with helm 3)
 1. Update the version in `images/manager/Dockerfile`
+
+## Ubuntu base images
+
+1. Search the codebase for `ubuntu` and update versions as appropriate
 
 ## Alpine base images
 

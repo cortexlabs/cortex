@@ -221,10 +221,16 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
-				StructField: "TargetQueueLength",
-				Float64Validation: &cr.Float64Validation{
-					Default:              0,
-					GreaterThanOrEqualTo: pointer.Float64(0),
+				StructField: "TargetReplicaConcurrency",
+				Float64PtrValidation: &cr.Float64PtrValidation{
+					GreaterThan: pointer.Float64(0),
+				},
+			},
+			{
+				StructField: "MaxReplicaConcurrency",
+				Int64Validation: &cr.Int64Validation{
+					Default:     1024,
+					GreaterThan: pointer.Int64(0),
 				},
 			},
 			{
@@ -635,6 +641,10 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 }
 
 func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
+	if autoscaling.TargetReplicaConcurrency == nil {
+		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(autoscaling.WorkersPerReplica * autoscaling.ThreadsPerWorker))
+	}
+
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {
 		return ErrorMinReplicasGreaterThanMax(autoscaling.MinReplicas, autoscaling.MaxReplicas)
 	}

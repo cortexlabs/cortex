@@ -17,6 +17,8 @@ limitations under the License.
 package aws
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
@@ -29,6 +31,10 @@ func GetCredentialsFromCLIConfigFile() (string, string, error) {
 	value, err := creds.Get()
 	if err != nil {
 		return "", "", err
+	}
+
+	if value.SessionToken != "" {
+		fmt.Println("warning: credentials requiring aws session tokens are not supported")
 	}
 
 	if value.AccessKeyID == "" || value.SecretAccessKey == "" {

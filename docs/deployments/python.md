@@ -33,8 +33,9 @@ In addition to supporting Python models via the Python Predictor interface, Cort
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
     workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
     threads_per_worker: <int>  # the number of threads per worker (default: 1)
-    target_queue_length: <float>  # the desired queue length per replica (default: 0)
-    window: <duration>  # the time over which to average the API's queue length (default: 60s)
+    target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: workers_per_replica * threads_per_worker)
+    max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
+    window: <duration>  # the time over which to average the API's concurrency (default: 60s)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
     upscale_stabilization_period: <duration>  # the API will not scale above the lowest recommendation made during this period (default: 0m)
     max_downscale_factor: <float>  # the maximum factor by which to scale down the API on a single scaling event (default: 0.5)
@@ -140,11 +141,12 @@ class PythonPredictor:
 
 ## Pre-installed packages
 
-The following packages have been pre-installed and can be used in your implementations:
+The following Python packages have been pre-installed and can be used in your implementations:
 
 ```text
 boto3==1.10.45
-cloudpickle==1.2.2
+cloudpickle==1.3.0
+Cython==0.29.15
 dill==0.3.1.1
 joblib==0.14.1
 Keras==2.3.1
@@ -155,6 +157,7 @@ numpy==1.18.0
 pandas==0.25.3
 opencv-python==4.1.2.30
 Pillow==6.2.1
+pyyaml==5.3
 requests==2.22.0
 scikit-image==0.16.2
 scikit-learn==0.22
@@ -165,9 +168,12 @@ sympy==1.5
 tensor2tensor==1.15.4
 tensorflow-hub==0.7.0
 tensorflow==2.1.0
-torch==1.3.1
-torchvision==0.4.2
+torch==1.4.0
+torchvision==0.5.0
 xgboost==0.90
 ```
 
-Learn how to install additional packages [here](../dependency-management/python-packages.md).
+<!-- CORTEX_VERSION_MINOR x2 -->
+The pre-installed system packages are listed in the [python-serve Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU) or the [python-serve-gpu Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU).
+
+If your application requires additional dependencies, you can [install additional Python packages](../dependency-management/python-packages.md) or [install additional system packages](../dependency-management/system-packages.md).

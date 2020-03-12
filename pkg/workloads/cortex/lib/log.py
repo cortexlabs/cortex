@@ -15,6 +15,7 @@
 import logging
 import sys
 import time
+import http
 
 from cortex.lib import stringify
 import datetime as dt
@@ -27,6 +28,35 @@ class CortexFormatter(logging.Formatter):
         ct = self.converter(record.created)
         s = ct.strftime(datefmt)
         return s
+
+
+# https://github.com/encode/uvicorn/blob/master/uvicorn/logging.py
+class CortexAccessFormatter(CortexFormatter):
+    def get_path(self, scope):
+        return scope.get("root_path", "") + scope["path"]
+
+    def get_status_code(self, record):
+        status_code = record.__dict__["status_code"]
+        status_and_phrase = status_code
+
+        try:
+            status_phrase = http.HTTPStatus(status_code).phrase
+            status_and_phrase = f"{status_code} {status_phrase}"
+        except:
+            pass
+
+        return status_and_phrase
+
+    def formatMessage(self, record):
+        scope = record.__dict__["scope"]
+        record.__dict__.update(
+            {
+                "status_code": self.get_status_code(record),
+                "method": scope["method"],
+                "path": self.get_path(scope),
+            }
+        )
+        return super().formatMessage(record)
 
 
 formatter_pid = CortexFormatter(

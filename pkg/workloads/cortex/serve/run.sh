@@ -16,9 +16,15 @@
 
 set -e
 
+# If the container restarted, ensure that it is not perceived as ready
+rm -rf /mnt/api_readiness.txt
+
+# Allow for the liveness check to pass until the API is running
+echo "9999999999" > /mnt/api_liveness.txt
+
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 
-sysctl -w net.core.somaxconn=4096 >/dev/null
+sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
 sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
 sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
 
@@ -31,16 +37,6 @@ cd /mnt/project
 # Ensure predictor print() statements are always flushed
 export PYTHONUNBUFFERED=TRUE
 
-exec gunicorn \
---bind 0.0.0.0:$CORTEX_SERVING_PORT \
---threads $CORTEX_THREADS_PER_WORKER \
---workers $CORTEX_WORKERS_PER_REPLICA \
---worker-class gthread \
---backlog 4096 \
---access-logfile - \
---pythonpath $PYTHONPATH \
---chdir /mnt/project \
---access-logformat '%(s)s %(m)s %(U)s' \
---logger-class "cortex.serve.gunicorn_logger.CortexGunicornLogger" \
---config /src/cortex/serve/gunicorn_config.py \
-cortex.serve.wsgi:app
+mkdir -p /mnt/requests
+
+/usr/bin/python3.6 /src/cortex/serve/start_uvicorn.py
