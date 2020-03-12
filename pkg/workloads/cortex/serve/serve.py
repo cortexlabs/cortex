@@ -21,9 +21,9 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import math
 import asyncio
-from typing import Union, Any
+from typing import Any
 
-from fastapi import FastAPI
+from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.requests import Request
 from starlette.responses import Response
@@ -147,7 +147,7 @@ def apply_cors_headers(request: Request, response: Response):
 
 
 @app.post("/predict")
-def predict(request: Union[dict, list, Any], debug=False):
+def predict(request: Any = Body(..., media_type="application/json"), debug=False):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
 
