@@ -45,36 +45,30 @@ func GetFilePathValidator(baseDir string) func(string) (string, error) {
 	}
 }
 
-func GetS3aPathValidator() func(string) (string, error) {
-	return func(val string) (string, error) {
-		if !aws.IsValidS3aPath(val) {
-			return "", aws.ErrorInvalidS3aPath(val)
-		}
-		return val, nil
+func S3aPathValidator(val string) (string, error) {
+	if !aws.IsValidS3aPath(val) {
+		return "", aws.ErrorInvalidS3aPath(val)
 	}
+	return val, nil
 }
 
-func S3PathValidator() func(string) (string, error) {
-	return func(val string) (string, error) {
-		if !aws.IsValidS3Path(val) {
-			return "", aws.ErrorInvalidS3Path(val)
-		}
-		return val, nil
+func S3PathValidator(val string) (string, error) {
+	if !aws.IsValidS3Path(val) {
+		return "", aws.ErrorInvalidS3Path(val)
 	}
+	return val, nil
 }
 
-func EmailValidator() func(string) (string, error) {
-	return func(val string) (string, error) {
-		if len(val) > 320 {
-			return "", errors.New("email exceeds max-length")
-		}
-
-		if !_emailRegex.MatchString(val) {
-			return "", errors.New("invalid email address")
-		}
-
-		return val, nil
+func EmailValidator(val string) (string, error) {
+	if len(val) > 320 {
+		return "", errors.New("email exceeds max-length")
 	}
+
+	if !_emailRegex.MatchString(val) {
+		return "", errors.New("invalid email address")
+	}
+
+	return val, nil
 }
 
 // uses https unless defaultHTTP == true

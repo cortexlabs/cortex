@@ -260,7 +260,7 @@ var _emailPrompValidation = &cr.PromptValidation{
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
 				Required:  false,
-				Validator: cr.EmailValidator(),
+				Validator: cr.EmailValidator,
 			},
 		},
 	},
