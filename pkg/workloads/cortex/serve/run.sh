@@ -16,6 +16,8 @@
 
 set -e
 
+cd /mnt/project
+
 # If the container restarted, ensure that it is not perceived as ready
 rm -rf /mnt/api_readiness.txt
 
@@ -31,8 +33,6 @@ sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
-
-cd /mnt/project
 
 # Ensure predictor print() statements are always flushed
 export PYTHONUNBUFFERED=TRUE
