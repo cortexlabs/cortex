@@ -9,23 +9,18 @@
 * [Email us](mailto:hello@cortex.dev)
 * [We're hiring](https://angel.co/cortex-labs-inc/jobs)
 
-## ML libraries
+## Deployments
 
-* [PyTorch](frameworks/pytorch.md)
-* [TensorFlow and Keras](frameworks/tensorflow.md)
-* [Scikit-learn, XGBoost, and others](frameworks/python.md)
-
-## Predictors
-
-* [Python Predictor](predictors/python.md)
-* [TensorFlow Predictor](predictors/tensorflow.md)
-* [ONNX Predictor](predictors/onnx.md)
-* [Autoscaling](predictors/autoscaling.md)
-* [Compute](predictors/compute.md)
-* [Prediction monitoring](predictors/prediction-monitoring.md)
-* [Python packages](predictors/python-packages.md)
-* [System packages](predictors/system-packages.md)
-* [API statuses](predictors/statuses.md)
+* [Model exporting](deployments/exporting.md)
+* [Predictor implementation](deployments/predictors.md)
+* [API configuration](deployments/api-configuration.md)
+* [API deployment](deployments/deployment.md)
+* [Autoscaling](deployments/autoscaling.md)
+* [Compute](deployments/compute.md)
+* [Prediction monitoring](deployments/prediction-monitoring.md)
+* [Python packages](deployments/python-packages.md)
+* [System packages](deployments/system-packages.md)
+* [API statuses](deployments/statuses.md)
 
 ## Cluster management
 

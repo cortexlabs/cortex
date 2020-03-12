@@ -95,7 +95,7 @@ Create a `requirements.txt` file to specify the dependencies needed by `predicto
 boto3
 ```
 
-You can skip dependencies that are [pre-installed](../../../docs/predictors/python.md#pre-installed-packages) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
+You can skip dependencies that are [pre-installed](../../../docs/deployments/predictors) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
 
 <br>
 
@@ -132,8 +132,8 @@ Track the status of your api using `cortex get`:
 ```bash
 $ cortex get iris-classifier --watch
 
-status   up-to-date   requested   last update   avg inference   2XX
-live     1            1           1m            -               -
+status   up-to-date   requested   last update   avg request   2XX
+live     1            1           1m            -             -
 
 endpoint: http://***.amazonaws.com/iris-classifier
 ```
@@ -193,8 +193,8 @@ After making more predictions, your `cortex get` command will show information a
 ```bash
 $ cortex get iris-classifier --watch
 
-status   up-to-date   requested   last update   avg inference   2XX
-live     1            1           1m            1.1 ms          14
+status   up-to-date   requested   last update   avg request   2XX
+live     1            1           1m            1.1 ms        14
 
 class        count
 setosa       8
@@ -238,8 +238,8 @@ Run `cortex get` again:
 ```bash
 $ cortex get iris-classifier --watch
 
-status   up-to-date   requested   last update   avg inference   2XX
-live     1            1           1m            1.1 ms          14
+status   up-to-date   requested   last update   avg request   2XX
+live     1            1           1m            1.1 ms        14
 
 class        count
 setosa       8
