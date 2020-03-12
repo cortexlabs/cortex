@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-CORTEX_VERSION=0.14.0
+CORTEX_VERSION=0.14.1
 
 image=$1
 

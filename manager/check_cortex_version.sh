@@ -16,7 +16,7 @@
 
 set -e
 
-CORTEX_VERSION=master
+CORTEX_VERSION=0.14.1
 
 if [ "$CORTEX_VERSION" != "$CORTEX_CLI_VERSION" ]; then
   echo "error: your CLI version ($CORTEX_CLI_VERSION) doesn't match your Cortex manager image version ($CORTEX_VERSION); please update your CLI by following the instructions at https://www.cortex.dev/install, or update your Cortex manager image by modifying the value for \`image_manager\` in your cluster configuration file (e.g. cluster.yaml) and running \`cortex cluster update --config cluster.yaml\` (update other image paths in cluster.yaml as well if necessary)"
