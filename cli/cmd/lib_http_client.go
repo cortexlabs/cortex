@@ -47,6 +47,12 @@ type GenericClient struct {
 	*http.Client
 }
 
+type ResponseErrorKind string
+
+func (e ResponseErrorKind) String() string {
+	return string(e)
+}
+
 var _operatorClient = &OperatorClient{
 	Client: &http.Client{
 		Timeout: 600 * time.Second,
@@ -217,10 +223,14 @@ func StreamLogs(apiName string) error {
 		}
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
-		if err != nil || output.Error == "" {
+		if err != nil || output.Message == "" {
 			return errors.New(string(bodyBytes))
 		}
-		return errors.New(output.Error)
+		return errors.WithStack(&errors.CortexError{
+			Kind:    ResponseErrorKind(output.Kind),
+			User:    output.User,
+			Message: output.Message,
+		})
 	}
 	defer connection.Close()
 
@@ -234,7 +244,8 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 	go func() {
 		defer close(done)
 		for {
-			_, message, err := connection.ReadMessage()
+			messageType, message, err := connection.ReadMessage()
+			fmt.Println(messageType)
 			if err != nil {
 				exit.ErrorNoPrint(err)
 			}
@@ -299,6 +310,7 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
+
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			return nil, errors.Wrap(err, _errStrRead)
@@ -306,11 +318,15 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
-		if err != nil || output.Error == "" {
+		if err != nil || output.Message == "" {
 			return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
 		}
 
-		return nil, errors.New(output.Error)
+		return nil, errors.WithStack(&errors.CortexError{
+			Kind:    ResponseErrorKind(output.Kind),
+			User:    output.User,
+			Message: output.Message,
+		})
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)

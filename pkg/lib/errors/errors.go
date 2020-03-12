@@ -122,7 +122,6 @@ func IsUser(err error) bool {
 // TODO: add a NotCortexError kind?
 func GetKind(err error) ErrorKind {
 	if cortexError := getCortexError(err); cortexError != nil {
-		fmt.Println("hi")
 		return cortexError.GetKind()
 	}
 

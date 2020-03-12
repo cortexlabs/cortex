@@ -359,7 +359,9 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 		errs := cr.Struct(&api, data, _apiValidation)
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
-			return nil, errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			err := errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			errors.SetUser(err)
+			return nil, err
 		}
 		api.Index = i
 		api.FilePath = filePath

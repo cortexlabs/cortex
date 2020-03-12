@@ -39,8 +39,11 @@ func respondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 	errors.PrintError(err)
 
 	w.WriteHeader(code)
+	errors.PrintStacktrace(err)
 	response := schema.ErrorResponse{
-		Error: errors.Message(err),
+		Kind:    errors.GetKind(err).String(),
+		User:    errors.IsUser(err),
+		Message: errors.Message(err),
 	}
 	json.NewEncoder(w).Encode(response)
 }
