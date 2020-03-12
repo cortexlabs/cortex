@@ -197,7 +197,7 @@ func EventFromException(exception error) *sentry.Event {
 
 	errTypeString := reflect.TypeOf(cause).String()
 	errKind := errors.GetKind(exception)
-	if errKind == errors.ErrUnknown {
+	if errKind != errors.ErrUnknown {
 		errTypeString = errKind.String()
 	}
 
