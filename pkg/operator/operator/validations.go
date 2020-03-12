@@ -492,7 +492,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 
 	awsClient, err := aws.NewFromEnvS3Path(model)
 	if err != nil {
-		return err
+		return errors.Wrap(err, userconfig.ModelKey)
 	}
 
 	if strings.HasSuffix(model, ".zip") {
@@ -502,7 +502,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 	} else {
 		path, err := getTFServingExportFromS3Path(model, awsClient)
 		if err != nil {
-			return err
+			return errors.Wrap(err, userconfig.ModelKey)
 		} else if path == "" {
 			return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 		}
@@ -521,7 +521,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 
 	awsClient, err := aws.NewFromEnvS3Path(model)
 	if err != nil {
-		return err
+		return errors.Wrap(err, userconfig.ModelKey)
 	}
 
 	if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
@@ -545,7 +545,7 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		return "", err
 	}
 
-	objects, err := config.AWS.ListPathDir(path, 1000)
+	objects, err := awsClient.ListPathDir(path, 1000)
 	if err != nil {
 		return "", err
 	} else if len(objects) == 0 {
