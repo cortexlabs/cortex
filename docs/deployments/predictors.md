@@ -67,45 +67,6 @@ class PythonPredictor:
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
-### Pre-installed packages
-
-The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
-
-```text
-boto3==1.10.45
-cloudpickle==1.3.0
-Cython==0.29.15
-dill==0.3.1.1
-joblib==0.14.1
-Keras==2.3.1
-msgpack==0.6.2
-nltk==3.4.5
-np-utils==0.5.12.1
-numpy==1.18.0
-pandas==0.25.3
-opencv-python==4.1.2.30
-Pillow==6.2.1
-pyyaml==5.3
-requests==2.22.0
-scikit-image==0.16.2
-scikit-learn==0.22
-scipy==1.4.1
-six==1.13.0
-statsmodels==0.10.2
-sympy==1.5
-tensor2tensor==1.15.4
-tensorflow-hub==0.7.0
-tensorflow==2.1.0
-torch==1.4.0
-torchvision==0.5.0
-xgboost==0.90
-```
-
-<!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/python-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU) or [images/python-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU).
-
-If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
-
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
@@ -156,6 +117,45 @@ class PythonPredictor:
         return labels[torch.argmax(output[0])]
 ```
 
+### Pre-installed packages
+
+The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
+
+```text
+boto3==1.10.45
+cloudpickle==1.3.0
+Cython==0.29.15
+dill==0.3.1.1
+joblib==0.14.1
+Keras==2.3.1
+msgpack==0.6.2
+nltk==3.4.5
+np-utils==0.5.12.1
+numpy==1.18.0
+pandas==0.25.3
+opencv-python==4.1.2.30
+Pillow==6.2.1
+pyyaml==5.3
+requests==2.22.0
+scikit-image==0.16.2
+scikit-learn==0.22
+scipy==1.4.1
+six==1.13.0
+statsmodels==0.10.2
+sympy==1.5
+tensor2tensor==1.15.4
+tensorflow-hub==0.7.0
+tensorflow==2.1.0
+torch==1.4.0
+torchvision==0.5.0
+xgboost==0.90
+```
+
+<!-- CORTEX_VERSION_MINOR x2 -->
+The pre-installed system packages are listed in [images/python-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU) or [images/python-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU).
+
+If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
+
 ## TensorFlow Predictor
 
 ### Interface
@@ -189,6 +189,27 @@ Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorfl
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
+### Examples
+
+<!-- CORTEX_VERSION_MINOR -->
+Most of the examples in [examples/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow) use the TensorFlow Predictor.
+
+<!-- CORTEX_VERSION_MINOR -->
+Here is the Predictor for [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/iris-classifier):
+
+```python
+labels = ["setosa", "versicolor", "virginica"]
+
+class TensorFlowPredictor:
+    def __init__(self, tensorflow_client, config):
+        self.client = tensorflow_client
+
+    def predict(self, payload):
+        prediction = self.client.predict(payload)
+        predicted_class_id = int(prediction["class_ids"][0])
+        return labels[predicted_class_id]
+```
+
 ### Pre-installed packages
 
 The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
@@ -210,27 +231,6 @@ tensorflow==2.1.0
 The pre-installed system packages are listed in [images/tf-api/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/tf-api/Dockerfile).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
-
-### Examples
-
-<!-- CORTEX_VERSION_MINOR -->
-Most of the examples in [examples/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow) use the TensorFlow Predictor.
-
-<!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/iris-classifier):
-
-```python
-labels = ["setosa", "versicolor", "virginica"]
-
-class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config):
-        self.client = tensorflow_client
-
-    def predict(self, payload):
-        prediction = self.client.predict(payload)
-        predicted_class_id = int(prediction["class_ids"][0])
-        return labels[predicted_class_id]
-```
 
 ## ONNX Predictor
 
@@ -265,25 +265,6 @@ Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` 
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
-### Pre-installed packages
-
-The following Python packages are pre-installed in ONNX Predictors and can be used in your implementations:
-
-```text
-boto3==1.10.45
-dill==0.3.1.1
-msgpack==0.6.2
-numpy==1.18.0
-onnxruntime==1.1.0
-pyyaml==5.3
-requests==2.22.0
-```
-
-<!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/onnx-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve/Dockerfile) (for CPU) or [images/onnx-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve-gpu/Dockerfile) (for GPU).
-
-If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
-
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
@@ -308,3 +289,22 @@ class ONNXPredictor:
         predicted_class_id = prediction[0][0]
         return labels[predicted_class_id]
 ```
+
+### Pre-installed packages
+
+The following Python packages are pre-installed in ONNX Predictors and can be used in your implementations:
+
+```text
+boto3==1.10.45
+dill==0.3.1.1
+msgpack==0.6.2
+numpy==1.18.0
+onnxruntime==1.1.0
+pyyaml==5.3
+requests==2.22.0
+```
+
+<!-- CORTEX_VERSION_MINOR x2 -->
+The pre-installed system packages are listed in [images/onnx-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve/Dockerfile) (for CPU) or [images/onnx-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve-gpu/Dockerfile) (for GPU).
+
+If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
