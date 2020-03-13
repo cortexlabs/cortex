@@ -2,8 +2,7 @@
 
 The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown (unless otherwise specified):
 
-<!-- CORTEX_VERSION_BRANCH_STABLE -->
-
+<!-- CORTEX_VERSION_MINOR -->
 ```yaml
 # cluster.yaml
 
@@ -45,7 +44,14 @@ log_group: cortex
 # whether to use spot instances in the cluster (default: false)
 # see https://cortex.dev/v/0.14/cluster-management/spot-instances for additional details on spot configuration
 spot: false
+```
 
+The docker images used by Cortex are listed below. They can be overridden to use custom images by specifying them in your cluster configuration file.
+
+You can follow these [instructions](../deployments/system-packages.md) to build and push custom Docker images to a registry and configure Cortex to use them.
+
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
+```yaml
 # docker image paths
 image_python_serve: cortexlabs/python-serve:0.14.1
 image_python_serve_gpu: cortexlabs/python-serve-gpu:0.14.1
