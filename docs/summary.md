@@ -11,23 +11,17 @@
 
 ## Deployments
 
-* [Python APIs](deployments/python.md)
-* [TensorFlow APIs](deployments/tensorflow.md)
-* [ONNX APIs](deployments/onnx.md)
+* [Exporting models](deployments/exporting.md)
+* [Predictor implementation](deployments/predictors.md)
+* [API configuration](deployments/api-configuration.md)
+* [API deployment](deployments/deployment.md)
 * [Autoscaling](deployments/autoscaling.md)
-* [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Compute](deployments/compute.md)
+* [Using GPUs](deployments/gpus.md)
+* [Prediction monitoring](deployments/prediction-monitoring.md)
+* [Python packages](deployments/python-packages.md)
+* [System packages](deployments/system-packages.md)
 * [API statuses](deployments/statuses.md)
-
-## Packaging models
-
-* [TensorFlow](packaging-models/tensorflow.md)
-* [ONNX](packaging-models/onnx.md)
-
-## Dependency management
-
-* [Python packages](dependency-management/python-packages.md)
-* [System packages](dependency-management/system-packages.md)
 
 ## Cluster management
 

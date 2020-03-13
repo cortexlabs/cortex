@@ -79,7 +79,8 @@ func (e Error) Error() string {
 
 func ErrorParseQuantity(qtyStr string) error {
 	return errors.WithStack(Error{
-		Kind:    ErrParseQuantity,
-		message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/deployments/compute)",
+		Kind: ErrParseQuantity,
+		// CORTEX_VERSION_MINOR
+		message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/v/0.14/deployments/compute)",
 	})
 }
