@@ -94,7 +94,7 @@ You can install Conda packages by creating a custom Docker image that first inst
 
 Customize the template Dockerfile below with your desired Conda packages and follow these [instructions](./system-packages.md) to build and push your image to a container registry and configure Cortex to use your custom image.
 
-```
+```dockerfile
 # Dockerfile
 
 FROM <BASE CORTEX IMAGE>
