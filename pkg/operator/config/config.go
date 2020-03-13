@@ -65,7 +65,7 @@ func Init() error {
 
 	_, hashedAccountID, err := AWS.CheckCredentials()
 	if err != nil {
-		return err
+		return errors.SetUser(err)
 	}
 
 	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)

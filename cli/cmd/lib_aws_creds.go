@@ -40,7 +40,7 @@ func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 	}
 
 	if _, _, err := awsClient.CheckCredentials(); err != nil {
-		return nil, err
+		return nil, errors.SetUser(err)
 	}
 
 	return awsClient, nil
@@ -104,7 +104,7 @@ var _awsCredentialsPromptValidation = &cr.PromptValidation{
 func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
 	errs := cr.ParseYAMLFile(awsCreds, _awsCredentialsValidation, path)
 	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
+		return errors.SetUser(errors.FirstError(errs...))
 	}
 
 	return nil
