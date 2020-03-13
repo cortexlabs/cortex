@@ -12,7 +12,7 @@ $ cortex deploy
 creating my-api
 ```
 
-APIs are declarative, so to update your API, simply modify your source code and/or configuration and run `cortex deploy` again.
+APIs are declarative, so to update your API, you can modify your source code and/or configuration and run `cortex deploy` again.
 
 ## `cortex get`
 
@@ -54,7 +54,7 @@ You can log information about each request by adding the `?debug=true` parameter
 
 ## `cortex delete`
 
-You can delete your API with the `cortex delete` command:
+Use the `cortex delete` command to delete your API:
 
 ```bash
 $ cortex delete my-api
