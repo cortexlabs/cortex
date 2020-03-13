@@ -10,10 +10,12 @@ labels = ["setosa", "versicolor", "virginica"]
 
 class PythonPredictor:
     def __init__(self, config):
+        # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3")
         s3.download_file(bucket, key, "model.pth")
 
+        # initialize the model
         model = IrisNet()
         model.load_state_dict(torch.load("model.pth"))
         model.eval()
@@ -21,6 +23,7 @@ class PythonPredictor:
         self.model = model
 
     def predict(self, payload):
+        # Convert the request to a tensor and pass it into the model
         input_tensor = torch.FloatTensor(
             [
                 [
@@ -32,5 +35,8 @@ class PythonPredictor:
             ]
         )
 
+        # Run the prediction
         output = self.model(input_tensor)
+
+        # Translate the model output to the corresponding label string
         return labels[torch.argmax(output[0])]

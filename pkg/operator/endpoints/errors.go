@@ -94,7 +94,7 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAPIVersionMismatch,
-		Message: fmt.Sprintf("API version mismatch (Cluster: %s; Client: %s)", operatorVersion, clientVersion),
+		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your CLI by following the instructions at https://www.cortex.dev/install", clientVersion, operatorVersion),
 		User:    true,
 	})
 }

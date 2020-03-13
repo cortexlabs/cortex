@@ -166,7 +166,7 @@ func ErrorDirDoesNotExist(path string) error {
 func ErrorNotAFile(path string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNotAFile,
-		Message: fmt.Sprintf("%s: not a file path", path),
+		Message: fmt.Sprintf("%s: no such file", path),
 	})
 }
 

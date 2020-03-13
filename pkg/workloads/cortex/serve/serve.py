@@ -21,9 +21,9 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import math
 import asyncio
-from typing import Union, Any
+from typing import Any
 
-from fastapi import FastAPI
+from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.requests import Request
 from starlette.responses import Response
@@ -35,6 +35,11 @@ from cortex.lib import util
 from cortex.lib.type import API
 from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.storage import S3
+
+
+if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
+    errMsg = f"your Cortex operator version ({os.environ['CORTEX_VERSION']}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your predictor image by modifying the appropriate `image_*` field(s) in your cluster configuration file (e.g. cluster.yaml) and running `cortex cluster update --config cluster.yaml`"
+    raise ValueError(errMsg)
 
 
 API_SUMMARY_MESSAGE = (
@@ -142,7 +147,7 @@ def apply_cors_headers(request: Request, response: Response):
 
 
 @app.post("/predict")
-def predict(request: Union[dict, list, Any], debug=False):
+def predict(request: Any = Body(..., media_type="application/json"), debug=False):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
 
@@ -182,15 +187,6 @@ def get_summary():
     if hasattr(local_cache["client"], "input_signature"):
         response["model_signature"] = local_cache["client"].input_signature
     return response
-
-
-def assert_api_version():
-    if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
-        raise ValueError(
-            "api version mismatch (operator: {}, image: {})".format(
-                os.environ["CORTEX_VERSION"], consts.CORTEX_VERSION
-            )
-        )
 
 
 def get_spec(storage, cache_dir, s3_path):

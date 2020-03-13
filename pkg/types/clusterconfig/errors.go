@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -46,6 +47,7 @@ const (
 	ErrInvalidAvailabilityZone
 	ErrDidNotMatchStrictS3Regex
 	ErrS3RegionDiffersFromCluster
+	ErrImageVersionMismatch
 	ErrInvalidInstanceType
 )
 
@@ -68,6 +70,7 @@ var _errorKinds = []string{
 	"err_invalid_availability_zone",
 	"err_did_not_match_strict_s3_regex",
 	"err_s3_region_differs_from_cluster",
+	"err_image_version_mismatch",
 	"err_invalid_instance_type",
 }
 
@@ -242,6 +245,13 @@ func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clu
 		Kind:    ErrS3RegionDiffersFromCluster,
 		Message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
 		User:    true,
+	})
+}
+
+func ErrorImageVersionMismatch(image string, tag string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrImageVersionMismatch,
+		message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match the version of your CLI (%s); please update the image tag, remove the image from the cluster config file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, consts.CortexVersion),
 	})
 }
 

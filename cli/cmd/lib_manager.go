@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -112,6 +113,11 @@ func pullManager(managerImage string) error {
 }
 
 func runManager(containerConfig *container.Config) (string, *int, error) {
+	containerConfig.Env = append(containerConfig.Env, "CORTEX_CLI_VERSION="+consts.CortexVersion)
+
+	// Add a slight delay before running the command to ensure logs don't start until after the container is attached
+	containerConfig.Cmd[0] = "sleep 0.1 && /root/check_cortex_version.sh && " + containerConfig.Cmd[0]
+
 	docker, err := getDockerClient()
 	if err != nil {
 		return "", nil, err
@@ -162,7 +168,6 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		return "", nil, wrapDockerError(err)
 	}
 
-	// There is a slight delay between the container starting at attaching to it, hence the sleep in Cmd
 	logsOutput, err := docker.ContainerAttach(context.Background(), containerInfo.ID, dockertypes.ContainerAttachOptions{
 		Stream: true,
 		Stdout: true,
@@ -217,7 +222,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{fmt.Sprintf("sleep 0.1 && eval $(python /root/cluster_config_env.py %s) && %s", mountedConfigPath, entrypoint)},
+		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", mountedConfigPath, entrypoint)},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -247,7 +252,7 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 	containerConfig := &container.Config{
 		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{"sleep 0.1 && " + entrypoint},
+		Cmd:          []string{entrypoint},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,

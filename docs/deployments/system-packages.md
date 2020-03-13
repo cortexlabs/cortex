@@ -4,7 +4,6 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry that your cluster has access to (e.g. [Docker Hub](https://hub.docker.com) or [AWS ECR](https://aws.amazon.com/ecr)).
 
-
 ## Create a custom image
 
 Create a Dockerfile to build your custom image:
@@ -15,22 +14,22 @@ mkdir my-api && cd my-api && touch Dockerfile
 
 The Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image.
 
-<!-- CORTEX_VERSION_README x5 -->
-* Python (CPU): cortexlabs/python-serve:0.14.0
-* Python (GPU): cortexlabs/python-serve-gpu:0.14.0
-* TensorFlow (CPU or GPU): cortexlabs/tf-api:0.14.0
-* ONNX (CPU): cortexlabs/onnx-serve:0.14.0
-* ONNX (GPU): cortexlabs/onnx-serve-gpu:0.14.0
+<!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
+* Python (CPU): cortexlabs/python-serve:master
+* Python (GPU): cortexlabs/python-serve-gpu:master
+* TensorFlow (CPU or GPU): cortexlabs/tf-api:master
+* ONNX (CPU): cortexlabs/onnx-serve:master
+* ONNX (GPU): cortexlabs/onnx-serve-gpu:master
 
 Note that the Docker image version must match your cluster version displayed in `cortex version`.
 
 The sample Dockerfile below inherits from Cortex's Python CPU serving image and installs the `tree` system package.
 
-<!-- CORTEX_VERSION_README -->
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-serve:0.14.0
+FROM cortexlabs/python-serve:master
 
 RUN apt-get update \
     && apt-get install -y tree \

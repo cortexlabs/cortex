@@ -12,6 +12,10 @@
 
 - [License plate reader](tensorflow/license-plate-reader): deploy a YOLOv3 model (and others) to identify license plates in real time.
 
+## Keras
+
+- [Denoisify text documents](keras/document-denoiser): deploy an Autoencoder model to clean text document images of noise.
+
 ## PyTorch
 
 - [Iris classification](pytorch/iris-classifier): deploy a model to classify iris flowers.
