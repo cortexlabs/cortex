@@ -48,11 +48,11 @@ log_group: cortex
 spot: false
 ```
 
-<!-- CORTEX_VERSION_BRANCH_STABLE -->
 The docker images used by Cortex are listed below. They can be overridden to use custom images by specifying them in your cluster configuration file.
 
 You can follow these [instructions](../deployments/system-packages.md) to build and push custom Docker images to a registry and configure Cortex to use them.
 
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 # docker image paths
 image_python_serve: cortexlabs/python-serve:master
