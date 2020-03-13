@@ -87,3 +87,46 @@ git+https://<personal access token>@github.com/<username>/<repo name>.git@<tag o
 ```
 
 You can generate a personal access token by following [these steps](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
+
+## Conda packages
+
+You can install Conda packages by creating a custom Docker image that first installs Conda and then installs your Conda packages.
+
+Customize the template Dockerfile below with the desired Conda packages and follow these [instructions](./system-packages.md) to build and push your image to a container registry and configure Cortex to use your custom image.
+
+```
+# Dockerfile
+
+FROM <BASE CORTEX IMAGE>
+
+# to remove system-wide packages from cortexlabs/python-serve
+RUN pip freeze > req && for pkg in "$(cat req)"; do pip uninstall $pkg -y || true; done && rm req
+
+# add conda to path
+ENV PATH /opt/conda/bin:$PATH
+
+# install conda, it also includes py3.6.9
+RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh && \
+    /opt/conda/bin/conda update conda && \
+    /opt/conda/bin/conda install --force python=3.6.9 && \
+    /opt/conda/bin/conda clean -tipsy && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate base" >> ~/.bashrc
+
+# install pip dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r /src/cortex/lib/requirements.txt && \
+    pip install --no-cache-dir -r /src/cortex/serve/requirements.txt
+
+# ---------------------------------------------------------- #
+# Install your Conda packages here
+# RUN conda install --no-update-deps -c conda-forge rdkit
+
+# ---------------------------------------------------------- #
+
+# replace system python with conda's version
+RUN sed -i 's/\/usr\/bin\/python3.6/\/opt\/conda\/bin\/python/g' /src/cortex/serve/run.sh
+```
