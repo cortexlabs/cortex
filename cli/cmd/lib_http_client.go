@@ -244,8 +244,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 	go func() {
 		defer close(done)
 		for {
-			messageType, message, err := connection.ReadMessage()
-			fmt.Println(messageType)
+			_, message, err := connection.ReadMessage()
 			if err != nil {
 				exit.ErrorNoPrint(err)
 			}
