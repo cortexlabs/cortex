@@ -39,17 +39,17 @@ class ONNXClient:
 
         self._input_signature = metadata
 
-    def predict(self, payload):
-        """Validate payload, convert payload to a dictionary of input_name to numpy.ndarray and make a prediction.
+    def predict(self, model_input):
+        """Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
 
         Args:
-            payload: Input to model
+            model_input: Input to the model.
 
         Returns:
-            numpy.ndarray: Prediction
+            numpy.ndarray: The prediction returned from the model.
         """
-        inference_input = convert_to_onnx_input(payload, self._signature)
-        model_output = self._session.run([], inference_input)
+        input_dict = convert_to_onnx_input(model_input, self._signature)
+        model_output = self._session.run([], input_dict)
         return model_output
 
     @property
@@ -105,37 +105,37 @@ def transform_to_numpy(input_pyobj, input_metadata):
         raise UserException("failed to convert to numpy array", str(e)) from e
 
 
-def convert_to_onnx_input(payload, input_metadata_list):
+def convert_to_onnx_input(model_input, input_metadata_list):
     input_dict = {}
     if len(input_metadata_list) == 1:
         input_metadata = input_metadata_list[0]
-        if util.is_dict(payload):
-            if payload.get(input_metadata.name) is None:
+        if util.is_dict(model_input):
+            if model_input.get(input_metadata.name) is None:
                 raise UserException('missing key "{}"'.format(input_metadata.name))
             input_dict[input_metadata.name] = transform_to_numpy(
-                payload[input_metadata.name], input_metadata
+                model_input[input_metadata.name], input_metadata
             )
         else:
             try:
-                input_dict[input_metadata.name] = transform_to_numpy(payload, input_metadata)
+                input_dict[input_metadata.name] = transform_to_numpy(model_input, input_metadata)
             except CortexException as e:
                 e.wrap('key "{}"'.format(input_metadata.name))
                 raise
     else:
         for input_metadata in input_metadata_list:
-            if not util.is_dict(payload):
+            if not util.is_dict(model_input):
                 expected_keys = [metadata.name for metadata in input_metadata_list]
                 raise UserException(
-                    "expected payload to be a dictionary with keys {}".format(
+                    "expected model_input to be a dictionary with keys {}".format(
                         ", ".join('"' + key + '"' for key in expected_keys)
                     )
                 )
 
-            if payload.get(input_metadata.name) is None:
+            if model_input.get(input_metadata.name) is None:
                 raise UserException('missing key "{}"'.format(input_metadata.name))
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(
-                    payload[input_metadata.name], input_metadata
+                    model_input[input_metadata.name], input_metadata
                 )
             except CortexException as e:
                 e.wrap('key "{}"'.format(input_metadata.name))

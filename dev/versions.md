@@ -90,7 +90,7 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 
 The same Python version should be used throughout Cortex (e.g. search for `3.6` and update all accordingly).
 
-It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile))
+It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile)). In theory, it should be safe to use the lowest of the maximum supported python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/project/tensorflow), [Keras](https://pypi.org/project/Keras), [numpy](https://pypi.org/project/numpy), [pandas](https://pypi.org/project/pandas), [scikit-learn](https://pypi.org/project/scikit-learn), [scipy](https://pypi.org/project/scipy), [tensor2tensor](https://pypi.org/project/tensor2tensor), [torch](https://pypi.org/project/torch), [xgboost](https://pypi.org/project/xgboost))
 
 ## TensorFlow / TensorFlow Serving
 

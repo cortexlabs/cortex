@@ -115,8 +115,8 @@ positive
 ```bash
 $ cortex get sentiment-classifier --watch
 
-status   up-to-date   requested   last update   avg inference   2XX
-live     1            1           8s            24ms            12
+status   up-to-date   requested   last update   avg request   2XX
+live     1            1           8s            24ms          12
 
 class     count
 positive  8

@@ -42,18 +42,18 @@ class TensorFlowClient:
         self._input_signature = parsed_signature
         self._tf_serving_url = tf_serving_url
 
-    def predict(self, payload):
-        """Validate payload, convert payload to Prediction Proto and make a request to TensorFlow Serving.
+    def predict(self, model_input):
+        """Validate model_input, convert it to a Prediction Proto, and make a request to TensorFlow Serving.
 
         Args:
-            payload: Input to model.
+            model_input: Input to the model.
 
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.
         """
-        validate_payload(self._input_signature, payload)
+        validate_model_input(self._input_signature, model_input)
         prediction_request = create_prediction_request(
-            self._signature, self._signature_key, payload
+            self._signature, self._signature_key, model_input
         )
         response_proto = self._stub.Predict(prediction_request, timeout=300.0)
         return parse_response_proto(response_proto)
@@ -187,12 +187,12 @@ def extract_signature(signature_def, signature_key):
     return signature_key, parsed_signature
 
 
-def create_prediction_request(signature_def, signature_key, payload):
+def create_prediction_request(signature_def, signature_key, model_input):
     prediction_request = predict_pb2.PredictRequest()
     prediction_request.model_spec.name = "model"
     prediction_request.model_spec.signature_name = signature_key
 
-    for column_name, value in payload.items():
+    for column_name, value in model_input.items():
         shape = []
         for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
             shape.append(int(dim["size"]))
@@ -220,7 +220,7 @@ def parse_response_proto(response_proto):
     return outputs_simplified
 
 
-def validate_payload(input_signature, payload):
+def validate_model_input(input_signature, model_input):
     for input_name, _ in input_signature.items():
-        if input_name not in payload:
+        if input_name not in model_input:
             raise UserException('missing key "{}"'.format(input_name))

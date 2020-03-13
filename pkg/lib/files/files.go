@@ -138,7 +138,8 @@ func WriteFile(data []byte, path string) error {
 	return nil
 }
 
-// Returns original path if there was an error
+// e.g. ~/path -> /home/ubuntu/path
+// returns original path if there was an error
 func EscapeTilde(path string) (string, error) {
 	if !(path == "~" || strings.HasPrefix(path, "~/")) {
 		return path, nil
@@ -149,6 +150,9 @@ func EscapeTilde(path string) (string, error) {
 		if err != nil {
 			return path, err
 		}
+		if homeDir == "" || homeDir == "/" {
+			return path, nil
+		}
 		_homeDir = homeDir
 	}
 
@@ -158,6 +162,29 @@ func EscapeTilde(path string) (string, error) {
 
 	// path starts with "~/"
 	return filepath.Join(_homeDir, path[2:]), nil
+}
+
+// e.g. /home/ubuntu/path -> ~/path
+func ReplacePathWithTilde(absPath string) string {
+	if !strings.HasPrefix(absPath, "/") {
+		return absPath
+	}
+
+	if _homeDir == "" {
+		homeDir, err := homedir.Dir()
+		if err != nil || homeDir == "" || homeDir == "/" {
+			return absPath
+		}
+		_homeDir = homeDir
+	}
+
+	trimmedHomeDir := strings.TrimSuffix(s.EnsurePrefix(_homeDir, "/"), "/")
+
+	if strings.Index(absPath, trimmedHomeDir) == 0 {
+		return "~" + absPath[len(trimmedHomeDir):]
+	}
+
+	return absPath
 }
 
 func TrimDirPrefix(fullPath string, dirPath string) string {
@@ -175,12 +202,23 @@ func RelToAbsPath(relativePath string, baseDir string) string {
 }
 
 func UserRelToAbsPath(relativePath string) string {
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return relativePath
+	}
 	return RelToAbsPath(relativePath, cwd)
 }
 
 func PathRelativeToCWD(absPath string) string {
-	cwd, _ := os.Getwd()
+	if !strings.HasPrefix(absPath, "/") {
+		return absPath
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return absPath
+	}
+
 	cwd = s.EnsureSuffix(cwd, "/")
 	return strings.TrimPrefix(absPath, cwd)
 }
