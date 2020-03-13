@@ -16,6 +16,66 @@ You can install your required PyPI packages and import them in your Python files
 
 Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
 
+## `setup.py`
+
+It is also possible to reference Python libraries that are packaged using `setup.py`.
+
+Here is an example directory structure:
+
+```text
+./iris-classifier/
+├── cortex.yaml
+├── predictor.py
+├── ...
+├── mypkg
+│   └── __init__.py
+├── requirements.txt
+└── setup.py
+```
+
+In this case, `requirements.txt` can include a single `.`:
+
+```python
+# requirements.txt
+
+.
+```
+
+If this is the contents `setup.py`:
+
+```python
+# setup.py
+
+from distutils.core import setup
+
+setup(
+    name="mypkg",
+    version="0.0.1",
+    packages=["mypkg"],
+)
+```
+
+And `__init__.py` looks like this:
+
+```python
+# mypkg/__init__.py
+
+def hello():
+    print("hello")
+```
+
+You can reference your package in `predictor.py`:
+
+```python
+# predictor.py
+
+import mypkg
+
+class PythonPredictor:
+    def predict(self, payload):
+        mypkg.hello()
+```
+
 ## Private packages on GitHub
 
 You can also install private packages hosed on GitHub by adding them to `requirements.txt` using this syntax:
