@@ -12,9 +12,9 @@ Which Predictor you use depends on how your model is exported:
 
 ## Project files
 
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementations. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api configuration file (e.g. `cortex.yaml`) are excluded. You may also add a `.cortexignore` file at the root of the project directory, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
+Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api configuration file (e.g. `cortex.yaml`) are excluded. You may also add a `.cortexignore` file at the root of the project directory, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
 
-The contents of the project directory are available in the API containers. For example, if this is your project directory:
+For example, if this is your project directory:
 
 ```text
 ./iris-classifier/
