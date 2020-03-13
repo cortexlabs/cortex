@@ -11,13 +11,9 @@ import tensorflow as tf
 class PythonPredictor:
     def __init__(self, config):
         # limit memory usage on each process
-        gpus = tf.config.experimental.list_physical_devices("GPU")
-        if gpus:
-            try:
-                for gpu in gpus:
-                    tf.config.experimental.set_memory_growth(gpu, True)
-            except RuntimeError as e:
-                print(e)
+        for gpu in tf.config.list_physical_devices("GPU"):
+            tf.config.experimental.set_memory_growth(gpu, True)
+
         # keras-ocr will automatically download pretrained
         # weights for the detector and recognizer.
         self.pipeline = keras_ocr.pipeline.Pipeline()
