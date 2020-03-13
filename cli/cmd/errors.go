@@ -92,6 +92,7 @@ func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAPINotReady,
 		Message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
+		User:    true,
 	})
 }
 
