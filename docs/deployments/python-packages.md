@@ -92,14 +92,14 @@ You can generate a personal access token by following [these steps](https://help
 
 You can install Conda packages by creating a custom Docker image that first installs Conda and then installs your Conda packages.
 
-Customize the template Dockerfile below with the desired Conda packages and follow these [instructions](./system-packages.md) to build and push your image to a container registry and configure Cortex to use your custom image.
+Customize the template Dockerfile below with your desired Conda packages and follow these [instructions](./system-packages.md) to build and push your image to a container registry and configure Cortex to use your custom image.
 
 ```
 # Dockerfile
 
 FROM <BASE CORTEX IMAGE>
 
-# to remove system-wide packages from cortexlabs/python-serve
+# remove system-wide packages from the base image
 RUN pip freeze > req && for pkg in "$(cat req)"; do pip uninstall $pkg -y || true; done && rm req
 
 # add conda to path
