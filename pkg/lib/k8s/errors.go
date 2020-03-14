@@ -17,18 +17,25 @@ limitations under the License.
 package k8s
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type ErrorKind int
 
 const (
-	ErrUnknown       ErrorKind = iota
-	ErrParseQuantity ErrorKind = iota
+	ErrUnknown            ErrorKind = iota
+	ErrAnnotationNotFound ErrorKind = iota
+	ErrParseAnnotation    ErrorKind = iota
+	ErrParseQuantity      ErrorKind = iota
 )
 
 var _errorKinds = []string{
 	"err_unknown",
+	"err_annotation_not_found",
+	"err_parse_annotation",
 	"err_parse_quantity",
 }
 
@@ -66,6 +73,20 @@ func (t *ErrorKind) UnmarshalBinary(data []byte) error {
 // MarshalBinary satisfies BinaryMarshaler
 func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
+}
+
+func ErrorAnnotationNotFound(annotationName string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrAnnotationNotFound,
+		Message: fmt.Sprintf("annotation %s not found", s.UserStr(annotationName)),
+	})
+}
+
+func ErrorParseAnnotation(annotationName string, annotationVal string, desiredType string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrParseAnnotation,
+		Message: fmt.Sprintf("unable to parse value %s from annotation %s as type %s", s.UserStr(annotationVal), annotationName, desiredType),
+	})
 }
 
 func ErrorParseQuantity(qtyStr string) error {
