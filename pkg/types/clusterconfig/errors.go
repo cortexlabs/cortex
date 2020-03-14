@@ -114,7 +114,6 @@ func ErrorInstanceTypeTooSmall() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInstanceTypeTooSmall,
 		Message: "Cortex does not support nano or micro instances - please specify a larger instance type",
-		User:    true,
 	})
 }
 
@@ -122,7 +121,6 @@ func ErrorMinInstancesGreaterThanMax(min int64, max int64) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMinInstancesGreaterThanMax,
 		Message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", MinInstancesKey, MaxInstancesKey, min, max),
-		User:    true,
 	})
 }
 
@@ -130,7 +128,6 @@ func ErrorInstanceTypeNotSupportedInRegion(instanceType string, region string) e
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInstanceTypeNotSupportedInRegion,
 		Message: fmt.Sprintf("%s instances are not available in %s", instanceType, region),
-		User:    true,
 	})
 }
 
@@ -138,7 +135,6 @@ func ErrorIncompatibleSpotInstanceTypeMemory(target aws.InstanceMetadata, sugges
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrIncompatibleSpotInstanceTypeMemory,
 		Message: fmt.Sprintf("all instances must have at least as much memory as %s (%s has %s memory, but %s only has %s memory)", target.Type, target.Type, target.Memory.String(), suggested.Type, suggested.Memory.String()),
-		User:    true,
 	})
 }
 
@@ -146,7 +142,6 @@ func ErrorIncompatibleSpotInstanceTypeCPU(target aws.InstanceMetadata, suggested
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrIncompatibleSpotInstanceTypeCPU,
 		Message: fmt.Sprintf("all instances must have at least as much CPU as %s (%s has %s CPU, but %s only has %s CPU)", target.Type, target.Type, target.CPU.String(), suggested.Type, suggested.CPU.String()),
-		User:    true,
 	})
 }
 
@@ -154,7 +149,6 @@ func ErrorIncompatibleSpotInstanceTypeGPU(target aws.InstanceMetadata, suggested
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrIncompatibleSpotInstanceTypeGPU,
 		Message: fmt.Sprintf("all instances must have at least as much GPU as %s (%s has %d GPU, but %s only has %d GPU)", target.Type, target.Type, target.GPU, suggested.Type, suggested.GPU),
-		User:    true,
 	})
 }
 
@@ -162,7 +156,6 @@ func ErrorSpotPriceGreaterThanTargetOnDemand(suggestedSpotPrice float64, target 
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrSpotPriceGreaterThanTargetOnDemand,
 		Message: fmt.Sprintf("%s will not be allocated because its current spot price is $%g which is greater than than %s's on-demand price of $%g", suggested.Type, suggestedSpotPrice, target.Type, target.Price),
-		User:    true,
 	})
 }
 
@@ -170,7 +163,6 @@ func ErrorSpotPriceGreaterThanMaxPrice(suggestedSpotPrice float64, maxPrice floa
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrSpotPriceGreaterThanMaxPrice,
 		Message: fmt.Sprintf("%s will not be allocated because its current spot price is $%g which is greater than the configured max price $%g", suggested.Type, suggestedSpotPrice, maxPrice),
-		User:    true,
 	})
 }
 
@@ -178,7 +170,6 @@ func ErrorInstanceTypeNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInstanceTypeNotSupported,
 		Message: fmt.Sprintf("instance type %s is not supported", instanceType),
-		User:    true,
 	})
 }
 
@@ -188,7 +179,6 @@ func ErrorAtLeastOneInstanceDistribution(instanceType string, suggestion string,
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAtLeastOneInstanceDistribution,
 		Message: fmt.Sprintf("at least one compatible instance type other than %s must be specified (suggestions: %s)", instanceType, message),
-		User:    true,
 	})
 }
 
@@ -196,7 +186,6 @@ func ErrorNoCompatibleSpotInstanceFound(instanceType string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNoCompatibleSpotInstanceFound,
 		Message: fmt.Sprintf("unable to find compatible spot instance types for %s", instanceType),
-		User:    true,
 	})
 }
 
@@ -204,7 +193,6 @@ func ErrorConfiguredWhenSpotIsNotEnabled(configKey string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrConfiguredWhenSpotIsNotEnabled,
 		Message: fmt.Sprintf("%s cannot be specified unless spot is enabled", configKey),
-		User:    true,
 	})
 }
 
@@ -212,7 +200,6 @@ func ErrorOnDemandBaseCapacityGreaterThanMax(onDemandBaseCapacity int64, max int
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrOnDemandBaseCapacityGreaterThanMax,
 		Message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", OnDemandBaseCapacityKey, MaxInstancesKey, onDemandBaseCapacity, max),
-		User:    true,
 	})
 }
 
@@ -220,7 +207,6 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
 		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
-		User:    true,
 	})
 }
 
@@ -228,7 +214,6 @@ func ErrorInvalidAvailabilityZone(invalidZone string, validAvailabilityZones []s
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidAvailabilityZone,
 		Message: fmt.Sprintf("%s is an invalid availability zone; please choose from the following valid zones %s", invalidZone, s.UserStrsOr(validAvailabilityZones)),
-		User:    true,
 	})
 }
 
@@ -236,7 +221,6 @@ func ErrorDidNotMatchStrictS3Regex() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDidNotMatchStrictS3Regex,
 		Message: "only lowercase alphanumeric characters and dashes are allowed, with no consecutive dashes and no leading or trailing dashes",
-		User:    true,
 	})
 }
 
@@ -244,7 +228,6 @@ func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clu
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrS3RegionDiffersFromCluster,
 		Message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
-		User:    true,
 	})
 }
 
@@ -259,6 +242,5 @@ func ErrorInvalidInstanceType(instanceType string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidInstanceType,
 		Message: fmt.Sprintf("%s is not a valid instance type", instanceType),
-		User:    true,
 	})
 }

@@ -65,7 +65,6 @@ type RefreshResponse struct {
 type ErrorResponse struct {
 	Kind    string `json:"kind"`
 	Message string `json:"message"`
-	User    bool   `json:"user"`
 }
 
 type FeatureSignature struct {

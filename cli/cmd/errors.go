@@ -92,7 +92,6 @@ func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAPINotReady,
 		Message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
-		User:    true,
 	})
 }
 
@@ -110,7 +109,6 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrFailedToConnectOperator,
 		Message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint, run `cortex cluster info` to show your operator endpoint", originalErrMsg, operatorURLMsg),
-		User:    true,
 	})
 }
 
@@ -118,7 +116,6 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
 		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
-		User:    true,
 	})
 }
 
@@ -126,6 +123,5 @@ func ErrorDuplicateCLIEnvNames(environment string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDuplicateCLIEnvNames,
 		Message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
-		User:    true,
 	})
 }

@@ -64,7 +64,7 @@ func existingCachedClusterConfigPaths() []string {
 func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, filePath)
 	if errors.HasError(errs) {
-		return errors.SetUser(errors.FirstError(errs...))
+		return errors.FirstError(errs...)
 	}
 
 	return nil
@@ -73,7 +73,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
 	if errors.HasError(errs) {
-		return errors.SetUser(errors.FirstError(errs...))
+		return errors.FirstError(errs...)
 	}
 
 	return nil
@@ -88,7 +88,7 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
-			return nil, errors.SetUser(errors.FirstError(errs...))
+			return nil, errors.FirstError(errs...)
 		}
 	}
 

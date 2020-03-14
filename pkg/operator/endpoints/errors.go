@@ -95,7 +95,6 @@ func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAPIVersionMismatch,
 		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your CLI by following the instructions at https://www.cortex.dev/install", clientVersion, operatorVersion),
-		User:    true,
 	})
 }
 
@@ -103,7 +102,6 @@ func ErrorAuthHeaderMissing() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthHeaderMissing,
 		Message: "auth header missing",
-		User:    true,
 	})
 }
 
@@ -111,7 +109,6 @@ func ErrorAuthHeaderMalformed() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthHeaderMalformed,
 		Message: "auth header malformed",
-		User:    true,
 	})
 }
 
@@ -119,7 +116,6 @@ func ErrorAuthAPIError() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthAPIError,
 		Message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster update` to update the operator's AWS credentials",
-		User:    true,
 	})
 }
 
@@ -127,7 +123,6 @@ func ErrorAuthInvalid() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthInvalid,
 		Message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
-		User:    true,
 	})
 }
 
@@ -135,7 +130,6 @@ func ErrorAuthOtherAccount() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAuthOtherAccount,
 		Message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as your cluster",
-		User:    true,
 	})
 }
 
@@ -143,14 +137,12 @@ func ErrorFormFileMustBeProvided(fileName string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrFormFileMustBeProvided,
 		Message: fmt.Sprintf("request form file %s must be provided", s.UserStr(fileName)),
-		User:    true,
 	})
 }
 func ErrorQueryParamRequired(param string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrQueryParamRequired,
 		Message: fmt.Sprintf("query param required: %s", param),
-		User:    true,
 	})
 }
 
@@ -158,7 +150,6 @@ func ErrorPathParamRequired(param string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrPathParamRequired,
 		Message: fmt.Sprintf("path param required: %s", param),
-		User:    true,
 	})
 }
 
@@ -167,7 +158,6 @@ func ErrorAnyQueryParamRequired(param string, params ...string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAnyQueryParamRequired,
 		Message: fmt.Sprintf("query params required: %s", s.UserStrsOr(allParams)),
-		User:    true,
 	})
 }
 
@@ -176,6 +166,5 @@ func ErrorAnyPathParamRequired(param string, params ...string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAnyPathParamRequired,
 		Message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),
-		User:    true,
 	})
 }

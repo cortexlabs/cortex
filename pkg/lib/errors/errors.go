@@ -29,8 +29,6 @@ import (
 type Error interface {
 	error
 	GetKind() ErrorKind
-	SetUser()
-	IsUser() bool
 }
 
 type ErrorKind interface {
@@ -40,7 +38,6 @@ type ErrorKind interface {
 type CortexError struct {
 	Kind    ErrorKind
 	Message string
-	User    bool
 }
 
 func (e *CortexError) Error() string {
@@ -49,14 +46,6 @@ func (e *CortexError) Error() string {
 
 func (e *CortexError) GetKind() ErrorKind {
 	return e.Kind
-}
-
-func (e *CortexError) SetUser() {
-	e.User = true
-}
-
-func (e *CortexError) IsUser() bool {
-	return e.User
 }
 
 type CortexErrorWithCause struct {
@@ -71,7 +60,7 @@ func (e *CortexErrorWithCause) Cause() error {
 func New(strs ...string) error {
 	strs = removeEmptyStrs(strs)
 	errStr := strings.Join(strs, ": ")
-	err := CortexError{Kind: ErrUnknown, Message: errStr, User: false}
+	err := CortexError{Kind: ErrUnknown, Message: errStr}
 	return pkgerrors.WithStack(&err)
 }
 
@@ -79,44 +68,27 @@ func Wrap(err error, strs ...string) error {
 	if err == nil {
 		return nil
 	}
+
 	strs = removeEmptyStrs(strs)
 	if len(strs) == 0 {
-		return pkgerrors.WithStack(err)
+		return WithStack(err)
 	}
+
 	errStr := strings.Join(strs, ": ")
 
-	if cortexError := getCortexError(err); cortexError != nil {
-		return pkgerrors.Wrap(err, errStr)
+	if !isCortexError(err) {
+		err = CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: errStr}}
 	}
 
-	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: errStr, User: false}}
-	return pkgerrors.Wrap(cortexError, errStr)
+	return pkgerrors.Wrap(err, errStr)
 }
 
 func WithStack(err error) error {
-	if cortexError := getCortexError(err); cortexError != nil {
-		return pkgerrors.WithStack(err)
+	if !isCortexError(err) {
+		err = CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: err.Error()}}
 	}
 
-	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: err.Error(), User: false}}
-	return pkgerrors.WithStack(cortexError)
-}
-
-func SetUser(err error) error {
-	if cortexError := getCortexError(err); cortexError != nil {
-		cortexError.SetUser()
-		return err
-	}
-	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: err.Error(), User: true}}
-	return WithStack(cortexError)
-}
-
-func IsUser(err error) bool {
-	if cortexError := getCortexError(err); cortexError != nil {
-		return cortexError.IsUser()
-	}
-
-	return false
+	return pkgerrors.WithStack(err)
 }
 
 // TODO: add a NotCortexError kind?
@@ -144,6 +116,10 @@ func getCortexError(err error) Error {
 		err = errCasted.Cause()
 	}
 	return nil
+}
+
+func isCortexError(err error) bool {
+	return getCortexError(err) != nil
 }
 
 func Cause(err error) error {

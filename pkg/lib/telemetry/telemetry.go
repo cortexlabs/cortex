@@ -19,7 +19,6 @@ package telemetry
 import (
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -171,7 +170,6 @@ func Error(err error) {
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: _config.UserID})
 		scope.SetExtras(_config.Properties)
-		scope.SetTag("is_user", strconv.FormatBool(errors.IsUser(err)))
 		e := EventFromException(err)
 		sentry.CaptureEvent(e)
 

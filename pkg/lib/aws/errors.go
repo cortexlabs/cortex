@@ -161,7 +161,6 @@ func ErrorInstanceTypeLimitIsZero(instanceType string, region string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInstanceTypeLimitIsZero,
 		Message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances). If you submitted a request and it was recently approved, please allow ~30 minutes for AWS to reflect this change."`, instanceType, region),
-		User:    true,
 	})
 }
 
@@ -169,7 +168,6 @@ func ErrorNoValidSpotPrices(instanceType string, region string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNoValidSpotPrices,
 		Message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
-		User:    true,
 	})
 }
 

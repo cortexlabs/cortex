@@ -123,7 +123,6 @@ func ErrorCortexInstallationBroken() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCortexInstallationBroken,
 		Message: "cortex is out of date, or not installed properly on your cluster; run `cortex cluster update`",
-		User:    true,
 	})
 }
 
@@ -131,7 +130,6 @@ func ErrorLoadBalancerInitializing() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrLoadBalancerInitializing,
 		Message: "load balancer is still initializing",
-		User:    true,
 	})
 }
 
@@ -139,7 +137,6 @@ func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMalformedConfig,
 		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://cortex.dev for documentation)"),
-		User:    true,
 	})
 }
 
@@ -147,7 +144,6 @@ func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNoAPIs,
 		Message: fmt.Sprintf("at least one API must be configured (see https://cortex.dev for documentation)"),
-		User:    true,
 	})
 }
 
@@ -160,7 +156,6 @@ func ErrorDuplicateName(apis []userconfig.API) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDuplicateName,
 		Message: fmt.Sprintf("name %s must be unique across apis (defined in %s)", s.UserStr(apis[0].Name), s.StrsAnd(filePaths.Slice())),
-		User:    true,
 	})
 }
 
@@ -173,7 +168,6 @@ func ErrorDuplicateEndpointInOneDeploy(apis []userconfig.API) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDuplicateEndpointInOneDeploy,
 		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Endpoint), s.StrsAnd(names)),
-		User:    true,
 	})
 }
 
@@ -181,7 +175,6 @@ func ErrorDuplicateEndpoint(apiName string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrDuplicateEndpoint,
 		Message: fmt.Sprintf("endpoint is already being used by %s", apiName),
-		User:    true,
 	})
 }
 
@@ -205,7 +198,6 @@ func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisite string, prer
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrOneOfPrerequisitesNotDefined,
 		Message: message,
-		User:    true,
 	})
 }
 
@@ -213,7 +205,6 @@ func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMinReplicasGreaterThanMax,
 		Message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", userconfig.MinReplicasKey, userconfig.MaxReplicasKey, min, max),
-		User:    true,
 	})
 }
 
@@ -221,7 +212,6 @@ func ErrorInitReplicasGreaterThanMax(init int32, max int32) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInitReplicasGreaterThanMax,
 		Message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", userconfig.InitReplicasKey, userconfig.MaxReplicasKey, init, max),
-		User:    true,
 	})
 }
 
@@ -229,7 +219,6 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInitReplicasLessThanMin,
 		Message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", userconfig.InitReplicasKey, userconfig.MinReplicasKey, init, min),
-		User:    true,
 	})
 }
 
@@ -237,7 +226,6 @@ func ErrorInvalidSurgeOrUnavailable(val string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidSurgeOrUnavailable,
 		Message: fmt.Sprintf("%s is not a valid value - must be an integer percentage (e.g. 25%%, to denote a percentage of desired replicas) or a positive integer (e.g. 5, to denote a number of replicas)", s.UserStr(val)),
-		User:    true,
 	})
 }
 
@@ -245,7 +233,6 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrSurgeAndUnavailableBothZero,
 		Message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
-		User:    true,
 	})
 }
 
@@ -253,7 +240,6 @@ func ErrorImplDoesNotExist(path string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrImplDoesNotExist,
 		Message: fmt.Sprintf("%s: implementation file does not exist", path),
-		User:    true,
 	})
 }
 
@@ -261,7 +247,6 @@ func ErrorS3FileNotFound(path string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrS3FileNotFound,
 		Message: fmt.Sprintf("%s: not found or insufficient permissions", path),
-		User:    true,
 	})
 }
 
@@ -269,7 +254,6 @@ func ErrorS3DirNotFoundOrEmpty(path string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrS3DirNotFoundOrEmpty,
 		Message: fmt.Sprintf("%s: directory not found or empty", path),
-		User:    true,
 	})
 }
 
@@ -277,7 +261,6 @@ func ErrorONNXDoesntSupportZip() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrONNXDoesntSupportZip,
 		Message: fmt.Sprintf("zip files are not supported for ONNX models"),
-		User:    true,
 	})
 }
 
@@ -296,7 +279,6 @@ func ErrorInvalidTensorFlowDir(path string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrInvalidTensorFlowDir,
 		Message: message,
-		User:    true,
 	})
 }
 
@@ -304,7 +286,6 @@ func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType user
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrFieldMustBeDefinedForPredictorType,
 		Message: fmt.Sprintf("%s field must be defined for the %s predictor type", fieldKey, predictorType.String()),
-		User:    true,
 	})
 }
 
@@ -312,7 +293,6 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrFieldNotSupportedByPredictorType,
 		Message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
-		User:    true,
 	})
 }
 
@@ -324,7 +304,6 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		Message: message,
-		User:    true,
 	})
 }
 
@@ -332,7 +311,6 @@ func ErrorCortexPrefixedEnvVarNotAllowed() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
 		Message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
-		User:    true,
 	})
 }
 
@@ -340,6 +318,5 @@ func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAPINotDeployed,
 		Message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
-		User:    true,
 	})
 }

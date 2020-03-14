@@ -40,7 +40,7 @@ func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 	}
 
 	if _, _, err := awsClient.CheckCredentials(); err != nil {
-		return nil, errors.SetUser(err)
+		return nil, err
 	}
 
 	return awsClient, nil
@@ -104,7 +104,7 @@ var _awsCredentialsPromptValidation = &cr.PromptValidation{
 func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
 	errs := cr.ParseYAMLFile(awsCreds, _awsCredentialsValidation, path)
 	if errors.HasError(errs) {
-		return errors.SetUser(errors.FirstError(errs...))
+		return errors.FirstError(errs...)
 	}
 
 	return nil
@@ -123,12 +123,10 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		err := errors.New("only $AWS_SECRET_ACCESS_KEY is set; please run `export AWS_ACCESS_KEY_ID=***`")
-		return errors.SetUser(err)
+		return errors.New("only $AWS_SECRET_ACCESS_KEY is set; please run `export AWS_ACCESS_KEY_ID=***`")
 	}
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
-		err := errors.New("only $AWS_ACCESS_KEY_ID is set; please run `export AWS_SECRET_ACCESS_KEY=***`")
-		return errors.SetUser(err)
+		return errors.New("only $AWS_ACCESS_KEY_ID is set; please run `export AWS_SECRET_ACCESS_KEY=***`")
 	}
 
 	// Next check what was read from cluster config YAML
@@ -176,12 +174,10 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
-		err := errors.New("only $CORTEX_AWS_SECRET_ACCESS_KEY is set; please run `export CORTEX_AWS_ACCESS_KEY_ID=***`")
-		return errors.SetUser(err)
+		return errors.New("only $CORTEX_AWS_SECRET_ACCESS_KEY is set; please run `export CORTEX_AWS_ACCESS_KEY_ID=***`")
 	}
 	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") == "" {
-		err := errors.New("only $CORTEX_AWS_ACCESS_KEY_ID is set; please run `export CORTEX_AWS_SECRET_ACCESS_KEY=***`")
-		return errors.SetUser(err)
+		return errors.New("only $CORTEX_AWS_ACCESS_KEY_ID is set; please run `export CORTEX_AWS_SECRET_ACCESS_KEY=***`")
 	}
 
 	// Next check what was read from cluster config YAML
@@ -189,12 +185,10 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 		return nil
 	}
 	if awsCreds.CortexAWSAccessKeyID == "" && awsCreds.CortexAWSSecretAccessKey != "" {
-		err := errors.New(fmt.Sprintf("only cortex_aws_secret_access_key is set in %s; please set cortex_aws_access_key_id as well", _flagClusterConfig))
-		return errors.SetUser(err)
+		return errors.New(fmt.Sprintf("only cortex_aws_secret_access_key is set in %s; please set cortex_aws_access_key_id as well", _flagClusterConfig))
 	}
 	if awsCreds.CortexAWSAccessKeyID != "" && awsCreds.CortexAWSSecretAccessKey == "" {
-		err := errors.New(fmt.Sprintf("only cortex_aws_access_key_id is set in %s; please set cortex_aws_secret_access_key as well", _flagClusterConfig))
-		return errors.SetUser(err)
+		return errors.New(fmt.Sprintf("only cortex_aws_access_key_id is set in %s; please set cortex_aws_secret_access_key as well", _flagClusterConfig))
 	}
 
 	// Default to primary AWS credentials

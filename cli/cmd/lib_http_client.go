@@ -228,7 +228,6 @@ func StreamLogs(apiName string) error {
 		}
 		return errors.WithStack(&errors.CortexError{
 			Kind:    ResponseErrorKind(output.Kind),
-			User:    output.User,
 			Message: output.Message,
 		})
 	}
@@ -323,7 +322,6 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 
 		return nil, errors.WithStack(&errors.CortexError{
 			Kind:    ResponseErrorKind(output.Kind),
-			User:    output.User,
 			Message: output.Message,
 		})
 	}

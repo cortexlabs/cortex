@@ -42,7 +42,6 @@ func respondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 	errors.PrintStacktrace(err)
 	response := schema.ErrorResponse{
 		Kind:    errors.GetKind(err).String(),
-		User:    errors.IsUser(err),
 		Message: errors.Message(err),
 	}
 	json.NewEncoder(w).Encode(response)

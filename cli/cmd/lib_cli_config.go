@@ -242,7 +242,7 @@ func readCLIConfig() (CLIConfig, error) {
 	cliConfig := CLIConfig{}
 	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
 	if errors.HasError(errs) {
-		return CLIConfig{}, errors.SetUser(errors.FirstError(errs...))
+		return CLIConfig{}, errors.FirstError(errs...)
 	}
 
 	if err := cliConfig.validate(); err != nil {
