@@ -70,8 +70,8 @@ func getConfigPath(args []string) string {
 		}
 	} else {
 		configPath = args[0]
-		if !files.IsFile(configPath) {
-			exit.Error("no such file", configPath)
+		if err := files.CheckFile(configPath); err != nil {
+			exit.Error(err)
 		}
 	}
 
