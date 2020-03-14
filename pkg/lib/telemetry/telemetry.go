@@ -185,19 +185,22 @@ func EventFromException(exception error) *sentry.Event {
 	}
 
 	cause := exception
-	// Handle wrapped errors for github.com/pingcap/errors and github.com/pkg/errors
-	if ex, ok := exception.(interface{ Cause() error }); ok {
-		cause = ex.Cause()
+	if err := errors.Cause(cause); err != nil {
+		cause = err
+	}
+
+	errTypeString := reflect.TypeOf(exception).String()
+	errKind := errors.GetKind(exception)
+	if errKind == errors.ErrUnknown {
+		if err := errors.Cause(exception); err != nil {
+			errTypeString = reflect.TypeOf(err).String()
+		}
+	} else {
+		errTypeString = errKind.String()
 	}
 
 	event := sentry.NewEvent()
 	event.Level = sentry.LevelError
-
-	errTypeString := reflect.TypeOf(cause).String()
-	errKind := errors.GetKind(exception)
-	if errKind != errors.ErrUnknown {
-		errTypeString = errKind.String()
-	}
 
 	event.Exception = []sentry.Exception{{
 		Value:      cause.Error(),
