@@ -41,6 +41,12 @@ const (
 	ErrAPINotReady
 	ErrFailedToConnectOperator
 	ErrConfigCannotBeChangedOnUpdate
+	ErrClusterUp
+	ErrClusterUpdate
+	ErrClusterInfo
+	ErrClusterDebug
+	ErrClusterRefresh
+	ErrClusterDown
 	ErrDuplicateCLIEnvNames
 )
 
@@ -49,6 +55,12 @@ var _errorKinds = []string{
 	"cli.api_not_ready",
 	"cli.failed_to_connect_operator",
 	"cli.config_cannot_be_changed_on_update",
+	"cli.cluster_up",
+	"cli.cluster_update",
+	"cli.cluster_info",
+	"cli.cluster_debug",
+	"cli.cluster_refresh",
+	"cli.cluster_down",
 	"cli.duplicate_cli_env_names",
 }
 
@@ -116,6 +128,48 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
 		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+	})
+}
+
+func ErrorClusterUp(out string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrClusterUp,
+		Message: out,
+	})
+}
+
+func ErrorClusterUpdate(out string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrClusterUpdate,
+		Message: out,
+	})
+}
+
+func ErrorClusterInfo(out string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrClusterInfo,
+		Message: out,
+	})
+}
+
+func ErrorClusterDebug(out string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrClusterDebug,
+		Message: out,
+	})
+}
+
+func ErrorClusterRefresh(out string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrClusterRefresh,
+		Message: out,
+	})
+}
+
+func ErrorClusterDown(out string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrClusterDown,
+		Message: out,
 	})
 }
 

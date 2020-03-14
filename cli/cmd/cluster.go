@@ -94,10 +94,12 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			fmt.Println("\nDebugging tips (may not apply to this error):")
-			fmt.Printf("* if your cluster started to spin up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:\n", *clusterConfig.Region)
-			fmt.Printf("* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again: https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-\n", *clusterConfig.Region, clusterConfig.ClusterName)
-			exit.ErrorNoPrint(out)
+			helpStr := "\nDebugging tips (may not apply to this error):"
+			helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+			helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again: https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", *clusterConfig.Region, clusterConfig.ClusterName)
+			err := ErrorClusterUp(out + helpStr)
+			fmt.Println(helpStr)
+			exit.ErrorNoPrint(err)
 		}
 	},
 }
@@ -130,9 +132,11 @@ var _updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			fmt.Println("\nDebugging tips (may not apply to this error):")
-			fmt.Printf("* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:\n", *clusterConfig.Region)
-			exit.ErrorNoPrint(out)
+			helpStr := "\nDebugging tips (may not apply to this error):"
+			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+			err := ErrorClusterUpdate(out + helpStr)
+			fmt.Println(helpStr)
+			exit.ErrorNoPrint(err)
 		}
 	},
 }
@@ -164,7 +168,8 @@ var _infoCmd = &cobra.Command{
 				exit.Error(err)
 			}
 			if exitCode == nil || *exitCode != 0 {
-				exit.ErrorNoPrint(out)
+				err := ErrorClusterDebug(out)
+				exit.ErrorNoPrint(err)
 			}
 
 			timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
@@ -185,7 +190,8 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			exit.ErrorNoPrint(out)
+			err := ErrorClusterInfo(out)
+			exit.ErrorNoPrint(err)
 		}
 
 		fmt.Println()
@@ -242,8 +248,10 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			fmt.Printf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become been fully deleted (https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-). If the stack deletion process has failed, please manually delete the stack from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)\n", *accessConfig.Region, *accessConfig.ClusterName)
-			exit.ErrorNoPrint(out)
+			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become been fully deleted (https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-). If the stack deletion process has failed, please manually delete the stack from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", *accessConfig.Region, *accessConfig.ClusterName)
+			err := ErrorClusterDown(out + helpStr)
+			fmt.Println(helpStr)
+			exit.ErrorNoPrint(err)
 		}
 
 		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
@@ -316,7 +324,8 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
 	}
 	if exitCode == nil || *exitCode != 0 {
 		os.Remove(cachedConfigPath)
-		exit.ErrorNoPrint(out)
+		err := ErrorClusterRefresh(out)
+		exit.ErrorNoPrint(err)
 	}
 
 	refreshedClusterConfig := &clusterconfig.Config{}
