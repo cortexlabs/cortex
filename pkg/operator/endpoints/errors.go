@@ -41,18 +41,18 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
-	"err_api_version_mismatch",
-	"err_auth_header_missing",
-	"err_auth_header_malformed",
-	"err_auth_api_error",
-	"err_auth_invalid",
-	"err_auth_other_account",
-	"err_form_file_must_be_provided",
-	"err_query_param_required",
-	"err_path_param_required",
-	"err_any_query_param_required",
-	"err_any_path_param_required",
+	"endpoints.unknown",
+	"endpoints.api_version_mismatch",
+	"endpoints.auth_header_missing",
+	"endpoints.auth_header_malformed",
+	"endpoints.auth_api_error",
+	"endpoints.auth_invalid",
+	"endpoints.auth_other_account",
+	"endpoints.form_file_must_be_provided",
+	"endpoints.query_param_required",
+	"endpoints.path_param_required",
+	"endpoints.any_query_param_required",
+	"endpoints.any_path_param_required",
 }
 
 var _ = [1]int{}[int(ErrAnyPathParamRequired)-(len(_errorKinds)-1)] // Ensure list length matches

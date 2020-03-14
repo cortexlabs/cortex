@@ -42,19 +42,19 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
-	"err_create_dir",
-	"err_delete_dir",
-	"err_read_form_file",
-	"err_create_file",
-	"err_read_dir",
-	"err_read_file",
-	"err_file_already_exists",
-	"err_unexpected",
-	"err_file_does_not_exist",
-	"err_dir_does_not_exist",
-	"err_not_a_file",
-	"err_not_a_dir",
+	"files.unknown",
+	"files.create_dir",
+	"files.delete_dir",
+	"files.read_form_file",
+	"files.create_file",
+	"files.read_dir",
+	"files.read_file",
+	"files.file_already_exists",
+	"files.unexpected",
+	"files.file_does_not_exist",
+	"files.dir_does_not_exist",
+	"files.not_a_file",
+	"files.not_a_dir",
 }
 
 var _ = [1]int{}[int(ErrNotADir)-(len(_errorKinds)-1)] // Ensure list length matches

@@ -29,9 +29,9 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
-	"err_unmarshal_msgpack",
-	"err_marshal_msgpack",
+	"msgpack.unknown",
+	"msgpack.unmarshal_msgpack",
+	"msgpack.marshal_msgpack",
 }
 
 var _ = [1]int{}[int(ErrMarshalMsgpack)-(len(_errorKinds)-1)] // Ensure list length matches

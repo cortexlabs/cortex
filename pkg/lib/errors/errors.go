@@ -294,7 +294,7 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
+	"unknown",
 }
 
 var _ = [1]int{}[int(ErrUnknown)-(len(_errorKinds)-1)] // Ensure list length matches

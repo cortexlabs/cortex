@@ -36,8 +36,8 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
-	"err_duplicate_zip_path",
+	"zip.unknown",
+	"zip.duplicate_zip_path",
 }
 
 var _ = [1]int{}[int(ErrDuplicateZipPath)-(len(_errorKinds)-1)] // Ensure list length matches

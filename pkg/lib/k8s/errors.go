@@ -33,10 +33,10 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
-	"err_annotation_not_found",
-	"err_parse_annotation",
-	"err_parse_quantity",
+	"k8s.unknown",
+	"k8s.annotation_not_found",
+	"k8s.parse_annotation",
+	"k8s.parse_quantity",
 }
 
 var _ = [1]int{}[int(ErrParseQuantity)-(len(_errorKinds)-1)] // Ensure list length matches

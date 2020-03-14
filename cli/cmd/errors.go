@@ -45,11 +45,11 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
-	"err_api_not_ready",
-	"err_failed_to_connect_operator",
-	"err_config_cannot_be_changed_on_update",
-	"err_duplicate_cli_env_names",
+	"cli.unknown",
+	"cli.api_not_ready",
+	"cli.failed_to_connect_operator",
+	"cli.config_cannot_be_changed_on_update",
+	"cli.duplicate_cli_env_names",
 }
 
 var _ = [1]int{}[int(ErrDuplicateCLIEnvNames)-(len(_errorKinds)-1)] // Ensure list length matches

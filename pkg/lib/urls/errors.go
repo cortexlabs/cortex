@@ -36,13 +36,13 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
-	"err_invalid_url",
-	"err_dns1035",
-	"err_dns1123",
-	"err_endpoint",
-	"err_endpoint_empty_path",
-	"err_endpoint_double_slash",
+	"urls.unknown",
+	"urls.invalid_url",
+	"urls.dns1035",
+	"urls.dns1123",
+	"urls.endpoint",
+	"urls.endpoint_empty_path",
+	"urls.endpoint_double_slash",
 }
 
 var _ = [1]int{}[int(ErrEndpointDoubleSlash)-(len(_errorKinds)-1)] // Ensure list length matches

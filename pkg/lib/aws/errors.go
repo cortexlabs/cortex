@@ -40,16 +40,16 @@ const (
 )
 
 var _errorKinds = []string{
-	"err_unknown",
-	"err_invalid_aws_credentials",
-	"err_invalid_s3a_path",
-	"err_invalid_s3_path",
-	"err_auth",
-	"err_bucket_inaccessible",
-	"err_bucket_not_found",
-	"err_instance_type_limit_is_zero",
-	"err_no_valid_spot_prices",
-	"err_read_credentials",
+	"aws.unknown",
+	"aws.invalid_aws_credentials",
+	"aws.invalid_s3a_path",
+	"aws.invalid_s3_path",
+	"aws.auth",
+	"aws.bucket_inaccessible",
+	"aws.bucket_not_found",
+	"aws.instance_type_limit_is_zero",
+	"aws.no_valid_spot_prices",
+	"aws.read_credentials",
 }
 
 var _ = [1]int{}[int(ErrReadCredentials)-(len(_errorKinds)-1)] // Ensure list length matches
