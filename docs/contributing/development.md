@@ -52,7 +52,7 @@ Some users may prefer using conda instead of installing binaries system-wide. Th
 
 ---
 
-Create a `go/bin` directories inside `/path/to/miniconda/env`, move the binary there and then follow [these instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#macos-and-linux) to set/unset `GOPATH`, `GOBIN` and `PATH` appropriately every time `conda activate env` or `conda deactivate` is run.
+Create `go/bin` directories inside `/path/to/miniconda/env`, move the binary there and then follow [these instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#macos-and-linux) to set/unset `GOPATH`, `GOBIN` and `PATH` appropriately every time `conda activate env` or `conda deactivate` is run.
 
 This is the template for `activate.d/env_vars.sh`:
 ```bash
