@@ -73,7 +73,7 @@ func UniqueStrings(strs []string) []string {
 }
 
 func RemoveEmpties(strs []string) []string {
-	cleanStrs := []string{}
+	var cleanStrs []string
 	for _, str := range strs {
 		if str != "" {
 			cleanStrs = append(cleanStrs, str)
