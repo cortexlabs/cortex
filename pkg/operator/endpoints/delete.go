@@ -32,7 +32,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	isDeployed, err := operator.IsAPIDeployed(apiName)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
@@ -45,13 +45,13 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 
-		respondErrorCode(w, http.StatusNotFound, operator.ErrorAPINotDeployed(apiName))
+		respondErrorCode(w, r, http.StatusNotFound, operator.ErrorAPINotDeployed(apiName))
 		return
 	}
 
 	err = operator.DeleteAPI(apiName, keepCache)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 

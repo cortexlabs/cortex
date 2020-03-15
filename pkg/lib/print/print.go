@@ -14,28 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package endpoints
+package print
 
 import (
-	"net/http"
+	"fmt"
+	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/gorilla/mux"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 )
 
-func Refresh(w http.ResponseWriter, r *http.Request) {
-	apiName := mux.Vars(r)["apiName"]
-	force := getOptionalBoolQParam("force", false, r)
+func ForUser(msg string) {
+	msgParts := strings.Split(msg, "\n\n")
 
-	msg, err := operator.RefreshAPI(apiName, force)
-	if err != nil {
-		respondError(w, r, err)
+	if len(msgParts[0]) > 200 {
+		fmt.Println(msg)
 		return
 	}
 
-	response := schema.RefreshResponse{
-		Message: msg,
+	fmt.Println(console.Bold(msgParts[0]))
+
+	if len(msgParts) > 1 {
+		fmt.Println("\n" + strings.Join(msgParts[1:], "\n\n"))
 	}
-	respond(w, response)
 }

@@ -28,26 +28,26 @@ import (
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
 	statuses, err := operator.GetAllStatuses()
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
 	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
 	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
 	allMetrics, err := operator.GetMultipleMetrics(apis)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
 	baseURL, err := operator.APIsBaseURL()
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
@@ -64,25 +64,25 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 
 	status, err := operator.GetStatus(apiName)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
 	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
 	metrics, err := operator.GetMetrics(api)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
 	baseURL, err := operator.APIsBaseURL()
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 

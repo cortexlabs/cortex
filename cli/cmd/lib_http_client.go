@@ -224,11 +224,12 @@ func StreamLogs(apiName string) error {
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Message == "" {
-			return errors.New(string(bodyBytes))
+			return ErrorOperatorStreamResponseUnknown(string(bodyBytes))
 		}
 		return errors.WithStack(&errors.CortexError{
-			Kind:    ResponseErrorKind(output.Kind),
-			Message: output.Message,
+			Kind:        ResponseErrorKind(output.Kind),
+			Message:     output.Message,
+			NoTelemetry: true,
 		})
 	}
 	defer connection.Close()
@@ -245,7 +246,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 		for {
 			_, message, err := connection.ReadMessage()
 			if err != nil {
-				exit.ErrorNoPrint(err)
+				exit.Error(ErrorOperatorSocketRead(err))
 			}
 			fmt.Println(string(message))
 		}
@@ -308,7 +309,6 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
-
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			return nil, errors.Wrap(err, _errStrRead)
@@ -317,12 +317,13 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Message == "" {
-			return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
+			return nil, ErrorOperatorResponseUnknown(string(bodyBytes))
 		}
 
 		return nil, errors.WithStack(&errors.CortexError{
-			Kind:    ResponseErrorKind(output.Kind),
-			Message: output.Message,
+			Kind:        ResponseErrorKind(output.Kind),
+			Message:     output.Message,
+			NoTelemetry: true,
 		})
 	}
 
@@ -345,7 +346,7 @@ func (client *GenericClient) MakeRequest(request *http.Request) ([]byte, error) 
 		if err != nil {
 			return nil, errors.Wrap(err, _errStrRead)
 		}
-		return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
+		return nil, ErrorResponseUnknown(string(bodyBytes))
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)

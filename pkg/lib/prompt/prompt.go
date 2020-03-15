@@ -66,7 +66,7 @@ func Prompt(opts *Options) string {
 
 	if err != nil {
 		if errors.Message(err) == "interrupted" {
-			exit.ErrorNoPrintNoTelemetry()
+			exit.Error(ErrorUserCtrlC())
 		}
 		exit.Error(err)
 	}
@@ -92,7 +92,7 @@ func YesOrExit(prompt string, yesMessage string, noMessage string) {
 			if noMessage != "" {
 				fmt.Println(noMessage)
 			}
-			exit.ErrorNoPrintNoTelemetry()
+			exit.Error(ErrorUserNoContinue())
 		}
 
 		fmt.Println("please enter \"y\" or \"n\"")

@@ -17,6 +17,7 @@ limitations under the License.
 package endpoints
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -29,9 +30,16 @@ import (
 
 var _cachedClientIDs = strset.New()
 
+type ctxKey int
+
+const (
+	ctxKeyUnknown ctxKey = iota
+	ctxKeyClient
+)
+
 func PanicMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer recoverAndRespond(w)
+		defer recoverAndRespond(w, r)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -39,6 +47,10 @@ func PanicMiddleware(next http.Handler) http.Handler {
 func ClientIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if clientID := r.URL.Query().Get("clientID"); clientID != "" {
+			// Add clientID to context
+			ctx := context.WithValue(r.Context(), ctxKeyClient, clientID)
+			r = r.WithContext(ctx)
+
 			if !_cachedClientIDs.Has(clientID) {
 				_, hashedAccountID, err := config.AWS.GetCachedAccountID()
 				if err == nil {
@@ -56,40 +68,40 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 
 		if !strings.HasPrefix(authHeader, "CortexAWS") {
-			respondError(w, ErrorAuthHeaderMissing())
+			respondError(w, r, ErrorAuthHeaderMissing())
 			return
 		}
 
 		parts := strings.Split(authHeader[10:], "|")
 		if len(parts) != 2 {
-			respondError(w, ErrorAuthHeaderMalformed())
+			respondError(w, r, ErrorAuthHeaderMalformed())
 			return
 		}
 
 		accessKeyID, secretAccessKey := parts[0], parts[1]
 		awsClient, err := aws.NewFromCreds(*config.Cluster.Region, accessKeyID, secretAccessKey)
 		if err != nil {
-			respondError(w, ErrorAuthAPIError())
+			respondError(w, r, ErrorAuthAPIError())
 			return
 		}
 
 		accountID, _, isValid, err := awsClient.AreCredentialsValid()
 		if err != nil {
-			respondError(w, ErrorAuthAPIError())
+			respondError(w, r, ErrorAuthAPIError())
 			return
 		} else if !isValid {
-			respondErrorCode(w, http.StatusForbidden, ErrorAuthInvalid())
+			respondErrorCode(w, r, http.StatusForbidden, ErrorAuthInvalid())
 			return
 		}
 
 		operatorAccountID, _, err := config.AWS.GetCachedAccountID()
 		if err != nil {
-			respondError(w, ErrorAuthAPIError())
+			respondError(w, r, ErrorAuthAPIError())
 			return
 		}
 
 		if accountID != operatorAccountID {
-			respondErrorCode(w, http.StatusForbidden, ErrorAuthOtherAccount())
+			respondErrorCode(w, r, http.StatusForbidden, ErrorAuthOtherAccount())
 			return
 		}
 
@@ -106,7 +118,7 @@ func APIVersionCheckMiddleware(next http.Handler) http.Handler {
 
 		clientVersion := r.Header.Get("CortexAPIVersion")
 		if clientVersion != consts.CortexVersion {
-			respondError(w, ErrorAPIVersionMismatch(consts.CortexVersion, clientVersion))
+			respondError(w, r, ErrorAPIVersionMismatch(consts.CortexVersion, clientVersion))
 			return
 		}
 		next.ServeHTTP(w, r)

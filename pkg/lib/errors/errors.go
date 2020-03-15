@@ -22,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	pkgerrors "github.com/pkg/errors"
 )
@@ -29,6 +30,10 @@ import (
 type Error interface {
 	error
 	GetKind() ErrorKind
+	IsNoTelemetry() bool
+	SetNoTelemetry()
+	IsNoPrint() bool
+	SetNoPrint()
 }
 
 type ErrorKind interface {
@@ -36,8 +41,10 @@ type ErrorKind interface {
 }
 
 type CortexError struct {
-	Kind    ErrorKind
-	Message string
+	Kind        ErrorKind
+	Message     string
+	NoTelemetry bool
+	NoPrint     bool
 }
 
 func (e *CortexError) Error() string {
@@ -46,6 +53,22 @@ func (e *CortexError) Error() string {
 
 func (e *CortexError) GetKind() ErrorKind {
 	return e.Kind
+}
+
+func (e *CortexError) IsNoTelemetry() bool {
+	return e.NoTelemetry
+}
+
+func (e *CortexError) SetNoTelemetry() {
+	e.NoTelemetry = true
+}
+
+func (e *CortexError) IsNoPrint() bool {
+	return e.NoPrint
+}
+
+func (e *CortexError) SetNoPrint() {
+	e.NoPrint = true
 }
 
 type CortexErrorWithCause struct {
@@ -57,7 +80,8 @@ func (e *CortexErrorWithCause) Cause() error {
 	return e.origErr
 }
 
-func New(strs ...string) error {
+// TODO private?
+func new(strs ...string) error {
 	strs = removeEmptyStrs(strs)
 	errStr := strings.Join(strs, ": ")
 	err := CortexError{Kind: ErrUnknown, Message: errStr}
@@ -98,6 +122,40 @@ func GetKind(err error) ErrorKind {
 	}
 
 	return ErrUnknown
+}
+
+func IsNoTelemetry(err error) bool {
+	if cortexError := getCortexError(err); cortexError != nil {
+		return cortexError.IsNoTelemetry()
+	}
+	return false
+}
+
+func SetNoTelemetry(err error) error {
+	if cortexError := getCortexError(err); cortexError != nil {
+		cortexError.SetNoTelemetry()
+		return err
+	}
+
+	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: err.Error(), NoTelemetry: true}}
+	return WithStack(cortexError)
+}
+
+func IsNoPrint(err error) bool {
+	if cortexError := getCortexError(err); cortexError != nil {
+		return cortexError.IsNoPrint()
+	}
+	return false
+}
+
+func SetNoPrint(err error) error {
+	if cortexError := getCortexError(err); cortexError != nil {
+		cortexError.SetNoPrint()
+		return err
+	}
+
+	cortexError := CortexErrorWithCause{origErr: err, CortexError: &CortexError{Kind: ErrUnknown, Message: err.Error(), NoPrint: true}}
+	return WithStack(cortexError)
 }
 
 func getCortexError(err error) Error {
@@ -198,13 +256,13 @@ func MergeErrItems(items ...interface{}) error {
 			}
 		case string:
 			if err == nil {
-				err = New(casted)
+				err = new(casted)
 			} else {
 				err = Wrap(err, casted)
 			}
 		default:
 			if err == nil {
-				err = New(s.UserStrStripped(casted))
+				err = new(s.UserStrStripped(casted))
 			} else {
 				err = Wrap(err, s.UserStrStripped(casted))
 			}
@@ -215,9 +273,17 @@ func MergeErrItems(items ...interface{}) error {
 }
 
 func PrintError(err error, strs ...string) {
-	wrappedErr := Wrap(err, strs...)
-	fmt.Print("error: ", s.EnsureSingleTrailingNewLine(Message(wrappedErr)))
+	fmt.Println(errorStr(err, strs...))
 	// PrintStacktrace(wrappedErr)
+}
+
+func PrintErrorPretty(err error, strs ...string) {
+	print.ForUser(errorStr(err, strs...))
+}
+
+func errorStr(err error, strs ...string) string {
+	wrappedErr := Wrap(err, strs...)
+	return "error: " + strings.TrimRight(Message(wrappedErr), "\n")
 }
 
 func Message(err error, strs ...string) string {
@@ -248,7 +314,7 @@ func CastRecoverError(errInterface interface{}, strs ...string) error {
 	var ok bool
 	err, ok = errInterface.(error)
 	if !ok {
-		err = New(fmt.Sprint(errInterface))
+		err = new(fmt.Sprint(errInterface))
 	}
 	return Wrap(err, strs...)
 }

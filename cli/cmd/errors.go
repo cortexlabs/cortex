@@ -38,9 +38,18 @@ type ErrorKind int
 
 const (
 	ErrUnknown ErrorKind = iota
+	ErrCLINotConfigured
+	ErrCortexYAMLNotFound
+	ErrDockerDaemon
+	ErrDockerCtrlC
 	ErrAPINotReady
 	ErrFailedToConnectOperator
-	ErrConfigCannotBeChangedOnUpdate
+	ErrOperatorSocketRead
+	ErrResponseUnknown
+	ErrOperatorResponseUnknown
+	ErrOperatorStreamResponseUnknown
+	ErrOneAWSEnvVarSet
+	ErrOneAWSConfigFieldSet
 	ErrClusterUp
 	ErrClusterUpdate
 	ErrClusterInfo
@@ -52,9 +61,18 @@ const (
 
 var _errorKinds = []string{
 	"cli.unknown",
+	"cli.cli_not_configured",
+	"cli.cortex_yaml_not_found",
+	"cli.docker_daemon",
+	"cli.docker_ctrl_c",
 	"cli.api_not_ready",
 	"cli.failed_to_connect_operator",
-	"cli.config_cannot_be_changed_on_update",
+	"cli.operator_socket_read",
+	"cli.response_unknown",
+	"cli.operator_response_unknown",
+	"cli.operator_stream_response_unknown",
+	"cli.one_aws_env_var_set",
+	"cli.one_aws_config_field_set",
 	"cli.cluster_up",
 	"cli.cluster_update",
 	"cli.cluster_info",
@@ -100,6 +118,40 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
+func ErrorCLINotConfigured(env string) error {
+	msg := "your cli is not configured; run `cortex configure`"
+	if env != "default" {
+		msg = fmt.Sprintf("your cli is not configured; run `cortex configure --env=%s`", env)
+	}
+
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrCLINotConfigured,
+		Message: msg,
+	})
+}
+
+func ErrorCortexYAMLNotFound() error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrCortexYAMLNotFound,
+		Message: "no api config file was specified, and ./cortex.yaml does not exist; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`",
+	})
+}
+
+func ErrorDockerDaemon() error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrDockerDaemon,
+		Message: "unable to connect to the Docker daemon, please confirm Docker is running",
+	})
+}
+
+func ErrorDockerCtrlC() error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:        ErrDockerCtrlC,
+		NoPrint:     true,
+		NoTelemetry: true,
+	})
+}
+
 func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAPINotReady,
@@ -124,10 +176,46 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 	})
 }
 
-func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
+func ErrorOperatorSocketRead(err error) error {
 	return errors.WithStack(&errors.CortexError{
-		Kind:    ErrConfigCannotBeChangedOnUpdate,
-		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+		Kind:    ErrOperatorSocketRead,
+		Message: err.Error(),
+		NoPrint: true,
+	})
+}
+
+func ErrorResponseUnknown(body string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrResponseUnknown,
+		Message: body,
+	})
+}
+
+func ErrorOperatorResponseUnknown(body string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrOperatorResponseUnknown,
+		Message: body,
+	})
+}
+
+func ErrorOperatorStreamResponseUnknown(body string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrOperatorStreamResponseUnknown,
+		Message: body,
+	})
+}
+
+func ErrorOneAWSEnvVarSet(setEnvVar string, missingEnvVar string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrOneAWSEnvVarSet,
+		Message: fmt.Sprintf("only $%s is set; please run `export %s=***`", setEnvVar, missingEnvVar),
+	})
+}
+
+func ErrorOneAWSConfigFieldSet(setConfigField string, missingConfigField string, configPath string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrOneAWSConfigFieldSet,
+		Message: fmt.Sprintf("only %s is set in %s; please set %s as well", setConfigField, _flagClusterConfig, missingConfigField),
 	})
 }
 
@@ -135,6 +223,7 @@ func ErrorClusterUp(out string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrClusterUp,
 		Message: out,
+		NoPrint: true,
 	})
 }
 
@@ -142,6 +231,7 @@ func ErrorClusterUpdate(out string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrClusterUpdate,
 		Message: out,
+		NoPrint: true,
 	})
 }
 
@@ -149,6 +239,7 @@ func ErrorClusterInfo(out string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrClusterInfo,
 		Message: out,
+		NoPrint: true,
 	})
 }
 
@@ -156,6 +247,7 @@ func ErrorClusterDebug(out string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrClusterDebug,
 		Message: out,
+		NoPrint: true,
 	})
 }
 
@@ -163,6 +255,7 @@ func ErrorClusterRefresh(out string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrClusterRefresh,
 		Message: out,
+		NoPrint: true,
 	})
 }
 
@@ -170,6 +263,7 @@ func ErrorClusterDown(out string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrClusterDown,
 		Message: out,
+		NoPrint: true,
 	})
 }
 

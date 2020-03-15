@@ -30,16 +30,31 @@ func respond(w http.ResponseWriter, response interface{}) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func respondError(w http.ResponseWriter, err error, strs ...string) {
-	respondErrorCode(w, http.StatusBadRequest, err, strs...)
+func respondError(w http.ResponseWriter, r *http.Request, err error, strs ...string) {
+	respondErrorCode(w, r, http.StatusBadRequest, err, strs...)
 }
 
-func respondErrorCode(w http.ResponseWriter, code int, err error, strs ...string) {
+func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err error, strs ...string) {
 	err = errors.Wrap(err, strs...)
-	errors.PrintError(err)
+
+	if !errors.IsNoTelemetry(err) {
+		errTags := map[string]string{}
+		if clientID := r.Context().Value(ctxKeyClient); clientID != nil {
+			if clientIDStr, ok := clientID.(string); ok {
+				errTags["client_id"] = clientIDStr
+			}
+		}
+		telemetry.Error(err, errTags)
+	}
+
+	if !errors.IsNoPrint(err) {
+		errors.PrintError(err)
+		// errors.PrintStacktrace(err) // TODO do we want this?
+	}
 
 	w.WriteHeader(code)
-	errors.PrintStacktrace(err)
+
+	// TODO should we send through NoPrint and NoTelemetry?
 	response := schema.ErrorResponse{
 		Kind:    errors.GetKind(err).String(),
 		Message: errors.Message(err),
@@ -47,10 +62,10 @@ func respondErrorCode(w http.ResponseWriter, code int, err error, strs ...string
 	json.NewEncoder(w).Encode(response)
 }
 
-func recoverAndRespond(w http.ResponseWriter, strs ...string) {
+func recoverAndRespond(w http.ResponseWriter, r *http.Request, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
 		telemetry.Error(err)
-		respondError(w, err)
+		respondError(w, r, err)
 	}
 }

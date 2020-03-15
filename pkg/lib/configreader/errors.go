@@ -29,6 +29,7 @@ type ErrorKind int
 const (
 	ErrUnknown ErrorKind = iota
 	ErrParseConfig
+	ErrUnsupportedFieldValidation
 	ErrUnsupportedKey
 	ErrInvalidYAML
 	ErrTooLong
@@ -57,6 +58,8 @@ const (
 	ErrMustBeDefined
 	ErrMapMustBeDefined
 	ErrMustBeEmpty
+	ErrEmailTooLong
+	ErrEmailInvalid
 	ErrCortexResourceOnlyAllowed
 	ErrCortexResourceNotAllowed
 )
@@ -64,6 +67,7 @@ const (
 var _errorKinds = []string{
 	"configreader.unknown",
 	"configreader.parse_config",
+	"configreader.unsupported_field_validation",
 	"configreader.unsupported_key",
 	"configreader.invalid_yaml",
 	"configreader.too_long",
@@ -92,6 +96,8 @@ var _errorKinds = []string{
 	"configreader.must_be_defined",
 	"configreader.map_must_be_defined",
 	"configreader.must_be_empty",
+	"configreader.email_too_long",
+	"configreader.email_invalid",
 	"configreader.cortex_resource_only_allowed",
 	"configreader.cortex_resource_not_allowed",
 }
@@ -136,6 +142,13 @@ func ErrorParseConfig() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrParseConfig,
 		Message: fmt.Sprintf("failed to parse config file"),
+	})
+}
+
+func ErrorUnsupportedFieldValidation() error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrUnsupportedFieldValidation,
+		Message: fmt.Sprintf("undefined or unsupported field validation"),
 	})
 }
 
@@ -345,6 +358,20 @@ func ErrorMustBeEmpty() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrMustBeEmpty,
 		Message: "must be empty",
+	})
+}
+
+func ErrorEmailTooLong() error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrEmailTooLong,
+		Message: "email address exceeds maximum length",
+	})
+}
+
+func ErrorEmailInvalid() error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrEmailInvalid,
+		Message: "invalid email address",
 	})
 }
 

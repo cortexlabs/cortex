@@ -26,15 +26,21 @@ import (
 type ErrorKind int
 
 const (
-	ErrUnknown            ErrorKind = iota
-	ErrAnnotationNotFound ErrorKind = iota
-	ErrParseAnnotation    ErrorKind = iota
-	ErrParseQuantity      ErrorKind = iota
+	ErrUnknown ErrorKind = iota
+	ErrParseVirtualService
+	ErrLabelNotFound
+	ErrAnnotationNotFound
+	ErrParseLabel
+	ErrParseAnnotation
+	ErrParseQuantity
 )
 
 var _errorKinds = []string{
 	"k8s.unknown",
+	"k8s.parse_virtual_service",
+	"k8s.label_not_found",
 	"k8s.annotation_not_found",
+	"k8s.parse_label",
 	"k8s.parse_annotation",
 	"k8s.parse_quantity",
 }
@@ -75,10 +81,31 @@ func (t ErrorKind) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
+func ErrorParseVirtualService(msg string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrParseVirtualService,
+		Message: msg,
+	})
+}
+
+func ErrorLabelNotFound(labelName string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrLabelNotFound,
+		Message: fmt.Sprintf("label %s not found", s.UserStr(labelName)),
+	})
+}
+
 func ErrorAnnotationNotFound(annotationName string) error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrAnnotationNotFound,
 		Message: fmt.Sprintf("annotation %s not found", s.UserStr(annotationName)),
+	})
+}
+
+func ErrorParseLabel(labelName string, labelVal string, desiredType string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrParseLabel,
+		Message: fmt.Sprintf("unable to parse value %s from label %s as type %s", s.UserStr(labelVal), labelName, desiredType),
 	})
 }
 

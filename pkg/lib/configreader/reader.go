@@ -334,7 +334,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			}
 
 		} else {
-			exit.Panic("Undefined or unsupported validation type")
+			exit.Panic(ErrorUnsupportedFieldValidation())
 		}
 
 		allErrs, _ = errors.AddError(allErrs, err)
@@ -623,7 +623,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			} else if promptItemValidation.Float64PtrValidation != nil {
 				val, err = Float64PtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.Float64PtrValidation)
 			} else {
-				exit.Panic("Undefined or unsupported validation type for ReadPrompt")
+				exit.Panic(ErrorUnsupportedFieldValidation())
 			}
 
 			if err == nil {
@@ -808,7 +808,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 				val, err = ValidateFloat64PtrMissing(&validation)
 			}
 		} else {
-			exit.Panic("Undefined or unsupported validation type")
+			exit.Panic(ErrorUnsupportedFieldValidation())
 		}
 
 		err = errors.Wrap(err, key)

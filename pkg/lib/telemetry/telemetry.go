@@ -23,7 +23,9 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/getsentry/sentry-go"
 	"gopkg.in/segmentio/analytics-go.v3"
@@ -38,7 +40,7 @@ var _config *Config
 type Config struct {
 	Enabled     bool
 	UserID      string
-	Properties  map[string]interface{}
+	Properties  map[string]string
 	Environment string
 	LogErrors   bool
 	BackoffMode BackoffMode
@@ -75,7 +77,7 @@ func Init(telemetryConfig Config) error {
 	}
 
 	if telemetryConfig.UserID == "" {
-		return errors.New("user ID must be specified to enable telemetry")
+		return ErrorUserIDNotSpecified()
 	}
 
 	dsn := _sentryDSN
@@ -131,7 +133,7 @@ func Event(name string, properties ...map[string]interface{}) {
 		"Slack": false,
 	}
 
-	eventHelper(name, mergeProperties(properties...), integrations)
+	eventHelper(name, maps.MergeStrInterfaceMaps(properties...), integrations)
 }
 
 func EventNotify(name string, properties ...map[string]interface{}) {
@@ -139,7 +141,7 @@ func EventNotify(name string, properties ...map[string]interface{}) {
 		"All": true,
 	}
 
-	eventHelper(name, mergeProperties(properties...), integrations)
+	eventHelper(name, maps.MergeStrInterfaceMaps(properties...), integrations)
 }
 
 func eventHelper(name string, properties map[string]interface{}, integrations map[string]interface{}) {
@@ -147,10 +149,12 @@ func eventHelper(name string, properties map[string]interface{}, integrations ma
 		return
 	}
 
+	mergedProperties := maps.MergeStrInterfaceMaps(properties, cast.StrMapToStrInterfaceMap(_config.Properties))
+
 	err := _segment.Enqueue(analytics.Track{
 		Event:        name,
 		UserId:       _config.UserID,
-		Properties:   mergeProperties(properties, _config.Properties),
+		Properties:   mergedProperties,
 		Integrations: integrations,
 	})
 	if err != nil {
@@ -158,7 +162,7 @@ func eventHelper(name string, properties map[string]interface{}, integrations ma
 	}
 }
 
-func Error(err error) {
+func Error(err error, tags ...map[string]string) {
 	if err == nil || _config == nil {
 		return
 	}
@@ -167,9 +171,11 @@ func Error(err error) {
 		return
 	}
 
+	mergedTags := maps.MergeStrMaps(tags...)
+
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: _config.UserID})
-		scope.SetExtras(_config.Properties)
+		scope.SetTags(maps.MergeStrMaps(_config.Properties, mergedTags))
 		e := EventFromException(err)
 		sentry.CaptureEvent(e)
 
@@ -210,19 +216,6 @@ func EventFromException(exception error) *sentry.Event {
 	return event
 }
 
-func ErrorMessage(message string) {
-	if _config == nil || !_config.Enabled || strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) == "true" {
-		return
-	}
-
-	sentry.WithScope(func(scope *sentry.Scope) {
-		scope.SetUser(sentry.User{ID: _config.UserID})
-		scope.SetExtras(_config.Properties)
-		sentry.CaptureMessage(message)
-		go sentry.Flush(10 * time.Second)
-	})
-}
-
 func RecordEmail(email string) {
 	if _config == nil || !_config.Enabled || strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) == "true" {
 		return
@@ -249,7 +242,7 @@ func RecordOperatorID(clientID string, operatorID string) {
 
 func closeSentry() error {
 	if !sentry.Flush(5 * time.Second) {
-		return errors.New("sentry flush timout exceeded")
+		return ErrorSentryFlushTimeoutExceeded()
 	}
 	return nil
 }
@@ -264,14 +257,4 @@ func closeSegment() error {
 func Close() {
 	parallel.Run(closeSegment, closeSentry)
 	_config = nil
-}
-
-func mergeProperties(properties ...map[string]interface{}) map[string]interface{} {
-	mergedProperties := make(map[string]interface{})
-	for _, p := range properties {
-		for k, v := range p {
-			mergedProperties[k] = v
-		}
-	}
-	return mergedProperties
 }

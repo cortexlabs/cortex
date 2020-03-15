@@ -20,13 +20,12 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
-	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -66,7 +65,7 @@ func getConfigPath(args []string) string {
 	if len(args) == 0 {
 		configPath = "cortex.yaml"
 		if !files.IsFile(configPath) {
-			exit.Error("no api config file was specified, and ./cortex.yaml does not exist; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`")
+			exit.Error(ErrorCortexYAMLNotFound())
 		}
 	} else {
 		configPath = args[0]
@@ -167,9 +166,5 @@ func deploy(configPath string, force bool) {
 		exit.Error(err, "/deploy", string(response))
 	}
 
-	msgParts := strings.Split(deployResponse.Message, "\n\n")
-	fmt.Println(console.Bold(msgParts[0]))
-	if len(msgParts) > 1 {
-		fmt.Println("\n" + strings.Join(msgParts[1:], "\n\n"))
-	}
+	print.ForUser(deployResponse.Message)
 }

@@ -33,6 +33,7 @@ const (
 	ErrLoadBalancerInitializing
 	ErrMalformedConfig
 	ErrNoAPIs
+	ErrAPIUpdating
 	ErrDuplicateName
 	ErrDuplicateEndpointInOneDeploy
 	ErrDuplicateEndpoint
@@ -61,6 +62,7 @@ var _errorKinds = []string{
 	"operator.load_balancer_initializing",
 	"operator.malformed_config",
 	"operator.no_apis",
+	"operator.api_updating",
 	"operator.duplicate_name",
 	"operator.duplicate_endpoint_in_one_deploy",
 	"operator.duplicate_endpoint",
@@ -144,6 +146,13 @@ func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.CortexError{
 		Kind:    ErrNoAPIs,
 		Message: fmt.Sprintf("at least one API must be configured (see https://cortex.dev for documentation)"),
+	})
+}
+
+func ErrorAPIUpdating(apiName string) error {
+	return errors.WithStack(&errors.CortexError{
+		Kind:    ErrAPIUpdating,
+		Message: fmt.Sprintf("%s is updating (override with --force)", apiName),
 	})
 }
 
