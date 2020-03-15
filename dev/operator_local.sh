@@ -34,7 +34,7 @@ fi
 export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 
-rerun -d $ROOT/pkg -d $ROOT/cli -d $ROOT/dev/config -i $ROOT/vendor -i $ROOT/bin "sh -c \
+rerun -d $ROOT/pkg -d $ROOT/cli -d $ROOT/dev/config -i $ROOT/vendor -i $ROOT/bin -p "**/*.{go,yaml}" "sh -c \
 \"go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator\""
 
 # go run -race $ROOT/pkg/operator/main.go  # Check for race conditions. Doesn't seem to catch them all?
