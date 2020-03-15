@@ -6,8 +6,70 @@
 2. Docker
 3. eksctl
 4. kubectl
+5. aws-cli
+6. rerun
+
+#### Go
+
+For a system wide installation of Go, run the following commands:
+```
+wget https://dl.google.com/go/go1.13.linux-amd64.tar.gz && \
+sudo tar -xvf go1.13.linux-amd64.tar.gz && \
+sudo mv go /usr/local && \
+rm go1.13.linux-amd64.tar.gz
+```
+
+#### Docker
+
+Follow [these instructions](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-18-04) to install Docker.
+
+#### eksctl
+
+To install eksctl run:
+```bash
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+```
+
+#### kubectl
+
+Follow [these instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-with-curl-on-linux) to install kubectl.
+
+#### aws-cli
+
+Follow [these instructions](https://github.com/aws/aws-cli) to install aws-cli.
+
+#### rerun
+
+Follow [these instructions](https://github.com/alexch/rerun) to install rerun. If you don't want to use `gem` to install rerun, then the apt version can be used, although it's an older version of it.
+```bash
+sudo apt update && sudo apt install rerun
+```
+
+#### Conda
+
+Some users may prefer using conda instead of installing binaries system-wide. The following is an example for the Go binary which can be easily applied to other binaries as well: `eksctl`, `kubectl` or `aws-cli`.
+
+---
+
+Create a `go/bin` directories inside `/path/to/miniconda/env`, move the binary there and then follow [these instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#macos-and-linux) to set/unset `GOPATH`, `GOBIN` and `PATH` appropriately every time `conda activate env` or `conda deactivate` is run.
+
+This is for `activate.d/env_vars.sh`:
+```bash
+export GOPATH=$HOME/.miniconda3/envs/cortex-env/go
+export GOBIN=$HOME/.miniconda3/envs/cortex-env/go/bin
+export PATH=$PATH:$GOBIN
+```
+This is for `deactivate.d/env_vars.sh`:
+```bash
+unset GOPATH
+unset GOBIN
+PATH=$(echo "$PATH" | sed -e 's/:\/home\/user\/.miniconda3\/envs\/cortex-env\/go\/bin$//')
+```
 
 ## Cortex dev environment
+
+### Clone the repo
 
 Clone the project:
 
@@ -20,6 +82,20 @@ Run the tests:
 
 ```bash
 make test
+```
+
+### Image Registry
+
+Create a config directory in the repo's root directory:
+```bash
+mkdir dev/config
+```
+
+Next, create `dev/config/build.sh`. Add the following content to it:
+```bash
+export CORTEX_VERSION="master"
+
+export REGISTRY_REGION="us-west-2"
 ```
 
 Create the AWS Elastic Container Registry:
@@ -37,12 +113,19 @@ aws s3 mb s3://cortex-cluster-<your_name>
 aws s3 mb s3://cortex-cli-<your_name>  # if you'll be uploading your compiled CLI
 ```
 
-### Configuration
+### Cluster
 
-Make the config folder:
+Update `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL` (the), and `REGISTRY_REGION` accordingly:
 
 ```bash
-mkdir dev/config
+export CORTEX_VERSION="master"
+
+export REGISTRY_REGION="us-west-2"
+export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
+
+# optional, only used for make ci-build-and-upload-cli
+export CLI_BUCKET_NAME="cortex-cli-<your_name>"
+export CLI_BUCKET_REGION="us-west-2"
 ```
 
 Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, `aws_access_key_id`, `aws_secret_access_key`, and all registry URLs accordingly:
@@ -81,22 +164,9 @@ image_istio_citadel: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-c
 image_istio_galley: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-galley:latest
 ```
 
-Create `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:
-
-```bash
-export CORTEX_VERSION="master"
-
-export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
-export REGISTRY_REGION="us-west-2"
-
-# optional, only used for make ci-build-and-upload-cli
-export CLI_BUCKET_NAME="cortex-cli-<your_name>"
-export CLI_BUCKET_REGION="us-west-2"
-```
-
 ### Building
 
-Add this to your bash profile (e.g. ~/.bash_profile or ~/.bashrc):
+Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`):
 
 ```bash
 alias cortex-dev='<path/to/cortex>/bin/cortex'  # replace <path/to/cortex> with the path to the cortex repo that you cloned
