@@ -34,6 +34,10 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
+if [ -f "/mnt/project/environment.yaml" ]; then
+    conda env update --name base --file /mnt/project/environment.yaml
+fi
+
 # Ensure predictor print() statements are always flushed
 export PYTHONUNBUFFERED=TRUE
 
