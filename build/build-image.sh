@@ -24,4 +24,5 @@ CORTEX_VERSION=master
 dir=$1
 image=$2
 
-docker build "$ROOT" -f $dir/Dockerfile -t robertlucian/$image
+docker build "$ROOT" -f $dir/Dockerfile -t cortexlabs/$image \
+                                        -t cortexlabs/$image:$CORTEX_VERSION

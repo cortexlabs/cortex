@@ -23,7 +23,7 @@ RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
 
 ENV PYTHONVERSION=3.6.9
-ENV PYTHONPATH "${PYTHONPATH}:/src:/mnt/project"
+ENV PYTHONPATH="${PYTHONPATH}:/src:/mnt/project"
 ENV PATH=/opt/conda/bin:$PATH
 
 RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
