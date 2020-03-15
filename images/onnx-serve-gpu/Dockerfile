@@ -22,7 +22,7 @@ RUN apt-get update -qq && apt-get install -y -q \
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
 
-ENV PYTHONVERSION=3.6.9
+ENV PYTHONVERSION=3.6.9=h265db76_0
 ENV PYTHONPATH="${PYTHONPATH}:/src:/mnt/project"
 ENV PATH=/opt/conda/bin:$PATH
 
