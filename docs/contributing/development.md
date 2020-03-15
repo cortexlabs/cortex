@@ -54,17 +54,17 @@ Some users may prefer using conda instead of installing binaries system-wide. Th
 
 Create a `go/bin` directories inside `/path/to/miniconda/env`, move the binary there and then follow [these instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#macos-and-linux) to set/unset `GOPATH`, `GOBIN` and `PATH` appropriately every time `conda activate env` or `conda deactivate` is run.
 
-This is for `activate.d/env_vars.sh`:
+This is the template for `activate.d/env_vars.sh`:
 ```bash
-export GOPATH=$HOME/.miniconda3/envs/cortex-env/go
-export GOBIN=$HOME/.miniconda3/envs/cortex-env/go/bin
+export GOPATH=/path/to/miniconda/env/go
+export GOBIN=$GOPATH/bin
 export PATH=$PATH:$GOBIN
 ```
-This is for `deactivate.d/env_vars.sh`:
+This is the template for `deactivate.d/env_vars.sh`:
 ```bash
 unset GOPATH
 unset GOBIN
-PATH=$(echo "$PATH" | sed -e 's/:\/home\/user\/.miniconda3\/envs\/cortex-env\/go\/bin$//')
+PATH=$(echo "$PATH" | sed -e 's/:\/path\/to\/miniconda\/env\/go\/bin$//')
 ```
 
 ## Cortex dev environment
