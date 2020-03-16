@@ -25,6 +25,10 @@ ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
 ENV PYTHONPATH="${PYTHONPATH}:/src:/mnt/project"
 ENV PATH=/opt/conda/bin:$PATH
 
+COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
+COPY pkg/workloads/cortex/serve/onnx-cpu.requirements.txt /src/cortex/serve/requirements.txt
+COPY pkg/workloads/cortex/environment.yaml /src/cortex/environment.yaml
+
 RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
     /opt/conda/bin/conda config --set pip_interop_enabled True && \
@@ -34,10 +38,6 @@ RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
-
-COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-COPY pkg/workloads/cortex/serve/onnx-cpu.requirements.txt /src/cortex/serve/requirements.txt
-COPY pkg/workloads/cortex/environment.yaml /src/cortex/environment.yaml
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
