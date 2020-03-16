@@ -7,7 +7,6 @@
 3. eksctl
 4. kubectl
 5. aws-cli
-6. rerun
 
 #### Go
 
@@ -38,13 +37,6 @@ Follow [these instructions](https://kubernetes.io/docs/tasks/tools/install-kubec
 #### aws-cli
 
 Follow [these instructions](https://github.com/aws/aws-cli) to install aws-cli.
-
-#### rerun
-
-Follow [these instructions](https://github.com/alexch/rerun) to install rerun. If you don't want to use `gem` to install rerun, then the apt version can be used, although it's an older version of it.
-```bash
-sudo apt update && sudo apt install rerun
-```
 
 #### Conda
 
@@ -216,6 +208,7 @@ cortex-dev deploy
 
 If you're making changes in the operator and want faster iterations, you can run an off-cluster operator.
 
+1. `make tools` to build the necessary dependencies to run the operator
 1. `make operator-stop` to stop the in-cluster operator
 2. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
 
