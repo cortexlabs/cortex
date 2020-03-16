@@ -209,8 +209,8 @@ cortex-dev deploy
 If you're making changes in the operator and want faster iterations, you can run an off-cluster operator.
 
 1. `make tools` to build the necessary dependencies to run the operator
-1. `make operator-stop` to stop the in-cluster operator
-2. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
+2. `make operator-stop` to stop the in-cluster operator
+3. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
 
 If you want to switch back to the in-cluster operator:
 
