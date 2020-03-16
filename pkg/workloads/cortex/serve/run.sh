@@ -30,12 +30,12 @@ sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
 sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
 sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
 
-if [ -f "/mnt/project/requirements.txt" ]; then
-    pip --no-cache-dir install -r /mnt/project/requirements.txt
-fi
-
 if [ -f "/mnt/project/environment.yaml" ]; then
     conda env update --name base --file /mnt/project/environment.yaml
+fi
+
+if [ -f "/mnt/project/requirements.txt" ]; then
+    pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
 # Ensure predictor print() statements are always flushed
