@@ -1,0 +1,9 @@
+name: base
+channels:
+    - defaults
+dependencies:
+    - python=3.6.9 
+    - pip
+    - pip:
+        - -r file:lib/requirements.txt
+        - -r file:serve/requirements.txt
