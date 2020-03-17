@@ -17,7 +17,10 @@ limitations under the License.
 package errors
 
 import (
+	"fmt"
 	"runtime"
+
+	pkgerrors "github.com/pkg/errors"
 )
 
 type stack []uintptr
@@ -28,4 +31,17 @@ func callers() *stack {
 	n := runtime.Callers(3, pcs[:])
 	var st stack = pcs[0:n]
 	return &st
+}
+
+func (s *stack) Format(st fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		switch {
+		case st.Flag('+'):
+			for _, pc := range *s {
+				f := pkgerrors.Frame(pc)
+				fmt.Fprintf(st, "\n%+v", f)
+			}
+		}
+	}
 }
