@@ -38,7 +38,7 @@ func Error(err error, wrapStrs ...string) {
 	}
 
 	if !errors.IsNoPrint(err) {
-		errors.PrintErrorPretty(err)
+		errors.PrintErrorForUser(err)
 	}
 
 	telemetry.Close()
@@ -57,17 +57,13 @@ func Panic(err error, wrapStrs ...string) {
 
 	telemetry.Close()
 
-	if errors.IsNoPrint(err) {
-		panic("")
-	}
-
 	panic(err)
 }
 
 func RecoverAndExit(strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		errors.PrintErrorPretty(err)
+		errors.PrintErrorForUser(err)
 		os.Exit(1)
 	}
 }

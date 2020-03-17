@@ -191,14 +191,9 @@ func EventFromException(exception error) *sentry.Event {
 		stacktrace = sentry.NewStacktrace()
 	}
 
-	cause := exception
-	if err := errors.Cause(cause); err != nil {
-		cause = err
-	}
-
 	errTypeString := reflect.TypeOf(exception).String()
 	errKind := errors.GetKind(exception)
-	if errKind == errors.ErrNotCortexError {
+	if errKind == "" || errKind == errors.ErrNotCortexError {
 		if err := errors.Cause(exception); err != nil {
 			errTypeString = reflect.TypeOf(err).String()
 		}
@@ -210,7 +205,7 @@ func EventFromException(exception error) *sentry.Event {
 	event.Level = sentry.LevelError
 
 	event.Exception = []sentry.Exception{{
-		Value:      cause.Error(),
+		Value:      errors.Message(exception),
 		Type:       errTypeString,
 		Stacktrace: stacktrace,
 	}}

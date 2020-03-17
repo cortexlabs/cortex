@@ -22,7 +22,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 func PrintError(err error, strs ...string) {
@@ -30,19 +29,19 @@ func PrintError(err error, strs ...string) {
 	// PrintStacktrace(wrappedErr)
 }
 
-func PrintErrorPretty(err error, strs ...string) {
+func PrintErrorForUser(err error, strs ...string) {
 	print.ForUser(errorStr(err, strs...))
 }
 
 func errorStr(err error, strs ...string) string {
 	wrappedErr := Wrap(err, strs...)
-	return "error: " + strings.TrimRight(Message(wrappedErr), "\n")
+	return "error: " + strings.TrimSpace(Message(wrappedErr))
 }
 
 func Message(err error, strs ...string) string {
 	wrappedErr := Wrap(err, strs...)
 	errStr := wrappedErr.Error()
-	return s.RemoveTrailingNewLines(errStr)
+	return strings.TrimSpace(errStr)
 }
 
 func MessageFirstLine(err error, strs ...string) string {
@@ -55,5 +54,5 @@ func MessageFirstLine(err error, strs ...string) string {
 		errStr = wrappedErr.Error()
 	}
 
-	return s.RemoveTrailingNewLines(errStr)
+	return strings.TrimSpace(errStr)
 }

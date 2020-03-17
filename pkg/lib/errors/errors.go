@@ -23,9 +23,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 )
 
-const (
-	ErrNotCortexError = "errors.not_cortex_error"
-)
+const ErrNotCortexError = "errors.not_cortex_error"
 
 type Error struct {
 	Kind        string
@@ -41,10 +39,7 @@ func (cortexError *Error) Error() string {
 }
 
 func (cortexError *Error) Cause() error {
-	if cortexError.cause != nil {
-		return cortexError.cause
-	}
-	return cortexError
+	return cortexError.cause
 }
 
 func (cortexError *Error) StackTrace() pkgerrors.StackTrace {
@@ -65,7 +60,7 @@ func WithStack(err error) error {
 	if cortexError == nil {
 		cortexError = &Error{
 			Kind:    ErrNotCortexError,
-			Message: err.Error(),
+			Message: strings.TrimSpace(err.Error()),
 			cause:   err,
 		}
 	}
