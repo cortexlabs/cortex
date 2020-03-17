@@ -8,55 +8,56 @@
 4. kubectl
 5. aws-cli
 
-#### Go
+### Go
 
-For a system wide installation of Go, run the following commands:
-```
+To install Go on linux, run:
+
+```bash
 wget https://dl.google.com/go/go1.13.linux-amd64.tar.gz && \
 sudo tar -xvf go1.13.linux-amd64.tar.gz && \
 sudo mv go /usr/local && \
 rm go1.13.linux-amd64.tar.gz
 ```
 
-#### Docker
+### Docker
 
-Follow [these instructions](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-18-04) to install Docker.
+To install Docker on Ubuntu, run:
 
-#### eksctl
+```bash
+sudo apt install docker.io && \
+sudo systemctl start docker && \
+sudo systemctl enable docker && \
+sudo groupadd docker && \
+sudo gpasswd -a $USER docker
+```
+
+### eksctl
 
 To install eksctl run:
+
 ```bash
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
 sudo mv /tmp/eksctl /usr/local/bin
 ```
 
-#### kubectl
+### kubectl
 
-Follow [these instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-with-curl-on-linux) to install kubectl.
+To install kubectl on linux, run:
 
-#### aws-cli
-
-Follow [these instructions](https://github.com/aws/aws-cli) to install aws-cli.
-
-#### Conda
-
-Some users may prefer using conda instead of installing binaries system-wide. The following is an example for the Go binary which can be easily applied to other binaries as well: `eksctl`, `kubectl` or `aws-cli`.
-
----
-
-Create `go/bin` directories inside `/path/to/miniconda/env`, move the binary there and then follow [these instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#macos-and-linux) to set/unset `GOPATH`, `GOBIN` and `PATH` appropriately every time `conda activate env` or `conda deactivate` is run.
-
-This is the template for `activate.d/env_vars.sh`:
 ```bash
-export GOPATH=/path/to/miniconda/env/go
-export GOBIN=$GOPATH/bin
-export PATH=$PATH:$GOBIN
+curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && \
+chmod +x ./kubectl && \
+sudo mv ./kubectl /usr/local/bin/kubectl
 ```
-This is the template for `deactivate.d/env_vars.sh`:
+
+### aws-cli
+
+Follow [these instructions](https://github.com/aws/aws-cli#installation) to install aws-cli.
+
+E.g. to install it globally, run:
+
 ```bash
-unset GOPATH
-unset GOBIN
-PATH=$(echo "$PATH" | sed -e 's/:\/path\/to\/miniconda\/env\/go\/bin$//')
+sudo python -m pip install awscli
 ```
 
 ## Cortex dev environment
@@ -79,11 +80,13 @@ make test
 ### Image Registry
 
 Create a config directory in the repo's root directory:
+
 ```bash
 mkdir dev/config
 ```
 
-Next, create `dev/config/build.sh`. Add the following content to it:
+Next, create `dev/config/build.sh`. Add the following content to it (you may use a different region for `REGISTRY_REGION`):
+
 ```bash
 export CORTEX_VERSION="master"
 
@@ -208,7 +211,7 @@ cortex-dev deploy
 
 If you're making changes in the operator and want faster iterations, you can run an off-cluster operator.
 
-1. `make tools` to build the necessary dependencies to run the operator
+1. `make tools` to install the necessary dependencies to run the operator
 2. `make operator-stop` to stop the in-cluster operator
 3. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
 
