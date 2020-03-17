@@ -23,7 +23,7 @@ cluster_name: cortex
 region: us-west-2
 
 # S3 bucket (default: <cluster_name>-<RANDOM_ID>)
-bucket: cortex-<RANDOM_ID>
+bucket: # cortex-<RANDOM_ID>
 
 # List of availability zones for your region (default: 3 random availability zones from the specified region)
 availability_zones: # e.g. [us-west-2a, us-west-2b, us-west-2c]

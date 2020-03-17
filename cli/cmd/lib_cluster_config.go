@@ -195,8 +195,12 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 			return nil, err
 		}
 
-		if userClusterConfig.Bucket == nil {
+		if userClusterConfig.Bucket == "" {
 			userClusterConfig.Bucket = cachedClusterConfig.Bucket
+		}
+
+		if userClusterConfig.Bucket != cachedClusterConfig.Bucket {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
 		}
 
 		if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
@@ -355,7 +359,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	fmt.Printf("your cluster will cost %s per hour%s\n\n", priceStr, suffix)
 
-	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", *clusterConfig.Bucket, clusterConfig.LogGroup)
+	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", clusterConfig.Bucket, clusterConfig.LogGroup)
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
