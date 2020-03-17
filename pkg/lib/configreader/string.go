@@ -34,7 +34,8 @@ import (
 type StringValidation struct {
 	Required                             bool
 	Default                              string
-	AllowEmpty                           bool
+	AllowEmpty                           bool // Allow `<field>: ""`
+	TreatNullAsEmpty                     bool // `<field>: ` is read as `<field>: ""`
 	AllowedValues                        []string
 	Prefix                               string
 	MaxLength                            int
@@ -57,12 +58,14 @@ func EnvVar(envVarName string) string {
 }
 
 func String(inter interface{}, v *StringValidation) (string, error) {
-	if inter == nil {
+	if inter == nil && !v.TreatNullAsEmpty {
 		return "", ErrorCannotBeNull()
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
-		if v.CastScalar {
+		if v.TreatNullAsEmpty {
+			casted = ""
+		} else if v.CastScalar {
 			if !cast.IsScalarType(inter) {
 				return "", ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat, PrimTypeBool)
 			}
