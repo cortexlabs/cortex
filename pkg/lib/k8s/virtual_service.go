@@ -206,7 +206,7 @@ func (c *Client) ListVirtualServicesWithLabelKeys(labelKeys ...string) ([]kunstr
 func ExtractVirtualServiceGateways(virtualService *kunstructured.Unstructured) (strset.Set, error) {
 	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
 	if !ok {
-		return nil, errors.New("virtual service spec is not a map[string]interface{}") // unexpected
+		return nil, ErrorParseVirtualService("virtual service spec is not a map[string]interface{}")
 	}
 
 	gatewaysInterface, ok := spec["gateways"]
@@ -215,7 +215,7 @@ func ExtractVirtualServiceGateways(virtualService *kunstructured.Unstructured) (
 	}
 	gateways, ok := gatewaysInterface.([]interface{})
 	if !ok {
-		return nil, errors.New("gateways is not a []interface{}") // unexpected
+		return nil, ErrorParseVirtualService("gateways is not a []interface{}")
 	}
 
 	gatewayStrs := strset.New()
@@ -223,7 +223,7 @@ func ExtractVirtualServiceGateways(virtualService *kunstructured.Unstructured) (
 	for _, gatewayInterface := range gateways {
 		gateway, ok := gatewayInterface.(string)
 		if !ok {
-			return nil, errors.New("gateway is not a string") // unexpected
+			return nil, ErrorParseVirtualService("gateway is not a string")
 		}
 		gatewayStrs.Add(gateway)
 	}
@@ -234,7 +234,7 @@ func ExtractVirtualServiceGateways(virtualService *kunstructured.Unstructured) (
 func ExtractVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) (strset.Set, error) {
 	spec, ok := virtualService.UnstructuredContent()["spec"].(map[string]interface{})
 	if !ok {
-		return nil, errors.New("virtual service spec is not a map[string]interface{}") // unexpected
+		return nil, ErrorParseVirtualService("virtual service spec is not a map[string]interface{}")
 	}
 
 	httpConfigsInterface, ok := spec["http"]
@@ -243,7 +243,7 @@ func ExtractVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) 
 	}
 	httpConfigs, ok := httpConfigsInterface.([]interface{})
 	if !ok {
-		return nil, errors.New("http is not a []interface{}") // unexpected
+		return nil, ErrorParseVirtualService("http is not a []interface{}")
 	}
 
 	endpoints := strset.New()
@@ -251,7 +251,7 @@ func ExtractVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) 
 	for _, httpConfigInterface := range httpConfigs {
 		httpConfig, ok := httpConfigInterface.(map[string]interface{})
 		if !ok {
-			return nil, errors.New("http item is not a map[string]interface{}") // unexpected
+			return nil, ErrorParseVirtualService("http item is not a map[string]interface{}")
 		}
 
 		matchesInterface, ok := httpConfig["match"]
@@ -260,13 +260,13 @@ func ExtractVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) 
 		}
 		matches, ok := matchesInterface.([]interface{})
 		if !ok {
-			return nil, errors.New("match is not a []interface{}") // unexpected
+			return nil, ErrorParseVirtualService("match is not a []interface{}")
 		}
 
 		for _, matchInterface := range matches {
 			match, ok := matchInterface.(map[string]interface{})
 			if !ok {
-				return nil, errors.New("match item is not a map[string]interface{}") // unexpected
+				return nil, ErrorParseVirtualService("match item is not a map[string]interface{}")
 			}
 
 			uriInterface, ok := match["uri"]
@@ -275,7 +275,7 @@ func ExtractVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) 
 			}
 			uri, ok := uriInterface.(map[string]interface{})
 			if !ok {
-				return nil, errors.New("uri is not a map[string]interface{}") // unexpected
+				return nil, ErrorParseVirtualService("uri is not a map[string]interface{}")
 			}
 
 			exactInferface, ok := uri["exact"]
@@ -284,7 +284,7 @@ func ExtractVirtualServiceEndpoints(virtualService *kunstructured.Unstructured) 
 			}
 			exact, ok := exactInferface.(string)
 			if !ok {
-				return nil, errors.New("url is not a string") // unexpected
+				return nil, ErrorParseVirtualService("url is not a string")
 			}
 
 			endpoints.Add(urls.CanonicalizeEndpoint(exact))

@@ -60,7 +60,7 @@ func getDockerClient() (*dockerclient.Client, error) {
 
 func wrapDockerError(err error) error {
 	if dockerclient.IsErrConnectionFailed(err) {
-		return errors.New("Unable to connect to the Docker daemon, please confirm Docker is running")
+		return ErrorDockerDaemon()
 	}
 
 	return errors.WithStack(err)
@@ -159,7 +159,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		<-c
 		caughtCtrlC = true
 		removeContainer()
-		exit.ErrorNoPrintNoTelemetry()
+		exit.Error(ErrorDockerCtrlC())
 	}()
 
 	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})

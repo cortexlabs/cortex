@@ -71,9 +71,12 @@ func Init() error {
 	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled:     Cluster.Telemetry,
-		UserID:      hashedAccountID,
-		Properties:  map[string]interface{}{"clusterID": Cluster.ID},
+		Enabled: Cluster.Telemetry,
+		UserID:  hashedAccountID,
+		Properties: map[string]string{
+			"cluster_id":  Cluster.ID,
+			"operator_id": hashedAccountID,
+		},
 		Environment: "operator",
 		LogErrors:   true,
 		BackoffMode: telemetry.BackoffDuplicateMessages,

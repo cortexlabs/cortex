@@ -17,13 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -54,11 +50,6 @@ func refresh(apiName string, force bool) {
 
 	httpRes, err := HTTPPostNoBody("/refresh/"+apiName, params)
 	if err != nil {
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.HasSuffix(errors.Message(err), "is not deployed") || strings.Contains(errors.Message(err), "--force") {
-			fmt.Println(console.Bold(errors.Message(err)))
-			exit.ErrorNoPrintNoTelemetry()
-		}
 		exit.Error(err)
 	}
 
@@ -68,5 +59,5 @@ func refresh(apiName string, force bool) {
 		exit.Error(err, "/refresh", string(httpRes))
 	}
 
-	fmt.Println(console.Bold(refreshRes.Message))
+	print.ForUser(refreshRes.Message)
 }

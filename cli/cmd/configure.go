@@ -17,8 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -68,11 +66,7 @@ func printConfiguration() {
 	}
 
 	if cliEnvConfig == nil {
-		if _flagEnv == "default" {
-			exit.Error("cli is not configured; run `cortex configure`")
-		} else {
-			exit.Error(fmt.Sprintf("cli is not configured; run `cortex configure --env=%s`", _flagEnv))
-		}
+		ErrorCLINotConfigured(_flagEnv)
 	}
 
 	var items table.KeyValuePairs

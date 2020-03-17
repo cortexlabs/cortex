@@ -62,15 +62,10 @@ var _getCmd = &cobra.Command{
 }
 
 func get(args []string) (string, error) {
-	switch len(args) {
-	case 0:
+	if len(args) == 0 {
 		return getAPIs()
-
-	case 1:
-		return getAPI(args[0])
 	}
-
-	return "", errors.New("too many args") // unexpected
+	return getAPI(args[0])
 }
 
 func getAPIs() (string, error) {

@@ -217,10 +217,14 @@ func StreamLogs(apiName string) error {
 		}
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
-		if err != nil || output.Error == "" {
-			return errors.New(string(bodyBytes))
+		if err != nil || output.Message == "" {
+			return ErrorOperatorStreamResponseUnknown(string(bodyBytes))
 		}
-		return errors.New(output.Error)
+		return errors.WithStack(&errors.Error{
+			Kind:        output.Kind,
+			Message:     output.Message,
+			NoTelemetry: true,
+		})
 	}
 	defer connection.Close()
 
@@ -236,7 +240,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 		for {
 			_, message, err := connection.ReadMessage()
 			if err != nil {
-				exit.ErrorNoPrint(err)
+				exit.Error(ErrorOperatorSocketRead(err))
 			}
 			fmt.Println(string(message))
 		}
@@ -306,11 +310,15 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
-		if err != nil || output.Error == "" {
-			return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
+		if err != nil || output.Message == "" {
+			return nil, ErrorOperatorResponseUnknown(string(bodyBytes))
 		}
 
-		return nil, errors.New(output.Error)
+		return nil, errors.WithStack(&errors.Error{
+			Kind:        output.Kind,
+			Message:     output.Message,
+			NoTelemetry: true,
+		})
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
@@ -332,7 +340,7 @@ func (client *GenericClient) MakeRequest(request *http.Request) ([]byte, error) 
 		if err != nil {
 			return nil, errors.Wrap(err, _errStrRead)
 		}
-		return nil, errors.New(strings.TrimSpace(string(bodyBytes)))
+		return nil, ErrorResponseUnknown(string(bodyBytes))
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)

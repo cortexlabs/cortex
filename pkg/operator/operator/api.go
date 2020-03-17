@@ -71,7 +71,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", err
 		}
 		if isUpdating && !force {
-			return nil, "", errors.New(fmt.Sprintf("%s is updating (override with --force)", api.Name))
+			return nil, "", ErrorAPIUpdating(api.Name)
 		}
 		if err := config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
@@ -107,12 +107,12 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	}
 
 	if isUpdating && !force {
-		return "", errors.New(fmt.Sprintf("%s is updating (override with --force)", apiName))
+		return "", ErrorAPIUpdating(apiName)
 	}
 
-	apiID := prevDeployment.Labels["apiID"]
-	if apiID == "" {
-		return "", errors.New("unable to retrieve api ID from deployment") // unexpected
+	apiID, err := k8s.GetLabel(prevDeployment, "apiID")
+	if err != nil {
+		return "", err
 	}
 
 	api, err := DownloadAPISpec(apiName, apiID)

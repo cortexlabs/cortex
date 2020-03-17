@@ -23,111 +23,53 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrInvalidURL
-	ErrDNS1035
-	ErrDNS1123
-	ErrEndpoint
-	ErrEndpointEmptyPath
-	ErrEndpointDoubleSlash
+	ErrInvalidURL          = "urls.invalid_url"
+	ErrDNS1035             = "urls.dns1035"
+	ErrDNS1123             = "urls.dns1123"
+	ErrEndpoint            = "urls.endpoint"
+	ErrEndpointEmptyPath   = "urls.endpoint_empty_path"
+	ErrEndpointDoubleSlash = "urls.endpoint_double_slash"
 )
 
-var _errorKinds = []string{
-	"err_unknown",
-	"err_invalid_url",
-	"err_dns1035",
-	"err_dns1123",
-	"err_endpoint",
-	"err_endpoint_empty_path",
-	"err_endpoint_double_slash",
-}
-
-var _ = [1]int{}[int(ErrEndpointDoubleSlash)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorInvalidURL(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidURL,
-		message: fmt.Sprintf("%s is not a valid URL", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s is not a valid URL", s.UserStr(provided)),
 	})
 }
 
 func ErrorDNS1035(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDNS1035,
-		message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", s.UserStr(provided)),
 	})
 }
 
 func ErrorDNS1123(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDNS1123,
-		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", s.UserStr(provided)),
 	})
 }
 
 func ErrorEndpoint(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrEndpoint,
-		message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '/', '-', '_', or '.'", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '/', '-', '_', or '.'", s.UserStr(provided)),
 	})
 }
 
 func ErrorEndpointEmptyPath() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrEndpointEmptyPath,
-		message: fmt.Sprintf("%s is not allowed (a path must be specified)", s.UserStr("/")),
+		Message: fmt.Sprintf("%s is not allowed (a path must be specified)", s.UserStr("/")),
 	})
 }
 
 func ErrorEndpointDoubleSlash(provided string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrEndpointDoubleSlash,
-		message: fmt.Sprintf("%s cannot contain adjacent slashes", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s cannot contain adjacent slashes", s.UserStr(provided)),
 	})
 }

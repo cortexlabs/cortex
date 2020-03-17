@@ -29,17 +29,17 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 
 	isDeployed, err := operator.IsAPIDeployed(apiName)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	} else if !isDeployed {
-		respondError(w, operator.ErrorAPINotDeployed(apiName))
+		respondError(w, r, operator.ErrorAPINotDeployed(apiName))
 		return
 	}
 
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 	defer socket.Close()

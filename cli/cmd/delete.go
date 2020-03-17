@@ -18,12 +18,10 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -65,11 +63,6 @@ func delete(apiName string, keepCache bool) {
 
 	httpRes, err := HTTPDelete("/delete/"+apiName, params)
 	if err != nil {
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.HasSuffix(errors.Message(err), "is not deployed") {
-			fmt.Println(console.Bold(errors.Message(err)))
-			exit.ErrorNoPrintNoTelemetry()
-		}
 		exit.Error(err)
 	}
 
@@ -79,7 +72,7 @@ func delete(apiName string, keepCache bool) {
 		exit.Error(err, "/delete", string(httpRes))
 	}
 
-	fmt.Println(console.Bold(deleteRes.Message))
+	print.ForUser(deleteRes.Message)
 }
 
 func getReadyReplicasOrNil(apiName string) *int32 {

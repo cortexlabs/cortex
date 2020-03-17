@@ -14,27 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package zip
+package errors
 
 import (
-	"fmt"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"runtime"
 )
 
-const (
-	_errStrUnzip     = "unable to unzip file"
-	_errStrCreateZip = "unable to create zip file"
-)
+type stack []uintptr
 
-const (
-	ErrDuplicateZipPath = "zip.duplicate_zip_path"
-)
-
-func ErrorDuplicateZipPath(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateZipPath,
-		Message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
-	})
+func callers() *stack {
+	const depth = 32
+	var pcs [depth]uintptr
+	n := runtime.Callers(3, pcs[:])
+	var st stack = pcs[0:n]
+	return &st
 }
