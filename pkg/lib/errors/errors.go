@@ -18,6 +18,7 @@ package errors
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -135,6 +136,22 @@ func Cause(err error) error {
 
 func PrintStacktrace(err error) {
 	fmt.Printf("%+v\n", err)
+}
+
+func (cortexError *Error) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			io.WriteString(s, cortexError.Message)
+			cortexError.stack.Format(s, verb)
+			return
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, cortexError.Message)
+	case 'q':
+		fmt.Fprintf(s, "%q", cortexError.Message)
+	}
 }
 
 func CastRecoverError(errInterface interface{}, strs ...string) error {
