@@ -35,7 +35,7 @@ type StringValidation struct {
 	Required                             bool
 	Default                              string
 	AllowEmpty                           bool // Allow `<field>: ""`
-	TreatNullAsEmpty                     bool // `<field>: ` and `<field>: null` is read as `<field>: ""`
+	TreatNullAsEmpty                     bool // `<field>: ` and `<field>: null` will be read as `<field>: ""`
 	AllowedValues                        []string
 	Prefix                               string
 	MaxLength                            int

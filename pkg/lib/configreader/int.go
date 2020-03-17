@@ -29,7 +29,7 @@ import (
 type IntValidation struct {
 	Required             bool
 	Default              int
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` is read as `<field>: 0`
+	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int

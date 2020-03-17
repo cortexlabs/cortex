@@ -29,7 +29,7 @@ import (
 type BoolValidation struct {
 	Required         bool
 	Default          bool
-	TreatNullAsFalse bool            // `<field>: ` and `<field>: null` is read as `<field>: false`
+	TreatNullAsFalse bool            // `<field>: ` and `<field>: null` will be read as `<field>: false`
 	StrToBool        map[string]bool // lowercase
 }
 

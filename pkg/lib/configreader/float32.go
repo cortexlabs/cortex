@@ -29,7 +29,7 @@ import (
 type Float32Validation struct {
 	Required             bool
 	Default              float32
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` is read as `<field>: 0.0`
+	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
 	AllowedValues        []float32
 	GreaterThan          *float32
 	GreaterThanOrEqualTo *float32

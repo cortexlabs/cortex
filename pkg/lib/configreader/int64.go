@@ -29,7 +29,7 @@ import (
 type Int64Validation struct {
 	Required             bool
 	Default              int64
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` is read as `<field>: 0`
+	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int64
 	GreaterThan          *int64
 	GreaterThanOrEqualTo *int64
