@@ -136,12 +136,22 @@ with open("model.onnx", "wb") as f:
 
 ### `pickle`
 
-XGBoost models are typically exported using `pickle`. Here is [XGBoost's documentation](https://machinelearningmastery.com/save-gradient-boosting-models-xgboost-python/).
+XGBoost models can be exported using `pickle`.
 
-The code to export a model would look like this:
+For example:
 
 ```python
 pickle.dump(model, open("model.pkl", "wb"))
+```
+
+### `Booster.save_model()`
+
+XGBoost `Booster` models can also be exported using [`xgboost.Booster.save_model()`](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.save_model). Auxiliary attributes of the Booster object (e.g. feature_names) will not be saved. To preserve all attributes, you can use `pickle` (see above).
+
+For example:
+
+```python
+model.save_model("model.bin")
 ```
 
 ### ONNX
@@ -155,7 +165,7 @@ It is also possible to export an XGBoost model to the ONNX format using [onnxmlt
 from onnxmltools.convert import convert_xgboost
 from onnxconverter_common.data_types import FloatTensorType
 
-onnx_model = convert_xgboost(xgb_model, initial_types=[("input", FloatTensorType([1, 4]))])
+onnx_model = convert_xgboost(model, initial_types=[("input", FloatTensorType([1, 4]))])
 with open("gbtree.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
 ```
