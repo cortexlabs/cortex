@@ -29,6 +29,7 @@ import (
 type IntValidation struct {
 	Required             bool
 	Default              int
+	TreatNullAsZero      bool // `<field>: ` and `<field>: null` is read as `<field>: 0`
 	AllowedValues        []int
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
@@ -39,6 +40,9 @@ type IntValidation struct {
 
 func Int(inter interface{}, v *IntValidation) (int, error) {
 	if inter == nil {
+		if v.TreatNullAsZero {
+			return ValidateInt(0, v)
+		}
 		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToInt(inter)

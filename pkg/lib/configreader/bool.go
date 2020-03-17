@@ -27,13 +27,17 @@ import (
 )
 
 type BoolValidation struct {
-	Required  bool
-	Default   bool
-	StrToBool map[string]bool // lowercase
+	Required         bool
+	Default          bool
+	TreatNullAsFalse bool            // `<field>: ` and `<field>: null` is read as `<field>: false`
+	StrToBool        map[string]bool // lowercase
 }
 
 func Bool(inter interface{}, v *BoolValidation) (bool, error) {
 	if inter == nil {
+		if v.TreatNullAsFalse {
+			return ValidateBool(false, v)
+		}
 		return false, ErrorCannotBeNull()
 	}
 	casted, castOk := inter.(bool)

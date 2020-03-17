@@ -29,6 +29,7 @@ import (
 type Int32Validation struct {
 	Required             bool
 	Default              int32
+	TreatNullAsZero      bool // `<field>: ` and `<field>: null` is read as `<field>: 0`
 	AllowedValues        []int32
 	GreaterThan          *int32
 	GreaterThanOrEqualTo *int32
@@ -39,6 +40,9 @@ type Int32Validation struct {
 
 func Int32(inter interface{}, v *Int32Validation) (int32, error) {
 	if inter == nil {
+		if v.TreatNullAsZero {
+			return ValidateInt32(0, v)
+		}
 		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToInt32(inter)

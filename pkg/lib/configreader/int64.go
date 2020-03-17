@@ -29,6 +29,7 @@ import (
 type Int64Validation struct {
 	Required             bool
 	Default              int64
+	TreatNullAsZero      bool // `<field>: ` and `<field>: null` is read as `<field>: 0`
 	AllowedValues        []int64
 	GreaterThan          *int64
 	GreaterThanOrEqualTo *int64
@@ -39,6 +40,9 @@ type Int64Validation struct {
 
 func Int64(inter interface{}, v *Int64Validation) (int64, error) {
 	if inter == nil {
+		if v.TreatNullAsZero {
+			return ValidateInt64(0, v)
+		}
 		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToInt64(inter)

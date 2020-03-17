@@ -29,6 +29,7 @@ import (
 type Float32Validation struct {
 	Required             bool
 	Default              float32
+	TreatNullAsZero      bool // `<field>: ` and `<field>: null` is read as `<field>: 0.0`
 	AllowedValues        []float32
 	GreaterThan          *float32
 	GreaterThanOrEqualTo *float32
@@ -39,6 +40,9 @@ type Float32Validation struct {
 
 func Float32(inter interface{}, v *Float32Validation) (float32, error) {
 	if inter == nil {
+		if v.TreatNullAsZero {
+			return ValidateFloat32(0, v)
+		}
 		return 0, ErrorCannotBeNull()
 	}
 	casted, castOk := cast.InterfaceToFloat32(inter)
