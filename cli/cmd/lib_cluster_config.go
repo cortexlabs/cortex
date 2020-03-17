@@ -195,13 +195,10 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 			return nil, err
 		}
 
-		if userClusterConfig.Bucket == "" {
-			userClusterConfig.Bucket = cachedClusterConfig.Bucket
-		}
-
-		if userClusterConfig.Bucket != cachedClusterConfig.Bucket {
+		if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
 		}
+		userClusterConfig.Bucket = cachedClusterConfig.Bucket
 
 		if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
