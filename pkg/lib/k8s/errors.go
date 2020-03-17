@@ -33,42 +33,42 @@ const (
 )
 
 func ErrorParseVirtualService(msg string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrParseVirtualService,
 		Message: msg,
 	})
 }
 
 func ErrorLabelNotFound(labelName string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrLabelNotFound,
 		Message: fmt.Sprintf("label %s not found", s.UserStr(labelName)),
 	})
 }
 
 func ErrorAnnotationNotFound(annotationName string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrAnnotationNotFound,
 		Message: fmt.Sprintf("annotation %s not found", s.UserStr(annotationName)),
 	})
 }
 
 func ErrorParseLabel(labelName string, labelVal string, desiredType string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrParseLabel,
 		Message: fmt.Sprintf("unable to parse value %s from label %s as type %s", s.UserStr(labelVal), labelName, desiredType),
 	})
 }
 
 func ErrorParseAnnotation(annotationName string, annotationVal string, desiredType string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrParseAnnotation,
 		Message: fmt.Sprintf("unable to parse value %s from annotation %s as type %s", s.UserStr(annotationVal), annotationName, desiredType),
 	})
 }
 
 func ErrorParseQuantity(qtyStr string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind: ErrParseQuantity,
 		// CORTEX_VERSION_MINOR
 		Message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/v/master/deployments/compute)",

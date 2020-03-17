@@ -30,7 +30,7 @@ const (
 )
 
 // TODO rename to Error?
-type CortexError struct {
+type Error struct {
 	Kind        string
 	Message     string
 	NoTelemetry bool
@@ -39,18 +39,18 @@ type CortexError struct {
 	stack       *stack
 }
 
-func (cortexError *CortexError) Error() string {
+func (cortexError *Error) Error() string {
 	return cortexError.Message
 }
 
-func (cortexError *CortexError) Cause() error {
+func (cortexError *Error) Cause() error {
 	if cortexError.cause != nil {
 		return cortexError.cause
 	}
 	return cortexError
 }
 
-func (cortexError *CortexError) StackTrace() pkgerrors.StackTrace {
+func (cortexError *Error) StackTrace() pkgerrors.StackTrace {
 	stackTrace := make([]pkgerrors.Frame, len(*cortexError.stack))
 	for i := 0; i < len(stackTrace); i++ {
 		stackTrace[i] = pkgerrors.Frame((*cortexError.stack)[i])
@@ -66,7 +66,7 @@ func WithStack(err error) error {
 	cortexError := getCortexError(err)
 
 	if cortexError == nil {
-		cortexError = &CortexError{
+		cortexError = &Error{
 			Kind:    ErrNotCortexError, // TODO
 			Message: err.Error(),
 			cause:   err,
@@ -85,7 +85,7 @@ func Wrap(err error, strs ...string) error {
 		return nil
 	}
 
-	cortexError := WithStack(err).(*CortexError)
+	cortexError := WithStack(err).(*Error)
 
 	strs = removeEmptyStrs(strs)
 	strs = append(strs, cortexError.Message)
@@ -101,8 +101,8 @@ func new(strs ...string) error {
 	return WithStack(errors.New(errStr))
 }
 
-func getCortexError(err error) *CortexError {
-	if cortexError, ok := err.(*CortexError); ok {
+func getCortexError(err error) *Error {
+	if cortexError, ok := err.(*Error); ok {
 		return cortexError
 	}
 	return nil
@@ -110,40 +110,40 @@ func getCortexError(err error) *CortexError {
 
 // TODO: add a NotCortexError kind?
 func GetKind(err error) string {
-	if cortexError, ok := err.(*CortexError); ok {
+	if cortexError, ok := err.(*Error); ok {
 		return cortexError.Kind
 	}
 	return ErrNotCortexError
 }
 
 func IsNoTelemetry(err error) bool {
-	if cortexError, ok := err.(*CortexError); ok {
+	if cortexError, ok := err.(*Error); ok {
 		return cortexError.NoTelemetry
 	}
 	return false
 }
 
 func SetNoTelemetry(err error) error {
-	cortexError := WithStack(err).(*CortexError)
+	cortexError := WithStack(err).(*Error)
 	cortexError.NoTelemetry = true
 	return cortexError
 }
 
 func IsNoPrint(err error) bool {
-	if cortexError, ok := err.(*CortexError); ok {
+	if cortexError, ok := err.(*Error); ok {
 		return cortexError.NoPrint
 	}
 	return false
 }
 
 func SetNoPrint(err error) error {
-	cortexError := WithStack(err).(*CortexError)
+	cortexError := WithStack(err).(*Error)
 	cortexError.NoPrint = true
 	return cortexError
 }
 
 func Cause(err error) error {
-	if cortexError, ok := err.(*CortexError); ok {
+	if cortexError, ok := err.(*Error); ok {
 		return cortexError.Cause()
 	}
 	return nil

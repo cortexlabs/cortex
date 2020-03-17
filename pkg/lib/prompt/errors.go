@@ -26,7 +26,7 @@ const (
 )
 
 func ErrorUserNoContinue() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:        ErrUserNoContinue,
 		NoPrint:     true,
 		NoTelemetry: true,
@@ -34,7 +34,7 @@ func ErrorUserNoContinue() error {
 }
 
 func ErrorUserCtrlC() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:        ErrUserCtrlC,
 		NoPrint:     true,
 		NoTelemetry: true,

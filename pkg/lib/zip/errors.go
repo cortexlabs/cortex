@@ -33,7 +33,7 @@ const (
 )
 
 func ErrorDuplicateZipPath(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateZipPath,
 		Message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
 	})

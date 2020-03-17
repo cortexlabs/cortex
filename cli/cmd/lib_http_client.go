@@ -220,7 +220,7 @@ func StreamLogs(apiName string) error {
 		if err != nil || output.Message == "" {
 			return ErrorOperatorStreamResponseUnknown(string(bodyBytes))
 		}
-		return errors.WithStack(&errors.CortexError{
+		return errors.WithStack(&errors.Error{
 			Kind:        output.Kind,
 			Message:     output.Message,
 			NoTelemetry: true,
@@ -314,7 +314,7 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 			return nil, ErrorOperatorResponseUnknown(string(bodyBytes))
 		}
 
-		return nil, errors.WithStack(&errors.CortexError{
+		return nil, errors.WithStack(&errors.Error{
 			Kind:        output.Kind,
 			Message:     output.Message,
 			NoTelemetry: true,

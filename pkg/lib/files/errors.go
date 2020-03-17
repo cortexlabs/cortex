@@ -39,84 +39,84 @@ const (
 )
 
 func ErrorCreateDir(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrCreateDir,
 		Message: fmt.Sprintf("%s: unable to create directory", path),
 	})
 }
 
 func ErrorDeleteDir(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeleteDir,
 		Message: fmt.Sprintf("%s: unable to delete directory", path),
 	})
 }
 
 func ErrorReadFormFile(fileName string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadFormFile,
 		Message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
 	})
 }
 
 func ErrorCreateFile(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrCreateFile,
 		Message: fmt.Sprintf("%s: unable to create file", path),
 	})
 }
 
 func ErrorReadDir(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadDir,
 		Message: fmt.Sprintf("%s: unable to read directory", path),
 	})
 }
 
 func ErrorReadFile(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadFile,
 		Message: fmt.Sprintf("%s: unable to read file", path),
 	})
 }
 
 func ErrorFileAlreadyExists(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileAlreadyExists,
 		Message: fmt.Sprintf("%s: file already exists", path),
 	})
 }
 
 func ErrorUnexpected() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnexpected,
 		Message: "an unexpected error occurred",
 	})
 }
 
 func ErrorFileDoesNotExist(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileDoesNotExist,
 		Message: fmt.Sprintf("%s: file does not exist", path),
 	})
 }
 
 func ErrorDirDoesNotExist(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDirDoesNotExist,
 		Message: fmt.Sprintf("%s: directory does not exist", path),
 	})
 }
 
 func ErrorNotAFile(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotAFile,
 		Message: fmt.Sprintf("%s: no such file", path),
 	})
 }
 
 func ErrorNotADir(path string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotADir,
 		Message: fmt.Sprintf("%s: not a directory path", path),
 	})

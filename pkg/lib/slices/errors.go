@@ -25,7 +25,7 @@ const (
 )
 
 func ErrorLenValuesWeightsMismatch() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrLenValuesWeightsMismatch,
 		Message: "length of values is not equal to length of weights",
 	})

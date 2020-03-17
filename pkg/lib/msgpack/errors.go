@@ -26,14 +26,14 @@ const (
 )
 
 func ErrorUnmarshalMsgpack() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnmarshalMsgpack,
 		Message: "invalid messagepack",
 	})
 }
 
 func ErrorMarshalMsgpack() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrMarshalMsgpack,
 		Message: "invalid messagepack cannot be serialized",
 	})

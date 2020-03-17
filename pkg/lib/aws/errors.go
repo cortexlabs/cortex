@@ -64,63 +64,63 @@ func CheckErrCode(err error, errorCode string) bool {
 }
 
 func ErrorInvalidAWSCredentials() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAWSCredentials,
 		Message: "invalid AWS credentials",
 	})
 }
 
 func ErrorInvalidS3aPath(provided string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidS3aPath,
 		Message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/iris-classifier/tensorflow is a valid s3a path)", s.UserStr(provided)),
 	})
 }
 
 func ErrorInvalidS3Path(provided string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidS3Path,
 		Message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-classifier/tensorflow is a valid s3 path)", s.UserStr(provided)),
 	})
 }
 
 func ErrorAuth() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuth,
 		Message: "unable to authenticate with AWS",
 	})
 }
 
 func ErrorBucketInaccessible(bucket string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrBucketInaccessible,
 		Message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
 	})
 }
 
 func ErrorBucketNotFound(bucket string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrBucketNotFound,
 		Message: fmt.Sprintf("bucket \"%s\" not found", bucket),
 	})
 }
 
 func ErrorInstanceTypeLimitIsZero(instanceType string, region string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeLimitIsZero,
 		Message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances). If you submitted a request and it was recently approved, please allow ~30 minutes for AWS to reflect this change."`, instanceType, region),
 	})
 }
 
 func ErrorNoValidSpotPrices(instanceType string, region string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoValidSpotPrices,
 		Message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
 	})
 }
 
 func ErrorReadCredentials() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadCredentials,
 		Message: "unable to read AWS credentials from credentials file",
 	})

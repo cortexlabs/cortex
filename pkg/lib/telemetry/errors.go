@@ -26,14 +26,14 @@ const (
 )
 
 func ErrorUserIDNotSpecified() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrUserIDNotSpecified,
 		Message: "user ID must be specified to enable telemetry",
 	})
 }
 
 func ErrorSentryFlushTimeoutExceeded() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrSentryFlushTimeoutExceeded,
 		Message: "sentry flush timout exceeded",
 	})

@@ -62,28 +62,28 @@ func ErrorCLINotConfigured(env string) error {
 		msg = fmt.Sprintf("your cli is not configured; run `cortex configure --env=%s`", env)
 	}
 
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrCLINotConfigured,
 		Message: msg,
 	})
 }
 
 func ErrorCortexYAMLNotFound() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexYAMLNotFound,
 		Message: "no api config file was specified, and ./cortex.yaml does not exist; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`",
 	})
 }
 
 func ErrorDockerDaemon() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDockerDaemon,
 		Message: "unable to connect to the Docker daemon, please confirm Docker is running",
 	})
 }
 
 func ErrorDockerCtrlC() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:        ErrDockerCtrlC,
 		NoPrint:     true,
 		NoTelemetry: true,
@@ -91,7 +91,7 @@ func ErrorDockerCtrlC() error {
 }
 
 func ErrorAPINotReady(apiName string, status string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotReady,
 		Message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
 	})
@@ -108,14 +108,14 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
 	}
 
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToConnectOperator,
 		Message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint, run `cortex cluster info` to show your operator endpoint", originalErrMsg, operatorURLMsg),
 	})
 }
 
 func ErrorOperatorSocketRead(err error) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorSocketRead,
 		Message: err.Error(),
 		NoPrint: true,
@@ -123,42 +123,42 @@ func ErrorOperatorSocketRead(err error) error {
 }
 
 func ErrorResponseUnknown(body string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrResponseUnknown,
 		Message: body,
 	})
 }
 
 func ErrorOperatorResponseUnknown(body string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorResponseUnknown,
 		Message: body,
 	})
 }
 
 func ErrorOperatorStreamResponseUnknown(body string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorStreamResponseUnknown,
 		Message: body,
 	})
 }
 
 func ErrorOneAWSEnvVarSet(setEnvVar string, missingEnvVar string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrOneAWSEnvVarSet,
 		Message: fmt.Sprintf("only $%s is set; please run `export %s=***`", setEnvVar, missingEnvVar),
 	})
 }
 
 func ErrorOneAWSConfigFieldSet(setConfigField string, missingConfigField string, configPath string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrOneAWSConfigFieldSet,
 		Message: fmt.Sprintf("only %s is set in %s; please set %s as well", setConfigField, _flagClusterConfig, missingConfigField),
 	})
 }
 
 func ErrorClusterUp(out string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUp,
 		Message: out,
 		NoPrint: true,
@@ -166,7 +166,7 @@ func ErrorClusterUp(out string) error {
 }
 
 func ErrorClusterUpdate(out string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUpdate,
 		Message: out,
 		NoPrint: true,
@@ -174,7 +174,7 @@ func ErrorClusterUpdate(out string) error {
 }
 
 func ErrorClusterInfo(out string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterInfo,
 		Message: out,
 		NoPrint: true,
@@ -182,7 +182,7 @@ func ErrorClusterInfo(out string) error {
 }
 
 func ErrorClusterDebug(out string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterDebug,
 		Message: out,
 		NoPrint: true,
@@ -190,7 +190,7 @@ func ErrorClusterDebug(out string) error {
 }
 
 func ErrorClusterRefresh(out string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterRefresh,
 		Message: out,
 		NoPrint: true,
@@ -198,7 +198,7 @@ func ErrorClusterRefresh(out string) error {
 }
 
 func ErrorClusterDown(out string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterDown,
 		Message: out,
 		NoPrint: true,
@@ -206,7 +206,7 @@ func ErrorClusterDown(out string) error {
 }
 
 func ErrorDuplicateCLIEnvNames(environment string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateCLIEnvNames,
 		Message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
 	})

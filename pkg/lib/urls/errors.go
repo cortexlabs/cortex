@@ -33,42 +33,42 @@ const (
 )
 
 func ErrorInvalidURL(provided string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidURL,
 		Message: fmt.Sprintf("%s is not a valid URL", s.UserStr(provided)),
 	})
 }
 
 func ErrorDNS1035(provided string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDNS1035,
 		Message: fmt.Sprintf("%s must contain only lower case letters, numbers, and dashes, start with a letter, and cannot end with a dash", s.UserStr(provided)),
 	})
 }
 
 func ErrorDNS1123(provided string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDNS1123,
 		Message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character", s.UserStr(provided)),
 	})
 }
 
 func ErrorEndpoint(provided string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrEndpoint,
 		Message: fmt.Sprintf("%s must consist of lower case alphanumeric characters, '/', '-', '_', or '.'", s.UserStr(provided)),
 	})
 }
 
 func ErrorEndpointEmptyPath() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrEndpointEmptyPath,
 		Message: fmt.Sprintf("%s is not allowed (a path must be specified)", s.UserStr("/")),
 	})
 }
 
 func ErrorEndpointDoubleSlash(provided string) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrEndpointDoubleSlash,
 		Message: fmt.Sprintf("%s cannot contain adjacent slashes", s.UserStr(provided)),
 	})

@@ -30,28 +30,28 @@ const (
 )
 
 func ErrorAtLeastOneColumn() error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrAtLeastOneColumn,
 		Message: "must have at least one column",
 	})
 }
 
 func ErrorHeaderWiderThanMaxWidth(headerTitle string, maxWidth int) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrHeaderWiderThanMaxWidth,
 		Message: fmt.Sprintf("header %s is wider than max width (%d)", headerTitle, maxWidth),
 	})
 }
 
 func ErrorHeaderMinWidthGreaterThanMaxWidth(headerTitle string, minWidth int, maxWidth int) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrHeaderMinWidthGreaterThanMaxWidth,
 		Message: fmt.Sprintf("header %s has min width > max width (%d > %d)", headerTitle, minWidth, maxWidth),
 	})
 }
 
 func ErrorWrongNumberOfColumns(rowNumber int, actualCols int, expectedCols int) error {
-	return errors.WithStack(&errors.CortexError{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrWrongNumberOfColumns,
 		Message: fmt.Sprintf("row %d does not have the expected number of columns (got %d, expected %d)", rowNumber, actualCols, expectedCols),
 	})
