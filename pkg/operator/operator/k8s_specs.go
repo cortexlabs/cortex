@@ -233,7 +233,7 @@ func tfDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(*config.Cluster.Bucket, api.ProjectKey),
+				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -349,7 +349,7 @@ func pythonDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(*config.Cluster.Bucket, api.ProjectKey),
+				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -463,7 +463,7 @@ func onnxDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(*config.Cluster.Bucket, api.ProjectKey),
+				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -574,7 +574,7 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_API_SPEC",
-			Value: aws.S3Path(*config.Cluster.Bucket, api.Key),
+			Value: aws.S3Path(config.Cluster.Bucket, api.Key),
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_CACHE_DIR",
