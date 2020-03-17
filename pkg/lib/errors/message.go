@@ -26,11 +26,12 @@ import (
 
 func PrintError(err error, strs ...string) {
 	fmt.Println(errorStr(err, strs...))
-	// PrintStacktrace(wrappedErr)
+	// PrintStacktrace(err)
 }
 
 func PrintErrorForUser(err error, strs ...string) {
 	print.ForUser(errorStr(err, strs...))
+	// PrintStacktrace(err)
 }
 
 func errorStr(err error, strs ...string) string {
