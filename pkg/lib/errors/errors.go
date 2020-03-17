@@ -127,11 +127,22 @@ func SetNoPrint(err error) error {
 	return cortexError
 }
 
+// Returns nil if no cause
 func Cause(err error) error {
 	if cortexError, ok := err.(*Error); ok {
 		return cortexError.Cause()
 	}
 	return nil
+}
+
+func CauseOrSelf(err error) error {
+	if cortexError, ok := err.(*Error); ok {
+		cause := cortexError.Cause()
+		if cause != nil {
+			return cause
+		}
+	}
+	return err
 }
 
 func PrintStacktrace(err error) {

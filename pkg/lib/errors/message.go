@@ -49,7 +49,7 @@ func MessageFirstLine(err error, strs ...string) string {
 	wrappedErr := Wrap(err, strs...)
 
 	var errStr string
-	if _, ok := Cause(wrappedErr).(awserr.Error); ok {
+	if _, ok := CauseOrSelf(wrappedErr).(awserr.Error); ok {
 		errStr = strings.Split(wrappedErr.Error(), "\n")[0]
 	} else {
 		errStr = wrappedErr.Error()

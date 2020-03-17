@@ -471,7 +471,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if _, ok := errors.Cause(err).(awserr.Error); !ok {
+		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
 			return errors.Wrap(err, InstanceTypeKey)
 		}
 	}

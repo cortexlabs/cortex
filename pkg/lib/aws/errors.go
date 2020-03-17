@@ -53,7 +53,7 @@ func IsGenericNotFoundErr(err error) bool {
 }
 
 func CheckErrCode(err error, errorCode string) bool {
-	awsErr, ok := errors.Cause(err).(awserr.Error)
+	awsErr, ok := errors.CauseOrSelf(err).(awserr.Error)
 	if !ok {
 		return false
 	}
