@@ -14,27 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package zip
+package telemetry
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 const (
-	_errStrUnzip     = "unable to unzip file"
-	_errStrCreateZip = "unable to create zip file"
+	ErrUserIDNotSpecified         = "telemetry.user_id_not_specified"
+	ErrSentryFlushTimeoutExceeded = "telemetry.sentry_flush_timeout_exceeded"
 )
 
-const (
-	ErrDuplicateZipPath = "zip.duplicate_zip_path"
-)
-
-func ErrorDuplicateZipPath(path string) error {
+func ErrorUserIDNotSpecified() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateZipPath,
-		Message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
+		Kind:    ErrUserIDNotSpecified,
+		Message: "user ID must be specified to enable telemetry",
+	})
+}
+
+func ErrorSentryFlushTimeoutExceeded() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSentryFlushTimeoutExceeded,
+		Message: "sentry flush timout exceeded",
 	})
 }

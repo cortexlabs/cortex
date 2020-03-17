@@ -55,7 +55,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	api := getAPISpec(apiConfig, projectID, deploymentID)
 
 	if prevDeployment == nil {
-		if err := config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
@@ -71,9 +71,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", err
 		}
 		if isUpdating && !force {
-			return nil, "", errors.New(fmt.Sprintf("%s is updating (override with --force)", api.Name))
+			return nil, "", ErrorAPIUpdating(api.Name)
 		}
-		if err := config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
@@ -107,12 +107,12 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	}
 
 	if isUpdating && !force {
-		return "", errors.New(fmt.Sprintf("%s is updating (override with --force)", apiName))
+		return "", ErrorAPIUpdating(apiName)
 	}
 
-	apiID := prevDeployment.Labels["apiID"]
-	if apiID == "" {
-		return "", errors.New("unable to retrieve api ID from deployment") // unexpected
+	apiID, err := k8s.GetLabel(prevDeployment, "apiID")
+	if err != nil {
+		return "", err
 	}
 
 	api, err := DownloadAPISpec(apiName, apiID)
@@ -122,7 +122,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 	api = getAPISpec(api.API, api.ProjectID, k8s.RandomName())
 
-	if err := config.AWS.UploadMsgpackToS3(api, *config.Cluster.Bucket, api.Key); err != nil {
+	if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
@@ -309,7 +309,7 @@ func deleteK8sResources(apiName string) error {
 
 func deleteS3Resources(apiName string) error {
 	prefix := filepath.Join("apis", apiName)
-	return config.AWS.DeleteDir(*config.Cluster.Bucket, prefix, true)
+	return config.AWS.DeleteDir(config.Cluster.Bucket, prefix, true)
 }
 
 // returns true if min_replicas are not ready and no updated replicas have errored
@@ -391,7 +391,7 @@ func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 	s3Key := specKey(apiName, apiID)
 	var api spec.API
 
-	if err := config.AWS.ReadMsgpackFromS3(&api, *config.Cluster.Bucket, s3Key); err != nil {
+	if err := config.AWS.ReadMsgpackFromS3(&api, config.Cluster.Bucket, s3Key); err != nil {
 		return nil, err
 	}
 

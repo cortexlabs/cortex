@@ -23,165 +23,101 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrCreateDir
-	ErrDeleteDir
-	ErrReadFormFile
-	ErrCreateFile
-	ErrReadDir
-	ErrReadFile
-	ErrFileAlreadyExists
-	ErrUnexpected
-	ErrFileDoesNotExist
-	ErrDirDoesNotExist
-	ErrNotAFile
-	ErrNotADir
+	ErrCreateDir         = "files.create_dir"
+	ErrDeleteDir         = "files.delete_dir"
+	ErrReadFormFile      = "files.read_form_file"
+	ErrCreateFile        = "files.create_file"
+	ErrReadDir           = "files.read_dir"
+	ErrReadFile          = "files.read_file"
+	ErrFileAlreadyExists = "files.file_already_exists"
+	ErrUnexpected        = "files.unexpected"
+	ErrFileDoesNotExist  = "files.file_does_not_exist"
+	ErrDirDoesNotExist   = "files.dir_does_not_exist"
+	ErrNotAFile          = "files.not_a_file"
+	ErrNotADir           = "files.not_a_dir"
 )
 
-var _errorKinds = []string{
-	"err_unknown",
-	"err_create_dir",
-	"err_delete_dir",
-	"err_read_form_file",
-	"err_create_file",
-	"err_read_dir",
-	"err_read_file",
-	"err_file_already_exists",
-	"err_unexpected",
-	"err_file_does_not_exist",
-	"err_dir_does_not_exist",
-	"err_not_a_file",
-	"err_not_a_dir",
-}
-
-var _ = [1]int{}[int(ErrNotADir)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorCreateDir(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrCreateDir,
-		message: fmt.Sprintf("%s: unable to create directory", path),
+		Message: fmt.Sprintf("%s: unable to create directory", path),
 	})
 }
 
 func ErrorDeleteDir(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeleteDir,
-		message: fmt.Sprintf("%s: unable to delete directory", path),
+		Message: fmt.Sprintf("%s: unable to delete directory", path),
 	})
 }
 
 func ErrorReadFormFile(fileName string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadFormFile,
-		message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
+		Message: fmt.Sprintf("unable to read request form file %s", s.UserStr(fileName)),
 	})
 }
 
 func ErrorCreateFile(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrCreateFile,
-		message: fmt.Sprintf("%s: unable to create file", path),
+		Message: fmt.Sprintf("%s: unable to create file", path),
 	})
 }
 
 func ErrorReadDir(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadDir,
-		message: fmt.Sprintf("%s: unable to read directory", path),
+		Message: fmt.Sprintf("%s: unable to read directory", path),
 	})
 }
 
 func ErrorReadFile(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadFile,
-		message: fmt.Sprintf("%s: unable to read file", path),
+		Message: fmt.Sprintf("%s: unable to read file", path),
 	})
 }
 
 func ErrorFileAlreadyExists(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileAlreadyExists,
-		message: fmt.Sprintf("%s: file already exists", path),
+		Message: fmt.Sprintf("%s: file already exists", path),
 	})
 }
 
 func ErrorUnexpected() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnexpected,
-		message: "an unexpected error occurred",
+		Message: "an unexpected error occurred",
 	})
 }
 
 func ErrorFileDoesNotExist(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileDoesNotExist,
-		message: fmt.Sprintf("%s: file does not exist", path),
+		Message: fmt.Sprintf("%s: file does not exist", path),
 	})
 }
 
 func ErrorDirDoesNotExist(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDirDoesNotExist,
-		message: fmt.Sprintf("%s: directory does not exist", path),
+		Message: fmt.Sprintf("%s: directory does not exist", path),
 	})
 }
 
 func ErrorNotAFile(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotAFile,
-		message: fmt.Sprintf("%s: no such file", path),
+		Message: fmt.Sprintf("%s: no such file", path),
 	})
 }
 
 func ErrorNotADir(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotADir,
-		message: fmt.Sprintf("%s: not a directory path", path),
+		Message: fmt.Sprintf("%s: not a directory path", path),
 	})
 }

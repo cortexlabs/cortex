@@ -14,27 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package zip
+package prompt
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 const (
-	_errStrUnzip     = "unable to unzip file"
-	_errStrCreateZip = "unable to create zip file"
+	ErrUserNoContinue = "prompt.user_no_continue"
+	ErrUserCtrlC      = "prompt.user_ctrl_c"
 )
 
-const (
-	ErrDuplicateZipPath = "zip.duplicate_zip_path"
-)
-
-func ErrorDuplicateZipPath(path string) error {
+func ErrorUserNoContinue() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateZipPath,
-		Message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
+		Kind:        ErrUserNoContinue,
+		NoPrint:     true,
+		NoTelemetry: true,
+	})
+}
+
+func ErrorUserCtrlC() error {
+	return errors.WithStack(&errors.Error{
+		Kind:        ErrUserCtrlC,
+		NoPrint:     true,
+		NoTelemetry: true,
 	})
 }

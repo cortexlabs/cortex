@@ -57,3 +57,13 @@ func InterfaceMapsKeysMatch(map1 map[string]interface{}, map2 map[string]interfa
 	}
 	return true
 }
+
+func MergeStrInterfaceMaps(maps ...map[string]interface{}) map[string]interface{} {
+	merged := map[string]interface{}{}
+	for _, m := range maps {
+		for k, v := range m {
+			merged[k] = v
+		}
+	}
+	return merged
+}

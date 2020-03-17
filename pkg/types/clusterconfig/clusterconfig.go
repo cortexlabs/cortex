@@ -53,7 +53,7 @@ type Config struct {
 	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
 	Region                 *string     `json:"region" yaml:"region"`
 	AvailabilityZones      []string    `json:"availability_zones" yaml:"availability_zones"`
-	Bucket                 *string     `json:"bucket" yaml:"bucket"`
+	Bucket                 string      `json:"bucket" yaml:"bucket"`
 	LogGroup               string      `json:"log_group" yaml:"log_group"`
 	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
 	ImagePythonServe       string      `json:"image_python_serve" yaml:"image_python_serve"`
@@ -214,8 +214,11 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:         "Bucket",
-			StringPtrValidation: &cr.StringPtrValidation{},
+			StructField: "Bucket",
+			StringValidation: &cr.StringValidation{
+				AllowEmpty:       true,
+				TreatNullAsEmpty: true,
+			},
 		},
 		{
 			StructField: "LogGroup",
@@ -460,9 +463,9 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	bucketRegion, _ := aws.GetBucketRegion(*cc.Bucket)
+	bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
 	if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
-		return ErrorS3RegionDiffersFromCluster(*cc.Bucket, bucketRegion, *cc.Region)
+		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
 	}
 
 	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
@@ -471,7 +474,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if _, ok := errors.Cause(err).(awserr.Error); !ok {
+		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
 			return errors.Wrap(err, InstanceTypeKey)
 		}
 	}
@@ -726,7 +729,6 @@ func RegionPrompt(clusterConfig *Config) error {
 
 func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	defaults := applyPromptDefaults(*clusterConfig)
-
 	accountID, _, err := awsClient.GetCachedAccountID()
 	if err != nil {
 		return err
@@ -742,15 +744,16 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	}
 
 	remainingPrompts := &cr.PromptValidation{
-		SkipNonNilFields: true,
+		SkipNonNilFields:   true,
+		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "Bucket",
 				PromptOpts: &prompt.Options{
 					Prompt: BucketUserKey,
 				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Default:   &defaultBucket,
+				StringValidation: &cr.StringValidation{
+					Default:   defaultBucket,
 					MinLength: 3,
 					MaxLength: 63,
 				},
@@ -948,7 +951,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	if len(cc.AvailabilityZones) > 0 {
 		items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
 	}
-	items.Add(BucketUserKey, *cc.Bucket)
+	items.Add(BucketUserKey, cc.Bucket)
 	items.Add(InstanceTypeUserKey, *cc.InstanceType)
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
 	items.Add(MaxInstancesUserKey, *cc.MaxInstances)

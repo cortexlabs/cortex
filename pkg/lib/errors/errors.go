@@ -18,155 +18,151 @@ package errors
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	pkgerrors "github.com/pkg/errors"
 )
 
-func New(strs ...string) error {
-	strs = removeEmptyStrs(strs)
-	errStr := strings.Join(strs, ": ")
-	return pkgerrors.New(errStr)
+const ErrNotCortexError = "errors.not_cortex_error"
+
+type Error struct {
+	Kind        string
+	Message     string
+	NoTelemetry bool
+	NoPrint     bool
+	cause       error
+	stack       *stack
+}
+
+func (cortexError *Error) Error() string {
+	return cortexError.Message
+}
+
+func (cortexError *Error) Cause() error {
+	return cortexError.cause
+}
+
+func (cortexError *Error) StackTrace() pkgerrors.StackTrace {
+	stackTrace := make([]pkgerrors.Frame, len(*cortexError.stack))
+	for i := 0; i < len(stackTrace); i++ {
+		stackTrace[i] = pkgerrors.Frame((*cortexError.stack)[i])
+	}
+	return stackTrace
+}
+
+func WithStack(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	cortexError := getCortexError(err)
+
+	if cortexError == nil {
+		cortexError = &Error{
+			Kind:    ErrNotCortexError,
+			Message: strings.TrimSpace(err.Error()),
+			cause:   err,
+		}
+	}
+
+	if cortexError.stack == nil {
+		cortexError.stack = callers()
+	}
+
+	return cortexError
 }
 
 func Wrap(err error, strs ...string) error {
 	if err == nil {
 		return nil
 	}
+
+	cortexError := WithStack(err).(*Error)
+
 	strs = removeEmptyStrs(strs)
-	if len(strs) == 0 {
-		return pkgerrors.WithStack(err)
-	}
-	errStr := strings.Join(strs, ": ")
-	return pkgerrors.Wrap(err, errStr)
+	strs = append(strs, cortexError.Message)
+	cortexError.Message = strings.Join(strs, ": ")
+
+	return cortexError
 }
 
-func WithStack(err error) error {
-	return pkgerrors.WithStack(err)
-}
-
-func Cause(err error) error {
-	return pkgerrors.Cause(err)
-}
-
-func AddError(errs []error, err error, strs ...string) ([]error, bool) {
-	ok := false
-	if err != nil {
-		errs = append(errs, Wrap(err, strs...))
-		ok = true
-	}
-	return errs, ok
-}
-
-func AddErrors(errs []error, newErrs []error, strs ...string) ([]error, bool) {
-	ok := false
-	for _, err := range newErrs {
-		if err != nil {
-			errs = append(errs, Wrap(err, strs...))
-			ok = true
-		}
-	}
-	return errs, ok
-}
-
-func WrapAll(errs []error, strs ...string) []error {
-	if !HasError(errs) {
-		return nil
-	}
-	wrappedErrs := make([]error, len(errs))
-	for i, err := range errs {
-		wrappedErrs[i] = Wrap(err, strs...)
-	}
-	return wrappedErrs
-}
-
-func HasError(errs []error) bool {
-	for _, err := range errs {
-		if err != nil {
-			return true
-		}
-	}
-	return false
-}
-
-func FirstError(errs ...error) error {
-	for _, err := range errs {
-		if err != nil {
-			return err
-		}
+func getCortexError(err error) *Error {
+	if cortexError, ok := err.(*Error); ok {
+		return cortexError
 	}
 	return nil
 }
 
-func MergeErrItems(items ...interface{}) error {
-	items = cast.FlattenInterfaceSlices(items...)
-
-	if len(items) == 0 {
-		return nil
+func GetKind(err error) string {
+	if cortexError, ok := err.(*Error); ok {
+		return cortexError.Kind
 	}
+	return ErrNotCortexError
+}
 
-	var err error
+func IsNoTelemetry(err error) bool {
+	if cortexError, ok := err.(*Error); ok {
+		return cortexError.NoTelemetry
+	}
+	return false
+}
 
-	for _, item := range items {
-		if item == nil {
-			continue
-		}
+func SetNoTelemetry(err error) error {
+	cortexError := WithStack(err).(*Error)
+	cortexError.NoTelemetry = true
+	return cortexError
+}
 
-		switch casted := item.(type) {
-		case error:
-			if err == nil {
-				err = casted
-			} else {
-				err = Wrap(err, Message(casted))
-			}
-		case string:
-			if err == nil {
-				err = New(casted)
-			} else {
-				err = Wrap(err, casted)
-			}
-		default:
-			if err == nil {
-				err = New(s.UserStrStripped(casted))
-			} else {
-				err = Wrap(err, s.UserStrStripped(casted))
-			}
+func IsNoPrint(err error) bool {
+	if cortexError, ok := err.(*Error); ok {
+		return cortexError.NoPrint
+	}
+	return false
+}
+
+func SetNoPrint(err error) error {
+	cortexError := WithStack(err).(*Error)
+	cortexError.NoPrint = true
+	return cortexError
+}
+
+// Returns nil if no cause
+func Cause(err error) error {
+	if cortexError, ok := err.(*Error); ok {
+		return cortexError.Cause()
+	}
+	return nil
+}
+
+func CauseOrSelf(err error) error {
+	if cortexError, ok := err.(*Error); ok {
+		cause := cortexError.Cause()
+		if cause != nil {
+			return cause
 		}
 	}
-
 	return err
-}
-
-func PrintError(err error, strs ...string) {
-	wrappedErr := Wrap(err, strs...)
-	fmt.Print("error: ", s.EnsureSingleTrailingNewLine(Message(wrappedErr)))
-	// PrintStacktrace(wrappedErr)
-}
-
-func Message(err error, strs ...string) string {
-	wrappedErr := Wrap(err, strs...)
-	errStr := wrappedErr.Error()
-	return s.RemoveTrailingNewLines(errStr)
-}
-
-func MessageFirstLine(err error, strs ...string) string {
-	wrappedErr := Wrap(err, strs...)
-
-	var errStr string
-	if _, ok := Cause(wrappedErr).(awserr.Error); ok {
-		errStr = strings.Split(wrappedErr.Error(), "\n")[0]
-	} else {
-		errStr = wrappedErr.Error()
-	}
-
-	return s.RemoveTrailingNewLines(errStr)
 }
 
 func PrintStacktrace(err error) {
 	fmt.Printf("%+v\n", err)
+}
+
+func (cortexError *Error) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			io.WriteString(s, cortexError.Message)
+			cortexError.stack.Format(s, verb)
+			return
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, cortexError.Message)
+	case 'q':
+		fmt.Fprintf(s, "%q", cortexError.Message)
+	}
 }
 
 func CastRecoverError(errInterface interface{}, strs ...string) error {
@@ -174,7 +170,10 @@ func CastRecoverError(errInterface interface{}, strs ...string) error {
 	var ok bool
 	err, ok = errInterface.(error)
 	if !ok {
-		err = New(fmt.Sprint(errInterface))
+		err = &Error{
+			Kind:    ErrNotCortexError,
+			Message: fmt.Sprint(errInterface),
+		}
 	}
 	return Wrap(err, strs...)
 }

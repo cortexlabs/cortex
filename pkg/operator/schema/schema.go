@@ -63,7 +63,8 @@ type RefreshResponse struct {
 }
 
 type ErrorResponse struct {
-	Error string `json:"error"`
+	Kind    string `json:"kind"`
+	Message string `json:"message"`
 }
 
 type FeatureSignature struct {

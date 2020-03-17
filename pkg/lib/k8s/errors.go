@@ -17,70 +17,60 @@ limitations under the License.
 package k8s
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-)
+	"fmt"
 
-type ErrorKind int
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+)
 
 const (
-	ErrUnknown       ErrorKind = iota
-	ErrParseQuantity ErrorKind = iota
+	ErrParseVirtualService = "k8s.parse_virtual_service"
+	ErrLabelNotFound       = "k8s.label_not_found"
+	ErrAnnotationNotFound  = "k8s.annotation_not_found"
+	ErrParseLabel          = "k8s.parse_label"
+	ErrParseAnnotation     = "k8s.parse_annotation"
+	ErrParseQuantity       = "k8s.parse_quantity"
 )
 
-var _errorKinds = []string{
-	"err_unknown",
-	"err_parse_quantity",
+func ErrorParseVirtualService(msg string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrParseVirtualService,
+		Message: msg,
+	})
 }
 
-var _ = [1]int{}[int(ErrParseQuantity)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
+func ErrorLabelNotFound(labelName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrLabelNotFound,
+		Message: fmt.Sprintf("label %s not found", s.UserStr(labelName)),
+	})
 }
 
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
+func ErrorAnnotationNotFound(annotationName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAnnotationNotFound,
+		Message: fmt.Sprintf("annotation %s not found", s.UserStr(annotationName)),
+	})
 }
 
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
+func ErrorParseLabel(labelName string, labelVal string, desiredType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrParseLabel,
+		Message: fmt.Sprintf("unable to parse value %s from label %s as type %s", s.UserStr(labelVal), labelName, desiredType),
+	})
 }
 
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
+func ErrorParseAnnotation(annotationName string, annotationVal string, desiredType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrParseAnnotation,
+		Message: fmt.Sprintf("unable to parse value %s from annotation %s as type %s", s.UserStr(annotationVal), annotationName, desiredType),
+	})
 }
 
 func ErrorParseQuantity(qtyStr string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind: ErrParseQuantity,
 		// CORTEX_VERSION_MINOR
-		message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/v/master/deployments/compute)",
+		Message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/v/master/deployments/compute)",
 	})
 }

@@ -17,7 +17,6 @@ limitations under the License.
 package exit
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -29,15 +28,17 @@ func Ok() {
 	os.Exit(0)
 }
 
-func Error(err interface{}, errs ...interface{}) {
-	mergedErr := errors.MergeErrItems(append(errs, err))
+func Error(err error, wrapStrs ...string) {
+	for _, str := range wrapStrs {
+		err = errors.Wrap(err, str)
+	}
 
-	if mergedErr == nil {
-		fmt.Println("an error occurred")
-		telemetry.Error(errors.New("an error occurred"))
-	} else {
-		errors.PrintError(mergedErr)
-		telemetry.Error(mergedErr)
+	if !errors.IsNoTelemetry(err) {
+		telemetry.Error(err)
+	}
+
+	if !errors.IsNoPrint(err) {
+		errors.PrintErrorForUser(err)
 	}
 
 	telemetry.Close()
@@ -45,60 +46,24 @@ func Error(err interface{}, errs ...interface{}) {
 	os.Exit(1)
 }
 
-func ErrorNoTelemetry(err interface{}, errs ...interface{}) {
-	telemetry.Close()
-
-	mergedErr := errors.MergeErrItems(append(errs, err))
-	if mergedErr == nil {
-		fmt.Println("an error occurred")
-	} else {
-		errors.PrintError(mergedErr)
+func Panic(err error, wrapStrs ...string) {
+	for _, str := range wrapStrs {
+		err = errors.Wrap(err, str)
 	}
 
-	os.Exit(1)
-}
-
-func ErrorNoPrint(errs ...interface{}) {
-	mergedErr := errors.MergeErrItems(errs)
-
-	if mergedErr == nil {
-		telemetry.Error(errors.New("an error occurred"))
-	} else {
-		telemetry.Error(mergedErr)
-	}
-
-	telemetry.Close()
-
-	os.Exit(1)
-}
-
-func ErrorNoPrintNoTelemetry() {
-	telemetry.Close()
-	os.Exit(1)
-}
-
-func Panic(errs ...interface{}) {
-	err := errors.MergeErrItems(errs...)
-
-	if err == nil {
-		telemetry.Error(errors.New("a panic occurred"))
-	} else {
+	if !errors.IsNoTelemetry(err) {
 		telemetry.Error(err)
 	}
 
 	telemetry.Close()
 
-	if err == nil {
-		panic("a panic occurred")
-	} else {
-		panic(err)
-	}
+	panic(err)
 }
 
 func RecoverAndExit(strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		errors.PrintError(err)
+		errors.PrintErrorForUser(err)
 		os.Exit(1)
 	}
 }

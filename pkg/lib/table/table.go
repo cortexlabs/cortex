@@ -65,22 +65,22 @@ func validate(t Table) error {
 	numCols := len(t.Headers)
 
 	if numCols < 1 {
-		return errors.New("must have at least one column")
+		return ErrorAtLeastOneColumn()
 	}
 
 	for _, header := range t.Headers {
 		if header.MaxWidth != 0 && len(header.Title) > header.MaxWidth {
-			return errors.New(fmt.Sprintf("header %s is wider than max width (%d)", header.Title, header.MaxWidth))
+			return ErrorHeaderWiderThanMaxWidth(header.Title, header.MaxWidth)
 		}
 
 		if header.MinWidth > header.MaxWidth {
-			return errors.New(fmt.Sprintf("header %s has min width > max width (%d > %d)", header.Title, header.MinWidth, header.MaxWidth))
+			return ErrorHeaderMinWidthGreaterThanMaxWidth(header.Title, header.MinWidth, header.MaxWidth)
 		}
 	}
 
 	for i, row := range t.Rows {
 		if len(row) != numCols {
-			return errors.New(fmt.Sprintf("row %d does not have the expected number of columns (%d)", i, numCols))
+			return ErrorWrongNumberOfColumns(i, len(row), numCols)
 		}
 	}
 

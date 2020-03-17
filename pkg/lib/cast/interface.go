@@ -724,6 +724,19 @@ func InterfaceToStrStrMap(in interface{}) (map[string]string, bool) {
 	return out, true
 }
 
+func StrMapToStrInterfaceMap(in map[string]string) map[string]interface{} {
+	if in == nil {
+		return nil
+	}
+
+	out := map[string]interface{}{}
+	for k, v := range in {
+		out[k] = v
+	}
+
+	return out
+}
+
 func IsIntType(in interface{}) bool {
 	switch in.(type) {
 	case json.Number:

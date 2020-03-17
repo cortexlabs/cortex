@@ -30,7 +30,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 
 	msg, err := operator.RefreshAPI(apiName, force)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 

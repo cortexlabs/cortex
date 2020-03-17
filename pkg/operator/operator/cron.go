@@ -52,10 +52,11 @@ func deleteEvictedPods() error {
 }
 
 type instanceInfo struct {
-	InstanceType string  `json:"instance_type" yaml:"instance_type"`
-	IsSpot       bool    `json:"is_spot" yaml:"is_spot"`
-	Price        float64 `json:"price" yaml:"price"`
-	Count        int32   `json:"count" yaml:"count"`
+	InstanceType  string  `json:"instance_type" yaml:"instance_type"`
+	IsSpot        bool    `json:"is_spot" yaml:"is_spot"`
+	Price         float64 `json:"price" yaml:"price"`
+	OnDemandPrice float64 `json:"on_demand_price" yaml:"on_demand_price"`
+	Count         int32   `json:"count" yaml:"count"`
 }
 
 func operatorTelemetry() error {
@@ -94,7 +95,8 @@ func operatorTelemetry() error {
 			continue
 		}
 
-		price := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
+		onDemandPrice := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
+		price := onDemandPrice
 		if isSpot {
 			spotPrice, err := config.AWS.SpotInstancePrice(*config.Cluster.Region, instanceType)
 			if err == nil && spotPrice != 0 {
@@ -103,19 +105,20 @@ func operatorTelemetry() error {
 		}
 
 		info := instanceInfo{
-			InstanceType: instanceType,
-			IsSpot:       isSpot,
-			Price:        price,
-			Count:        1,
+			InstanceType:  instanceType,
+			IsSpot:        isSpot,
+			Price:         price,
+			OnDemandPrice: onDemandPrice,
+			Count:         1,
 		}
 
 		instanceInfos[instanceInfosKey] = &info
 	}
 
 	properties := map[string]interface{}{
-		"region":        *config.Cluster.Region,
-		"instanceCount": totalInstances,
-		"instances":     instanceInfos,
+		"region":         *config.Cluster.Region,
+		"instance_count": totalInstances,
+		"instances":      instanceInfos,
 	}
 
 	telemetry.Event("operator.cron", properties)

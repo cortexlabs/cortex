@@ -85,9 +85,13 @@ func init() {
 }
 
 func initTelemetry() {
+	cID := clientID()
 	telemetry.Init(telemetry.Config{
-		Enabled:     true,
-		UserID:      clientID(),
+		Enabled: true,
+		UserID:  cID,
+		Properties: map[string]string{
+			"client_id": cID,
+		},
 		Environment: "cli",
 		LogErrors:   false,
 		BackoffMode: telemetry.NoBackoff,

@@ -42,46 +42,46 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	configBytes, err := files.ReadReqFile(r, "config")
 	if err != nil {
-		respondError(w, errors.WithStack(err))
+		respondError(w, r, errors.WithStack(err))
 		return
 	} else if len(configBytes) == 0 {
-		respondError(w, ErrorFormFileMustBeProvided("config"))
+		respondError(w, r, ErrorFormFileMustBeProvided("config"))
 		return
 	}
 
 	baseURL, err := operator.APIsBaseURL()
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
 	projectBytes, err := files.ReadReqFile(r, "project.zip")
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 	projectID := hash.Bytes(projectBytes)
 	projectKey := operator.ProjectKey(projectID)
 	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
 	apiConfigs, err := operator.ExtractAPIConfigs(configBytes, projectFileMap, configPath)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 
-	isProjectUploaded, err := config.AWS.IsS3File(*config.Cluster.Bucket, projectKey)
+	isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
 	if err != nil {
-		respondError(w, err)
+		respondError(w, r, err)
 		return
 	}
 	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, *config.Cluster.Bucket, projectKey); err != nil {
-			respondError(w, err)
+		if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+			respondError(w, r, err)
 			return
 		}
 	}

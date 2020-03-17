@@ -25,134 +25,66 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrCortexInstallationBroken
-	ErrLoadBalancerInitializing
-	ErrMalformedConfig
-	ErrNoAPIs
-	ErrDuplicateName
-	ErrDuplicateEndpointInOneDeploy
-	ErrDuplicateEndpoint
-	ErrSpecifyAllOrNone
-	ErrOneOfPrerequisitesNotDefined
-	ErrMinReplicasGreaterThanMax
-	ErrInitReplicasGreaterThanMax
-	ErrInitReplicasLessThanMin
-	ErrInvalidSurgeOrUnavailable
-	ErrSurgeAndUnavailableBothZero
-	ErrImplDoesNotExist
-	ErrS3FileNotFound
-	ErrS3DirNotFoundOrEmpty
-	ErrONNXDoesntSupportZip
-	ErrInvalidTensorFlowDir
-	ErrFieldMustBeDefinedForPredictorType
-	ErrFieldNotSupportedByPredictorType
-	ErrNoAvailableNodeComputeLimit
-	ErrCortexPrefixedEnvVarNotAllowed
-	ErrAPINotDeployed
+	ErrCortexInstallationBroken           = "operator.cortex_installation_broken"
+	ErrLoadBalancerInitializing           = "operator.load_balancer_initializing"
+	ErrMalformedConfig                    = "operator.malformed_config"
+	ErrNoAPIs                             = "operator.no_apis"
+	ErrAPIUpdating                        = "operator.api_updating"
+	ErrDuplicateName                      = "operator.duplicate_name"
+	ErrDuplicateEndpointInOneDeploy       = "operator.duplicate_endpoint_in_one_deploy"
+	ErrDuplicateEndpoint                  = "operator.duplicate_endpoint"
+	ErrSpecifyAllOrNone                   = "operator.specify_all_or_none"
+	ErrOneOfPrerequisitesNotDefined       = "operator.one_of_prerequisites_not_defined"
+	ErrMinReplicasGreaterThanMax          = "operator.min_replicas_greater_than_max"
+	ErrInitReplicasGreaterThanMax         = "operator.init_replicas_greater_than_max"
+	ErrInitReplicasLessThanMin            = "operator.init_replicas_less_than_min"
+	ErrInvalidSurgeOrUnavailable          = "operator.invalid_surge_or_unavailable"
+	ErrSurgeAndUnavailableBothZero        = "operator.surge_and_unavailable_both_zero"
+	ErrImplDoesNotExist                   = "operator.impl_does_not_exist"
+	ErrS3FileNotFound                     = "operator.s3_file_not_found"
+	ErrS3DirNotFoundOrEmpty               = "operator.s3_dir_not_found_or_empty"
+	ErrONNXDoesntSupportZip               = "operator.onnx_doesnt_support_zip"
+	ErrInvalidTensorFlowDir               = "operator.invalid_tensorflow_dir"
+	ErrFieldMustBeDefinedForPredictorType = "operator.field_must_be_defined_for_predictor_type"
+	ErrFieldNotSupportedByPredictorType   = "operator.field_not_supported_by_predictor_type"
+	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
+	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
+	ErrAPINotDeployed                     = "operator.api_not_deployed"
 )
 
-var _errorKinds = []string{
-	"err_unknown",
-	"err_cortex_installation_broken",
-	"err_load_balancer_initializing",
-	"err_malformed_config",
-	"err_no_apis",
-	"err_duplicate_name",
-	"err_duplicate_endpoint_in_one_deploy",
-	"err_duplicate_endpoint",
-	"err_specify_all_or_none",
-	"err_one_of_prerequisites_not_defined",
-	"err_min_replicas_greater_than_max",
-	"err_init_replicas_greater_than_max",
-	"err_init_replicas_less_than_min",
-	"err_invalid_surge_or_unavailable",
-	"err_surge_and_unavailable_both_zero",
-	"err_impl_does_not_exist",
-	"err_s3_file_not_found",
-	"err_s3_dir_not_found_or_empty",
-	"err_onnx_doesnt_support_zip",
-	"err_invalid_tensorflow_dir",
-	"err_field_must_be_defined_for_predictor_type",
-	"err_field_not_supported_by_predictor_type",
-	"err_no_available_node_compute_limit",
-	"err_cortex_prefixed_env_var_not_allowed",
-	"err_api_not_deployed",
-}
-
-var _ = [1]int{}[int(ErrAPINotDeployed)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
-}
-
 func ErrorCortexInstallationBroken() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexInstallationBroken,
-		message: "cortex is out of date, or not installed properly on your cluster; run `cortex cluster update`",
+		Message: "cortex is out of date, or not installed properly on your cluster; run `cortex cluster update`",
 	})
 }
 
 func ErrorLoadBalancerInitializing() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrLoadBalancerInitializing,
-		message: "load balancer is still initializing",
+		Message: "load balancer is still initializing",
 	})
 }
 
 func ErrorMalformedConfig() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://cortex.dev for documentation)"),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://cortex.dev for documentation)"),
 	})
 }
 
 func ErrorNoAPIs() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		message: fmt.Sprintf("at least one API must be configured (see https://cortex.dev for documentation)"),
+		Message: fmt.Sprintf("at least one API must be configured (see https://cortex.dev for documentation)"),
+	})
+}
+
+func ErrorAPIUpdating(apiName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPIUpdating,
+		Message: fmt.Sprintf("%s is updating (override with --force)", apiName),
 	})
 }
 
@@ -162,9 +94,9 @@ func ErrorDuplicateName(apis []userconfig.API) error {
 		filePaths.Add(api.FilePath)
 	}
 
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateName,
-		message: fmt.Sprintf("name %s must be unique across apis (defined in %s)", s.UserStr(apis[0].Name), s.StrsAnd(filePaths.Slice())),
+		Message: fmt.Sprintf("name %s must be unique across apis (defined in %s)", s.UserStr(apis[0].Name), s.StrsAnd(filePaths.Slice())),
 	})
 }
 
@@ -174,16 +106,16 @@ func ErrorDuplicateEndpointInOneDeploy(apis []userconfig.API) error {
 		names[i] = api.Name
 	}
 
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpointInOneDeploy,
-		message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Endpoint), s.StrsAnd(names)),
+		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Endpoint), s.StrsAnd(names)),
 	})
 }
 
 func ErrorDuplicateEndpoint(apiName string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpoint,
-		message: fmt.Sprintf("endpoint is already being used by %s", apiName),
+		Message: fmt.Sprintf("endpoint is already being used by %s", apiName),
 	})
 }
 
@@ -194,9 +126,9 @@ func ErrorSpecifyAllOrNone(val string, vals ...string) error {
 		message = fmt.Sprintf("please specify both %s and %s or neither of them", s.UserStr(allVals[0]), s.UserStr(allVals[1]))
 	}
 
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpecifyAllOrNone,
-		message: message,
+		Message: message,
 	})
 }
 
@@ -204,72 +136,72 @@ func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisite string, prer
 	allPrerequisites := append(prerequisites, prerequisite)
 	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(allPrerequisites))
 
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrOneOfPrerequisitesNotDefined,
-		message: message,
+		Message: message,
 	})
 }
 
 func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrMinReplicasGreaterThanMax,
-		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", userconfig.MinReplicasKey, userconfig.MaxReplicasKey, min, max),
+		Message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", userconfig.MinReplicasKey, userconfig.MaxReplicasKey, min, max),
 	})
 }
 
 func ErrorInitReplicasGreaterThanMax(init int32, max int32) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInitReplicasGreaterThanMax,
-		message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", userconfig.InitReplicasKey, userconfig.MaxReplicasKey, init, max),
+		Message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", userconfig.InitReplicasKey, userconfig.MaxReplicasKey, init, max),
 	})
 }
 
 func ErrorInitReplicasLessThanMin(init int32, min int32) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInitReplicasLessThanMin,
-		message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", userconfig.InitReplicasKey, userconfig.MinReplicasKey, init, min),
+		Message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", userconfig.InitReplicasKey, userconfig.MinReplicasKey, init, min),
 	})
 }
 
 func ErrorInvalidSurgeOrUnavailable(val string) error {
-	return Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidSurgeOrUnavailable,
-		message: fmt.Sprintf("%s is not a valid value - must be an integer percentage (e.g. 25%%, to denote a percentage of desired replicas) or a positive integer (e.g. 5, to denote a number of replicas)", s.UserStr(val)),
-	}
+		Message: fmt.Sprintf("%s is not a valid value - must be an integer percentage (e.g. 25%%, to denote a percentage of desired replicas) or a positive integer (e.g. 5, to denote a number of replicas)", s.UserStr(val)),
+	})
 }
 
 func ErrorSurgeAndUnavailableBothZero() error {
-	return Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrSurgeAndUnavailableBothZero,
-		message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
-	}
+		Message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
+	})
 }
 
 func ErrorImplDoesNotExist(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrImplDoesNotExist,
-		message: fmt.Sprintf("%s: implementation file does not exist", path),
+		Message: fmt.Sprintf("%s: implementation file does not exist", path),
 	})
 }
 
 func ErrorS3FileNotFound(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3FileNotFound,
-		message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+		Message: fmt.Sprintf("%s: not found or insufficient permissions", path),
 	})
 }
 
 func ErrorS3DirNotFoundOrEmpty(path string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3DirNotFoundOrEmpty,
-		message: fmt.Sprintf("%s: directory not found or empty", path),
+		Message: fmt.Sprintf("%s: directory not found or empty", path),
 	})
 }
 
 func ErrorONNXDoesntSupportZip() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrONNXDoesntSupportZip,
-		message: fmt.Sprintf("zip files are not supported for ONNX models"),
+		Message: fmt.Sprintf("zip files are not supported for ONNX models"),
 	})
 }
 
@@ -285,23 +217,23 @@ var _tfExpectedStructMessage = `For TensorFlow models, the path must contain a d
 func ErrorInvalidTensorFlowDir(path string) error {
 	message := "invalid TensorFlow export directory.\n"
 	message += _tfExpectedStructMessage
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowDir,
-		message: message,
+		Message: message,
 	})
 }
 
 func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType userconfig.PredictorType) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldMustBeDefinedForPredictorType,
-		message: fmt.Sprintf("%s field must be defined for the %s predictor type", fieldKey, predictorType.String()),
+		Message: fmt.Sprintf("%s field must be defined for the %s predictor type", fieldKey, predictorType.String()),
 	})
 }
 
 func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userconfig.PredictorType) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
-		message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
+		Message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
 	})
 }
 
@@ -310,22 +242,22 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	if maxStr == "0" {
 		message = fmt.Sprintf("no available nodes can satisfy the requested %s quantity - requested %s %s but nodes don't have any %s", resource, reqStr, resource, resource)
 	}
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
-		message: message,
+		Message: message,
 	})
 }
 
 func ErrorCortexPrefixedEnvVarNotAllowed() error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
-		message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
+		Message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
 	})
 }
 
 func ErrorAPINotDeployed(apiName string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotDeployed,
-		message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
+		Message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
 	})
 }

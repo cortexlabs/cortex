@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
@@ -61,11 +60,11 @@ func S3PathValidator(val string) (string, error) {
 
 func EmailValidator(val string) (string, error) {
 	if len(val) > 320 {
-		return "", errors.New("email exceeds max-length")
+		return "", ErrorEmailTooLong()
 	}
 
 	if !_emailRegex.MatchString(val) {
-		return "", errors.New("invalid email address")
+		return "", ErrorEmailInvalid()
 	}
 
 	return val, nil

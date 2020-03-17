@@ -34,73 +34,66 @@ func errStrFailedToConnect(u url.URL) string {
 	return "failed to connect to " + urls.TrimQueryParamsURL(u)
 }
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrAPINotReady
-	ErrFailedToConnectOperator
-	ErrConfigCannotBeChangedOnUpdate
-	ErrDuplicateCLIEnvNames
+	ErrCLINotConfigured              = "cli.cli_not_configured"
+	ErrCortexYAMLNotFound            = "cli.cortex_yaml_not_found"
+	ErrDockerDaemon                  = "cli.docker_daemon"
+	ErrDockerCtrlC                   = "cli.docker_ctrl_c"
+	ErrAPINotReady                   = "cli.api_not_ready"
+	ErrFailedToConnectOperator       = "cli.failed_to_connect_operator"
+	ErrOperatorSocketRead            = "cli.operator_socket_read"
+	ErrResponseUnknown               = "cli.response_unknown"
+	ErrOperatorResponseUnknown       = "cli.operator_response_unknown"
+	ErrOperatorStreamResponseUnknown = "cli.operator_stream_response_unknown"
+	ErrOneAWSEnvVarSet               = "cli.one_aws_env_var_set"
+	ErrOneAWSConfigFieldSet          = "cli.one_aws_config_field_set"
+	ErrClusterUp                     = "cli.cluster_up"
+	ErrClusterUpdate                 = "cli.cluster_update"
+	ErrClusterInfo                   = "cli.cluster_info"
+	ErrClusterDebug                  = "cli.cluster_debug"
+	ErrClusterRefresh                = "cli.cluster_refresh"
+	ErrClusterDown                   = "cli.cluster_down"
+	ErrDuplicateCLIEnvNames          = "cli.duplicate_cli_env_names"
 )
 
-var _errorKinds = []string{
-	"err_unknown",
-	"err_api_not_ready",
-	"err_failed_to_connect_operator",
-	"err_config_cannot_be_changed_on_update",
-	"err_duplicate_cli_env_names",
-}
-
-var _ = [1]int{}[int(ErrDuplicateCLIEnvNames)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
+func ErrorCLINotConfigured(env string) error {
+	msg := "your cli is not configured; run `cortex configure`"
+	if env != "default" {
+		msg = fmt.Sprintf("your cli is not configured; run `cortex configure --env=%s`", env)
 	}
 
-	*t = ErrUnknown
-	return nil
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCLINotConfigured,
+		Message: msg,
+	})
 }
 
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
+func ErrorCortexYAMLNotFound() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCortexYAMLNotFound,
+		Message: "no api config file was specified, and ./cortex.yaml does not exist; create cortex.yaml, or reference an existing config file by running `cortex deploy <config_file_path>`",
+	})
 }
 
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
+func ErrorDockerDaemon() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDockerDaemon,
+		Message: "unable to connect to the Docker daemon, please confirm Docker is running",
+	})
 }
 
-type Error struct {
-	Kind    ErrorKind
-	message string
-}
-
-func (e Error) Error() string {
-	return e.message
+func ErrorDockerCtrlC() error {
+	return errors.WithStack(&errors.Error{
+		Kind:        ErrDockerCtrlC,
+		NoPrint:     true,
+		NoTelemetry: true,
+	})
 }
 
 func ErrorAPINotReady(apiName string, status string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotReady,
-		message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
+		Message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
 	})
 }
 
@@ -115,22 +108,106 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
 	}
 
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToConnectOperator,
-		message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint, run `cortex cluster info` to show your operator endpoint", originalErrMsg, operatorURLMsg),
+		Message: fmt.Sprintf("%sfailed to connect to the operator%s, run `cortex configure` if you need to update the operator endpoint, run `cortex cluster info` to show your operator endpoint", originalErrMsg, operatorURLMsg),
 	})
 }
 
-func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
-	return errors.WithStack(Error{
-		Kind:    ErrConfigCannotBeChangedOnUpdate,
-		message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+func ErrorOperatorSocketRead(err error) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOperatorSocketRead,
+		Message: err.Error(),
+		NoPrint: true,
+	})
+}
+
+func ErrorResponseUnknown(body string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrResponseUnknown,
+		Message: body,
+	})
+}
+
+func ErrorOperatorResponseUnknown(body string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOperatorResponseUnknown,
+		Message: body,
+	})
+}
+
+func ErrorOperatorStreamResponseUnknown(body string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOperatorStreamResponseUnknown,
+		Message: body,
+	})
+}
+
+func ErrorOneAWSEnvVarSet(setEnvVar string, missingEnvVar string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOneAWSEnvVarSet,
+		Message: fmt.Sprintf("only $%s is set; please run `export %s=***`", setEnvVar, missingEnvVar),
+	})
+}
+
+func ErrorOneAWSConfigFieldSet(setConfigField string, missingConfigField string, configPath string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOneAWSConfigFieldSet,
+		Message: fmt.Sprintf("only %s is set in %s; please set %s as well", setConfigField, _flagClusterConfig, missingConfigField),
+	})
+}
+
+func ErrorClusterUp(out string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterUp,
+		Message: out,
+		NoPrint: true,
+	})
+}
+
+func ErrorClusterUpdate(out string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterUpdate,
+		Message: out,
+		NoPrint: true,
+	})
+}
+
+func ErrorClusterInfo(out string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterInfo,
+		Message: out,
+		NoPrint: true,
+	})
+}
+
+func ErrorClusterDebug(out string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterDebug,
+		Message: out,
+		NoPrint: true,
+	})
+}
+
+func ErrorClusterRefresh(out string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterRefresh,
+		Message: out,
+		NoPrint: true,
+	})
+}
+
+func ErrorClusterDown(out string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterDown,
+		Message: out,
+		NoPrint: true,
 	})
 }
 
 func ErrorDuplicateCLIEnvNames(environment string) error {
-	return errors.WithStack(Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateCLIEnvNames,
-		message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
+		Message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
 	})
 }

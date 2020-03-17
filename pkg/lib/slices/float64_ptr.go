@@ -16,10 +16,6 @@ limitations under the License.
 
 package slices
 
-import (
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-)
-
 // For adding integers stored in floats
 func Float64PtrSumInt(floats ...*float64) int {
 	sum := 0
@@ -61,7 +57,7 @@ func Float64PtrMax(floats ...*float64) *float64 {
 
 func Float64PtrAvg(values []*float64, weights []*float64) (*float64, error) {
 	if len(values) != len(weights) {
-		return nil, errors.New("length of values is not equal to length of weights")
+		return nil, ErrorLenValuesWeightsMismatch()
 	}
 
 	totalWeight := 0.0
