@@ -17,7 +17,6 @@ limitations under the License.
 package errors
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -28,7 +27,6 @@ const (
 	ErrNotCortexError = "errors.not_cortex_error"
 )
 
-// TODO rename to Error?
 type Error struct {
 	Kind        string
 	Message     string
@@ -66,7 +64,7 @@ func WithStack(err error) error {
 
 	if cortexError == nil {
 		cortexError = &Error{
-			Kind:    ErrNotCortexError, // TODO
+			Kind:    ErrNotCortexError,
 			Message: err.Error(),
 			cause:   err,
 		}
@@ -93,13 +91,6 @@ func Wrap(err error, strs ...string) error {
 	return cortexError
 }
 
-// TODO private? delete?
-func new(strs ...string) error {
-	strs = removeEmptyStrs(strs)
-	errStr := strings.Join(strs, ": ")
-	return WithStack(errors.New(errStr))
-}
-
 func getCortexError(err error) *Error {
 	if cortexError, ok := err.(*Error); ok {
 		return cortexError
@@ -107,7 +98,6 @@ func getCortexError(err error) *Error {
 	return nil
 }
 
-// TODO: add a NotCortexError kind?
 func GetKind(err error) string {
 	if cortexError, ok := err.(*Error); ok {
 		return cortexError.Kind
@@ -157,7 +147,10 @@ func CastRecoverError(errInterface interface{}, strs ...string) error {
 	var ok bool
 	err, ok = errInterface.(error)
 	if !ok {
-		err = new(fmt.Sprint(errInterface))
+		err = &Error{
+			Kind:    ErrNotCortexError,
+			Message: fmt.Sprint(errInterface),
+		}
 	}
 	return Wrap(err, strs...)
 }

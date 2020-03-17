@@ -49,12 +49,10 @@ func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err erro
 
 	if !errors.IsNoPrint(err) {
 		errors.PrintError(err)
-		// errors.PrintStacktrace(err) // TODO do we want this?
 	}
 
 	w.WriteHeader(code)
 
-	// TODO should we send through NoPrint and NoTelemetry?
 	response := schema.ErrorResponse{
 		Kind:    errors.GetKind(err),
 		Message: errors.Message(err),
