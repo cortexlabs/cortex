@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	ErrUnknown        = "errors.unknown"
 	ErrNotCortexError = "errors.not_cortex_error"
 )
 
