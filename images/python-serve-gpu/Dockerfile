@@ -33,13 +33,13 @@ COPY pkg/workloads/cortex/environment.yaml /src/cortex/environment.yaml
 
 RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    /opt/conda/bin/conda config --set pip_interop_enabled True && \
-    /opt/conda/bin/conda env update --prune -f /src/cortex/environment.yaml && \
+    /opt/conda/bin/conda install --force-reinstall -c conda-forge python=3.6.9 && \
+    /opt/conda/bin/conda env create -n env -f /src/cortex/environment.yaml && \
     /opt/conda/bin/conda clean -a && \
     rm -rf ~/.cache ~/miniconda.sh && \
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc
+    echo "conda activate env" >> ~/.bashrc
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib

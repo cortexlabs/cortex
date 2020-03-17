@@ -1,8 +1,9 @@
 name: base
 channels:
     - defaults
+    - conda-forge
 dependencies:
-    - python=3.6.9 
+    - conda-forge::python=3.6.9 
     - pip
     - pip:
         - -r file:lib/requirements.txt
