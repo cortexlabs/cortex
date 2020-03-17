@@ -24,119 +24,42 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrParseConfig
-	ErrUnsupportedFieldValidation
-	ErrUnsupportedKey
-	ErrInvalidYAML
-	ErrTooLong
-	ErrTooShort
-	ErrAlphaNumericDashUnderscore
-	ErrAlphaNumericDashDotUnderscore
-	ErrMustHavePrefix
-	ErrInvalidInterface
-	ErrInvalidFloat64
-	ErrInvalidFloat32
-	ErrInvalidInt64
-	ErrInvalidInt32
-	ErrInvalidInt
-	ErrInvalidStr
-	ErrMustBeLessThanOrEqualTo
-	ErrMustBeLessThan
-	ErrMustBeGreaterThanOrEqualTo
-	ErrMustBeGreaterThan
-	ErrIsNotMultiple
-	ErrNonStringKeyFound
-	ErrInvalidPrimitiveType
-	ErrDuplicatedValue
-	ErrCannotSetStructField
-	ErrCannotBeNull
-	ErrCannotBeEmpty
-	ErrMustBeDefined
-	ErrMapMustBeDefined
-	ErrMustBeEmpty
-	ErrEmailTooLong
-	ErrEmailInvalid
-	ErrCortexResourceOnlyAllowed
-	ErrCortexResourceNotAllowed
+	ErrParseConfig                   = "configreader.parse_config"
+	ErrUnsupportedFieldValidation    = "configreader.unsupported_field_validation"
+	ErrUnsupportedKey                = "configreader.unsupported_key"
+	ErrInvalidYAML                   = "configreader.invalid_yaml"
+	ErrTooLong                       = "configreader.too_long"
+	ErrTooShort                      = "configreader.too_short"
+	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
+	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
+	ErrMustHavePrefix                = "configreader.must_have_prefix"
+	ErrInvalidInterface              = "configreader.invalid_interface"
+	ErrInvalidFloat64                = "configreader.invalid_float64"
+	ErrInvalidFloat32                = "configreader.invalid_float32"
+	ErrInvalidInt64                  = "configreader.invalid_int64"
+	ErrInvalidInt32                  = "configreader.invalid_int32"
+	ErrInvalidInt                    = "configreader.invalid_int"
+	ErrInvalidStr                    = "configreader.invalid_str"
+	ErrMustBeLessThanOrEqualTo       = "configreader.must_be_less_than_or_equal_to"
+	ErrMustBeLessThan                = "configreader.must_be_less_than"
+	ErrMustBeGreaterThanOrEqualTo    = "configreader.must_be_greater_than_or_equal_to"
+	ErrMustBeGreaterThan             = "configreader.must_be_greater_than"
+	ErrIsNotMultiple                 = "configreader.is_not_multiple"
+	ErrNonStringKeyFound             = "configreader.non_string_key_found"
+	ErrInvalidPrimitiveType          = "configreader.invalid_primitive_type"
+	ErrDuplicatedValue               = "configreader.duplicated_value"
+	ErrCannotSetStructField          = "configreader.cannot_set_struct_field"
+	ErrCannotBeNull                  = "configreader.cannot_be_null"
+	ErrCannotBeEmpty                 = "configreader.cannot_be_empty"
+	ErrMustBeDefined                 = "configreader.must_be_defined"
+	ErrMapMustBeDefined              = "configreader.map_must_be_defined"
+	ErrMustBeEmpty                   = "configreader.must_be_empty"
+	ErrEmailTooLong                  = "configreader.email_too_long"
+	ErrEmailInvalid                  = "configreader.email_invalid"
+	ErrCortexResourceOnlyAllowed     = "configreader.cortex_resource_only_allowed"
+	ErrCortexResourceNotAllowed      = "configreader.cortex_resource_not_allowed"
 )
-
-var _errorKinds = []string{
-	"configreader.unknown",
-	"configreader.parse_config",
-	"configreader.unsupported_field_validation",
-	"configreader.unsupported_key",
-	"configreader.invalid_yaml",
-	"configreader.too_long",
-	"configreader.too_short",
-	"configreader.alpha_numeric_dash_underscore",
-	"configreader.alpha_numeric_dash_dot_underscore",
-	"configreader.must_have_prefix",
-	"configreader.invalid_interface",
-	"configreader.invalid_float64",
-	"configreader.invalid_float32",
-	"configreader.invalid_int64",
-	"configreader.invalid_int32",
-	"configreader.invalid_int",
-	"configreader.invalid_str",
-	"configreader.must_be_less_than_or_equal_to",
-	"configreader.must_be_less_than",
-	"configreader.must_be_greater_than_or_equal_to",
-	"configreader.must_be_greater_than",
-	"configreader.is_not_multiple",
-	"configreader.non_string_key_found",
-	"configreader.invalid_primitive_type",
-	"configreader.duplicated_value",
-	"configreader.cannot_set_struct_field",
-	"configreader.cannot_be_null",
-	"configreader.cannot_be_empty",
-	"configreader.must_be_defined",
-	"configreader.map_must_be_defined",
-	"configreader.must_be_empty",
-	"configreader.email_too_long",
-	"configreader.email_invalid",
-	"configreader.cortex_resource_only_allowed",
-	"configreader.cortex_resource_not_allowed",
-}
-
-var _ = [1]int{}[int(ErrCortexResourceNotAllowed)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorParseConfig() error {
 	return errors.WithStack(&errors.CortexError{

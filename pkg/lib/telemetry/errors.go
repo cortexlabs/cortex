@@ -20,55 +20,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrUserIDNotSpecified
-	ErrSentryFlushTimeoutExceeded
+	ErrUserIDNotSpecified         = "telemetry.user_id_not_specified"
+	ErrSentryFlushTimeoutExceeded = "telemetry.sentry_flush_timeout_exceeded"
 )
-
-var _errorKinds = []string{
-	"telemetry.unknown",
-	"telemetry.user_id_not_specified",
-	"telemetry.sentry_flush_timeout_exceeded",
-}
-
-var _ = [1]int{}[int(ErrSentryFlushTimeoutExceeded)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorUserIDNotSpecified() error {
 	return errors.WithStack(&errors.CortexError{

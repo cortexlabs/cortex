@@ -25,101 +25,33 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrCortexInstallationBroken
-	ErrLoadBalancerInitializing
-	ErrMalformedConfig
-	ErrNoAPIs
-	ErrAPIUpdating
-	ErrDuplicateName
-	ErrDuplicateEndpointInOneDeploy
-	ErrDuplicateEndpoint
-	ErrSpecifyAllOrNone
-	ErrOneOfPrerequisitesNotDefined
-	ErrMinReplicasGreaterThanMax
-	ErrInitReplicasGreaterThanMax
-	ErrInitReplicasLessThanMin
-	ErrInvalidSurgeOrUnavailable
-	ErrSurgeAndUnavailableBothZero
-	ErrImplDoesNotExist
-	ErrS3FileNotFound
-	ErrS3DirNotFoundOrEmpty
-	ErrONNXDoesntSupportZip
-	ErrInvalidTensorFlowDir
-	ErrFieldMustBeDefinedForPredictorType
-	ErrFieldNotSupportedByPredictorType
-	ErrNoAvailableNodeComputeLimit
-	ErrCortexPrefixedEnvVarNotAllowed
-	ErrAPINotDeployed
+	ErrCortexInstallationBroken           = "operator.cortex_installation_broken"
+	ErrLoadBalancerInitializing           = "operator.load_balancer_initializing"
+	ErrMalformedConfig                    = "operator.malformed_config"
+	ErrNoAPIs                             = "operator.no_apis"
+	ErrAPIUpdating                        = "operator.api_updating"
+	ErrDuplicateName                      = "operator.duplicate_name"
+	ErrDuplicateEndpointInOneDeploy       = "operator.duplicate_endpoint_in_one_deploy"
+	ErrDuplicateEndpoint                  = "operator.duplicate_endpoint"
+	ErrSpecifyAllOrNone                   = "operator.specify_all_or_none"
+	ErrOneOfPrerequisitesNotDefined       = "operator.one_of_prerequisites_not_defined"
+	ErrMinReplicasGreaterThanMax          = "operator.min_replicas_greater_than_max"
+	ErrInitReplicasGreaterThanMax         = "operator.init_replicas_greater_than_max"
+	ErrInitReplicasLessThanMin            = "operator.init_replicas_less_than_min"
+	ErrInvalidSurgeOrUnavailable          = "operator.invalid_surge_or_unavailable"
+	ErrSurgeAndUnavailableBothZero        = "operator.surge_and_unavailable_both_zero"
+	ErrImplDoesNotExist                   = "operator.impl_does_not_exist"
+	ErrS3FileNotFound                     = "operator.s3_file_not_found"
+	ErrS3DirNotFoundOrEmpty               = "operator.s3_dir_not_found_or_empty"
+	ErrONNXDoesntSupportZip               = "operator.onnx_doesnt_support_zip"
+	ErrInvalidTensorFlowDir               = "operator.invalid_tensorflow_dir"
+	ErrFieldMustBeDefinedForPredictorType = "operator.field_must_be_defined_for_predictor_type"
+	ErrFieldNotSupportedByPredictorType   = "operator.field_not_supported_by_predictor_type"
+	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
+	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
+	ErrAPINotDeployed                     = "operator.api_not_deployed"
 )
-
-var _errorKinds = []string{
-	"operator.unknown",
-	"operator.cortex_installation_broken",
-	"operator.load_balancer_initializing",
-	"operator.malformed_config",
-	"operator.no_apis",
-	"operator.api_updating",
-	"operator.duplicate_name",
-	"operator.duplicate_endpoint_in_one_deploy",
-	"operator.duplicate_endpoint",
-	"operator.specify_all_or_none",
-	"operator.one_of_prerequisites_not_defined",
-	"operator.min_replicas_greater_than_max",
-	"operator.init_replicas_greater_than_max",
-	"operator.init_replicas_less_than_min",
-	"operator.invalid_surge_or_unavailable",
-	"operator.surge_and_unavailable_both_zero",
-	"operator.impl_does_not_exist",
-	"operator.s3_file_not_found",
-	"operator.s3_dir_not_found_or_empty",
-	"operator.onnx_doesnt_support_zip",
-	"operator.invalid_tensorflow_dir",
-	"operator.field_must_be_defined_for_predictor_type",
-	"operator.field_not_supported_by_predictor_type",
-	"operator.no_available_node_compute_limit",
-	"operator.cortex_prefixed_env_var_not_allowed",
-	"operator.api_not_deployed",
-}
-
-var _ = [1]int{}[int(ErrAPINotDeployed)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorCortexInstallationBroken() error {
 	return errors.WithStack(&errors.CortexError{

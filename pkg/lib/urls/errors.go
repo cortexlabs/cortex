@@ -23,63 +23,14 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrInvalidURL
-	ErrDNS1035
-	ErrDNS1123
-	ErrEndpoint
-	ErrEndpointEmptyPath
-	ErrEndpointDoubleSlash
+	ErrInvalidURL          = "urls.invalid_url"
+	ErrDNS1035             = "urls.dns1035"
+	ErrDNS1123             = "urls.dns1123"
+	ErrEndpoint            = "urls.endpoint"
+	ErrEndpointEmptyPath   = "urls.endpoint_empty_path"
+	ErrEndpointDoubleSlash = "urls.endpoint_double_slash"
 )
-
-var _errorKinds = []string{
-	"urls.unknown",
-	"urls.invalid_url",
-	"urls.dns1035",
-	"urls.dns1123",
-	"urls.endpoint",
-	"urls.endpoint_empty_path",
-	"urls.endpoint_double_slash",
-}
-
-var _ = [1]int{}[int(ErrEndpointDoubleSlash)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorInvalidURL(provided string) error {
 	return errors.WithStack(&errors.CortexError{

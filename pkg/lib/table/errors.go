@@ -22,59 +22,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrAtLeastOneColumn
-	ErrHeaderWiderThanMaxWidth
-	ErrHeaderMinWidthGreaterThanMaxWidth
-	ErrWrongNumberOfColumns
+	ErrAtLeastOneColumn                  = "table.at_least_one_column"
+	ErrHeaderWiderThanMaxWidth           = "table.header_wider_than_max_width"
+	ErrHeaderMinWidthGreaterThanMaxWidth = "table.header_min_width_greater_than_max_width"
+	ErrWrongNumberOfColumns              = "table.wrong_number_of_columns"
 )
-
-var _errorKinds = []string{
-	"table.unknown",
-	"table.at_least_one_column",
-	"table.header_wider_than_max_width",
-	"table.header_min_width_greater_than_max_width",
-	"table.wrong_number_of_columns",
-}
-
-var _ = [1]int{}[int(ErrWrongNumberOfColumns)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorAtLeastOneColumn() error {
 	return errors.WithStack(&errors.CortexError{

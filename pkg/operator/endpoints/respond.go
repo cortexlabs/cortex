@@ -56,7 +56,7 @@ func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err erro
 
 	// TODO should we send through NoPrint and NoTelemetry?
 	response := schema.ErrorResponse{
-		Kind:    errors.GetKind(err).String(),
+		Kind:    errors.GetKind(err),
 		Message: errors.Message(err),
 	}
 	json.NewEncoder(w).Encode(response)

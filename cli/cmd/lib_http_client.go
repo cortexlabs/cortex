@@ -47,12 +47,6 @@ type GenericClient struct {
 	*http.Client
 }
 
-type ResponseErrorKind string
-
-func (e ResponseErrorKind) String() string {
-	return string(e)
-}
-
 var _operatorClient = &OperatorClient{
 	Client: &http.Client{
 		Timeout: 600 * time.Second,
@@ -227,7 +221,7 @@ func StreamLogs(apiName string) error {
 			return ErrorOperatorStreamResponseUnknown(string(bodyBytes))
 		}
 		return errors.WithStack(&errors.CortexError{
-			Kind:        ResponseErrorKind(output.Kind),
+			Kind:        output.Kind,
 			Message:     output.Message,
 			NoTelemetry: true,
 		})
@@ -321,7 +315,7 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 		}
 
 		return nil, errors.WithStack(&errors.CortexError{
-			Kind:        ResponseErrorKind(output.Kind),
+			Kind:        output.Kind,
 			Message:     output.Message,
 			NoTelemetry: true,
 		})

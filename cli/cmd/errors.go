@@ -34,89 +34,27 @@ func errStrFailedToConnect(u url.URL) string {
 	return "failed to connect to " + urls.TrimQueryParamsURL(u)
 }
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrCLINotConfigured
-	ErrCortexYAMLNotFound
-	ErrDockerDaemon
-	ErrDockerCtrlC
-	ErrAPINotReady
-	ErrFailedToConnectOperator
-	ErrOperatorSocketRead
-	ErrResponseUnknown
-	ErrOperatorResponseUnknown
-	ErrOperatorStreamResponseUnknown
-	ErrOneAWSEnvVarSet
-	ErrOneAWSConfigFieldSet
-	ErrClusterUp
-	ErrClusterUpdate
-	ErrClusterInfo
-	ErrClusterDebug
-	ErrClusterRefresh
-	ErrClusterDown
-	ErrDuplicateCLIEnvNames
+	ErrCLINotConfigured              = "cli.cli_not_configured"
+	ErrCortexYAMLNotFound            = "cli.cortex_yaml_not_found"
+	ErrDockerDaemon                  = "cli.docker_daemon"
+	ErrDockerCtrlC                   = "cli.docker_ctrl_c"
+	ErrAPINotReady                   = "cli.api_not_ready"
+	ErrFailedToConnectOperator       = "cli.failed_to_connect_operator"
+	ErrOperatorSocketRead            = "cli.operator_socket_read"
+	ErrResponseUnknown               = "cli.response_unknown"
+	ErrOperatorResponseUnknown       = "cli.operator_response_unknown"
+	ErrOperatorStreamResponseUnknown = "cli.operator_stream_response_unknown"
+	ErrOneAWSEnvVarSet               = "cli.one_aws_env_var_set"
+	ErrOneAWSConfigFieldSet          = "cli.one_aws_config_field_set"
+	ErrClusterUp                     = "cli.cluster_up"
+	ErrClusterUpdate                 = "cli.cluster_update"
+	ErrClusterInfo                   = "cli.cluster_info"
+	ErrClusterDebug                  = "cli.cluster_debug"
+	ErrClusterRefresh                = "cli.cluster_refresh"
+	ErrClusterDown                   = "cli.cluster_down"
+	ErrDuplicateCLIEnvNames          = "cli.duplicate_cli_env_names"
 )
-
-var _errorKinds = []string{
-	"cli.unknown",
-	"cli.cli_not_configured",
-	"cli.cortex_yaml_not_found",
-	"cli.docker_daemon",
-	"cli.docker_ctrl_c",
-	"cli.api_not_ready",
-	"cli.failed_to_connect_operator",
-	"cli.operator_socket_read",
-	"cli.response_unknown",
-	"cli.operator_response_unknown",
-	"cli.operator_stream_response_unknown",
-	"cli.one_aws_env_var_set",
-	"cli.one_aws_config_field_set",
-	"cli.cluster_up",
-	"cli.cluster_update",
-	"cli.cluster_info",
-	"cli.cluster_debug",
-	"cli.cluster_refresh",
-	"cli.cluster_down",
-	"cli.duplicate_cli_env_names",
-}
-
-var _ = [1]int{}[int(ErrDuplicateCLIEnvNames)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorCLINotConfigured(env string) error {
 	msg := "your cli is not configured; run `cortex configure`"

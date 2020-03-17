@@ -24,9 +24,14 @@ import (
 	pkgerrors "github.com/pkg/errors"
 )
 
+const (
+	ErrUnknown        = "errors.unknown"
+	ErrNotCortexError = "errors.not_cortex_error"
+)
+
 // TODO rename to Error?
 type CortexError struct {
-	Kind        ErrorKind
+	Kind        string
 	Message     string
 	NoTelemetry bool
 	NoPrint     bool
@@ -62,7 +67,7 @@ func WithStack(err error) error {
 
 	if cortexError == nil {
 		cortexError = &CortexError{
-			Kind:    ErrUnknown,
+			Kind:    ErrNotCortexError, // TODO
 			Message: err.Error(),
 			cause:   err,
 		}
@@ -104,11 +109,11 @@ func getCortexError(err error) *CortexError {
 }
 
 // TODO: add a NotCortexError kind?
-func GetKind(err error) ErrorKind {
+func GetKind(err error) string {
 	if cortexError, ok := err.(*CortexError); ok {
 		return cortexError.Kind
 	}
-	return ErrUnknown
+	return ErrNotCortexError
 }
 
 func IsNoTelemetry(err error) bool {

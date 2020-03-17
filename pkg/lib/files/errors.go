@@ -23,75 +23,20 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrCreateDir
-	ErrDeleteDir
-	ErrReadFormFile
-	ErrCreateFile
-	ErrReadDir
-	ErrReadFile
-	ErrFileAlreadyExists
-	ErrUnexpected
-	ErrFileDoesNotExist
-	ErrDirDoesNotExist
-	ErrNotAFile
-	ErrNotADir
+	ErrCreateDir         = "files.create_dir"
+	ErrDeleteDir         = "files.delete_dir"
+	ErrReadFormFile      = "files.read_form_file"
+	ErrCreateFile        = "files.create_file"
+	ErrReadDir           = "files.read_dir"
+	ErrReadFile          = "files.read_file"
+	ErrFileAlreadyExists = "files.file_already_exists"
+	ErrUnexpected        = "files.unexpected"
+	ErrFileDoesNotExist  = "files.file_does_not_exist"
+	ErrDirDoesNotExist   = "files.dir_does_not_exist"
+	ErrNotAFile          = "files.not_a_file"
+	ErrNotADir           = "files.not_a_dir"
 )
-
-var _errorKinds = []string{
-	"files.unknown",
-	"files.create_dir",
-	"files.delete_dir",
-	"files.read_form_file",
-	"files.create_file",
-	"files.read_dir",
-	"files.read_file",
-	"files.file_already_exists",
-	"files.unexpected",
-	"files.file_does_not_exist",
-	"files.dir_does_not_exist",
-	"files.not_a_file",
-	"files.not_a_dir",
-}
-
-var _ = [1]int{}[int(ErrNotADir)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorCreateDir(path string) error {
 	return errors.WithStack(&errors.CortexError{

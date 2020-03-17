@@ -24,69 +24,17 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrInvalidAWSCredentials
-	ErrInvalidS3aPath
-	ErrInvalidS3Path
-	ErrAuth
-	ErrBucketInaccessible
-	ErrBucketNotFound
-	ErrInstanceTypeLimitIsZero
-	ErrNoValidSpotPrices
-	ErrReadCredentials
+	ErrInvalidAWSCredentials   = "aws.invalid_aws_credentials"
+	ErrInvalidS3aPath          = "aws.invalid_s3a_path"
+	ErrInvalidS3Path           = "aws.invalid_s3_path"
+	ErrAuth                    = "aws.auth"
+	ErrBucketInaccessible      = "aws.bucket_inaccessible"
+	ErrBucketNotFound          = "aws.bucket_not_found"
+	ErrInstanceTypeLimitIsZero = "aws.instance_type_limit_is_zero"
+	ErrNoValidSpotPrices       = "aws.no_valid_spot_prices"
+	ErrReadCredentials         = "aws.read_credentials"
 )
-
-var _errorKinds = []string{
-	"aws.unknown",
-	"aws.invalid_aws_credentials",
-	"aws.invalid_s3a_path",
-	"aws.invalid_s3_path",
-	"aws.auth",
-	"aws.bucket_inaccessible",
-	"aws.bucket_not_found",
-	"aws.instance_type_limit_is_zero",
-	"aws.no_valid_spot_prices",
-	"aws.read_credentials",
-}
-
-var _ = [1]int{}[int(ErrReadCredentials)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func IsNotFoundErr(err error) bool {
 	return CheckErrCode(err, "NotFound")

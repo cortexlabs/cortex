@@ -23,73 +23,19 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrAPIVersionMismatch
-	ErrAuthHeaderMissing
-	ErrAuthHeaderMalformed
-	ErrAuthAPIError
-	ErrAuthInvalid
-	ErrAuthOtherAccount
-	ErrFormFileMustBeProvided
-	ErrQueryParamRequired
-	ErrPathParamRequired
-	ErrAnyQueryParamRequired
-	ErrAnyPathParamRequired
+	ErrAPIVersionMismatch     = "endpoints.api_version_mismatch"
+	ErrAuthHeaderMissing      = "endpoints.auth_header_missing"
+	ErrAuthHeaderMalformed    = "endpoints.auth_header_malformed"
+	ErrAuthAPIError           = "endpoints.auth_api_error"
+	ErrAuthInvalid            = "endpoints.auth_invalid"
+	ErrAuthOtherAccount       = "endpoints.auth_other_account"
+	ErrFormFileMustBeProvided = "endpoints.form_file_must_be_provided"
+	ErrQueryParamRequired     = "endpoints.query_param_required"
+	ErrPathParamRequired      = "endpoints.path_param_required"
+	ErrAnyQueryParamRequired  = "endpoints.any_query_param_required"
+	ErrAnyPathParamRequired   = "endpoints.any_path_param_required"
 )
-
-var _errorKinds = []string{
-	"endpoints.unknown",
-	"endpoints.api_version_mismatch",
-	"endpoints.auth_header_missing",
-	"endpoints.auth_header_malformed",
-	"endpoints.auth_api_error",
-	"endpoints.auth_invalid",
-	"endpoints.auth_other_account",
-	"endpoints.form_file_must_be_provided",
-	"endpoints.query_param_required",
-	"endpoints.path_param_required",
-	"endpoints.any_query_param_required",
-	"endpoints.any_path_param_required",
-}
-
-var _ = [1]int{}[int(ErrAnyPathParamRequired)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
 	return errors.WithStack(&errors.CortexError{

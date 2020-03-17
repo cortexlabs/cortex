@@ -198,12 +198,12 @@ func EventFromException(exception error) *sentry.Event {
 
 	errTypeString := reflect.TypeOf(exception).String()
 	errKind := errors.GetKind(exception)
-	if errKind == errors.ErrUnknown {
+	if errKind == errors.ErrNotCortexError {
 		if err := errors.Cause(exception); err != nil {
 			errTypeString = reflect.TypeOf(err).String()
 		}
 	} else {
-		errTypeString = errKind.String()
+		errTypeString = errKind
 	}
 
 	event := sentry.NewEvent()

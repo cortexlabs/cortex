@@ -20,55 +20,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrUserNoContinue
-	ErrUserCtrlC
+	ErrUserNoContinue = "prompt.user_no_continue"
+	ErrUserCtrlC      = "prompt.user_ctrl_c"
 )
-
-var _errorKinds = []string{
-	"prompt.unknown",
-	"prompt.user_no_continue",
-	"prompt.user_ctrl_c",
-}
-
-var _ = [1]int{}[int(ErrUserCtrlC)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorUserNoContinue() error {
 	return errors.WithStack(&errors.CortexError{

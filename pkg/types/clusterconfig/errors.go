@@ -26,89 +26,27 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-type ErrorKind int
-
 const (
-	ErrUnknown ErrorKind = iota
-	ErrInstanceTypeTooSmall
-	ErrMinInstancesGreaterThanMax
-	ErrInstanceTypeNotSupportedInRegion
-	ErrIncompatibleSpotInstanceTypeMemory
-	ErrIncompatibleSpotInstanceTypeCPU
-	ErrIncompatibleSpotInstanceTypeGPU
-	ErrSpotPriceGreaterThanTargetOnDemand
-	ErrSpotPriceGreaterThanMaxPrice
-	ErrInstanceTypeNotSupported
-	ErrAtLeastOneInstanceDistribution
-	ErrNoCompatibleSpotInstanceFound
-	ErrConfiguredWhenSpotIsNotEnabled
-	ErrOnDemandBaseCapacityGreaterThanMax
-	ErrConfigCannotBeChangedOnUpdate
-	ErrInvalidAvailabilityZone
-	ErrDidNotMatchStrictS3Regex
-	ErrS3RegionDiffersFromCluster
-	ErrImageVersionMismatch
-	ErrInvalidInstanceType
+	ErrInstanceTypeTooSmall               = "clusterconfig.instance_type_too_small"
+	ErrMinInstancesGreaterThanMax         = "clusterconfig.min_instances_greater_than_max"
+	ErrInstanceTypeNotSupportedInRegion   = "clusterconfig.instance_type_not_supported_in_region"
+	ErrIncompatibleSpotInstanceTypeMemory = "clusterconfig.incompatible_spot_instance_type_memory"
+	ErrIncompatibleSpotInstanceTypeCPU    = "clusterconfig.incompatible_spot_instance_type_cpu"
+	ErrIncompatibleSpotInstanceTypeGPU    = "clusterconfig.incompatible_spot_instance_type_gpu"
+	ErrSpotPriceGreaterThanTargetOnDemand = "clusterconfig.spot_price_greater_than_target_on_demand"
+	ErrSpotPriceGreaterThanMaxPrice       = "clusterconfig.spot_price_greater_than_max_price"
+	ErrInstanceTypeNotSupported           = "clusterconfig.instance_type_not_supported"
+	ErrAtLeastOneInstanceDistribution     = "clusterconfig.at_least_one_instance_distribution"
+	ErrNoCompatibleSpotInstanceFound      = "clusterconfig.no_compatible_spot_instance_found"
+	ErrConfiguredWhenSpotIsNotEnabled     = "clusterconfig.configured_when_spot_is_not_enabled"
+	ErrOnDemandBaseCapacityGreaterThanMax = "clusterconfig.on_demand_base_capacity_greater_than_max"
+	ErrConfigCannotBeChangedOnUpdate      = "clusterconfig.config_cannot_be_changed_on_update"
+	ErrInvalidAvailabilityZone            = "clusterconfig.invalid_availability_zone"
+	ErrDidNotMatchStrictS3Regex           = "clusterconfig.did_not_match_strict_s3_regex"
+	ErrS3RegionDiffersFromCluster         = "clusterconfig.s3_region_differs_from_cluster"
+	ErrImageVersionMismatch               = "clusterconfig.image_version_mismatch"
+	ErrInvalidInstanceType                = "clusterconfig.invalid_instance_type"
 )
-
-var _errorKinds = []string{
-	"clusterconfig.unknown",
-	"clusterconfig.instance_type_too_small",
-	"clusterconfig.min_instances_greater_than_max",
-	"clusterconfig.instance_type_not_supported_in_region",
-	"clusterconfig.incompatible_spot_instance_type_memory",
-	"clusterconfig.incompatible_spot_instance_type_cpu",
-	"clusterconfig.incompatible_spot_instance_type_gpu",
-	"clusterconfig.spot_price_greater_than_target_on_demand",
-	"clusterconfig.spot_price_greater_than_max_price",
-	"clusterconfig.instance_type_not_supported",
-	"clusterconfig.at_least_one_instance_distribution",
-	"clusterconfig.no_compatible_spot_instance_found",
-	"clusterconfig.configured_when_spot_is_not_enabled",
-	"clusterconfig.on_demand_base_capacity_greater_than_max",
-	"clusterconfig.config_cannot_be_changed_on_update",
-	"clusterconfig.invalid_availability_zone",
-	"clusterconfig.did_not_match_strict_s3_regex",
-	"clusterconfig.s3_region_differs_from_cluster",
-	"clusterconfig.image_version_mismatch",
-	"clusterconfig.invalid_instance_type",
-}
-
-var _ = [1]int{}[int(ErrInvalidInstanceType)-(len(_errorKinds)-1)] // Ensure list length matches
-
-func (t ErrorKind) String() string {
-	return _errorKinds[t]
-}
-
-// MarshalText satisfies TextMarshaler
-func (t ErrorKind) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-// UnmarshalText satisfies TextUnmarshaler
-func (t *ErrorKind) UnmarshalText(text []byte) error {
-	enum := string(text)
-	for i := 0; i < len(_errorKinds); i++ {
-		if enum == _errorKinds[i] {
-			*t = ErrorKind(i)
-			return nil
-		}
-	}
-
-	*t = ErrUnknown
-	return nil
-}
-
-// UnmarshalBinary satisfies BinaryUnmarshaler
-// Needed for msgpack
-func (t *ErrorKind) UnmarshalBinary(data []byte) error {
-	return t.UnmarshalText(data)
-}
-
-// MarshalBinary satisfies BinaryMarshaler
-func (t ErrorKind) MarshalBinary() ([]byte, error) {
-	return []byte(t.String()), nil
-}
 
 func ErrorInstanceTypeTooSmall() error {
 	return errors.WithStack(&errors.CortexError{
