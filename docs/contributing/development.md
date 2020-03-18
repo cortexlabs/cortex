@@ -6,8 +6,63 @@
 2. Docker
 3. eksctl
 4. kubectl
+5. aws-cli
+
+### Go
+
+To install Go on linux, run:
+
+```bash
+wget https://dl.google.com/go/go1.13.linux-amd64.tar.gz && \
+sudo tar -xvf go1.13.linux-amd64.tar.gz && \
+sudo mv go /usr/local && \
+rm go1.13.linux-amd64.tar.gz
+```
+
+### Docker
+
+To install Docker on Ubuntu, run:
+
+```bash
+sudo apt install docker.io && \
+sudo systemctl start docker && \
+sudo systemctl enable docker && \
+sudo groupadd docker && \
+sudo gpasswd -a $USER docker
+```
+
+### eksctl
+
+To install eksctl run:
+
+```bash
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
+sudo mv /tmp/eksctl /usr/local/bin
+```
+
+### kubectl
+
+To install kubectl on linux, run:
+
+```bash
+curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && \
+chmod +x ./kubectl && \
+sudo mv ./kubectl /usr/local/bin/kubectl
+```
+
+### aws-cli (v1)
+
+Follow [these instructions](https://github.com/aws/aws-cli#installation) to install aws-cli (v1).
+
+E.g. to install it globally, run:
+
+```bash
+sudo python -m pip install awscli
+```
 
 ## Cortex dev environment
+
+### Clone the repo
 
 Clone the project:
 
@@ -20,6 +75,22 @@ Run the tests:
 
 ```bash
 make test
+```
+
+### Image Registry
+
+Create a config directory in the repo's root directory:
+
+```bash
+mkdir dev/config
+```
+
+Next, create `dev/config/build.sh`. Add the following content to it (you may use a different region for `REGISTRY_REGION`):
+
+```bash
+export CORTEX_VERSION="master"
+
+export REGISTRY_REGION="us-west-2"
 ```
 
 Create the AWS Elastic Container Registry:
@@ -37,12 +108,19 @@ aws s3 mb s3://cortex-cluster-<your_name>
 aws s3 mb s3://cortex-cli-<your_name>  # if you'll be uploading your compiled CLI
 ```
 
-### Configuration
+### Cluster
 
-Make the config folder:
+Update `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL` (the), and `REGISTRY_REGION` accordingly:
 
 ```bash
-mkdir dev/config
+export CORTEX_VERSION="master"
+
+export REGISTRY_REGION="us-west-2"
+export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
+
+# optional, only used for make ci-build-and-upload-cli
+export CLI_BUCKET_NAME="cortex-cli-<your_name>"
+export CLI_BUCKET_REGION="us-west-2"
 ```
 
 Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, `aws_access_key_id`, `aws_secret_access_key`, and all registry URLs accordingly:
@@ -81,22 +159,9 @@ image_istio_citadel: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-c
 image_istio_galley: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-galley:latest
 ```
 
-Create `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL`, and `REGISTRY_REGION` accordingly:
-
-```bash
-export CORTEX_VERSION="master"
-
-export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
-export REGISTRY_REGION="us-west-2"
-
-# optional, only used for make ci-build-and-upload-cli
-export CLI_BUCKET_NAME="cortex-cli-<your_name>"
-export CLI_BUCKET_REGION="us-west-2"
-```
-
 ### Building
 
-Add this to your bash profile (e.g. ~/.bash_profile or ~/.bashrc):
+Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`):
 
 ```bash
 alias cortex-dev='<path/to/cortex>/bin/cortex'  # replace <path/to/cortex> with the path to the cortex repo that you cloned
@@ -146,13 +211,14 @@ cortex-dev deploy
 
 If you're making changes in the operator and want faster iterations, you can run an off-cluster operator.
 
-1. `make operator-stop` to stop the in-cluster operator
-2. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
+1. `make tools` to install the necessary dependencies to run the operator
+2. `make operator-stop` to stop the in-cluster operator
+3. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
 
 If you want to switch back to the in-cluster operator:
 
 1. `<ctrl+c>` to stop your off-cluster operator
-2. `make operator-start` to install the operator in your cluster
+2. `make cluster-update` to install the operator in your cluster
 
 ## Dev workflow
 
