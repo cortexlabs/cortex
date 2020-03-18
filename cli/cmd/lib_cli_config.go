@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -158,18 +157,14 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 		return "", errors.Wrap(err, "verifying operator endpoint", url)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	bodyBytes, err := _apiClient.MakeRequest(req)
+
+	client := http.Client{}
+	response, err := client.Do(req)
 	if err != nil {
 		exit.Error(ErrorInvalidOperatorEndpoint(url))
 	}
 
-	var responseStr string
-
-	err = json.Unmarshal(bodyBytes, &responseStr)
-	if err != nil {
-		exit.Error(ErrorInvalidOperatorEndpoint(url))
-	}
-	if responseStr != "ok" {
+	if response.StatusCode != 200 {
 		exit.Error(ErrorInvalidOperatorEndpoint(url))
 	}
 
