@@ -39,18 +39,25 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	router.Use(endpoints.PanicMiddleware)
-	router.Use(endpoints.ClientIDMiddleware)
-	router.Use(endpoints.APIVersionCheckMiddleware)
-	router.Use(endpoints.AuthMiddleware)
 
-	router.HandleFunc("/info", endpoints.Info).Methods("GET")
-	router.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
-	router.HandleFunc("/refresh/{apiName}", endpoints.Refresh).Methods("POST")
-	router.HandleFunc("/delete/{apiName}", endpoints.Delete).Methods("DELETE")
-	router.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
-	router.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
-	router.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
+	routerWithoutAuth := router.NewRoute().Subrouter()
+	routerWithoutAuth.Use(endpoints.PanicMiddleware)
+	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
+
+	routerWithAuth := router.NewRoute().Subrouter()
+
+	routerWithAuth.Use(endpoints.PanicMiddleware)
+	routerWithAuth.Use(endpoints.ClientIDMiddleware)
+	routerWithAuth.Use(endpoints.APIVersionCheckMiddleware)
+	routerWithAuth.Use(endpoints.AuthMiddleware)
+
+	routerWithAuth.HandleFunc("/info", endpoints.Info).Methods("GET")
+	routerWithAuth.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
+	routerWithAuth.HandleFunc("/refresh/{apiName}", endpoints.Refresh).Methods("POST")
+	routerWithAuth.HandleFunc("/delete/{apiName}", endpoints.Delete).Methods("DELETE")
+	routerWithAuth.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
+	routerWithAuth.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
+	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
 	log.Print("Running on port " + _operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))

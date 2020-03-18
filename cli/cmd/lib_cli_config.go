@@ -17,14 +17,18 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -115,7 +119,7 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 				StringValidation: &cr.StringValidation{
 					Required:  true,
 					Default:   defaults.OperatorEndpoint,
-					Validator: cr.GetURLValidator(false, false),
+					Validator: validateOperatorEndpoint,
 				},
 			},
 			{
@@ -142,6 +146,44 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 			},
 		},
 	}
+}
+
+func validateOperatorEndpoint(endpoint string) (string, error) {
+	url, err := cr.GetURLValidator(false, false)(endpoint)
+	if err != nil {
+		return "", err
+	}
+
+	parsedURL, err := urls.Parse(url)
+	if err != nil {
+		return "", err
+	}
+
+	parsedURL.Scheme = "https"
+
+	url = parsedURL.String()
+
+	req, err := http.NewRequest("GET", urls.Join(url, "/verifycortex"), nil)
+	if err != nil {
+		return "", errors.Wrap(err, "verifying operator endpoint", url)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	response, err := client.Do(req)
+	if err != nil {
+		exit.Error(ErrorInvalidOperatorEndpoint(url))
+	}
+
+	if response.StatusCode != 200 {
+		exit.Error(ErrorInvalidOperatorEndpoint(url))
+	}
+
+	return url, nil
 }
 
 func readTelemetryConfig() (bool, error) {
