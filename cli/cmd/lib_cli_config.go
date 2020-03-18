@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -152,13 +154,26 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 		return "", err
 	}
 
-	req, err := http.NewRequest("GET", url+"/isthiscortex", nil)
+	parsedUrl, err := urls.Parse(url)
+	if err != nil {
+		return "", err
+	}
+
+	parsedUrl.Scheme = "https"
+
+	url = parsedUrl.String()
+
+	req, err := http.NewRequest("GET", urls.Join(url, "/isthiscortex"), nil)
 	if err != nil {
 		return "", errors.Wrap(err, "verifying operator endpoint", url)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.Client{}
+	client := http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 	response, err := client.Do(req)
 	if err != nil {
 		exit.Error(ErrorInvalidOperatorEndpoint(url))
@@ -168,7 +183,7 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 		exit.Error(ErrorInvalidOperatorEndpoint(url))
 	}
 
-	return endpoint, nil
+	return url, nil
 }
 
 func readTelemetryConfig() (bool, error) {
