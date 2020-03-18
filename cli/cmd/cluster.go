@@ -237,11 +237,12 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		// This is just to check AWS access
-		_, err = newAWSClient(*accessConfig.Region, awsCreds, warnIfNotAdmin)
+		// Check AWS access
+		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
+		warnIfNotAdmin(awsClient)
 
 		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 

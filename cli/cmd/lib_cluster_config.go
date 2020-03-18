@@ -136,10 +136,11 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 		return nil, err
 	}
 
-	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds, promptIfNotAdmin)
+	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
 	if err != nil {
 		return nil, err
 	}
+	promptIfNotAdmin(awsClient)
 
 	err = clusterconfig.InstallPrompt(clusterConfig, awsClient)
 	if err != nil {
@@ -178,10 +179,11 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		if err != nil {
 			return nil, err
 		}
-		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds, promptIfNotAdmin)
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
 		if err != nil {
 			return nil, err
 		}
+		promptIfNotAdmin(awsClient)
 	} else {
 		err := readUserClusterConfigFile(userClusterConfig)
 		if err != nil {
@@ -190,10 +192,11 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 
 		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 		userClusterConfig.Region = cachedClusterConfig.Region
-		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds, promptIfNotAdmin)
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
 		if err != nil {
 			return nil, err
 		}
+		promptIfNotAdmin(awsClient)
 
 		if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)

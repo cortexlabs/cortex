@@ -33,15 +33,7 @@ type AWSCredentials struct {
 	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
 }
 
-type awsCheckAdmin int
-
-const (
-	noCheckAdmin awsCheckAdmin = iota
-	warnIfNotAdmin
-	promptIfNotAdmin
-)
-
-func newAWSClient(region string, awsCreds AWSCredentials, checkAdmin awsCheckAdmin) (*aws.Client, error) {
+func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 	awsClient, err := aws.NewFromCreds(region, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
 		return nil, err
@@ -51,19 +43,19 @@ func newAWSClient(region string, awsCreds AWSCredentials, checkAdmin awsCheckAdm
 		return nil, err
 	}
 
-	if checkAdmin == promptIfNotAdmin {
-		if !awsClient.IsAdmin() {
-			prompt.YesOrExit("you aren't admin, things will probably break, do you want to continue?", "", "")
-		}
-	}
-
-	if checkAdmin == warnIfNotAdmin {
-		if !awsClient.IsAdmin() {
-			fmt.Println("warning: you aren't admin")
-		}
-	}
-
 	return awsClient, nil
+}
+
+func promptIfNotAdmin(awsClient *aws.Client) {
+	if !awsClient.IsAdmin() {
+		prompt.YesOrExit("you aren't admin, things will probably break, do you want to continue?", "", "")
+	}
+}
+
+func warnIfNotAdmin(awsClient *aws.Client) {
+	if !awsClient.IsAdmin() {
+		fmt.Println("warning: you aren't admin")
+	}
 }
 
 var _awsCredentialsValidation = &cr.StructValidation{
