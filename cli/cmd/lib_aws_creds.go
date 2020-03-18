@@ -33,7 +33,15 @@ type AWSCredentials struct {
 	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
 }
 
-func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
+type awsCheckAdmin int
+
+const (
+	noCheckAdmin awsCheckAdmin = iota
+	warnIfNotAdmin
+	promptIfNotAdmin
+)
+
+func newAWSClient(region string, awsCreds AWSCredentials, checkAdmin awsCheckAdmin) (*aws.Client, error) {
 	awsClient, err := aws.NewFromCreds(region, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
 		return nil, err
@@ -43,9 +51,17 @@ func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 		return nil, err
 	}
 
-	// TODO delete
-	fmt.Println("continuing")
-	exit.Ok()
+	if checkAdmin == promptIfNotAdmin {
+		if !awsClient.IsAdmin() {
+			prompt.YesOrExit("you aren't admin, things will probably break, do you want to continue?", "", "")
+		}
+	}
+
+	if checkAdmin == warnIfNotAdmin {
+		if !awsClient.IsAdmin() {
+			fmt.Println("warning: you aren't admin")
+		}
+	}
 
 	return awsClient, nil
 }
