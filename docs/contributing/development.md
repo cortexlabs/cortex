@@ -50,9 +50,9 @@ chmod +x ./kubectl && \
 sudo mv ./kubectl /usr/local/bin/kubectl
 ```
 
-### aws-cli
+### aws-cli (v1)
 
-Follow [these instructions](https://github.com/aws/aws-cli#installation) to install aws-cli.
+Follow [these instructions](https://github.com/aws/aws-cli#installation) to install aws-cli (v1).
 
 E.g. to install it globally, run:
 
