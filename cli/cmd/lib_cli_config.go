@@ -17,11 +17,14 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -115,7 +118,7 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 				StringValidation: &cr.StringValidation{
 					Required:  true,
 					Default:   defaults.OperatorEndpoint,
-					Validator: cr.GetURLValidator(false, false),
+					Validator: validateOperatorEndpoint,
 				},
 			},
 			{
@@ -142,6 +145,35 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 			},
 		},
 	}
+}
+
+func validateOperatorEndpoint(endpoint string) (string, error) {
+	url, err := cr.GetURLValidator(false, false)(endpoint)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("GET", url+"/isthiscortex", nil)
+	if err != nil {
+		return "", errors.Wrap(err, "verifying operator endpoint", url)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	bodyBytes, err := _apiClient.MakeRequest(req)
+	if err != nil {
+		exit.Error(ErrorInvalidOperatorEndpoint(url))
+	}
+
+	var responseStr string
+
+	err = json.Unmarshal(bodyBytes, &responseStr)
+	if err != nil {
+		exit.Error(ErrorInvalidOperatorEndpoint(url))
+	}
+	if responseStr != "ok" {
+		exit.Error(ErrorInvalidOperatorEndpoint(url))
+	}
+
+	return endpoint, nil
 }
 
 func readTelemetryConfig() (bool, error) {

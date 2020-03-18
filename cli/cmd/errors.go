@@ -54,6 +54,7 @@ const (
 	ErrClusterRefresh                = "cli.cluster_refresh"
 	ErrClusterDown                   = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames          = "cli.duplicate_cli_env_names"
+	ErrInvalidOperatorEndpoint       = "cli.invalid_operator_endpoint"
 )
 
 func ErrorCLINotConfigured(env string) error {
@@ -209,5 +210,12 @@ func ErrorDuplicateCLIEnvNames(environment string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateCLIEnvNames,
 		Message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
+	})
+}
+
+func ErrorInvalidOperatorEndpoint(endpoint string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidOperatorEndpoint,
+		Message: fmt.Sprintf("%s is not a cortex operator endpoint, run `cortex cluster info` to show your operator endpoint or spin up a new cluster with `cortex cluster up`", endpoint),
 	})
 }
