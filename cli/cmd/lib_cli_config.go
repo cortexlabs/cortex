@@ -163,7 +163,7 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 
 	url = parsedURL.String()
 
-	req, err := http.NewRequest("GET", urls.Join(url, "/isthiscortex"), nil)
+	req, err := http.NewRequest("GET", urls.Join(url, "/verifycortex"), nil)
 	if err != nil {
 		return "", errors.Wrap(err, "verifying operator endpoint", url)
 	}

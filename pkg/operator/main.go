@@ -42,7 +42,7 @@ func main() {
 
 	routerWithoutAuth := router.NewRoute().Subrouter()
 	routerWithoutAuth.Use(endpoints.PanicMiddleware)
-	routerWithoutAuth.HandleFunc("/isthiscortex", endpoints.ThisIsCortex).Methods("GET")
+	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 

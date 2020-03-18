@@ -20,6 +20,6 @@ import (
 	"net/http"
 )
 
-func ThisIsCortex(w http.ResponseWriter, r *http.Request) {
+func VerifyCortex(w http.ResponseWriter, r *http.Request) {
 	respond(w, "ok")
 }
