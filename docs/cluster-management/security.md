@@ -14,7 +14,7 @@ Spinning up Cortex on your AWS account requires more permissions that Cortex nee
 
 2. If you are using a cluster configuration file (e.g. `cluster.yaml`), you can set the fields `aws_access_key_id` and `aws_secret_access_key` which will be used to create your cluster, and set `cortex_aws_access_key_id` and `cortex_aws_secret_access_key` which will be used by the cluster.
 
-In either case, the credentials used when spinning up the cluster will not be used by the cluster itself, and can be safely revoked after the cluster is operational. You may need credentials with similar access to run other `cortex cluster` commands, such as `cortex cluster update`, `cortex cluster info`, and `cortex cluster down`.
+In either case, the credentials used when spinning up the cluster will not be used by the cluster itself, and can be safely revoked after the cluster is running. You may need credentials with similar access to run other `cortex cluster` commands, such as `cortex cluster update`, `cortex cluster info`, and `cortex cluster down`.
 
 ### Operator
 
