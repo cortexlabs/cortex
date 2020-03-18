@@ -47,14 +47,24 @@ func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 }
 
 func promptIfNotAdmin(awsClient *aws.Client) {
+	accessKeyMsg := ""
+	if accessKey := awsClient.AccessKeyIDOrNil(); accessKey != nil {
+		accessKeyMsg = fmt.Sprintf(" (with access key %s)", *accessKey)
+	}
+
 	if !awsClient.IsAdmin() {
-		prompt.YesOrExit("you aren't admin, things will probably break, do you want to continue?", "", "")
+		prompt.YesOrExit(fmt.Sprintf("warning: your IAM user%s does not have administrator access. This will likely prevent Cortex from installing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user. If you'd like, you may provide separate credentials for your cluster to use after it's operational (see https://cortex.dev/cluster-management/security for instructions).\nAre you sure you want to continue?", accessKeyMsg), "", "")
 	}
 }
 
 func warnIfNotAdmin(awsClient *aws.Client) {
+	accessKeyMsg := ""
+	if accessKey := awsClient.AccessKeyIDOrNil(); accessKey != nil {
+		accessKeyMsg = fmt.Sprintf(" (with access key %s)", *accessKey)
+	}
+
 	if !awsClient.IsAdmin() {
-		fmt.Println("warning: you aren't admin")
+		fmt.Println(fmt.Sprintf("warning: your IAM user%s does not have administrator access. This may prevent this command from executing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user.", accessKeyMsg), "", "")
 	}
 }
 
