@@ -136,7 +136,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 		return nil, err
 	}
 
-	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
+	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds, promptIfNotAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		if err != nil {
 			return nil, err
 		}
-		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds, promptIfNotAdmin)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +190,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 
 		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 		userClusterConfig.Region = cachedClusterConfig.Region
-		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
+		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds, promptIfNotAdmin)
 		if err != nil {
 			return nil, err
 		}

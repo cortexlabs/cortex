@@ -43,6 +43,10 @@ func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 		return nil, err
 	}
 
+	// TODO delete
+	fmt.Println("continuing")
+	exit.Ok()
+
 	return awsClient, nil
 }
 
