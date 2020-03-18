@@ -31,7 +31,6 @@ type Client struct {
 	clients         clients
 	accountID       *string
 	hashedAccountID *string
-	accessKeyID     *string // may be unavailable depending on how the client was instantiated
 }
 
 func NewFromEnv(region string) (*Client, error) {
@@ -84,21 +83,8 @@ func New(region string, creds *credentials.Credentials) (*Client, error) {
 		return nil, err
 	}
 
-	var keyID *string
-	if sess.Config.Credentials != nil {
-		sessCreds, err := sess.Config.Credentials.Get()
-		if err == nil && sessCreds.AccessKeyID != "" {
-			keyID = &sessCreds.AccessKeyID
-		}
-	}
-
 	return &Client{
-		sess:        sess,
-		Region:      *sess.Config.Region,
-		accessKeyID: keyID,
+		sess:   sess,
+		Region: *sess.Config.Region,
 	}, nil
-}
-
-func (c *Client) AccessKeyIDOrNil() *string {
-	return c.accessKeyID
 }

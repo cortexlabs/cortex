@@ -48,7 +48,7 @@ func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 
 func promptIfNotAdmin(awsClient *aws.Client) {
 	accessKeyMsg := ""
-	if accessKey := awsClient.AccessKeyIDOrNil(); accessKey != nil {
+	if accessKey := awsClient.AccessKeyID(); accessKey != nil {
 		accessKeyMsg = fmt.Sprintf(" (with access key %s)", *accessKey)
 	}
 
@@ -59,7 +59,7 @@ func promptIfNotAdmin(awsClient *aws.Client) {
 
 func warnIfNotAdmin(awsClient *aws.Client) {
 	accessKeyMsg := ""
-	if accessKey := awsClient.AccessKeyIDOrNil(); accessKey != nil {
+	if accessKey := awsClient.AccessKeyID(); accessKey != nil {
 		accessKeyMsg = fmt.Sprintf(" (with access key %s)", *accessKey)
 	}
 
