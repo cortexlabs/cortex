@@ -49,7 +49,6 @@ func (c *Client) ListStacks(controlPlaneStack string, nodegroupStacks ...string)
 	for _, stackSummary := range searchStacks {
 		if nodegroupStackSet.Has(*stackSummary.StackName) {
 			stackSummaries = append(stackSummaries, stackSummary)
-			break
 		}
 	}
 
