@@ -510,9 +510,16 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(awsClient, chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice)
+			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, InstanceDistributionKey)
+			}
+
+			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
+			if awsErr == nil {
+				if err := CheckSpotInstancePriceCompatibility(chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
+					return errors.Wrap(err, InstanceDistributionKey)
+				}
 			}
 
 			compatibleInstanceCount++
@@ -555,7 +562,7 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	return nil
 }
 
-func CheckSpotInstanceCompatibility(awsClient *aws.Client, target aws.InstanceMetadata, suggested aws.InstanceMetadata, maxPrice *float64) error {
+func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
@@ -568,17 +575,16 @@ func CheckSpotInstanceCompatibility(awsClient *aws.Client, target aws.InstanceMe
 		return ErrorIncompatibleSpotInstanceTypeCPU(target, suggested)
 	}
 
-	suggestedInstancePrice, err := awsClient.SpotInstancePrice(target.Region, suggested.Type)
-	if err != nil {
-		return err
+	return nil
+}
+
+func CheckSpotInstancePriceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata, maxPrice *float64, spotInstancePrice float64) error {
+	if (maxPrice == nil || *maxPrice == target.Price) && target.Price < spotInstancePrice {
+		return ErrorSpotPriceGreaterThanTargetOnDemand(spotInstancePrice, target, suggested)
 	}
 
-	if (maxPrice == nil || *maxPrice == target.Price) && target.Price < suggestedInstancePrice {
-		return ErrorSpotPriceGreaterThanTargetOnDemand(suggestedInstancePrice, target, suggested)
-	}
-
-	if maxPrice != nil && *maxPrice < suggestedInstancePrice {
-		return ErrorSpotPriceGreaterThanMaxPrice(suggestedInstancePrice, *maxPrice, suggested)
+	if maxPrice != nil && *maxPrice < spotInstancePrice {
+		return ErrorSpotPriceGreaterThanMaxPrice(spotInstancePrice, *maxPrice, suggested)
 	}
 	return nil
 }
@@ -604,8 +610,15 @@ func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceM
 			continue
 		}
 
-		if err := CheckSpotInstanceCompatibility(awsClient, targetInstance, instanceMetadata, maxPrice); err != nil {
+		if err := CheckSpotInstanceCompatibility(targetInstance, instanceMetadata); err != nil {
 			continue
+		}
+
+		spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
+		if awsErr == nil {
+			if err := CheckSpotInstancePriceCompatibility(targetInstance, instanceMetadata, maxPrice, spotInstancePrice); err != nil {
+				continue
+			}
 		}
 
 		compatibleInstances = append(compatibleInstances, instanceMetadata)
