@@ -33,7 +33,7 @@ func (c *Client) SpotInstancePrice(region string, instanceType string) (float64,
 		StartTime:           aws.Time(time.Now()),
 	})
 	if err != nil {
-		return 0, errors.WithStack(err)
+		return 0, errors.Wrap(err, "checking spot instance price")
 	}
 
 	min := math.MaxFloat64
