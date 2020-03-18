@@ -88,7 +88,7 @@ func (c *Client) GetManagedPoliciesForUser(userName string) ([]iam.AttachedPolic
 	return policies, nil
 }
 
-func (c *Client) CheckAdmin() bool {
+func (c *Client) IsAdmin() bool {
 	user, err := c.GetUser()
 	if err != nil {
 		return false
