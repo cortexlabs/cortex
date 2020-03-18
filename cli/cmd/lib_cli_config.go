@@ -154,14 +154,14 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 		return "", err
 	}
 
-	parsedUrl, err := urls.Parse(url)
+	parsedURL, err := urls.Parse(url)
 	if err != nil {
 		return "", err
 	}
 
-	parsedUrl.Scheme = "https"
+	parsedURL.Scheme = "https"
 
-	url = parsedUrl.String()
+	url = parsedURL.String()
 
 	req, err := http.NewRequest("GET", urls.Join(url, "/isthiscortex"), nil)
 	if err != nil {
