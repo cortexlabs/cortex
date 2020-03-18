@@ -83,15 +83,11 @@ func GetStatus(awsClient *aws.Client, clusterConfig *clusterconfig.Config) (Stat
 		return StatusDeleteComplete, nil
 	}
 
-	if all(statusMap, cloudformation.StackStatusDeleteComplete, cloudformation.StackStatusDeleteInProgress) {
+	if any(statusMap, cloudformation.StackStatusDeleteInProgress) {
 		return StatusDeleteInProgress, nil
 	}
 
-	if all(statusMap, cloudformation.StackStatusCreateComplete) {
-		return StatusCreateComplete, nil
-	}
-
-	if all(statusMap, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusCreateInProgress) {
+	if any(statusMap, cloudformation.StackStatusCreateInProgress) {
 		return StatusCreateInProgress, nil
 	}
 
