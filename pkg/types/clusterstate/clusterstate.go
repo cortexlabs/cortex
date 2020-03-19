@@ -40,7 +40,6 @@ type ClusterState struct {
 	StatusMap    map[string]string // cloudformation stackname to cloudformation stackstatus
 	ControlPlane string
 	Nodegroups   []string
-	Status       Status
 }
 
 func any(statusMap map[string]string, statuses ...string) bool {
@@ -69,7 +68,7 @@ func (cs ClusterState) FlatString() string {
 	return s.ObjFlat(cs.StatusMap)
 }
 
-func (cs ClusterState) PrettyString() string {
+func (cs ClusterState) TableString() string {
 	var items table.KeyValuePairs
 	items.Add(cs.ControlPlane, cs.StatusMap[cs.ControlPlane])
 
@@ -79,7 +78,21 @@ func (cs ClusterState) PrettyString() string {
 	return items.String()
 }
 
-func (cs ClusterState) getStatus() (Status, error) {
+func (cs *ClusterState) GetStatus() (Status, error) {
+	stackSummaries, err := cs.client.ListEKSStacks(cs.ControlPlane, cs.Nodegroups...)
+	if err != nil {
+		return StatusNotFound, errors.Wrap(err, "unable to get cluster state from cloudformation")
+	}
+
+	statusMap := map[string]string{}
+	statusMap[cs.ControlPlane] = getStatusFromSummaries(stackSummaries, cs.ControlPlane)
+
+	for _, nodeGroupName := range cs.Nodegroups {
+		statusMap[nodeGroupName] = getStatusFromSummaries(stackSummaries, nodeGroupName)
+	}
+
+	cs.StatusMap = statusMap
+
 	if cs.StatusMap[cs.ControlPlane] == string(StatusNotFound) {
 		return StatusNotFound, nil
 	}
@@ -109,24 +122,6 @@ func (cs ClusterState) getStatus() (Status, error) {
 	}
 
 	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(cs.FlatString())
-}
-
-func (cs *ClusterState) GetStatus() (Status, error) {
-	stackSummaries, err := cs.client.ListEKSStacks(cs.ControlPlane, cs.Nodegroups...)
-	if err != nil {
-		return StatusNotFound, errors.Wrap(err, "unable to get cluster state from cloudformation")
-	}
-
-	statusMap := map[string]string{}
-	statusMap[cs.ControlPlane] = getStatusFromSummaries(stackSummaries, cs.ControlPlane)
-
-	for _, nodeGroupName := range cs.Nodegroups {
-		statusMap[nodeGroupName] = getStatusFromSummaries(stackSummaries, nodeGroupName)
-	}
-
-	cs.StatusMap = statusMap
-
-	return cs.getStatus()
 }
 
 func GetClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config) ClusterState {

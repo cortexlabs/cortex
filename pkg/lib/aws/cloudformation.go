@@ -23,33 +23,27 @@ import (
 )
 
 func (c *Client) ListEKSStacks(controlPlaneStack string, nodegroupStacks ...string) ([]*cloudformation.StackSummary, error) {
-	stacks, err := c.CloudFormation().ListStacks(
+	var stackSummaries []*cloudformation.StackSummary
+	stackSet := strset.New(nodegroupStacks...)
+	stackSet.Add(controlPlaneStack)
+	err := c.CloudFormation().ListStacksPages(
 		&cloudformation.ListStacksInput{},
+		func(listStackOutput *cloudformation.ListStacksOutput, lastPage bool) bool {
+			for _, stackSummary := range listStackOutput.StackSummaries {
+				if stackSet.Has(*stackSummary.StackName) {
+					stackSummaries = append(stackSummaries, stackSummary)
+				}
+
+				if *stackSummary.StackName == controlPlaneStack {
+					return false
+				}
+			}
+
+			return true && !lastPage
+		},
 	)
 	if err != nil {
 		return nil, errors.WithStack(err)
-	}
-
-	var searchStacks []*cloudformation.StackSummary
-	var stackSummaries []*cloudformation.StackSummary
-
-	nodegroupStackSet := strset.New(nodegroupStacks...)
-
-	for idx, stackSummary := range stacks.StackSummaries {
-		if *stackSummary.StackName == controlPlaneStack {
-			stackSummaries = append(stackSummaries, stackSummary)
-			searchStacks = stacks.StackSummaries[:idx]
-			break
-		}
-	}
-	if len(stackSummaries) == 0 {
-		return nil, nil
-	}
-
-	for _, stackSummary := range searchStacks {
-		if nodegroupStackSet.Has(*stackSummary.StackName) {
-			stackSummaries = append(stackSummaries, stackSummary)
-		}
 	}
 
 	return stackSummaries, nil
