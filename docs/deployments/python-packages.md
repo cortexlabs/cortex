@@ -7,7 +7,7 @@ Within a deployment in Cortex, 2 package managers can be used to install additio
 1. `pip`
 1. `conda`
 
-Both of these package managers have their uses and limitations. All of the default python packages on Cortex were installed with `pip`. It is therefore advised for any other add-on python package to be installed with `pip` and only resort to using `conda` when there are packages not available from PyPi or from any other index. The reason for this is to prevent inconsistencies within the virtual environment. Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environment/) on using `pip` inside `conda`.
+Both of these package managers have their uses and limitations. All default python packages on Cortex are installed with `pip`. It is therefore advised for any other add-on python package to be installed with `pip` and only resort to using `conda` when there are packages not available from PyPi or from any other index. The reason for this is to prevent inconsistencies within the virtual environment. Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environment/) on using `pip` inside `conda`.
 
 Keep in mind that pip installations come before the conda installations.
 
@@ -83,7 +83,7 @@ With `conda`, packages can be installed using 2 kinds of files, both mutually ex
 
 1. Using a `conda-packages.txt` config file.
 
-Cortex allows the presence of a `.condarc` file in the root directory of the project. This can be used to tweak conda's configuration. Here's an example of `.condarc` which enables the pip-interoperabilty mechanism:
+Cortex allows the presence of a `.condarc` file in the root directory of the project. This can be used to tweak conda's configuration. Here's an example of `.condarc` that enables the pip-interoperabilty mechanism:
 
 ```text
 pip_interop_enabled: false
@@ -122,7 +122,7 @@ Here's [an example from conda](https://github.com/conda/conda/blob/54e4a91d0da4d
 
 ### Using conda-packages.txt
 
-You can install packages using a `conda-packages.txt` file using conda. Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory. This file is executed by Cortex with `conda install --file conda-packages.txt` command.
+You can install packages by providing a `conda-packages.txt` file to conda. Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory. This file is executed by Cortex by running `conda install --file conda-packages.txt` command.
 
 Here's an example of `conda-packages.txt` used to install `rdkit` and `pygpu` python packages:
 
