@@ -59,7 +59,7 @@ In this case, `requirements.txt` will have this form:
 .
 ```
 
-### Git project
+### Installing from git
 
 You can also install public/private packages from git registries (such as GitHub) by adding them to `requirements.txt`. Here's an example for GitHub:
 
