@@ -42,9 +42,9 @@ type ClusterState struct {
 	Status       Status
 }
 
-func any(statusMap map[string]string, statuses ...string) bool {
-	statusSet := strset.New(statuses...)
-	for _, stackStatus := range statusMap {
+func any(statuses []string, allowedStatuses ...string) bool {
+	statusSet := strset.New(allowedStatuses...)
+	for _, stackStatus := range statuses {
 		if statusSet.Has(stackStatus) {
 			return true
 		}
@@ -53,9 +53,9 @@ func any(statusMap map[string]string, statuses ...string) bool {
 	return false
 }
 
-func all(statusMap map[string]string, statuses ...string) bool {
-	statusSet := strset.New(statuses...)
-	for _, stackStatus := range statusMap {
+func all(statuses []string, allowedStatuses ...string) bool {
+	statusSet := strset.New(allowedStatuses...)
+	for _, stackStatus := range statuses {
 		if !statusSet.Has(stackStatus) {
 			return false
 		}
@@ -75,31 +75,46 @@ func (cs ClusterState) TableString() string {
 }
 
 func getStatus(statusMap map[string]string, controlPlane string) (Status, error) {
-	if statusMap[controlPlane] == string(StatusNotFound) {
-		return StatusNotFound, nil
+	// the order matters
+
+	allStatuses := []string{}
+	controlPlaneStatus := []string{statusMap[controlPlane]}
+	nodeGroupStatuses := []string{}
+
+	for stackName, status := range statusMap {
+		allStatuses = append(allStatuses, status)
+		if stackName != controlPlane {
+			nodeGroupStatuses = append(nodeGroupStatuses, status)
+		}
 	}
 
-	if any(statusMap, cloudformation.StackStatusCreateFailed) {
+	if any(allStatuses, cloudformation.StackStatusCreateFailed) {
 		return StatusCreateFailed, nil
 	}
 
-	if any(statusMap, cloudformation.StackStatusDeleteFailed) {
+	if any(allStatuses, cloudformation.StackStatusDeleteFailed) {
 		return StatusDeleteFailed, nil
 	}
 
-	if all(statusMap, cloudformation.StackStatusCreateComplete) {
+	if all(allStatuses, string(StatusNotFound)) {
 		return StatusCreateComplete, nil
 	}
 
-	if all(statusMap, cloudformation.StackStatusDeleteComplete) {
+	if all(allStatuses, cloudformation.StackStatusCreateComplete) {
+		return StatusCreateComplete, nil
+	}
+
+	if all(allStatuses, cloudformation.StackStatusDeleteComplete) {
 		return StatusDeleteComplete, nil
 	}
 
-	if any(statusMap, cloudformation.StackStatusDeleteInProgress) {
+	if any(allStatuses, cloudformation.StackStatusDeleteInProgress) {
 		return StatusDeleteInProgress, nil
 	}
 
-	if all(statusMap, cloudformation.StackStatusCreateInProgress, string(StatusNotFound), cloudformation.StackStatusCreateComplete) {
+	// controlplane stack may be in complete state while nodegroup stacks are still in status not found
+	if all(controlPlaneStatus, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusCreateInProgress) &&
+		all(nodeGroupStatuses, cloudformation.StackStatusCreateInProgress, string(StatusNotFound), cloudformation.StackStatusCreateComplete) {
 		return StatusCreateInProgress, nil
 	}
 
