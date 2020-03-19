@@ -83,7 +83,7 @@ With `conda`, packages can be installed using 2 kinds of files, both mutually ex
 
 1. Using a `conda-packages.txt` config file.
 
-Cortex allows the presence of a `.condarc` file in the root directory of the project. This can be used to tweak conda's configuration. Here's an example of `.condarc` that enables the pip-interoperabilty mechanism:
+Cortex allows for the presence of a `.condarc` file in the root directory of the project. This can be used to tweak conda's configuration. Here's an example of `.condarc` that enables the pip-interoperabilty mechanism:
 
 ```text
 pip_interop_enabled: false
