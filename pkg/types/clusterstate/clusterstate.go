@@ -36,10 +36,10 @@ const (
 )
 
 type ClusterState struct {
-	client       *aws.Client
 	StatusMap    map[string]string // cloudformation stackname to cloudformation stackstatus
 	ControlPlane string
 	Nodegroups   []string
+	Status       Status
 }
 
 func any(statusMap map[string]string, statuses ...string) bool {
@@ -64,10 +64,6 @@ func all(statusMap map[string]string, statuses ...string) bool {
 	return true
 }
 
-func (cs ClusterState) FlatString() string {
-	return s.ObjFlat(cs.StatusMap)
-}
-
 func (cs ClusterState) TableString() string {
 	var items table.KeyValuePairs
 	items.Add(cs.ControlPlane, cs.StatusMap[cs.ControlPlane])
@@ -78,53 +74,39 @@ func (cs ClusterState) TableString() string {
 	return items.String()
 }
 
-func (cs *ClusterState) GetStatus() (Status, error) {
-	stackSummaries, err := cs.client.ListEKSStacks(cs.ControlPlane, cs.Nodegroups...)
-	if err != nil {
-		return StatusNotFound, errors.Wrap(err, "unable to get cluster state from cloudformation")
-	}
-
-	statusMap := map[string]string{}
-	statusMap[cs.ControlPlane] = getStatusFromSummaries(stackSummaries, cs.ControlPlane)
-
-	for _, nodeGroupName := range cs.Nodegroups {
-		statusMap[nodeGroupName] = getStatusFromSummaries(stackSummaries, nodeGroupName)
-	}
-
-	cs.StatusMap = statusMap
-
-	if cs.StatusMap[cs.ControlPlane] == string(StatusNotFound) {
+func getStatus(statusMap map[string]string, controlPlane string) (Status, error) {
+	if statusMap[controlPlane] == string(StatusNotFound) {
 		return StatusNotFound, nil
 	}
 
-	if any(cs.StatusMap, cloudformation.StackStatusCreateFailed) {
+	if any(statusMap, cloudformation.StackStatusCreateFailed) {
 		return StatusCreateFailed, nil
 	}
 
-	if any(cs.StatusMap, cloudformation.StackStatusDeleteFailed) {
+	if any(statusMap, cloudformation.StackStatusDeleteFailed) {
 		return StatusDeleteFailed, nil
 	}
 
-	if all(cs.StatusMap, cloudformation.StackStatusCreateComplete) {
+	if all(statusMap, cloudformation.StackStatusCreateComplete) {
 		return StatusCreateComplete, nil
 	}
 
-	if all(cs.StatusMap, cloudformation.StackStatusDeleteComplete) {
+	if all(statusMap, cloudformation.StackStatusDeleteComplete) {
 		return StatusDeleteComplete, nil
 	}
 
-	if any(cs.StatusMap, cloudformation.StackStatusDeleteInProgress) {
+	if any(statusMap, cloudformation.StackStatusDeleteInProgress) {
 		return StatusDeleteInProgress, nil
 	}
 
-	if all(cs.StatusMap, cloudformation.StackStatusCreateInProgress, string(StatusNotFound), cloudformation.StackStatusCreateComplete) {
+	if all(statusMap, cloudformation.StackStatusCreateInProgress, string(StatusNotFound), cloudformation.StackStatusCreateComplete) {
 		return StatusCreateInProgress, nil
 	}
 
-	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(cs.FlatString())
+	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(s.ObjFlat(statusMap))
 }
 
-func GetClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config) ClusterState {
+func GetClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config) (*ClusterState, error) {
 	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, clusterConfig.ClusterName)
 	operatorStackName := fmt.Sprintf(operatorTemplate, clusterConfig.ClusterName)
 	spotStackName := fmt.Sprintf(spotTemplate, clusterConfig.ClusterName)
@@ -140,13 +122,29 @@ func GetClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config)
 		nodeGroupStackNames = append(nodeGroupStackNames, onDemandStackName)
 	}
 
-	clusterstate := ClusterState{
-		client:       awsClient,
-		ControlPlane: controlPlaneStackName,
-		Nodegroups:   nodeGroupStackNames,
+	stackSummaries, err := awsClient.ListEKSStacks(controlPlaneStackName, nodeGroupStackNames...)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get cluster state from cloudformation")
 	}
 
-	return clusterstate
+	statusMap := map[string]string{}
+	statusMap[controlPlaneStackName] = getStatusFromSummaries(stackSummaries, controlPlaneStackName)
+
+	for _, nodeGroupName := range nodeGroupStackNames {
+		statusMap[nodeGroupName] = getStatusFromSummaries(stackSummaries, nodeGroupName)
+	}
+
+	status, err := getStatus(statusMap, controlPlaneStackName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ClusterState{
+		ControlPlane: controlPlaneStackName,
+		Nodegroups:   nodeGroupStackNames,
+		StatusMap:    statusMap,
+		Status:       status,
+	}, nil
 }
 
 func getStatusFromSummaries(stackSummaries []*cloudformation.StackSummary, stackName string) string {

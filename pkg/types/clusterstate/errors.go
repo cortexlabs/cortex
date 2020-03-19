@@ -30,5 +30,6 @@ func ErrorUnexpectedCloudFormationStatus(status string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnexpectedCloudFormationStatus,
 		Message: fmt.Sprintf("unexpected cloudformation stack status encountered: %s", status),
+		NoPrint: true,
 	})
 }
