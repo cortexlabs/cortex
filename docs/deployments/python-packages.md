@@ -130,4 +130,4 @@ Here's an example of `conda-packages.txt` used to install `rdkit` and `pygpu` py
 conda-forge::rdkit
 conda-forge::pygpu
 ```
-The format of each line inside `conda-packages.txt` is `[channel::]package[=version[=buildid]]`.
+Each line inside `conda-packages.txt` follows the `[channel::]package[=version[=buildid]]` pattern.
