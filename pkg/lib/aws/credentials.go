@@ -22,6 +22,24 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
+// access key ID may be unavailable depending on how the client was instantiated
+func (c *Client) AccessKeyID() *string {
+	if c.sess.Config.Credentials == nil {
+		return nil
+	}
+
+	sessCreds, err := c.sess.Config.Credentials.Get()
+	if err != nil {
+		return nil
+	}
+
+	if sessCreds.AccessKeyID == "" {
+		return nil
+	}
+
+	return &sessCreds.AccessKeyID
+}
+
 func GetCredentialsFromCLIConfigFile() (string, string, error) {
 	creds := credentials.NewSharedCredentials("", "")
 	if creds == nil {
