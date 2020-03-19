@@ -38,7 +38,7 @@ const (
 type ClusterState struct {
 	StatusMap    map[string]string // cloudformation stackname to cloudformation stackstatus
 	ControlPlane string
-	Nodegroups   []string
+	NodeGroups   []string
 	Status       Status
 }
 
@@ -68,7 +68,7 @@ func (cs ClusterState) TableString() string {
 	var items table.KeyValuePairs
 	items.Add(cs.ControlPlane, cs.StatusMap[cs.ControlPlane])
 
-	for _, nodeGroupName := range cs.Nodegroups {
+	for _, nodeGroupName := range cs.NodeGroups {
 		items.Add(nodeGroupName, cs.StatusMap[nodeGroupName])
 	}
 	return items.String()
@@ -156,7 +156,7 @@ func GetClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config)
 
 	return &ClusterState{
 		ControlPlane: controlPlaneStackName,
-		Nodegroups:   nodeGroupStackNames,
+		NodeGroups:   nodeGroupStackNames,
 		StatusMap:    statusMap,
 		Status:       status,
 	}, nil
