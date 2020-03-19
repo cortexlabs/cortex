@@ -39,7 +39,7 @@ func (c *Client) ListEKSStacks(controlPlaneStack string, nodegroupStacks ...stri
 				}
 			}
 
-			return true && !lastPage
+			return true
 		},
 	)
 	if err != nil {
