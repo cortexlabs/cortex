@@ -1,8 +1,31 @@
-# Python packages
+# Python/Conda packages
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## PyPI packages
+Within a deployment in Cortex, 2 package managers can be used to install additional python packages:
+
+1. `pip`
+1. `conda`
+
+Both of these package managers have their uses and limitations. All of the default python packages on Cortex were installed with `pip`. It is therefore advised for any other add-on python package to be installed with `pip` and only resort to using `conda` when there are packages not available from PyPi or from any other index. The reason for this is to prevent inconsistencies within the virtual environment. Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environment/) on using `pip` inside `conda`.
+
+Keep in mind that pip installations come before the conda installations.
+
+Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
+
+*Note: The order of execution on all files is this: `script.sh` -> `.condarc` -> `environment.yaml` or `conda-packages.txt` -> `requirements.txt`.*
+
+## Pip
+
+With `pip`, packages can be installed from a few sources:
+
+1. From [PyPi](https://pypi.org)'s index.
+
+1. Locally, from the project's directory using `setup.py`.
+
+1. From a git project (i.e. GitHub) that's either public or private.
+
+### Installing from PyPi
 
 You can install your required PyPI packages and import them in your Python files. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
@@ -14,13 +37,9 @@ You can install your required PyPI packages and import them in your Python files
 └── requirements.txt
 ```
 
-Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
+### Installing with setup
 
-## `setup.py`
-
-It is also possible to reference Python libraries that are packaged using `setup.py`.
-
-Here is an example directory structure:
+Python packages can also be installed by providing a `setup.py` that describes your project's modules. Here's an example directory structure:
 
 ```text
 ./iris-classifier/
@@ -28,105 +47,87 @@ Here is an example directory structure:
 ├── predictor.py
 ├── ...
 ├── mypkg
-│   └── __init__.py
+│   └── __init__.py
 ├── requirements.txt
 └── setup.py
 ```
 
-In this case, `requirements.txt` can include a single `.`:
-
-```python
+In this case, `requirements.txt` will have this form:
+```text
 # requirements.txt
 
 .
 ```
 
-If this is the contents `setup.py`:
+### Git project
 
-```python
-# setup.py
-
-from distutils.core import setup
-
-setup(
-    name="mypkg",
-    version="0.0.1",
-    packages=["mypkg"],
-)
-```
-
-And `__init__.py` looks like this:
-
-```python
-# mypkg/__init__.py
-
-def hello():
-    print("hello")
-```
-
-You can reference your package in `predictor.py`:
-
-```python
-# predictor.py
-
-import mypkg
-
-class PythonPredictor:
-    def predict(self, payload):
-        mypkg.hello()
-```
-
-## Private packages on GitHub
-
-You can also install private packages hosed on GitHub by adding them to `requirements.txt` using this syntax:
+You can also install public/private packages from git registries (such as GitHub) by adding them to `requirements.txt`. Here's an example for GitHub:
 
 ```text
 # requirements.txt
 
+# public access
+git+https://github.com/<username>/<repo name>.git@<tag or branch name>#egg=<package name>
+
+# private access
 git+https://<personal access token>@github.com/<username>/<repo name>.git@<tag or branch name>#egg=<package name>
 ```
 
-You can generate a personal access token by following [these steps](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
+On GitHub, you can generate a personal access token by following [these steps](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
 
-## Conda packages
+## Conda
 
-You can install Conda packages by creating a custom Docker image that first installs Conda and then installs your Conda packages.
+With `conda`, packages can be installed using 2 kinds of files, both mutually exclusive:
 
-Customize the template Dockerfile below with your desired Conda packages and follow these [instructions](./system-packages.md) to build and push your image to a container registry and configure Cortex to use your custom image.
+1. Using an `environment.yaml` config file.
 
-```dockerfile
-# Dockerfile
+1. Using a `conda-packages.txt` config file.
 
-FROM <BASE CORTEX IMAGE>
+Cortex allows the presence of a `.condarc` file in the root directory of the project. This can be used to tweak conda's configuration. Here's an example of `.condarc` which enables the pip-interoperabilty mechanism:
 
-# remove system-wide packages from the base image
-RUN pip freeze > req && for pkg in "$(cat req)"; do pip uninstall $pkg -y || true; done && rm req
-
-# add conda to path
-ENV PATH /opt/conda/bin:$PATH
-
-# install conda, it also includes py3.6.9
-RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh && \
-    /opt/conda/bin/conda update conda && \
-    /opt/conda/bin/conda install --force python=3.6.9 && \
-    /opt/conda/bin/conda clean -tipsy && \
-    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc
-
-# install pip dependencies
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r /src/cortex/lib/requirements.txt && \
-    pip install --no-cache-dir -r /src/cortex/serve/requirements.txt
-
-# ---------------------------------------------------------- #
-# Install your Conda packages here
-# RUN conda install --no-update-deps -c conda-forge rdkit
-
-# ---------------------------------------------------------- #
-
-# replace system python with conda's version
-RUN sed -i 's/\/usr\/bin\/python3.6/\/opt\/conda\/bin\/python/g' /src/cortex/serve/run.sh
+```text
+pip_interop_enabled: false
 ```
+
+More on `.condarc` can be found [here](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html).
+
+### Using environment.yaml
+
+You can install packages using an `environment.yaml` config file using conda. Cortex looks for a `environment.yaml` file in the top level Cortex project directory. In the background, the command that's used against `environment.yaml` is `conda env update -n env --file environment.yaml`.
+
+Here's an example of `environment.yaml` used to install `rdkit` python package:
+
+```yaml
+channels:
+    - conda-forge
+dependencies:
+    - rdkit
+```
+
+`environment.yaml` can also be used to install `pip` packages and also introduce other indexes that may otherwise not be possible just by relying on `requirements.txt` alone. In addition to the previous example, here's one where `wget` is installed with pip:
+
+```yaml
+channels:
+    - conda-forge
+dependencies:
+    - rdkit
+    - pip
+    - pip:
+        - wget==3.2
+```
+
+Here's [an example from conda](https://github.com/conda/conda/blob/54e4a91d0da4d659a67e3097040764d3a2f6aa16/tests/conda_env/support/advanced-pip/environment.yml) that shows how far `enviroment.yaml` can be taken.
+
+*Note: One word of advice is to not change the version of python deliberately because that can affect negatively the Cortex API. The current version of Python is `3.6.9`.*
+
+### Using conda-packages.txt
+
+You can install packages using a `conda-packages.txt` file using conda. Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory. This file is executed by Cortex with `conda install --file conda-packages.txt` command.
+
+Here's an example of `conda-packages.txt` used to install `rdkit` and `pygpu` python packages:
+
+```text
+conda-forge::rdkit
+conda-forge::pygpu
+```
+The format of each line inside `conda-packages.txt` is `[channel::]package[=version[=buildid]]`.

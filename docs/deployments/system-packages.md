@@ -2,9 +2,44 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry that your cluster has access to (e.g. [Docker Hub](https://hub.docker.com) or [AWS ECR](https://aws.amazon.com/ecr)).
+Cortex uses Docker images to deploy your models. There are 2 ways to augment your system packages and libraries:
 
-## Create a custom image
+1. **Using `script.sh`** in the root directory of the project. Support is already included in Cortex.
+1. Creating a **custom Docker image**. Must push to a container registry that the cluster has access to (i.e. [Docker Hub](https://hub.docker.com) or [AWS ECR](https://aws.amazon.com/ecr)).
+
+So, let's explore an example where we use `tree` program to list files inside the `predictory.py` module. We want to be able to run this:
+
+```python
+# predictor.py
+
+import subprocess
+
+class PythonPredictor:
+    def __init__(self, config):
+        subprocess.run(["tree"])
+
+    def predict(self, payload):
+        return None
+```
+The above example works with either of the following methods.
+
+---
+
+## Using a script
+
+Cortex looks inside the root directory of the project for a file named `script.sh`. (i.e. the directory which contains `cortex.yaml`). This `script.sh` gets executed at run-time when an API is being deployed.
+
+Here's what `script.sh` contains in order to install `tree` utility:
+```bash
+#!/bin/bash
+apt-get update && apt-get install -y tree
+```
+
+*Note: The order of execution on all files is this: `script.sh` -> `.condarc` -> `environment.yaml` or `conda-packages.txt` -> `requirements.txt`.*
+
+---
+
+## Using a custom Docker image
 
 Create a Dockerfile to build your custom image:
 
@@ -17,11 +52,11 @@ The Docker images used to deploy your models are listed below. Based on the Cort
 ### Base Cortex images for model serving
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
-* Python (CPU): cortexlabs/python-serve:master
-* Python (GPU): cortexlabs/python-serve-gpu:master
-* TensorFlow (CPU or GPU): cortexlabs/tf-api:master
-* ONNX (CPU): cortexlabs/onnx-serve:master
-* ONNX (GPU): cortexlabs/onnx-serve-gpu:master
+* Python (CPU): `cortexlabs/python-serve:master`
+* Python (GPU): `cortexlabs/python-serve-gpu:master`
+* TensorFlow (CPU or GPU): `cortexlabs/tf-api:master`
+* ONNX (CPU): `cortexlabs/onnx-serve:master`
+* ONNX (GPU): `cortexlabs/onnx-serve-gpu:master`
 
 Note that the Docker image version must match your cluster version displayed in `cortex version`.
 
@@ -38,7 +73,7 @@ RUN apt-get update \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 ```
 
-## Build and push to a container registry
+### Build and push to a container registry
 
 Create a repository to store your image:
 
@@ -62,7 +97,7 @@ docker build . -t org/my-api:latest -t <repository_url>:latest
 docker push <repository_url>:latest
 ```
 
-## Configure Cortex
+### Configure Cortex
 
 Update your cluster configuration file to point to your image:
 
@@ -78,19 +113,4 @@ Update your cluster for the change to take effect:
 
 ```bash
 cortex cluster update --config=cluster.yaml
-```
-
-## Use system packages in workloads
-
-Cortex will use your custom image to launch workloads and you will have access to any packages you added:
-
-```python
-# predictor.py
-
-import subprocess
-
-class PythonPredictor:
-    def __init__(self, config):
-        subprocess.run(["tree"])
-        ...
 ```
