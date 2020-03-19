@@ -36,8 +36,11 @@ RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh
     /opt/conda/bin/conda clean -a && \
     rm -rf ~/.cache ~/miniconda.sh && \
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate env" >> ~/.bashrc
+    echo ". /opt/conda/etc/profile.d/conda.sh" > ~/.env && \
+    echo "conda activate env" >> ~/.env && \
+    echo "source ~/.env" >> ~/.bashrc
+
+ENV BASH_ENV=~/.env
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib

@@ -33,12 +33,12 @@ sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
 # execute script if present in project's directory
 if [ -f "/mnt/project/script.sh" ]; then
     chmod +x /mnt/project/script.sh
-    ./mnt/project/script.sh
+    /mnt/project/script.sh
 fi
 
-# overwrite config file if existent
+# overwrite conda config file if it exists
 if [ -f "/mnt/project/.condarc" ]; then
-    cp /mnt/project/.condarc ~/.condarc
+    cp /mnt/project/.condarc /root/.condarc
 fi
 
 # either install from environment.yaml or from conda-packages.txt
@@ -58,4 +58,4 @@ export PYTHONUNBUFFERED=TRUE
 
 mkdir -p /mnt/requests
 
-/opt/conda/bin/python /src/cortex/serve/start_uvicorn.py
+/opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py

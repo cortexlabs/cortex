@@ -120,6 +120,11 @@ func deploy(configPath string, force bool) {
 		exit.Error(err)
 	}
 
+	condarcFilePath := path.Join(projectRoot, ".condarc")
+	if err := files.CheckFile(condarcFilePath); err == nil {
+		projectPaths = append(projectPaths, condarcFilePath)
+	}
+
 	canSkipPromptMsg := "you can skip this prompt next time with `cortex deploy --yes`\n"
 	rootDirMsg := "this directory"
 	if s.EnsureSuffix(projectRoot, "/") != _cwd {
