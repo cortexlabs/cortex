@@ -14,22 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterstatus
+package clusterstate
 
-import (
-	"fmt"
-
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-)
+type Status string
 
 const (
-	ErrUnsupportedCloudFormationStatus = "clusterstatus.unsupported_cloud_formation_status"
+	StatusNotFound         Status = "not_found"
+	StatusCreateInProgress Status = "create_in_progress"
+	StatusCreateFailed     Status = "create_failed"
+	StatusCreateComplete   Status = "create_complete"
+	StatusDeleteInProgress Status = "delete_in_progress"
+	StatusDeleteComplete   Status = "delete_complete"
+	StatusDeleteFailed     Status = "delete_failed"
 )
-
-func ErrorUnsupportedCloudFormationStatus(statusMap map[string]string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrUnsupportedCloudFormationStatus,
-		Message: fmt.Sprintf("%s has an unsupported cloudformation statuses", s.ObjFlat(statusMap)),
-	})
-}

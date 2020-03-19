@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-func (c *Client) ListStacks(controlPlaneStack string, nodegroupStacks ...string) ([]*cloudformation.StackSummary, error) {
+func (c *Client) ListEKSStacks(controlPlaneStack string, nodegroupStacks ...string) ([]*cloudformation.StackSummary, error) {
 	stacks, err := c.CloudFormation().ListStacks(
 		&cloudformation.ListStacksInput{},
 	)

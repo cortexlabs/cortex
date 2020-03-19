@@ -14,16 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterstatus
+package clusterstate
 
-type Status string
+import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+)
 
 const (
-	StatusNotFound         Status = "not_found"
-	StatusCreateInProgress Status = "create_in_progress"
-	StatusCreateFailed     Status = "create_failed"
-	StatusCreateComplete   Status = "create_complete"
-	StatusDeleteInProgress Status = "delete_in_progress"
-	StatusDeleteComplete   Status = "delete_complete"
-	StatusDeleteFailed     Status = "delete_failed"
+	ErrUnexpectedCloudFormationStatus = "clusterstatus.unexpected_cloud_formation_status"
 )
+
+func ErrorUnexpectedCloudFormationStatus(status string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnexpectedCloudFormationStatus,
+		Message: fmt.Sprintf("unexpected cloudformation stack status encountered: %s", status),
+	})
+}
