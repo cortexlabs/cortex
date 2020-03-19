@@ -4,7 +4,17 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## IAM permissions
 
-If you are not using a sensitive AWS account and do not have a lot of experience with IAM configuration, attaching the existing policy `AdministratorAccess` to your IAM user will make getting started much easier.
+If you are not using a sensitive AWS account and do not have a lot of experience with IAM configuration, attaching the built-in `AdministratorAccess` policy to your IAM user will make getting started much easier. If you would like to limit IAM permissions, continue reading.
+
+### Cluster spin-up
+
+Spinning up Cortex on your AWS account requires more permissions that Cortex needs once it's running. You can specify different credentials for each purpose in two ways:
+
+1. You can export the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` which will be used to create your cluster, and export `CORTEX_AWS_ACCESS_KEY_ID` and `CORTEX_AWS_SECRET_ACCESS_KEY` which will be used by the cluster.
+
+2. If you are using a cluster configuration file (e.g. `cluster.yaml`), you can set the fields `aws_access_key_id` and `aws_secret_access_key` which will be used to create your cluster, and set `cortex_aws_access_key_id` and `cortex_aws_secret_access_key` which will be used by the cluster.
+
+In either case, the credentials used when spinning up the cluster will not be used by the cluster itself, and can be safely revoked after the cluster is running. You may need credentials with similar access to run other `cortex cluster` commands, such as `cortex cluster update`, `cortex cluster info`, and `cortex cluster down`.
 
 ### Operator
 
@@ -39,13 +49,11 @@ The operator requires read permissions for any S3 bucket containing exported mod
 }
 ```
 
+It is possible to further restrict access by limiting access to particular resources (e.g. allowing access to only the bucket containing your models and the cortex bucket).
+
 ### CLI
 
 In order to connect to the operator via the CLI, you must provide valid AWS credentials for any user with access to the account. No special permissions are required. The CLI can be configured using the `cortex configure` command.
-
-## API access
-
-By default, your Cortex APIs will be accessible to all traffic. You can restrict access using AWS security groups. Specifically, you will need to edit the security group with the description: "Security group for Kubernetes ELB <ELB name> (istio-system/ingressgateway-apis)".
 
 ## HTTPS
 
