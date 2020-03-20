@@ -99,7 +99,7 @@ var _upCmd = &cobra.Command{
 		clusterState := getClusterState(awsClient, clusterConfig)
 		err = assertClusterStatus(clusterConfig.ClusterName, *clusterConfig.Region, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
 		if err != nil {
-			exit.Error(errors.Wrap(err, "cannot spin up cluster"))
+			exit.Error(errors.Wrap(err, "cluster up"))
 		}
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
@@ -146,7 +146,7 @@ var _updateCmd = &cobra.Command{
 		clusterState := getClusterState(awsClient, clusterConfig)
 		err = assertClusterStatus(clusterConfig.ClusterName, *clusterConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
 		if err != nil {
-			exit.Error(errors.Wrap(err, "cannot update cluster"))
+			exit.Error(errors.Wrap(err, "cluster update"))
 		}
 
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
@@ -267,7 +267,7 @@ var _downCmd = &cobra.Command{
 		clusterState := getClusterState(awsClient, &clusterConfig)
 		err = assertClusterStatus(clusterConfig.ClusterName, *clusterConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
 		if err != nil {
-			exit.Error(errors.Wrap(err, "cannot delete cluster"))
+			exit.Error(errors.Wrap(err, "cluster down"))
 		}
 
 		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", "")
