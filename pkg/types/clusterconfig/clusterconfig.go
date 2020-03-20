@@ -17,6 +17,7 @@ limitations under the License.
 package clusterconfig
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -458,6 +459,8 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 }
 
 func (cc *Config) Validate(awsClient *aws.Client) error {
+	fmt.Print("verifying your configuration...\n\n")
+
 	if cc.Spot != nil && *cc.Spot && len(cc.SpotConfig.InstanceDistribution) >= 0 {
 		cleanedDistribution := []string{*cc.InstanceType}
 		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
@@ -634,9 +637,7 @@ func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceM
 
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
 	chosenInstance := aws.InstanceMetadatas[region][instanceType]
-	if len(spotConfig.InstanceDistribution) == 0 {
-		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
-
+	if len(spotConfig.InstanceDistribution) == 1 {
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
