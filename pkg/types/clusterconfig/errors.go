@@ -154,7 +154,7 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 func ErrorInvalidAvailabilityZone(userZone string, allZones strset.Set) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAvailabilityZone,
-		Message: fmt.Sprintf("%s is not an availability zone; please choose from the following availability zones: %s", userZone, s.UserStrsOr(allZones.SliceSorted())),
+		Message: fmt.Sprintf("%s is not an availability zone; please choose from the following availability zones: %s", s.UserStr(userZone), s.UserStrsOr(allZones.SliceSorted())),
 	})
 }
 
