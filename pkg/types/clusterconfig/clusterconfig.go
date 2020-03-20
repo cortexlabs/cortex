@@ -491,7 +491,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if err := cc.setAvailabilityZones(awsClient); err != nil {
+	if err := cc.validateAvailabilityZones(awsClient); err != nil {
 		return errors.Wrap(err, AvailabilityZonesKey)
 	}
 

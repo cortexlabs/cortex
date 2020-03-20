@@ -23,7 +23,7 @@ import (
 
 var _azBlacklist = strset.New("us-east-1e")
 
-func (cc *Config) setAvailabilityZones(awsClient *aws.Client) error {
+func (cc *Config) validateAvailabilityZones(awsClient *aws.Client) error {
 	var extraInstances []string
 	if cc.Spot != nil && *cc.Spot && len(cc.SpotConfig.InstanceDistribution) >= 0 {
 		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
