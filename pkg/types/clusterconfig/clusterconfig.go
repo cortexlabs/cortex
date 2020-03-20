@@ -30,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
@@ -459,6 +458,16 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 }
 
 func (cc *Config) Validate(awsClient *aws.Client) error {
+	if cc.Spot != nil && *cc.Spot && len(cc.SpotConfig.InstanceDistribution) >= 0 {
+		cleanedDistribution := []string{*cc.InstanceType}
+		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
+			if instanceType != *cc.InstanceType {
+				cleanedDistribution = append(cleanedDistribution, instanceType)
+			}
+		}
+		cc.SpotConfig.InstanceDistribution = cleanedDistribution
+	}
+
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
@@ -479,21 +488,13 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if len(cc.AvailabilityZones) > 0 {
-		zones, err := awsClient.GetAvailabilityZones()
-		if err != nil {
-			return err
-		}
-		zoneSet := strset.New(zones...)
-
-		for _, az := range cc.AvailabilityZones {
-			if !zoneSet.Has(az) {
-				return errors.Wrap(ErrorInvalidAvailabilityZone(az, zones), AvailabilityZonesKey)
-			}
-		}
+	if err := cc.setAvailabilityZones(awsClient); err != nil {
+		return errors.Wrap(err, AvailabilityZonesKey)
 	}
 
 	if cc.Spot != nil && *cc.Spot {
+		cc.AutoFillSpot(awsClient)
+
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, cc.SpotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
@@ -644,11 +645,8 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 		for _, instance := range compatibleSpots {
 			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instance.Type)
 		}
-	} else {
-		instanceDistributionSet := strset.New(spotConfig.InstanceDistribution...)
-		instanceDistributionSet.Remove(instanceType)
-		spotConfig.InstanceDistribution = append([]string{instanceType}, instanceDistributionSet.Slice()...)
 	}
+
 	if spotConfig.MaxPrice == nil {
 		spotConfig.MaxPrice = &chosenInstance.Price
 	}
@@ -961,9 +959,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 
 	items.Add(ClusterNameUserKey, cc.ClusterName)
 	items.Add(RegionUserKey, *cc.Region)
-	if len(cc.AvailabilityZones) > 0 {
-		items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
-	}
+	items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
 	items.Add(BucketUserKey, cc.Bucket)
 	items.Add(InstanceTypeUserKey, *cc.InstanceType)
 	items.Add(MinInstancesUserKey, *cc.MinInstances)

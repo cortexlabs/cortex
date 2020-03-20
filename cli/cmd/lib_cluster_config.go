@@ -152,10 +152,6 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 		return nil, err
 	}
 
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		clusterConfig.AutoFillSpot(awsClient)
-	}
-
 	err = clusterConfig.Validate(awsClient)
 	if err != nil {
 		if _flagClusterConfig != "" {
@@ -391,9 +387,7 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
 	}
 	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
-	if len(clusterConfig.AvailabilityZones) > 0 {
-		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
-	}
+	items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
 	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
 	if clusterConfig.LogGroup != defaultConfig.LogGroup {
