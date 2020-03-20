@@ -95,7 +95,7 @@ func (c *Client) ListAvailabilityZones() (strset.Set, error) {
 	return zones, nil
 }
 
-func (c *Client) listCompatibleAvailabilityZonesSingle(instanceType string) (strset.Set, error) {
+func (c *Client) listSupportedAvailabilityZonesSingle(instanceType string) (strset.Set, error) {
 	input := &ec2.DescribeReservedInstancesOfferingsInput{
 		InstanceType:       &instanceType,
 		IncludeMarketplace: aws.Bool(false),
@@ -132,7 +132,7 @@ func (c *Client) ListSupportedAvailabilityZones(instanceType string, instanceTyp
 	for i := range allInstanceTypes {
 		localIdx := i
 		fns[i] = func() error {
-			zones, err := c.listCompatibleAvailabilityZonesSingle(allInstanceTypes[localIdx])
+			zones, err := c.listSupportedAvailabilityZonesSingle(allInstanceTypes[localIdx])
 			if err != nil {
 				return err
 			}
