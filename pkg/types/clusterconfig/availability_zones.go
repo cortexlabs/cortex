@@ -89,10 +89,9 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, instanceT
 
 	supportedZones, err := awsClient.ListSupportedAvailabilityZones(instanceType, instanceTypes...)
 	if err != nil {
-		return nil // Skip validation
+		// Skip validation instance-based validation
+		supportedZones = strset.Difference(allZones, _azBlacklist)
 	}
-
-	supportedZones.Subtract(_azBlacklist)
 
 	for _, userZone := range cc.AvailabilityZones {
 		if !supportedZones.Has(userZone) {
