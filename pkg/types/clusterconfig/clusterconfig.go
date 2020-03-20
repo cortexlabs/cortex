@@ -960,7 +960,9 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 
 	items.Add(ClusterNameUserKey, cc.ClusterName)
 	items.Add(RegionUserKey, *cc.Region)
-	items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
+	if len(cc.AvailabilityZones) > 0 {
+		items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
+	}
 	items.Add(BucketUserKey, cc.Bucket)
 	items.Add(InstanceTypeUserKey, *cc.InstanceType)
 	items.Add(MinInstancesUserKey, *cc.MinInstances)

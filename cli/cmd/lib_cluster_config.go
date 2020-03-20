@@ -387,7 +387,9 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
 	}
 	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
-	items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
+	if len(clusterConfig.AvailabilityZones) > 0 {
+		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
+	}
 	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
 	if clusterConfig.LogGroup != defaultConfig.LogGroup {
