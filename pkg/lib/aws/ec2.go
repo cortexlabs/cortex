@@ -69,11 +69,11 @@ func (c *Client) SpotInstancePrice(region string, instanceType string) (float64,
 func (c *Client) ListAvailabilityZones() (strset.Set, error) {
 	input := &ec2.DescribeAvailabilityZonesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("region-name"),
 				Values: []*string{aws.String(c.Region)},
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("state"),
 				Values: []*string{aws.String(ec2.AvailabilityZoneStateAvailable)},
 			},
@@ -100,7 +100,7 @@ func (c *Client) listSupportedAvailabilityZonesSingle(instanceType string) (strs
 		InstanceType:       &instanceType,
 		IncludeMarketplace: aws.Bool(false),
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("scope"),
 				Values: []*string{aws.String(ec2.ScopeAvailabilityZone)},
 			},
