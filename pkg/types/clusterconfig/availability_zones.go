@@ -48,10 +48,16 @@ func (cc *Config) setAvailabilityZones(awsClient *aws.Client) error {
 }
 
 func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, instanceType string, instanceTypes ...string) error {
-	zones, err := getSupportedZones(awsClient, instanceType, instanceTypes...)
+	zones, err := awsClient.ListSupportedAvailabilityZones(instanceType, instanceTypes...)
 	if err != nil {
-		return err
+		// Try again without checking instance types
+		zones, err = awsClient.ListAvailabilityZones()
+		if err != nil {
+			return nil // Let eksctl choose the availability zones
+		}
 	}
+
+	zones.Subtract(_azBlacklist)
 
 	if len(zones) < 2 {
 		return ErrorNotEnoughDefaultSupportedZones(awsClient.Region, zones, instanceType, instanceTypes...)
@@ -70,9 +76,9 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, instanceTyp
 }
 
 func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, instanceType string, instanceTypes ...string) error {
-	allZones, err := awsClient.GetAvailabilityZones()
+	allZones, err := awsClient.ListAvailabilityZones()
 	if err != nil {
-		return err
+		return nil // Skip validation
 	}
 
 	for _, userZone := range cc.AvailabilityZones {
@@ -81,10 +87,12 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, instanceT
 		}
 	}
 
-	supportedZones, err := getSupportedZones(awsClient, instanceType, instanceTypes...)
+	supportedZones, err := awsClient.ListSupportedAvailabilityZones(instanceType, instanceTypes...)
 	if err != nil {
-		return err
+		return nil // Skip validation
 	}
+
+	supportedZones.Subtract(_azBlacklist)
 
 	for _, userZone := range cc.AvailabilityZones {
 		if !supportedZones.Has(userZone) {
@@ -93,15 +101,4 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, instanceT
 	}
 
 	return nil
-}
-
-func getSupportedZones(awsClient *aws.Client, instanceType string, instanceTypes ...string) (strset.Set, error) {
-	zones, err := awsClient.ListSupportedAvailabilityZones(instanceType, instanceTypes...)
-	if err != nil {
-		return nil, err
-	}
-
-	zones.Subtract(_azBlacklist)
-
-	return zones, nil
 }

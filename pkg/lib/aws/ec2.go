@@ -66,7 +66,7 @@ func (c *Client) SpotInstancePrice(region string, instanceType string) (float64,
 	return min, nil
 }
 
-func (c *Client) GetAvailabilityZones() (strset.Set, error) {
+func (c *Client) ListAvailabilityZones() (strset.Set, error) {
 	input := &ec2.DescribeAvailabilityZonesInput{
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
