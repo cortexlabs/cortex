@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -33,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/spf13/cobra"
 )
 
@@ -89,6 +91,16 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		clusterState := getClusterState(awsClient, clusterConfig)
+		err = assertClusterStatus(clusterConfig.ClusterName, *clusterConfig.Region, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
+		if err != nil {
+			exit.Error(errors.Wrap(err, "cannot spin up cluster"))
+		}
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
@@ -124,6 +136,17 @@ var _updateCmd = &cobra.Command{
 		clusterConfig, err := getClusterUpdateConfig(cachedClusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
+		}
+
+		awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		clusterState := getClusterState(awsClient, clusterConfig)
+		err = assertClusterStatus(clusterConfig.ClusterName, *clusterConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+		if err != nil {
+			exit.Error(errors.Wrap(err, "cannot update cluster"))
 		}
 
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
@@ -232,31 +255,34 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfig()
-		if err != nil {
-			exit.Error(err)
-		}
+		clusterConfig := refreshCachedClusterConfig(awsCreds)
 
 		// Check AWS access
-		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
+		awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 		warnIfNotAdmin(awsClient)
 
-		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
+		clusterState := getClusterState(awsClient, &clusterConfig)
+		err = assertClusterStatus(clusterConfig.ClusterName, *clusterConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+		if err != nil {
+			exit.Error(errors.Wrap(err, "cannot delete cluster"))
+		}
 
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
+		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", "")
+
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", clusterConfig.ToAccessConfig(), awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become been fully deleted (https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-). If the stack deletion process has failed, please manually delete the stack from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", *accessConfig.Region, *accessConfig.ClusterName)
+			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become been fully deleted (%s). If the stack deletion process has failed, please manually delete the stack from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", getCloudformationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
 		}
 
-		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+		cachedConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
 		os.Remove(cachedConfigPath)
 	},
 }
@@ -332,4 +358,40 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
 	refreshedClusterConfig := &clusterconfig.Config{}
 	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
 	return *refreshedClusterConfig
+}
+
+func assertClusterStatus(clusterName string, region string, status clusterstate.Status, allowedStatuses ...clusterstate.Status) error {
+	for _, allowedStatus := range allowedStatuses {
+		if status == allowedStatus {
+			return nil
+		}
+	}
+
+	switch status {
+	case clusterstate.StatusCreateInProgress:
+		return ErrorClusterUpInProgress(clusterName, region)
+	case clusterstate.StatusCreateComplete:
+		return ErrorClusterAlreadyCreated(clusterName, region)
+	case clusterstate.StatusDeleteInProgress:
+		return ErrorClusterDownInProgress(clusterName, region)
+	case clusterstate.StatusNotFound:
+		return ErrorClusterDoesNotExist(clusterName, region)
+	case clusterstate.StatusDeleteComplete:
+		return ErrorClusterAlreadyDeleted(clusterName, region)
+	default:
+		return ErrorFailedClusterStatus(status, clusterName, region)
+	}
+}
+
+func getClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config) *clusterstate.ClusterState {
+	state, err := clusterstate.GetClusterState(awsClient, clusterConfig)
+	if err != nil {
+		if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
+			fmt.Println(state.TableString())
+			fmt.Println(fmt.Sprintf("%s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually on your AWS console %s", clusterConfig.ClusterName, *clusterConfig.Region, getCloudformationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
+		}
+		exit.Error(err)
+	}
+
+	return state
 }
