@@ -6,7 +6,7 @@
 1. Update the version in `manager/Dockerfile`
 1. Update `eks.yaml` as necessary (make sure to maintain all Cortex environment variables)
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
-1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.13.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.15.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
 
 ## Kubernetes
 
