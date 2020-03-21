@@ -106,7 +106,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = assertClusterStatus(&accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
+		err = assertClusterStatus(&accessConfig, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
 		if err != nil {
 			exit.Error(errors.Wrap(err, "cluster up"))
 		}
@@ -215,6 +215,9 @@ var _infoCmd = &cobra.Command{
 			}
 			exit.Error(err)
 		}
+
+		fmt.Println(fmt.Sprintf("Cloudformation stacks from: %s", getCloudFormationURLWithAccessConfig(accessConfig)))
+		fmt.Println(clusterState.TableString())
 
 		err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
 		if err != nil {

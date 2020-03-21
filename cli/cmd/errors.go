@@ -241,7 +241,7 @@ func ErrorClusterDoesNotExist(clusterName string, region string) error {
 func ErrorClusterUpInProgress(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUpInProgress,
-		Message: fmt.Sprintf("cluster up for %s in %s is already in progress", clusterName, region),
+		Message: fmt.Sprintf("creation of cluster %s in %s is already in progress", clusterName, region),
 	})
 }
 
@@ -255,7 +255,7 @@ func ErrorClusterAlreadyCreated(clusterName string, region string) error {
 func ErrorClusterDownInProgress(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterDownInProgress,
-		Message: fmt.Sprintf("cluster down for %s in %s is already in progress", clusterName, region),
+		Message: fmt.Sprintf("deletion of cluster %s in %s is already in progress", clusterName, region),
 	})
 }
 
