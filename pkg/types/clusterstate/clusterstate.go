@@ -75,13 +75,30 @@ func all(statuses []string, allowedStatus string, allowedStatuses ...string) boo
 }
 
 func (cs ClusterState) TableString() string {
+	rows := make([][]interface{}, len(cs.StatusMap))
+	rows[0] = []interface{}{
+		cs.ControlPlane, cs.StatusMap[cs.ControlPlane],
+	}
+
+	for idx, nodeGroupName := range cs.NodeGroups {
+		rows[idx+1] = []interface{}{nodeGroupName, cs.StatusMap[nodeGroupName]}
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{
+				Title: "CloudFormation Stack name",
+			},
+			{
+				Title: "Status",
+			},
+		},
+		Rows: rows,
+	}
 	var items table.KeyValuePairs
 	items.Add(cs.ControlPlane, cs.StatusMap[cs.ControlPlane])
 
-	for _, nodeGroupName := range cs.NodeGroups {
-		items.Add(nodeGroupName, cs.StatusMap[nodeGroupName])
-	}
-	return items.String()
+	return t.MustFormat()
 }
 
 func getStatus(statusMap map[string]string, controlPlane string) (Status, error) {

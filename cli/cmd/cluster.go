@@ -216,8 +216,9 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		fmt.Println(fmt.Sprintf("Cloudformation stacks from: %s", getCloudFormationURLWithAccessConfig(accessConfig)))
 		fmt.Println(clusterState.TableString())
+		fmt.Println(fmt.Sprintf("More information can be found on your AWS console %s", getCloudFormationURLWithAccessConfig(accessConfig)))
+		fmt.Println()
 
 		err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
 		if err != nil {
