@@ -35,10 +35,6 @@ func errStrFailedToConnect(u url.URL) string {
 	return "failed to connect to " + urls.TrimQueryParamsURL(u)
 }
 
-func getCloudformationURL(clusterName, region string) string {
-	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", region, clusterName)
-}
-
 const (
 	ErrCLINotConfigured              = "cli.cli_not_configured"
 	ErrCortexYAMLNotFound            = "cli.cortex_yaml_not_found"
