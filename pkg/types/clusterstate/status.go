@@ -19,11 +19,12 @@ package clusterstate
 type Status string
 
 const (
-	StatusNotFound         Status = "not_found"
-	StatusCreateInProgress Status = "create_in_progress"
-	StatusCreateFailed     Status = "create_failed"
-	StatusCreateComplete   Status = "create_complete"
-	StatusDeleteInProgress Status = "delete_in_progress"
-	StatusDeleteComplete   Status = "delete_complete"
-	StatusDeleteFailed     Status = "delete_failed"
+	StatusNotFound             Status = "not_found"
+	StatusCreateInProgress     Status = "create_in_progress"
+	StatusCreateFailed         Status = "create_failed"
+	StatusCreateComplete       Status = "create_complete"
+	StatusDeleteInProgress     Status = "delete_in_progress"
+	StatusDeleteComplete       Status = "delete_complete"
+	StatusDeleteFailed         Status = "delete_failed"
+	StatusCreateFailedTimedOut Status = "create_failed_timed_out"
 )
