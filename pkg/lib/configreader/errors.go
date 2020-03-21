@@ -49,6 +49,9 @@ const (
 	ErrNonStringKeyFound             = "configreader.non_string_key_found"
 	ErrInvalidPrimitiveType          = "configreader.invalid_primitive_type"
 	ErrDuplicatedValue               = "configreader.duplicated_value"
+	ErrTooFewElements                = "configreader.too_few_elements"
+	ErrTooManyElements               = "configreader.too_many_elements"
+	ErrWrongNumberOfElements         = "configreader.wrong_number_of_elements"
 	ErrCannotSetStructField          = "configreader.cannot_set_struct_field"
 	ErrCannotBeNull                  = "configreader.cannot_be_null"
 	ErrCannotBeEmpty                 = "configreader.cannot_be_empty"
@@ -235,6 +238,37 @@ func ErrorDuplicatedValue(val interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicatedValue,
 		Message: fmt.Sprintf("%s is duplicated", s.UserStr(val)),
+	})
+}
+
+func ErrorTooFewElements(minLength int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTooFewElements,
+		Message: fmt.Sprintf("must contain at least %d elements", minLength),
+	})
+}
+
+func ErrorTooManyElements(maxLength int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTooManyElements,
+		Message: fmt.Sprintf("must contain at most %d elements", maxLength),
+	})
+}
+
+func ErrorWrongNumberOfElements(invalidLengths []int) error {
+	invalidElementsStr := "elements"
+	if len(invalidLengths) == 1 && invalidLengths[0] == 1 {
+		invalidElementsStr = "element"
+	}
+
+	invalidLengthStrs := make([]string, len(invalidLengths))
+	for i, length := range invalidLengths {
+		invalidLengthStrs[i] = s.Int(length)
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrWrongNumberOfElements,
+		Message: fmt.Sprintf("cannot contain %s %s", s.StrsOr(invalidLengthStrs), invalidElementsStr),
 	})
 }
 

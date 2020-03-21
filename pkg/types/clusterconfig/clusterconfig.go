@@ -211,6 +211,8 @@ var UserValidation = &cr.StructValidation{
 			StringListValidation: &cr.StringListValidation{
 				AllowEmpty:        true,
 				AllowExplicitNull: true,
+				DisallowDups:      true,
+				InvalidLengths:    []int{1},
 			},
 		},
 		{
