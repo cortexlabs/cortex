@@ -22,7 +22,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -44,8 +43,16 @@ type ClusterState struct {
 	Status       Status
 }
 
-func any(statuses []string, allowedStatuses ...string) bool {
+func is(status string, allowedStatus string, allowedStatuses ...string) bool {
 	statusSet := strset.New(allowedStatuses...)
+	statusSet.Add(allowedStatus)
+
+	return statusSet.Has(status)
+}
+
+func any(statuses []string, allowedStatus string, allowedStatuses ...string) bool {
+	statusSet := strset.New(allowedStatuses...)
+	statusSet.Add(allowedStatus)
 	for _, stackStatus := range statuses {
 		if statusSet.Has(stackStatus) {
 			return true
@@ -55,8 +62,9 @@ func any(statuses []string, allowedStatuses ...string) bool {
 	return false
 }
 
-func all(statuses []string, allowedStatuses ...string) bool {
+func all(statuses []string, allowedStatus string, allowedStatuses ...string) bool {
 	statusSet := strset.New(allowedStatuses...)
+	statusSet.Add(allowedStatus)
 	for _, stackStatus := range statuses {
 		if !statusSet.Has(stackStatus) {
 			return false
@@ -98,7 +106,7 @@ func getStatus(statusMap map[string]string, controlPlane string) (Status, error)
 	}
 
 	// controlplane stack may be created while nodegroup stacks aren't listed in cloudformation stacks during cluster spin up
-	if len(nodeGroupStatuses) == 0 && all([]string{controlPlaneStatus}, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusCreateInProgress) {
+	if len(nodeGroupStatuses) == 0 && is(controlPlaneStatus, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusCreateInProgress) {
 		return StatusCreateInProgress, nil
 	}
 
@@ -146,7 +154,6 @@ func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessCo
 	nodeGroupStackNamesSet := strset.New(operatorStackName, spotStackName, onDemandStackName)
 
 	stackSummaries, err := awsClient.ListEKSStacks(controlPlaneStackName, nodeGroupStackNamesSet)
-	debug.Pp(stackSummaries)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cluster state from cloudformation")
 	}
@@ -157,10 +164,10 @@ func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessCo
 
 	for _, stackSummary := range stackSummaries {
 		statusMap[*stackSummary.StackName] = *stackSummary.StackStatus
-		if *stackSummary.StackName != controlPlaneStackName {
-			nodeGroupStackNames = append(nodeGroupStackNames, *stackSummary.StackName)
-		} else {
+		if *stackSummary.StackName == controlPlaneStackName {
 			controlPlaneCreationTime = *stackSummary.CreationTime
+		} else {
+			nodeGroupStackNames = append(nodeGroupStackNames, *stackSummary.StackName)
 		}
 	}
 
@@ -169,7 +176,7 @@ func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessCo
 	}
 
 	// add a timeout for situations where the control plane is listed in the cloudformation stacks but not the nodegroup stacks
-	if any([]string{statusMap[controlPlaneStackName]}, string(StatusNotFound), cloudformation.StackStatusDeleteComplete) && len(nodeGroupStackNames) == 0 && time.Now().After(controlPlaneCreationTime.Add(30*time.Minute)) {
+	if !is(statusMap[controlPlaneStackName], string(StatusNotFound), cloudformation.StackStatusDeleteComplete) && len(nodeGroupStackNames) == 0 && time.Now().After(controlPlaneCreationTime.Add(30*time.Minute)) {
 		statusMap[operatorStackName] = string(StatusCreateFailedTimedOut)
 	}
 
