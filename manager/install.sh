@@ -24,7 +24,7 @@ arg1="$1"
 function ensure_eks() {
   # Cluster statuses: https://github.com/aws/aws-sdk-go/blob/master/service/eks/api.go#L2785
   set +e
-  cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json)
+  cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json 2> /dev/null)
   cluster_info_exit_code=$?
   set -e
 
@@ -37,13 +37,9 @@ function ensure_eks() {
 
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
-    envsubst < eks_cluster.yaml | eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f -
+    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
 
-    # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
-    kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/release-1.6/config/v1.6/aws-k8s-cni.yaml >/dev/null
-
-    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
-    eksctl create nodegroup --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
+    eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
 
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
