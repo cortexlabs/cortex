@@ -26,6 +26,9 @@ type Int64ListValidation struct {
 	Default           []int64
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	MinLength         int
+	MaxLength         int
+	InvalidLengths    []int
 	Validator         func([]int64) ([]int64, error)
 }
 
@@ -71,6 +74,24 @@ func validateInt64List(val []int64, v *Int64ListValidation) ([]int64, error) {
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()
+		}
+	}
+
+	if v.MinLength != 0 {
+		if len(val) < v.MinLength {
+			return nil, ErrorTooFewElements(v.MinLength)
+		}
+	}
+
+	if v.MaxLength != 0 {
+		if len(val) > v.MaxLength {
+			return nil, ErrorTooManyElements(v.MaxLength)
+		}
+	}
+
+	for _, invalidLength := range v.InvalidLengths {
+		if len(val) == invalidLength {
+			return nil, ErrorWrongNumberOfElements(v.InvalidLengths)
 		}
 	}
 

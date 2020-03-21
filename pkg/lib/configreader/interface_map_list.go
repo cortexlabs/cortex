@@ -26,6 +26,9 @@ type InterfaceMapListValidation struct {
 	Default                []map[string]interface{}
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	MinLength              int
+	MaxLength              int
+	InvalidLengths         []int
 	AllowCortexResources   bool
 	RequireCortexResources bool
 	Validator              func([]map[string]interface{}) ([]map[string]interface{}, error)
@@ -83,6 +86,24 @@ func validateInterfaceMapList(val []map[string]interface{}, v *InterfaceMapListV
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()
+		}
+	}
+
+	if v.MinLength != 0 {
+		if len(val) < v.MinLength {
+			return nil, ErrorTooFewElements(v.MinLength)
+		}
+	}
+
+	if v.MaxLength != 0 {
+		if len(val) > v.MaxLength {
+			return nil, ErrorTooManyElements(v.MaxLength)
+		}
+	}
+
+	for _, invalidLength := range v.InvalidLengths {
+		if len(val) == invalidLength {
+			return nil, ErrorWrongNumberOfElements(v.InvalidLengths)
 		}
 	}
 

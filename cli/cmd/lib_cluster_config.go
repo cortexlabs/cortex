@@ -152,10 +152,6 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 		return nil, err
 	}
 
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		clusterConfig.AutoFillSpot(awsClient)
-	}
-
 	err = clusterConfig.Validate(awsClient)
 	if err != nil {
 		if _flagClusterConfig != "" {
