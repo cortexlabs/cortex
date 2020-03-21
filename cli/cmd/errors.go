@@ -60,7 +60,6 @@ const (
 	ErrClusterDown                   = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames          = "cli.duplicate_cli_env_names"
 	ErrInvalidOperatorEndpoint       = "cli.invalid_operator_endpoint"
-	ErrClusterIsAlreadyRunning       = "cli.invalid_operator_endpoint"
 	ErrClusterUpInProgress           = "cli.cluster_up_in_progress"
 	ErrClusterAlreadyCreated         = "cli.cluster_already_created"
 	ErrClusterDownInProgress         = "cli.cluster_down_in_progress"
@@ -242,7 +241,7 @@ func ErrorClusterDoesNotExist(clusterName string, region string) error {
 func ErrorClusterUpInProgress(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUpInProgress,
-		Message: fmt.Sprintf("cluster %s in %s is already being created", clusterName, region),
+		Message: fmt.Sprintf("cluster up for %s in %s is already in progress", clusterName, region),
 	})
 }
 
@@ -256,7 +255,7 @@ func ErrorClusterAlreadyCreated(clusterName string, region string) error {
 func ErrorClusterDownInProgress(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterDownInProgress,
-		Message: fmt.Sprintf("cluster %s in %s is already being deleted", clusterName, region),
+		Message: fmt.Sprintf("cluster down for %s in %s is already in progress", clusterName, region),
 	})
 }
 
