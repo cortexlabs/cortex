@@ -19,6 +19,7 @@ package strset
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 )
 
@@ -159,7 +160,7 @@ func (s Set) String() string {
 	for item := range s {
 		v = append(v, fmt.Sprintf("%v", item))
 	}
-	return fmt.Sprintf("[\"%s\"]", strings.Join(v, ", "))
+	return fmt.Sprintf("[%s]", strings.Join(v, ", "))
 }
 
 // List returns a slice of all items.
@@ -168,6 +169,13 @@ func (s Set) Slice() []string {
 	for item := range s {
 		v = append(v, item)
 	}
+	return v
+}
+
+// List returns a sorted slice of all items.
+func (s Set) SliceSorted() []string {
+	v := s.Slice()
+	sort.Strings(v)
 	return v
 }
 
@@ -181,12 +189,19 @@ func (s Set) Merge(sets ...Set) {
 	}
 }
 
-// Subtract removes the Set items containing in sets from Set s
+// Subtract removes the Set items contained in sets from Set s
 func (s Set) Subtract(sets ...Set) {
 	for _, set := range sets {
 		for item := range set {
 			delete(s, item)
 		}
+	}
+}
+
+// Remove items until len(s) <= targetLen
+func (s Set) Shrink(targetLen int) {
+	for len(s) > targetLen {
+		s.Pop()
 	}
 }
 

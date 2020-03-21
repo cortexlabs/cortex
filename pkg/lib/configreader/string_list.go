@@ -28,6 +28,9 @@ type StringListValidation struct {
 	AllowExplicitNull      bool
 	AllowEmpty             bool
 	DisallowDups           bool
+	MinLength              int
+	MaxLength              int
+	InvalidLengths         []int
 	AllowCortexResources   bool
 	RequireCortexResources bool
 	Validator              func([]string) ([]string, error)
@@ -91,6 +94,24 @@ func validateStringList(val []string, v *StringListValidation) ([]string, error)
 	if v.DisallowDups {
 		if dups := slices.FindDuplicateStrs(val); len(dups) > 0 {
 			return nil, ErrorDuplicatedValue(dups[0])
+		}
+	}
+
+	if v.MinLength != 0 {
+		if len(val) < v.MinLength {
+			return nil, ErrorTooFewElements(v.MinLength)
+		}
+	}
+
+	if v.MaxLength != 0 {
+		if len(val) > v.MaxLength {
+			return nil, ErrorTooManyElements(v.MaxLength)
+		}
+	}
+
+	for _, invalidLength := range v.InvalidLengths {
+		if len(val) == invalidLength {
+			return nil, ErrorWrongNumberOfElements(v.InvalidLengths)
 		}
 	}
 

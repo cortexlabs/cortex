@@ -17,6 +17,7 @@ limitations under the License.
 package clusterconfig
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -30,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
@@ -211,6 +211,8 @@ var UserValidation = &cr.StructValidation{
 			StringListValidation: &cr.StringListValidation{
 				AllowEmpty:        true,
 				AllowExplicitNull: true,
+				DisallowDups:      true,
+				InvalidLengths:    []int{1},
 			},
 		},
 		{
@@ -459,6 +461,8 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 }
 
 func (cc *Config) Validate(awsClient *aws.Client) error {
+	fmt.Print("verifying your configuration...\n\n")
+
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
@@ -479,21 +483,24 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if len(cc.AvailabilityZones) > 0 {
-		zones, err := awsClient.GetAvailabilityZones()
-		if err != nil {
-			return err
-		}
-		zoneSet := strset.New(zones...)
-
-		for _, az := range cc.AvailabilityZones {
-			if !zoneSet.Has(az) {
-				return errors.Wrap(ErrorInvalidAvailabilityZone(az, zones), AvailabilityZonesKey)
+	// instance_distribution cleanup must be performed before availability_zone cleanup
+	if cc.Spot != nil && *cc.Spot && len(cc.SpotConfig.InstanceDistribution) >= 0 {
+		cleanedDistribution := []string{*cc.InstanceType}
+		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
+			if instanceType != *cc.InstanceType {
+				cleanedDistribution = append(cleanedDistribution, instanceType)
 			}
 		}
+		cc.SpotConfig.InstanceDistribution = cleanedDistribution
+	}
+
+	if err := cc.validateAvailabilityZones(awsClient); err != nil {
+		return errors.Wrap(err, AvailabilityZonesKey)
 	}
 
 	if cc.Spot != nil && *cc.Spot {
+		cc.AutoFillSpot(awsClient)
+
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, cc.SpotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
@@ -633,9 +640,7 @@ func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceM
 
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
 	chosenInstance := aws.InstanceMetadatas[region][instanceType]
-	if len(spotConfig.InstanceDistribution) == 0 {
-		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
-
+	if len(spotConfig.InstanceDistribution) == 1 {
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
@@ -644,11 +649,8 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 		for _, instance := range compatibleSpots {
 			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instance.Type)
 		}
-	} else {
-		instanceDistributionSet := strset.New(spotConfig.InstanceDistribution...)
-		instanceDistributionSet.Remove(instanceType)
-		spotConfig.InstanceDistribution = append([]string{instanceType}, instanceDistributionSet.Slice()...)
 	}
+
 	if spotConfig.MaxPrice == nil {
 		spotConfig.MaxPrice = &chosenInstance.Price
 	}
