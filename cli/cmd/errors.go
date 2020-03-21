@@ -35,6 +35,10 @@ func errStrFailedToConnect(u url.URL) string {
 	return "failed to connect to " + urls.TrimQueryParamsURL(u)
 }
 
+func getCloudFormationURL(clusterName, region string) string {
+	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", region, clusterName)
+}
+
 const (
 	ErrCLINotConfigured              = "cli.cli_not_configured"
 	ErrCortexYAMLNotFound            = "cli.cortex_yaml_not_found"
@@ -266,6 +270,6 @@ func ErrorClusterAlreadyDeleted(clusterName string, region string) error {
 func ErrorFailedClusterStatus(status clusterstate.Status, clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedClusterStatus,
-		Message: fmt.Sprintf("cluster %s in %s encountered an unexpected status %s, please try to delete the cluster with `cortex cluster down` or delete the cloudformation stacks manually on your AWS console %s", clusterName, region, string(status), getCloudformationURL(clusterName, region)),
+		Message: fmt.Sprintf("cluster %s in %s encountered an unexpected status %s, please try to delete the cluster with `cortex cluster down` or delete the cloudformation stacks manually on your AWS console %s", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
 	})
 }

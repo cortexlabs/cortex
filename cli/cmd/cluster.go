@@ -101,7 +101,7 @@ var _upCmd = &cobra.Command{
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
 				fmt.Println(clusterState.TableString())
-				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually on your AWS console %s", clusterConfig.ClusterName, *clusterConfig.Region, getCloudformationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
+				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually on your AWS console %s", clusterConfig.ClusterName, *clusterConfig.Region, getCloudFormationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
 			}
 			exit.Error(err)
 		}
@@ -158,7 +158,7 @@ var _updateCmd = &cobra.Command{
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
 				fmt.Println(clusterState.TableString())
-				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually on your AWS console %s", clusterConfig.ClusterName, *clusterConfig.Region, getCloudformationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
+				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually on your AWS console %s", clusterConfig.ClusterName, *clusterConfig.Region, getCloudFormationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
 			}
 			exit.Error(err)
 		}
@@ -211,7 +211,7 @@ var _infoCmd = &cobra.Command{
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
 				fmt.Println(clusterState.TableString())
-				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually on your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudformationURLWithAccessConfig(accessConfig)))
+				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually on your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
 			}
 			exit.Error(err)
 		}
@@ -309,7 +309,7 @@ var _downCmd = &cobra.Command{
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
 				fmt.Println(clusterState.TableString())
-				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please delete the cloudformation stacks manually on your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudformationURLWithAccessConfig(accessConfig)))
+				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please delete the cloudformation stacks manually on your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
 			}
 			exit.Error(err)
 		}
@@ -328,7 +328,7 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become been fully deleted (%s). If the stack deletion process has failed, please manually delete the stack from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", getCloudformationURLWithAccessConfig(accessConfig))
+			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become been fully deleted (%s). If the stack deletion process has failed, please manually delete the stack from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", getCloudFormationURLWithAccessConfig(accessConfig))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
 		}
@@ -434,10 +434,6 @@ func assertClusterStatus(accessConfig *clusterconfig.AccessConfig, status cluste
 	}
 }
 
-func getCloudformationURLWithAccessConfig(accessConfig *clusterconfig.AccessConfig) string {
-	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", *accessConfig.Region, *accessConfig.ClusterName)
-}
-
-func getCloudformationURL(clusterName, region string) string {
-	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", region, clusterName)
+func getCloudFormationURLWithAccessConfig(accessConfig *clusterconfig.AccessConfig) string {
+	return getCloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)
 }
