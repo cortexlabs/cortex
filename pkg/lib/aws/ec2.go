@@ -118,7 +118,7 @@ func (c *Client) listSupportedAvailabilityZonesSingle(instanceType string) (strs
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return zones, nil

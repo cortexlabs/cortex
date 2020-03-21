@@ -461,16 +461,6 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration...\n\n")
 
-	if cc.Spot != nil && *cc.Spot && len(cc.SpotConfig.InstanceDistribution) >= 0 {
-		cleanedDistribution := []string{*cc.InstanceType}
-		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
-			if instanceType != *cc.InstanceType {
-				cleanedDistribution = append(cleanedDistribution, instanceType)
-			}
-		}
-		cc.SpotConfig.InstanceDistribution = cleanedDistribution
-	}
-
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
@@ -489,6 +479,17 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
 			return errors.Wrap(err, InstanceTypeKey)
 		}
+	}
+
+	// instance_distribution cleanup must be performed before availability_zone cleanup
+	if cc.Spot != nil && *cc.Spot && len(cc.SpotConfig.InstanceDistribution) >= 0 {
+		cleanedDistribution := []string{*cc.InstanceType}
+		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
+			if instanceType != *cc.InstanceType {
+				cleanedDistribution = append(cleanedDistribution, instanceType)
+			}
+		}
+		cc.SpotConfig.InstanceDistribution = cleanedDistribution
 	}
 
 	if err := cc.validateAvailabilityZones(awsClient); err != nil {
