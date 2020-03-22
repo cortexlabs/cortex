@@ -402,11 +402,9 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
 	fmt.Println("fetching cluster configuration ..." + "\n")
 	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
 	if err != nil {
-		os.Remove(cachedConfigPath)
 		exit.Error(err)
 	}
 	if exitCode == nil || *exitCode != 0 {
-		os.Remove(cachedConfigPath)
 		exit.Error(ErrorClusterRefresh(out))
 	}
 
