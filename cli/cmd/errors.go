@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -123,24 +124,29 @@ func ErrorOperatorSocketRead(err error) error {
 	})
 }
 
-func ErrorResponseUnknown(body string) error {
+func ErrorResponseUnknown(body string, statusCode int) error {
+	msg := body
+	if strings.TrimSpace(body) == "" {
+		msg = fmt.Sprintf("empty response (status code %d)", statusCode)
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrResponseUnknown,
-		Message: body,
+		Message: msg,
 	})
 }
 
-func ErrorOperatorResponseUnknown(body string) error {
+func ErrorOperatorResponseUnknown(body string, statusCode int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorResponseUnknown,
-		Message: body,
+		Message: fmt.Sprintf("unexpected response from operator (status code %d): %s", statusCode, body),
 	})
 }
 
-func ErrorOperatorStreamResponseUnknown(body string) error {
+func ErrorOperatorStreamResponseUnknown(body string, statusCode int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorStreamResponseUnknown,
-		Message: body,
+		Message: fmt.Sprintf("unexpected response from operator (status code %d): %s", statusCode, body),
 	})
 }
 

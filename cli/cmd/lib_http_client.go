@@ -218,7 +218,7 @@ func StreamLogs(apiName string) error {
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Message == "" {
-			return ErrorOperatorStreamResponseUnknown(string(bodyBytes))
+			return ErrorOperatorStreamResponseUnknown(string(bodyBytes), response.StatusCode)
 		}
 		return errors.WithStack(&errors.Error{
 			Kind:        output.Kind,
@@ -311,7 +311,7 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
 		if err != nil || output.Message == "" {
-			return nil, ErrorOperatorResponseUnknown(string(bodyBytes))
+			return nil, ErrorOperatorResponseUnknown(string(bodyBytes), response.StatusCode)
 		}
 
 		return nil, errors.WithStack(&errors.Error{
@@ -340,7 +340,7 @@ func (client *GenericClient) MakeRequest(request *http.Request) ([]byte, error) 
 		if err != nil {
 			return nil, errors.Wrap(err, _errStrRead)
 		}
-		return nil, ErrorResponseUnknown(string(bodyBytes))
+		return nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
