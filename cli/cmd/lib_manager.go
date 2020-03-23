@@ -60,7 +60,11 @@ func getDockerClient() (*dockerclient.Client, error) {
 
 func wrapDockerError(err error) error {
 	if dockerclient.IsErrConnectionFailed(err) {
-		return ErrorDockerDaemon()
+		return ErrorConnectToDockerDaemon()
+	}
+
+	if strings.Contains(strings.ToLower(err.Error()), "permission denied") {
+		return ErrorDockerPermissions(err)
 	}
 
 	return errors.WithStack(err)
