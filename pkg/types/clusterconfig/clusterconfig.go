@@ -203,7 +203,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegionsSlice,
+				Validator: validateRegion,
 			},
 		},
 		{
@@ -389,6 +389,20 @@ var UserValidation = &cr.StructValidation{
 	},
 }
 
+func ValidateRegion(region string) error {
+	if !aws.EKSSupportedRegions.Has(region) {
+		return ErrorInvalidRegion(region)
+	}
+	return nil
+}
+
+func validateRegion(region string) (string, error) {
+	if err := ValidateRegion(region); err != nil {
+		return "", err
+	}
+	return region, nil
+}
+
 func validateImageVersion(image string) (string, error) {
 	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
 		return image, nil
@@ -437,7 +451,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegionsSlice,
+				Validator: validateRegion,
 			},
 		},
 		{
@@ -724,8 +738,8 @@ func RegionPrompt(clusterConfig *Config) error {
 					Prompt: RegionUserKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					AllowedValues: aws.EKSSupportedRegionsSlice,
-					Default:       defaults.Region,
+					Validator: validateRegion,
+					Default:   defaults.Region,
 				},
 			},
 		},
@@ -866,8 +880,8 @@ var AccessPromptValidation = &cr.PromptValidation{
 				Prompt: RegionUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegionsSlice,
-				Default:       pointer.String("us-west-2"),
+				Validator: validateRegion,
+				Default:   pointer.String("us-west-2"),
 			},
 		},
 	},
