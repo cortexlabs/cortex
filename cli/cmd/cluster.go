@@ -471,13 +471,14 @@ func CreateBucketIfNotFound(awsClient *aws.Client, bucket string) error {
 		return err
 	}
 	if !bucketFound {
-		fmt.Println("creating a new s3 bucket: ", bucket)
+		fmt.Print("￮ creating a new s3 bucket: ", bucket)
 		err = awsClient.CreateBucket(bucket)
 		if err != nil {
 			return err
 		}
+		fmt.Println(" ✓")
 	} else {
-		fmt.Println("using existing s3 bucket: ", bucket)
+		fmt.Println("￮ using existing s3 bucket:", bucket, "✓")
 	}
 	return nil
 }
@@ -488,13 +489,14 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 		return err
 	}
 	if !logGroupFound {
-		fmt.Println("creating a new cloudwatch log group: ", logGroup)
+		fmt.Print("￮ creating a new cloudwatch log group: ", logGroup)
 		err = awsClient.CreateLogGroup(logGroup)
 		if err != nil {
 			return err
 		}
+		fmt.Println(" ✓")
 	} else {
-		fmt.Println("using existing cloudwatch log group: ", logGroup)
+		fmt.Println("￮ using existing cloudwatch log group:", logGroup, "✓")
 	}
 
 	return nil
