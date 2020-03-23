@@ -24,6 +24,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
 type AWSCredentials struct {
@@ -34,6 +35,10 @@ type AWSCredentials struct {
 }
 
 func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
+	if err := clusterconfig.ValidateRegion(region); err != nil {
+		return nil, err
+	}
+
 	awsClient, err := aws.NewFromCreds(region, awsCreds.AWSAccessKeyID, awsCreds.AWSSecretAccessKey)
 	if err != nil {
 		return nil, err

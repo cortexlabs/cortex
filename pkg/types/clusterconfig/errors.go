@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
 	ErrMinInstancesGreaterThanMax             = "clusterconfig.min_instances_greater_than_max"
 	ErrInstanceTypeNotSupportedInRegion       = "clusterconfig.instance_type_not_supported_in_region"
@@ -51,10 +52,17 @@ const (
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 )
 
+func ErrorInvalidRegion(region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidRegion,
+		Message: fmt.Sprintf("%s is not a valid AWS region, or is an AWS region which is not supported by AWS EKS; please choose one of the following regions: %s", s.UserStr(region), strings.Join(aws.EKSSupportedRegions.SliceSorted(), ", ")),
+	})
+}
+
 func ErrorInstanceTypeTooSmall() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeTooSmall,
-		Message: "Cortex does not support nano or micro instances - please specify a larger instance type",
+		Message: "cortex does not support nano or micro instances - please specify a larger instance type",
 	})
 }
 
