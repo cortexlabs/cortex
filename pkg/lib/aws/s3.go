@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -427,6 +428,39 @@ func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bo
 	}
 
 	return nil
+}
+
+func (c *Client) CreateBucket(bucket string) error {
+	_, err := c.S3().CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String(c.Region),
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "creating bucket", bucket)
+	}
+	return nil
+}
+
+// Checks bucket existence and accessibility with credentials
+func (c *Client) DoesBucketExist(bucket string) (bool, error) {
+	_, err := c.S3().HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound":
+				return false, nil
+			case "Forbidden":
+				return false, ErrorBucketInaccessible(bucket)
+			}
+		}
+		return false, errors.Wrap(err, "bucket", bucket)
+	}
+
+	return true, nil
 }
 
 func GetBucketRegion(bucket string) (string, error) {
