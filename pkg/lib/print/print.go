@@ -24,6 +24,21 @@ import (
 )
 
 func ForUser(msg string) {
+	msgParts := strings.Split(msg, "\n")
+
+	if len(msgParts[0]) > 200 {
+		fmt.Println(msg)
+		return
+	}
+
+	fmt.Println(console.Bold(msgParts[0]))
+
+	if len(msgParts) > 1 {
+		fmt.Println(strings.Join(msgParts[1:], "\n"))
+	}
+}
+
+func ForUserSplitDoubleNewLine(msg string) {
 	msgParts := strings.Split(msg, "\n\n")
 
 	if len(msgParts[0]) > 200 {

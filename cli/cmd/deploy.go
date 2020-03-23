@@ -166,5 +166,5 @@ func deploy(configPath string, force bool) {
 		exit.Error(err, "/deploy", string(response))
 	}
 
-	print.ForUser(deployResponse.Message)
+	print.ForUserSplitDoubleNewLine(deployResponse.Message)
 }
