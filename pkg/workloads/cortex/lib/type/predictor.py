@@ -169,7 +169,7 @@ def _validate_required_fn_args(impl, fn_name, args):
     if not callable(fn):
         raise UserException('"{}" is defined, but is not a function'.format(fn_name))
 
-    argspec = inspect.getargspec(fn)
+    argspec = inspect.getfullargspec(fn)
 
     if argspec.args != args:
         raise UserException(
