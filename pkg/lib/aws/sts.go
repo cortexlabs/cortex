@@ -46,11 +46,11 @@ func (c *Client) AreCredentialsValid() (string, string, bool, error) {
 // Ignores cache, so will re-run on every call to this method
 func (c *Client) CheckCredentials() (string, string, error) {
 	_, _, isValid, err := c.AreCredentialsValid()
-	if !isValid {
-		return "", "", ErrorInvalidAWSCredentials()
-	}
 	if err != nil {
 		return "", "", err
+	}
+	if !isValid {
+		return "", "", ErrorInvalidAWSCredentials()
 	}
 	return *c.accountID, *c.hashedAccountID, nil
 }

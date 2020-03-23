@@ -66,6 +66,68 @@ func (c *Client) SpotInstancePrice(region string, instanceType string) (float64,
 	return min, nil
 }
 
+func (c *Client) ListAllRegions() (strset.Set, error) {
+	result, err := c.EC2().DescribeRegions(&ec2.DescribeRegionsInput{
+		AllRegions: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	regions := strset.New()
+	for _, region := range result.Regions {
+		if region.RegionName != nil {
+			regions.Add(*region.RegionName)
+		}
+	}
+
+	return regions, nil
+}
+
+// Returns only regions that are enabled for your account
+func (c *Client) ListEnabledRegions() (strset.Set, error) {
+	result, err := c.EC2().DescribeRegions(&ec2.DescribeRegionsInput{
+		AllRegions: aws.Bool(false),
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	regions := strset.New()
+	for _, region := range result.Regions {
+		if region.RegionName != nil {
+			regions.Add(*region.RegionName)
+		}
+	}
+
+	return regions, nil
+}
+
+// Returns all regions and enabled regions
+func (c *Client) ListRegions() (strset.Set, strset.Set, error) {
+	var allRegions strset.Set
+	var enabledRegions strset.Set
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			allRegions, err = c.ListAllRegions()
+			return err
+		},
+		func() error {
+			var err error
+			enabledRegions, err = c.ListEnabledRegions()
+			return err
+		},
+	)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return allRegions, enabledRegions, nil
+}
+
 func (c *Client) ListAvailabilityZones() (strset.Set, error) {
 	input := &ec2.DescribeAvailabilityZonesInput{
 		Filters: []*ec2.Filter{

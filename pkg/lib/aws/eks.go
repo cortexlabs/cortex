@@ -17,19 +17,14 @@ limitations under the License.
 package aws
 
 import (
-	"sort"
-
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 var EKSSupportedRegions strset.Set
-var EKSSupportedRegionsSlice []string
 
 func init() {
 	EKSSupportedRegions = strset.New()
 	for region := range InstanceMetadatas {
 		EKSSupportedRegions.Add(region)
 	}
-	EKSSupportedRegionsSlice = EKSSupportedRegions.Slice()
-	sort.Strings(EKSSupportedRegionsSlice)
 }
