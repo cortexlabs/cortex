@@ -19,6 +19,8 @@ package cmd
 import (
 	"fmt"
 	"net/url"
+	"runtime"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -38,6 +40,7 @@ const (
 	ErrCLINotConfigured              = "cli.cli_not_configured"
 	ErrCortexYAMLNotFound            = "cli.cortex_yaml_not_found"
 	ErrDockerDaemon                  = "cli.docker_daemon"
+	ErrDockerPermissions             = "cli.docker_permissions"
 	ErrDockerCtrlC                   = "cli.docker_ctrl_c"
 	ErrAPINotReady                   = "cli.api_not_ready"
 	ErrFailedToConnectOperator       = "cli.failed_to_connect_operator"
@@ -77,9 +80,28 @@ func ErrorCortexYAMLNotFound() error {
 }
 
 func ErrorDockerDaemon() error {
+	installMsg := "install it by following the instructions for you operating system: https://docs.docker.com/install"
+	if strings.HasPrefix(runtime.GOOS, "darwin") {
+		installMsg = "install it here: https://docs.docker.com/docker-for-mac/install"
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDockerDaemon,
-		Message: "unable to connect to the Docker daemon, please confirm Docker is running",
+		Message: fmt.Sprintf("unable to connect to the Docker daemon\n\nplease confirm Docker is running, or if Docker is not installed, %s", installMsg),
+	})
+}
+
+func ErrorDockerPermissions(err error) error {
+	errStr := errors.Message(err)
+
+	var groupAddStr string
+	if strings.HasPrefix(runtime.GOOS, "linux") {
+		groupAddStr = " (e.g. by running `sudo groupadd docker && sudo gpasswd -a $USER docker`)"
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDockerPermissions,
+		Message: errStr + "\n\nyou can re-run this command with `sudo`, or grant your current user access to docker" + groupAddStr,
 	})
 }
 

@@ -63,6 +63,10 @@ func wrapDockerError(err error) error {
 		return ErrorDockerDaemon()
 	}
 
+	if strings.Contains(strings.ToLower(err.Error()), "permission denied") {
+		return ErrorDockerPermissions(err)
+	}
+
 	return errors.WithStack(err)
 }
 
