@@ -628,9 +628,14 @@ func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceM
 
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
 	chosenInstance := aws.InstanceMetadatas[region][instanceType]
-	if len(spotConfig.InstanceDistribution) == 0 {
-		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instanceType)
+	cleanedDistribution := []string{instanceType}
+	for _, spotInstance := range spotConfig.InstanceDistribution {
+		if spotInstance != instanceType {
+			cleanedDistribution = append(cleanedDistribution, spotInstance)
+		}
 	}
+	spotConfig.InstanceDistribution = cleanedDistribution
+
 	if len(spotConfig.InstanceDistribution) == 1 {
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {

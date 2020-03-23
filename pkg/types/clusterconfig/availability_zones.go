@@ -24,15 +24,6 @@ import (
 var _azBlacklist = strset.New("us-east-1e")
 
 func (cc *Config) validateAvailabilityZones(awsClient *aws.Client) error {
-	var extraInstances []string
-	if cc.Spot != nil && *cc.Spot && len(cc.SpotConfig.InstanceDistribution) >= 0 {
-		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
-			if instanceType != *cc.InstanceType {
-				extraInstances = append(extraInstances, instanceType)
-			}
-		}
-	}
-
 	if len(cc.AvailabilityZones) == 0 {
 		if err := cc.setDefaultAvailabilityZones(awsClient); err != nil {
 			return err
