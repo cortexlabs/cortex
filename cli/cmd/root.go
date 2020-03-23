@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -45,18 +46,21 @@ var _flagEnv string
 func init() {
 	cwd, err := os.Getwd()
 	if err != nil {
+		err := errors.Wrap(err, "unable to determine current working directory")
 		exit.Error(err)
 	}
 	_cwd = s.EnsureSuffix(cwd, "/")
 
 	homeDir, err := homedir.Dir()
 	if err != nil {
+		err := errors.Wrap(err, "unable to determine home directory")
 		exit.Error(err)
 	}
 
 	_localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(_localDir, os.ModePerm)
 	if err != nil {
+		err := errors.Wrap(err, "unable to write to home directory", _localDir)
 		exit.Error(err)
 	}
 
