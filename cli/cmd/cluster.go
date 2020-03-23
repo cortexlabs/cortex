@@ -206,9 +206,9 @@ var _infoCmd = &cobra.Command{
 		}
 
 		if _flagDebug {
-			debug(awsCreds, accessConfig)
+			cmdDebug(awsCreds, accessConfig)
 		} else {
-			info(awsCreds, accessConfig)
+			cmdInfo(awsCreds, accessConfig)
 		}
 	},
 }
@@ -317,7 +317,7 @@ func promptForEmail() {
 	}
 }
 
-func info(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
+func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
 	awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
 	if err != nil {
 		exit.Error(err)
@@ -378,7 +378,7 @@ func info(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
 	items.Print()
 }
 
-func debug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
+func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
 	out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
 	if err != nil {
 		exit.Error(err)
