@@ -340,7 +340,7 @@ func info(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
 
 	err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
 	if err != nil {
-		exit.Error(errors.Wrap(err, "cluster info"))
+		exit.Error(err)
 	}
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds)
