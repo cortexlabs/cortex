@@ -34,13 +34,13 @@ func (cc *Config) validateAvailabilityZones(awsClient *aws.Client) error {
 	}
 
 	if len(cc.AvailabilityZones) == 0 {
-		if err := cc.setDefaultAvailabilityZones(awsClient, extraInstances...); err != nil {
+		if err := cc.setDefaultAvailabilityZones(awsClient); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if err := cc.validateUserAvailabilityZones(awsClient, extraInstances...); err != nil {
+	if err := cc.validateUserAvailabilityZones(awsClient); err != nil {
 		return err
 	}
 

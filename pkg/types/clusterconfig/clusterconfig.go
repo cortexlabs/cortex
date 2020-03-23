@@ -483,24 +483,12 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	// instance_distribution cleanup must be performed before availability_zone cleanup
-	if cc.Spot != nil && *cc.Spot && len(cc.SpotConfig.InstanceDistribution) >= 0 {
-		cleanedDistribution := []string{*cc.InstanceType}
-		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
-			if instanceType != *cc.InstanceType {
-				cleanedDistribution = append(cleanedDistribution, instanceType)
-			}
-		}
-		cc.SpotConfig.InstanceDistribution = cleanedDistribution
-	}
-
 	if err := cc.validateAvailabilityZones(awsClient); err != nil {
 		return errors.Wrap(err, AvailabilityZonesKey)
 	}
 
 	if cc.Spot != nil && *cc.Spot {
 		cc.AutoFillSpot(awsClient)
-
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, cc.SpotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
@@ -640,6 +628,9 @@ func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceM
 
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
 	chosenInstance := aws.InstanceMetadatas[region][instanceType]
+	if len(spotConfig.InstanceDistribution) == 0 {
+		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instanceType)
+	}
 	if len(spotConfig.InstanceDistribution) == 1 {
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
