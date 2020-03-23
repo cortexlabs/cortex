@@ -39,7 +39,7 @@ func errStrFailedToConnect(u url.URL) string {
 const (
 	ErrCLINotConfigured              = "cli.cli_not_configured"
 	ErrCortexYAMLNotFound            = "cli.cortex_yaml_not_found"
-	ErrDockerDaemon                  = "cli.docker_daemon"
+	ErrConnectToDockerDaemon         = "cli.connect_to_docker_daemon"
 	ErrDockerPermissions             = "cli.docker_permissions"
 	ErrDockerCtrlC                   = "cli.docker_ctrl_c"
 	ErrAPINotReady                   = "cli.api_not_ready"
@@ -79,14 +79,14 @@ func ErrorCortexYAMLNotFound() error {
 	})
 }
 
-func ErrorDockerDaemon() error {
-	installMsg := "install it by following the instructions for you operating system: https://docs.docker.com/install"
+func ErrorConnectToDockerDaemon() error {
+	installMsg := "install it by following the instructions for your operating system: https://docs.docker.com/install"
 	if strings.HasPrefix(runtime.GOOS, "darwin") {
 		installMsg = "install it here: https://docs.docker.com/docker-for-mac/install"
 	}
 
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDockerDaemon,
+		Kind:    ErrConnectToDockerDaemon,
 		Message: fmt.Sprintf("unable to connect to the Docker daemon\n\nplease confirm Docker is running, or if Docker is not installed, %s", installMsg),
 	})
 }
