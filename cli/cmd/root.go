@@ -55,15 +55,13 @@ func init() {
 	if err != nil {
 		err := errors.Wrap(err, "unable to determine home directory")
 		exit.Error(err)
-		// homeDir = _cwd  // TODO would this make sense instead?
 	}
 
 	_localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(_localDir, os.ModePerm)
 	if err != nil {
-		err := errors.Wrap(err, "unable to write to home directory")
+		err := errors.Wrap(err, "unable to write to home directory", _localDir)
 		exit.Error(err)
-		// TODO should we try cwd if this fails?
 	}
 
 	_cliConfigPath = filepath.Join(_localDir, "cli.yaml")
