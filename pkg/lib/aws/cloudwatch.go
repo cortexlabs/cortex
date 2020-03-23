@@ -30,7 +30,7 @@ func (c *Client) DoesLogGroupExist(logGroup string) (bool, error) {
 		if CheckErrCode(err, "ResourceNotFoundException") {
 			return false, nil
 		}
-		return false, errors.Wrap(err, "log group", logGroup)
+		return false, errors.Wrap(err, "log group "+logGroup)
 	}
 
 	return true, nil
@@ -41,7 +41,7 @@ func (c *Client) CreateLogGroup(logGroup string) error {
 		LogGroupName: aws.String(logGroup),
 	})
 	if err != nil {
-		return errors.Wrap(err, "creating log group", logGroup)
+		return errors.Wrap(err, "creating log group "+logGroup)
 	}
 
 	return nil

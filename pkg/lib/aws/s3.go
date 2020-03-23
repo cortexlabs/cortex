@@ -431,14 +431,18 @@ func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bo
 }
 
 func (c *Client) CreateBucket(bucket string) error {
-	_, err := c.S3().CreateBucket(&s3.CreateBucketInput{
-		Bucket: aws.String(bucket),
-		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+	var bucketConfiguration *s3.CreateBucketConfiguration
+	if c.Region != "us-east-1" {
+		bucketConfiguration = &s3.CreateBucketConfiguration{
 			LocationConstraint: aws.String(c.Region),
-		},
+		}
+	}
+	_, err := c.S3().CreateBucket(&s3.CreateBucketInput{
+		Bucket:                    aws.String(bucket),
+		CreateBucketConfiguration: bucketConfiguration,
 	})
 	if err != nil {
-		return errors.Wrap(err, "creating bucket", bucket)
+		return errors.Wrap(err, "creating bucket "+bucket)
 	}
 	return nil
 }
@@ -457,7 +461,7 @@ func (c *Client) DoesBucketExist(bucket string) (bool, error) {
 				return false, ErrorBucketInaccessible(bucket)
 			}
 		}
-		return false, errors.Wrap(err, "bucket", bucket)
+		return false, errors.Wrap(err, "bucket "+bucket)
 	}
 
 	return true, nil
