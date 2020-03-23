@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/spf13/cobra"
 )
 
@@ -89,6 +90,26 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		accessConfig := clusterConfig.ToAccessConfig()
+
+		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		clusterState, err := clusterstate.GetClusterState(awsClient, &accessConfig)
+		if err != nil {
+			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
+				fmt.Println(clusterState.TableString())
+				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually in your AWS console %s", clusterConfig.ClusterName, *clusterConfig.Region, getCloudFormationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
+			}
+			exit.Error(err)
+		}
+
+		err = assertClusterStatus(&accessConfig, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
+		if err != nil {
+			exit.Error(err)
+		}
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
@@ -115,6 +136,30 @@ var _updateCmd = &cobra.Command{
 		}
 
 		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		accessConfig, err := getClusterAccessConfig()
+		if err != nil {
+			exit.Error(err)
+		}
+
+		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		if err != nil {
+			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
+				fmt.Println(clusterState.TableString())
+				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually in your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+			}
+			exit.Error(err)
+		}
+
+		err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -155,64 +200,16 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if _flagDebug {
-			accessConfig, err := getClusterAccessConfig()
-			if err != nil {
-				exit.Error(err)
-			}
-
-			out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
-			if err != nil {
-				exit.Error(err)
-			}
-			if exitCode == nil || *exitCode != 0 {
-				exit.Error(ErrorClusterDebug(out))
-			}
-
-			timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
-			userDebugPath := fmt.Sprintf("cortex-debug-%s.tgz", timestamp) // note: if modifying this string, also change it in files.IgnoreCortexDebug()
-			err = os.Rename(_debugPath, userDebugPath)
-			if err != nil {
-				exit.Error(errors.WithStack(err))
-			}
-
-			fmt.Println("saved cluster info to ./" + userDebugPath)
-			return
-		}
-
-		clusterConfig := refreshCachedClusterConfig(awsCreds)
-
-		out, exitCode, err := runManagerAccessCommand("/root/info.sh", clusterConfig.ToAccessConfig(), awsCreds)
+		accessConfig, err := getClusterAccessConfig()
 		if err != nil {
 			exit.Error(err)
 		}
-		if exitCode == nil || *exitCode != 0 {
-			exit.Error(ErrorClusterInfo(out))
+
+		if _flagDebug {
+			cmdDebug(awsCreds, accessConfig)
+		} else {
+			cmdInfo(awsCreds, accessConfig)
 		}
-
-		fmt.Println()
-
-		httpResponse, err := HTTPGet("/info")
-		if err != nil {
-			fmt.Println(clusterConfig.UserStr())
-			fmt.Println("\n" + errors.Message(err, "unable to connect to operator"))
-			return
-		}
-
-		var infoResponse schema.InfoResponse
-		err = json.Unmarshal(httpResponse, &infoResponse)
-		if err != nil {
-			fmt.Println(clusterConfig.UserStr())
-			fmt.Println("\n" + errors.Message(err, "unable to parse operator response"))
-			return
-		}
-		infoResponse.ClusterConfig.Config = clusterConfig
-
-		var items table.KeyValuePairs
-		items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
-		items.AddAll(infoResponse.ClusterConfig.UserTable())
-
-		items.Print()
 	},
 }
 
@@ -244,6 +241,22 @@ var _downCmd = &cobra.Command{
 		}
 		warnIfNotAdmin(awsClient)
 
+		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		if err != nil {
+			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
+				fmt.Println(clusterState.TableString())
+				fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please delete the cloudformation stacks manually in your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+			}
+			exit.Error(err)
+		}
+
+		switch clusterState.Status {
+		case clusterstate.StatusNotFound:
+			exit.Error(ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region))
+		case clusterstate.StatusDeleteComplete:
+			exit.Error(ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region))
+		}
+
 		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
@@ -251,7 +264,7 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become been fully deleted (https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-). If the stack deletion process has failed, please manually delete the stack from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", *accessConfig.Region, *accessConfig.ClusterName)
+			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become been fully deleted (%s). If the stack deletion process has failed, please manually delete the stack from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", getCloudFormationURLWithAccessConfig(accessConfig))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
 		}
@@ -304,6 +317,87 @@ func promptForEmail() {
 	}
 }
 
+func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
+	awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+	if err != nil {
+		if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
+			fmt.Println(clusterState.TableString())
+			fmt.Println(fmt.Sprintf("cluster %s in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually in your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+		}
+		exit.Error(err)
+	}
+
+	fmt.Println(clusterState.TableString())
+	if clusterState.Status == clusterstate.StatusCreateFailed || clusterState.Status == clusterstate.StatusDeleteFailed {
+		fmt.Println(fmt.Sprintf("More information can be found in your AWS console %s", getCloudFormationURLWithAccessConfig(accessConfig)))
+		fmt.Println()
+	}
+
+	err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	clusterConfig := refreshCachedClusterConfig(awsCreds)
+
+	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds)
+	if err != nil {
+		exit.Error(err)
+	}
+	if exitCode == nil || *exitCode != 0 {
+		exit.Error(ErrorClusterInfo(out))
+	}
+
+	fmt.Println()
+
+	httpResponse, err := HTTPGet("/info")
+	if err != nil {
+		fmt.Println(clusterConfig.UserStr())
+		fmt.Println("\n" + errors.Message(err, "unable to connect to operator"))
+		return
+	}
+
+	var infoResponse schema.InfoResponse
+	err = json.Unmarshal(httpResponse, &infoResponse)
+	if err != nil {
+		fmt.Println(clusterConfig.UserStr())
+		fmt.Println("\n" + errors.Message(err, "unable to parse operator response"))
+		return
+	}
+	infoResponse.ClusterConfig.Config = clusterConfig
+
+	var items table.KeyValuePairs
+	items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
+	items.AddAll(infoResponse.ClusterConfig.UserTable())
+
+	items.Print()
+}
+
+func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
+	out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
+	if err != nil {
+		exit.Error(err)
+	}
+	if exitCode == nil || *exitCode != 0 {
+		exit.Error(ErrorClusterDebug(out))
+	}
+
+	timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
+	userDebugPath := fmt.Sprintf("cortex-debug-%s.tgz", timestamp) // note: if modifying this string, also change it in files.IgnoreCortexDebug()
+	err = os.Rename(_debugPath, userDebugPath)
+	if err != nil {
+		exit.Error(errors.WithStack(err))
+	}
+
+	fmt.Println("saved cluster info to ./" + userDebugPath)
+	return
+}
+
 func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
 	accessConfig, err := getClusterAccessConfig()
 	if err != nil {
@@ -330,4 +424,31 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
 	refreshedClusterConfig := &clusterconfig.Config{}
 	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
 	return *refreshedClusterConfig
+}
+
+func assertClusterStatus(accessConfig *clusterconfig.AccessConfig, status clusterstate.Status, allowedStatuses ...clusterstate.Status) error {
+	for _, allowedStatus := range allowedStatuses {
+		if status == allowedStatus {
+			return nil
+		}
+	}
+
+	switch status {
+	case clusterstate.StatusCreateInProgress:
+		return ErrorClusterUpInProgress(*accessConfig.ClusterName, *accessConfig.Region)
+	case clusterstate.StatusCreateComplete:
+		return ErrorClusterAlreadyCreated(*accessConfig.ClusterName, *accessConfig.Region)
+	case clusterstate.StatusDeleteInProgress:
+		return ErrorClusterDownInProgress(*accessConfig.ClusterName, *accessConfig.Region)
+	case clusterstate.StatusNotFound:
+		return ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region)
+	case clusterstate.StatusDeleteComplete:
+		return ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region)
+	default:
+		return ErrorFailedClusterStatus(status, *accessConfig.ClusterName, *accessConfig.Region)
+	}
+}
+
+func getCloudFormationURLWithAccessConfig(accessConfig *clusterconfig.AccessConfig) string {
+	return getCloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)
 }

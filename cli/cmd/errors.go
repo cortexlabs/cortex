@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 )
 
 const (
@@ -34,6 +35,10 @@ const (
 
 func errStrFailedToConnect(u url.URL) string {
 	return "failed to connect to " + urls.TrimQueryParamsURL(u)
+}
+
+func getCloudFormationURL(clusterName, region string) string {
+	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", region, clusterName)
 }
 
 const (
@@ -58,6 +63,12 @@ const (
 	ErrClusterDown                   = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames          = "cli.duplicate_cli_env_names"
 	ErrInvalidOperatorEndpoint       = "cli.invalid_operator_endpoint"
+	ErrClusterUpInProgress           = "cli.cluster_up_in_progress"
+	ErrClusterAlreadyCreated         = "cli.cluster_already_created"
+	ErrClusterDownInProgress         = "cli.cluster_down_in_progress"
+	ErrClusterAlreadyDeleted         = "cli.cluster_already_deleted"
+	ErrFailedClusterStatus           = "cli.failed_cluster_status"
+	ErrClusterDoesNotExist           = "cli.cluster_does_not_exist"
 )
 
 func ErrorCLINotConfigured(env string) error {
@@ -145,24 +156,29 @@ func ErrorOperatorSocketRead(err error) error {
 	})
 }
 
-func ErrorResponseUnknown(body string) error {
+func ErrorResponseUnknown(body string, statusCode int) error {
+	msg := body
+	if strings.TrimSpace(body) == "" {
+		msg = fmt.Sprintf("empty response (status code %d)", statusCode)
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrResponseUnknown,
-		Message: body,
+		Message: msg,
 	})
 }
 
-func ErrorOperatorResponseUnknown(body string) error {
+func ErrorOperatorResponseUnknown(body string, statusCode int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorResponseUnknown,
-		Message: body,
+		Message: fmt.Sprintf("unexpected response from operator (status code %d): %s", statusCode, body),
 	})
 }
 
-func ErrorOperatorStreamResponseUnknown(body string) error {
+func ErrorOperatorStreamResponseUnknown(body string, statusCode int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorStreamResponseUnknown,
-		Message: body,
+		Message: fmt.Sprintf("unexpected response from operator (status code %d): %s", statusCode, body),
 	})
 }
 
@@ -239,5 +255,47 @@ func ErrorInvalidOperatorEndpoint(endpoint string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidOperatorEndpoint,
 		Message: fmt.Sprintf("%s is not a cortex operator endpoint; run `cortex cluster info` to show your operator endpoint or run `cortex cluster up` to spin up a new cluster", endpoint),
+	})
+}
+
+func ErrorClusterDoesNotExist(clusterName string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterDoesNotExist,
+		Message: fmt.Sprintf("cluster %s in %s does not exist", clusterName, region),
+	})
+}
+
+func ErrorClusterUpInProgress(clusterName string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterUpInProgress,
+		Message: fmt.Sprintf("creation of cluster %s in %s is currently in progress", clusterName, region),
+	})
+}
+
+func ErrorClusterAlreadyCreated(clusterName string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterAlreadyCreated,
+		Message: fmt.Sprintf("cluster %s in %s has already been created", clusterName, region),
+	})
+}
+
+func ErrorClusterDownInProgress(clusterName string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterDownInProgress,
+		Message: fmt.Sprintf("deletion of cluster %s in %s is currently in progress", clusterName, region),
+	})
+}
+
+func ErrorClusterAlreadyDeleted(clusterName string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterAlreadyDeleted,
+		Message: fmt.Sprintf("cluster %s in %s has already been deleted or does not exist", clusterName, region),
+	})
+}
+
+func ErrorFailedClusterStatus(status clusterstate.Status, clusterName string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFailedClusterStatus,
+		Message: fmt.Sprintf("cluster %s in %s encountered an unexpected status %s, please try to delete the cluster with `cortex cluster down` or delete the cloudformation stacks manually in your AWS console %s", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
 	})
 }
