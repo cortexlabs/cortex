@@ -80,8 +80,12 @@ func (cs ClusterState) TableString() string {
 		cs.ControlPlane, cs.StatusMap[cs.ControlPlane],
 	}
 
-	for idx, nodeGroupName := range cs.NodeGroups {
-		rows[idx+1] = []interface{}{nodeGroupName, cs.StatusMap[nodeGroupName]}
+	idx := 1
+	for _, nodeGroupName := range cs.NodeGroups {
+		if status, ok := cs.StatusMap[nodeGroupName]; ok {
+			rows[idx] = []interface{}{nodeGroupName, status}
+			idx++
+		}
 	}
 
 	t := table.Table{
