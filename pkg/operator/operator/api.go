@@ -142,7 +142,10 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			if keepCache {
 				return nil
 			}
-			return deleteS3Resources(apiName)
+
+			// best effort deletion
+			deleteS3Resources(apiName)
+			return nil
 		},
 	)
 
