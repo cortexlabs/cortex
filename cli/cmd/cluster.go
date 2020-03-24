@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -110,6 +111,17 @@ var _upCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+
+		err = CreateBucketIfNotFound(awsClient, clusterConfig.Bucket)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = CreateLogGroupIfNotFound(awsClient, clusterConfig.LogGroup)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
 		if err != nil {
 			exit.Error(err)
@@ -451,4 +463,41 @@ func assertClusterStatus(accessConfig *clusterconfig.AccessConfig, status cluste
 
 func getCloudFormationURLWithAccessConfig(accessConfig *clusterconfig.AccessConfig) string {
 	return getCloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)
+}
+
+func CreateBucketIfNotFound(awsClient *aws.Client, bucket string) error {
+	bucketFound, err := awsClient.DoesBucketExist(bucket)
+	if err != nil {
+		return err
+	}
+	if !bucketFound {
+		fmt.Print("￮ creating a new s3 bucket: ", bucket)
+		err = awsClient.CreateBucket(bucket)
+		if err != nil {
+			return err
+		}
+		fmt.Println(" ✓")
+	} else {
+		fmt.Println("￮ using existing s3 bucket:", bucket, "✓")
+	}
+	return nil
+}
+
+func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
+	logGroupFound, err := awsClient.DoesLogGroupExist(logGroup)
+	if err != nil {
+		return err
+	}
+	if !logGroupFound {
+		fmt.Print("￮ creating a new cloudwatch log group: ", logGroup)
+		err = awsClient.CreateLogGroup(logGroup)
+		if err != nil {
+			return err
+		}
+		fmt.Println(" ✓")
+	} else {
+		fmt.Println("￮ using existing cloudwatch log group:", logGroup, "✓")
+	}
+
+	return nil
 }

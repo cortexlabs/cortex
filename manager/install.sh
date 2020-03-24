@@ -131,9 +131,6 @@ function ensure_eks() {
 function main() {
   mkdir -p $CORTEX_CLUSTER_WORKSPACE
 
-  setup_bucket
-  setup_cloudwatch_logs
-
   ensure_eks
 
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
@@ -209,40 +206,6 @@ function main() {
   echo "✓"
 
   echo -e "\ncortex is ready!"
-}
-
-function setup_bucket() {
-  if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
-    if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
-      echo -n "￮ creating s3 bucket: $CORTEX_BUCKET "
-      if [ "$CORTEX_REGION" == "us-east-1" ]; then
-        aws s3api create-bucket --bucket $CORTEX_BUCKET \
-                                --region $CORTEX_REGION \
-                                >/dev/null
-      else
-        aws s3api create-bucket --bucket $CORTEX_BUCKET \
-                                --region $CORTEX_REGION \
-                                --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
-                                >/dev/null
-      fi
-      echo "✓"
-    else
-      echo "error: a bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
-      exit 1
-    fi
-  else
-    echo "￮ using existing s3 bucket: $CORTEX_BUCKET"
-  fi
-}
-
-function setup_cloudwatch_logs() {
-  if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
-    echo -n "￮ creating cloudwatch log group: $CORTEX_LOG_GROUP "
-    aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
-    echo "✓"
-  else
-    echo "￮ using existing cloudwatch log group: $CORTEX_LOG_GROUP"
-  fi
 }
 
 function setup_configmap() {
