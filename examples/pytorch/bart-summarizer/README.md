@@ -1,2 +1,2 @@
 - Please refer to [this](https://sshleifer.github.io/blog_v2/jupyter/2020/03/12/bart.html) to learn more about BART.
-- `prediction_new.py` - uses the summarizer library from [transformers](https://twitter.com/huggingface/status/1242512382800400384?s=20). To use, comment the first line of `requirements.txt` and uncomment 'transformers'. Rename this file to `prediction.py` or point to it from `cortex.yaml`
+- `prediction_new.py` - uses the summarizer library from [transformers](https://twitter.com/huggingface/status/1242512382800400384?s=20). To use, comment 1st line of `requirements.txt` and uncomment 'transformers'. Rename this file to `prediction.py` or point to it from `cortex.yaml`
