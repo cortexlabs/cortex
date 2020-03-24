@@ -153,12 +153,10 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
 
     debug_obj("payload", request, debug)
     prediction = predictor_impl.predict(request)
-    debug_obj("prediction", prediction, debug)
 
-    try:
-        json_string = json.dumps(prediction)
-    except:
-        json_string = util.json_tricks_encoder().encode(prediction)
+    json_string = json.dumps(prediction)
+
+    debug_obj("prediction", json_string, debug)
 
     response = Response(content=json_string, media_type="application/json")
 
