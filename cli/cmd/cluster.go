@@ -369,16 +369,16 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 
 	httpResponse, err := HTTPGet("/info")
 	if err != nil {
-		fmt.Println(clusterConfig.UserStr())
-		fmt.Println("\n" + errors.Message(err, "unable to connect to operator"))
+		fmt.Println(clusterConfig.UserStr() + "\n")
+		exit.Error(err, "unable to connect to operator", "/info")
 		return
 	}
 
 	var infoResponse schema.InfoResponse
 	err = json.Unmarshal(httpResponse, &infoResponse)
 	if err != nil {
-		fmt.Println(clusterConfig.UserStr())
-		fmt.Println("\n" + errors.Message(err, "unable to parse operator response"))
+		fmt.Println(clusterConfig.UserStr() + "\n")
+		exit.Error(err, "/info", string(httpResponse))
 		return
 	}
 	infoResponse.ClusterConfig.Config = clusterConfig

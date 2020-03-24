@@ -76,7 +76,7 @@ func getAPIs() (string, error) {
 
 	var apisRes schema.GetAPIsResponse
 	if err = json.Unmarshal(httpRes, &apisRes); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "/get", string(httpRes))
 	}
 
 	if len(apisRes.APIs) == 0 {
@@ -99,7 +99,7 @@ func getAPI(apiName string) (string, error) {
 
 	var apiRes schema.GetAPIResponse
 	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "/get/"+apiName, string(httpRes))
 	}
 
 	var out string
