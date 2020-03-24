@@ -33,4 +33,4 @@ kubectl -n=default create configmap 'cluster-config' \
     --from-file='cluster.yaml'=tmp_cluster_config.yaml \
     -o yaml --dry-run | kubectl apply -f - >/dev/null
 
-cp tmp_cluster_config.yaml $cached_cluster_config_file
+cat tmp_cluster_config.yaml > $cached_cluster_config_file
