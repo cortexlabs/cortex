@@ -1,7 +1,5 @@
 # Exporting models
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Cortex can deploy models that are exported in a variety of formats. Therefore, it is best practice to export your model by following the recommendations of your machine learning library.
 
 Here are examples for some common ML libraries:
