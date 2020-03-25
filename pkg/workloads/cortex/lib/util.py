@@ -20,26 +20,8 @@ import zipfile
 import msgpack
 import pathlib
 import inspect
-import json_tricks
 from inspect import Parameter
 from copy import deepcopy
-
-
-def json_tricks_encoder(*args, **kwargs):
-    kwargs["primitives"] = True
-    kwargs["obj_encoders"] = json_tricks.nonp.DEFAULT_ENCODERS
-    params = list(inspect.signature(json_tricks.TricksEncoder).parameters.values())
-    params += list(inspect.signature(json.JSONEncoder).parameters.values())
-    expected_keys = set()
-    for param in params:
-        if param.kind == Parameter.POSITIONAL_OR_KEYWORD or param.kind == Parameter.KEYWORD_ONLY:
-            expected_keys.add(param.name)
-
-    for key in list(kwargs.keys()):
-        if key not in expected_keys:
-            kwargs.pop(key)
-
-    return json_tricks.TricksEncoder(*args, **kwargs)
 
 
 def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
