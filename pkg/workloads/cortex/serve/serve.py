@@ -165,7 +165,7 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
             json_string = json.dumps(prediction)
         except Exception as e:
             raise UserRuntimeException(
-                "the return value of predict() or one of its nested values is not JSON serializable",
+                "the return value (that isn't bytes/Response obj) is not JSON serializable",
                 str(e),
             ) from e
         debug_obj("prediction", json_string, debug)
