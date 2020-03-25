@@ -255,7 +255,7 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 			{
 				StructField: "UpscaleStabilizationPeriod",
 				StringValidation: &cr.StringValidation{
-					Default: "0s",
+					Default: "1m",
 				},
 				Parser: cr.DurationParser(&cr.DurationValidation{
 					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
@@ -264,7 +264,7 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 			{
 				StructField: "MaxDownscaleFactor",
 				Float64Validation: &cr.Float64Validation{
-					Default:              0.5,
+					Default:              0.75,
 					GreaterThanOrEqualTo: pointer.Float64(0),
 					LessThan:             pointer.Float64(1),
 				},
@@ -272,14 +272,14 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 			{
 				StructField: "MaxUpscaleFactor",
 				Float64Validation: &cr.Float64Validation{
-					Default:     10,
+					Default:     1.5,
 					GreaterThan: pointer.Float64(1),
 				},
 			},
 			{
 				StructField: "DownscaleTolerance",
 				Float64Validation: &cr.Float64Validation{
-					Default:              0.1,
+					Default:              0.05,
 					GreaterThanOrEqualTo: pointer.Float64(0),
 					LessThan:             pointer.Float64(1),
 				},
@@ -287,7 +287,7 @@ var _autoscalingValidation = &cr.StructFieldValidation{
 			{
 				StructField: "UpscaleTolerance",
 				Float64Validation: &cr.Float64Validation{
-					Default:              0.1,
+					Default:              0.05,
 					GreaterThanOrEqualTo: pointer.Float64(0),
 				},
 			},
