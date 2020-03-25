@@ -22,7 +22,7 @@ cortex cluster update
 cortex cluster down
 
 # update your CLI
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.15/get-cli.sh)"
 
 # confirm version
 cortex version

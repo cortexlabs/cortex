@@ -42,7 +42,7 @@ instance_volume_size: 50
 log_group: cortex
 
 # whether to use spot instances in the cluster (default: false)
-# see https://cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
+# see https://cortex.dev/v/0.15/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 ```
 
@@ -53,24 +53,24 @@ You can follow these [instructions](../deployments/system-packages.md) to build 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 # docker image paths
-image_python_serve: cortexlabs/python-serve:master
-image_python_serve_gpu: cortexlabs/python-serve-gpu:master
-image_tf_serve: cortexlabs/tf-serve:master
-image_tf_serve_gpu: cortexlabs/tf-serve-gpu:master
-image_tf_api: cortexlabs/tf-api:master
-image_onnx_serve: cortexlabs/onnx-serve:master
-image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:master
-image_operator: cortexlabs/operator:master
-image_manager: cortexlabs/manager:master
-image_downloader: cortexlabs/downloader:master
-image_request_monitor: cortexlabs/request-monitor:master
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
-image_metrics_server: cortexlabs/metrics-server:master
-image_nvidia: cortexlabs/nvidia:master
-image_fluentd: cortexlabs/fluentd:master
-image_statsd: cortexlabs/statsd:master
-image_istio_proxy: cortexlabs/istio-proxy:master
-image_istio_pilot: cortexlabs/istio-pilot:master
-image_istio_citadel: cortexlabs/istio-citadel:master
-image_istio_galley: cortexlabs/istio-galley:master
+image_python_serve: cortexlabs/python-serve:0.15.0
+image_python_serve_gpu: cortexlabs/python-serve-gpu:0.15.0
+image_tf_serve: cortexlabs/tf-serve:0.15.0
+image_tf_serve_gpu: cortexlabs/tf-serve-gpu:0.15.0
+image_tf_api: cortexlabs/tf-api:0.15.0
+image_onnx_serve: cortexlabs/onnx-serve:0.15.0
+image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:0.15.0
+image_operator: cortexlabs/operator:0.15.0
+image_manager: cortexlabs/manager:0.15.0
+image_downloader: cortexlabs/downloader:0.15.0
+image_request_monitor: cortexlabs/request-monitor:0.15.0
+image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.15.0
+image_metrics_server: cortexlabs/metrics-server:0.15.0
+image_nvidia: cortexlabs/nvidia:0.15.0
+image_fluentd: cortexlabs/fluentd:0.15.0
+image_statsd: cortexlabs/statsd:0.15.0
+image_istio_proxy: cortexlabs/istio-proxy:0.15.0
+image_istio_pilot: cortexlabs/istio-pilot:0.15.0
+image_istio_citadel: cortexlabs/istio-citadel:0.15.0
+image_istio_galley: cortexlabs/istio-galley:0.15.0
 ```

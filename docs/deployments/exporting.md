@@ -11,7 +11,7 @@ Here are examples for some common ML libraries:
 The recommended approach is export your PyTorch model with [torch.save()](https://pytorch.org/docs/stable/torch.html?highlight=save#torch.save). Here is PyTorch's documentation on [saving and loading models](https://pytorch.org/tutorials/beginner/saving_loading_models.html).
 
 <!-- CORTEX_VERSION_MINOR -->
-[examples/pytorch/iris-classifier](https://github.com/cortexlabs/cortex/blob/master/examples/pytorch/iris-classifier) exports its trained model like this:
+[examples/pytorch/iris-classifier](https://github.com/cortexlabs/cortex/blob/0.15/examples/pytorch/iris-classifier) exports its trained model like this:
 
 ```python
 torch.save(model.state_dict(), "weights.pth")
@@ -22,7 +22,7 @@ torch.save(model.state_dict(), "weights.pth")
 It may also be possible to export your PyTorch model into the ONNX format using [torch.onnx.export()](https://pytorch.org/docs/stable/onnx.html#torch.onnx.export).
 
 <!-- CORTEX_VERSION_MINOR -->
-For example, if [examples/pytorch/iris-classifier](https://github.com/cortexlabs/cortex/blob/master/examples/pytorch/iris-classifier) were to export the model to ONNX, it would look like this:
+For example, if [examples/pytorch/iris-classifier](https://github.com/cortexlabs/cortex/blob/0.15/examples/pytorch/iris-classifier) were to export the model to ONNX, it would look like this:
 
 ```python
 placeholder = torch.randn(1, 4)
@@ -50,7 +50,7 @@ A TensorFlow `SavedModel` directory should have this structure:
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-Most of the TensorFlow examples use this approach. Here is the relevant code from [examples/tensorflow/sentiment-analyzer](https://github.com/cortexlabs/cortex/blob/master/examples/tensorflow/sentiment-analyzer):
+Most of the TensorFlow examples use this approach. Here is the relevant code from [examples/tensorflow/sentiment-analyzer](https://github.com/cortexlabs/cortex/blob/0.15/examples/tensorflow/sentiment-analyzer):
 
 ```python
 import tensorflow as tf
@@ -88,14 +88,14 @@ aws s3 cp bert.zip s3://my-bucket/bert.zip
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-[examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/blob/master/examples/tensorflow/iris-classifier) also use the `SavedModel` approach, and includes a Python notebook demonstrating how it was exported.
+[examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/blob/0.15/examples/tensorflow/iris-classifier) also use the `SavedModel` approach, and includes a Python notebook demonstrating how it was exported.
 
 ### Other model formats
 
 There are other ways to export Keras or TensorFlow models, and as long as they can be loaded and used to make predictions in Python, they will be supported by Cortex.
 
 <!-- CORTEX_VERSION_MINOR -->
-For example, the `crnn` API in [examples/tensorflow/license-plate-reader](https://github.com/cortexlabs/cortex/blob/master/examples/tensorflow/license-plate-reader) uses this approach.
+For example, the `crnn` API in [examples/tensorflow/license-plate-reader](https://github.com/cortexlabs/cortex/blob/0.15/examples/tensorflow/license-plate-reader) uses this approach.
 
 ## Scikit-learn
 
@@ -104,7 +104,7 @@ For example, the `crnn` API in [examples/tensorflow/license-plate-reader](https:
 Scikit-learn models are typically exported using `pickle`. Here is [Scikit-learn's documentation](https://scikit-learn.org/stable/modules/model_persistence.html).
 
 <!-- CORTEX_VERSION_MINOR -->
-[examples/sklearn/iris-classifier](https://github.com/cortexlabs/cortex/blob/master/examples/sklearn/iris-classifier) uses this approach. Here is the relevant code:
+[examples/sklearn/iris-classifier](https://github.com/cortexlabs/cortex/blob/0.15/examples/sklearn/iris-classifier) uses this approach. Here is the relevant code:
 
 ```python
 pickle.dump(model, open("model.pkl", "wb"))
@@ -157,7 +157,7 @@ model.save_model("model.bin")
 It is also possible to export an XGBoost model to the ONNX format using [onnxmltools](https://github.com/onnx/onnxmltools).
 
 <!-- CORTEX_VERSION_MINOR -->
-[examples/xgboost/iris-classifier](https://github.com/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier) uses this approach. Here is the relevant code:
+[examples/xgboost/iris-classifier](https://github.com/cortexlabs/cortex/blob/0.15/examples/xgboost/iris-classifier) uses this approach. Here is the relevant code:
 
 ```python
 from onnxmltools.convert import convert_xgboost

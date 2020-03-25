@@ -15,11 +15,11 @@ The Docker images used to deploy your models are listed below. Based on the Cort
 ### Base Cortex images for model serving
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
-* Python (CPU): cortexlabs/python-serve:master
-* Python (GPU): cortexlabs/python-serve-gpu:master
-* TensorFlow (CPU or GPU): cortexlabs/tf-api:master
-* ONNX (CPU): cortexlabs/onnx-serve:master
-* ONNX (GPU): cortexlabs/onnx-serve-gpu:master
+* Python (CPU): cortexlabs/python-serve:0.15.0
+* Python (GPU): cortexlabs/python-serve-gpu:0.15.0
+* TensorFlow (CPU or GPU): cortexlabs/tf-api:0.15.0
+* ONNX (CPU): cortexlabs/onnx-serve:0.15.0
+* ONNX (GPU): cortexlabs/onnx-serve-gpu:0.15.0
 
 Note that the Docker image version must match your cluster version displayed in `cortex version`.
 
@@ -29,7 +29,7 @@ The sample Dockerfile below inherits from Cortex's Python CPU serving image and 
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-serve:master
+FROM cortexlabs/python-serve:0.15.0
 
 RUN apt-get update \
     && apt-get install -y tree \
