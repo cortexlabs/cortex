@@ -6,4 +6,3 @@ pyyaml==5.3
 requests==2.22.0
 
 datadog==0.33.0
-json_tricks==3.13.5

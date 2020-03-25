@@ -32,11 +32,11 @@ class PythonPredictor:
         with torch.no_grad():
             pred = self.model(img_tensor)
 
-        predicted_class = [self.coco_labels[i] for i in list(pred[0]["labels"].cpu().numpy())]
+        predicted_class = [self.coco_labels[i] for i in pred[0]["labels"].cpu().tolist()]
         predicted_boxes = [
-            [(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]["boxes"].detach().cpu().numpy())
+            [(i[0], i[1]), (i[2], i[3])] for i in pred[0]["boxes"].detach().cpu().tolist()
         ]
-        predicted_score = list(pred[0]["scores"].detach().cpu().numpy())
+        predicted_score = pred[0]["scores"].detach().cpu().tolist()
         predicted_t = [predicted_score.index(x) for x in predicted_score if x > threshold]
         if len(predicted_t) == 0:
             return [], []
