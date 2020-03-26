@@ -334,6 +334,13 @@ def predict(self, payload):
 
 ```python
 def predict(self, payload):
+    # string object
+    response = "class 1"
+    return response
+```
+
+```python
+def predict(self, payload):
     # bytes-like object
     array = np.random.randn(3, 3)
     response = pickle.dumps(array)
