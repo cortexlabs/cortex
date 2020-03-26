@@ -114,7 +114,7 @@ function cleanup() {
   repos=$(aws ecr describe-repositories --output text | awk '{print $6}' | grep -P "\S")
   echo "$repos" |
   while IFS= read -r line
-  do  
+  do
     imageIDs=$(aws ecr list-images --repository-name "$line" --filter tagStatus=UNTAGGED --query "imageIds[*]" --output text)
     echo "$imageIDs" |
     while IFS= read -r imageId
