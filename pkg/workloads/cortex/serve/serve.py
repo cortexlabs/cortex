@@ -165,7 +165,7 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
             json_string = json.dumps(prediction)
         except Exception as e:
             raise UserRuntimeException(
-                "the return value (that isn't bytes/Response obj) is not JSON serializable",
+                "consider passing a bytes object or a custom starlette.response object instead",
                 str(e),
             ) from e
         debug_obj("prediction", json_string, debug)
