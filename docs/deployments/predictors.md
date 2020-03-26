@@ -10,7 +10,7 @@ Which Predictor you use depends on how your model is exported:
 * [ONNX Predictor](#onnx-predictor) if your model is exported in the ONNX format
 * [Python Predictor](#python-predictor) for all other cases
 
-The response type of the predictor can vary depending on the user's requirements. Check out all [3 kinds of responses](#api-responses) that can be returned.
+The response type of the predictor can vary depending on your requirements, see [API responses](#api-responses) below.
 
 ## Project files
 
@@ -311,21 +311,22 @@ The pre-installed system packages are listed in [images/onnx-serve/Dockerfile](h
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 
-## API Responses
+## API responses
 
-The response of the `predict` method can fall in one of these 3 categories:
+The response of your `predict()` function may be:
 
-1. A JSON-serializable object like: *lists*, *dictionaries*, *numbers*, etc.
+1. A JSON-serializable object (*lists*, *dictionaries*, *numbers*, etc.)
 
-2. A bytes object like: `bytes(4)` or `pickle.dumps(obj)`.
+2. A `string` object (e.g. `"class 1"`)
 
-3. A custom [starlette.responses](https://www.starlette.io/responses/#response) response.
+3. A `bytes` object (e.g. `bytes(4)` or `pickle.dumps(obj)`)
+
+4. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
 
 Here are some examples:
 
 ```python
 def predict(self, payload):
-    # ... payload stuff
     # json-serializable object
     response = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     return response
@@ -333,7 +334,6 @@ def predict(self, payload):
 
 ```python
 def predict(self, payload):
-    # ... payload stuff
     # bytes-like object
     array = np.random.randn(3, 3)
     response = pickle.dumps(array)
@@ -342,9 +342,8 @@ def predict(self, payload):
 
 ```python
 def predict(self, payload):
-    # ... payload stuff
-    # custom starlette.responses response
-    data = "Cortex is awesome!"
+    # starlette.responses.Response
+    data = "class 1"
     response = starlette.responses.Response(
         content=data, media_type="text/plain")
     return response
