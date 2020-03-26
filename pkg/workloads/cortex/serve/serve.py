@@ -157,6 +157,9 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
     if isinstance(prediction, bytes):
         debug_obj("prediction", prediction, debug)
         response = Response(content=prediction, media_type="application/octet-stream")
+    elif isinstance(prediction, str):
+        debug_obj("prediction", prediction, debug)
+        response = Response(content=prediction, media_type="text/plain")
     elif isinstance(prediction, Response):
         debug_obj("prediction", prediction, debug)
         response = prediction
