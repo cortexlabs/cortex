@@ -110,6 +110,21 @@ function build_and_push() {
 function cleanup() {
   docker container prune -f
   docker image prune -f
+
+  repos=$(aws ecr describe-repositories --output text | awk '{print $6}' | grep -P "\S")
+  echo "$repos" |
+  while IFS= read -r line
+  do  
+    imageIDs=$(aws ecr list-images --repository-name "$line" --filter tagStatus=UNTAGGED --query "imageIds[*]" --output text)
+    echo "$imageIDs" |
+    while IFS= read -r imageId
+    do
+      if [ ! -z "$imageId" ]; then
+        printf "Remove from ECR: $line/$imageId\n"
+        aws ecr batch-delete-image --repository-name "$line" --image-ids imageDigest="$imageId" >/dev/null;
+      fi
+    done
+  done
 }
 
 cmd=${1:-""}
