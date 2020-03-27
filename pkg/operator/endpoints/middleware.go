@@ -90,11 +90,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		accountID, _, isValid, err := awsClient.AreCredentialsValid()
+		accountID, _, err := awsClient.CheckCredentials()
 		if err != nil {
-			respondError(w, r, ErrorAuthAPIError())
-			return
-		} else if !isValid {
 			respondErrorCode(w, r, http.StatusForbidden, ErrorAuthInvalid())
 			return
 		}
