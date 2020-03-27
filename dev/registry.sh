@@ -107,20 +107,22 @@ function build_and_push() {
   push $image $tag
 }
 
-function cleanup() {
+function cleanup_local() {
+  echo "cleaning local repositories..."
   docker container prune -f
   docker image prune -f
+}
 
+function cleanup_ecr() {
+  echo "cleaning ECR repositories..."
   repos=$(aws ecr describe-repositories --output text | awk '{print $6}' | grep -P "\S")
   echo "$repos" |
-  while IFS= read -r line
-  do
+  while IFS= read -r line; do
     imageIDs=$(aws ecr list-images --repository-name "$line" --filter tagStatus=UNTAGGED --query "imageIds[*]" --output text)
     echo "$imageIDs" |
-    while IFS= read -r imageId
-    do
+    while IFS= read -r imageId; do
       if [ ! -z "$imageId" ]; then
-        printf "Remove from ECR: $line/$imageId\n"
+        echo "Removing from ECR: $line/$imageId"
         aws ecr batch-delete-image --repository-name "$line" --image-ids imageDigest="$imageId" >/dev/null;
       fi
     done
@@ -130,7 +132,11 @@ function cleanup() {
 cmd=${1:-""}
 env=${2:-""}
 
-if [ "$cmd" = "create" ]; then
+if [ "$cmd" = "clean" ]; then
+  cleanup_local
+  cleanup_ecr
+
+elif [ "$cmd" = "create" ]; then
   create_registry
 
 elif [ "$cmd" = "update-manager-local" ]; then
@@ -166,5 +172,5 @@ elif [ "$cmd" = "update" ]; then
   build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
   build_and_push $ROOT/images/downloader downloader latest
 
-  cleanup
+  cleanup_local
 fi
