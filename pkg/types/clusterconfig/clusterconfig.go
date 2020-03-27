@@ -419,7 +419,7 @@ func validateImageVersion(image string) (string, error) {
 		tag = "latest"
 	}
 
-	if tag != consts.CortexVersion {
+	if !strings.HasPrefix(tag, consts.CortexVersion) {
 		return "", ErrorImageVersionMismatch(image, tag)
 	}
 
