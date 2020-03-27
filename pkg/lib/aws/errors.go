@@ -72,6 +72,7 @@ func ErrorInvalidAWSCredentials(awsErr error) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAWSCredentials,
 		Message: "invalid AWS credentials\n" + awsErrMsg,
+		Cause:   awsErr,
 	})
 }
 

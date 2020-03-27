@@ -31,16 +31,12 @@ type Error struct {
 	Message     string
 	NoTelemetry bool
 	NoPrint     bool
-	cause       error
+	Cause       error
 	stack       *stack
 }
 
 func (cortexError *Error) Error() string {
 	return cortexError.Message
-}
-
-func (cortexError *Error) Cause() error {
-	return cortexError.cause
 }
 
 func (cortexError *Error) StackTrace() pkgerrors.StackTrace {
@@ -62,7 +58,7 @@ func WithStack(err error) error {
 		cortexError = &Error{
 			Kind:    ErrNotCortexError,
 			Message: strings.TrimSpace(err.Error()),
-			cause:   err,
+			Cause:   err,
 		}
 	}
 
@@ -130,14 +126,14 @@ func SetNoPrint(err error) error {
 // Returns nil if no cause
 func Cause(err error) error {
 	if cortexError, ok := err.(*Error); ok {
-		return cortexError.Cause()
+		return cortexError.Cause
 	}
 	return nil
 }
 
 func CauseOrSelf(err error) error {
 	if cortexError, ok := err.(*Error); ok {
-		cause := cortexError.Cause()
+		cause := cortexError.Cause
 		if cause != nil {
 			return cause
 		}
