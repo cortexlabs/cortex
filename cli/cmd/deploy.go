@@ -36,7 +36,7 @@ import (
 
 var _warningFileBytes = 1024 * 1024 * 10
 var _warningProjectBytes = 1024 * 1024 * 10
-var _warningFileCount = 100
+var _warningFileCount = 1000
 
 var _flagDeployForce bool
 var _flagDeployYes bool
