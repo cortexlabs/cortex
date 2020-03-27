@@ -71,6 +71,8 @@ func (c *Cron) Cancel() {
 
 func recoverer(errHandler func(error)) {
 	if errInterface := recover(); errInterface != nil {
-		errHandler(errors.CastRecoverError(errInterface))
+		err := errors.CastRecoverError(errInterface)
+		errors.PrintStacktrace(err)
+		errHandler(err)
 	}
 }
