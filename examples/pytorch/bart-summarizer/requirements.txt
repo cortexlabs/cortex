@@ -1,4 +1,0 @@
--e git+https://github.com/huggingface/transformers@d6de6423#egg=transformers
-#transformers
-torch
-torchvision
