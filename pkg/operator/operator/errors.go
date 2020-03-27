@@ -238,9 +238,9 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 }
 
 func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr string) error {
-	message := fmt.Sprintf("no available nodes can satisfy the requested %s quantity - requested %s %s but nodes only have %s available %s", resource, reqStr, resource, maxStr, resource)
+	message := fmt.Sprintf("no available instances can satisfy the requested %s quantity - requested %s %s but instances only have %s %s available", resource, reqStr, resource, maxStr, resource)
 	if maxStr == "0" {
-		message = fmt.Sprintf("no available nodes can satisfy the requested %s quantity - requested %s %s but nodes don't have any %s", resource, reqStr, resource, resource)
+		message = fmt.Sprintf("no available instances can satisfy the requested %s quantity - requested %s %s but instances don't have any %s", resource, reqStr, resource, resource)
 	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
