@@ -63,6 +63,7 @@ func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err erro
 func recoverAndRespond(w http.ResponseWriter, r *http.Request, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
+		errors.PrintStacktrace(err)
 		telemetry.Error(err)
 		respondError(w, r, err)
 	}
