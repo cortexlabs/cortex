@@ -17,41 +17,21 @@ limitations under the License.
 package aws
 
 import (
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 // Returns account ID, whether the credentials were valid, any other error that occurred
 // Ignores cache, so will re-run on every call to this method
-func (c *Client) AreCredentialsValid() (string, string, bool, error) {
+func (c *Client) CheckCredentials() (string, string, error) {
 	response, err := c.STS().GetCallerIdentity(nil)
-	if awsErr, ok := err.(awserr.RequestFailure); ok {
-		if awsErr.StatusCode() == 403 {
-			return "", "", false, nil
-		}
-	}
 	if err != nil {
-		return "", "", false, errors.WithStack(err)
+		return "", "", ErrorInvalidAWSCredentials(err)
 	}
 
 	c.accountID = response.Account
 	c.hashedAccountID = pointer.String(hash.String(*c.accountID))
 
-	return *c.accountID, *c.hashedAccountID, true, nil
-}
-
-// Returns an error if credentials were not valid or if another error occurred
-// Ignores cache, so will re-run on every call to this method
-func (c *Client) CheckCredentials() (string, string, error) {
-	_, _, isValid, err := c.AreCredentialsValid()
-	if err != nil {
-		return "", "", err
-	}
-	if !isValid {
-		return "", "", ErrorInvalidAWSCredentials()
-	}
 	return *c.accountID, *c.hashedAccountID, nil
 }
 
