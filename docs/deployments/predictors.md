@@ -124,33 +124,32 @@ class PythonPredictor:
 The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
 
 ```text
-boto3==1.10.45
+boto3==1.12.31
 cloudpickle==1.3.0
-Cython==0.29.15
+Cython==0.29.16
 dill==0.3.1.1
 joblib==0.14.1
 Keras==2.3.1
-msgpack==0.6.2
+msgpack==1.0.0
 nltk==3.4.5
 np-utils==0.5.12.1
-numpy==1.18.0
-pandas==0.25.3
-opencv-python==4.1.2.30
-Pillow==6.2.1
-pyyaml==5.3
-requests==2.22.0
+numpy==1.18.2
+opencv-python==4.2.0.32
+pandas==1.0.3
+Pillow==7.0.0
+pyyaml==5.3.1
+requests==2.23.0
 scikit-image==0.16.2
-scikit-learn==0.22
+scikit-learn==0.22.2.post1
 scipy==1.4.1
-six==1.13.0
-statsmodels==0.10.2
-sympy==1.5
-tensor2tensor==1.15.4
+six==1.14.0
+statsmodels==0.11.1
+sympy==1.5.1
 tensorflow-hub==0.7.0
 tensorflow==2.1.0
 torch==1.4.0
 torchvision==0.5.0
-xgboost==0.90
+xgboost==1.0.2
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
@@ -217,14 +216,13 @@ class TensorFlowPredictor:
 The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
 
 ```text
-boto3==1.10.45
+boto3==1.12.31
 dill==0.3.1.1
-msgpack==0.6.2
-numpy==1.18.0
-requests==2.22.0
-opencv-python==4.1.2.30
-pyyaml==5.3
-tensor2tensor==1.15.4
+msgpack==1.0.0
+numpy==1.18.2
+opencv-python==4.2.0.32
+pyyaml==5.3.1
+requests==2.23.0
 tensorflow-hub==0.7.0
 tensorflow==2.1.0
 ```
@@ -297,13 +295,13 @@ class ONNXPredictor:
 The following Python packages are pre-installed in ONNX Predictors and can be used in your implementations:
 
 ```text
-boto3==1.10.45
+boto3==1.12.31
 dill==0.3.1.1
-msgpack==0.6.2
-numpy==1.18.0
+msgpack==1.0.0
+numpy==1.18.2
 onnxruntime==1.2.0
-pyyaml==5.3
-requests==2.22.0
+pyyaml==5.3.1
+requests==2.23.0
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
