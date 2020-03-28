@@ -13,7 +13,7 @@
 1. Find the latest version of Kubernetes supported by eksctl ([source code](https://github.com/weaveworks/eksctl/blob/master/pkg/apis/eksctl.io/v1alpha5/types.go))
 1. Update the version in `eks.yaml`
 
-## AWS CNI
+## AWS CNI (depreciated since now eksctl determines the version of AWS CNI)
 
 1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
 1. Update the version in `install.sh`
