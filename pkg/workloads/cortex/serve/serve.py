@@ -168,8 +168,8 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
             json_string = json.dumps(prediction)
         except Exception as e:
             raise UserRuntimeException(
-                "the return value of predict() or one of its nested values is not JSON serializable; please return a JSON serializeable object, a bytes object, a string object, or a starlette.response.Response object",
                 str(e),
+                "please return an object that is JSON serializable (including its nested fields), a bytes object, a string, or a starlette.response.Response object",
             ) from e
         debug_obj("prediction", json_string, debug)
         response = Response(content=json_string, media_type="application/json")
