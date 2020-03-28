@@ -122,7 +122,7 @@ export CORTEX_VERSION="master"
 export REGISTRY_REGION="us-west-2"
 export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
 
-# optional, only used for make ci-build-and-upload-cli
+# optional, only used for dev/build_cli.sh
 export CLI_BUCKET_NAME="cortex-cli-<your_name>"
 export CLI_BUCKET_REGION="us-west-2"
 ```
