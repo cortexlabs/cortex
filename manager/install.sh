@@ -211,7 +211,7 @@ function main() {
 function setup_configmap() {
   kubectl -n=default create configmap 'cluster-config' \
     --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
-    -o yaml --dry-run | kubectl apply -f - >/dev/null
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 
   kubectl -n=default create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
@@ -221,14 +221,14 @@ function setup_configmap() {
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    -o yaml --dry-run | kubectl apply -f - >/dev/null
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
 function setup_secrets() {
   kubectl -n=default create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$CORTEX_AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CORTEX_AWS_SECRET_ACCESS_KEY \
-    -o yaml --dry-run | kubectl apply -f - >/dev/null
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
 function setup_istio() {
