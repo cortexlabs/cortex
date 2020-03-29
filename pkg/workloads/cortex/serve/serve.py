@@ -153,15 +153,13 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
 
     debug_obj("payload", request, debug)
     prediction = predictor_impl.predict(request)
+    debug_obj("prediction", prediction, debug)
 
     if isinstance(prediction, bytes):
-        debug_obj("prediction", prediction, debug)
         response = Response(content=prediction, media_type="application/octet-stream")
     elif isinstance(prediction, str):
-        debug_obj("prediction", prediction, debug)
         response = Response(content=prediction, media_type="text/plain")
     elif isinstance(prediction, Response):
-        debug_obj("prediction", prediction, debug)
         response = prediction
     else:
         try:
@@ -171,7 +169,6 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
                 str(e),
                 "please return an object that is JSON serializable (including its nested fields), a bytes object, a string, or a starlette.response.Response object",
             ) from e
-        debug_obj("prediction", json_string, debug)
         response = Response(content=json_string, media_type="application/json")
 
     if api.tracker is not None:
