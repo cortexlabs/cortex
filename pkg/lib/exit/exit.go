@@ -63,7 +63,6 @@ func Panic(err error, wrapStrs ...string) {
 func RecoverAndExit(strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		errors.PrintErrorForUser(err)
-		os.Exit(1)
+		Panic(err)
 	}
 }

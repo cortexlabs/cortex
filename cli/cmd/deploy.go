@@ -36,7 +36,7 @@ import (
 
 var _warningFileBytes = 1024 * 1024 * 10
 var _warningProjectBytes = 1024 * 1024 * 10
-var _warningFileCount = 100
+var _warningFileCount = 1000
 
 var _flagDeployForce bool
 var _flagDeployYes bool
@@ -128,7 +128,7 @@ func deploy(configPath string, force bool) {
 
 	didPromptFileCount := false
 	if !_flagDeployYes && len(projectPaths) >= _warningFileCount {
-		msg := fmt.Sprintf("cortex will zip %d files in %s and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg)
+		msg := fmt.Sprintf("cortex will zip %d files in %s and upload them to the cluster; we recommend that you upload large files/directories (e.g. models) to s3 and download them in your api's __init__ function, and avoid sending unnecessary files by removing them from this directory or referencing them in a .cortexignore file. Would you like to continue?", len(projectPaths), rootDirMsg)
 		prompt.YesOrExit(msg, canSkipPromptMsg, "")
 		didPromptFileCount = true
 	}

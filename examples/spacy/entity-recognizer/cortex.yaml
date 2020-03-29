@@ -1,10 +1,9 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- name: text-summarizer
+- name: entity-recognizer
   predictor:
     type: python
     path: predictor.py
   compute:
     cpu: 1
-    gpu: 1  # This is optional, since the API will run on CPUs (albeit slower)
-    mem: 4G
+    mem: 1G
