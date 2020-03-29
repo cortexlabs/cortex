@@ -10,6 +10,8 @@ Which Predictor you use depends on how your model is exported:
 * [ONNX Predictor](#onnx-predictor) if your model is exported in the ONNX format
 * [Python Predictor](#python-predictor) for all other cases
 
+The response type of the predictor can vary depending on your requirements, see [API responses](#api-responses) below.
+
 ## Project files
 
 Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api configuration file (e.g. `cortex.yaml`) are excluded. You may also add a `.cortexignore` file at the root of the project directory, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
@@ -308,3 +310,48 @@ requests==2.22.0
 The pre-installed system packages are listed in [images/onnx-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve/Dockerfile) (for CPU) or [images/onnx-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve-gpu/Dockerfile) (for GPU).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
+
+## API responses
+
+The response of your `predict()` function may be:
+
+1. A JSON-serializable object (*lists*, *dictionaries*, *numbers*, etc.)
+
+2. A `string` object (e.g. `"class 1"`)
+
+3. A `bytes` object (e.g. `bytes(4)` or `pickle.dumps(obj)`)
+
+4. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
+
+Here are some examples:
+
+```python
+def predict(self, payload):
+    # json-serializable object
+    response = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    return response
+```
+
+```python
+def predict(self, payload):
+    # string object
+    response = "class 1"
+    return response
+```
+
+```python
+def predict(self, payload):
+    # bytes-like object
+    array = np.random.randn(3, 3)
+    response = pickle.dumps(array)
+    return response
+```
+
+```python
+def predict(self, payload):
+    # starlette.responses.Response
+    data = "class 1"
+    response = starlette.responses.Response(
+        content=data, media_type="text/plain")
+    return response
+```
