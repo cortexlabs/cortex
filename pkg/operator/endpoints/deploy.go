@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +69,13 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiConfigs, err := operator.ExtractAPIConfigs(configBytes, projectFileMap, configPath)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, projectFileMap, configPath)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	err = operator.ValidateClusterAPIs(apiConfigs, projectFileMap)
 	if err != nil {
 		respondError(w, r, err)
 		return

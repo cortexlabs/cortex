@@ -39,9 +39,9 @@ class API:
         self.cache_dir = cache_dir
         self.storage = storage
 
-        host_ip = os.environ["HOST_IP"]
-        datadog.initialize(statsd_host=host_ip, statsd_port="8125")
-        self.statsd = datadog.statsd
+        # host_ip = os.environ["HOST_IP"]
+        # datadog.initialize(statsd_host=host_ip, statsd_port="8125")
+        # self.statsd = datadog.statsd
 
     def get_cached_classes(self):
         prefix = os.path.join(self.metadata_root, self.id, "classes") + "/"
@@ -74,18 +74,19 @@ class API:
             self.post_metrics(metrics)
 
     def post_metrics(self, metrics):
-        try:
-            if self.statsd is None:
-                raise CortexException("statsd client not initialized")  # unexpected
+        pass
+        # try:
+        #     if self.statsd is None:
+        #         raise CortexException("statsd client not initialized")  # unexpected
 
-            for metric in metrics:
-                tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
-                if metric.get("Unit") == "Count":
-                    self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
-                else:
-                    self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
-        except:
-            cx_logger().warn("failure encountered while publishing metrics", exc_info=True)
+        #     for metric in metrics:
+        #         tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
+        #         if metric.get("Unit") == "Count":
+        #             self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
+        #         else:
+        #             self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
+        # except:
+        #     cx_logger().warn("failure encountered while publishing metrics", exc_info=True)
 
     def status_code_metric(self, status_code):
         status_code_series = int(status_code / 100)

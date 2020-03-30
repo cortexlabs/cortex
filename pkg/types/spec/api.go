@@ -17,6 +17,12 @@ limitations under the License.
 package spec
 
 import (
+	"bytes"
+	"path/filepath"
+	"time"
+
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -29,4 +35,51 @@ type API struct {
 	MetadataRoot string `json:"metadata_root"`
 	ProjectID    string `json:"project_id"`
 	ProjectKey   string `json:"project_key"`
+}
+
+func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
+	var buf bytes.Buffer
+	buf.WriteString(apiConfig.Name)
+	buf.WriteString(*apiConfig.Endpoint)
+	buf.WriteString(s.Obj(apiConfig.Predictor))
+	buf.WriteString(s.Obj(apiConfig.Tracker))
+	buf.WriteString(deploymentID)
+	buf.WriteString(projectID)
+	id := hash.Bytes(buf.Bytes())
+
+	return &API{
+		API:          apiConfig,
+		ID:           id,
+		Key:          specKey(apiConfig.Name, id),
+		DeploymentID: deploymentID,
+		LastUpdated:  time.Now().Unix(),
+		MetadataRoot: metadataRoot(apiConfig.Name, id),
+		ProjectID:    projectID,
+		ProjectKey:   ProjectKey(projectID),
+	}
+}
+
+func specKey(apiName string, apiID string) string {
+	return filepath.Join(
+		"apis",
+		apiName,
+		apiID,
+		"spec.msgpack",
+	)
+}
+
+func metadataRoot(apiName string, apiID string) string {
+	return filepath.Join(
+		"apis",
+		apiName,
+		apiID,
+		"metadata",
+	)
+}
+
+func ProjectKey(projectID string) string {
+	return filepath.Join(
+		"projects",
+		projectID+".zip",
+	)
 }

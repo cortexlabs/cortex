@@ -22,6 +22,7 @@ import threading
 import math
 import asyncio
 from typing import Any
+import yaml
 
 from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -34,7 +35,7 @@ from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API
 from cortex.lib.log import cx_logger, debug_obj
-from cortex.lib.storage import S3
+from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
 
 if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
@@ -153,23 +154,18 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
 
     debug_obj("payload", request, debug)
     prediction = predictor_impl.predict(request)
-    debug_obj("prediction", prediction, debug)
 
-    if isinstance(prediction, bytes):
-        response = Response(content=prediction, media_type="application/octet-stream")
-    elif isinstance(prediction, str):
-        response = Response(content=prediction, media_type="text/plain")
-    elif isinstance(prediction, Response):
-        response = prediction
-    else:
-        try:
-            json_string = json.dumps(prediction)
-        except Exception as e:
-            raise UserRuntimeException(
-                str(e),
-                "please return an object that is JSON serializable (including its nested fields), a bytes object, a string, or a starlette.response.Response object",
-            ) from e
-        response = Response(content=json_string, media_type="application/json")
+    try:
+        json_string = json.dumps(prediction)
+    except Exception as e:
+        raise UserRuntimeException(
+            f"the return value of predict() or one of its nested values is not JSON serializable",
+            str(e),
+        ) from e
+
+    debug_obj("prediction", json_string, debug)
+
+    response = Response(content=json_string, media_type="application/json")
 
     if api.tracker is not None:
         try:
@@ -199,22 +195,31 @@ def get_summary():
 
 
 def get_spec(storage, cache_dir, s3_path):
-    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    _, key = S3.deconstruct_s3_path(s3_path)
-    storage.download_file(key, local_spec_path)
-    return util.read_msgpack(local_spec_path)
+    # local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
+    # _, key = S3.deconstruct_s3_path(s3_path)
+    # storage.download_file(key, local_spec_path)
+    # return util.read_msgpack(local_spec_path)
+    print(os.listdir())
+    with open("app.yaml") as file:
+        return yaml.safe_load(file)
 
 
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     spec = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
-    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
-    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+    model_dir = ""
+    tf_serving_port = ""
+    # model_dir = os.getenv("CORTEX_MODEL_DIR", None)
+    # tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
 
+    # if cortex_provider == "local":
+    storage = LocalStorage(os.getenv("CORTEX_LOCAL_BASE_DIR"))
+    # else:
+    #     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
         raw_api_spec = get_spec(storage, cache_dir, spec)
+        raw_api_spec = raw_api_spec[0]
         api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
         client = api.predictor.initialize_client(model_dir, tf_serving_port)
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
