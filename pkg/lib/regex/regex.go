@@ -40,3 +40,20 @@ var _alphaNumericDashUnderscoreRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)
 func IsAlphaNumericDashUnderscore(s string) bool {
 	return _alphaNumericDashUnderscoreRegex.MatchString(s)
 }
+
+// used the evaluated form of
+// https://github.com/docker/distribution/blob/3150937b9f2b1b5b096b2634d0e7c44d4a0f89fb/reference/regexp.go#L68-L70
+
+var _dockerValidImage = regexp.MustCompile(
+	`^((?:(?:[a-z0-9]|[a-z0-9][a-z0-9-]*[a-z0-9])` +
+		`(?:(?:\.(?:[a-z0-9]|[a-z0-9][a-z0-9-]*[a-z0-9]))+)` +
+		`?(?::[0-9]+)?/)?[a-z0-9]` +
+		`+(?:(?:(?:[._]|__|[-]*)[a-z0-9]+)+)` +
+		`?(?:(?:/[a-z0-9]+(?:(?:(?:[._]|__|[-]*)[a-z0-9]+)+)?)+)?)` +
+		`(?::([\w][\w.-]{0,127}))` +
+		`?(?:@([A-Za-z][A-Za-z0-9]*(?:[-_+.][A-Za-z][A-Za-z0-9]*)*[:][[:xdigit:]]{32,}))?$`,
+)
+
+func IsValidDockerImage(s string) bool {
+	return _dockerValidImage.MatchString(s)
+}

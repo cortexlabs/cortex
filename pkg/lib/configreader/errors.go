@@ -33,6 +33,7 @@ const (
 	ErrTooShort                      = "configreader.too_short"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
+	ErrValidDockerImage              = "configreader.valid_docker_image"
 	ErrMustHavePrefix                = "configreader.must_have_prefix"
 	ErrInvalidInterface              = "configreader.invalid_interface"
 	ErrInvalidFloat64                = "configreader.invalid_float64"
@@ -118,6 +119,13 @@ func ErrorAlphaNumericDashDotUnderscore(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAlphaNumericDashDotUnderscore,
 		Message: fmt.Sprintf("%s must contain only letters, numbers, underscores, dashes, and periods", s.UserStr(provided)),
+	})
+}
+
+func ErrorValidDockerImage(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrValidDockerImage,
+		Message: fmt.Sprintf("%s is not a valid docker image resource", s.UserStr(provided)),
 	})
 }
 

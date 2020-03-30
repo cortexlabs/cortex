@@ -100,6 +100,14 @@ var _predictorValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
+				StructField: "Image",
+				StringValidation: &cr.StringValidation{
+					Required:    false,
+					AllowEmpty:  true,
+					DockerImage: true,
+				},
+			},
+			{
 				StructField: "Config",
 				InterfaceMapValidation: &cr.InterfaceMapValidation{
 					StringKeysOnly: true,

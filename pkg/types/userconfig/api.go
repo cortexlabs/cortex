@@ -45,6 +45,7 @@ type Predictor struct {
 	Path         string                 `json:"path" yaml:"path"`
 	Model        *string                `json:"model" yaml:"model"`
 	PythonPath   *string                `json:"python_path" yaml:"python_path"`
+	Image        string                 `json:"image" yaml:"image"`
 	Config       map[string]interface{} `json:"config" yaml:"config"`
 	Env          map[string]string      `json:"env" yaml:"env"`
 	SignatureKey *string                `json:"signature_key" yaml:"signature_key"`
