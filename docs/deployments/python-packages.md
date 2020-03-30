@@ -13,7 +13,7 @@ Keep in mind that pip installations come before the conda installations.
 
 Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
 
-*Note: The order of execution on all files is this: `script.sh` -> `.condarc` -> `environment.yaml` or `conda-packages.txt` -> `requirements.txt`.*
+*Note: The order of execution on all files is this: `script.sh` -> `conda-packages.txt` -> `requirements.txt`.*
 
 ## Pip
 
@@ -77,52 +77,9 @@ On GitHub, you can generate a personal access token by following [these steps](h
 
 ## Conda
 
-With `conda`, packages can be installed using 2 kinds of files, both mutually exclusive:
+Packages can be installed using a `conda-packages.txt` requirements file. This `conda-packages.txt` config file follows the format of `conda list --export`. As a consequence, each line inside `conda-packages.txt` follows the `[channel::]package[=version[=buildid]]` pattern.
 
-1. Using an `environment.yaml` config file.
-
-1. Using a `conda-packages.txt` config file.
-
-Cortex allows for the presence of a `.condarc` file in the root directory of the project. This can be used to tweak conda's configuration. Here's an example of `.condarc` that enables the pip-interoperabilty mechanism:
-
-```text
-pip_interop_enabled: false
-```
-
-More on `.condarc` can be found [here](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html).
-
-### Using environment.yaml
-
-You can install packages using an `environment.yaml` config file using conda. Cortex looks for a `environment.yaml` file in the top level Cortex project directory. In the background, the command that's used against `environment.yaml` is `conda env update -n env --file environment.yaml`.
-
-Here's an example of `environment.yaml` used to install `rdkit` python package:
-
-```yaml
-channels:
-    - conda-forge
-dependencies:
-    - rdkit
-```
-
-`environment.yaml` can also be used to install `pip` packages and also introduce other indexes that may otherwise not be possible just by relying on `requirements.txt` alone. In addition to the previous example, here's one where `wget` is installed with pip:
-
-```yaml
-channels:
-    - conda-forge
-dependencies:
-    - rdkit
-    - pip
-    - pip:
-        - wget==3.2
-```
-
-Here's [an example from conda](https://github.com/conda/conda/blob/54e4a91d0da4d659a67e3097040764d3a2f6aa16/tests/conda_env/support/advanced-pip/environment.yml) that shows how far `enviroment.yaml` can be taken.
-
-*Note: One word of advice is to not change the version of python deliberately because that can affect negatively the Cortex API. The current version of Python is `3.6.9`.*
-
-### Using conda-packages.txt
-
-You can install packages by providing a `conda-packages.txt` file to conda. Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory. This file is executed by Cortex by running `conda install --file conda-packages.txt` command.
+Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory. This file is executed by Cortex by running `conda install --file conda-packages.txt` command.
 
 Here's an example of `conda-packages.txt` used to install `rdkit` and `pygpu` python packages:
 
@@ -130,4 +87,3 @@ Here's an example of `conda-packages.txt` used to install `rdkit` and `pygpu` py
 conda-forge::rdkit
 conda-forge::pygpu
 ```
-Each line inside `conda-packages.txt` follows the `[channel::]package[=version[=buildid]]` pattern.

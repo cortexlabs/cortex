@@ -36,15 +36,8 @@ if [ -f "/mnt/project/script.sh" ]; then
     /mnt/project/script.sh
 fi
 
-# overwrite conda config file if it exists
-if [ -f "/mnt/project/.condarc" ]; then
-    cp /mnt/project/.condarc /root/.condarc
-fi
-
-# either install from environment.yaml or from conda-packages.txt
-if [ -f "/mnt/project/environment.yaml" ]; then
-    conda env update --name env --file /mnt/project/environment.yaml
-elif [ -f "/mnt/project/conda-packages.txt" ]; then
+# install from conda-packages.txt
+if [ -f "/mnt/project/conda-packages.txt" ]; then
     conda install --file /mnt/project/conda-packages.txt
 fi
 
