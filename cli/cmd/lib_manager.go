@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
@@ -115,6 +116,63 @@ func pullManager(managerImage string) error {
 	return nil
 }
 
+func streamDockerLogs(containerID string, containerIDs ...string) error {
+	containerIDs = append([]string{containerID}, containerIDs...)
+
+	docker, err := getDockerClient()
+	if err != nil {
+		return err
+	}
+
+	// c := make(chan os.Signal, 1)
+	// signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	// caughtCtrlC := false
+	// go func() {
+	// 	<-c
+	// 	caughtCtrlC = true
+	// 	exit.Error(ErrorDockerCtrlC())
+	// }()
+
+	fns := make([]func() error, len(containerIDs))
+	for i, containerID := range containerIDs {
+		fns[i] = streamDockerLogsFn(containerID, docker)
+	}
+
+	err = parallel.RunFirstErr(fns[0], fns[1:]...)
+
+	if err != nil {
+		return wrapDockerError(err)
+	}
+
+	// // Let the ctrl+c handler run its course
+	// if caughtCtrlC {
+	// 	time.Sleep(5 * time.Second)
+	// }
+
+	return nil
+}
+
+func streamDockerLogsFn(containerID string, docker *dockerclient.Client) func() error {
+	return func() error {
+		// Use ContainerLogs() so lines are only printed once they end in \n
+		logsOutput, err := docker.ContainerLogs(context.Background(), containerID, dockertypes.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+		})
+		if err != nil {
+			return wrapDockerError(err)
+		}
+
+		_, err = io.Copy(os.Stdout, logsOutput)
+		if err != nil && err != io.EOF {
+			return errors.WithStack(err)
+		}
+
+		return nil
+	}
+}
+
 func runManager(containerConfig *container.Config) (string, *int, error) {
 	containerConfig.Env = append(containerConfig.Env, "CORTEX_CLI_VERSION="+consts.CortexVersion)
 
@@ -171,6 +229,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		return "", nil, wrapDockerError(err)
 	}
 
+	// Use ContainerAttach() since that allow logs to be streamed even if they don't end in new lines
 	logsOutput, err := docker.ContainerAttach(context.Background(), containerInfo.ID, dockertypes.ContainerAttachOptions{
 		Stream: true,
 		Stdout: true,
@@ -185,7 +244,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 	tee := io.TeeReader(logsOutput.Reader, &outputBuffer)
 
 	_, err = io.Copy(os.Stdout, tee)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return "", nil, errors.WithStack(err)
 	}
 
