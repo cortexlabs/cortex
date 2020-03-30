@@ -9,7 +9,7 @@ Within a deployment in Cortex, 2 package managers can be used to install additio
 
 Both of these package managers have their uses and limitations. All default python packages on Cortex are installed with `pip`. It is therefore advised for any other add-on python package to be installed with `pip` and only resort to using `conda` when there are packages not available from PyPi or from any other index. The reason for this is to prevent inconsistencies within the virtual environment. Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environment/) on using `pip` inside `conda`.
 
-Keep in mind that pip installations come before the conda installations.
+Keep in mind that pip installations come after the conda installations.
 
 Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
 
