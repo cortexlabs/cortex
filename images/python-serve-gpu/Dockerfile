@@ -27,14 +27,19 @@ ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
 ENV PYTHONPATH="${PYTHONPATH}:/src:/mnt/project"
 ENV PATH=/opt/conda/bin:$PATH
 
+RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    /opt/conda/bin/conda install --force-reinstall -c conda-forge python=3.6.9 && \
+    /opt/conda/bin/conda clean -a && \
+    rm -rf ~/.cache ~/miniconda.sh
+
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/serve/python-gpu.requirements.txt /src/cortex/serve/requirements.txt
 COPY pkg/workloads/cortex/environment.yaml /src/cortex/environment.yaml
 
-RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    /opt/conda/bin/conda install --force-reinstall -c conda-forge python=3.6.9 && \
-    /opt/conda/bin/conda env create -n env -f /src/cortex/environment.yaml && \
+# conda needs an untainted base environment to function properly
+# that's why a new separate conda environment is created
+RUN /opt/conda/bin/conda env create -n env -f /src/cortex/environment.yaml && \
     /opt/conda/bin/conda clean -a && \
     rm -rf ~/.cache ~/miniconda.sh && \
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
