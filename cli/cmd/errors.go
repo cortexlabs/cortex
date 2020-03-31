@@ -127,7 +127,7 @@ func ErrorDockerCtrlC() error {
 func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotReady,
-		Message: fmt.Sprintf("%s is %s", s.UserStr(apiName), status),
+		Message: fmt.Sprintf("%s is %s", apiName, status),
 	})
 }
 
