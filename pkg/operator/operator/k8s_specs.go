@@ -106,7 +106,12 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
 
-	servingImage := config.Cluster.ImageTFServe
+	var servingImage string
+	if api.Predictor.Image != "" {
+		servingImage = api.Predictor.Image
+	} else {
+		servingImage = config.Cluster.ImagePythonServe
+	}
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cluster.ImageTFServeGPU
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
@@ -255,7 +260,12 @@ func tfDownloadArgs(api *spec.API) string {
 }
 
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	servingImage := config.Cluster.ImagePythonServe
+	var servingImage string
+	if api.Predictor.Image != "" {
+		servingImage = api.Predictor.Image
+	} else {
+		servingImage = config.Cluster.ImagePythonServe
+	}
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
@@ -364,7 +374,12 @@ func pythonDownloadArgs(api *spec.API) string {
 }
 
 func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	servingImage := config.Cluster.ImageONNXServe
+	var servingImage string
+	if api.Predictor.Image != "" {
+		servingImage = api.Predictor.Image
+	} else {
+		servingImage = config.Cluster.ImagePythonServe
+	}
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
@@ -583,6 +598,10 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		kcore.EnvVar{
 			Name:  "CORTEX_PROJECT_DIR",
 			Value: path.Join(_emptyDirMountPath, "project"),
+		},
+		kcore.EnvVar{
+			Name:  "OVERRIDDEN_IMAGE",
+			Value: api.Predictor.Image,
 		},
 	)
 

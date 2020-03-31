@@ -250,6 +250,9 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.PythonPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
+	if predictor.Image != "" {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
+	}
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&predictor.Config)

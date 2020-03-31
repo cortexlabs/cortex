@@ -38,7 +38,7 @@ from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.storage import S3
 from cortex.lib.exceptions import UserRuntimeException
 
-if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
+if os.environ["OVERRIDDEN_IMAGE"] == "" and os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
     errMsg = f"your Cortex operator version ({os.environ['CORTEX_VERSION']}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your predictor image by modifying the appropriate `image_*` field(s) in your cluster configuration file (e.g. cluster.yaml) and running `cortex cluster update --config cluster.yaml`"
     raise ValueError(errMsg)
 

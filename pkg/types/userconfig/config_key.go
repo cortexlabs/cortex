@@ -31,6 +31,7 @@ const (
 	PathKey         = "path"
 	ModelKey        = "model"
 	PythonPathKey   = "python_path"
+	ImageKey        = "image"
 	ConfigKey       = "config"
 	EnvKey          = "env"
 	SignatureKeyKey = "signature_key"
