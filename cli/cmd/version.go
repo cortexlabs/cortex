@@ -40,9 +40,11 @@ var _versionCmd = &cobra.Command{
 
 		profile, err := readProfile(_flagProfile)
 		if err != nil || profile.Provider == Local {
-			fmt.Println("cli version: " + consts.CortexVersion + "\n")
+			fmt.Println("cli version: " + consts.CortexVersion)
 			return
 		}
+
+		fmt.Println()
 
 		httpResponse, err := HTTPGet("/info")
 		if err != nil {
