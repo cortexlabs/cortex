@@ -2,32 +2,9 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Within a deployment in Cortex, 2 package managers can be used to install additional python packages:
+## PyPI packages
 
-1. `pip`
-1. `conda`
-
-Both of these package managers have their uses and limitations. All default python packages on Cortex are installed with `pip`. It is therefore advised for any other add-on python package to be installed with `pip` and only resort to using `conda` when there are packages not available from PyPi or from any other index. The reason for this is to prevent inconsistencies within the virtual environment. Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environment/) on using `pip` inside `conda`.
-
-Keep in mind that pip installations come after the conda installations.
-
-Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
-
-*Note: The order of execution on all files is this: `script.sh` -> `conda-packages.txt` -> `requirements.txt`.*
-
-## Pip
-
-With `pip`, packages can be installed from a few sources:
-
-1. From [PyPi](https://pypi.org)'s index.
-
-1. Locally, from the project's directory using `setup.py`.
-
-1. From a git project (i.e. GitHub) that's either public or private.
-
-### Installing from PyPi
-
-You can install your required PyPI packages and import them in your Python files. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
+You can install your required PyPI packages and import them in your Python files using pip. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
 ```text
 ./iris-classifier/
@@ -37,7 +14,11 @@ You can install your required PyPI packages and import them in your Python files
 └── requirements.txt
 ```
 
-### Installing with setup
+If you want to use `conda` to install your python packages, see the [Conda section](#conda) below.
+
+Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
+
+## Installing with Setup
 
 Python packages can also be installed by providing a `setup.py` that describes your project's modules. Here's an example directory structure:
 
@@ -59,7 +40,7 @@ In this case, `requirements.txt` will have this form:
 .
 ```
 
-### Installing from git
+## Installing from GitHub
 
 You can also install public/private packages from git registries (such as GitHub) by adding them to `requirements.txt`. Here's an example for GitHub:
 
@@ -77,13 +58,24 @@ On GitHub, you can generate a personal access token by following [these steps](h
 
 ## Conda
 
-Packages can be installed using a `conda-packages.txt` requirements file. This `conda-packages.txt` config file follows the format of `conda list --export`. As a consequence, each line inside `conda-packages.txt` follows the `[channel::]package[=version[=buildid]]` pattern.
+Cortex supports installing Conda packages. We recommend only using Conda when your required packages are not available in PyPI. Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
-Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory. This file is executed by Cortex by running `conda install --file conda-packages.txt` command.
+```text
+./iris-classifier/
+├── cortex.yaml
+├── predictor.py
+├── ...
+└── conda-packages.txt
+```
 
-Here's an example of `conda-packages.txt` used to install `rdkit` and `pygpu` python packages:
+The `conda-packages.txt` file follows the format of `conda list --export`. Each line of `conda-packages.txt` should follow this pattern: `[channel::]package[=version[=buildid]]`.
 
+Here's an example of `conda-packages.txt`:
 ```text
 conda-forge::rdkit
 conda-forge::pygpu
 ```
+
+In situations where both `requirements.txt` and `conda-packages.txt` are provided, Cortex installs Conda packages in `conda-packages.txt` followed by PyPI packages in `requirements.txt`. Conda and Pip package managers install packages and dependencies independently. You may run into situations where Conda and pip package managers install different versions of the same package because they install and resolve dependencies independently from one another. To resolve package version conflicts, it may be in your best interest to specify their exact versions in `conda-packages.txt`.
+
+Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environment/) on using `pip` inside `conda`.
