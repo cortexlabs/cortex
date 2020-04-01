@@ -17,10 +17,13 @@ limitations under the License.
 package operator
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"encoding/json"
+	"encoding/base64"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
@@ -34,6 +37,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	dockertypes "github.com/docker/docker/api/types"
+	dockerclient "github.com/docker/docker/client"
+	// decli "github.com/docker/engine-api/client"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -458,6 +467,74 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		if err := validateONNXPredictor(predictor); err != nil {
 			return err
 		}
+	}
+
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	svc := ecr.New(sess)
+	input := &ecr.GetAuthorizationTokenInput{}
+	result, err := svc.GetAuthorizationTokenWithContext(context.Background(), input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case ecr.ErrCodeServerException:
+				fmt.Println(ecr.ErrCodeServerException, aerr.Error())
+			case ecr.ErrCodeInvalidParameterException:
+				fmt.Println(ecr.ErrCodeInvalidParameterException, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+	}
+
+	// fmt.Println(decli.ParseHost("https://680870929100.dkr.ecr.eu-central-1.amazonaws.com"))
+	authData := result.AuthorizationData[0]
+	fmt.Println(authData)
+
+	cli, err := dockerclient.NewEnvClient()
+	if err != nil {
+		panic(err)
+	}
+
+	decoded, err := base64.URLEncoding.DecodeString(*authData.AuthorizationToken)
+	decodedString := string(decoded)
+	split := strings.Split(decodedString, ":")
+	username := split[0]
+	accessToken := split[1]
+
+	auth := dockertypes.AuthConfig{
+			Username:      username,
+			Password:      accessToken,
+			ServerAddress: *authData.ProxyEndpoint,
+		}
+	// status, err := cli.RegistryLogin(context.Background(), auth)
+	// if err != nil {
+	// 	return fmt.Errorf("error when login to destination image registry. err: %v", err)
+	// }
+	// fmt.Println(status)
+
+	if predictor.Image != "" {
+		authConfig := auth
+		encodedJSON, err := json.Marshal(authConfig)
+		var registryAuth string = base64.URLEncoding.EncodeToString(encodedJSON)
+		// cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+		if err != nil {
+			fmt.Println("couldn't instantiate docker client")
+			return err
+		}
+
+		// fmt.Println(aws.GetCredentialsFromCLIConfigFile())
+		_, err = cli.DistributionInspect(context.Background(), predictor.Image, registryAuth)
+		if err != nil {
+			fmt.Println("image wasn't found")
+			return err
+		}
+		fmt.Println("image was found")
 	}
 
 	for key := range predictor.Env {
