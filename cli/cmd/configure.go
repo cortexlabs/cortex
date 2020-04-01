@@ -45,7 +45,7 @@ func init() {
 }
 
 var _configureCmd = &cobra.Command{
-	Use:   "configure",
+	Use:   "configure [--profile=PROFIE_NAME]",
 	Short: "configure a cli profile",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -122,7 +122,7 @@ var _configureListCmd = &cobra.Command{
 }
 
 var _configureRemoveCmd = &cobra.Command{
-	Use:   "remove",
+	Use:   "remove PROFILE_NAME",
 	Short: "remove a configured profile",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
