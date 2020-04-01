@@ -24,20 +24,14 @@ ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
 
 ENV PYTHONPATH="${PYTHONPATH}:/src:/mnt/project"
 ENV PATH=/opt/conda/bin:$PATH
-
-RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    /opt/conda/bin/conda install --force-reinstall -c conda-forge python=3.6.9 && \
-    /opt/conda/bin/conda clean -a && \
-    rm -rf ~/.cache ~/miniconda.sh
-
-COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-COPY pkg/workloads/cortex/serve/tf.requirements.txt /src/cortex/serve/requirements.txt
-COPY pkg/workloads/cortex/environment.yaml /src/cortex/environment.yaml
+ENV PYTHONVERSION=3.6.9
 
 # conda needs an untainted base environment to function properly
 # that's why a new separate conda environment is created
-RUN /opt/conda/bin/conda env create -n env -f /src/cortex/environment.yaml && \
+RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    /opt/conda/bin/conda install --force-reinstall -c conda-forge python=$PYTHONVERSION && \
+    /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip && \
     /opt/conda/bin/conda clean -a && \
     rm -rf ~/.cache ~/miniconda.sh && \
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
@@ -46,6 +40,12 @@ RUN /opt/conda/bin/conda env create -n env -f /src/cortex/environment.yaml && \
     echo "source ~/.env" >> ~/.bashrc
 
 ENV BASH_ENV=~/.env
+
+COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
+COPY pkg/workloads/cortex/serve/tf.requirements.txt /src/cortex/serve/requirements.txt
+
+RUN /bin/bash -c \
+    "pip install --no-cache-dir -r /src/cortex/lib/requirements.txt -r /src/cortex/serve/requirements.txt"
 
 COPY pkg/workloads/cortex/consts.py /src/cortex/
 COPY pkg/workloads/cortex/lib /src/cortex/lib
