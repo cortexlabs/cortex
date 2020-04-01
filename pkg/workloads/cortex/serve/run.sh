@@ -32,8 +32,7 @@ sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
 
 # execute script if present in project's directory
 if [ -f "/mnt/project/script.sh" ]; then
-    chmod +x /mnt/project/script.sh
-    /mnt/project/script.sh
+    bash -e /mnt/project/script.sh
 fi
 
 # install from conda-packages.txt
