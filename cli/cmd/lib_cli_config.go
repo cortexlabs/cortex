@@ -24,24 +24,26 @@ import (
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/yaml"
 )
 
 type CLIConfig struct {
-	Telemetry    bool            `json:"telemetry" yaml:"telemetry"`
-	Environments []*CLIEnvConfig `json:"environments" yaml:"environments"`
+	Telemetry bool       `json:"telemetry" yaml:"telemetry"`
+	Profiles  []*Profile `json:"profiles" yaml:"profiles"`
 }
 
-type CLIEnvConfig struct {
-	Name               string `json:"name" yaml:"name"`
-	OperatorEndpoint   string `json:"operator_endpoint" yaml:"operator_endpoint"`
-	AWSAccessKeyID     string `json:"aws_access_key_id" yaml:"aws_access_key_id"`
-	AWSSecretAccessKey string `json:"aws_secret_access_key" yaml:"aws_secret_access_key"`
+type Profile struct {
+	Name               string   `json:"name" yaml:"name"`
+	Provider           Provider `json:"provider" yaml:"provider"`
+	OperatorEndpoint   *string  `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
+	AWSAccessKeyID     *string  `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
+	AWSSecretAccessKey *string  `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
 }
 
 var _cliConfigValidation = &cr.StructValidation{
@@ -55,7 +57,7 @@ var _cliConfigValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "Environments",
+			StructField: "Profiles",
 			StructListValidation: &cr.StructListValidation{
 				AllowExplicitNull: true,
 				StructValidation: &cr.StructValidation{
@@ -68,22 +70,32 @@ var _cliConfigValidation = &cr.StructValidation{
 							},
 						},
 						{
-							StructField: "OperatorEndpoint",
+							StructField: "Provider",
 							StringValidation: &cr.StringValidation{
-								Required:  true,
+								Required:      true,
+								AllowedValues: ProviderStrings(),
+							},
+							Parser: func(str string) (interface{}, error) {
+								return ProviderFromString(str), nil
+							},
+						},
+						{
+							StructField: "OperatorEndpoint",
+							StringPtrValidation: &cr.StringPtrValidation{
+								Required:  false,
 								Validator: cr.GetURLValidator(false, false),
 							},
 						},
 						{
 							StructField: "AWSAccessKeyID",
-							StringValidation: &cr.StringValidation{
-								Required: true,
+							StringPtrValidation: &cr.StringPtrValidation{
+								Required: false,
 							},
 						},
 						{
 							StructField: "AWSSecretAccessKey",
-							StringValidation: &cr.StringValidation{
-								Required: true,
+							StringPtrValidation: &cr.StringPtrValidation{
+								Required: false,
 							},
 						},
 					},
@@ -93,21 +105,154 @@ var _cliConfigValidation = &cr.StructValidation{
 	},
 }
 
-func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
-	if defaults == nil {
-		defaults = &CLIEnvConfig{}
+func (cliConfig *CLIConfig) validate() error {
+	profileNames := strset.New()
+
+	for _, profile := range cliConfig.Profiles {
+		if profileNames.Has(profile.Name) {
+			return errors.Wrap(ErrorDuplicateProfileNames(profile.Name), "profiles")
+		}
+
+		profileNames.Add(profile.Name)
+
+		if err := profile.validate(); err != nil {
+			return errors.Wrap(err, "profiles")
+		}
 	}
 
-	if defaults.AWSAccessKeyID == "" && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
-		defaults.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
-	}
-	if defaults.AWSSecretAccessKey == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		defaults.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	}
-	if defaults.OperatorEndpoint == "" && os.Getenv("CORTEX_OPERATOR_ENDPOINT") != "" {
-		defaults.OperatorEndpoint = os.Getenv("CORTEX_OPERATOR_ENDPOINT")
+	// Ensure the local profile is always present
+	if !profileNames.Has(Local.String()) {
+		localProfile := &Profile{
+			Name:     Local.String(),
+			Provider: Local,
+		}
+
+		cliConfig.Profiles = append([]*Profile{localProfile}, cliConfig.Profiles...)
 	}
 
+	return nil
+}
+
+func (profile *Profile) validate() error {
+	if profile.Name == "" {
+		return errors.Wrap(cr.ErrorMustBeDefined(), "name")
+	}
+	if profile.Provider == UnknownProvider {
+		return errors.Wrap(cr.ErrorMustBeDefined(ProviderStrings()), profile.Name, "provider")
+	}
+
+	if err := checkReservedProfileNames(profile.Name, profile.Provider); err != nil {
+		return err
+	}
+
+	if profile.Provider == Local {
+		if profile.OperatorEndpoint != nil {
+			return errors.Wrap(ErrorOperatorEndpointInLocalProfile(), profile.Name)
+		}
+	}
+
+	if profile.Provider == AWS {
+		if profile.OperatorEndpoint == nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), profile.Name, "operator_endpoint")
+		}
+		if profile.AWSAccessKeyID == nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), profile.Name, "aws_access_key_id")
+		}
+		if profile.AWSSecretAccessKey == nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), profile.Name, "aws_secret_access_key")
+		}
+	}
+
+	return nil
+}
+
+func checkReservedProfileNames(profileName string, provider Provider) error {
+	profileNameProvider := ProviderFromString(profileName)
+	if profileNameProvider == UnknownProvider {
+		return nil
+	}
+
+	if profileNameProvider != provider {
+		return ErrorProfileProviderNameConflict(profileName, provider)
+	}
+
+	return nil
+}
+
+func providerPromptValidation(profileName string, defaults Profile) *cr.PromptValidation {
+	defaultProviderStr := ""
+	if defaults.Provider != UnknownProvider {
+		defaultProviderStr = defaults.Provider.String()
+	}
+
+	return &cr.PromptValidation{
+		SkipNonEmptyFields: true,
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "Provider",
+				PromptOpts: &prompt.Options{
+					Prompt: fmt.Sprintf("provider (%s)", s.StrsOr(ProviderStrings())),
+				},
+				StringValidation: &cr.StringValidation{
+					Required:      true,
+					Default:       defaultProviderStr,
+					AllowedValues: ProviderStrings(),
+				},
+				Parser: func(str string) (interface{}, error) {
+					provider := ProviderFromString(str)
+					if err := checkReservedProfileNames(profileName, provider); err != nil {
+						return nil, err
+					}
+					return provider, nil
+				},
+			},
+		},
+	}
+}
+
+func localProfilePromptValidation(defaults Profile) *cr.PromptValidation {
+	accessKeyIDPrompt := "aws access key id"
+	if defaults.AWSAccessKeyID == nil {
+		accessKeyIDPrompt += " [press ENTER to skip]"
+	}
+
+	secretAccessKeyPrompt := "aws secret access key"
+	if defaults.AWSSecretAccessKey == nil {
+		secretAccessKeyPrompt += " [press ENTER to skip]"
+	}
+
+	return &cr.PromptValidation{
+		SkipNonEmptyFields: true,
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "AWSAccessKeyID",
+				PromptOpts: &prompt.Options{
+					Prompt: accessKeyIDPrompt,
+				},
+				StringPtrValidation: &cr.StringPtrValidation{
+					Required:   false,
+					AllowEmpty: true,
+					Default:    defaults.AWSAccessKeyID,
+				},
+			},
+			{
+				StructField: "AWSSecretAccessKey",
+				PromptOpts: &prompt.Options{
+					Prompt:      secretAccessKeyPrompt,
+					MaskDefault: true,
+					HideTyping:  true,
+				},
+				StringPtrValidation: &cr.StringPtrValidation{
+					Required:   false,
+					AllowEmpty: true,
+					Default:    defaults.AWSSecretAccessKey,
+				},
+			},
+		},
+	}
+}
+
+func awsProfilePromptValidation(defaults Profile) *cr.PromptValidation {
 	return &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
@@ -116,7 +261,7 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 				PromptOpts: &prompt.Options{
 					Prompt: "cortex operator endpoint",
 				},
-				StringValidation: &cr.StringValidation{
+				StringPtrValidation: &cr.StringPtrValidation{
 					Required:  true,
 					Default:   defaults.OperatorEndpoint,
 					Validator: validateOperatorEndpoint,
@@ -127,7 +272,7 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 				PromptOpts: &prompt.Options{
 					Prompt: "aws access key id",
 				},
-				StringValidation: &cr.StringValidation{
+				StringPtrValidation: &cr.StringPtrValidation{
 					Required: true,
 					Default:  defaults.AWSAccessKeyID,
 				},
@@ -139,7 +284,7 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 					MaskDefault: true,
 					HideTyping:  true,
 				},
-				StringValidation: &cr.StringValidation{
+				StringPtrValidation: &cr.StringPtrValidation{
 					Required: true,
 					Default:  defaults.AWSSecretAccessKey,
 				},
@@ -148,6 +293,7 @@ func cliEnvPromptValidation(defaults *CLIEnvConfig) *cr.PromptValidation {
 	}
 }
 
+// Only validate this during prompt, not when reading from file
 func validateOperatorEndpoint(endpoint string) (string, error) {
 	url, err := cr.GetURLValidator(false, false)(endpoint)
 	if err != nil {
@@ -176,11 +322,11 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	}
 	response, err := client.Do(req)
 	if err != nil {
-		exit.Error(ErrorInvalidOperatorEndpoint(url))
+		return "", ErrorInvalidOperatorEndpoint(url)
 	}
 
 	if response.StatusCode != 200 {
-		exit.Error(ErrorInvalidOperatorEndpoint(url))
+		return "", ErrorInvalidOperatorEndpoint(url)
 	}
 
 	return url, nil
@@ -204,71 +350,118 @@ func isTelemetryEnabled() bool {
 	return enabled
 }
 
-// May return nil if not configured
-func readCLIEnvConfig(environment string) (*CLIEnvConfig, error) {
+// Will return nil if not configured, except for local
+func readProfile(profileName string) (*Profile, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, cliEnvConfig := range cliConfig.Environments {
-		if cliEnvConfig.Name == environment {
-			return cliEnvConfig, nil
+	for _, profile := range cliConfig.Profiles {
+		if profile.Name == profileName {
+			return profile, nil
 		}
+	}
+
+	if profileName == Local.String() {
+		return &Profile{
+			Name:     Local.String(),
+			Provider: Local,
+		}, nil
 	}
 
 	return nil, nil
 }
 
-func isCLIEnvConfigured(environment string) (bool, error) {
-	cliEnvConfig, err := readCLIEnvConfig(environment)
+func readOrConfigureNonLocalProfile(profileName string) (Profile, error) {
+	profile, err := readProfile(profileName)
 	if err != nil {
-		return false, err
+		return Profile{}, err
 	}
 
-	return cliEnvConfig != nil, nil
+	if profile != nil {
+		if profile.Provider == Local {
+			return Profile{}, ErrorLocalProviderNotSupported(*profile)
+		}
+		return *profile, nil
+	}
+
+	fieldsToSkipPrompt := Profile{
+		Provider: AWS,
+	}
+	return configureProfile(profileName, fieldsToSkipPrompt)
 }
 
-func readOrConfigureCLIEnv(environment string) (CLIEnvConfig, error) {
-	currentCLIEnvConfig, err := readCLIEnvConfig(environment)
-	if err != nil {
-		return CLIEnvConfig{}, err
+func getDefaultProfileConfig(profileName string) Profile {
+	defaults := Profile{}
+
+	prevProfile, err := readProfile(profileName)
+	if err == nil && prevProfile != nil {
+		defaults = *prevProfile
 	}
 
-	if currentCLIEnvConfig != nil {
-		return *currentCLIEnvConfig, nil
+	if defaults.Provider == UnknownProvider {
+		if profileNameProvider := ProviderFromString(profileName); profileNameProvider != UnknownProvider {
+			defaults.Provider = profileNameProvider
+		}
 	}
 
-	return configureCLIEnv(environment, CLIEnvConfig{})
+	if defaults.AWSAccessKeyID == nil && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		defaults.AWSAccessKeyID = pointer.String(os.Getenv("AWS_ACCESS_KEY_ID"))
+	}
+	if defaults.AWSSecretAccessKey == nil && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		defaults.AWSSecretAccessKey = pointer.String(os.Getenv("AWS_SECRET_ACCESS_KEY"))
+	}
+	if defaults.OperatorEndpoint == nil && os.Getenv("CORTEX_OPERATOR_ENDPOINT") != "" {
+		defaults.OperatorEndpoint = pointer.String(os.Getenv("CORTEX_OPERATOR_ENDPOINT"))
+	}
+
+	return defaults
 }
 
-func configureCLIEnv(environment string, fieldsToSkipPrompt CLIEnvConfig) (CLIEnvConfig, error) {
-	prevCLIEnvConfig, err := readCLIEnvConfig(environment)
-	if err != nil {
-		return CLIEnvConfig{}, err
+func configureProfile(profileName string, fieldsToSkipPrompt Profile) (Profile, error) {
+	fmt.Println("profile: " + profileName + "\n")
+
+	defaults := getDefaultProfileConfig(profileName)
+
+	if fieldsToSkipPrompt.Provider == UnknownProvider {
+		if profileNameProvider := ProviderFromString(profileName); profileNameProvider != UnknownProvider {
+			fieldsToSkipPrompt.Provider = profileNameProvider
+		}
 	}
 
-	if environment != "default" {
-		fmt.Println("environment: " + environment + "\n")
-	}
-
-	cliEnvConfig := CLIEnvConfig{
-		Name:               environment,
+	profile := Profile{
+		Name:               profileName,
+		Provider:           fieldsToSkipPrompt.Provider,
 		OperatorEndpoint:   fieldsToSkipPrompt.OperatorEndpoint,
 		AWSAccessKeyID:     fieldsToSkipPrompt.AWSAccessKeyID,
 		AWSSecretAccessKey: fieldsToSkipPrompt.AWSSecretAccessKey,
 	}
 
-	err = cr.ReadPrompt(&cliEnvConfig, cliEnvPromptValidation(prevCLIEnvConfig))
+	err := cr.ReadPrompt(&profile, providerPromptValidation(profileName, defaults))
 	if err != nil {
-		return CLIEnvConfig{}, err
+		return Profile{}, err
 	}
 
-	if err := addEnvToCLIConfig(cliEnvConfig); err != nil {
-		return CLIEnvConfig{}, err
+	switch profile.Provider {
+	case Local:
+		err = cr.ReadPrompt(&profile, localProfilePromptValidation(defaults))
+	case AWS:
+		err = cr.ReadPrompt(&profile, awsProfilePromptValidation(defaults))
+	}
+	if err != nil {
+		return Profile{}, err
 	}
 
-	return cliEnvConfig, nil
+	if err := profile.validate(); err != nil {
+		return Profile{}, err
+	}
+
+	if err := addProfileToCLIConfig(profile); err != nil {
+		return Profile{}, err
+	}
+
+	return profile, nil
 }
 
 func readCLIConfig() (CLIConfig, error) {
@@ -288,41 +481,67 @@ func readCLIConfig() (CLIConfig, error) {
 	}
 
 	if err := cliConfig.validate(); err != nil {
-		return CLIConfig{}, err
+		return CLIConfig{}, errors.Wrap(err, _cliConfigPath)
 	}
 
 	return cliConfig, nil
 }
 
-func (cliConfig CLIConfig) validate() error {
-	envNames := strset.New()
-	for _, cliEnvConfig := range cliConfig.Environments {
-		if envNames.Has(cliEnvConfig.Name) {
-			return errors.Wrap(ErrorDuplicateCLIEnvNames(cliEnvConfig.Name), _cliConfigPath, "environments")
-		}
-		envNames.Add(cliEnvConfig.Name)
-	}
-	return nil
-}
-
-func addEnvToCLIConfig(newCLIEnvConfig CLIEnvConfig) error {
+func addProfileToCLIConfig(newProfile Profile) error {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return err
 	}
 
 	replaced := false
-	for i, prevCLIEnvConfig := range cliConfig.Environments {
-		if prevCLIEnvConfig.Name == newCLIEnvConfig.Name {
-			cliConfig.Environments[i] = &newCLIEnvConfig
+	for i, prevProfile := range cliConfig.Profiles {
+		if prevProfile.Name == newProfile.Name {
+			cliConfig.Profiles[i] = &newProfile
 			replaced = true
 			break
 		}
 	}
 
 	if !replaced {
-		cliConfig.Environments = append(cliConfig.Environments, &newCLIEnvConfig)
+		cliConfig.Profiles = append(cliConfig.Profiles, &newProfile)
 	}
+
+	cliConfig.validate()
+
+	cliConfigBytes, err := yaml.Marshal(cliConfig)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeProfileFromCLIConfig(profileName string) error {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return err
+	}
+
+	var updatedProfiles []*Profile
+	deleted := false
+	for _, profile := range cliConfig.Profiles {
+		if profile.Name == profileName {
+			deleted = true
+			continue
+		}
+		updatedProfiles = append(updatedProfiles, profile)
+	}
+
+	if deleted == false && profileName != Local.String() {
+		return ErrorProfileNotConfigured(profileName)
+	}
+
+	cliConfig.Profiles = updatedProfiles
+
+	cliConfig.validate()
 
 	cliConfigBytes, err := yaml.Marshal(cliConfig)
 	if err != nil {

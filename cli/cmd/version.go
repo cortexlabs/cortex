@@ -28,7 +28,7 @@ import (
 )
 
 func init() {
-	addEnvFlag(_versionCmd)
+	addProfileFlag(_versionCmd, Local.String())
 }
 
 var _versionCmd = &cobra.Command{
@@ -38,9 +38,9 @@ var _versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.version")
 
-		if cliConfigured, err := isCLIEnvConfigured(_flagEnv); err != nil || !cliConfigured {
+		profile, err := readProfile(_flagProfile)
+		if err != nil || profile.Provider == Local {
 			fmt.Println("cli version: " + consts.CortexVersion + "\n")
-			fmt.Println("run `cortex configure` to connect the cli to a cluster")
 			return
 		}
 

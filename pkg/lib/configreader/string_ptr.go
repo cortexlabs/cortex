@@ -194,7 +194,7 @@ func StringPtrFromPrompt(promptOpts *prompt.Options, v *StringPtrValidation) (*s
 
 func ValidateStringPtrMissing(v *StringPtrValidation) (*string, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateStringPtr(v.Default, v)
 }

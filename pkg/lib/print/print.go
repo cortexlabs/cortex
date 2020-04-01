@@ -23,7 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 )
 
-func ForUser(msg string) {
+func BoldFirstLine(msg string) {
 	msgParts := strings.Split(msg, "\n")
 
 	if len(msgParts[0]) > 200 {
@@ -38,7 +38,7 @@ func ForUser(msg string) {
 	}
 }
 
-func ForUserSplitDoubleNewLine(msg string) {
+func BoldFirstBlock(msg string) {
 	msgParts := strings.Split(msg, "\n\n")
 
 	if len(msgParts[0]) > 200 {

@@ -158,7 +158,7 @@ func IntFromPrompt(promptOpts *prompt.Options, v *IntValidation) (int, error) {
 
 func ValidateIntMissing(v *IntValidation) (int, error) {
 	if v.Required {
-		return 0, ErrorMustBeDefined()
+		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateInt(v.Default, v)
 }

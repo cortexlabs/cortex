@@ -28,7 +28,7 @@ import (
 )
 
 func init() {
-	addEnvFlag(_logsCmd)
+	addProfileFlag(_logsCmd, Local.String())
 }
 
 var _logsCmd = &cobra.Command{

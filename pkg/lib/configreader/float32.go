@@ -158,7 +158,7 @@ func Float32FromPrompt(promptOpts *prompt.Options, v *Float32Validation) (float3
 
 func ValidateFloat32Missing(v *Float32Validation) (float32, error) {
 	if v.Required {
-		return 0, ErrorMustBeDefined()
+		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateFloat32(v.Default, v)
 }

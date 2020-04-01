@@ -30,7 +30,7 @@ var _flagRefreshForce bool
 
 func init() {
 	_refreshCmd.PersistentFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
-	addEnvFlag(_refreshCmd)
+	addProfileFlag(_refreshCmd, Local.String())
 }
 
 var _refreshCmd = &cobra.Command{
@@ -59,5 +59,5 @@ func refresh(apiName string, force bool) {
 		exit.Error(err, "/refresh", string(httpRes))
 	}
 
-	print.ForUser(refreshRes.Message)
+	print.BoldFirstLine(refreshRes.Message)
 }

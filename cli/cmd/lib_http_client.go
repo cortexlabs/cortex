@@ -260,12 +260,12 @@ func closeConnection(connection *websocket.Conn, done chan struct{}, interrupt c
 }
 
 func operatorRequest(method string, endpoint string, body io.Reader, qParams []map[string]string) (*http.Request, error) {
-	cliEnvConfig, err := readOrConfigureCLIEnv(_flagEnv)
+	profile, err := readOrConfigureNonLocalProfile(_flagProfile)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(method, cliEnvConfig.OperatorEndpoint+endpoint, body)
+	req, err := http.NewRequest(method, *profile.OperatorEndpoint+endpoint, body)
 	if err != nil {
 		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
@@ -351,18 +351,20 @@ func (client *GenericClient) MakeRequest(request *http.Request) ([]byte, error) 
 }
 
 func authHeader() (string, error) {
-	cliEnvConfig, err := readOrConfigureCLIEnv(_flagEnv)
+	profile, err := readOrConfigureNonLocalProfile(_flagProfile)
+
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("CortexAWS %s|%s", cliEnvConfig.AWSAccessKeyID, cliEnvConfig.AWSSecretAccessKey), err
+	return fmt.Sprintf("CortexAWS %s|%s", profile.AWSAccessKeyID, profile.AWSSecretAccessKey), err
 }
 
 // Returns empty string if not able to get operator endpoint
 func operatorEndpointOrBlank() string {
-	cliEnvConfig, _ := readCLIEnvConfig(_flagEnv)
-	if cliEnvConfig != nil {
-		return cliEnvConfig.OperatorEndpoint
+	profile, _ := readProfile(_flagProfile)
+
+	if profile != nil {
+		return *profile.OperatorEndpoint
 	}
 	return ""
 }

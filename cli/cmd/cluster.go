@@ -43,16 +43,16 @@ var _flagDebug bool
 
 func init() {
 	addClusterConfigFlag(_updateCmd)
-	addEnvFlag(_updateCmd)
+	addProfileFlag(_updateCmd, AWS.String())
 	_clusterCmd.AddCommand(_updateCmd)
 
 	addClusterConfigFlag(_infoCmd)
-	addEnvFlag(_infoCmd)
+	addProfileFlag(_infoCmd, AWS.String())
 	_infoCmd.PersistentFlags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
 	_clusterCmd.AddCommand(_infoCmd)
 
 	addClusterConfigFlag(_upCmd)
-	addEnvFlag(_upCmd)
+	addProfileFlag(_upCmd, AWS.String())
 	_clusterCmd.AddCommand(_upCmd)
 
 	addClusterConfigFlag(_downCmd)

@@ -187,7 +187,7 @@ func StringFromPrompt(promptOpts *prompt.Options, v *StringValidation) (string, 
 
 func ValidateStringMissing(v *StringValidation) (string, error) {
 	if v.Required {
-		return "", ErrorMustBeDefined()
+		return "", ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateString(v.Default, v)
 }

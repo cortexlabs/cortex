@@ -176,10 +176,10 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 	}
 
 	// Next check Cortex CLI config file
-	cliEnvConfig, err := readCLIEnvConfig(_flagEnv)
-	if err != nil && cliEnvConfig != nil && cliEnvConfig.AWSAccessKeyID != "" && cliEnvConfig.AWSSecretAccessKey != "" {
-		awsCreds.AWSAccessKeyID = cliEnvConfig.AWSAccessKeyID
-		awsCreds.AWSSecretAccessKey = cliEnvConfig.AWSSecretAccessKey
+	profile, err := readProfile(_flagProfile)
+	if err != nil && profile != nil && profile.AWSAccessKeyID != nil && profile.AWSSecretAccessKey != nil {
+		awsCreds.AWSAccessKeyID = *profile.AWSAccessKeyID
+		awsCreds.AWSSecretAccessKey = *profile.AWSSecretAccessKey
 		return nil
 	}
 

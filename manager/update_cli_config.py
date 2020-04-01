@@ -17,14 +17,11 @@ import yaml
 
 
 def update_cli_config(
-    cli_config_file_path,
-    cortex_environment,
-    operator_endpoint,
-    aws_access_key_id,
-    aws_secret_access_key,
+    cli_config_file_path, profile_name, operator_endpoint, aws_access_key_id, aws_secret_access_key,
 ):
-    cli_env_config = {
-        "name": cortex_environment,
+    new_profile = {
+        "name": profile_name,
+        "provider": "aws",
         "operator_endpoint": operator_endpoint,
         "aws_access_key_id": aws_access_key_id,
         "aws_secret_access_key": aws_secret_access_key,
@@ -36,26 +33,26 @@ def update_cli_config(
             if cli_config is None:
                 raise Exception("blank cli config file")
     except:
-        cli_config = {"environments": [cli_env_config]}
+        cli_config = {"profiles": [new_profile]}
         with open(cli_config_file_path, "w") as f:
             yaml.dump(cli_config, f, default_flow_style=False)
         return
 
-    if len(cli_config.get("environments", [])) == 0:
-        cli_config["environments"] = [cli_env_config]
+    if len(cli_config.get("profiles", [])) == 0:
+        cli_config["profiles"] = [new_profile]
         with open(cli_config_file_path, "w") as f:
             yaml.dump(cli_config, f, default_flow_style=False)
         return
 
     replaced = False
-    for i, prev_cli_env_config in enumerate(cli_config["environments"]):
-        if prev_cli_env_config.get("name") == cortex_environment:
-            cli_config["environments"][i] = cli_env_config
+    for i, prev_profile in enumerate(cli_config["profiles"]):
+        if prev_profile.get("name") == profile_name:
+            cli_config["profiles"][i] = new_profile
             replaced = True
             break
 
     if not replaced:
-        cli_config["environments"].append(cli_env_config)
+        cli_config["profiles"].append(new_profile)
 
     with open(cli_config_file_path, "w") as f:
         yaml.dump(cli_config, f, default_flow_style=False)
@@ -64,7 +61,7 @@ def update_cli_config(
 if __name__ == "__main__":
     update_cli_config(
         cli_config_file_path=sys.argv[1],
-        cortex_environment=sys.argv[2],
+        profile_name=sys.argv[2],
         operator_endpoint=sys.argv[3],
         aws_access_key_id=sys.argv[4],
         aws_secret_access_key=sys.argv[5],

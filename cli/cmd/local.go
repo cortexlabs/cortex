@@ -29,7 +29,7 @@ var _localWorkSpace string
 
 func init() {
 	localCmd.PersistentFlags()
-	addEnvFlag(localCmd)
+	addProfileFlag(localCmd, Local.String())
 	_localWorkSpace = filepath.Join(_localDir, "local_workspace")
 
 }
