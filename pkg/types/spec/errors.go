@@ -39,6 +39,8 @@ const (
 	ErrInvalidSurgeOrUnavailable          = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero        = "spec.surge_and_unavailable_both_zero"
 	ErrImplDoesNotExist                   = "spec.impl_does_not_exist"
+	ErrFileNotFound                       = "spec.file_not_found"
+	ErrDirNotFoundOrEmpty                 = "spec.dir_not_found_or_empty"
 	ErrS3FileNotFound                     = "spec.s3_file_not_found"
 	ErrS3DirNotFoundOrEmpty               = "spec.s3_dir_not_found_or_empty"
 	ErrONNXDoesntSupportZip               = "spec.onnx_doesnt_support_zip"
@@ -47,6 +49,7 @@ const (
 	ErrFieldNotSupportedByPredictorType   = "spec.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit        = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed     = "spec.cortex_prefixed_env_var_not_allowed"
+	ErrLocalPathNotSupportedByProvider    = "spec.local_path_not_supported_by_provider"
 )
 
 func ErrorMalformedConfig() error {
@@ -159,6 +162,20 @@ func ErrorImplDoesNotExist(path string) error {
 	})
 }
 
+func ErrorFileNotFound(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFileNotFound,
+		Message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+	})
+}
+
+func ErrorDirNotFoundOrEmpty(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDirNotFoundOrEmpty,
+		Message: fmt.Sprintf("%s: directory not found or empty", path),
+	})
+}
+
 func ErrorS3FileNotFound(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3FileNotFound,
@@ -215,6 +232,13 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 func ErrorCortexPrefixedEnvVarNotAllowed() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
+		Message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
+	})
+}
+
+func ErrorLocalPathNotSupportedByProvider(provider string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrLocalPathNotSupportedByProvider,
 		Message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
 	})
 }

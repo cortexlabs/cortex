@@ -211,11 +211,11 @@ var localLogs = &cobra.Command{
 	Long:  "local an application.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		path, err := files.GetAbsPath(args[0])
+		paths, err := files.ListDirRecursive(args[0], true)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(path)
+		debug.Pp(paths)
 		// containers := GetContainerByAPI(args[0])
 		// containerIDs := []string{}
 		// for _, container := range containers {

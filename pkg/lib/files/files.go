@@ -496,6 +496,9 @@ func IgnoreHiddenFolders(path string, fi os.FileInfo) (bool, error) {
 }
 
 func IgnorePythonGeneratedFiles(path string, fi os.FileInfo) (bool, error) {
+	if fi.IsDir() && fi.Name() == "__pycache__" {
+		return true, nil
+	}
 	if !fi.IsDir() {
 		ext := filepath.Ext(path)
 		return ext == ".pyc" || ext == ".pyo" || ext == ".pyd", nil
@@ -697,7 +700,7 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 		}
 
 		if !fi.IsDir() {
-			if relative {
+			if relative && dir != "." {
 				path = path[len(dir)+1:]
 			}
 			fileList = append(fileList, path)

@@ -26,8 +26,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -447,7 +449,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType s
 
 	model := *predictor.Model
 
-	if strings.HasPrefix("s3://") {
+	if strings.HasPrefix(model, "s3://") {
 		awsClient, err := aws.NewFromEnvS3Path(model)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
@@ -480,13 +482,17 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType string)
 
 	model := *predictor.Model
 
-	awsClient, err := aws.NewFromEnvS3Path(model)
-	if err != nil {
-		return errors.Wrap(err, userconfig.ModelKey)
-	}
+	if strings.HasPrefix(model, "s3://") {
+		awsClient, err := aws.NewFromEnvS3Path(model)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelKey)
+		}
 
-	if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
-		return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
+		if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
+			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
+		}
+	} else {
+
 	}
 
 	if predictor.SignatureKey != nil {
@@ -558,6 +564,60 @@ func isValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 		return false
 	}
 	return true
+}
+
+func getTFServingExportFromLocalPath(path string) (string, error) {
+	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	if err != nil {
+		return "", err
+	}
+
+	if len(paths) == 0 {
+		return "", ErrorDirNotFoundOrEmpty(path)
+	}
+
+	highestVersion := int64(0)
+	var highestPath string
+
+	for _, path := range paths {
+		if strings.HasSuffix(path, "saved_model.pb") {
+			keyParts := strings.Split(path, "/")
+			versionStr := keyParts[len(keyParts)-1]
+			version, err := strconv.ParseInt(versionStr, 10, 64)
+			if err != nil {
+				version = 0
+			}
+
+			possiblePath := filepath.Base(path)
+			validTFDirectory, _ := isValidTensorFlowLocalDirectory(possiblePath)
+			if version > highestVersion && validTFDirectory {
+				highestVersion = version
+				highestPath = possiblePath
+			}
+		}
+	}
+
+	return highestPath, nil
+}
+
+func isValidTensorFlowLocalDirectory(path string) (bool, error) {
+	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	if err != nil {
+		return false, err
+	}
+	pathSet := strset.New(paths...)
+
+	if !(pathSet.Has("saved_model.pb") && pathSet.Has("variables/variables.index")) {
+		return false, nil
+	}
+
+	for _, path := range paths {
+		if strings.HasPrefix(path, "variables/variables.data-00000-of") {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func validatePythonPath(pythonPath string, projectFileMap map[string][]byte) error {
