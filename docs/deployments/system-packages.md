@@ -2,44 +2,39 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Cortex uses Docker images to deploy your models. There are 2 ways to augment your system packages and libraries:
+## Bash script
 
-1. **Using `script.sh`** in the root directory of the project. Support is already included in Cortex.
-1. Creating a **custom Docker image**. Must push to a container registry that the cluster has access to (i.e. [Docker Hub](https://hub.docker.com) or [AWS ECR](https://aws.amazon.com/ecr)).
+Cortex looks inside the root directory of the project for a file named `script.sh`. (i.e. the directory which contains `cortex.yaml`).
 
-So, let's explore an example where we use `tree` program to list files inside the `predictory.py` module. We want to be able to run this:
-
-```python
-# predictor.py
-
-import subprocess
-
-class PythonPredictor:
-    def __init__(self, config):
-        subprocess.run(["tree"])
-
-    def predict(self, payload):
-        return None
+```text
+./iris-classifier/
+├── cortex.yaml
+├── predictor.py
+├── ...
+└── script.sh
 ```
-The above example works with either of the following methods.
 
----
+This `script.sh` gets executed during the initialization of each replica. Typical use cases include installing required system packages to be used in Predictor, building python packages from source, etc.
 
-## Using a script
-
-Cortex looks inside the root directory of the project for a file named `script.sh`. (i.e. the directory which contains `cortex.yaml`). This `script.sh` gets executed at run-time when an API is being deployed.
-
-Here's what `script.sh` contains in order to install `tree` utility:
+Sample `script.sh` installing `tree` utility:
 ```bash
 #!/bin/bash
 apt-get update && apt-get install -y tree
 ```
 
-*Note: The order of execution on all files is this: `script.sh` -> `.condarc` -> `environment.yaml` or `conda-packages.txt` -> `requirements.txt`.*
+The `tree` utility can now be called inside your `predictor.py`:
 
----
+```python
+# predictor.py
+import subprocess
 
-## Using a custom Docker image
+class PythonPredictor:
+    def __init__(self, config):
+        subprocess.run(["tree"])
+    ...
+```
+
+## Custom Docker image
 
 Create a Dockerfile to build your custom image:
 
