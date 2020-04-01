@@ -198,10 +198,12 @@ def get_spec(storage, cache_dir, s3_path):
     # local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
     # _, key = S3.deconstruct_s3_path(s3_path)
     # storage.download_file(key, local_spec_path)
-    # return util.read_msgpack(local_spec_path)
-    print(os.listdir())
-    with open("app.yaml") as file:
-        return yaml.safe_load(file)
+    # print(os.listdir())
+    print(os.listdir("/mnt/workspace"))
+    return util.read_msgpack(os.environ["CORTEX_API_SPEC"])
+    # print(os.listdir())
+    # with open("app.yaml") as file:
+    #     return yaml.safe_load(file)
 
 
 def start():
@@ -219,7 +221,7 @@ def start():
     #     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
         raw_api_spec = get_spec(storage, cache_dir, spec)
-        raw_api_spec = raw_api_spec[0]
+        # raw_api_spec = raw_api_spec[0]
         api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
         client = api.predictor.initialize_client(model_dir, tf_serving_port)
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
@@ -232,10 +234,10 @@ def start():
         cx_logger().exception("failed to start api")
         sys.exit(1)
 
-    if api.tracker is not None and api.tracker.model_type == "classification":
-        try:
-            local_cache["class_set"] = api.get_cached_classes()
-        except:
-            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
+    # if api.tracker is not None and api.tracker.model_type == "classification":
+    #     try:
+    #         local_cache["class_set"] = api.get_cached_classes()
+    #     except:
+    #         cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     return app

@@ -8,6 +8,7 @@
   predictor:
     type: python
     path: predictor.py
+    again: agq
     config:
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
 

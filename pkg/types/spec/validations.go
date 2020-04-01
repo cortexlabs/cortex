@@ -368,35 +368,17 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 	return apis, nil
 }
 
-func ValidateLocalAPIs(apis []userconfig.API, projectFileMap map[string][]byte) error {
-	if len(apis) == 0 {
-		return ErrorNoAPIs()
-	}
-
-	for i := range apis {
-		if err := ValidateAPI(&apis[i], projectFileMap); err != nil {
-			return err
-		}
-	}
-
-	dups := findDuplicateNames(apis)
-	if len(dups) > 0 {
-		return ErrorDuplicateName(dups)
-	}
-
-	return nil
-}
-
 func ValidateAPI(
 	api *userconfig.API,
 	projectFileMap map[string][]byte,
+	providerType string,
 ) error {
 
 	if api.Endpoint == nil {
 		api.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validatePredictor(api.Predictor, projectFileMap); err != nil {
+	if err := validatePredictor(api.Predictor, projectFileMap, providerType); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
@@ -411,18 +393,18 @@ func ValidateAPI(
 	return nil
 }
 
-func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[string][]byte) error {
+func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[string][]byte, providerType string) error {
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
 		if err := validatePythonPredictor(predictor); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(predictor); err != nil {
+		if err := validateTensorFlowPredictor(predictor, providerType); err != nil {
 			return err
 		}
 	case userconfig.ONNXPredictorType:
-		if err := validateONNXPredictor(predictor); err != nil {
+		if err := validateONNXPredictor(predictor, providerType); err != nil {
 			return err
 		}
 	}
@@ -458,36 +440,40 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	return nil
 }
 
-func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
+func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType string) error {
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
 	}
 
 	model := *predictor.Model
 
-	awsClient, err := aws.NewFromEnvS3Path(model)
-	if err != nil {
-		return errors.Wrap(err, userconfig.ModelKey)
-	}
-
-	if strings.HasSuffix(model, ".zip") {
-		if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
-			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
-		}
-	} else {
-		path, err := getTFServingExportFromS3Path(model, awsClient)
+	if strings.HasPrefix("s3://") {
+		awsClient, err := aws.NewFromEnvS3Path(model)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
-		} else if path == "" {
-			return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 		}
-		predictor.Model = pointer.String(path)
+
+		if strings.HasSuffix(model, ".zip") {
+			if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
+				return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
+			}
+		} else {
+			path, err := getTFServingExportFromS3Path(model, awsClient)
+			if err != nil {
+				return errors.Wrap(err, userconfig.ModelKey)
+			} else if path == "" {
+				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
+			}
+			predictor.Model = pointer.String(path)
+		}
+	} else {
+
 	}
 
 	return nil
 }
 
-func validateONNXPredictor(predictor *userconfig.Predictor) error {
+func validateONNXPredictor(predictor *userconfig.Predictor, providerType string) error {
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.ONNXPredictorType)
 	}
@@ -616,7 +602,7 @@ func validateUpdateStrategy(updateStrategy *userconfig.UpdateStrategy) error {
 	return nil
 }
 
-func findDuplicateNames(apis []userconfig.API) []userconfig.API {
+func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 	names := make(map[string][]userconfig.API)
 
 	for _, api := range apis {

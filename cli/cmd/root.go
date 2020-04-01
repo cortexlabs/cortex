@@ -35,6 +35,7 @@ var _cmdStr string
 var _configFileExts = []string{"yaml", "yml"}
 
 var _localDir string
+var _localWorkSpace string
 var _cliConfigPath string
 var _clientIDPath string
 var _emailPath string
@@ -59,6 +60,14 @@ func init() {
 
 	_localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(_localDir, os.ModePerm)
+	if err != nil {
+		err := errors.Wrap(err, "unable to write to home directory", _localDir)
+		exit.Error(err)
+	}
+
+	_localWorkSpace = filepath.Join(_localDir, "local_workspace")
+	fmt.Println(_localWorkSpace)
+	err = os.MkdirAll(_localWorkSpace, os.ModePerm)
 	if err != nil {
 		err := errors.Wrap(err, "unable to write to home directory", _localDir)
 		exit.Error(err)
@@ -120,6 +129,9 @@ func Execute() {
 	_rootCmd.AddCommand(_predictCmd)
 	_rootCmd.AddCommand(_deleteCmd)
 	_rootCmd.AddCommand(localCmd)
+	_rootCmd.AddCommand(localGet)
+	_rootCmd.AddCommand(localDelete)
+	_rootCmd.AddCommand(localLogs)
 
 	_rootCmd.AddCommand(_clusterCmd)
 	_rootCmd.AddCommand(_versionCmd)

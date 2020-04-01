@@ -45,12 +45,12 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFileMap map[string][]byte
 		if err := spec.ValidateAPI(&apis[i], projectFileMap); err != nil {
 			return err
 		}
-		if err := ValidateK8s(&apis[i], config.Cluster, virtualServices, maxMem); err != nil {
+		if err := validateK8s(&apis[i], config.Cluster, virtualServices, maxMem); err != nil {
 			return err
 		}
 	}
 
-	dups := findDuplicateNames(apis)
+	dups := spec.FindDuplicateNames(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateName(dups)
 	}
@@ -63,7 +63,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFileMap map[string][]byte
 	return nil
 }
 
-func ValidateK8s(api *userconfig.API,
+func validateK8s(api *userconfig.API,
 	config *clusterconfig.InternalConfig,
 	virtualServices []kunstructured.Unstructured,
 	maxMem *kresource.Quantity) error {
@@ -125,22 +125,6 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstruct
 			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Endpoint, "/") && virtualService.GetLabels()["apiName"] != api.Name {
 				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.GetLabels()["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
 			}
-		}
-	}
-
-	return nil
-}
-
-func findDuplicateNames(apis []userconfig.API) []userconfig.API {
-	names := make(map[string][]userconfig.API)
-
-	for _, api := range apis {
-		names[api.Name] = append(names[api.Name], api)
-	}
-
-	for name := range names {
-		if len(names[name]) > 1 {
-			return names[name]
 		}
 	}
 

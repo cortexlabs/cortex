@@ -59,18 +59,6 @@ func getDockerClient() (*dockerclient.Client, error) {
 	return _cachedDockerClient, nil
 }
 
-func wrapDockerError(err error) error {
-	if dockerclient.IsErrConnectionFailed(err) {
-		return ErrorConnectToDockerDaemon()
-	}
-
-	if strings.Contains(strings.ToLower(err.Error()), "permission denied") {
-		return ErrorDockerPermissions(err)
-	}
-
-	return errors.WithStack(err)
-}
-
 func checkDockerRunning() error {
 	docker, err := getDockerClient()
 	if err != nil {
@@ -82,6 +70,18 @@ func checkDockerRunning() error {
 	}
 
 	return nil
+}
+
+func wrapDockerError(err error) error {
+	if dockerclient.IsErrConnectionFailed(err) {
+		return ErrorConnectToDockerDaemon()
+	}
+
+	if strings.Contains(strings.ToLower(err.Error()), "permission denied") {
+		return ErrorDockerPermissions(err)
+	}
+
+	return errors.WithStack(err)
 }
 
 func pullManager(managerImage string) error {

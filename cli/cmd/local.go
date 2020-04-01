@@ -1,37 +1,32 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"os"
-	"os/signal"
 	"path"
 	"path/filepath"
-	"syscall"
-	"time"
 
+	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/docker/docker/api/types"
 	dockertypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/go-connections/nat"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/spf13/cobra"
 )
-
-var _localWorkSpace string
 
 func init() {
 	localCmd.PersistentFlags()
 	addEnvFlag(localCmd)
-	_localWorkSpace = filepath.Join(_localDir, "local_workspace")
-
 }
 
 func deploymentBytes(configPath string, force bool) map[string][]byte {
@@ -112,140 +107,121 @@ var localCmd = &cobra.Command{
 	Long:  "local an application.",
 	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		docker, err := getDockerClient()
+		configPath := getConfigPath(args)
+		deploymentMap := deploymentBytes(configPath, false)
+		projectFileMap, err := zip.UnzipMemToMem(deploymentMap["project.zip"])
 		if err != nil {
-			panic(err)
+			exit.Error(err)
 		}
 
-		// _localWorkSpace = filepath.Join(_localDir, "local_workspace")
-
-		// configPath := getConfigPath(args)
-		// deploymentMap := deploymentBytes(configPath, false)
-		// projectFileMap, err := zip.UnzipMemToMem(deploymentMap["project.zip"])
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
-
-		// apiConfigs, err := spec.ExtractAPIConfigs(deploymentMap["config"], projectFileMap, configPath)
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
-
-		// err = spec.ValidateLocalAPIs(apiConfigs, projectFileMap)
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
-
-		// projectID := hash.Bytes(deploymentMap["project.zip"])
-		// deploymentID := k8s.RandomName()
-		// api := spec.GetAPISpec(&apiConfigs[0], projectID, deploymentID)
-
-		hostConfig := &container.HostConfig{
-			PortBindings: nat.PortMap{
-				"8888/tcp": []nat.PortBinding{
-					{
-						HostPort: "8888",
-					},
-				},
-			},
-			Mounts: []mount.Mount{
-				{
-					Type:   mount.TypeBind,
-					Source: "/home/ubuntu/src/github.com/cortexlabs/cortex/examples/pytorch/iris-classifier",
-					Target: "/mnt/project",
-				},
-			},
-		}
-
-		containerConfig := &container.Config{
-			Image:        "cortexlabs/python-serve:latest",
-			Tty:          true,
-			AttachStdout: true,
-			AttachStderr: true,
-			Env: []string{
-				"CORTEX_VERSION=master",
-				"CORTEX_SERVING_PORT=8888",
-				"CORTEX_CACHE_DIR=" + "/mnt/cache",
-				"CORTEX_API_SPEC=" + "app.yaml",
-				"CORTEX_PROJECT_DIR=" + "/mnt/project",
-				"CORTEX_WORKERS_PER_REPLICA=1",
-				"CORTEX_MAX_WORKER_CONCURRENCY=10",
-				"CORTEX_SO_MAX_CONN=10",
-				"CORTEX_THREADS_PER_WORKER=1",
-				"AWS_ACCESS_KEY_ID=" + os.Getenv("AWS_ACCESS_KEY_ID"),
-				"AWS_SECRET_ACCESS_KEY=" + os.Getenv("AWS_SECRET_ACCESS_KEY"),
-			},
-			ExposedPorts: nat.PortSet{
-				"8888/tcp": struct{}{},
-			},
-		}
-
-		containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
+		apiConfigs, err := spec.ExtractAPIConfigs(deploymentMap["config"], projectFileMap, configPath)
 		if err != nil {
-			panic(err)
+			exit.Error(err)
 		}
 
-		err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
+		err = local.ValidateLocalAPIs(apiConfigs, projectFileMap)
 		if err != nil {
-			panic("ContainerStart")
+			exit.Error(err)
 		}
 
-		removeContainer := func() {
-			docker.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
-				RemoveVolumes: true,
-				Force:         true,
+		projectID := hash.Bytes(deploymentMap["project.zip"])
+
+		results := make([]schema.DeployResult, len(apiConfigs))
+		for i, apiConfig := range apiConfigs {
+			api, msg, err := local.UpdateAPI(&apiConfig, projectID)
+			results[i].Message = msg
+			if err != nil {
+				results[i].Error = errors.Message(err)
+			} else {
+				results[i].API = *api
+			}
+		}
+		debug.Pp(results)
+	},
+}
+
+var localGet = &cobra.Command{
+	Use:   "local-get",
+	Short: "local an application",
+	Long:  "local an application.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		containers := GetContainerByAPI(args[0])
+		debug.Pp(containers)
+		rows := [][]interface{}{}
+
+		for _, container := range containers {
+			rows = append(rows, []interface{}{
+				container.Labels["apiName"], container.State,
 			})
 		}
 
-		defer removeContainer()
+		t := table.Table{
+			Headers: []table.Header{
+				{
+					Title: "api name",
+				}, {
+					Title: "status",
+				},
+			},
+			Rows: rows,
+		}
+		fmt.Println(t.MustFormat())
+	},
+}
 
-		// Make sure to remove container immediately on ctrl+c
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		caughtCtrlC := false
-		go func() {
-			<-c
-			caughtCtrlC = true
-			removeContainer()
-			exit.Error(ErrorDockerCtrlC())
-		}()
+func GetContainerByAPI(apiName string) []dockertypes.Container {
+	docker, err := getDockerClient()
+	if err != nil {
+		panic(err)
+	}
 
-		err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
+	dargs := filters.NewArgs()
+	dargs.Add("label", "cortex=true")
+	dargs.Add("label", "apiName="+apiName)
+
+	containers, err := docker.ContainerList(context.Background(), types.ContainerListOptions{
+		All:     true,
+		Filters: dargs,
+	})
+	if err != nil {
+		exit.Error(err)
+	}
+
+	return containers
+}
+
+var localDelete = &cobra.Command{
+	Use:   "local-delete",
+	Short: "local an application",
+	Long:  "local an application.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		apiName := args[0]
+		err := local.DeleteContainers(apiName)
 		if err != nil {
-			panic("ContainerInspect")
+			exit.Error(err)
 		}
+	},
+}
 
-		logsOutput, err := docker.ContainerAttach(context.Background(), containerInfo.ID, dockertypes.ContainerAttachOptions{
-			Stream: true,
-			Stdout: true,
-			Stderr: true,
-		})
+var localLogs = &cobra.Command{
+	Use:   "local-logs",
+	Short: "local an application",
+	Long:  "local an application.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		path, err := files.GetAbsPath(args[0])
 		if err != nil {
-			panic("ContainerAttach")
+			panic(err)
 		}
-		defer logsOutput.Close()
+		fmt.Println(path)
+		// containers := GetContainerByAPI(args[0])
+		// containerIDs := []string{}
+		// for _, container := range containers {
+		// 	containerIDs = append(containerIDs, container.ID)
+		// }
 
-		var outputBuffer bytes.Buffer
-		tee := io.TeeReader(logsOutput.Reader, &outputBuffer)
-
-		_, err = io.Copy(os.Stdout, tee)
-		if err != nil {
-			panic("Copy")
-		}
-
-		// Let the ctrl+c handler run its course
-		if caughtCtrlC {
-			time.Sleep(5 * time.Second)
-		}
-
-		info, err := docker.ContainerInspect(context.Background(), containerInfo.ID)
-		if err != nil {
-			panic("ContainerInspect")
-		}
-
-		if info.State.Running {
-			panic("info.State.Running")
-		}
-
+		// streamDockerLogs(containerIDs[0], containerIDs[1:]...)
 	},
 }
