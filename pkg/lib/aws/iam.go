@@ -51,11 +51,6 @@ func (c *Client) GetGroupsForUser(userName string) ([]iam.Group, error) {
 }
 
 func (c *Client) GetManagedPoliciesForUser(userName string) ([]iam.AttachedPolicy, error) {
-	user, err := c.GetUser()
-	if err != nil {
-		return nil, err
-	}
-
 	var policies []iam.AttachedPolicy
 
 	userManagedPolicies, err := c.IAM().ListAttachedUserPolicies(&iam.ListAttachedUserPoliciesInput{
@@ -68,7 +63,7 @@ func (c *Client) GetManagedPoliciesForUser(userName string) ([]iam.AttachedPolic
 		policies = append(policies, *policy)
 	}
 
-	groups, err := c.GetGroupsForUser(*user.UserName)
+	groups, err := c.GetGroupsForUser(userName)
 	if err != nil {
 		return nil, err
 	}
