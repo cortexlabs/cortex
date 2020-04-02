@@ -35,6 +35,10 @@
 * [Uninstall](cluster-management/uninstall.md)
 * [Telemetry](cluster-management/telemetry.md)
 
+## Guides
+
+* [Set up AWS API gateway](guides/api-gateway.md)
+
 ## Contributing
 
 * [Development](contributing/development.md)
