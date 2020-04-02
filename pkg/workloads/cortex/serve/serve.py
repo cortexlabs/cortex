@@ -145,13 +145,6 @@ async def register_request(request: Request, call_next):
     return response
 
 
-def apply_cors_headers(request: Request, response: Response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = request.headers.get(
-        "Access-Control-Request-Headers", "*"
-    )
-
-
 @app.post("/predict")
 def predict(request: Any = Body(..., media_type="application/json"), debug=False):
     api = local_cache["api"]
