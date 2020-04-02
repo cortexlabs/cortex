@@ -631,7 +631,7 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 	}
 	if compute.Mem != nil {
 		if maxMem.Cmp(compute.Mem.Quantity) < 0 {
-			return ErrorNoAvailableNodeComputeLimit("Memory", compute.Mem.String(), maxMem.String())
+			return ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String())
 		}
 	}
 	if compute.GPU > maxGPU {
