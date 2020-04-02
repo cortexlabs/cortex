@@ -42,7 +42,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFileMap map[string][]byte
 	}
 
 	for i := range apis {
-		if err := spec.ValidateAPI(&apis[i], projectFileMap); err != nil {
+		if err := spec.ValidateAPI(&apis[i], projectFileMap, "aws"); err != nil {
 			return err
 		}
 		if err := validateK8s(&apis[i], config.Cluster, virtualServices, maxMem); err != nil {

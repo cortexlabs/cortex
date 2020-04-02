@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -18,6 +21,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/docker/docker/api/types"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -138,6 +142,78 @@ var localCmd = &cobra.Command{
 		}
 		debug.Pp(results)
 	},
+}
+
+func cacheModel(api *userconfig.API) {
+	if strings.HasPrefix(*api.Predictor.Model, "s3://") {
+
+	} else {
+
+	}
+}
+
+func cacheModelFromS3(api *userconfig.API) (string, error) {
+	awsClient, err := aws.NewFromEnvS3Path(*api.Predictor.Model)
+	if err != nil {
+		return "", err
+	}
+
+	s3Objects, err := awsClient.ListPathPrefix(*api.Predictor.Model, 1001)
+	if err != nil {
+		return "", err
+	}
+
+	if len(s3Objects) == 1001 {
+		return "", ErrorTensorFlowDirTooManyFiles(1000)
+	}
+	var mostRecentUpdateDate *time.Time
+	for _, obj := range s3Objects {
+		mostRecentUpdateDate = obj.LastModified
+	}
+
+	modelPathHash := hash.String(*api.Predictor.Model)
+	modelDir := filepath.Join(*api.Predictor.Model, modelPathHash)
+	modelVersionDir := filepath.Join(modelDir, mostRecentUpdateDate.Format("2006-01-02T15:04:05"))
+
+	if files.IsFile(filepath.Join(modelVersionDir, "_SUCCESS")) {
+		return modelVersionDir, nil
+	}
+
+	err = files.DeleteDir(modelDir)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = files.CreateDirIfMissing(modelVersionDir)
+	if err != nil {
+		return "", nil
+	}
+
+	bucket, fullPathKey, err := aws.SplitS3Path(*api.Predictor.Model)
+	if err != nil {
+		return "", err
+	}
+	for _, obj := range s3Objects {
+		if *obj.Size == 0 { // TODO test creation of empty files
+			continue
+		}
+
+		if strings.HasSuffix(*obj.Key, "/") {
+			continue
+		}
+
+		localKey := (*obj.Key)[len(fullPathKey):]
+		fileBytes, err := awsClient.ReadBytesFromS3(bucket, *obj.Key)
+		if err != nil {
+			return "", err
+		}
+
+		err = files.WriteFile(fileBytes, filepath.Join(modelVersionDir, localKey))
+		if err != nil {
+			return "", err
+		}
+	}
+	return modelVersionDir, nil
 }
 
 var localGet = &cobra.Command{

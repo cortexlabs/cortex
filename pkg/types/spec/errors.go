@@ -49,7 +49,7 @@ const (
 	ErrFieldNotSupportedByPredictorType   = "spec.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit        = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed     = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrLocalPathNotSupportedByProvider    = "spec.local_path_not_supported_by_provider"
+	ErrLocalPathNotSupportedByAWSProvider = "spec.local_path_not_supported_by_aws_provider"
 )
 
 func ErrorMalformedConfig() error {
@@ -236,9 +236,9 @@ func ErrorCortexPrefixedEnvVarNotAllowed() error {
 	})
 }
 
-func ErrorLocalPathNotSupportedByProvider(provider string) error {
+func ErrorLocalModelPathNotSupportedByAWSProvider() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalPathNotSupportedByProvider,
-		Message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
+		Kind:    ErrLocalPathNotSupportedByAWSProvider,
+		Message: fmt.Sprintf("local model paths are not supported for aws provider, please specify an S3 path"),
 	})
 }

@@ -469,7 +469,23 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType s
 			predictor.Model = pointer.String(path)
 		}
 	} else {
+		if providerType == "aws" {
+			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
+		}
 
+		if strings.HasPrefix(model, ".zip") {
+			if err := files.CheckFile(model); err != nil {
+				return errors.Wrap(err, userconfig.ModelKey)
+			}
+		} else {
+			path, err := getTFServingExportFromLocalPath(model)
+			if err != nil {
+				return errors.Wrap(err, userconfig.ModelKey)
+			} else if path == "" {
+				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
+			}
+			predictor.Model = pointer.String(path)
+		}
 	}
 
 	return nil
@@ -492,7 +508,13 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType string)
 			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 		}
 	} else {
+		if providerType == "aws" {
+			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
+		}
 
+		if err := files.CheckFile(model); err != nil {
+			return errors.Wrap(err, userconfig.ModelKey)
+		}
 	}
 
 	if predictor.SignatureKey != nil {
@@ -567,6 +589,9 @@ func isValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 }
 
 func getTFServingExportFromLocalPath(path string) (string, error) {
+	if !files.IsDir(path) {
+		return "", ErrorDirNotFoundOrEmpty(path)
+	}
 	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return "", err

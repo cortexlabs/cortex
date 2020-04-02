@@ -18,7 +18,6 @@ package local
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,6 +34,7 @@ var _cachedDockerClient *dockerclient.Client
 var CWD string
 var LocalDir string
 var LocalWorkspace string
+var ModelCacheDir string
 
 func init() {
 	cwd, err := os.Getwd()
@@ -58,7 +58,13 @@ func init() {
 	}
 
 	LocalWorkspace = filepath.Join(LocalDir, "local_workspace")
-	fmt.Println(LocalWorkspace)
+	err = os.MkdirAll(LocalWorkspace, os.ModePerm)
+	if err != nil {
+		err := errors.Wrap(err, "unable to write to home directory", LocalDir)
+		exit.Error(err)
+	}
+
+	ModelCacheDir = filepath.Join(LocalDir, "model_cache")
 	err = os.MkdirAll(LocalWorkspace, os.ModePerm)
 	if err != nil {
 		err := errors.Wrap(err, "unable to write to home directory", LocalDir)
