@@ -41,6 +41,7 @@
 * [Increase request timeout](guides/elb-timeout.md)
 * [Plot in-flight requests](guides/plot-in-flight-requests.md)
 * [Plot API request time](guides/plot-request-time.md)
+* [Add a batch runner API](guides/batch-runner.md)
 
 ## Contributing
 
