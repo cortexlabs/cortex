@@ -356,7 +356,7 @@ func authHeader() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("CortexAWS %s|%s", profile.AWSAccessKeyID, profile.AWSSecretAccessKey), err
+	return fmt.Sprintf("CortexAWS %s|%s", *profile.AWSAccessKeyID, *profile.AWSSecretAccessKey), err
 }
 
 // Returns empty string if not able to get operator endpoint
