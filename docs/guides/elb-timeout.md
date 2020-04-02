@@ -1,5 +1,7 @@
 # Increase request timeout
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 We have plans to make the request timeout configurable per-API in the API configuration ([#824](https://github.com/cortexlabs/cortex/issues/824)), but until that's implemented, it's simple to increase the timeout cluster-wide.
 
 ## Step 1

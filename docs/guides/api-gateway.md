@@ -1,5 +1,7 @@
 # Set up AWS API Gateway
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 We have plans to automatically configure API gateway when creating a Cortex API ([#326](https://github.com/cortexlabs/cortex/issues/326)), but until that's implemented, it's fairly straightforward to set it up manually. One reason to use API Gateway is to get https working with valid certificates (either by using AWS's built-in certificates, or using your own via custom domains and the AWS Certificate Manager).
 
 ## Step 1

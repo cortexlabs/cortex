@@ -1,5 +1,7 @@
 # Plot API request time
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 The avg request latency shown in `cortex get` is averaged over the lifetime of the latest version (with a cap of 2 weeks). You can find a plot of these values in CloudWatch Metrics by following these steps:
 
 ## Step 1

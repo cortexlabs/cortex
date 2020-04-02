@@ -1,5 +1,7 @@
 # Plot in-flight requests
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 ## Step 1
 
 Go to the CloudWatch Metrics page and click on your cluster name:
