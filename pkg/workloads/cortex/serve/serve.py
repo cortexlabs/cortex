@@ -25,6 +25,7 @@ from typing import Any
 
 from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.background import BackgroundTasks
@@ -35,7 +36,7 @@ from cortex.lib import util
 from cortex.lib.type import API
 from cortex.lib.log import cx_logger, debug_obj
 from cortex.lib.storage import S3
-
+from cortex.lib.exceptions import UserRuntimeException
 
 if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
     errMsg = f"your Cortex operator version ({os.environ['CORTEX_VERSION']}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your predictor image by modifying the appropriate `image_*` field(s) in your cluster configuration file (e.g. cluster.yaml) and running `cortex cluster update --config cluster.yaml`"
@@ -55,6 +56,15 @@ loop.set_default_executor(
 )
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
 
 
@@ -90,21 +100,18 @@ def is_prediction_request(request):
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, e):
     response = Response(content=str(e.detail), status_code=e.status_code)
-    apply_cors_headers(request, response)
     return response
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, e):
     response = Response(content=str(e), status_code=400)
-    apply_cors_headers(request, response)
     return response
 
 
 @app.exception_handler(Exception)
 async def uncaught_exception_handler(request, e):
     response = Response(content="internal server error", status_code=500)
-    apply_cors_headers(request, response)
     return response
 
 
@@ -132,18 +139,10 @@ async def register_request(request: Request, call_next):
             status_code = 500
             if response is not None:
                 status_code = response.status_code
-                apply_cors_headers(request, response)
             api = local_cache["api"]
             api.post_request_metrics(status_code, time.time() - request.state.start_time)
 
     return response
-
-
-def apply_cors_headers(request: Request, response: Response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = request.headers.get(
-        "Access-Control-Request-Headers", "*"
-    )
 
 
 @app.post("/predict")
@@ -155,12 +154,21 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
     prediction = predictor_impl.predict(request)
     debug_obj("prediction", prediction, debug)
 
-    try:
-        json_string = json.dumps(prediction)
-    except:
-        json_string = util.json_tricks_encoder().encode(prediction)
-
-    response = Response(content=json_string, media_type="application/json")
+    if isinstance(prediction, bytes):
+        response = Response(content=prediction, media_type="application/octet-stream")
+    elif isinstance(prediction, str):
+        response = Response(content=prediction, media_type="text/plain")
+    elif isinstance(prediction, Response):
+        response = prediction
+    else:
+        try:
+            json_string = json.dumps(prediction)
+        except Exception as e:
+            raise UserRuntimeException(
+                str(e),
+                "please return an object that is JSON serializable (including its nested fields), a bytes object, a string, or a starlette.response.Response object",
+            ) from e
+        response = Response(content=json_string, media_type="application/json")
 
     if api.tracker is not None:
         try:

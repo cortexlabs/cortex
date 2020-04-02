@@ -4,9 +4,9 @@
 
 1. Find the latest release on [GitHub](https://github.com/weaveworks/eksctl/releases) and check the changelog
 1. Update the version in `manager/Dockerfile`
-1. Update `eks.yaml` as necessary (make sure to maintain all Cortex environment variables)
+1. Update eks configuration file as necessary (make sure to maintain all Cortex environment variables)
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
-1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.13.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.16.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
 
 ## Kubernetes
 
@@ -15,12 +15,16 @@
 
 ## AWS CNI
 
+1. Check which version of the CNI eksctl uses
+1. Update the go module version (see `Go > Non-versioned modules` section below)
+1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
+
+### AWS CNI (depreciated since now eksctl determines the version of AWS CNI)
+
 1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
 1. Update the version in `install.sh`
 1. Update the go module version (see `Go > Non-versioned modules` section below)
 1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
-
-note: once the default AWS CNI version is >= 1.5.5 this may no longer be necessary (1.5.5 added support for new instance types)
 
 ## Go
 
@@ -28,11 +32,11 @@ note: once the default AWS CNI version is >= 1.5.5 this may no longer be necessa
 1. Search the codebase for the current minor version (e.g. `1.12`), update versions as appropriate
 1. Update your local version and alert developers:
    * Linux:
-     1. `wget https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz`
-     1. `tar -xvf go1.13.5.linux-amd64.tar.gz`
+     1. `wget https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz`
+     1. `tar -xvf go1.14.1.linux-amd64.tar.gz`
      1. `sudo rm -rf /usr/local/go`
      1. `sudo mv -f go /usr/local`
-     1. `rm go1.13.5.linux-amd64.tar.gz`
+     1. `rm go1.14.1.linux-amd64.tar.gz`
      1. refresh shell
      1. `go version`
    * Mac:
@@ -57,7 +61,7 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 
 ### cortexlabs/yaml
 
-1. Check the upstream to see if there were new releases
+1. Check [go-yaml/yaml](https://github.com/go-yaml/yaml) to see if there were new releases since [cortexlabs/yaml](https://github.com/cortexlabs/yaml)
 1. `git clone git@github.com:cortexlabs/yaml.git && cd yaml`
 1. `git remote add upstream https://github.com/go-yaml/yaml && git fetch upstream`
 1. `git merge upstream/v2`
@@ -67,10 +71,10 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 ### Non-versioned modules
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
-1. `go get k8s.io/client-go@kubernetes-1.14.10 && go get k8s.io/apimachinery@kubernetes-1.14.10 && go get k8s.io/api@kubernetes-1.14.10`
-1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.5.5`
-1. `go get github.com/cortexlabs/yaml@6abcdc7064927c8fcebea0b0945992892d49b155`
-1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.5' >> go.mod`
+1. `go get k8s.io/client-go@kubernetes-1.15.11 && go get k8s.io/apimachinery@kubernetes-1.15.11 && go get k8s.io/api@kubernetes-1.15.11`
+1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.6.0`
+1. `go get github.com/cortexlabs/yaml@f1e621e4f2a32e1b2a5597da123e7c1da2d603c4`
+1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.8' >> go.mod`
 1. `go get -u github.com/docker/distribution`
 1. `go mod tidy`
 1. For every non-indirect, non-hardcoded dependency in go.mod, update with `go get -u <path>`
@@ -90,7 +94,7 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 
 The same Python version should be used throughout Cortex (e.g. search for `3.6` and update all accordingly).
 
-It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile)). In theory, it should be safe to use the lowest of the maximum supported python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/project/tensorflow), [Keras](https://pypi.org/project/Keras), [numpy](https://pypi.org/project/numpy), [pandas](https://pypi.org/project/pandas), [scikit-learn](https://pypi.org/project/scikit-learn), [scipy](https://pypi.org/project/scipy), [tensor2tensor](https://pypi.org/project/tensor2tensor), [torch](https://pypi.org/project/torch), [xgboost](https://pypi.org/project/xgboost))
+It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile)). In theory, it should be safe to use the lowest of the maximum supported python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/project/tensorflow), [Keras](https://pypi.org/project/Keras), [numpy](https://pypi.org/project/numpy), [pandas](https://pypi.org/project/pandas), [scikit-learn](https://pypi.org/project/scikit-learn), [scipy](https://pypi.org/project/scipy), [torch](https://pypi.org/project/torch), [xgboost](https://pypi.org/project/xgboost))
 
 ## TensorFlow / TensorFlow Serving
 
@@ -101,7 +105,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## CUDA
 
-1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-serve-gpu/Dockerfile` and `images/tf-serve-gpu/Dockerfile`) to the desired version based on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu#ubuntu_1804_cuda_101) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
+1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-serve-gpu/Dockerfile` and `images/tf-serve-gpu/Dockerfile`) to the desired version based on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu#ubuntu_1804_cuda_101) / [TensorFlow's compatability table](https://www.tensorflow.org/install/source#gpu) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
 
 ## ONNX runtime
 

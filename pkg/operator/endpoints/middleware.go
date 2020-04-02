@@ -67,8 +67,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 
-		if !strings.HasPrefix(authHeader, "CortexAWS") {
+		if authHeader == "" {
 			respondError(w, r, ErrorAuthHeaderMissing())
+			return
+		}
+
+		if len(authHeader) < 10 || !strings.HasPrefix(authHeader, "CortexAWS") {
+			respondError(w, r, ErrorAuthHeaderMalformed())
 			return
 		}
 
@@ -85,11 +90,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		accountID, _, isValid, err := awsClient.AreCredentialsValid()
+		accountID, _, err := awsClient.CheckCredentials()
 		if err != nil {
-			respondError(w, r, ErrorAuthAPIError())
-			return
-		} else if !isValid {
 			respondErrorCode(w, r, http.StatusForbidden, ErrorAuthInvalid())
 			return
 		}

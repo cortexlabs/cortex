@@ -23,6 +23,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -33,7 +35,7 @@ func (c *Client) SpotInstancePrice(region string, instanceType string) (float64,
 		StartTime:           aws.Time(time.Now()),
 	})
 	if err != nil {
-		return 0, errors.WithStack(err)
+		return 0, errors.Wrap(err, "checking spot instance price")
 	}
 
 	min := math.MaxFloat64
@@ -64,19 +66,147 @@ func (c *Client) SpotInstancePrice(region string, instanceType string) (float64,
 	return min, nil
 }
 
-func (c *Client) GetAvailabilityZones() ([]string, error) {
-	input := &ec2.DescribeAvailabilityZonesInput{}
+func (c *Client) ListAllRegions() (strset.Set, error) {
+	result, err := c.EC2().DescribeRegions(&ec2.DescribeRegionsInput{
+		AllRegions: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	regions := strset.New()
+	for _, region := range result.Regions {
+		if region.RegionName != nil {
+			regions.Add(*region.RegionName)
+		}
+	}
+
+	return regions, nil
+}
+
+// Returns only regions that are enabled for your account
+func (c *Client) ListEnabledRegions() (strset.Set, error) {
+	result, err := c.EC2().DescribeRegions(&ec2.DescribeRegionsInput{
+		AllRegions: aws.Bool(false),
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	regions := strset.New()
+	for _, region := range result.Regions {
+		if region.RegionName != nil {
+			regions.Add(*region.RegionName)
+		}
+	}
+
+	return regions, nil
+}
+
+// Returns all regions and enabled regions
+func (c *Client) ListRegions() (strset.Set, strset.Set, error) {
+	var allRegions strset.Set
+	var enabledRegions strset.Set
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			allRegions, err = c.ListAllRegions()
+			return err
+		},
+		func() error {
+			var err error
+			enabledRegions, err = c.ListEnabledRegions()
+			return err
+		},
+	)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return allRegions, enabledRegions, nil
+}
+
+func (c *Client) ListAvailabilityZones() (strset.Set, error) {
+	input := &ec2.DescribeAvailabilityZonesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("region-name"),
+				Values: []*string{aws.String(c.Region)},
+			},
+			{
+				Name:   aws.String("state"),
+				Values: []*string{aws.String(ec2.AvailabilityZoneStateAvailable)},
+			},
+		},
+	}
+
 	result, err := c.EC2().DescribeAvailabilityZones(input)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	availabilityZones := []string{}
+	zones := strset.New()
 	for _, az := range result.AvailabilityZones {
 		if az.ZoneName != nil {
-			availabilityZones = append(availabilityZones, *az.ZoneName)
+			zones.Add(*az.ZoneName)
 		}
 	}
 
-	return availabilityZones, nil
+	return zones, nil
+}
+
+func (c *Client) listSupportedAvailabilityZonesSingle(instanceType string) (strset.Set, error) {
+	input := &ec2.DescribeReservedInstancesOfferingsInput{
+		InstanceType:       &instanceType,
+		IncludeMarketplace: aws.Bool(false),
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("scope"),
+				Values: []*string{aws.String(ec2.ScopeAvailabilityZone)},
+			},
+		},
+	}
+
+	zones := strset.New()
+	err := c.EC2().DescribeReservedInstancesOfferingsPages(input, func(output *ec2.DescribeReservedInstancesOfferingsOutput, lastPage bool) bool {
+		for _, offering := range output.ReservedInstancesOfferings {
+			if offering.AvailabilityZone != nil {
+				zones.Add(*offering.AvailabilityZone)
+			}
+		}
+		return true
+	})
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return zones, nil
+}
+
+func (c *Client) ListSupportedAvailabilityZones(instanceType string, instanceTypes ...string) (strset.Set, error) {
+	allInstanceTypes := append(instanceTypes, instanceType)
+	zoneSets := make([]strset.Set, len(allInstanceTypes))
+	fns := make([]func() error, len(allInstanceTypes))
+
+	for i := range allInstanceTypes {
+		localIdx := i
+		fns[i] = func() error {
+			zones, err := c.listSupportedAvailabilityZonesSingle(allInstanceTypes[localIdx])
+			if err != nil {
+				return err
+			}
+			zoneSets[localIdx] = zones
+			return nil
+		}
+	}
+
+	err := parallel.RunFirstErr(fns[0], fns[1:]...)
+	if err != nil {
+		return nil, err
+	}
+
+	return strset.Intersection(zoneSets...), nil
 }

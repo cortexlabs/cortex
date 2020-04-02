@@ -48,6 +48,10 @@ func IsNoSuchBucketErr(err error) bool {
 	return CheckErrCode(err, "NoSuchBucket")
 }
 
+func IsForbiddenErr(err error) bool {
+	return CheckErrCode(err, "Forbidden")
+}
+
 func IsGenericNotFoundErr(err error) bool {
 	return IsNotFoundErr(err) || IsNoSuchKeyErr(err) || IsNoSuchBucketErr(err)
 }
@@ -63,10 +67,12 @@ func CheckErrCode(err error, errorCode string) bool {
 	return false
 }
 
-func ErrorInvalidAWSCredentials() error {
+func ErrorInvalidAWSCredentials(awsErr error) error {
+	awsErrMsg := errors.MessageFirstLine(awsErr)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAWSCredentials,
-		Message: "invalid AWS credentials",
+		Message: "invalid AWS credentials\n" + awsErrMsg,
+		Cause:   awsErr,
 	})
 }
 
@@ -94,7 +100,7 @@ func ErrorAuth() error {
 func ErrorBucketInaccessible(bucket string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrBucketInaccessible,
-		Message: fmt.Sprintf("bucket \"%s\" not found or insufficient permissions", bucket),
+		Message: fmt.Sprintf("bucket \"%s\" is not accessible with the specified AWS credentials", bucket),
 	})
 }
 

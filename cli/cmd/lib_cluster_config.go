@@ -140,6 +140,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 	if err != nil {
 		return nil, err
 	}
+	promptIfNotAdmin(awsClient)
 
 	err = clusterconfig.InstallPrompt(clusterConfig, awsClient)
 	if err != nil {
@@ -149,10 +150,6 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 	clusterConfig.Telemetry, err = readTelemetryConfig()
 	if err != nil {
 		return nil, err
-	}
-
-	if clusterConfig.Spot != nil && *clusterConfig.Spot {
-		clusterConfig.AutoFillSpot(awsClient)
 	}
 
 	err = clusterConfig.Validate(awsClient)
@@ -182,6 +179,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		if err != nil {
 			return nil, err
 		}
+		promptIfNotAdmin(awsClient)
 	} else {
 		err := readUserClusterConfigFile(userClusterConfig)
 		if err != nil {
@@ -194,11 +192,17 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		if err != nil {
 			return nil, err
 		}
+		promptIfNotAdmin(awsClient)
 
 		if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
 		}
 		userClusterConfig.Bucket = cachedClusterConfig.Bucket
+
+		if userClusterConfig.LogGroup != "" && userClusterConfig.LogGroup != cachedClusterConfig.LogGroup {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.LogGroupKey, cachedClusterConfig.LogGroup)
+		}
+		userClusterConfig.LogGroup = cachedClusterConfig.LogGroup
 
 		if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)

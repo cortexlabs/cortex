@@ -56,7 +56,7 @@ const (
 func ErrorCortexInstallationBroken() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexInstallationBroken,
-		Message: "cortex is out of date, or not installed properly on your cluster; run `cortex cluster update`",
+		Message: "cortex is out of date or not installed properly; run `cortex cluster update`, or spin down your cluster with `cortex cluster down` and create a new one with `cortex cluster up`",
 	})
 }
 
@@ -238,9 +238,9 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 }
 
 func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr string) error {
-	message := fmt.Sprintf("no available nodes can satisfy the requested %s quantity - requested %s %s but nodes only have %s available %s", resource, reqStr, resource, maxStr, resource)
+	message := fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances only have %s %s available", resource, reqStr, resource, maxStr, resource)
 	if maxStr == "0" {
-		message = fmt.Sprintf("no available nodes can satisfy the requested %s quantity - requested %s %s but nodes don't have any %s", resource, reqStr, resource, resource)
+		message = fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances don't have any %s", resource, reqStr, resource, resource)
 	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,

@@ -17,6 +17,7 @@ limitations under the License.
 package clusterconfig
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -30,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
@@ -203,7 +203,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegionsSlice,
+				Validator: validateRegion,
 			},
 		},
 		{
@@ -211,6 +211,8 @@ var UserValidation = &cr.StructValidation{
 			StringListValidation: &cr.StringListValidation{
 				AllowEmpty:        true,
 				AllowExplicitNull: true,
+				DisallowDups:      true,
+				InvalidLengths:    []int{1},
 			},
 		},
 		{
@@ -387,6 +389,20 @@ var UserValidation = &cr.StructValidation{
 	},
 }
 
+func ValidateRegion(region string) error {
+	if !aws.EKSSupportedRegions.Has(region) {
+		return ErrorInvalidRegion(region)
+	}
+	return nil
+}
+
+func validateRegion(region string) (string, error) {
+	if err := ValidateRegion(region); err != nil {
+		return "", err
+	}
+	return region, nil
+}
+
 func validateImageVersion(image string) (string, error) {
 	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
 		return image, nil
@@ -403,7 +419,7 @@ func validateImageVersion(image string) (string, error) {
 		tag = "latest"
 	}
 
-	if tag != consts.CortexVersion {
+	if !strings.HasPrefix(tag, consts.CortexVersion) {
 		return "", ErrorImageVersionMismatch(image, tag)
 	}
 
@@ -435,7 +451,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegionsSlice,
+				Validator: validateRegion,
 			},
 		},
 		{
@@ -459,6 +475,8 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 }
 
 func (cc *Config) Validate(awsClient *aws.Client) error {
+	fmt.Print("verifying your configuration...\n\n")
+
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
@@ -479,21 +497,12 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if len(cc.AvailabilityZones) > 0 {
-		zones, err := awsClient.GetAvailabilityZones()
-		if err != nil {
-			return err
-		}
-		zoneSet := strset.New(zones...)
-
-		for _, az := range cc.AvailabilityZones {
-			if !zoneSet.Has(az) {
-				return errors.Wrap(ErrorInvalidAvailabilityZone(az, zones), AvailabilityZonesKey)
-			}
-		}
+	if err := cc.validateAvailabilityZones(awsClient); err != nil {
+		return errors.Wrap(err, AvailabilityZonesKey)
 	}
 
 	if cc.Spot != nil && *cc.Spot {
+		cc.AutoFillSpot(awsClient)
 		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, cc.SpotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
@@ -510,9 +519,16 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(awsClient, chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice)
+			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, InstanceDistributionKey)
+			}
+
+			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
+			if awsErr == nil {
+				if err := CheckSpotInstancePriceCompatibility(chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
+					return errors.Wrap(err, InstanceDistributionKey)
+				}
 			}
 
 			compatibleInstanceCount++
@@ -555,7 +571,7 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	return nil
 }
 
-func CheckSpotInstanceCompatibility(awsClient *aws.Client, target aws.InstanceMetadata, suggested aws.InstanceMetadata, maxPrice *float64) error {
+func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
@@ -568,17 +584,16 @@ func CheckSpotInstanceCompatibility(awsClient *aws.Client, target aws.InstanceMe
 		return ErrorIncompatibleSpotInstanceTypeCPU(target, suggested)
 	}
 
-	suggestedInstancePrice, err := awsClient.SpotInstancePrice(target.Region, suggested.Type)
-	if err != nil {
-		return err
+	return nil
+}
+
+func CheckSpotInstancePriceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata, maxPrice *float64, spotInstancePrice float64) error {
+	if (maxPrice == nil || *maxPrice == target.Price) && target.Price < spotInstancePrice {
+		return ErrorSpotPriceGreaterThanTargetOnDemand(spotInstancePrice, target, suggested)
 	}
 
-	if (maxPrice == nil || *maxPrice == target.Price) && target.Price < suggestedInstancePrice {
-		return ErrorSpotPriceGreaterThanTargetOnDemand(suggestedInstancePrice, target, suggested)
-	}
-
-	if maxPrice != nil && *maxPrice < suggestedInstancePrice {
-		return ErrorSpotPriceGreaterThanMaxPrice(suggestedInstancePrice, *maxPrice, suggested)
+	if maxPrice != nil && *maxPrice < spotInstancePrice {
+		return ErrorSpotPriceGreaterThanMaxPrice(spotInstancePrice, *maxPrice, suggested)
 	}
 	return nil
 }
@@ -604,8 +619,15 @@ func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceM
 			continue
 		}
 
-		if err := CheckSpotInstanceCompatibility(awsClient, targetInstance, instanceMetadata, maxPrice); err != nil {
+		if err := CheckSpotInstanceCompatibility(targetInstance, instanceMetadata); err != nil {
 			continue
+		}
+
+		spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
+		if awsErr == nil {
+			if err := CheckSpotInstancePriceCompatibility(targetInstance, instanceMetadata, maxPrice, spotInstancePrice); err != nil {
+				continue
+			}
 		}
 
 		compatibleInstances = append(compatibleInstances, instanceMetadata)
@@ -620,9 +642,15 @@ func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceM
 
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
 	chosenInstance := aws.InstanceMetadatas[region][instanceType]
-	if len(spotConfig.InstanceDistribution) == 0 {
-		spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, chosenInstance.Type)
+	cleanedDistribution := []string{instanceType}
+	for _, spotInstance := range spotConfig.InstanceDistribution {
+		if spotInstance != instanceType {
+			cleanedDistribution = append(cleanedDistribution, spotInstance)
+		}
+	}
+	spotConfig.InstanceDistribution = cleanedDistribution
 
+	if len(spotConfig.InstanceDistribution) == 1 {
 		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
 		if len(compatibleSpots) == 0 {
 			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
@@ -631,11 +659,8 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 		for _, instance := range compatibleSpots {
 			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instance.Type)
 		}
-	} else {
-		instanceDistributionSet := strset.New(spotConfig.InstanceDistribution...)
-		instanceDistributionSet.Remove(instanceType)
-		spotConfig.InstanceDistribution = append([]string{instanceType}, instanceDistributionSet.Slice()...)
 	}
+
 	if spotConfig.MaxPrice == nil {
 		spotConfig.MaxPrice = &chosenInstance.Price
 	}
@@ -713,8 +738,8 @@ func RegionPrompt(clusterConfig *Config) error {
 					Prompt: RegionUserKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					AllowedValues: aws.EKSSupportedRegionsSlice,
-					Default:       defaults.Region,
+					Validator: validateRegion,
+					Default:   defaults.Region,
 				},
 			},
 		},
@@ -855,8 +880,8 @@ var AccessPromptValidation = &cr.PromptValidation{
 				Prompt: RegionUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: aws.EKSSupportedRegionsSlice,
-				Default:       pointer.String("us-west-2"),
+				Validator: validateRegion,
+				Default:   pointer.String("us-west-2"),
 			},
 		},
 	},

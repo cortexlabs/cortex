@@ -66,7 +66,7 @@ var _predictCmd = &cobra.Command{
 
 		var apiRes schema.GetAPIResponse
 		if err = json.Unmarshal(httpRes, &apiRes); err != nil {
-			exit.Error(err)
+			exit.Error(err, "/get"+apiName, string(httpRes))
 		}
 
 		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready

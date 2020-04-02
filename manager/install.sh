@@ -24,7 +24,7 @@ arg1="$1"
 function ensure_eks() {
   # Cluster statuses: https://github.com/aws/aws-sdk-go/blob/master/service/eks/api.go#L2785
   set +e
-  cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json)
+  cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json 2> /dev/null)
   cluster_info_exit_code=$?
   set -e
 
@@ -37,13 +37,9 @@ function ensure_eks() {
 
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
-    envsubst < eks_cluster.yaml | eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f -
+    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
 
-    # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
-    kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/release-1.6/config/v1.6/aws-k8s-cni.yaml >/dev/null
-
-    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
-    eksctl create nodegroup --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
+    eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
 
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
@@ -135,9 +131,6 @@ function ensure_eks() {
 function main() {
   mkdir -p $CORTEX_CLUSTER_WORKSPACE
 
-  setup_bucket
-  setup_cloudwatch_logs
-
   ensure_eks
 
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
@@ -215,44 +208,10 @@ function main() {
   echo -e "\ncortex is ready!"
 }
 
-function setup_bucket() {
-  if ! aws s3api head-bucket --bucket $CORTEX_BUCKET --output json 2>/dev/null; then
-    if aws s3 ls "s3://$CORTEX_BUCKET" --output json 2>&1 | grep -q 'NoSuchBucket'; then
-      echo -n "￮ creating s3 bucket: $CORTEX_BUCKET "
-      if [ "$CORTEX_REGION" == "us-east-1" ]; then
-        aws s3api create-bucket --bucket $CORTEX_BUCKET \
-                                --region $CORTEX_REGION \
-                                >/dev/null
-      else
-        aws s3api create-bucket --bucket $CORTEX_BUCKET \
-                                --region $CORTEX_REGION \
-                                --create-bucket-configuration LocationConstraint=$CORTEX_REGION \
-                                >/dev/null
-      fi
-      echo "✓"
-    else
-      echo "error: a bucket named \"${CORTEX_BUCKET}\" already exists, but you do not have access to it"
-      exit 1
-    fi
-  else
-    echo "￮ using existing s3 bucket: $CORTEX_BUCKET"
-  fi
-}
-
-function setup_cloudwatch_logs() {
-  if ! aws logs list-tags-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION --output json 2>&1 | grep -q "\"tags\":"; then
-    echo -n "￮ creating cloudwatch log group: $CORTEX_LOG_GROUP "
-    aws logs create-log-group --log-group-name $CORTEX_LOG_GROUP --region $CORTEX_REGION
-    echo "✓"
-  else
-    echo "￮ using existing cloudwatch log group: $CORTEX_LOG_GROUP"
-  fi
-}
-
 function setup_configmap() {
   kubectl -n=default create configmap 'cluster-config' \
     --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
-    -o yaml --dry-run | kubectl apply -f - >/dev/null
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 
   kubectl -n=default create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
@@ -262,14 +221,14 @@ function setup_configmap() {
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    -o yaml --dry-run | kubectl apply -f - >/dev/null
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
 function setup_secrets() {
   kubectl -n=default create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$CORTEX_AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CORTEX_AWS_SECRET_ACCESS_KEY \
-    -o yaml --dry-run | kubectl apply -f - >/dev/null
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
 function setup_istio() {

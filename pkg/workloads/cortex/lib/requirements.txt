@@ -1,9 +1,8 @@
-boto3==1.10.45
+boto3==1.12.31
 dill==0.3.1.1
-msgpack==0.6.2
-numpy==1.18.0
-pyyaml==5.3
-requests==2.22.0
+msgpack==1.0.0
+numpy==1.18.2
+pyyaml==5.3.1
+requests==2.23.0
 
-datadog==0.33.0
-json_tricks==3.13.5
+datadog==0.35.0

@@ -2542,6 +2542,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"t3a.xlarge":    {Region: "sa-east-1", Type: "t3a.xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.2419},
 		"x1.16xlarge":   {Region: "sa-east-1", Type: "x1.16xlarge", Memory: kresource.MustParse("999424Mi"), CPU: kresource.MustParse("64"), GPU: 0, Price: 13.005},
 		"x1.32xlarge":   {Region: "sa-east-1", Type: "x1.32xlarge", Memory: kresource.MustParse("1998848Mi"), CPU: kresource.MustParse("128"), GPU: 0, Price: 26.01},
+		"x1e.32xlarge":  {Region: "sa-east-1", Type: "x1e.32xlarge", Memory: kresource.MustParse("3997696Mi"), CPU: kresource.MustParse("128"), GPU: 0, Price: 52.019},
 	},
 	"us-east-1": {
 		"a1.2xlarge":    {Region: "us-east-1", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.204},

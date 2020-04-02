@@ -66,6 +66,9 @@ registry-dev:
 registry-create:
 	@./dev/registry.sh create
 
+registry-clean:
+	@./dev/registry.sh clean
+
 manager-local:
 	@./dev/registry.sh update-manager-local
 

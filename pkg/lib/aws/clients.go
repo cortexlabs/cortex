@@ -18,9 +18,11 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -34,6 +36,8 @@ type clients struct {
 	cloudWatchLogs    *cloudwatchlogs.CloudWatchLogs
 	cloudWatchMetrics *cloudwatch.CloudWatch
 	serviceQuotas     *servicequotas.ServiceQuotas
+	cloudFormation    *cloudformation.CloudFormation
+	iam               *iam.IAM
 }
 
 func (c *Client) S3() *s3.S3 {
@@ -55,6 +59,13 @@ func (c *Client) EC2() *ec2.EC2 {
 		c.clients.ec2 = ec2.New(c.sess)
 	}
 	return c.clients.ec2
+}
+
+func (c *Client) CloudFormation() *cloudformation.CloudFormation {
+	if c.clients.cloudFormation == nil {
+		c.clients.cloudFormation = cloudformation.New(c.sess)
+	}
+	return c.clients.cloudFormation
 }
 
 func (c *Client) Autoscaling() *autoscaling.AutoScaling {
@@ -83,4 +94,11 @@ func (c *Client) ServiceQuotas() *servicequotas.ServiceQuotas {
 		c.clients.serviceQuotas = servicequotas.New(c.sess)
 	}
 	return c.clients.serviceQuotas
+}
+
+func (c *Client) IAM() *iam.IAM {
+	if c.clients.iam == nil {
+		c.clients.iam = iam.New(c.sess)
+	}
+	return c.clients.iam
 }

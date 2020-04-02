@@ -145,8 +145,11 @@ def generate_eks(configmap_yaml_path):
         "metadata": {
             "name": cluster_configmap["cluster_name"],
             "region": cluster_configmap["region"],
-            "version": "1.14",
+            "version": "1.15",
         },
+        "vpc": {"nat": {"gateway": "Disable"}},
+        "availabilityZones": cluster_configmap["availability_zones"],
+        "cloudWatch": {"clusterLogging": {"enableTypes": ["*"]}},
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
 

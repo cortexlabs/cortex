@@ -10,6 +10,8 @@ Which Predictor you use depends on how your model is exported:
 * [ONNX Predictor](#onnx-predictor) if your model is exported in the ONNX format
 * [Python Predictor](#python-predictor) for all other cases
 
+The response type of the predictor can vary depending on your requirements, see [API responses](#api-responses) below.
+
 ## Project files
 
 Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api configuration file (e.g. `cortex.yaml`) are excluded. You may also add a `.cortexignore` file at the root of the project directory, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
@@ -122,33 +124,32 @@ class PythonPredictor:
 The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
 
 ```text
-boto3==1.10.45
+boto3==1.12.31
 cloudpickle==1.3.0
-Cython==0.29.15
+Cython==0.29.16
 dill==0.3.1.1
 joblib==0.14.1
 Keras==2.3.1
-msgpack==0.6.2
+msgpack==1.0.0
 nltk==3.4.5
 np-utils==0.5.12.1
-numpy==1.18.0
-pandas==0.25.3
-opencv-python==4.1.2.30
-Pillow==6.2.1
-pyyaml==5.3
-requests==2.22.0
+numpy==1.18.2
+opencv-python==4.2.0.32
+pandas==1.0.3
+Pillow==7.0.0
+pyyaml==5.3.1
+requests==2.23.0
 scikit-image==0.16.2
-scikit-learn==0.22
+scikit-learn==0.22.2.post1
 scipy==1.4.1
-six==1.13.0
-statsmodels==0.10.2
-sympy==1.5
-tensor2tensor==1.15.4
+six==1.14.0
+statsmodels==0.11.1
+sympy==1.5.1
 tensorflow-hub==0.7.0
 tensorflow==2.1.0
 torch==1.4.0
 torchvision==0.5.0
-xgboost==0.90
+xgboost==1.0.2
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
@@ -215,14 +216,13 @@ class TensorFlowPredictor:
 The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
 
 ```text
-boto3==1.10.45
+boto3==1.12.31
 dill==0.3.1.1
-msgpack==0.6.2
-numpy==1.18.0
-requests==2.22.0
-opencv-python==4.1.2.30
-pyyaml==5.3
-tensor2tensor==1.15.4
+msgpack==1.0.0
+numpy==1.18.2
+opencv-python==4.2.0.32
+pyyaml==5.3.1
+requests==2.23.0
 tensorflow-hub==0.7.0
 tensorflow==2.1.0
 ```
@@ -295,16 +295,61 @@ class ONNXPredictor:
 The following Python packages are pre-installed in ONNX Predictors and can be used in your implementations:
 
 ```text
-boto3==1.10.45
+boto3==1.12.31
 dill==0.3.1.1
-msgpack==0.6.2
-numpy==1.18.0
-onnxruntime==1.1.0
-pyyaml==5.3
-requests==2.22.0
+msgpack==1.0.0
+numpy==1.18.2
+onnxruntime==1.2.0
+pyyaml==5.3.1
+requests==2.23.0
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
 The pre-installed system packages are listed in [images/onnx-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve/Dockerfile) (for CPU) or [images/onnx-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve-gpu/Dockerfile) (for GPU).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
+
+## API responses
+
+The response of your `predict()` function may be:
+
+1. A JSON-serializable object (*lists*, *dictionaries*, *numbers*, etc.)
+
+2. A `string` object (e.g. `"class 1"`)
+
+3. A `bytes` object (e.g. `bytes(4)` or `pickle.dumps(obj)`)
+
+4. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
+
+Here are some examples:
+
+```python
+def predict(self, payload):
+    # json-serializable object
+    response = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    return response
+```
+
+```python
+def predict(self, payload):
+    # string object
+    response = "class 1"
+    return response
+```
+
+```python
+def predict(self, payload):
+    # bytes-like object
+    array = np.random.randn(3, 3)
+    response = pickle.dumps(array)
+    return response
+```
+
+```python
+def predict(self, payload):
+    # starlette.responses.Response
+    data = "class 1"
+    response = starlette.responses.Response(
+        content=data, media_type="text/plain")
+    return response
+```

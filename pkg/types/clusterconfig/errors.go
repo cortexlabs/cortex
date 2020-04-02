@@ -23,35 +23,46 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 const (
-	ErrInstanceTypeTooSmall               = "clusterconfig.instance_type_too_small"
-	ErrMinInstancesGreaterThanMax         = "clusterconfig.min_instances_greater_than_max"
-	ErrInstanceTypeNotSupportedInRegion   = "clusterconfig.instance_type_not_supported_in_region"
-	ErrIncompatibleSpotInstanceTypeMemory = "clusterconfig.incompatible_spot_instance_type_memory"
-	ErrIncompatibleSpotInstanceTypeCPU    = "clusterconfig.incompatible_spot_instance_type_cpu"
-	ErrIncompatibleSpotInstanceTypeGPU    = "clusterconfig.incompatible_spot_instance_type_gpu"
-	ErrSpotPriceGreaterThanTargetOnDemand = "clusterconfig.spot_price_greater_than_target_on_demand"
-	ErrSpotPriceGreaterThanMaxPrice       = "clusterconfig.spot_price_greater_than_max_price"
-	ErrInstanceTypeNotSupported           = "clusterconfig.instance_type_not_supported"
-	ErrAtLeastOneInstanceDistribution     = "clusterconfig.at_least_one_instance_distribution"
-	ErrNoCompatibleSpotInstanceFound      = "clusterconfig.no_compatible_spot_instance_found"
-	ErrConfiguredWhenSpotIsNotEnabled     = "clusterconfig.configured_when_spot_is_not_enabled"
-	ErrOnDemandBaseCapacityGreaterThanMax = "clusterconfig.on_demand_base_capacity_greater_than_max"
-	ErrConfigCannotBeChangedOnUpdate      = "clusterconfig.config_cannot_be_changed_on_update"
-	ErrInvalidAvailabilityZone            = "clusterconfig.invalid_availability_zone"
-	ErrDidNotMatchStrictS3Regex           = "clusterconfig.did_not_match_strict_s3_regex"
-	ErrS3RegionDiffersFromCluster         = "clusterconfig.s3_region_differs_from_cluster"
-	ErrImageVersionMismatch               = "clusterconfig.image_version_mismatch"
-	ErrInvalidInstanceType                = "clusterconfig.invalid_instance_type"
+	ErrInvalidRegion                          = "clusterconfig.invalid_region"
+	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
+	ErrMinInstancesGreaterThanMax             = "clusterconfig.min_instances_greater_than_max"
+	ErrInstanceTypeNotSupportedInRegion       = "clusterconfig.instance_type_not_supported_in_region"
+	ErrIncompatibleSpotInstanceTypeMemory     = "clusterconfig.incompatible_spot_instance_type_memory"
+	ErrIncompatibleSpotInstanceTypeCPU        = "clusterconfig.incompatible_spot_instance_type_cpu"
+	ErrIncompatibleSpotInstanceTypeGPU        = "clusterconfig.incompatible_spot_instance_type_gpu"
+	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
+	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
+	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
+	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
+	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
+	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
+	ErrOnDemandBaseCapacityGreaterThanMax     = "clusterconfig.on_demand_base_capacity_greater_than_max"
+	ErrConfigCannotBeChangedOnUpdate          = "clusterconfig.config_cannot_be_changed_on_update"
+	ErrInvalidAvailabilityZone                = "clusterconfig.invalid_availability_zone"
+	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
+	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
+	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
+	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
+	ErrImageVersionMismatch                   = "clusterconfig.image_version_mismatch"
+	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 )
+
+func ErrorInvalidRegion(region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidRegion,
+		Message: fmt.Sprintf("%s is not a valid AWS region, or is an AWS region which is not supported by AWS EKS; please choose one of the following regions: %s", s.UserStr(region), strings.Join(aws.EKSSupportedRegions.SliceSorted(), ", ")),
+	})
+}
 
 func ErrorInstanceTypeTooSmall() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeTooSmall,
-		Message: "Cortex does not support nano or micro instances - please specify a larger instance type",
+		Message: "cortex does not support nano or micro instances - please specify a larger instance type",
 	})
 }
 
@@ -148,10 +159,43 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	})
 }
 
-func ErrorInvalidAvailabilityZone(invalidZone string, validAvailabilityZones []string) error {
+func ErrorInvalidAvailabilityZone(userZone string, allZones strset.Set) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAvailabilityZone,
-		Message: fmt.Sprintf("%s is an invalid availability zone; please choose from the following valid zones %s", invalidZone, s.UserStrsOr(validAvailabilityZones)),
+		Message: fmt.Sprintf("%s is not an availability zone; please choose from the following availability zones: %s", s.UserStr(userZone), s.UserStrsOr(allZones.SliceSorted())),
+	})
+}
+
+func ErrorUnsupportedAvailabilityZone(userZone string, instanceType string, instanceTypes ...string) error {
+	msg := fmt.Sprintf("the %s availability zone does not support EKS and the %s instance type; please choose a different availability zone, instance type, or region", userZone, instanceType)
+
+	if len(instanceTypes) > 0 {
+		allInstanceTypes := append([]string{instanceType}, instanceTypes...)
+		msg = fmt.Sprintf("the %s availability zone does not support EKS and %s instance types; please choose a different availability zone, instance types, or region", userZone, s.StrsAnd(allInstanceTypes))
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnsupportedAvailabilityZone,
+		Message: msg,
+	})
+}
+
+func ErrorNotEnoughDefaultSupportedZones(region string, validZones strset.Set, instanceType string, instanceTypes ...string) error {
+	areNoStr := "are no"
+	if len(validZones) > 0 {
+		areNoStr = "aren't enough"
+	}
+
+	msg := fmt.Sprintf("there %s availability zones in %s which support EKS and the %s instance type; please choose a different instance type or a different region", areNoStr, region, instanceType)
+
+	if len(instanceTypes) > 0 {
+		allInstanceTypes := append([]string{instanceType}, instanceTypes...)
+		msg = fmt.Sprintf("there %s availability zones in %s which support EKS and the %s instance types; please choose different instance types or a different region", areNoStr, region, s.StrsAnd(allInstanceTypes))
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNotEnoughValidDefaultAvailibilityZones,
+		Message: msg,
 	})
 }
 
