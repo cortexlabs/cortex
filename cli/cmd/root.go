@@ -42,7 +42,7 @@ var _emailPath string
 var _debugPath string
 var _cwd string
 
-var _flagEnv string
+var _flagProfile string
 
 func init() {
 	cwd, err := os.Getwd()
@@ -175,6 +175,6 @@ func printLeadingNewLine() {
 	fmt.Println("")
 }
 
-func addEnvFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&_flagEnv, "env", "e", "default", "environment")
+func addProfileFlag(cmd *cobra.Command, defaultProfile string) {
+	cmd.Flags().StringVarP(&_flagProfile, "profile", "p", defaultProfile, "profile")
 }

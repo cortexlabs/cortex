@@ -11,10 +11,10 @@ Usage:
   cortex deploy [CONFIG_FILE] [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -f, --force        override the in-progress api update
-  -h, --help         help for deploy
-  -y, --yes          skip prompts
+  -f, --force            override the in-progress api update
+  -h, --help             help for deploy
+  -p, --profile string   profile (default "local")
+  -y, --yes              skip prompts
 ```
 
 ## get
@@ -26,9 +26,9 @@ Usage:
   cortex get [API_NAME] [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -h, --help         help for get
-  -w, --watch        re-run the command every second
+  -h, --help             help for get
+  -p, --profile string   profile (default "local")
+  -w, --watch            re-run the command every second
 ```
 
 ## logs
@@ -40,8 +40,8 @@ Usage:
   cortex logs API_NAME [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -h, --help         help for logs
+  -h, --help             help for logs
+  -p, --profile string   profile (default "local")
 ```
 
 ## refresh
@@ -53,9 +53,9 @@ Usage:
   cortex refresh API_NAME [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -f, --force        override the in-progress api update
-  -h, --help         help for refresh
+  -f, --force            override the in-progress api update
+  -h, --help             help for refresh
+  -p, --profile string   profile (default "local")
 ```
 
 ## predict
@@ -67,9 +67,9 @@ Usage:
   cortex predict API_NAME JSON_FILE [flags]
 
 Flags:
-      --debug        predict with debug mode
-  -e, --env string   environment (default "default")
-  -h, --help         help for predict
+      --debug            predict with debug mode
+  -h, --help             help for predict
+  -p, --profile string   profile (default "local")
 ```
 
 ## delete
@@ -81,10 +81,10 @@ Usage:
   cortex delete API_NAME [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -f, --force        delete the api without confirmation
-  -h, --help         help for delete
-  -c, --keep-cache   keep cached data for the api
+  -f, --force            delete the api without confirmation
+  -h, --help             help for delete
+  -c, --keep-cache       keep cached data for the api
+  -p, --profile string   profile (default "local")
 ```
 
 ## cluster up
@@ -96,9 +96,9 @@ Usage:
   cortex cluster up [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -e, --env string      environment (default "default")
-  -h, --help            help for up
+  -c, --config string    path to a cluster configuration file
+  -h, --help             help for up
+  -p, --profile string   profile (default "aws")
 ```
 
 ## cluster info
@@ -110,10 +110,11 @@ Usage:
   cortex cluster info [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -d, --debug           save the current cluster state to a file
-  -e, --env string      environment (default "default")
-  -h, --help            help for info
+  -c, --config string    path to a cluster configuration file
+  -d, --debug            save the current cluster state to a file
+  -h, --help             help for info
+  -p, --profile string   profile (default "aws")
+
 ```
 
 ## cluster update
@@ -125,9 +126,9 @@ Usage:
   cortex cluster update [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -e, --env string      environment (default "default")
-  -h, --help            help for update
+  -c, --config string    path to a cluster configuration file
+  -h, --help             help for update
+  -p, --profile string   profile (default "aws")
 ```
 
 ## cluster down
@@ -152,25 +153,49 @@ Usage:
   cortex version [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -h, --help         help for version
+  -h, --help             help for version
+  -p, --profile string   profile (default "local")
 ```
 
 ## configure
 
 ```text
-configure the cli
+configure a cli profile
 
 Usage:
-  cortex configure [flags]
+  cortex configure [--profile=PROFIE_NAME] [flags]
 
 Flags:
   -k, --aws-access-key-id string       set the aws access key id without prompting
   -s, --aws-secret-access-key string   set the aws secret access key without prompting
-  -e, --env string                     environment (default "default")
   -h, --help                           help for configure
   -o, --operator-endpoint string       set the operator endpoint without prompting
-  -p, --print                          print the configuration
+  -p, --profile string                 profile (default "local")
+  -v, --provider string                set the provider without prompting
+```
+
+## configure list
+
+```text
+list all configured profiles
+
+Usage:
+  cortex configure list [flags]
+
+Flags:
+  -h, --help   help for list
+```
+
+## configure remove
+
+```text
+remove a configured profile
+
+Usage:
+  cortex configure remove PROFILE_NAME [flags]
+
+Flags:
+  -h, --help   help for remove
 ```
 
 ## completion

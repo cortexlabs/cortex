@@ -568,6 +568,9 @@ type PromptItemValidation struct {
 	Float32PtrValidation *Float32PtrValidation
 	Float64Validation    *Float64Validation
 	Float64PtrValidation *Float64PtrValidation
+
+	// Additional parsing step for StringValidation or StringPtrValidation
+	Parser func(string) (interface{}, error)
 }
 
 type PromptValidation struct {
@@ -596,8 +599,27 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 		for {
 			if promptItemValidation.StringValidation != nil {
 				val, err = StringFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.StringValidation)
+				if err == nil && promptItemValidation.Parser != nil {
+					val, err = promptItemValidation.Parser(val.(string))
+				}
 			} else if promptItemValidation.StringPtrValidation != nil {
 				val, err = StringPtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.StringPtrValidation)
+				if err == nil && promptItemValidation.Parser != nil {
+					if val.(*string) == nil {
+						val = nil
+					} else {
+						val, err = promptItemValidation.Parser(*val.(*string))
+						if err == nil && val != nil {
+							valValue := reflect.ValueOf(val)
+							valPtrValue := reflect.New(valValue.Type())
+							valPtrValue.Elem().Set(valValue)
+							val = valPtrValue.Interface()
+						} else {
+							val = nil
+							// err is already set
+						}
+					}
+				}
 			} else if promptItemValidation.BoolValidation != nil {
 				val, err = BoolFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.BoolValidation)
 			} else if promptItemValidation.BoolPtrValidation != nil {

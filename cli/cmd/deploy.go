@@ -44,7 +44,7 @@ var _flagDeployYes bool
 func init() {
 	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
 	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployYes, "yes", "y", false, "skip prompts")
-	addEnvFlag(_deployCmd)
+	addProfileFlag(_deployCmd, Local.String())
 }
 
 var _deployCmd = &cobra.Command{
@@ -166,5 +166,5 @@ func deploy(configPath string, force bool) {
 		exit.Error(err, "/deploy", string(response))
 	}
 
-	print.ForUserSplitDoubleNewLine(deployResponse.Message)
+	print.BoldFirstBlock(deployResponse.Message)
 }

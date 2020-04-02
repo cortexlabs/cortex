@@ -18,6 +18,7 @@ package configreader
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -293,10 +294,15 @@ func ErrorCannotBeEmpty() error {
 	})
 }
 
-func ErrorMustBeDefined() error {
+func ErrorMustBeDefined(validValues ...interface{}) error {
+	msg := "must be defined"
+	if len(validValues) > 0 && !reflect.ValueOf(validValues[0]).IsNil() { // reflect is necessary here
+		msg = fmt.Sprintf("must be defined, and set to %s", s.UserStrsOr(validValues))
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeDefined,
-		Message: "must be defined",
+		Message: msg,
 	})
 }
 
