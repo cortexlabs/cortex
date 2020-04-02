@@ -34,7 +34,7 @@ const (
 	ErrInstanceTypeLimitIsZero = "aws.instance_type_limit_is_zero"
 	ErrNoValidSpotPrices       = "aws.no_valid_spot_prices"
 	ErrReadCredentials         = "aws.read_credentials"
-	ErrInvalidAuthorizationTokenOutput = "aws.invalid_authtoken_output"
+	ErrECRExtractingCredentials = "aws.ecr_failed_credentials"
 
 )
 
@@ -134,9 +134,9 @@ func ErrorReadCredentials() error {
 	})
 }
 
-func ErrorInvalidAuthorizationTokenOutput(reason string) error {
+func ErrorECRExtractingCredentials() error {
 	return errors.WithStack(&errors.Error{
-		Kind: ErrInvalidAuthorizationTokenOutput,
-		Message: reason,
+		Kind: ErrECRExtractingCredentials,
+		Message: "can't extract ECR credentials",
 	})
 }

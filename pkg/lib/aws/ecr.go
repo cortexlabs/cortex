@@ -50,24 +50,18 @@ func GetECRAuthToken() (*ecr.GetAuthorizationTokenOutput, error) {
 func ExtractECRAuthConfigFromTokenOutput(auth *ecr.GetAuthorizationTokenOutput) (ECRAuthConfig, error) {
 	var authConfig ECRAuthConfig
 	if len(auth.AuthorizationData) < 1 {
-		return authConfig, ErrorInvalidAuthorizationTokenOutput(
-			"GetAuthorizationTokenOutput.AuthorizationData field is empty",
-		)
+		return authConfig, errors.Wrap(ErrorECRExtractingCredentials(), "index out of range")
 	}
 	authData := auth.AuthorizationData[0]
 
 	credentials, err := base64.URLEncoding.DecodeString(*authData.AuthorizationToken)
 	if err != nil {
-		return authConfig, ErrorInvalidAuthorizationTokenOutput(
-			"GetAuthorizationTokenOutput can't be decoded with base64",
-		)
+		return authConfig, errors.Wrap(ErrorECRExtractingCredentials(), err.Error())
 	}
 	credentialsString := string(credentials)
 	splitCredentials := strings.Split(credentialsString, ":")
 	if len(splitCredentials) != 2 {
-		return authConfig, ErrorInvalidAuthorizationTokenOutput(
-			"GetAuthorizationTokenOutput doesn't have user:token encoded",
-		)
+		return authConfig, ErrorECRExtractingCredentials()
 	}
 
 	authConfig.Username = splitCredentials[0]
