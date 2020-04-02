@@ -57,3 +57,11 @@ var _dockerValidImage = regexp.MustCompile(
 func IsValidDockerImage(s string) bool {
 	return _dockerValidImage.MatchString(s)
 }
+
+var _ecrPattern = regexp.MustCompile(
+	`(^[a-zA-Z0-9][a-zA-Z0-9-_]*)\.dkr\.ecr(\-fips)?\.([a-zA-Z0-9][a-zA-Z0-9-_]*)\.amazonaws\.com(\.cn)?`,
+)
+
+func IsValidECRImage(s string) bool {
+	return _ecrPattern.MatchString(s)
+}

@@ -34,6 +34,8 @@ const (
 	ErrInstanceTypeLimitIsZero = "aws.instance_type_limit_is_zero"
 	ErrNoValidSpotPrices       = "aws.no_valid_spot_prices"
 	ErrReadCredentials         = "aws.read_credentials"
+	ErrInvalidAuthorizationTokenOutput = "aws.invalid_authtoken_output"
+
 )
 
 func IsNotFoundErr(err error) bool {
@@ -129,5 +131,12 @@ func ErrorReadCredentials() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadCredentials,
 		Message: "unable to read AWS credentials from credentials file",
+	})
+}
+
+func ErrorInvalidAuthorizationTokenOutput(reason string) error {
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInvalidAuthorizationTokenOutput,
+		Message: reason,
 	})
 }
