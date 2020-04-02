@@ -39,6 +39,7 @@
 
 * [Set up AWS API gateway](guides/api-gateway.md)
 * [Increase request timeout](guides/elb-timeout.md)
+* [Plot in-flight requests](guides/plot-in-flight-requests.md)
 
 ## Contributing
 
