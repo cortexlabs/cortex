@@ -19,7 +19,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-CORTEX_VERSION=0.15.0
+CORTEX_VERSION=0.15.1
 
 dir=$1
 image=$2
