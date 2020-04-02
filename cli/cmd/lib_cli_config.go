@@ -386,6 +386,11 @@ func readOrConfigureNonLocalProfile(profileName string) (Profile, error) {
 		return *profile, nil
 	}
 
+	promptStr := fmt.Sprintf("the %s profile is not configured; do you already have a Cortex cluster running on AWS?", profileName)
+	yesMsg := fmt.Sprintf("please configure the %s profile to point to your running cluster:\n", profileName)
+	noMsg := "you can create a cluster on AWS by running the `cortex cluster up` command"
+	prompt.YesOrExit(promptStr, yesMsg, noMsg)
+
 	fieldsToSkipPrompt := Profile{
 		Provider: AWS,
 	}
