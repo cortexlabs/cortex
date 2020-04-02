@@ -38,6 +38,7 @@
 ## Guides
 
 * [Set up AWS API gateway](guides/api-gateway.md)
+* [Increase request timeout](guides/elb-timeout.md)
 
 ## Contributing
 
