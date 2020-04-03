@@ -4,19 +4,19 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Bash script
 
-Cortex looks inside the root directory of the project for a file named `script.sh`. (i.e. the directory which contains `cortex.yaml`).
+Cortex looks inside the root directory of the project for a file named `dependencies.sh`. (i.e. the directory which contains `cortex.yaml`).
 
 ```text
 ./iris-classifier/
 ├── cortex.yaml
 ├── predictor.py
 ├── ...
-└── script.sh
+└── dependencies.sh
 ```
 
-This `script.sh` gets executed during the initialization of each replica. Typical use cases include installing required system packages to be used in Predictor, building python packages from source, etc.
+This `dependencies.sh` gets executed during the initialization of each replica. Typical use cases include installing required system packages to be used in Predictor, building python packages from source, etc.
 
-Sample `script.sh` installing `tree` utility:
+Sample `dependencies.sh` installing `tree` utility:
 ```bash
 #!/bin/bash
 apt-get update && apt-get install -y tree

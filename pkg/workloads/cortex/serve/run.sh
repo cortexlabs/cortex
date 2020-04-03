@@ -31,8 +31,8 @@ sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
 sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
 
 # execute script if present in project's directory
-if [ -f "/mnt/project/script.sh" ]; then
-    bash -e /mnt/project/script.sh
+if [ -f "/mnt/project/dependencies.sh" ]; then
+    bash -e /mnt/project/dependencies.sh
 fi
 
 # install from conda-packages.txt
