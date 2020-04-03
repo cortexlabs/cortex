@@ -11,10 +11,10 @@ Note: you may have limited (or no) access to certain instance types. To check yo
 | Instance Type                                       | CPU    | Memory    | GPU Memory               | Starting price per hour* | Notes                      |
 | :---                                                | :---   | :---      | :---                     | :---                     | :---                       |
 | [T3](https://aws.amazon.com/ec2/instance-types/t3/) | low    | low       | -                        | $0.0416 (t3.medium)      | good for dev clusters      |
-| [M5](https://aws.amazon.com/ec2/instance-types/m5/) | medium | medium    | -                        | $0.096 (m5.large)        | standard                   |
-| [C5](https://aws.amazon.com/ec2/instance-types/c5/) | high   | medium    | -                        | $0.085 (c5.large)        | high-cpu                   |
-| [R5](https://aws.amazon.com/ec2/instance-types/r5/) | high   | high      | -                        | $0.126 (r5.large)        | high-memory                |
-| [G4](https://aws.amazon.com/ec2/instance-types/g4/) | high   | high      | ~15GB (g4dn.xlarge)      | $0.526 (g4dn.xlarge)     | standard GPU-based         |
-| [P2](https://aws.amazon.com/ec2/instance-types/p2/) | high   | very high | ~12GB (p2.xlarge)        | $0.90 (p2.xlarge)        | high host memory GPU-based |
+| [M5](https://aws.amazon.com/ec2/instance-types/m5/) | medium | medium    | -                        | $0.096 (m5.large)        | standard cpu-based         |
+| [C5](https://aws.amazon.com/ec2/instance-types/c5/) | high   | medium    | -                        | $0.085 (c5.large)        | high cpu                   |
+| [R5](https://aws.amazon.com/ec2/instance-types/r5/) | medium | high      | -                        | $0.126 (r5.large)        | high memory                |
+| [G4](https://aws.amazon.com/ec2/instance-types/g4/) | high   | high      | ~15GB (g4dn.xlarge)      | $0.526 (g4dn.xlarge)     | standard gpu-based         |
+| [P2](https://aws.amazon.com/ec2/instance-types/p2/) | high   | very high | ~12GB (p2.xlarge)        | $0.90 (p2.xlarge)        | high host memory gpu-based |
 
 &ast; on-demand pricing for the US West (Oregon) AWS region.
