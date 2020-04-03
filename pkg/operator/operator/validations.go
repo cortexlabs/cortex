@@ -528,7 +528,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 			return ErrorMissingAdditionalFieldForPredictorType(
 				userconfig.TFServeImageKey, userconfig.ImageKey, userconfig.TensorFlowPredictorType,
 			)
-		} else {
+		} else if predictor.TFServeImage == "" {
 			return ErrorMissingAdditionalFieldForPredictorType(
 				userconfig.ImageKey, userconfig.TFServeImageKey, userconfig.TensorFlowPredictorType,
 			)
