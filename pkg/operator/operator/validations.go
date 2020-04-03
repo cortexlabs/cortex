@@ -476,10 +476,10 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		if err := validateOverridenImage(predictor.Image); err != nil {
 			return errors.Wrap(err, userconfig.ImageKey)
 		}
-		if predictor.TFServeImage != "" {
-			if err := validateOverridenImage(predictor.TFServeImage); err != nil {
-				return errors.Wrap(err, userconfig.TFServeImageKey)
-			}
+	}
+	if predictor.TFServeImage != "" {
+		if err := validateOverridenImage(predictor.TFServeImage); err != nil {
+			return errors.Wrap(err, userconfig.TFServeImageKey)
 		}
 	}
 
@@ -521,18 +521,6 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
-	}
-
-	if predictor.Image != "" || predictor.TFServeImage != "" {
-		if predictor.Image == "" {
-			return ErrorMissingAdditionalFieldForPredictorType(
-				userconfig.TFServeImageKey, userconfig.ImageKey, userconfig.TensorFlowPredictorType,
-			)
-		} else if predictor.TFServeImage == "" {
-			return ErrorMissingAdditionalFieldForPredictorType(
-				userconfig.ImageKey, userconfig.TFServeImageKey, userconfig.TensorFlowPredictorType,
-			)
-		}
 	}
 
 	model := *predictor.Model

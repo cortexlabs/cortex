@@ -26,33 +26,32 @@ import (
 )
 
 const (
-	ErrCortexInstallationBroken               = "operator.cortex_installation_broken"
-	ErrLoadBalancerInitializing               = "operator.load_balancer_initializing"
-	ErrMalformedConfig                        = "operator.malformed_config"
-	ErrNoAPIs                                 = "operator.no_apis"
-	ErrAPIUpdating                            = "operator.api_updating"
-	ErrDuplicateName                          = "operator.duplicate_name"
-	ErrDuplicateEndpointInOneDeploy           = "operator.duplicate_endpoint_in_one_deploy"
-	ErrDuplicateEndpoint                      = "operator.duplicate_endpoint"
-	ErrSpecifyAllOrNone                       = "operator.specify_all_or_none"
-	ErrOneOfPrerequisitesNotDefined           = "operator.one_of_prerequisites_not_defined"
-	ErrMinReplicasGreaterThanMax              = "operator.min_replicas_greater_than_max"
-	ErrInitReplicasGreaterThanMax             = "operator.init_replicas_greater_than_max"
-	ErrInitReplicasLessThanMin                = "operator.init_replicas_less_than_min"
-	ErrInvalidSurgeOrUnavailable              = "operator.invalid_surge_or_unavailable"
-	ErrSurgeAndUnavailableBothZero            = "operator.surge_and_unavailable_both_zero"
-	ErrImplDoesNotExist                       = "operator.impl_does_not_exist"
-	ErrS3FileNotFound                         = "operator.s3_file_not_found"
-	ErrS3DirNotFoundOrEmpty                   = "operator.s3_dir_not_found_or_empty"
-	ErrONNXDoesntSupportZip                   = "operator.onnx_doesnt_support_zip"
-	ErrInvalidTensorFlowDir                   = "operator.invalid_tensorflow_dir"
-	ErrFieldMustBeDefinedForPredictorType     = "operator.field_must_be_defined_for_predictor_type"
-	ErrFieldNotSupportedByPredictorType       = "operator.field_not_supported_by_predictor_type"
-	ErrMissingAdditionalFieldForPredictorType = "operator.field_missing_additional_field_for_predictor_type"
-	ErrNoAvailableNodeComputeLimit            = "operator.no_available_node_compute_limit"
-	ErrCortexPrefixedEnvVarNotAllowed         = "operator.cortex_prefixed_env_var_not_allowed"
-	ErrAPINotDeployed                         = "operator.api_not_deployed"
-	ErrInvalidOverriddenImage                 = "operator.invalid_overridden_image"
+	ErrCortexInstallationBroken           = "operator.cortex_installation_broken"
+	ErrLoadBalancerInitializing           = "operator.load_balancer_initializing"
+	ErrMalformedConfig                    = "operator.malformed_config"
+	ErrNoAPIs                             = "operator.no_apis"
+	ErrAPIUpdating                        = "operator.api_updating"
+	ErrDuplicateName                      = "operator.duplicate_name"
+	ErrDuplicateEndpointInOneDeploy       = "operator.duplicate_endpoint_in_one_deploy"
+	ErrDuplicateEndpoint                  = "operator.duplicate_endpoint"
+	ErrSpecifyAllOrNone                   = "operator.specify_all_or_none"
+	ErrOneOfPrerequisitesNotDefined       = "operator.one_of_prerequisites_not_defined"
+	ErrMinReplicasGreaterThanMax          = "operator.min_replicas_greater_than_max"
+	ErrInitReplicasGreaterThanMax         = "operator.init_replicas_greater_than_max"
+	ErrInitReplicasLessThanMin            = "operator.init_replicas_less_than_min"
+	ErrInvalidSurgeOrUnavailable          = "operator.invalid_surge_or_unavailable"
+	ErrSurgeAndUnavailableBothZero        = "operator.surge_and_unavailable_both_zero"
+	ErrImplDoesNotExist                   = "operator.impl_does_not_exist"
+	ErrS3FileNotFound                     = "operator.s3_file_not_found"
+	ErrS3DirNotFoundOrEmpty               = "operator.s3_dir_not_found_or_empty"
+	ErrONNXDoesntSupportZip               = "operator.onnx_doesnt_support_zip"
+	ErrInvalidTensorFlowDir               = "operator.invalid_tensorflow_dir"
+	ErrFieldMustBeDefinedForPredictorType = "operator.field_must_be_defined_for_predictor_type"
+	ErrFieldNotSupportedByPredictorType   = "operator.field_not_supported_by_predictor_type"
+	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
+	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
+	ErrAPINotDeployed                     = "operator.api_not_deployed"
+	ErrInvalidOverriddenImage             = "operator.invalid_overridden_image"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -236,13 +235,6 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
 		Message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
-	})
-}
-
-func ErrorMissingAdditionalFieldForPredictorType(fieldKey string, missingFieldKey string, predictorType userconfig.PredictorType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMissingAdditionalFieldForPredictorType,
-		Message: fmt.Sprintf("%s field requires %s field for the %s predictor type", fieldKey, missingFieldKey, predictorType),
 	})
 }
 
