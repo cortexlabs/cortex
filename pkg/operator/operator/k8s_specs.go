@@ -106,7 +106,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
 
-	servingImage := config.Cluster.ImagePythonServe
+	servingImage := config.Cluster.ImageTFServe
 	tfServeImage := config.Cluster.ImageTFAPI
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cluster.ImageTFServeGPU
@@ -385,7 +385,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
-	servingImage := config.Cluster.ImagePythonServe
+	servingImage := config.Cluster.ImageONNXServe
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cluster.ImageONNXServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
