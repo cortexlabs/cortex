@@ -106,16 +106,16 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
 
-	var servingImage string
-	if api.Predictor.Image != "" {
-		servingImage = api.Predictor.Image
-	} else {
-		servingImage = config.Cluster.ImagePythonServe
-	}
+	servingImage := config.Cluster.ImagePythonServe
+	tfServingImage := config.Cluster.ImageTFAPI
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cluster.ImageTFServeGPU
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+	}
+	if api.Predictor.Image != "" {
+		servingImage = api.Predictor.Image
+		// tfServingImage = api.Predictor.TFServingImage
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -156,7 +156,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 				Containers: []kcore.Container{
 					{
 						Name:            _apiContainerName,
-						Image:           config.Cluster.ImageTFAPI,
+						Image:           tfServingImage,
 						ImagePullPolicy: kcore.PullAlways,
 						Env: append(
 							getEnvVars(api),
@@ -260,12 +260,6 @@ func tfDownloadArgs(api *spec.API) string {
 }
 
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	var servingImage string
-	if api.Predictor.Image != "" {
-		servingImage = api.Predictor.Image
-	} else {
-		servingImage = config.Cluster.ImagePythonServe
-	}
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
@@ -278,11 +272,15 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		userPodMemRequest.Sub(_requestMonitorMemRequest)
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
-
+	
+	servingImage := config.Cluster.ImagePythonServe
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cluster.ImagePythonServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+	}
+	if api.Predictor.Image != "" {
+		servingImage = api.Predictor.Image
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -374,12 +372,6 @@ func pythonDownloadArgs(api *spec.API) string {
 }
 
 func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	var servingImage string
-	if api.Predictor.Image != "" {
-		servingImage = api.Predictor.Image
-	} else {
-		servingImage = config.Cluster.ImagePythonServe
-	}
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
@@ -393,10 +385,14 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
+	servingImage := config.Cluster.ImagePythonServe
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cluster.ImageONNXServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+	}
+	if api.Predictor.Image != "" {
+		servingImage = api.Predictor.Image
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
