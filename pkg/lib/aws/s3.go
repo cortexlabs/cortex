@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -184,8 +185,9 @@ func (c *Client) IsS3Prefix(bucket string, prefix string, prefixes ...string) (b
 	allPrefixes := append(prefixes, prefix)
 	for _, prefix := range allPrefixes {
 		out, err := c.S3().ListObjectsV2(&s3.ListObjectsV2Input{
-			Bucket: aws.String(bucket),
-			Prefix: aws.String(prefix),
+			Bucket:  aws.String(bucket),
+			Prefix:  aws.String(prefix),
+			MaxKeys: aws.Int64(1),
 		})
 
 		if err != nil {
@@ -377,32 +379,52 @@ func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
 	return c.ReadBytesFromS3(bucket, key)
 }
 
-func (c *Client) ListDir(bucket string, prefix string, maxResults int64) ([]*s3.Object, error) {
+func (c *Client) ListDir(bucket string, prefix string, maxResults *int64) ([]*s3.Object, error) {
 	prefix = s.EnsureSuffix(prefix, "/")
 	return c.ListPrefix(bucket, prefix, maxResults)
 }
 
-func (c *Client) ListPathDir(s3Path string, maxResults int64) ([]*s3.Object, error) {
+func (c *Client) ListPathDir(s3Path string, maxResults *int64) ([]*s3.Object, error) {
 	s3Path = s.EnsureSuffix(s3Path, "/")
 	return c.ListPathPrefix(s3Path, maxResults)
 }
 
-func (c *Client) ListPrefix(bucket string, prefix string, maxResults int64) ([]*s3.Object, error) {
+func (c *Client) ListPrefix(bucket string, prefix string, maxResults *int64) ([]*s3.Object, error) {
+	var maxResultsIter *int64
+	if maxResults != nil {
+		maxResultsIter = pointer.Int64(*maxResults)
+	}
+
 	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix),
-		MaxKeys: aws.Int64(maxResults),
+		MaxKeys: maxResultsIter,
 	}
 
-	output, err := c.S3().ListObjectsV2(listObjectsInput)
+	var objects []*s3.Object
+
+	err := c.S3().ListObjectsV2Pages(listObjectsInput,
+		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {
+			objects = append(objects, listObjectsOutput.Contents...)
+
+			if maxResults != nil {
+				if int64(len(objects)) >= *maxResults {
+					return false
+				}
+				*maxResultsIter = *maxResults - int64(len(objects))
+			}
+
+			return true
+		})
+
 	if err != nil {
 		return nil, errors.Wrap(err, S3Path(bucket, prefix))
 	}
 
-	return output.Contents, nil
+	return objects, nil
 }
 
-func (c *Client) ListPathPrefix(s3Path string, maxResults int64) ([]*s3.Object, error) {
+func (c *Client) ListPathPrefix(s3Path string, maxResults *int64) ([]*s3.Object, error) {
 	bucket, prefix, err := SplitS3Path(s3Path)
 	if err != nil {
 		return nil, err
