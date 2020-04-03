@@ -39,10 +39,10 @@ func CacheModel(api *userconfig.API) (string, error) {
 		}
 
 		if strings.HasSuffix(*api.Predictor.Model, ".zip") || strings.HasSuffix(*api.Predictor.Model, ".onnx") {
-			return DownloadObj(api, modelDir)
+			return S3DownloadObj(api, modelDir)
 		}
 
-		return DownloadDir(api, modelDir)
+		return S3DownloadDir(api, modelDir)
 	}
 
 	modelDir, err := getLocalModelCachePath(api)
@@ -151,7 +151,7 @@ func ResetCachedModel(modelDir string) error {
 	return nil
 }
 
-func DownloadDir(api *userconfig.API, modelVersionDir string) (string, error) {
+func S3DownloadDir(api *userconfig.API, modelVersionDir string) (string, error) {
 	awsClient, err := aws.NewFromEnvS3Path(*api.Predictor.Model)
 	if err != nil {
 		return "", err
@@ -219,7 +219,7 @@ func DownloadDir(api *userconfig.API, modelVersionDir string) (string, error) {
 	return modelVersionDir, nil
 }
 
-func DownloadObj(api *userconfig.API, modelVersionDir string) (string, error) {
+func S3DownloadObj(api *userconfig.API, modelVersionDir string) (string, error) {
 	bucket, fullPathKey, err := aws.SplitS3Path(*api.Predictor.Model)
 	if err != nil {
 		return "", err

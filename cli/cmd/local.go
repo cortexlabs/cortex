@@ -153,6 +153,7 @@ var localCmd = &cobra.Command{
 		// }
 		// fmt.Println(path)
 
+		// TODO try to pickup AWS credentials silently if aws creds in local profile are empty
 		awsCreds := &AWSCredentials{}
 		setInstallAWSCredentials(awsCreds)
 
@@ -241,6 +242,8 @@ var localDelete = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+
+		// TODO: Clear cache here
 	},
 }
 

@@ -68,10 +68,9 @@ func DeployContainers(api *spec.API) error {
 				Target:   "/mnt/project",
 			},
 			{
-				Type:     mount.TypeBind,
-				ReadOnly: true,
-				Source:   filepath.Join(LocalWorkspace),
-				Target:   "/mnt/workspace",
+				Type:   mount.TypeBind,
+				Source: filepath.Join(LocalWorkspace),
+				Target: "/mnt/workspace",
 			},
 		},
 	}
@@ -122,8 +121,6 @@ func DeployContainers(api *spec.API) error {
 // func ONNXSpec(api *spec.API) error {
 // 	modelPath := *api.Predictor.Model
 
-// 	if strings.HasPrefix()
-
 // 	hostConfig := &container.HostConfig{
 // 		PortBindings: nat.PortMap{
 // 			"8888/tcp": []nat.PortBinding{
@@ -133,6 +130,11 @@ func DeployContainers(api *spec.API) error {
 // 			},
 // 		},
 // 		Mounts: []mount.Mount{
+// 			{
+// 				Type:   mount.TypeBind,
+// 				Source: CWD,
+// 				Target: "/mnt/project",
+// 			},
 // 			{
 // 				Type:   mount.TypeBind,
 // 				Source: CWD,
