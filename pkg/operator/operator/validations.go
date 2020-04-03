@@ -25,17 +25,17 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	dockerlib "github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/cortexlabs/cortex/pkg/lib/regex"
-	dockerlib "github.com/cortexlabs/cortex/pkg/lib/docker"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -105,6 +105,14 @@ var _predictorValidation = &cr.StructFieldValidation{
 			},
 			{
 				StructField: "Image",
+				StringValidation: &cr.StringValidation{
+					Required:    false,
+					AllowEmpty:  true,
+					DockerImage: true,
+				},
+			},
+			{
+				StructField: "TFServeImage",
 				StringValidation: &cr.StringValidation{
 					Required:    false,
 					AllowEmpty:  true,
@@ -468,6 +476,11 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		if err := validateOverridenImage(predictor.Image); err != nil {
 			return errors.Wrap(err, userconfig.ImageKey)
 		}
+		if predictor.TFServeImage != "" {
+			if err := validateOverridenImage(predictor.TFServeImage); err != nil {
+				return errors.Wrap(err, userconfig.TFServeImageKey)
+			}
+		}
 	}
 
 	for key := range predictor.Env {
@@ -498,12 +511,28 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelKey, userconfig.PythonPredictorType)
 	}
 
+	if predictor.TFServeImage != "" {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TFServeImageKey, userconfig.PythonPredictorType)
+	}
+
 	return nil
 }
 
 func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
+	}
+
+	if predictor.Image == "" || predictor.TFServeImage == "" {
+		if predictor.Image == "" {
+			return ErrorMissingAdditionalFieldForPredictorType(
+				userconfig.TFServeImageKey, userconfig.ImageKey, userconfig.TensorFlowPredictorType,
+			)
+		} else {
+			return ErrorMissingAdditionalFieldForPredictorType(
+				userconfig.ImageKey, userconfig.TFServeImageKey, userconfig.TensorFlowPredictorType,
+			)
+		}
 	}
 
 	model := *predictor.Model
@@ -548,6 +577,10 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.ONNXPredictorType)
+	}
+
+	if predictor.TFServeImage != "" {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TFServeImageKey, userconfig.PythonPredictorType)
 	}
 
 	return nil
@@ -763,7 +796,7 @@ func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quant
 	return virtualServices, maxMem, err
 }
 
-func validateOverridenImage(image string) (error) {
+func validateOverridenImage(image string) error {
 	authConfig := aws.ECRAuthConfig{}
 
 	if regex.IsValidECRImage(image) {
@@ -777,8 +810,8 @@ func validateOverridenImage(image string) (error) {
 		}
 	}
 	dockerAuthConfig := dockertypes.AuthConfig{
-		Username: authConfig.Username,
-		Password: authConfig.AccessToken,
+		Username:      authConfig.Username,
+		Password:      authConfig.AccessToken,
 		ServerAddress: authConfig.ProxyEndpoint,
 	}
 	registryAuth, err := dockerlib.EncodeAuthConfig(dockerAuthConfig)

@@ -107,7 +107,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	}
 
 	servingImage := config.Cluster.ImagePythonServe
-	tfServingImage := config.Cluster.ImageTFAPI
+	tfServeImage := config.Cluster.ImageTFAPI
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cluster.ImageTFServeGPU
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
@@ -115,7 +115,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	}
 	if api.Predictor.Image != "" {
 		servingImage = api.Predictor.Image
-		// tfServingImage = api.Predictor.TFServingImage
+		tfServeImage = api.Predictor.TFServeImage
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -156,7 +156,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 				Containers: []kcore.Container{
 					{
 						Name:            _apiContainerName,
-						Image:           tfServingImage,
+						Image:           tfServeImage,
 						ImagePullPolicy: kcore.PullAlways,
 						Env: append(
 							getEnvVars(api),
@@ -272,7 +272,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		userPodMemRequest.Sub(_requestMonitorMemRequest)
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
-	
+
 	servingImage := config.Cluster.ImagePythonServe
 	if api.Compute.GPU > 0 {
 		servingImage = config.Cluster.ImagePythonServeGPU

@@ -46,6 +46,7 @@ type Predictor struct {
 	Model        *string                `json:"model" yaml:"model"`
 	PythonPath   *string                `json:"python_path" yaml:"python_path"`
 	Image        string                 `json:"image" yaml:"image"`
+	TFServeImage string                 `json:"tf_serve_image" yaml:"tf_serve_image"`
 	Config       map[string]interface{} `json:"config" yaml:"config"`
 	Env          map[string]string      `json:"env" yaml:"env"`
 	SignatureKey *string                `json:"signature_key" yaml:"signature_key"`
@@ -252,6 +253,9 @@ func (predictor *Predictor) UserStr() string {
 	}
 	if predictor.Image != "" {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
+		if predictor.TFServeImage != "" {
+			sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
+		}
 	}
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
