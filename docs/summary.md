@@ -35,6 +35,10 @@
 * [Uninstall](cluster-management/uninstall.md)
 * [Telemetry](cluster-management/telemetry.md)
 
+## Troubleshooting
+
+* [API is stuck updating](troubleshooting/stuck-updating.md)
+
 ## Guides
 
 * [Set up AWS API gateway](guides/api-gateway.md)
