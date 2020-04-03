@@ -121,7 +121,7 @@ func ToWriter(zipInput *Input, writer io.Writer) error {
 }
 
 func ToFile(zipInput *Input, destPath string) error {
-	zipfile, err := files.OpenNewFile(destPath)
+	zipfile, err := files.Create(destPath)
 	if err != nil {
 		return err
 	}

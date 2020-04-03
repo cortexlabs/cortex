@@ -65,7 +65,7 @@ func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	return file, err
 }
 
-func OpenNewFile(path string) (*os.File, error) {
+func Create(path string) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
 		return nil, err

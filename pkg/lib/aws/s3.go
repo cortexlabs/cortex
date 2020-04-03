@@ -18,6 +18,7 @@ package aws
 
 import (
 	"bytes"
+	"io"
 	"path/filepath"
 	"strings"
 
@@ -31,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -230,45 +230,38 @@ func (c *Client) IsS3Dir(bucket string, dirPath string, dirPaths ...string) (boo
 	return c.IsS3Prefix(bucket, fullDirPaths[0], fullDirPaths[1:]...)
 }
 
-func (c *Client) UploadBytesToS3(data []byte, bucket string, key string) error {
-	_, err := c.S3().PutObject(&s3.PutObjectInput{
-		Body:                 bytes.NewReader(data),
-		Key:                  aws.String(key),
+func (c *Client) UploadReaderToS3(data io.Reader, bucket string, key string) error {
+	_, err := c.S3Uploader().Upload(&s3manager.UploadInput{
 		Bucket:               aws.String(bucket),
+		Key:                  aws.String(key),
+		Body:                 data,
 		ACL:                  aws.String("private"),
 		ContentDisposition:   aws.String("attachment"),
 		ServerSideEncryption: aws.String("AES256"),
 	})
-	return errors.Wrap(err, S3Path(bucket, key))
-}
 
-func (c *Client) UploadBytesesToS3(data []byte, bucket string, key string, keys ...string) error {
-	allKeys := append(keys, key)
-	fns := make([]func() error, len(allKeys))
-	for i, key := range allKeys {
-		key := key
-		fns[i] = func() error {
-			return c.UploadBytesToS3(data, bucket, key)
-		}
+	if err != nil {
+		return errors.Wrap(err, S3Path(bucket, key))
 	}
-	return parallel.RunFirstErr(fns[0], fns[1:]...)
+
+	return nil
 }
 
-func (c *Client) UploadFileToS3(filePath string, bucket string, key string) error {
-	data, err := files.ReadFileBytes(filePath)
+func (c *Client) UploadFileToS3(path string, bucket string, key string) error {
+	file, err := files.Open(path)
 	if err != nil {
 		return err
 	}
-	return c.UploadBytesToS3(data, bucket, key)
+	defer file.Close()
+	return c.UploadReaderToS3(file, bucket, key)
 }
 
-func (c *Client) UploadBufferToS3(buffer *bytes.Buffer, bucket string, key string) error {
-	return c.UploadBytesToS3(buffer.Bytes(), bucket, key)
+func (c *Client) UploadBytesToS3(data []byte, bucket string, key string) error {
+	return c.UploadReaderToS3(bytes.NewReader(data), bucket, key)
 }
 
 func (c *Client) UploadStringToS3(str string, bucket string, key string) error {
-	str = strings.TrimSpace(str)
-	return c.UploadBytesToS3([]byte(str), bucket, key)
+	return c.UploadReaderToS3(strings.NewReader(str), bucket, key)
 }
 
 func (c *Client) UploadJSONToS3(obj interface{}, bucket string, key string) error {
@@ -279,20 +272,85 @@ func (c *Client) UploadJSONToS3(obj interface{}, bucket string, key string) erro
 	return c.UploadBytesToS3(jsonBytes, bucket, key)
 }
 
-func (c *Client) ReadJSONFromS3(objPtr interface{}, bucket string, key string) error {
-	jsonBytes, err := c.ReadBytesFromS3(bucket, key)
-	if err != nil {
-		return err
-	}
-	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), S3Path(bucket, key))
-}
-
 func (c *Client) UploadMsgpackToS3(obj interface{}, bucket string, key string) error {
 	msgpackBytes, err := msgpack.Marshal(obj)
 	if err != nil {
 		return err
 	}
 	return c.UploadBytesToS3(msgpackBytes, bucket, key)
+}
+
+// for downloading files, s3manager.Downloader.Download() is faster than s3.S3.GetObject()
+// overwrites existing file
+func (c *Client) DownloadFileFromS3(path string, bucket string, key string) error {
+	file, err := files.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = c.S3Downloader().Download(file, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		return errors.Wrap(err, S3Path(bucket, key))
+	}
+
+	return nil
+}
+
+// for reading into memory, s3.S3.GetObject() seems faster than s3manager.Downloader.Download() with aws.NewWriteAtBuffer([]byte{})
+// returned io.ReadCloser should be closed by the caller
+func (c *Client) ReadReaderFromS3(bucket string, key string) (io.ReadCloser, error) {
+	response, err := c.S3().GetObject(&s3.GetObjectInput{
+		Key:    aws.String(key),
+		Bucket: aws.String(bucket),
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, S3Path(bucket, key))
+	}
+
+	return response.Body, nil
+}
+
+func (c *Client) ReadBufferFromS3(bucket string, key string) (*bytes.Buffer, error) {
+	reader, err := c.ReadReaderFromS3(bucket, key)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(reader)
+
+	return buf, nil
+}
+
+func (c *Client) ReadBytesFromS3(bucket string, key string) ([]byte, error) {
+	buf, err := c.ReadBufferFromS3(bucket, key)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (c *Client) ReadStringFromS3(bucket string, key string) (string, error) {
+	buf, err := c.ReadBufferFromS3(bucket, key)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func (c *Client) ReadJSONFromS3(objPtr interface{}, bucket string, key string) error {
+	jsonBytes, err := c.ReadBytesFromS3(bucket, key)
+	if err != nil {
+		return err
+	}
+	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), S3Path(bucket, key))
 }
 
 func (c *Client) ReadMsgpackFromS3(objPtr interface{}, bucket string, key string) error {
@@ -311,42 +369,12 @@ func (c *Client) ReadStringFromS3Path(s3Path string) (string, error) {
 	return c.ReadStringFromS3(bucket, key)
 }
 
-func (c *Client) ReadStringFromS3(bucket string, key string) (string, error) {
-	response, err := c.S3().GetObject(&s3.GetObjectInput{
-		Key:    aws.String(key),
-		Bucket: aws.String(bucket),
-	})
-
-	if err != nil {
-		return "", errors.Wrap(err, S3Path(bucket, key))
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(response.Body)
-	return buf.String(), nil
-}
-
 func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
 	bucket, key, err := SplitS3Path(s3Path)
 	if err != nil {
 		return nil, err
 	}
 	return c.ReadBytesFromS3(bucket, key)
-}
-
-func (c *Client) ReadBytesFromS3(bucket string, key string) ([]byte, error) {
-	response, err := c.S3().GetObject(&s3.GetObjectInput{
-		Key:    aws.String(key),
-		Bucket: aws.String(bucket),
-	})
-
-	if err != nil {
-		return nil, errors.Wrap(err, S3Path(bucket, key))
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(response.Body)
-	return buf.Bytes(), nil
 }
 
 func (c *Client) ListDir(bucket string, prefix string, maxResults int64) ([]*s3.Object, error) {
@@ -387,6 +415,7 @@ func (c *Client) DeleteDir(bucket string, prefix string, continueIfFailure bool)
 	return c.DeletePrefix(bucket, prefix, continueIfFailure)
 }
 
+// Note: this seems to be a lot faster than using s3manager.NewDeleteListIterator()
 func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bool) error {
 	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
