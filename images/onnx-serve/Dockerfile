@@ -28,9 +28,8 @@ ENV PYTHONVERSION=3.6.9
 
 # conda needs an untainted base environment to function properly
 # that's why a new separate conda environment is created
-RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
+RUN curl "https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh" --output ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    /opt/conda/bin/conda install --force-reinstall -c conda-forge python=$PYTHONVERSION && \
     /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip && \
     /opt/conda/bin/conda clean -a && \
     rm -rf ~/.cache ~/miniconda.sh && \
