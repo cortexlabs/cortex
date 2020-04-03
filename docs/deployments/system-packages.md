@@ -2,9 +2,39 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Cortex uses Docker images to deploy your models. These images can be replaced with custom images that you can augment with your system packages and libraries. You will need to push your custom images to a container registry that your cluster has access to (e.g. [Docker Hub](https://hub.docker.com) or [AWS ECR](https://aws.amazon.com/ecr)).
+## Bash script
 
-## Create a custom image
+Cortex looks inside the root directory of the project for a file named `dependencies.sh`. (i.e. the directory which contains `cortex.yaml`).
+
+```text
+./iris-classifier/
+├── cortex.yaml
+├── predictor.py
+├── ...
+└── dependencies.sh
+```
+
+This `dependencies.sh` gets executed during the initialization of each replica. Typical use cases include installing required system packages to be used in Predictor, building python packages from source, etc.
+
+Sample `dependencies.sh` installing `tree` utility:
+```bash
+#!/bin/bash
+apt-get update && apt-get install -y tree
+```
+
+The `tree` utility can now be called inside your `predictor.py`:
+
+```python
+# predictor.py
+import subprocess
+
+class PythonPredictor:
+    def __init__(self, config):
+        subprocess.run(["tree"])
+    ...
+```
+
+## Custom Docker image
 
 Create a Dockerfile to build your custom image:
 
@@ -17,11 +47,11 @@ The Docker images used to deploy your models are listed below. Based on the Cort
 ### Base Cortex images for model serving
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
-* Python (CPU): cortexlabs/python-serve:master
-* Python (GPU): cortexlabs/python-serve-gpu:master
-* TensorFlow (CPU or GPU): cortexlabs/tf-api:master
-* ONNX (CPU): cortexlabs/onnx-serve:master
-* ONNX (GPU): cortexlabs/onnx-serve-gpu:master
+* Python (CPU): `cortexlabs/python-serve:master`
+* Python (GPU): `cortexlabs/python-serve-gpu:master`
+* TensorFlow (CPU or GPU): `cortexlabs/tf-api:master`
+* ONNX (CPU): `cortexlabs/onnx-serve:master`
+* ONNX (GPU): `cortexlabs/onnx-serve-gpu:master`
 
 Note that the Docker image version must match your cluster version displayed in `cortex version`.
 
@@ -38,7 +68,7 @@ RUN apt-get update \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 ```
 
-## Build and push to a container registry
+### Build and push to a container registry
 
 Create a repository to store your image:
 
@@ -62,7 +92,7 @@ docker build . -t org/my-api:latest -t <repository_url>:latest
 docker push <repository_url>:latest
 ```
 
-## Configure Cortex
+### Configure Cortex
 
 Update your cluster configuration file to point to your image:
 
@@ -78,19 +108,4 @@ Update your cluster for the change to take effect:
 
 ```bash
 cortex cluster update --config=cluster.yaml
-```
-
-## Use system packages in workloads
-
-Cortex will use your custom image to launch workloads and you will have access to any packages you added:
-
-```python
-# predictor.py
-
-import subprocess
-
-class PythonPredictor:
-    def __init__(self, config):
-        subprocess.run(["tree"])
-        ...
 ```
