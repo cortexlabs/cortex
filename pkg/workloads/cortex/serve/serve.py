@@ -194,35 +194,32 @@ def get_summary():
     return response
 
 
-def get_spec(storage, cache_dir, s3_path):
-    # local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    # _, key = S3.deconstruct_s3_path(s3_path)
-    # storage.download_file(key, local_spec_path)
-    # print(os.listdir())
-    print(os.listdir("/mnt/workspace"))
-    return util.read_msgpack(os.environ["CORTEX_API_SPEC"])
-    # print(os.listdir())
-    # with open("app.yaml") as file:
-    #     return yaml.safe_load(file)
+def get_spec(provider, storage, cache_dir, spec_path):
+    if provider == "local":
+        return util.read_msgpack(spec_path)
+
+    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
+    _, key = S3.deconstruct_s3_path(spec_path)
+    storage.download_file(key, local_spec_path)
+    return util.read_msgpack(local_spec_path)
 
 
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    spec = os.environ["CORTEX_API_SPEC"]
+    provider = os.getenv("CORTEX_PROVIDER", "aws")
+    spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    model_dir = ""
-    tf_serving_port = ""
-    # model_dir = os.getenv("CORTEX_MODEL_DIR", None)
-    # tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
+    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
+    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
 
-    # if cortex_provider == "local":
-    storage = LocalStorage(os.getenv("CORTEX_LOCAL_BASE_DIR"))
-    # else:
-    #     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+    if provider == "local":
+        storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
+    else:
+        storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
-        raw_api_spec = get_spec(storage, cache_dir, spec)
+        raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
         # raw_api_spec = raw_api_spec[0]
-        api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
+        api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
         client = api.predictor.initialize_client(model_dir, tf_serving_port)
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)

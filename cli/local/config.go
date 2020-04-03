@@ -60,14 +60,14 @@ func init() {
 	LocalWorkspace = filepath.Join(LocalDir, "local_workspace")
 	err = os.MkdirAll(LocalWorkspace, os.ModePerm)
 	if err != nil {
-		err := errors.Wrap(err, "unable to write to home directory", LocalDir)
+		err := errors.Wrap(err, "unable to write to home directory", LocalWorkspace)
 		exit.Error(err)
 	}
 
 	ModelCacheDir = filepath.Join(LocalDir, "model_cache")
-	err = os.MkdirAll(LocalWorkspace, os.ModePerm)
+	err = os.MkdirAll(ModelCacheDir, os.ModePerm)
 	if err != nil {
-		err := errors.Wrap(err, "unable to write to home directory", LocalDir)
+		err := errors.Wrap(err, "unable to write to home directory", ModelCacheDir)
 		exit.Error(err)
 	}
 }

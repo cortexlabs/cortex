@@ -1,25 +1,42 @@
+/*
+Copyright 2020 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package cmd
 
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/cortexlabs/cortex/cli/local"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+
+	// "github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/docker/docker/api/types"
@@ -128,11 +145,30 @@ var localCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
-
+		// fmt.Println(*apiConfigs[0].Predictor.Model)
 		projectID := hash.Bytes(deploymentMap["project.zip"])
+		// path, err := cacheModel(&apiConfigs[0])
+		// if err != nil {
+		// 	fmt.Println(err.Error())
+		// }
+		// fmt.Println(path)
+
+		awsCreds := &AWSCredentials{}
+		setInstallAWSCredentials(awsCreds)
+
+		// TODO use credentials from Local environment
+		os.Setenv("AWS_ACCESS_KEY_ID", awsCreds.AWSAccessKeyID)
+		os.Setenv("AWS_SECRET_ACCESS_KEY", awsCreds.AWSSecretAccessKey)
 
 		results := make([]schema.DeployResult, len(apiConfigs))
 		for i, apiConfig := range apiConfigs {
+			if apiConfig.Predictor.Model != nil {
+				path, err := local.CacheModel(&apiConfig)
+				if err != nil {
+					results[i].Error = errors.Message(errors.Wrap(err, apiConfig.Name, userconfig.PredictorKey, userconfig.ModelKey))
+				}
+				apiConfig.Predictor.Model = pointer.String(path)
+			}
 			api, msg, err := local.UpdateAPI(&apiConfig, projectID)
 			results[i].Message = msg
 			if err != nil {
@@ -141,80 +177,7 @@ var localCmd = &cobra.Command{
 				results[i].API = *api
 			}
 		}
-		debug.Pp(results)
 	},
-}
-
-func cacheModel(api *userconfig.API) {
-	if strings.HasPrefix(*api.Predictor.Model, "s3://") {
-
-	} else {
-
-	}
-}
-
-func cacheModelFromS3(api *userconfig.API) (string, error) {
-	awsClient, err := aws.NewFromEnvS3Path(*api.Predictor.Model)
-	if err != nil {
-		return "", err
-	}
-
-	s3Objects, err := awsClient.ListPathPrefix(*api.Predictor.Model, 1001)
-	if err != nil {
-		return "", err
-	}
-
-	if len(s3Objects) == 1001 {
-		return "", ErrorTensorFlowDirTooManyFiles(1000)
-	}
-	var mostRecentUpdateDate *time.Time
-	for _, obj := range s3Objects {
-		mostRecentUpdateDate = obj.LastModified
-	}
-
-	modelPathHash := hash.String(*api.Predictor.Model)
-	modelDir := filepath.Join(*api.Predictor.Model, modelPathHash)
-	modelVersionDir := filepath.Join(modelDir, mostRecentUpdateDate.Format("2006-01-02T15:04:05"))
-
-	if files.IsFile(filepath.Join(modelVersionDir, "_SUCCESS")) {
-		return modelVersionDir, nil
-	}
-
-	err = files.DeleteDir(modelDir)
-	if err != nil {
-		return "", err
-	}
-
-	_, err = files.CreateDirIfMissing(modelVersionDir)
-	if err != nil {
-		return "", nil
-	}
-
-	bucket, fullPathKey, err := aws.SplitS3Path(*api.Predictor.Model)
-	if err != nil {
-		return "", err
-	}
-	for _, obj := range s3Objects {
-		if *obj.Size == 0 { // TODO test creation of empty files
-			continue
-		}
-
-		if strings.HasSuffix(*obj.Key, "/") {
-			continue
-		}
-
-		localKey := (*obj.Key)[len(fullPathKey):]
-		fileBytes, err := awsClient.ReadBytesFromS3(bucket, *obj.Key)
-		if err != nil {
-			return "", err
-		}
-
-		err = files.WriteFile(fileBytes, filepath.Join(modelVersionDir, localKey))
-		if err != nil {
-			return "", err
-		}
-	}
-	return modelVersionDir, nil
 }
 
 var localGet = &cobra.Command{
@@ -256,7 +219,6 @@ func GetContainerByAPI(apiName string) []dockertypes.Container {
 	dargs := filters.NewArgs()
 	dargs.Add("label", "cortex=true")
 	dargs.Add("label", "apiName="+apiName)
-
 	containers, err := docker.ContainerList(context.Background(), types.ContainerListOptions{
 		All:     true,
 		Filters: dargs,
@@ -288,17 +250,13 @@ var localLogs = &cobra.Command{
 	Long:  "local an application.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		paths, err := files.ListDirRecursive(args[0], true)
-		if err != nil {
-			panic(err)
-		}
-		debug.Pp(paths)
-		// containers := GetContainerByAPI(args[0])
-		// containerIDs := []string{}
-		// for _, container := range containers {
-		// 	containerIDs = append(containerIDs, container.ID)
-		// }
 
-		// streamDockerLogs(containerIDs[0], containerIDs[1:]...)
+		containers := GetContainerByAPI(args[0])
+		containerIDs := []string{}
+		for _, container := range containers {
+			containerIDs = append(containerIDs, container.ID)
+		}
+
+		streamDockerLogs(containerIDs[0], containerIDs[1:]...)
 	},
 }

@@ -17,11 +17,15 @@ limitations under the License.
 package files
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -276,6 +280,7 @@ func CheckDirErrPath(dirPath string, errMsgPath string) error {
 	if err != nil {
 		return errors.Wrap(err, errors.Message(ErrorDirDoesNotExist(errMsgPath)))
 	}
+
 	if !fileInfo.IsDir() {
 		return ErrorNotADir(errMsgPath)
 	}
@@ -715,6 +720,64 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 	return fileList, nil
 }
 
+func HashFile(path string) (string, error) {
+	md5Hash := md5.New()
+
+	f, err := os.Open(path)
+	if err != nil {
+		return "", errors.Wrap(err, path)
+	}
+	defer f.Close()
+
+	if _, err := io.Copy(md5Hash, f); err != nil {
+		return "", errors.Wrap(err, path)
+	}
+
+	return hex.EncodeToString((md5Hash.Sum(nil))), nil
+}
+func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
+	md5Hash := md5.New()
+
+	walkErr := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return errors.Wrap(err, path)
+		}
+
+		for _, ignoreFn := range ignoreFns {
+			ignore, err := ignoreFn(path, fi)
+			if err != nil {
+				return errors.Wrap(err, path)
+			}
+			if ignore {
+				if fi.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+		}
+		if fi.IsDir() {
+			return nil
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return errors.Wrap(err, path)
+		}
+		defer f.Close()
+
+		if _, err := io.Copy(md5Hash, f); err != nil {
+			return errors.Wrap(err, path)
+		}
+
+		return nil
+	})
+
+	if walkErr != nil {
+		return "", walkErr
+	}
+
+	return hex.EncodeToString((md5Hash.Sum(nil))), nil
+}
+
 func ListDir(dir string, relative bool) ([]string, error) {
 	cleanDir, err := EscapeTilde(dir)
 	if err != nil {
@@ -735,6 +798,21 @@ func ListDir(dir string, relative bool) ([]string, error) {
 		filenames = append(filenames, filename)
 	}
 	return filenames, nil
+}
+
+func Copy(src string, dest string) error {
+	cmd := exec.Command("cp", "-r", src, dest)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+		return err
+	}
+	fmt.Println("Result: " + out.String())
+	return nil
 }
 
 func CloseSilent(closer io.Closer, closers ...io.Closer) {

@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	ErrConnectToDockerDaemon = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions     = "cli.docker_permissions"
+	ErrConnectToDockerDaemon     = "local.connect_to_docker_daemon"
+	ErrDockerPermissions         = "local.docker_permissions"
+	ErrTensorFlowDirTooManyFiles = "local.tensorflow_dir_too_many_files"
 )
 
 func ErrorConnectToDockerDaemon() error {
@@ -52,5 +53,12 @@ func ErrorDockerPermissions(err error) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDockerPermissions,
 		Message: errStr + "\n\nyou can re-run this command with `sudo`, or grant your current user access to docker" + groupAddStr,
+	})
+}
+
+func ErrorTensorFlowDirTooManyFiles(count int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTensorFlowDirTooManyFiles,
+		Message: fmt.Sprintf("more than %d many files found in tensorflow directory", count),
 	})
 }

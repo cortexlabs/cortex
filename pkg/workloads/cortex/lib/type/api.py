@@ -25,13 +25,14 @@ from cortex.lib.type.tracker import Tracker
 
 
 class API:
-    def __init__(self, storage, cache_dir=".", **kwargs):
+    def __init__(self, provider, storage, cache_dir=".", **kwargs):
+        self.provider = provider
         self.id = kwargs["id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
         self.endpoint = kwargs["endpoint"]
-        self.predictor = Predictor(storage, cache_dir, **kwargs["predictor"])
+        self.predictor = Predictor(provider, storage, cache_dir, **kwargs["predictor"])
         self.tracker = None
         if kwargs.get("tracker") is not None:
             self.tracker = Tracker(**kwargs["tracker"])

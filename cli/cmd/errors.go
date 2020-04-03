@@ -74,7 +74,6 @@ const (
 	ErrClusterAlreadyDeleted          = "cli.cluster_already_deleted"
 	ErrFailedClusterStatus            = "cli.failed_cluster_status"
 	ErrClusterDoesNotExist            = "cli.cluster_does_not_exist"
-	ErrTensorFlowDirTooManyFiles      = "cli.tensorflow_dir_too_many_files"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -331,12 +330,5 @@ func ErrorFailedClusterStatus(status clusterstate.Status, clusterName string, re
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedClusterStatus,
 		Message: fmt.Sprintf("cluster %s in %s encountered an unexpected status %s, please try to delete the cluster with `cortex cluster down` or delete the cloudformation stacks manually in your AWS console %s", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
-	})
-}
-
-func ErrorTensorFlowDirTooManyFiles(count int32) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrTensorFlowDirTooManyFiles,
-		Message: fmt.Sprintf("more than %d many files found in tensorflow directory", count),
 	})
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 import (
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -86,10 +88,8 @@ var _predictorValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
-				StructField: "Model",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: cr.S3PathValidator,
-				},
+				StructField:         "Model",
+				StringPtrValidation: &cr.StringPtrValidation{},
 			},
 			{
 				StructField: "PythonPath",
@@ -450,6 +450,11 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType s
 	model := *predictor.Model
 
 	if strings.HasPrefix(model, "s3://") {
+		model, err := cr.S3PathValidator(model)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelKey)
+		}
+
 		awsClient, err := aws.NewFromEnvS3Path(model)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
@@ -473,7 +478,12 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType s
 			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
 		}
 
-		if strings.HasPrefix(model, ".zip") {
+		model, err := files.GetAbsPath(model)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelKey)
+		}
+		predictor.Model = pointer.String(model)
+		if strings.HasSuffix(model, ".zip") {
 			if err := files.CheckFile(model); err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
 			}
@@ -499,6 +509,11 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType string)
 	model := *predictor.Model
 
 	if strings.HasPrefix(model, "s3://") {
+		model, err := cr.S3PathValidator(model)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelKey)
+		}
+
 		awsClient, err := aws.NewFromEnvS3Path(model)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
@@ -511,7 +526,12 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType string)
 		if providerType == "aws" {
 			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
 		}
+		model, err := files.GetAbsPath(model)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelKey)
+		}
 
+		predictor.Model = pointer.String(model)
 		if err := files.CheckFile(model); err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
@@ -592,7 +612,8 @@ func getTFServingExportFromLocalPath(path string) (string, error) {
 	if !files.IsDir(path) {
 		return "", ErrorDirNotFoundOrEmpty(path)
 	}
-	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	debug.Pp(paths)
 	if err != nil {
 		return "", err
 	}
@@ -606,15 +627,20 @@ func getTFServingExportFromLocalPath(path string) (string, error) {
 
 	for _, path := range paths {
 		if strings.HasSuffix(path, "saved_model.pb") {
-			keyParts := strings.Split(path, "/")
-			versionStr := keyParts[len(keyParts)-1]
+			possiblePath := filepath.Dir(path)
+
+			versionStr := filepath.Base(possiblePath)
+			fmt.Println(versionStr)
 			version, err := strconv.ParseInt(versionStr, 10, 64)
 			if err != nil {
 				version = 0
 			}
 
-			possiblePath := filepath.Base(path)
-			validTFDirectory, _ := isValidTensorFlowLocalDirectory(possiblePath)
+			fmt.Println(possiblePath)
+			validTFDirectory, err := isValidTensorFlowLocalDirectory(possiblePath)
+			if err != nil {
+				return "", err
+			}
 			if version > highestVersion && validTFDirectory {
 				highestVersion = version
 				highestPath = possiblePath

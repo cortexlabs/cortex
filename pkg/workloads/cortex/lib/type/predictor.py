@@ -23,7 +23,8 @@ from cortex.lib.exceptions import CortexException, UserException, UserRuntimeExc
 
 
 class Predictor:
-    def __init__(self, storage, cache_dir, **kwargs):
+    def __init__(self, provider, storage, cache_dir, **kwargs):
+        self.provider = provider
         self.type = kwargs["type"]
         self.path = kwargs["path"]
         self.model = kwargs.get("model")
@@ -39,8 +40,10 @@ class Predictor:
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
-            _, prefix = self.storage.deconstruct_s3_path(self.model)
-            model_path = os.path.join(model_dir, os.path.basename(prefix))
+            model_path = self.model
+            if self.provider == "aws":
+                _, prefix = self.storage.deconstruct_s3_path(self.model)
+                model_path = os.path.join(model_dir, os.path.basename(prefix))
             client = ONNXClient(model_path)
             cx_logger().info("ONNX model signature: {}".format(client.input_signature))
             return client

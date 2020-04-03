@@ -69,7 +69,7 @@ func JoinS3Path(paths ...string) string {
 
 func SplitS3Path(s3Path string) (string, string, error) {
 	if !IsValidS3Path(s3Path) {
-		return "", "", ErrorInvalidS3aPath(s3Path)
+		return "", "", ErrorInvalidS3Path(s3Path)
 	}
 	fullPath := s3Path[len("s3://"):]
 	slashIndex := strings.Index(fullPath, "/")

@@ -22,7 +22,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -52,19 +51,6 @@ func GetContainerByAPI(apiName string) ([]dockertypes.Container, error) {
 	return containers, nil
 }
 
-// func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-// 	switch api.Predictor.Type {
-// 	case userconfig.TensorFlowPredictorType:
-// 		return tfAPISpec(api, prevDeployment)
-// 	case userconfig.ONNXPredictorType:
-// 		return onnxAPISpec(api, prevDeployment)
-// 	case userconfig.PythonPredictorType:
-// 		return pythonAPISpec(api, prevDeployment)
-// 	default:
-// 		return nil // unexpected
-// 	}
-// }
-
 func DeployContainers(api *spec.API) error {
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
@@ -76,14 +62,16 @@ func DeployContainers(api *spec.API) error {
 		},
 		Mounts: []mount.Mount{
 			{
-				Type:   mount.TypeBind,
-				Source: CWD,
-				Target: "/mnt/project",
+				Type:     mount.TypeBind,
+				ReadOnly: true,
+				Source:   CWD,
+				Target:   "/mnt/project",
 			},
 			{
-				Type:   mount.TypeBind,
-				Source: filepath.Join(LocalWorkspace),
-				Target: "/mnt/workspace",
+				Type:     mount.TypeBind,
+				ReadOnly: true,
+				Source:   filepath.Join(LocalWorkspace),
+				Target:   "/mnt/workspace",
 			},
 		},
 	}
@@ -96,6 +84,7 @@ func DeployContainers(api *spec.API) error {
 		Env: []string{
 			"CORTEX_VERSION=master",
 			"CORTEX_SERVING_PORT=8888",
+			"CORTEX_PROVIDER=local",
 			"CORTEX_BASE_DIR=" + "/mnt/workspace",
 			"CORTEX_CACHE_DIR=" + "/mnt/cache",
 			"CORTEX_API_SPEC=" + filepath.Join("/mnt/workspace", api.Key),
@@ -117,7 +106,6 @@ func DeployContainers(api *spec.API) error {
 			"deploymentID": api.DeploymentID,
 		},
 	}
-	debug.Pp(containerConfig.Labels)
 	containerInfo, err := DockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
 		return err
@@ -244,6 +232,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		err = files.WriteFile(apiBytes, filepath.Join(LocalWorkspace, api.Key))
 
 		if err := DeployContainers(api); err != nil {
+			fmt.Println(err.Error())
 			DeleteContainers(api.Name)
 			return nil, "", err
 		}
@@ -251,7 +240,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	}
 
 	prevContainerLabels := containers[0].Labels
-	debug.Pp(prevContainerLabels)
 	if prevContainerLabels["apiName"] == api.Name && prevContainerLabels["apiID"] == api.ID {
 		return api, fmt.Sprintf("%s is up to date", api.Name), nil
 	}
