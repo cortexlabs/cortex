@@ -523,7 +523,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
 	}
 
-	if predictor.Image == "" || predictor.TFServeImage == "" {
+	if predictor.Image != "" || predictor.TFServeImage != "" {
 		if predictor.Image == "" {
 			return ErrorMissingAdditionalFieldForPredictorType(
 				userconfig.TFServeImageKey, userconfig.ImageKey, userconfig.TensorFlowPredictorType,
