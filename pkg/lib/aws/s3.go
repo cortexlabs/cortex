@@ -390,6 +390,20 @@ func (c *Client) ListPathDir(s3Path string, maxResults *int64) ([]*s3.Object, er
 }
 
 func (c *Client) ListPrefix(bucket string, prefix string, maxResults *int64) ([]*s3.Object, error) {
+	var allObjects []*s3.Object
+
+	err := c.S3ListIterator(bucket, prefix, maxResults, func(objects []*s3.Object) {
+		allObjects = append(allObjects, objects...)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return allObjects, nil
+}
+
+func (c *Client) S3ListIterator(bucket string, prefix string, maxResults *int64, fn func([]*s3.Object)) error {
 	var maxResultsIter *int64
 	if maxResults != nil {
 		maxResultsIter = pointer.Int64(*maxResults)
@@ -401,27 +415,29 @@ func (c *Client) ListPrefix(bucket string, prefix string, maxResults *int64) ([]
 		MaxKeys: maxResultsIter,
 	}
 
-	var objects []*s3.Object
+	var numSeen int64
 
 	err := c.S3().ListObjectsV2Pages(listObjectsInput,
 		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {
-			objects = append(objects, listObjectsOutput.Contents...)
+			fn(listObjectsOutput.Contents)
+
+			numSeen += int64(len(listObjectsOutput.Contents))
 
 			if maxResults != nil {
-				if int64(len(objects)) >= *maxResults {
+				if numSeen >= *maxResults {
 					return false
 				}
-				*maxResultsIter = *maxResults - int64(len(objects))
+				*maxResultsIter = *maxResults - numSeen
 			}
 
 			return true
 		})
 
 	if err != nil {
-		return nil, errors.Wrap(err, S3Path(bucket, prefix))
+		return errors.Wrap(err, S3Path(bucket, prefix))
 	}
 
-	return objects, nil
+	return nil
 }
 
 func (c *Client) ListPathPrefix(s3Path string, maxResults *int64) ([]*s3.Object, error) {
