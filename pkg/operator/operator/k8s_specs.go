@@ -595,10 +595,6 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			Name:  "CORTEX_PROJECT_DIR",
 			Value: path.Join(_emptyDirMountPath, "project"),
 		},
-		kcore.EnvVar{
-			Name:  "OVERRIDDEN_IMAGE",
-			Value: api.Predictor.Image,
-		},
 	)
 
 	if api.Predictor.PythonPath != nil {
