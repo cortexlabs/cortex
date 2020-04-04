@@ -472,15 +472,21 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		}
 	}
 
-	if predictor.Image != "" {
-		if err := validateOverridenImage(predictor.Image); err != nil {
-			return errors.Wrap(err, userconfig.ImageKey)
-		}
+	keys := []string{
+		userconfig.ImageKey,
+		userconfig.TFServeImageKey,
 	}
-	if predictor.TFServeImage != "" {
-		if err := validateOverridenImage(predictor.TFServeImage); err != nil {
-			return errors.Wrap(err, userconfig.TFServeImageKey)
+	images := []string{
+		predictor.Image,
+		predictor.TFServeImage,
+	}
+
+	idx, err := validateOverridenImages(images)
+	if err != nil {
+		if idx >= 0 {
+			return errors.Wrap(err, keys[idx])
 		}
+		return err
 	}
 
 	for key := range predictor.Env {
@@ -784,32 +790,43 @@ func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quant
 	return virtualServices, maxMem, err
 }
 
-func validateOverridenImage(image string) error {
-	authConfig := aws.ECRAuthConfig{}
+func validateOverridenImages(images []string) (int, error) {
+	ECRImages := false
+	for _, image := range images {
+		if image != "" && regex.IsValidECRImage(image) {
+			ECRImages = true
+			break
+		}
+	}
 
-	if regex.IsValidECRImage(image) {
+	authConfig := aws.ECRAuthConfig{}
+	dockerAuthConfig := dockertypes.AuthConfig{}
+	if ECRImages {
 		tokenOutput, err := aws.GetECRAuthToken()
 		if err != nil {
-			return err
+			return -1, err
 		}
 		authConfig, err = aws.ExtractECRAuthConfigFromTokenOutput(tokenOutput)
 		if err != nil {
-			return err
+			return -1, err
 		}
+
+		dockerAuthConfig.Username = authConfig.Username
+		dockerAuthConfig.Password = authConfig.AccessToken
+		dockerAuthConfig.ServerAddress = authConfig.ProxyEndpoint
 	}
-	dockerAuthConfig := dockertypes.AuthConfig{
-		Username:      authConfig.Username,
-		Password:      authConfig.AccessToken,
-		ServerAddress: authConfig.ProxyEndpoint,
-	}
+
 	registryAuth, err := dockerlib.EncodeAuthConfig(dockerAuthConfig)
 	if err != nil {
-		return errors.Wrap(err, "failed to encode docker login credentials")
+		return -1, errors.Wrap(err, "failed to encode docker login credentials")
 	}
 	cli, _ := dockerclient.NewEnvClient()
-	if !dockerlib.IsImageAccessible(cli, image, registryAuth) {
-		return ErrorInvalidOverriddenImage(image)
-	} else {
-		return nil
+
+	for i, image := range images {
+		if image != "" && !dockerlib.IsImageAccessible(cli, image, registryAuth) {
+			return i, ErrorInvalidOverriddenImage(image)
+		}
 	}
+
+	return -1, nil
 }
