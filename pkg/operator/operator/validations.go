@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -472,19 +473,19 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		}
 	}
 
-	keys := []string{
-		userconfig.ImageKey,
-		userconfig.TFServeImageKey,
-	}
 	images := []string{
 		predictor.Image,
 		predictor.TFServeImage,
 	}
+	keys := []string{
+		userconfig.ImageKey,
+		userconfig.TFServeImageKey,
+	}
 
-	idx, err := validateOverridenImages(images)
+	key, err := validateOverridenImages(images, keys)
 	if err != nil {
-		if idx >= 0 {
-			return errors.Wrap(err, keys[idx])
+		if key != "" {
+			return errors.Wrap(err, key)
 		}
 		return err
 	}
@@ -790,43 +791,52 @@ func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quant
 	return virtualServices, maxMem, err
 }
 
-func validateOverridenImages(images []string) (int, error) {
-	ECRImages := false
-	for _, image := range images {
-		if image != "" && regex.IsValidECRImage(image) {
-			ECRImages = true
-			break
+func validateOverridenImages(images, keys []string) (string, error) {
+	images = slices.RemoveEmpties(images)
+	keys = slices.RemoveEmpties(keys)
+
+	ECRImages := make([]bool, len(images))
+	for i, image := range images {
+		if regex.IsValidECRImage(image) {
+			ECRImages[i] = true
 		}
 	}
 
-	authConfig := aws.ECRAuthConfig{}
-	dockerAuthConfig := dockertypes.AuthConfig{}
-	if ECRImages {
+	ECRAuthConfig := aws.ECRAuthConfig{}
+	dockerECRAuthConfig := dockertypes.AuthConfig{}
+	if slices.HasTrue(ECRImages) {
 		tokenOutput, err := aws.GetECRAuthToken()
 		if err != nil {
-			return -1, err
+			return "", err
 		}
-		authConfig, err = aws.ExtractECRAuthConfigFromTokenOutput(tokenOutput)
+		ECRAuthConfig, err = aws.ExtractECRAuthConfigFromTokenOutput(tokenOutput)
 		if err != nil {
-			return -1, err
+			return "", err
 		}
 
-		dockerAuthConfig.Username = authConfig.Username
-		dockerAuthConfig.Password = authConfig.AccessToken
-		dockerAuthConfig.ServerAddress = authConfig.ProxyEndpoint
+		dockerECRAuthConfig.Username = ECRAuthConfig.Username
+		dockerECRAuthConfig.Password = ECRAuthConfig.AccessToken
+		dockerECRAuthConfig.ServerAddress = ECRAuthConfig.ProxyEndpoint
 	}
 
-	registryAuth, err := dockerlib.EncodeAuthConfig(dockerAuthConfig)
+	ECRAuth, err := dockerlib.EncodeAuthConfig(dockerECRAuthConfig)
 	if err != nil {
-		return -1, errors.Wrap(err, "failed to encode docker login credentials")
+		return "", errors.Wrap(err, "failed to encode docker login credentials")
 	}
-	cli, _ := dockerclient.NewEnvClient()
+	noAuth, _ := dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{})
 
+	var auth string
+	cli, _ := dockerclient.NewEnvClient()
 	for i, image := range images {
-		if image != "" && !dockerlib.IsImageAccessible(cli, image, registryAuth) {
-			return i, ErrorInvalidOverriddenImage(image)
+		if ECRImages[i] {
+			auth = ECRAuth
+		} else {
+			auth = noAuth
+		}
+		if !dockerlib.IsImageAccessible(cli, image, auth) {
+			return keys[i], ErrorInvalidOverriddenImage(image)
 		}
 	}
 
-	return -1, nil
+	return "", nil
 }
