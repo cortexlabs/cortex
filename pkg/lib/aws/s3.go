@@ -120,6 +120,15 @@ func IsValidS3aPath(s3aPath string) bool {
 	return true
 }
 
+func GetBucketRegion(bucket string) (string, error) {
+	sess := session.Must(session.NewSession()) // credentials are not necessary for this request, and will not be used
+	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)
+	if err != nil {
+		return "", ErrorBucketNotFound(bucket)
+	}
+	return region, nil
+}
+
 func (c *Client) IsS3PathFile(s3Path string, s3Paths ...string) (bool, error) {
 	allS3Paths := append(s3Paths, s3Path)
 	for _, s3Path := range allS3Paths {
@@ -232,6 +241,43 @@ func (c *Client) IsS3Dir(bucket string, dirPath string, dirPaths ...string) (boo
 	return c.IsS3Prefix(bucket, fullDirPaths[0], fullDirPaths[1:]...)
 }
 
+// Checks bucket existence and accessibility with credentials
+func (c *Client) DoesBucketExist(bucket string) (bool, error) {
+	_, err := c.S3().HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound":
+				return false, nil
+			case "Forbidden":
+				return false, ErrorBucketInaccessible(bucket)
+			}
+		}
+		return false, errors.Wrap(err, "bucket "+bucket)
+	}
+
+	return true, nil
+}
+
+func (c *Client) CreateBucket(bucket string) error {
+	var bucketConfiguration *s3.CreateBucketConfiguration
+	if c.Region != "us-east-1" {
+		bucketConfiguration = &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String(c.Region),
+		}
+	}
+	_, err := c.S3().CreateBucket(&s3.CreateBucketInput{
+		Bucket:                    aws.String(bucket),
+		CreateBucketConfiguration: bucketConfiguration,
+	})
+	if err != nil {
+		return errors.Wrap(err, "creating bucket "+bucket)
+	}
+	return nil
+}
+
 func (c *Client) UploadReaderToS3(data io.Reader, bucket string, key string) error {
 	_, err := c.S3Uploader().Upload(&s3manager.UploadInput{
 		Bucket:               aws.String(bucket),
@@ -302,80 +348,6 @@ func (c *Client) UploadDirToS3(localDirPath string, bucket string, s3Dir string,
 		if err := c.UploadFileToS3(localPath, bucket, key); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (c *Client) DownloadDirFromS3(bucket string, s3Dir string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
-	prefix := s.EnsureSuffix(s3Dir, "/")
-	return c.DownloadPrefixFromS3(bucket, prefix, localDirPath, shouldTrimDirPrefix, maxFiles)
-}
-
-// if shouldTrimDirPrefix is true, the directory path of prefix will be trimmed when downloading files
-//   e.g. if prefix = "test/dir", "test/" will be trimmed when copying; if prefix = "test/dir/", "test/dir/" will be trimmed
-func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
-	createdDirs := strset.New()
-	if _, err := files.CreateDirIfMissing(localDirPath); err != nil {
-		return err
-	}
-	createdDirs.Add(localDirPath)
-
-	var trimPrefix string
-	if shouldTrimDirPrefix {
-		lastIndex := strings.LastIndex(prefix, "/")
-		if lastIndex == -1 {
-			trimPrefix = ""
-		} else {
-			trimPrefix = prefix[:lastIndex+1]
-		}
-	}
-
-	err := c.S3Iterator(bucket, prefix, maxFiles, func(object *s3.Object) (bool, error) {
-		localRelPath := *object.Key
-		if shouldTrimDirPrefix {
-			localRelPath = strings.TrimPrefix(localRelPath, trimPrefix)
-		}
-
-		localPath := filepath.Join(localDirPath, localRelPath)
-		localDir := filepath.Dir(localPath)
-		if !createdDirs.Has(localDir) {
-			if _, err := files.CreateDirIfMissing(localDir); err != nil {
-				return false, err
-			}
-			createdDirs.Add(localDir)
-		}
-
-		if err := c.DownloadFileFromS3(bucket, *object.Key, localPath); err != nil {
-			return false, err
-		}
-
-		return true, nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// for downloading files, s3manager.Downloader.Download() is faster than s3.S3.GetObject()
-// overwrites existing file
-func (c *Client) DownloadFileFromS3(bucket string, key string, localPath string) error {
-	file, err := files.Create(localPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = c.S3Downloader().Download(file, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-
-	if err != nil {
-		return errors.Wrap(err, S3Path(bucket, key))
 	}
 
 	return nil
@@ -457,6 +429,80 @@ func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
 	return c.ReadBytesFromS3(bucket, key)
 }
 
+// for downloading files, s3manager.Downloader.Download() is faster than s3.S3.GetObject()
+// overwrites existing file
+func (c *Client) DownloadFileFromS3(bucket string, key string, localPath string) error {
+	file, err := files.Create(localPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = c.S3Downloader().Download(file, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		return errors.Wrap(err, S3Path(bucket, key))
+	}
+
+	return nil
+}
+
+func (c *Client) DownloadDirFromS3(bucket string, s3Dir string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
+	prefix := s.EnsureSuffix(s3Dir, "/")
+	return c.DownloadPrefixFromS3(bucket, prefix, localDirPath, shouldTrimDirPrefix, maxFiles)
+}
+
+// if shouldTrimDirPrefix is true, the directory path of prefix will be trimmed when downloading files
+//   e.g. if prefix = "test/dir", "test/" will be trimmed when copying; if prefix = "test/dir/", "test/dir/" will be trimmed
+func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
+	createdDirs := strset.New()
+	if _, err := files.CreateDirIfMissing(localDirPath); err != nil {
+		return err
+	}
+	createdDirs.Add(localDirPath)
+
+	var trimPrefix string
+	if shouldTrimDirPrefix {
+		lastIndex := strings.LastIndex(prefix, "/")
+		if lastIndex == -1 {
+			trimPrefix = ""
+		} else {
+			trimPrefix = prefix[:lastIndex+1]
+		}
+	}
+
+	err := c.S3Iterator(bucket, prefix, maxFiles, func(object *s3.Object) (bool, error) {
+		localRelPath := *object.Key
+		if shouldTrimDirPrefix {
+			localRelPath = strings.TrimPrefix(localRelPath, trimPrefix)
+		}
+
+		localPath := filepath.Join(localDirPath, localRelPath)
+		localDir := filepath.Dir(localPath)
+		if !createdDirs.Has(localDir) {
+			if _, err := files.CreateDirIfMissing(localDir); err != nil {
+				return false, err
+			}
+			createdDirs.Add(localDir)
+		}
+
+		if err := c.DownloadFileFromS3(bucket, *object.Key, localPath); err != nil {
+			return false, err
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) ListDir(bucket string, s3Dir string, maxResults *int64) ([]*s3.Object, error) {
 	prefix := s.EnsureSuffix(s3Dir, "/")
 	return c.ListPrefix(bucket, prefix, maxResults)
@@ -480,6 +526,52 @@ func (c *Client) ListPrefix(bucket string, prefix string, maxResults *int64) ([]
 	}
 
 	return allObjects, nil
+}
+
+func (c *Client) ListPathPrefix(s3Path string, maxResults *int64) ([]*s3.Object, error) {
+	bucket, prefix, err := SplitS3Path(s3Path)
+	if err != nil {
+		return nil, err
+	}
+	return c.ListPrefix(bucket, prefix, maxResults)
+}
+
+func (c *Client) DeleteDir(bucket string, s3Dir string, continueIfFailure bool) error {
+	prefix := s.EnsureSuffix(s3Dir, "/")
+	return c.DeletePrefix(bucket, prefix, continueIfFailure)
+}
+
+func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bool) error {
+	err := c.S3BatchIterator(bucket, prefix, nil, func(objects []*s3.Object) (bool, error) {
+		deleteObjects := make([]*s3.ObjectIdentifier, len(objects))
+		for i, object := range objects {
+			deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
+		}
+
+		_, err := c.S3().DeleteObjects(&s3.DeleteObjectsInput{
+			Bucket: aws.String(bucket),
+			Delete: &s3.Delete{
+				Objects: deleteObjects,
+				Quiet:   aws.Bool(true),
+			},
+		})
+
+		if err != nil {
+			err := errors.Wrap(err, S3Path(bucket, prefix))
+			if !continueIfFailure {
+				return false, err
+			}
+			return true, err
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // The return value of fn(*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)
@@ -551,96 +643,4 @@ func (c *Client) S3BatchIterator(bucket string, prefix string, maxResults *int64
 	}
 
 	return nil
-}
-
-func (c *Client) ListPathPrefix(s3Path string, maxResults *int64) ([]*s3.Object, error) {
-	bucket, prefix, err := SplitS3Path(s3Path)
-	if err != nil {
-		return nil, err
-	}
-	return c.ListPrefix(bucket, prefix, maxResults)
-}
-
-func (c *Client) DeleteDir(bucket string, s3Dir string, continueIfFailure bool) error {
-	prefix := s.EnsureSuffix(s3Dir, "/")
-	return c.DeletePrefix(bucket, prefix, continueIfFailure)
-}
-
-func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bool) error {
-	err := c.S3BatchIterator(bucket, prefix, nil, func(objects []*s3.Object) (bool, error) {
-		deleteObjects := make([]*s3.ObjectIdentifier, len(objects))
-		for i, object := range objects {
-			deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
-		}
-
-		_, err := c.S3().DeleteObjects(&s3.DeleteObjectsInput{
-			Bucket: aws.String(bucket),
-			Delete: &s3.Delete{
-				Objects: deleteObjects,
-				Quiet:   aws.Bool(true),
-			},
-		})
-
-		if err != nil {
-			err := errors.Wrap(err, S3Path(bucket, prefix))
-			if !continueIfFailure {
-				return false, err
-			}
-			return true, err
-		}
-
-		return true, nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Client) CreateBucket(bucket string) error {
-	var bucketConfiguration *s3.CreateBucketConfiguration
-	if c.Region != "us-east-1" {
-		bucketConfiguration = &s3.CreateBucketConfiguration{
-			LocationConstraint: aws.String(c.Region),
-		}
-	}
-	_, err := c.S3().CreateBucket(&s3.CreateBucketInput{
-		Bucket:                    aws.String(bucket),
-		CreateBucketConfiguration: bucketConfiguration,
-	})
-	if err != nil {
-		return errors.Wrap(err, "creating bucket "+bucket)
-	}
-	return nil
-}
-
-// Checks bucket existence and accessibility with credentials
-func (c *Client) DoesBucketExist(bucket string) (bool, error) {
-	_, err := c.S3().HeadBucket(&s3.HeadBucketInput{
-		Bucket: aws.String(bucket),
-	})
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case "NotFound":
-				return false, nil
-			case "Forbidden":
-				return false, ErrorBucketInaccessible(bucket)
-			}
-		}
-		return false, errors.Wrap(err, "bucket "+bucket)
-	}
-
-	return true, nil
-}
-
-func GetBucketRegion(bucket string) (string, error) {
-	sess := session.Must(session.NewSession()) // credentials are not necessary for this request, and will not be used
-	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)
-	if err != nil {
-		return "", ErrorBucketNotFound(bucket)
-	}
-	return region, nil
 }
