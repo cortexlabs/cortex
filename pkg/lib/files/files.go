@@ -658,7 +658,12 @@ func DirPaths(paths []string, addTrailingSlash bool) []string {
 }
 
 func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]string, error) {
-	dir = filepath.Clean(dir)
+	cleanDir, err := EscapeTilde(dir)
+	if err != nil {
+		return nil, err
+	}
+	cleanDir = filepath.Clean(cleanDir)
+	cleanDir = s.EnsureSuffix(cleanDir, "/")
 
 	var fileList []string
 	walkErr := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
@@ -701,6 +706,7 @@ func ListDir(dir string, relative bool) ([]string, error) {
 		return nil, err
 	}
 	cleanDir = filepath.Clean(cleanDir)
+	cleanDir = s.EnsureSuffix(cleanDir, "/")
 
 	var filenames []string
 	fileInfo, err := ioutil.ReadDir(cleanDir)

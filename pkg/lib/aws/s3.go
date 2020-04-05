@@ -282,10 +282,88 @@ func (c *Client) UploadMsgpackToS3(obj interface{}, bucket string, key string) e
 	return c.UploadBytesToS3(msgpackBytes, bucket, key)
 }
 
+func (c *Client) UploadDirToS3(localDirPath string, bucket string, s3Dir string, ignoreFns ...files.IgnoreFn) error {
+	localDirPath = s.EnsureSuffix(localDirPath, "/")
+
+	localPaths, err := files.ListDirRecursive(localDirPath, false, ignoreFns...)
+	if err != nil {
+		return err
+	}
+
+	trimPrefix, err := files.EscapeTilde(localDirPath)
+	if err != nil {
+		return err
+	}
+	trimPrefix = filepath.Clean(trimPrefix)
+
+	for _, localPath := range localPaths {
+		subKeyPath := strings.TrimPrefix(localPath, trimPrefix)
+		key := filepath.Join(s3Dir, subKeyPath)
+		if err := c.UploadFileToS3(localPath, bucket, key); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) DownloadDirFromS3(bucket string, s3Dir string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
+	prefix := s.EnsureSuffix(s3Dir, "/")
+	return c.DownloadPrefixFromS3(bucket, prefix, localDirPath, shouldTrimDirPrefix, maxFiles)
+}
+
+// if shouldTrimDirPrefix is true, the directory path of prefix will be trimmed when downloading files
+//   e.g. if prefix = "test/dir", "test/" will be trimmed when copying; if prefix = "test/dir/", "test/dir/" will be trimmed
+func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
+	createdDirs := strset.New()
+	if _, err := files.CreateDirIfMissing(localDirPath); err != nil {
+		return err
+	}
+	createdDirs.Add(localDirPath)
+
+	var trimPrefix string
+	if shouldTrimDirPrefix {
+		lastIndex := strings.LastIndex(prefix, "/")
+		if lastIndex == -1 {
+			trimPrefix = ""
+		} else {
+			trimPrefix = prefix[:lastIndex+1]
+		}
+	}
+
+	err := c.S3Iterator(bucket, prefix, maxFiles, func(object *s3.Object) (bool, error) {
+		localRelPath := *object.Key
+		if shouldTrimDirPrefix {
+			localRelPath = strings.TrimPrefix(localRelPath, trimPrefix)
+		}
+
+		localPath := filepath.Join(localDirPath, localRelPath)
+		localDir := filepath.Dir(localPath)
+		if !createdDirs.Has(localDir) {
+			if _, err := files.CreateDirIfMissing(localDir); err != nil {
+				return false, err
+			}
+			createdDirs.Add(localDir)
+		}
+
+		if err := c.DownloadFileFromS3(bucket, *object.Key, localPath); err != nil {
+			return false, err
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // for downloading files, s3manager.Downloader.Download() is faster than s3.S3.GetObject()
 // overwrites existing file
-func (c *Client) DownloadFileFromS3(path string, bucket string, key string) error {
-	file, err := files.Create(path)
+func (c *Client) DownloadFileFromS3(bucket string, key string, localPath string) error {
+	file, err := files.Create(localPath)
 	if err != nil {
 		return err
 	}
@@ -379,21 +457,22 @@ func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
 	return c.ReadBytesFromS3(bucket, key)
 }
 
-func (c *Client) ListDir(bucket string, prefix string, maxResults *int64) ([]*s3.Object, error) {
-	prefix = s.EnsureSuffix(prefix, "/")
+func (c *Client) ListDir(bucket string, s3Dir string, maxResults *int64) ([]*s3.Object, error) {
+	prefix := s.EnsureSuffix(s3Dir, "/")
 	return c.ListPrefix(bucket, prefix, maxResults)
 }
 
-func (c *Client) ListPathDir(s3Path string, maxResults *int64) ([]*s3.Object, error) {
-	s3Path = s.EnsureSuffix(s3Path, "/")
+func (c *Client) ListPathDir(s3DirPath string, maxResults *int64) ([]*s3.Object, error) {
+	s3Path := s.EnsureSuffix(s3DirPath, "/")
 	return c.ListPathPrefix(s3Path, maxResults)
 }
 
 func (c *Client) ListPrefix(bucket string, prefix string, maxResults *int64) ([]*s3.Object, error) {
 	var allObjects []*s3.Object
 
-	err := c.S3ListIterator(bucket, prefix, maxResults, func(objects []*s3.Object) {
+	err := c.S3BatchIterator(bucket, prefix, maxResults, func(objects []*s3.Object) (bool, error) {
 		allObjects = append(allObjects, objects...)
+		return true, nil
 	})
 
 	if err != nil {
@@ -403,7 +482,31 @@ func (c *Client) ListPrefix(bucket string, prefix string, maxResults *int64) ([]
 	return allObjects, nil
 }
 
-func (c *Client) S3ListIterator(bucket string, prefix string, maxResults *int64, fn func([]*s3.Object)) error {
+// The return value of fn(*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)
+func (c *Client) S3Iterator(bucket string, prefix string, maxResults *int64, fn func(*s3.Object) (bool, error)) error {
+	err := c.S3BatchIterator(bucket, prefix, maxResults, func(objects []*s3.Object) (bool, error) {
+		var subErr error
+		for _, object := range objects {
+			shouldContinue, newSubErr := fn(object)
+			if newSubErr != nil {
+				subErr = newSubErr
+			}
+			if !shouldContinue {
+				return false, subErr
+			}
+		}
+		return true, subErr
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// The return value of fn([]*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)
+func (c *Client) S3BatchIterator(bucket string, prefix string, maxResults *int64, fn func([]*s3.Object) (bool, error)) error {
 	var maxResultsIter *int64
 	if maxResults != nil {
 		maxResultsIter = pointer.Int64(*maxResults)
@@ -416,10 +519,17 @@ func (c *Client) S3ListIterator(bucket string, prefix string, maxResults *int64,
 	}
 
 	var numSeen int64
+	var subErr error
 
 	err := c.S3().ListObjectsV2Pages(listObjectsInput,
 		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {
-			fn(listObjectsOutput.Contents)
+			shouldContinue, newSubErr := fn(listObjectsOutput.Contents)
+			if newSubErr != nil {
+				subErr = newSubErr
+			}
+			if !shouldContinue {
+				return false
+			}
 
 			numSeen += int64(len(listObjectsOutput.Contents))
 
@@ -433,8 +543,11 @@ func (c *Client) S3ListIterator(bucket string, prefix string, maxResults *int64,
 			return true
 		})
 
+	if subErr != nil {
+		return subErr
+	}
 	if err != nil {
-		return errors.Wrap(err, S3Path(bucket, prefix))
+		return err
 	}
 
 	return nil
@@ -448,50 +561,39 @@ func (c *Client) ListPathPrefix(s3Path string, maxResults *int64) ([]*s3.Object,
 	return c.ListPrefix(bucket, prefix, maxResults)
 }
 
-func (c *Client) DeleteDir(bucket string, prefix string, continueIfFailure bool) error {
-	prefix = s.EnsureSuffix(prefix, "/")
+func (c *Client) DeleteDir(bucket string, s3Dir string, continueIfFailure bool) error {
+	prefix := s.EnsureSuffix(s3Dir, "/")
 	return c.DeletePrefix(bucket, prefix, continueIfFailure)
 }
 
-// Note: this seems to be a lot faster than using s3manager.NewDeleteListIterator()
 func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bool) error {
-	listObjectsInput := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(bucket),
-		Prefix:  aws.String(prefix),
-		MaxKeys: aws.Int64(1000),
-	}
+	err := c.S3BatchIterator(bucket, prefix, nil, func(objects []*s3.Object) (bool, error) {
+		deleteObjects := make([]*s3.ObjectIdentifier, len(objects))
+		for i, object := range objects {
+			deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
+		}
 
-	var subErr error
-
-	err := c.S3().ListObjectsV2Pages(listObjectsInput,
-		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {
-			deleteObjects := make([]*s3.ObjectIdentifier, len(listObjectsOutput.Contents))
-			for i, object := range listObjectsOutput.Contents {
-				deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
-			}
-			deleteObjectsInput := &s3.DeleteObjectsInput{
-				Bucket: aws.String(bucket),
-				Delete: &s3.Delete{
-					Objects: deleteObjects,
-					Quiet:   aws.Bool(true),
-				},
-			}
-			_, newSubErr := c.S3().DeleteObjects(deleteObjectsInput)
-			if newSubErr != nil {
-				subErr = newSubErr
-				if !continueIfFailure {
-					return false
-				}
-			}
-			return true
+		_, err := c.S3().DeleteObjects(&s3.DeleteObjectsInput{
+			Bucket: aws.String(bucket),
+			Delete: &s3.Delete{
+				Objects: deleteObjects,
+				Quiet:   aws.Bool(true),
+			},
 		})
 
-	if subErr != nil {
-		return errors.Wrap(subErr, S3Path(bucket, prefix))
-	}
+		if err != nil {
+			err := errors.Wrap(err, S3Path(bucket, prefix))
+			if !continueIfFailure {
+				return false, err
+			}
+			return true, err
+		}
+
+		return true, nil
+	})
 
 	if err != nil {
-		return errors.Wrap(err, S3Path(bucket, prefix))
+		return err
 	}
 
 	return nil
