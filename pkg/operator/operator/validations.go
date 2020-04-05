@@ -821,7 +821,7 @@ func validateOverridenImages(images, keys []string) (string, error) {
 
 	ECRAuth, err := dockerlib.EncodeAuthConfig(dockerECRAuthConfig)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to encode docker login credentials")
+		return "", err
 	}
 	noAuth, _ := dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{})
 
