@@ -35,6 +35,18 @@
 * [Uninstall](cluster-management/uninstall.md)
 * [Telemetry](cluster-management/telemetry.md)
 
+## Troubleshooting
+
+* [API is stuck updating](troubleshooting/stuck-updating.md)
+
+## Guides
+
+* [Set up AWS API gateway](guides/api-gateway.md)
+* [Increase request timeout](guides/elb-timeout.md)
+* [Plot in-flight requests](guides/plot-in-flight-requests.md)
+* [Plot API request time](guides/plot-request-time.md)
+* [Add a batch runner API](guides/batch-runner.md)
+
 ## Contributing
 
 * [Development](contributing/development.md)

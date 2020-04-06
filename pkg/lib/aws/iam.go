@@ -17,6 +17,8 @@ limitations under the License.
 package aws
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -50,12 +52,8 @@ func (c *Client) GetGroupsForUser(userName string) ([]iam.Group, error) {
 	return groups, nil
 }
 
+// Note: root users don't have attached policies, but do have full access
 func (c *Client) GetManagedPoliciesForUser(userName string) ([]iam.AttachedPolicy, error) {
-	user, err := c.GetUser()
-	if err != nil {
-		return nil, err
-	}
-
 	var policies []iam.AttachedPolicy
 
 	userManagedPolicies, err := c.IAM().ListAttachedUserPolicies(&iam.ListAttachedUserPoliciesInput{
@@ -68,7 +66,7 @@ func (c *Client) GetManagedPoliciesForUser(userName string) ([]iam.AttachedPolic
 		policies = append(policies, *policy)
 	}
 
-	groups, err := c.GetGroupsForUser(*user.UserName)
+	groups, err := c.GetGroupsForUser(userName)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +90,16 @@ func (c *Client) IsAdmin() bool {
 	user, err := c.GetUser()
 	if err != nil {
 		return false
+	}
+
+	// Root users may not have a user name
+	if user.UserName == nil {
+		return true
+	}
+
+	// Root users may have a user name
+	if user.Arn == nil || strings.HasSuffix(*user.Arn, ":root") {
+		return true
 	}
 
 	policies, err := c.GetManagedPoliciesForUser(*user.UserName)

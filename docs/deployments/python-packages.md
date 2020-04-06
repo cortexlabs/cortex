@@ -1,10 +1,10 @@
-# Python packages
+# Python/Conda packages
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
 ## PyPI packages
 
-You can install your required PyPI packages and import them in your Python files. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
+You can install your required PyPI packages and import them in your Python files using pip. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
 ```text
 ./iris-classifier/
@@ -14,13 +14,13 @@ You can install your required PyPI packages and import them in your Python files
 └── requirements.txt
 ```
 
+If you want to use `conda` to install your python packages, see the [Conda section](#conda) below.
+
 Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
 
-## `setup.py`
+## Installing with Setup
 
-It is also possible to reference Python libraries that are packaged using `setup.py`.
-
-Here is an example directory structure:
+Python packages can also be installed by providing a `setup.py` that describes your project's modules. Here's an example directory structure:
 
 ```text
 ./iris-classifier/
@@ -28,105 +28,54 @@ Here is an example directory structure:
 ├── predictor.py
 ├── ...
 ├── mypkg
-│   └── __init__.py
+│   └── __init__.py
 ├── requirements.txt
 └── setup.py
 ```
 
-In this case, `requirements.txt` can include a single `.`:
-
-```python
+In this case, `requirements.txt` will have this form:
+```text
 # requirements.txt
 
 .
 ```
 
-If this is the contents `setup.py`:
+## Installing from GitHub
 
-```python
-# setup.py
-
-from distutils.core import setup
-
-setup(
-    name="mypkg",
-    version="0.0.1",
-    packages=["mypkg"],
-)
-```
-
-And `__init__.py` looks like this:
-
-```python
-# mypkg/__init__.py
-
-def hello():
-    print("hello")
-```
-
-You can reference your package in `predictor.py`:
-
-```python
-# predictor.py
-
-import mypkg
-
-class PythonPredictor:
-    def predict(self, payload):
-        mypkg.hello()
-```
-
-## Private packages on GitHub
-
-You can also install private packages hosed on GitHub by adding them to `requirements.txt` using this syntax:
+You can also install public/private packages from git registries (such as GitHub) by adding them to `requirements.txt`. Here's an example for GitHub:
 
 ```text
 # requirements.txt
 
+# public access
+git+https://github.com/<username>/<repo name>.git@<tag or branch name>#egg=<package name>
+
+# private access
 git+https://<personal access token>@github.com/<username>/<repo name>.git@<tag or branch name>#egg=<package name>
 ```
 
-You can generate a personal access token by following [these steps](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
+On GitHub, you can generate a personal access token by following [these steps](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
 
-## Conda packages
+## Conda
 
-You can install Conda packages by creating a custom Docker image that first installs Conda and then installs your Conda packages.
+Cortex supports installing Conda packages. We recommend only using Conda when your required packages are not available in PyPI. Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
-Customize the template Dockerfile below with your desired Conda packages and follow these [instructions](./system-packages.md) to build and push your image to a container registry and configure Cortex to use your custom image.
-
-```dockerfile
-# Dockerfile
-
-FROM <BASE CORTEX IMAGE>
-
-# remove system-wide packages from the base image
-RUN pip freeze > req && for pkg in "$(cat req)"; do pip uninstall $pkg -y || true; done && rm req
-
-# add conda to path
-ENV PATH /opt/conda/bin:$PATH
-
-# install conda, it also includes py3.6.9
-RUN curl https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh --output ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh && \
-    /opt/conda/bin/conda update conda && \
-    /opt/conda/bin/conda install --force python=3.6.9 && \
-    /opt/conda/bin/conda clean -tipsy && \
-    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc
-
-# install pip dependencies
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r /src/cortex/lib/requirements.txt && \
-    pip install --no-cache-dir -r /src/cortex/serve/requirements.txt
-
-# ---------------------------------------------------------- #
-# Install your Conda packages here
-# RUN conda install --no-update-deps -c conda-forge rdkit
-
-# ---------------------------------------------------------- #
-
-# replace system python with conda's version
-RUN sed -i 's/\/usr\/bin\/python3.6/\/opt\/conda\/bin\/python/g' /src/cortex/serve/run.sh
+```text
+./iris-classifier/
+├── cortex.yaml
+├── predictor.py
+├── ...
+└── conda-packages.txt
 ```
+
+The `conda-packages.txt` file follows the format of `conda list --export`. Each line of `conda-packages.txt` should follow this pattern: `[channel::]package[=version[=buildid]]`.
+
+Here's an example of `conda-packages.txt`:
+```text
+conda-forge::rdkit
+conda-forge::pygpu
+```
+
+In situations where both `requirements.txt` and `conda-packages.txt` are provided, Cortex installs Conda packages in `conda-packages.txt` followed by PyPI packages in `requirements.txt`. Conda and Pip package managers install packages and dependencies independently. You may run into situations where Conda and pip package managers install different versions of the same package because they install and resolve dependencies independently from one another. To resolve package version conflicts, it may be in your best interest to specify their exact versions in `conda-packages.txt`.
+
+Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environment/) on using `pip` inside `conda`.

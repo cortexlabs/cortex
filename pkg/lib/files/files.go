@@ -69,7 +69,7 @@ func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	return file, err
 }
 
-func OpenNewFile(path string) (*os.File, error) {
+func Create(path string) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
 		return nil, err
@@ -683,10 +683,15 @@ func DirPaths(paths []string, addTrailingSlash bool) []string {
 }
 
 func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]string, error) {
-	dir = filepath.Clean(dir)
+	cleanDir, err := EscapeTilde(dir)
+	if err != nil {
+		return nil, err
+	}
+	cleanDir = filepath.Clean(cleanDir)
+	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
 	var fileList []string
-	walkErr := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
+	walkErr := filepath.Walk(cleanDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return errors.Wrap(err, path)
 		}
@@ -706,7 +711,7 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 
 		if !fi.IsDir() {
 			if relative && dir != "." {
-				path = path[len(dir)+1:]
+				path = path[len(cleanDir)+1:]
 			}
 			fileList = append(fileList, path)
 		}
@@ -784,6 +789,7 @@ func ListDir(dir string, relative bool) ([]string, error) {
 		return nil, err
 	}
 	cleanDir = filepath.Clean(cleanDir)
+	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
 	var filenames []string
 	fileInfo, err := ioutil.ReadDir(cleanDir)
