@@ -51,6 +51,7 @@ spot: false
 The docker images used by Cortex are listed below. They can be overridden to use custom images by specifying them in your cluster configuration file.
 
 You can follow these [instructions](../deployments/system-packages.md) to build and push custom Docker images to a registry and configure Cortex to use them.
+These images can also be configured on a per-API basis using `image` keys as documented in these [instructions](../deployments/api-configuration.md).
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
