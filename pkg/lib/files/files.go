@@ -663,10 +663,10 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 		return nil, err
 	}
 	cleanDir = filepath.Clean(cleanDir)
-	cleanDir = s.EnsureSuffix(cleanDir, "/")
+	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
 	var fileList []string
-	walkErr := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
+	walkErr := filepath.Walk(cleanDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return errors.Wrap(err, path)
 		}
@@ -686,7 +686,7 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 
 		if !fi.IsDir() {
 			if relative {
-				path = path[len(dir)+1:]
+				path = path[len(cleanDir)+1:]
 			}
 			fileList = append(fileList, path)
 		}
@@ -706,7 +706,7 @@ func ListDir(dir string, relative bool) ([]string, error) {
 		return nil, err
 	}
 	cleanDir = filepath.Clean(cleanDir)
-	cleanDir = s.EnsureSuffix(cleanDir, "/")
+	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
 	var filenames []string
 	fileInfo, err := ioutil.ReadDir(cleanDir)
