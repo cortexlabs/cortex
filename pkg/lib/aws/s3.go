@@ -329,14 +329,13 @@ func (c *Client) UploadMsgpackToS3(obj interface{}, bucket string, key string) e
 }
 
 func (c *Client) UploadDirToS3(localDirPath string, bucket string, s3Dir string, ignoreFns ...files.IgnoreFn) error {
-	localDirPath = s.EnsureSuffix(localDirPath, "/")
-
 	localPaths, err := files.ListDirRecursive(localDirPath, false, ignoreFns...)
 	if err != nil {
 		return err
 	}
 
-	trimPrefix, err := files.EscapeTilde(localDirPath)
+	trimPrefix := s.EnsureSuffix(localDirPath, "/")
+	trimPrefix, err = files.EscapeTilde(trimPrefix)
 	if err != nil {
 		return err
 	}
@@ -458,11 +457,10 @@ func (c *Client) DownloadDirFromS3(bucket string, s3Dir string, localDirPath str
 // if shouldTrimDirPrefix is true, the directory path of prefix will be trimmed when downloading files
 //   e.g. if prefix = "test/dir", "test/" will be trimmed when copying; if prefix = "test/dir/", "test/dir/" will be trimmed
 func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
-	createdDirs := strset.New()
 	if _, err := files.CreateDirIfMissing(localDirPath); err != nil {
 		return err
 	}
-	createdDirs.Add(localDirPath)
+	createdDirs := strset.New(localDirPath)
 
 	var trimPrefix string
 	if shouldTrimDirPrefix {
@@ -481,6 +479,7 @@ func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath
 		}
 
 		localPath := filepath.Join(localDirPath, localRelPath)
+
 		localDir := filepath.Dir(localPath)
 		if !createdDirs.Has(localDir) {
 			if _, err := files.CreateDirIfMissing(localDir); err != nil {
@@ -599,15 +598,15 @@ func (c *Client) S3Iterator(bucket string, prefix string, maxResults *int64, fn 
 
 // The return value of fn([]*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)
 func (c *Client) S3BatchIterator(bucket string, prefix string, maxResults *int64, fn func([]*s3.Object) (bool, error)) error {
-	var maxResultsIter *int64
+	var maxResultsRemaining *int64
 	if maxResults != nil {
-		maxResultsIter = pointer.Int64(*maxResults)
+		maxResultsRemaining = pointer.Int64(*maxResults)
 	}
 
 	listObjectsInput := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix),
-		MaxKeys: maxResultsIter,
+		MaxKeys: maxResultsRemaining,
 	}
 
 	var numSeen int64
@@ -629,7 +628,7 @@ func (c *Client) S3BatchIterator(bucket string, prefix string, maxResults *int64
 				if numSeen >= *maxResults {
 					return false
 				}
-				*maxResultsIter = *maxResults - numSeen
+				*maxResultsRemaining = *maxResults - numSeen
 			}
 
 			return true
