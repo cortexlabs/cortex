@@ -503,17 +503,17 @@ func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath
 	return nil
 }
 
-func (c *Client) ListDir(bucket string, s3Dir string, maxResults *int64) ([]*s3.Object, error) {
+func (c *Client) ListS3Dir(bucket string, s3Dir string, maxResults *int64) ([]*s3.Object, error) {
 	prefix := s.EnsureSuffix(s3Dir, "/")
-	return c.ListPrefix(bucket, prefix, maxResults)
+	return c.ListS3Prefix(bucket, prefix, maxResults)
 }
 
-func (c *Client) ListPathDir(s3DirPath string, maxResults *int64) ([]*s3.Object, error) {
+func (c *Client) ListS3PathDir(s3DirPath string, maxResults *int64) ([]*s3.Object, error) {
 	s3Path := s.EnsureSuffix(s3DirPath, "/")
-	return c.ListPathPrefix(s3Path, maxResults)
+	return c.ListS3PathPrefix(s3Path, maxResults)
 }
 
-func (c *Client) ListPrefix(bucket string, prefix string, maxResults *int64) ([]*s3.Object, error) {
+func (c *Client) ListS3Prefix(bucket string, prefix string, maxResults *int64) ([]*s3.Object, error) {
 	var allObjects []*s3.Object
 
 	err := c.S3BatchIterator(bucket, prefix, maxResults, func(objects []*s3.Object) (bool, error) {
@@ -528,20 +528,20 @@ func (c *Client) ListPrefix(bucket string, prefix string, maxResults *int64) ([]
 	return allObjects, nil
 }
 
-func (c *Client) ListPathPrefix(s3Path string, maxResults *int64) ([]*s3.Object, error) {
+func (c *Client) ListS3PathPrefix(s3Path string, maxResults *int64) ([]*s3.Object, error) {
 	bucket, prefix, err := SplitS3Path(s3Path)
 	if err != nil {
 		return nil, err
 	}
-	return c.ListPrefix(bucket, prefix, maxResults)
+	return c.ListS3Prefix(bucket, prefix, maxResults)
 }
 
-func (c *Client) DeleteDir(bucket string, s3Dir string, continueIfFailure bool) error {
+func (c *Client) DeleteS3Dir(bucket string, s3Dir string, continueIfFailure bool) error {
 	prefix := s.EnsureSuffix(s3Dir, "/")
-	return c.DeletePrefix(bucket, prefix, continueIfFailure)
+	return c.DeleteS3Prefix(bucket, prefix, continueIfFailure)
 }
 
-func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bool) error {
+func (c *Client) DeleteS3Prefix(bucket string, prefix string, continueIfFailure bool) error {
 	err := c.S3BatchIterator(bucket, prefix, nil, func(objects []*s3.Object) (bool, error) {
 		deleteObjects := make([]*s3.ObjectIdentifier, len(objects))
 		for i, object := range objects {
