@@ -126,7 +126,7 @@ func ToFile(zipInput *Input, destPath string) error {
 		return err
 	}
 
-	zipfile, err := files.OpenNewFile(cleanDestPath)
+	zipfile, err := files.Create(cleanDestPath)
 	if err != nil {
 		return err
 	}
