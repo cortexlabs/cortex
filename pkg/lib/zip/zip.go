@@ -121,7 +121,12 @@ func ToWriter(zipInput *Input, writer io.Writer) error {
 }
 
 func ToFile(zipInput *Input, destPath string) error {
-	zipfile, err := files.Create(destPath)
+	cleanDestPath, err := files.EscapeTilde(destPath)
+	if err != nil {
+		return err
+	}
+
+	zipfile, err := files.Create(cleanDestPath)
 	if err != nil {
 		return err
 	}
@@ -203,13 +208,14 @@ func addDirToZip(dirInput *DirInput, zipInput *Input, archive *zip.Writer, added
 		commonPrefix = s.LongestCommonPrefix(paths...)
 	}
 
+	removePrefix := strings.TrimPrefix(dirInput.RemovePrefix, "/")
+
 	for _, path := range paths {
 		file := filepath.Join(dirInput.Source, path)
 
 		if dirInput.Flatten {
 			path = filepath.Base(path)
 		} else {
-			removePrefix := strings.TrimPrefix(dirInput.RemovePrefix, "/")
 			path = strings.TrimPrefix(path, removePrefix)
 			path = strings.TrimPrefix(path, commonPrefix)
 		}
@@ -256,10 +262,15 @@ func addFileListToZip(fileListInput *FileListInput, zipInput *Input, archive *zi
 	return nil
 }
 
-func UnzipToFile(src string, destPath string) ([]string, error) {
+func UnzipFileToDir(src string, destPath string) ([]string, error) {
+	cleanSrc, err := files.EscapeTilde(src)
+	if err != nil {
+		return nil, err
+	}
+
 	var filenames []string
 
-	r, err := zip.OpenReader(src)
+	r, err := zip.OpenReader(cleanSrc)
 	if err != nil {
 		return nil, errors.Wrap(err, _errStrUnzip)
 	}
@@ -307,20 +318,25 @@ func UnzipMemToMem(zipBytes []byte) (map[string][]byte, error) {
 		return nil, errors.Wrap(err, _errStrUnzip)
 	}
 
-	return UnzipToMem(r)
+	return unzipReaderToMem(r)
 }
 
 func UnzipFileToMem(src string) (map[string][]byte, error) {
-	r, err := zip.OpenReader(src)
+	cleanSrc, err := files.EscapeTilde(src)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := zip.OpenReader(cleanSrc)
 	if err != nil {
 		return nil, errors.Wrap(err, _errStrUnzip)
 	}
 	defer r.Close()
 
-	return UnzipToMem(&r.Reader)
+	return unzipReaderToMem(&r.Reader)
 }
 
-func UnzipToMem(r *zip.Reader) (map[string][]byte, error) {
+func unzipReaderToMem(r *zip.Reader) (map[string][]byte, error) {
 	contents := map[string][]byte{}
 
 	for _, f := range r.File {
