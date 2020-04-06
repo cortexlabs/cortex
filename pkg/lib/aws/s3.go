@@ -353,9 +353,9 @@ func (c *Client) UploadDirToS3(localDirPath string, bucket string, s3Dir string,
 	return nil
 }
 
-// for reading into memory, s3.S3.GetObject() seems faster than s3manager.Downloader.Download() with aws.NewWriteAtBuffer([]byte{})
 // returned io.ReadCloser should be closed by the caller
 func (c *Client) ReadReaderFromS3(bucket string, key string) (io.ReadCloser, error) {
+	// for reading into memory, s3.S3.GetObject() seems faster than s3manager.Downloader.Download() with aws.NewWriteAtBuffer([]byte{})
 	response, err := c.S3().GetObject(&s3.GetObjectInput{
 		Key:    aws.String(key),
 		Bucket: aws.String(bucket),
@@ -429,7 +429,6 @@ func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
 	return c.ReadBytesFromS3(bucket, key)
 }
 
-// for downloading files, s3manager.Downloader.Download() is faster than s3.S3.GetObject()
 // overwrites existing file
 func (c *Client) DownloadFileFromS3(bucket string, key string, localPath string) error {
 	file, err := files.Create(localPath)
@@ -438,6 +437,7 @@ func (c *Client) DownloadFileFromS3(bucket string, key string, localPath string)
 	}
 	defer file.Close()
 
+	// for downloading files, s3manager.Downloader.Download() is faster than s3.S3.GetObject()
 	_, err = c.S3Downloader().Download(file, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
