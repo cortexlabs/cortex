@@ -329,21 +329,14 @@ func (c *Client) UploadMsgpackToS3(obj interface{}, bucket string, key string) e
 }
 
 func (c *Client) UploadDirToS3(localDirPath string, bucket string, s3Dir string, ignoreFns ...files.IgnoreFn) error {
-	localPaths, err := files.ListDirRecursive(localDirPath, false, ignoreFns...)
+	localRelPaths, err := files.ListDirRecursive(localDirPath, true, ignoreFns...)
 	if err != nil {
 		return err
 	}
 
-	trimPrefix := s.EnsureSuffix(localDirPath, "/")
-	trimPrefix, err = files.EscapeTilde(trimPrefix)
-	if err != nil {
-		return err
-	}
-	trimPrefix = filepath.Clean(trimPrefix)
-
-	for _, localPath := range localPaths {
-		subKeyPath := strings.TrimPrefix(localPath, trimPrefix)
-		key := filepath.Join(s3Dir, subKeyPath)
+	for _, localRelPath := range localRelPaths {
+		localPath := filepath.Join(localDirPath, localRelPath)
+		key := filepath.Join(s3Dir, localRelPath)
 		if err := c.UploadFileToS3(localPath, bucket, key); err != nil {
 			return err
 		}
@@ -455,7 +448,24 @@ func (c *Client) DownloadDirFromS3(bucket string, s3Dir string, localDirPath str
 }
 
 // if shouldTrimDirPrefix is true, the directory path of prefix will be trimmed when downloading files
-//   e.g. if prefix = "test/dir", "test/" will be trimmed when copying; if prefix = "test/dir/", "test/dir/" will be trimmed
+//
+// example:
+// s3: [test/dir/1.txt, test/dir2/2.txt, test/directions.txt]
+// localDirPath: ~/downloads
+//
+// shouldTrimDirPrefix = true
+//   prefix: "test/dir"
+//   result: [~/downloads/dir/1.txt, ~/downloads/dir2/1.txt, ~/downloads/directions.txt]
+//
+//   prefix: "test/dir/"
+//   result: [~/downloads/1.txt]
+//
+// shouldTrimDirPrefix = false
+//   prefix: "test/dir"
+//   result: [~/downloads/test/dir/1.txt, ~/downloads/test/dir2/1.txt, ~/downloads/test/directions.txt]
+//
+//   prefix: "test/dir/"
+//   result: [~/downloads/test/dir/1.txt]
 func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
 	if _, err := files.CreateDirIfMissing(localDirPath); err != nil {
 		return err
