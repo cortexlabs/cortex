@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
@@ -364,7 +365,7 @@ func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQue
 
 func getClassesMetricDef(api *spec.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
 	prefix := filepath.Join(api.MetadataRoot, api.ID, "classes") + "/"
-	classes, err := config.AWS.ListPrefix(config.Cluster.Bucket, prefix, int64(consts.MaxClassesPerTrackerRequest))
+	classes, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, prefix, pointer.Int64(int64(consts.MaxClassesPerTrackerRequest)))
 	if err != nil {
 		return nil, err
 	}
