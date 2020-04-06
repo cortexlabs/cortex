@@ -128,11 +128,6 @@ func TestAlphaNumericDashUnderscoreRegex(t *testing.T) {
 }
 
 func TestValidDockerImage(t *testing.T) {
-	if _dockerValidImage.NumSubexp() != 3 {
-		t.Fatalf("anchored name regexp should have three submatches: %v, %v != 3",
-			_dockerValidImage, _dockerValidImage.NumSubexp())
-	}
-
 	testcases := []regexpMatch{
 		{
 			input: "",
@@ -435,7 +430,7 @@ func TestValidDockerImage(t *testing.T) {
 			match: false, // TODO(dmcgowan): Support this as valid
 		},
 		{
-			input: "680870929100.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/python-serve:latest",
+			input: "680880929103.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/python-serve:latest",
 			match: true,
 		},
 	}
@@ -447,4 +442,52 @@ func TestValidDockerImage(t *testing.T) {
 		}
 	}
 
+}
+
+func TestValidECR(t *testing.T) {
+	testcases := []regexpMatch{
+		{
+			input: "",
+			match: false,
+		},
+		{
+			input: "library/ubuntu:latest",
+			match: false,
+		},
+		{
+			input: "registry.com:8080/myapp:tag",
+			match: false,
+		},
+		{
+			input: "680880929102.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/python-serve:latest",
+			match: true,
+		},
+		{
+			input: "localhost@sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912",
+			match: false,
+		},
+		{
+			input: "680880929102.dkr.ecr.eu-central-1.com/cortexlabs/image",
+			match: false,
+		},
+		{
+			input: "680880929102.dkr.ecr.us-east-1.amazonaws.com/registry",
+			match: true,
+		},
+		{
+			input: "1234567.dkr.ecr.us-west-1.amazonaws.com/registry/image:123",
+			match: true,
+		},
+		{
+			input: "680880929102.dkr.ecr.us-east-1.amazonaws.com",
+			match: true,
+		},
+	}
+
+	for i := range testcases {
+		match := _ecrPattern.MatchString(testcases[i].input)
+		if match != testcases[i].match {
+			t.Errorf("No match for %q", testcases[i].input)
+		}
+	}
 }

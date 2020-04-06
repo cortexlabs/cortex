@@ -62,6 +62,6 @@ var _ecrPattern = regexp.MustCompile(
 	`(^[a-zA-Z0-9][a-zA-Z0-9-_]*)\.dkr\.ecr(\-fips)?\.([a-zA-Z0-9][a-zA-Z0-9-_]*)\.amazonaws\.com(\.cn)?`,
 )
 
-func IsValidECRImage(s string) bool {
+func IsValidECR(s string) bool {
 	return _ecrPattern.MatchString(s)
 }

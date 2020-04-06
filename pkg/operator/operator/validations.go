@@ -797,7 +797,7 @@ func validateOverridenImages(images, keys []string) (string, error) {
 
 	ECRImages := make([]bool, len(images))
 	for i, image := range images {
-		if regex.IsValidECRImage(image) {
+		if regex.IsValidECR(image) {
 			ECRImages[i] = true
 		}
 	}
