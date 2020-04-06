@@ -1,9 +1,25 @@
+/*
+Copyright 2020 Cortex Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package aws
 
 import (
 	"context"
-	"strings"
 	"encoding/base64"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -12,8 +28,8 @@ import (
 )
 
 type ECRAuthConfig struct {
-	Username string
-	AccessToken string
+	Username      string
+	AccessToken   string
 	ProxyEndpoint string
 }
 
@@ -32,8 +48,8 @@ func GetECRAuthToken() (*ecr.GetAuthorizationTokenOutput, error) {
 				return result, errors.Wrap(aerr, ecr.ErrCodeServerException, "failed to retrieve ECR auth token")
 			case ecr.ErrCodeInvalidParameterException:
 				return result, errors.Wrap(
-					aerr, 
-					ecr.ErrCodeInvalidParameterException, 
+					aerr,
+					ecr.ErrCodeInvalidParameterException,
 					"failed to retrieve ECR auth token",
 				)
 			default:
@@ -69,4 +85,4 @@ func ExtractECRAuthConfigFromTokenOutput(auth *ecr.GetAuthorizationTokenOutput) 
 	authConfig.ProxyEndpoint = *authData.ProxyEndpoint
 
 	return authConfig, nil
-} 
+}

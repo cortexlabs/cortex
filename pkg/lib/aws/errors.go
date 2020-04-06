@@ -25,17 +25,16 @@ import (
 )
 
 const (
-	ErrInvalidAWSCredentials   = "aws.invalid_aws_credentials"
-	ErrInvalidS3aPath          = "aws.invalid_s3a_path"
-	ErrInvalidS3Path           = "aws.invalid_s3_path"
-	ErrAuth                    = "aws.auth"
-	ErrBucketInaccessible      = "aws.bucket_inaccessible"
-	ErrBucketNotFound          = "aws.bucket_not_found"
-	ErrInstanceTypeLimitIsZero = "aws.instance_type_limit_is_zero"
-	ErrNoValidSpotPrices       = "aws.no_valid_spot_prices"
-	ErrReadCredentials         = "aws.read_credentials"
+	ErrInvalidAWSCredentials    = "aws.invalid_aws_credentials"
+	ErrInvalidS3aPath           = "aws.invalid_s3a_path"
+	ErrInvalidS3Path            = "aws.invalid_s3_path"
+	ErrAuth                     = "aws.auth"
+	ErrBucketInaccessible       = "aws.bucket_inaccessible"
+	ErrBucketNotFound           = "aws.bucket_not_found"
+	ErrInstanceTypeLimitIsZero  = "aws.instance_type_limit_is_zero"
+	ErrNoValidSpotPrices        = "aws.no_valid_spot_prices"
+	ErrReadCredentials          = "aws.read_credentials"
 	ErrECRExtractingCredentials = "aws.ecr_failed_credentials"
-
 )
 
 func IsNotFoundErr(err error) bool {
@@ -136,7 +135,7 @@ func ErrorReadCredentials() error {
 
 func ErrorECRExtractingCredentials() error {
 	return errors.WithStack(&errors.Error{
-		Kind: ErrECRExtractingCredentials,
+		Kind:    ErrECRExtractingCredentials,
 		Message: "can't extract ECR credentials",
 	})
 }
