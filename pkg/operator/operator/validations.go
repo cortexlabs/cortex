@@ -481,7 +481,7 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		userconfig.ImageKey,
 		userconfig.TFServeImageKey,
 	}
-
+	// do it in one go to avoid generating credentials twice
 	key, err := validateOverridenImages(images, keys)
 	if err != nil {
 		if key != "" {
