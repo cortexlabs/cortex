@@ -117,11 +117,15 @@ def get_signature_def(stub):
             sigAny.Unpack(signature_def_map)
             sigmap = json_format.MessageToDict(signature_def_map)
             return sigmap["signatureDef"]
-        except:
-            if i > 6:
-                cx_logger().warn(
-                    "unable to read model metadata - model is still loading, retrying..."
-                )
+        except Exception as e:
+            if isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.UNAVAILABLE:
+                if i > 6:  # only start logging this after 1 minute
+                    cx_logger().warn(
+                        "unable to read model metadata - model is still loading, retrying..."
+                    )
+            else:
+                print(e)  # unexpected error
+                cx_logger().warn("unable to read model metadata - retrying...")
 
         time.sleep(5)
 
