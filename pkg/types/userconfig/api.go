@@ -253,9 +253,9 @@ func (predictor *Predictor) UserStr() string {
 	}
 	if predictor.Image != "" {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
-		if predictor.TFServeImage != "" {
-			sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
-		}
+	}
+	if predictor.TFServeImage != "" {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
 	}
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
