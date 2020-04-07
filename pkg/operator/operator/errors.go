@@ -19,6 +19,7 @@ package operator
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -51,6 +52,7 @@ const (
 	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
+	ErrImageVersionMismatch               = "operator.image_version_mismatch"
 	ErrDockerImageInaccessible            = "operator.docker_image_inaccesible"
 )
 
@@ -260,6 +262,14 @@ func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotDeployed,
 		Message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
+	})
+
+}
+
+func ErrorImageVersionMismatch(image string, tag string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrImageVersionMismatch,
+		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match the version of your CLI (%s); please update the image tag, remove the image from the API config file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, consts.CortexVersion),
 	})
 }
 

@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/yaml"
@@ -87,6 +88,44 @@ type UpdateStrategy struct {
 
 func (api *API) Identify() string {
 	return IdentifyAPI(api.FilePath, api.Name, api.Index)
+}
+
+func (api *API) ApplyDefaultDockerPaths() {
+	usesGPU := false
+	if api.Compute.GPU > 0 {
+		usesGPU = true
+	}
+
+	predictor := api.Predictor
+	switch predictor.Type {
+	case PythonPredictorType:
+		if predictor.Image == "" {
+			if usesGPU {
+				predictor.Image = "cortexlabs/python-serve-gpu:" + consts.CortexVersion
+			} else {
+				predictor.Image = "cortexlabs/python-serve:" + consts.CortexVersion
+			}
+		}
+	case TensorFlowPredictorType:
+		if predictor.Image == "" {
+			predictor.Image = "cortexlabs/tf-api:" + consts.CortexVersion
+		}
+		if predictor.TFServeImage == "" {
+			if usesGPU {
+				predictor.TFServeImage = "cortexlabs/tf-serve-gpu:" + consts.CortexVersion
+			} else {
+				predictor.TFServeImage = "cortexlabs/tf-serve:" + consts.CortexVersion
+			}
+		}
+	case ONNXPredictorType:
+		if predictor.Image == "" {
+			if usesGPU {
+				predictor.Image = "cortexlabs/onnx-serve-gpu:" + consts.CortexVersion
+			} else {
+				predictor.Image = "cortexlabs/onnx-serve:" + consts.CortexVersion
+			}
+		}
+	}
 }
 
 func IdentifyAPI(filePath string, name string, index int) string {
@@ -251,12 +290,8 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.PythonPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
-	if predictor.Image != "" {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
-	}
-	if predictor.TFServeImage != "" {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
-	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&predictor.Config)
