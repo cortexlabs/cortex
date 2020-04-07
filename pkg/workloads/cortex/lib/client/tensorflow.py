@@ -119,7 +119,7 @@ def get_signature_def(stub):
             return sigmap["signatureDef"]
         except Exception as e:
             if isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.UNAVAILABLE:
-                if i > 6:  # only start logging this after 1 minute
+                if i > 6:  # only start logging this after 30 seconds
                     cx_logger().warn(
                         "unable to read model metadata - model is still loading, retrying..."
                     )
