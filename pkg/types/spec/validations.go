@@ -554,7 +554,7 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		return "", err
 	}
 
-	objects, err := awsClient.ListPathDir(path, 1000)
+	objects, err := awsClient.ListS3PathDir(path, pointer.Int64(1000))
 	if err != nil {
 		return "", err
 	} else if len(objects) == 0 {

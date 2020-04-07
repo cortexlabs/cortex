@@ -10,6 +10,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -115,13 +116,13 @@ func getS3ModelCachePath(api *userconfig.API) (string, error) {
 	}
 
 	// TODO fix max file count
-	s3Objects, err := awsClient.ListPathPrefix(*api.Predictor.Model, 1001)
+	s3Objects, err := awsClient.ListS3PathPrefix(*api.Predictor.Model, pointer.Int64(1000))
 	if err != nil {
 		return "", err
 	}
 
-	if len(s3Objects) == 1001 {
-		return "", ErrorTensorFlowDirTooManyFiles(1000)
+	if len(s3Objects) == 1000 {
+		return "", ErrorTensorFlowDirTooManyFiles(999)
 	}
 
 	md5Hash := md5.New()
@@ -157,13 +158,13 @@ func S3DownloadDir(api *userconfig.API, modelVersionDir string) (string, error) 
 		return "", err
 	}
 
-	s3Objects, err := awsClient.ListPathPrefix(*api.Predictor.Model, 1001)
+	s3Objects, err := awsClient.ListS3PathDir(*api.Predictor.Model, pointer.Int64(1000))
 	if err != nil {
 		return "", err
 	}
 
-	if len(s3Objects) == 1001 {
-		return "", ErrorTensorFlowDirTooManyFiles(1000)
+	if len(s3Objects) == 1000 {
+		return "", ErrorTensorFlowDirTooManyFiles(999)
 	}
 
 	bucket, fullPathKey, err := aws.SplitS3Path(*api.Predictor.Model)
