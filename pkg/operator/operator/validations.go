@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -793,36 +792,13 @@ func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quant
 	return virtualServices, maxMem, err
 }
 
-func validateImageVersion(image string) error {
-	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
-		return nil
-	}
-
-	var tag string
-
-	if colonIndex := strings.LastIndex(image, ":"); colonIndex != -1 {
-		tag = image[colonIndex+1:]
-	}
-
-	// in docker, missing tag implies "latest"
-	if tag == "" {
-		tag = "latest"
-	}
-
-	if !strings.HasPrefix(tag, consts.CortexVersion) {
-		return ErrorImageVersionMismatch(image, tag)
-	}
-
-	return nil
-}
-
 func validateDockerImagePaths(images, keys []string) error {
 	ECRImages := make([]bool, len(images))
 	for i, image := range images {
 		if regex.IsValidECRURL(image) {
 			ECRImages[i] = true
 		}
-		if err := validateImageVersion(image); err != nil {
+		if _, err := cr.ValidateImageVersion(image); err != nil {
 			return errors.Wrap(err, keys[i])
 		}
 	}

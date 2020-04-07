@@ -106,19 +106,12 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
 
-	servingImage := config.Cluster.ImageTFServe
-	apiImage := config.Cluster.ImageTFAPI
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cluster.ImageTFServeGPU
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
-	if api.Predictor.Image != "" {
-		apiImage = api.Predictor.Image
-	}
-	if api.Predictor.TFServeImage != "" {
-		servingImage = api.Predictor.TFServeImage
-	}
+	apiImage := api.Predictor.Image
+	servingImage := api.Predictor.TFServeImage
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
@@ -275,15 +268,11 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
-	servingImage := config.Cluster.ImagePythonServe
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cluster.ImagePythonServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
-	if api.Predictor.Image != "" {
-		servingImage = api.Predictor.Image
-	}
+	servingImage := api.Predictor.Image
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
@@ -387,15 +376,11 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
-	servingImage := config.Cluster.ImageONNXServe
 	if api.Compute.GPU > 0 {
-		servingImage = config.Cluster.ImageONNXServeGPU
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
-	if api.Predictor.Image != "" {
-		servingImage = api.Predictor.Image
-	}
+	servingImage := api.Predictor.Image
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),

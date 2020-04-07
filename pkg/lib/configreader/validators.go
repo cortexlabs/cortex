@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -148,4 +149,27 @@ func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
 
 		return d, nil
 	}
+}
+
+func ValidateImageVersion(image string) (string, error) {
+	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
+		return image, nil
+	}
+
+	var tag string
+
+	if colonIndex := strings.LastIndex(image, ":"); colonIndex != -1 {
+		tag = image[colonIndex+1:]
+	}
+
+	// in docker, missing tag implies "latest"
+	if tag == "" {
+		tag = "latest"
+	}
+
+	if !strings.HasPrefix(tag, consts.CortexVersion) {
+		return "", ErrorImageVersionMismatch(image, tag)
+	}
+
+	return image, nil
 }

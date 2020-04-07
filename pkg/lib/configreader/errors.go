@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -63,6 +64,7 @@ const (
 	ErrEmailInvalid                  = "configreader.email_invalid"
 	ErrCortexResourceOnlyAllowed     = "configreader.cortex_resource_only_allowed"
 	ErrCortexResourceNotAllowed      = "configreader.cortex_resource_not_allowed"
+	ErrImageVersionMismatch          = "operator.image_version_mismatch"
 )
 
 func ErrorParseConfig() error {
@@ -351,5 +353,12 @@ func ErrorCortexResourceNotAllowed(resourceName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexResourceNotAllowed,
 		Message: fmt.Sprintf("@%s: cortex resource references (which start with @) are not allowed in this context", resourceName),
+	})
+}
+
+func ErrorImageVersionMismatch(image string, tag string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrImageVersionMismatch,
+		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match the version of your CLI (%s); please update the image tag, remove the image from the API config file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, consts.CortexVersion),
 	})
 }
