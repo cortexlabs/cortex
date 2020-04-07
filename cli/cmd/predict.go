@@ -45,7 +45,7 @@ var _predictClient = &GenericClient{
 }
 
 func init() {
-	addProfileFlag(_predictCmd, Local.String())
+	addEnvFlag(_predictCmd, Local.String())
 	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }
 

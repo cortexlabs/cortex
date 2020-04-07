@@ -34,11 +34,11 @@ import (
 )
 
 type CLIConfig struct {
-	Telemetry bool       `json:"telemetry" yaml:"telemetry"`
-	Profiles  []*Profile `json:"profiles" yaml:"profiles"`
+	Telemetry    bool           `json:"telemetry" yaml:"telemetry"`
+	Environments []*Environment `json:"environments" yaml:"environments"`
 }
 
-type Profile struct {
+type Environment struct {
 	Name               string   `json:"name" yaml:"name"`
 	Provider           Provider `json:"provider" yaml:"provider"`
 	OperatorEndpoint   *string  `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
@@ -57,7 +57,7 @@ var _cliConfigValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "Profiles",
+			StructField: "Environments",
 			StructListValidation: &cr.StructListValidation{
 				AllowExplicitNull: true,
 				StructValidation: &cr.StructValidation{
@@ -106,80 +106,80 @@ var _cliConfigValidation = &cr.StructValidation{
 }
 
 func (cliConfig *CLIConfig) validate() error {
-	profileNames := strset.New()
+	envNames := strset.New()
 
-	for _, profile := range cliConfig.Profiles {
-		if profileNames.Has(profile.Name) {
-			return errors.Wrap(ErrorDuplicateProfileNames(profile.Name), "profiles")
+	for _, env := range cliConfig.Environments {
+		if envNames.Has(env.Name) {
+			return errors.Wrap(ErrorDuplicateEnvironmentNames(env.Name), "environments")
 		}
 
-		profileNames.Add(profile.Name)
+		envNames.Add(env.Name)
 
-		if err := profile.validate(); err != nil {
-			return errors.Wrap(err, "profiles")
+		if err := env.validate(); err != nil {
+			return errors.Wrap(err, "environments")
 		}
 	}
 
-	// Ensure the local profile is always present
-	if !profileNames.Has(Local.String()) {
-		localProfile := &Profile{
+	// Ensure the local env is always present
+	if !envNames.Has(Local.String()) {
+		localEnv := &Environment{
 			Name:     Local.String(),
 			Provider: Local,
 		}
 
-		cliConfig.Profiles = append([]*Profile{localProfile}, cliConfig.Profiles...)
+		cliConfig.Environments = append([]*Environment{localEnv}, cliConfig.Environments...)
 	}
 
 	return nil
 }
 
-func (profile *Profile) validate() error {
-	if profile.Name == "" {
+func (env *Environment) validate() error {
+	if env.Name == "" {
 		return errors.Wrap(cr.ErrorMustBeDefined(), "name")
 	}
-	if profile.Provider == UnknownProvider {
-		return errors.Wrap(cr.ErrorMustBeDefined(ProviderStrings()), profile.Name, "provider")
+	if env.Provider == UnknownProvider {
+		return errors.Wrap(cr.ErrorMustBeDefined(ProviderStrings()), env.Name, "provider")
 	}
 
-	if err := checkReservedProfileNames(profile.Name, profile.Provider); err != nil {
+	if err := checkReservedEnvironmentNames(env.Name, env.Provider); err != nil {
 		return err
 	}
 
-	if profile.Provider == Local {
-		if profile.OperatorEndpoint != nil {
-			return errors.Wrap(ErrorOperatorEndpointInLocalProfile(), profile.Name)
+	if env.Provider == Local {
+		if env.OperatorEndpoint != nil {
+			return errors.Wrap(ErrorOperatorEndpointInLocalEnvironment(), env.Name)
 		}
 	}
 
-	if profile.Provider == AWS {
-		if profile.OperatorEndpoint == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), profile.Name, "operator_endpoint")
+	if env.Provider == AWS {
+		if env.OperatorEndpoint == nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "operator_endpoint")
 		}
-		if profile.AWSAccessKeyID == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), profile.Name, "aws_access_key_id")
+		if env.AWSAccessKeyID == nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "aws_access_key_id")
 		}
-		if profile.AWSSecretAccessKey == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), profile.Name, "aws_secret_access_key")
+		if env.AWSSecretAccessKey == nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "aws_secret_access_key")
 		}
 	}
 
 	return nil
 }
 
-func checkReservedProfileNames(profileName string, provider Provider) error {
-	profileNameProvider := ProviderFromString(profileName)
-	if profileNameProvider == UnknownProvider {
+func checkReservedEnvironmentNames(envName string, provider Provider) error {
+	envNameProvider := ProviderFromString(envName)
+	if envNameProvider == UnknownProvider {
 		return nil
 	}
 
-	if profileNameProvider != provider {
-		return ErrorProfileProviderNameConflict(profileName, provider)
+	if envNameProvider != provider {
+		return ErrorEnvironmentProviderNameConflict(envName, provider)
 	}
 
 	return nil
 }
 
-func providerPromptValidation(profileName string, defaults Profile) *cr.PromptValidation {
+func providerPromptValidation(envName string, defaults Environment) *cr.PromptValidation {
 	defaultProviderStr := ""
 	if defaults.Provider != UnknownProvider {
 		defaultProviderStr = defaults.Provider.String()
@@ -200,7 +200,7 @@ func providerPromptValidation(profileName string, defaults Profile) *cr.PromptVa
 				},
 				Parser: func(str string) (interface{}, error) {
 					provider := ProviderFromString(str)
-					if err := checkReservedProfileNames(profileName, provider); err != nil {
+					if err := checkReservedEnvironmentNames(envName, provider); err != nil {
 						return nil, err
 					}
 					return provider, nil
@@ -210,7 +210,7 @@ func providerPromptValidation(profileName string, defaults Profile) *cr.PromptVa
 	}
 }
 
-func localProfilePromptValidation(defaults Profile) *cr.PromptValidation {
+func localEnvPromptValidation(defaults Environment) *cr.PromptValidation {
 	accessKeyIDPrompt := "aws access key id"
 	if defaults.AWSAccessKeyID == nil {
 		accessKeyIDPrompt += " [press ENTER to skip]"
@@ -252,7 +252,7 @@ func localProfilePromptValidation(defaults Profile) *cr.PromptValidation {
 	}
 }
 
-func awsProfilePromptValidation(defaults Profile) *cr.PromptValidation {
+func awsEnvPromptValidation(defaults Environment) *cr.PromptValidation {
 	return &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
@@ -351,20 +351,20 @@ func isTelemetryEnabled() bool {
 }
 
 // Will return nil if not configured, except for local
-func readProfile(profileName string) (*Profile, error) {
+func readEnv(envName string) (*Environment, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, profile := range cliConfig.Profiles {
-		if profile.Name == profileName {
-			return profile, nil
+	for _, env := range cliConfig.Environments {
+		if env.Name == envName {
+			return env, nil
 		}
 	}
 
-	if profileName == Local.String() {
-		return &Profile{
+	if envName == Local.String() {
+		return &Environment{
 			Name:     Local.String(),
 			Provider: Local,
 		}, nil
@@ -373,41 +373,41 @@ func readProfile(profileName string) (*Profile, error) {
 	return nil, nil
 }
 
-func readOrConfigureNonLocalProfile(profileName string) (Profile, error) {
-	profile, err := readProfile(profileName)
+func readOrConfigureNonLocalEnv(envName string) (Environment, error) {
+	env, err := readEnv(envName)
 	if err != nil {
-		return Profile{}, err
+		return Environment{}, err
 	}
 
-	if profile != nil {
-		if profile.Provider == Local {
-			return Profile{}, ErrorLocalProviderNotSupported(*profile)
+	if env != nil {
+		if env.Provider == Local {
+			return Environment{}, ErrorLocalProviderNotSupported(*env)
 		}
-		return *profile, nil
+		return *env, nil
 	}
 
-	promptStr := fmt.Sprintf("the %s profile is not configured; do you already have a Cortex cluster running on AWS?", profileName)
-	yesMsg := fmt.Sprintf("please configure the %s profile to point to your running cluster:\n", profileName)
+	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running on AWS?", envName)
+	yesMsg := fmt.Sprintf("please configure the %s environment to point to your running cluster:\n", envName)
 	noMsg := "you can create a cluster on AWS by running the `cortex cluster up` command"
 	prompt.YesOrExit(promptStr, yesMsg, noMsg)
 
-	fieldsToSkipPrompt := Profile{
+	fieldsToSkipPrompt := Environment{
 		Provider: AWS,
 	}
-	return configureProfile(profileName, fieldsToSkipPrompt)
+	return configureEnv(envName, fieldsToSkipPrompt)
 }
 
-func getDefaultProfileConfig(profileName string) Profile {
-	defaults := Profile{}
+func getDefaultEnvConfig(envName string) Environment {
+	defaults := Environment{}
 
-	prevProfile, err := readProfile(profileName)
-	if err == nil && prevProfile != nil {
-		defaults = *prevProfile
+	prevEnv, err := readEnv(envName)
+	if err == nil && prevEnv != nil {
+		defaults = *prevEnv
 	}
 
 	if defaults.Provider == UnknownProvider {
-		if profileNameProvider := ProviderFromString(profileName); profileNameProvider != UnknownProvider {
-			defaults.Provider = profileNameProvider
+		if envNameProvider := ProviderFromString(envName); envNameProvider != UnknownProvider {
+			defaults.Provider = envNameProvider
 		}
 	}
 
@@ -424,49 +424,49 @@ func getDefaultProfileConfig(profileName string) Profile {
 	return defaults
 }
 
-func configureProfile(profileName string, fieldsToSkipPrompt Profile) (Profile, error) {
-	fmt.Println("profile: " + profileName + "\n")
+func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, error) {
+	fmt.Println("environment: " + envName + "\n")
 
-	defaults := getDefaultProfileConfig(profileName)
+	defaults := getDefaultEnvConfig(envName)
 
 	if fieldsToSkipPrompt.Provider == UnknownProvider {
-		if profileNameProvider := ProviderFromString(profileName); profileNameProvider != UnknownProvider {
-			fieldsToSkipPrompt.Provider = profileNameProvider
+		if envNameProvider := ProviderFromString(envName); envNameProvider != UnknownProvider {
+			fieldsToSkipPrompt.Provider = envNameProvider
 		}
 	}
 
-	profile := Profile{
-		Name:               profileName,
+	env := Environment{
+		Name:               envName,
 		Provider:           fieldsToSkipPrompt.Provider,
 		OperatorEndpoint:   fieldsToSkipPrompt.OperatorEndpoint,
 		AWSAccessKeyID:     fieldsToSkipPrompt.AWSAccessKeyID,
 		AWSSecretAccessKey: fieldsToSkipPrompt.AWSSecretAccessKey,
 	}
 
-	err := cr.ReadPrompt(&profile, providerPromptValidation(profileName, defaults))
+	err := cr.ReadPrompt(&env, providerPromptValidation(envName, defaults))
 	if err != nil {
-		return Profile{}, err
+		return Environment{}, err
 	}
 
-	switch profile.Provider {
+	switch env.Provider {
 	case Local:
-		err = cr.ReadPrompt(&profile, localProfilePromptValidation(defaults))
+		err = cr.ReadPrompt(&env, localEnvPromptValidation(defaults))
 	case AWS:
-		err = cr.ReadPrompt(&profile, awsProfilePromptValidation(defaults))
+		err = cr.ReadPrompt(&env, awsEnvPromptValidation(defaults))
 	}
 	if err != nil {
-		return Profile{}, err
+		return Environment{}, err
 	}
 
-	if err := profile.validate(); err != nil {
-		return Profile{}, err
+	if err := env.validate(); err != nil {
+		return Environment{}, err
 	}
 
-	if err := addProfileToCLIConfig(profile); err != nil {
-		return Profile{}, err
+	if err := addEnvToCLIConfig(env); err != nil {
+		return Environment{}, err
 	}
 
-	return profile, nil
+	return env, nil
 }
 
 func readCLIConfig() (CLIConfig, error) {
@@ -492,23 +492,23 @@ func readCLIConfig() (CLIConfig, error) {
 	return cliConfig, nil
 }
 
-func addProfileToCLIConfig(newProfile Profile) error {
+func addEnvToCLIConfig(newEnv Environment) error {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return err
 	}
 
 	replaced := false
-	for i, prevProfile := range cliConfig.Profiles {
-		if prevProfile.Name == newProfile.Name {
-			cliConfig.Profiles[i] = &newProfile
+	for i, prevEnv := range cliConfig.Environments {
+		if prevEnv.Name == newEnv.Name {
+			cliConfig.Environments[i] = &newEnv
 			replaced = true
 			break
 		}
 	}
 
 	if !replaced {
-		cliConfig.Profiles = append(cliConfig.Profiles, &newProfile)
+		cliConfig.Environments = append(cliConfig.Environments, &newEnv)
 	}
 
 	cliConfig.validate()
@@ -524,27 +524,27 @@ func addProfileToCLIConfig(newProfile Profile) error {
 	return nil
 }
 
-func removeProfileFromCLIConfig(profileName string) error {
+func removeEnvFromCLIConfig(envName string) error {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return err
 	}
 
-	var updatedProfiles []*Profile
+	var updatedEnvs []*Environment
 	deleted := false
-	for _, profile := range cliConfig.Profiles {
-		if profile.Name == profileName {
+	for _, env := range cliConfig.Environments {
+		if env.Name == envName {
 			deleted = true
 			continue
 		}
-		updatedProfiles = append(updatedProfiles, profile)
+		updatedEnvs = append(updatedEnvs, env)
 	}
 
-	if deleted == false && profileName != Local.String() {
-		return ErrorProfileNotConfigured(profileName)
+	if deleted == false && envName != Local.String() {
+		return ErrorEnvironmentNotConfigured(envName)
 	}
 
-	cliConfig.Profiles = updatedProfiles
+	cliConfig.Environments = updatedEnvs
 
 	cliConfig.validate()
 

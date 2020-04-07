@@ -42,38 +42,38 @@ func getCloudFormationURL(clusterName, region string) string {
 }
 
 const (
-	ErrInvalidProvider                = "cli.invalid_provider"
-	ErrLocalProviderNotSupported      = "cli.local_provider_not_supported"
-	ErrProfileNotConfigured           = "cli.profile_not_configured"
-	ErrProfileProviderNameConflict    = "cli.profile_provider_name_conflict"
-	ErrDuplicateCLIProfileNames       = "cli.duplicate_cli_profile_names"
-	ErrOperatorEndpointInLocalProfile = "cli.operator_endpoint_in_local_profile"
-	ErrInvalidOperatorEndpoint        = "cli.invalid_operator_endpoint"
-	ErrCortexYAMLNotFound             = "cli.cortex_yaml_not_found"
-	ErrConnectToDockerDaemon          = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions              = "cli.docker_permissions"
-	ErrDockerCtrlC                    = "cli.docker_ctrl_c"
-	ErrAPINotReady                    = "cli.api_not_ready"
-	ErrFailedToConnectOperator        = "cli.failed_to_connect_operator"
-	ErrOperatorSocketRead             = "cli.operator_socket_read"
-	ErrResponseUnknown                = "cli.response_unknown"
-	ErrOperatorResponseUnknown        = "cli.operator_response_unknown"
-	ErrOperatorStreamResponseUnknown  = "cli.operator_stream_response_unknown"
-	ErrOneAWSEnvVarSet                = "cli.one_aws_env_var_set"
-	ErrOneAWSConfigFieldSet           = "cli.one_aws_config_field_set"
-	ErrClusterUp                      = "cli.cluster_up"
-	ErrClusterUpdate                  = "cli.cluster_update"
-	ErrClusterInfo                    = "cli.cluster_info"
-	ErrClusterDebug                   = "cli.cluster_debug"
-	ErrClusterRefresh                 = "cli.cluster_refresh"
-	ErrClusterDown                    = "cli.cluster_down"
-	ErrDuplicateCLIEnvNames           = "cli.duplicate_cli_env_names"
-	ErrClusterUpInProgress            = "cli.cluster_up_in_progress"
-	ErrClusterAlreadyCreated          = "cli.cluster_already_created"
-	ErrClusterDownInProgress          = "cli.cluster_down_in_progress"
-	ErrClusterAlreadyDeleted          = "cli.cluster_already_deleted"
-	ErrFailedClusterStatus            = "cli.failed_cluster_status"
-	ErrClusterDoesNotExist            = "cli.cluster_does_not_exist"
+	ErrInvalidProvider                    = "cli.invalid_provider"
+	ErrLocalProviderNotSupported          = "cli.local_provider_not_supported"
+	ErrEnvironmentNotConfigured           = "cli.environment_not_configured"
+	ErrEnvironmentProviderNameConflict    = "cli.environment_provider_name_conflict"
+	ErrDuplicateEnvironmentNames          = "cli.duplicate_environment_names"
+	ErrOperatorEndpointInLocalEnvironment = "cli.operator_endpoint_in_local_environment"
+	ErrInvalidOperatorEndpoint            = "cli.invalid_operator_endpoint"
+	ErrCortexYAMLNotFound                 = "cli.cortex_yaml_not_found"
+	ErrConnectToDockerDaemon              = "cli.connect_to_docker_daemon"
+	ErrDockerPermissions                  = "cli.docker_permissions"
+	ErrDockerCtrlC                        = "cli.docker_ctrl_c"
+	ErrAPINotReady                        = "cli.api_not_ready"
+	ErrFailedToConnectOperator            = "cli.failed_to_connect_operator"
+	ErrOperatorSocketRead                 = "cli.operator_socket_read"
+	ErrResponseUnknown                    = "cli.response_unknown"
+	ErrOperatorResponseUnknown            = "cli.operator_response_unknown"
+	ErrOperatorStreamResponseUnknown      = "cli.operator_stream_response_unknown"
+	ErrOneAWSEnvVarSet                    = "cli.one_aws_env_var_set"
+	ErrOneAWSConfigFieldSet               = "cli.one_aws_config_field_set"
+	ErrClusterUp                          = "cli.cluster_up"
+	ErrClusterUpdate                      = "cli.cluster_update"
+	ErrClusterInfo                        = "cli.cluster_info"
+	ErrClusterDebug                       = "cli.cluster_debug"
+	ErrClusterRefresh                     = "cli.cluster_refresh"
+	ErrClusterDown                        = "cli.cluster_down"
+	ErrDuplicateCLIEnvNames               = "cli.duplicate_cli_env_names"
+	ErrClusterUpInProgress                = "cli.cluster_up_in_progress"
+	ErrClusterAlreadyCreated              = "cli.cluster_already_created"
+	ErrClusterDownInProgress              = "cli.cluster_down_in_progress"
+	ErrClusterAlreadyDeleted              = "cli.cluster_already_deleted"
+	ErrFailedClusterStatus                = "cli.failed_cluster_status"
+	ErrClusterDoesNotExist                = "cli.cluster_does_not_exist"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -83,10 +83,10 @@ func ErrorInvalidProvider(providerStr string) error {
 	})
 }
 
-func ErrorLocalProviderNotSupported(profile Profile) error {
-	msg := "this command cannot run locally; please specify an existing profile (via --profile=<name>) which points to an existing cluster, create/update a profile for an existing cluster (`cortex configure --profile=<name>`), or create a cortex cluster (`cortex cluster up`)"
-	if profile.Name != Local.String() {
-		msg = fmt.Sprintf("the %s profile uses the local provider, but ", profile.Name) + msg
+func ErrorLocalProviderNotSupported(environment Environment) error {
+	msg := "this command cannot run locally; please specify an existing environment (via --env=<name>) which points to an existing cluster, create/update an environment for an existing cluster (`cortex env configure <name>`), or create a cortex cluster (`cortex cluster up`)"
+	if environment.Name != Local.String() {
+		msg = fmt.Sprintf("the %s environment uses the local provider, but ", environment.Name) + msg
 	}
 
 	return errors.WithStack(&errors.Error{
@@ -95,30 +95,30 @@ func ErrorLocalProviderNotSupported(profile Profile) error {
 	})
 }
 
-func ErrorProfileProviderNameConflict(profileName string, provider Provider) error {
+func ErrorEnvironmentProviderNameConflict(envName string, provider Provider) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrProfileProviderNameConflict,
-		Message: fmt.Sprintf("the %s profile cannot use the %s provider", profileName, provider.String()),
+		Kind:    ErrEnvironmentProviderNameConflict,
+		Message: fmt.Sprintf("the %s environment cannot use the %s provider", envName, provider.String()),
 	})
 }
 
-func ErrorProfileNotConfigured(profileName string) error {
+func ErrorEnvironmentNotConfigured(envName string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrProfileNotConfigured,
-		Message: fmt.Sprintf("%s profile is not configured", profileName),
+		Kind:    ErrEnvironmentNotConfigured,
+		Message: fmt.Sprintf("%s environment is not configured", envName),
 	})
 }
 
-func ErrorDuplicateProfileNames(profileName string) error {
+func ErrorDuplicateEnvironmentNames(envName string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateCLIProfileNames,
-		Message: fmt.Sprintf("duplicate profile names (%s is defined more than once)", s.UserStr(profileName)),
+		Kind:    ErrDuplicateEnvironmentNames,
+		Message: fmt.Sprintf("duplicate environment names (%s is defined more than once)", s.UserStr(envName)),
 	})
 }
 
-func ErrorOperatorEndpointInLocalProfile() error {
+func ErrorOperatorEndpointInLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorEndpointInLocalProfile,
+		Kind:    ErrOperatorEndpointInLocalEnvironment,
 		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in local providers)"),
 	})
 }

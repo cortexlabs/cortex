@@ -47,7 +47,7 @@ import (
 
 func init() {
 	localCmd.PersistentFlags()
-	addProfileFlag(localCmd, Local.String())
+	addEnvFlag(localCmd, Local.String())
 	_localWorkSpace = filepath.Join(_localDir, "local_workspace")
 }
 
@@ -153,7 +153,7 @@ var localCmd = &cobra.Command{
 		// }
 		// fmt.Println(path)
 
-		// TODO try to pickup AWS credentials silently if aws creds in local profile are empty
+		// TODO try to pickup AWS credentials silently if aws creds in local environment are empty
 		awsCreds := &AWSCredentials{}
 		setInstallAWSCredentials(awsCreds)
 

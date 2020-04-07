@@ -33,7 +33,7 @@ var _flagAWSAccessKeyID string
 var _flagAWSSecretAccessKey string
 
 func init() {
-	addProfileFlag(_configureCmd, Local.String())
+	addEnvFlag(_configureCmd, Local.String())
 	_configureCmd.Flags().StringVarP(&_flagProvider, "provider", "v", "", "set the provider without prompting")
 	_configureCmd.Flags().StringVarP(&_flagOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
 	_configureCmd.Flags().StringVarP(&_flagAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
@@ -45,8 +45,8 @@ func init() {
 }
 
 var _configureCmd = &cobra.Command{
-	Use:   "configure [--profile=PROFIE_NAME]",
-	Short: "configure a cli profile",
+	Use:   "configure [--env=ENVIRONMENT_NAME]",
+	Short: "configure an environment",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.configure")
@@ -74,20 +74,20 @@ var _configureCmd = &cobra.Command{
 			skipAWSSecretAccessKey = &_flagAWSSecretAccessKey
 		}
 
-		fieldsToSkipPrompt := Profile{
+		fieldsToSkipPrompt := Environment{
 			Provider:           skipProvider,
 			OperatorEndpoint:   skipOperatorEndpoint,
 			AWSAccessKeyID:     skipAWSAccessKeyID,
 			AWSSecretAccessKey: skipAWSSecretAccessKey,
 		}
 
-		configureProfile(_flagProfile, fieldsToSkipPrompt)
+		configureEnv(_flagEnv, fieldsToSkipPrompt)
 	},
 }
 
 var _configureListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list all configured profiles",
+	Short: "list all configured environments",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.configure.list")
@@ -97,24 +97,24 @@ var _configureListCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		for i, profile := range cliConfig.Profiles {
+		for i, env := range cliConfig.Environments {
 			var items table.KeyValuePairs
-			items.Add("profile name", profile.Name)
-			items.Add("provider", profile.Provider)
-			if profile.OperatorEndpoint != nil {
-				items.Add("cortex operator endpoint", *profile.OperatorEndpoint)
+			items.Add("environment name", env.Name)
+			items.Add("provider", env.Provider)
+			if env.OperatorEndpoint != nil {
+				items.Add("cortex operator endpoint", *env.OperatorEndpoint)
 			}
-			if profile.AWSAccessKeyID != nil {
-				items.Add("aws access key id", *profile.AWSAccessKeyID)
+			if env.AWSAccessKeyID != nil {
+				items.Add("aws access key id", *env.AWSAccessKeyID)
 			}
-			if profile.AWSSecretAccessKey != nil {
-				items.Add("aws secret access key", s.MaskString(*profile.AWSSecretAccessKey, 4))
+			if env.AWSSecretAccessKey != nil {
+				items.Add("aws secret access key", s.MaskString(*env.AWSSecretAccessKey, 4))
 			}
 
 			items.Print(&table.KeyValuePairOpts{
 				BoldFirstLine: pointer.Bool(true),
 			})
-			if i+1 < len(cliConfig.Profiles) {
+			if i+1 < len(cliConfig.Environments) {
 				fmt.Println()
 			}
 		}
@@ -122,22 +122,22 @@ var _configureListCmd = &cobra.Command{
 }
 
 var _configureRemoveCmd = &cobra.Command{
-	Use:   "remove PROFILE_NAME",
-	Short: "remove a configured profile",
+	Use:   "remove ENVIRONMENT_NAME",
+	Short: "remove a configured environment",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.configure.remove")
 
-		profileName := args[0]
+		envName := args[0]
 
-		if err := removeProfileFromCLIConfig(profileName); err != nil {
+		if err := removeEnvFromCLIConfig(envName); err != nil {
 			exit.Error(err)
 		}
 
-		if profileName == Local.String() {
-			fmt.Printf("✓ cleared %s profile\n", profileName)
+		if envName == Local.String() {
+			fmt.Printf("✓ cleared %s environment\n", envName)
 		} else {
-			fmt.Printf("✓ removed %s profile\n", profileName)
+			fmt.Printf("✓ removed %s environment\n", envName)
 		}
 	},
 }

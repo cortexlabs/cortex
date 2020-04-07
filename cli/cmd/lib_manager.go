@@ -289,7 +289,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_PROFILE_NAME=" + _flagProfile,
+			"CORTEX_ENV_NAME=" + _flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
@@ -319,7 +319,7 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_PROFILE_NAME=" + _flagProfile,
+			"CORTEX_ENV_NAME=" + _flagEnv,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,

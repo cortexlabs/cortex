@@ -28,7 +28,7 @@ import (
 )
 
 func init() {
-	addProfileFlag(_versionCmd, Local.String())
+	addEnvFlag(_versionCmd, Local.String())
 }
 
 var _versionCmd = &cobra.Command{
@@ -38,8 +38,8 @@ var _versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.version")
 
-		profile, err := readProfile(_flagProfile)
-		if err != nil || profile.Provider == Local {
+		env, err := readEnv(_flagEnv)
+		if err != nil || env.Provider == Local {
 			fmt.Println("cli version: " + consts.CortexVersion)
 			return
 		}
