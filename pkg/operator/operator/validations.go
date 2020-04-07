@@ -482,11 +482,7 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		userconfig.TFServeImageKey,
 	}
 	// do it in one go to avoid generating credentials twice
-	key, err := validateOverridenImages(images, keys)
-	if err != nil {
-		if key != "" {
-			return errors.Wrap(err, key)
-		}
+	if err := validateOverridenImages(images, keys); err != nil {
 		return err
 	}
 
@@ -791,7 +787,7 @@ func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quant
 	return virtualServices, maxMem, err
 }
 
-func validateOverridenImages(images, keys []string) (string, error) {
+func validateOverridenImages(images, keys []string) error {
 	images = slices.RemoveEmpties(images)
 	keys = slices.RemoveEmpties(keys)
 
@@ -807,11 +803,11 @@ func validateOverridenImages(images, keys []string) (string, error) {
 	if slices.HasTrue(ECRImages) {
 		tokenOutput, err := aws.GetECRAuthToken()
 		if err != nil {
-			return "", err
+			return err
 		}
 		ECRAuthConfig, err = aws.ExtractECRAuthConfigFromTokenOutput(tokenOutput)
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		dockerECRAuthConfig.Username = ECRAuthConfig.Username
@@ -821,7 +817,7 @@ func validateOverridenImages(images, keys []string) (string, error) {
 
 	ECRAuth, err := dockerlib.EncodeAuthConfig(dockerECRAuthConfig)
 	if err != nil {
-		return "", err
+		return err
 	}
 	noAuth, _ := dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{})
 
@@ -834,9 +830,9 @@ func validateOverridenImages(images, keys []string) (string, error) {
 			auth = noAuth
 		}
 		if !dockerlib.IsImageAccessible(cli, image, auth) {
-			return keys[i], ErrorInvalidOverriddenImage(image)
+			return errors.Wrap(ErrorDockerImageInaccessible(image), keys[i])
 		}
 	}
 
-	return "", nil
+	return nil
 }

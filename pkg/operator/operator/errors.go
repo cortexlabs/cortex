@@ -51,7 +51,7 @@ const (
 	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
-	ErrInvalidOverriddenImage             = "operator.invalid_overridden_image"
+	ErrDockerImageInaccessible            = "operator.docker_image_inaccesible"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -263,9 +263,9 @@ func ErrorAPINotDeployed(apiName string) error {
 	})
 }
 
-func ErrorInvalidOverriddenImage(image string) error {
+func ErrorDockerImageInaccessible(image string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidOverriddenImage,
+		Kind:    ErrDockerImageInaccessible,
 		Message: fmt.Sprintf("%s is not accessible", image),
 	})
 }
