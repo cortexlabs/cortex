@@ -33,7 +33,7 @@ const (
 	ErrTooShort                      = "configreader.too_short"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
-	ErrValidDockerImage              = "configreader.valid_docker_image"
+	ErrInvalidDockerImage            = "configreader.invalid_docker_image"
 	ErrMustHavePrefix                = "configreader.must_have_prefix"
 	ErrInvalidInterface              = "configreader.invalid_interface"
 	ErrInvalidFloat64                = "configreader.invalid_float64"
@@ -122,10 +122,10 @@ func ErrorAlphaNumericDashDotUnderscore(provided string) error {
 	})
 }
 
-func ErrorValidDockerImage(provided string) error {
+func ErrorInvalidDockerImage(provided string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrValidDockerImage,
-		Message: fmt.Sprintf("%s is not a valid docker image resource", s.UserStr(provided)),
+		Kind:    ErrInvalidDockerImage,
+		Message: fmt.Sprintf("%s is not a valid docker image path", s.UserStr(provided)),
 	})
 }
 

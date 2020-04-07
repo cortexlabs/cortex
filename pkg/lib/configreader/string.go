@@ -262,7 +262,7 @@ func ValidateStringVal(val string, v *StringValidation) error {
 
 	if v.DockerImage {
 		if !regex.IsValidDockerImage(val) && val != "" {
-			return ErrorValidDockerImage(val)
+			return ErrorInvalidDockerImage(val)
 		}
 	}
 
