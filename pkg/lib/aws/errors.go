@@ -136,6 +136,6 @@ func ErrorReadCredentials() error {
 func ErrorECRExtractingCredentials() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrECRExtractingCredentials,
-		Message: "can't extract ECR credentials",
+		Message: "unable to extract ECR credentials",
 	})
 }
