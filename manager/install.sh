@@ -16,7 +16,7 @@
 
 set -e
 
-CORTEX_VERSION=master
+export CORTEX_VERSION=master
 EKSCTL_TIMEOUT=45m
 
 arg1="$1"

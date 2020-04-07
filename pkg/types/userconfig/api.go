@@ -101,28 +101,28 @@ func (api *API) ApplyDefaultDockerPaths() {
 	case PythonPredictorType:
 		if predictor.Image == "" {
 			if usesGPU {
-				predictor.Image = "cortexlabs/python-serve-gpu:" + consts.CortexVersion
+				predictor.Image = consts.DefaultImagePythonServeGPU
 			} else {
-				predictor.Image = "cortexlabs/python-serve:" + consts.CortexVersion
+				predictor.Image = consts.DefaultImagePythonServe
 			}
 		}
 	case TensorFlowPredictorType:
 		if predictor.Image == "" {
-			predictor.Image = "cortexlabs/tf-api:" + consts.CortexVersion
+			predictor.Image = consts.DefaultImageTFAPI
 		}
 		if predictor.TFServeImage == "" {
 			if usesGPU {
-				predictor.TFServeImage = "cortexlabs/tf-serve-gpu:" + consts.CortexVersion
+				predictor.TFServeImage = consts.DefaultImageTFServeGPU
 			} else {
-				predictor.TFServeImage = "cortexlabs/tf-serve:" + consts.CortexVersion
+				predictor.TFServeImage = consts.DefaultImageTFServe
 			}
 		}
 	case ONNXPredictorType:
 		if predictor.Image == "" {
 			if usesGPU {
-				predictor.Image = "cortexlabs/onnx-serve-gpu:" + consts.CortexVersion
+				predictor.Image = consts.DefaultImageONNXServeGPU
 			} else {
-				predictor.Image = "cortexlabs/onnx-serve:" + consts.CortexVersion
+				predictor.Image = consts.DefaultImageONNXServe
 			}
 		}
 	}
