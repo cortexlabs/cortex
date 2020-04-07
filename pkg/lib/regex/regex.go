@@ -43,7 +43,6 @@ func IsAlphaNumericDashUnderscore(s string) bool {
 
 // used the evaluated form of
 // https://github.com/docker/distribution/blob/3150937b9f2b1b5b096b2634d0e7c44d4a0f89fb/reference/regexp.go#L68-L70
-
 var _dockerValidImage = regexp.MustCompile(
 	`^((?:(?:[a-z0-9]|[a-z0-9][a-z0-9-]*[a-z0-9])` +
 		`(?:(?:\.(?:[a-z0-9]|[a-z0-9][a-z0-9-]*[a-z0-9]))+)` +
