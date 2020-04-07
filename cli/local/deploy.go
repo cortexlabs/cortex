@@ -21,11 +21,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/docker/docker/api/types"
@@ -33,6 +36,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 )
 
@@ -42,6 +46,7 @@ func GetContainerByAPI(apiName string) ([]dockertypes.Container, error) {
 	dargs.Add("label", "apiName="+apiName)
 
 	containers, err := DockerClient().ContainerList(context.Background(), types.ContainerListOptions{
+		All:     true,
 		Filters: dargs,
 	})
 	if err != nil {
@@ -52,6 +57,35 @@ func GetContainerByAPI(apiName string) ([]dockertypes.Container, error) {
 }
 
 func DeployContainers(api *spec.API) error {
+	switch api.Predictor.Type {
+	case userconfig.TensorFlowPredictorType:
+		return TensorFlowSpec(api)
+	case userconfig.ONNXPredictorType:
+		return ONNXSpec(api)
+	default:
+		return PythonSpec(api)
+	}
+}
+
+func getAPIEnv(api *spec.API) []string {
+	envs := []string{}
+
+	for envName, envVal := range api.Predictor.Env {
+		envs = append(envs, fmt.Sprintf("%s=%s", envName, envVal))
+	}
+
+	return envs
+}
+
+func PythonSpec(api *spec.API) error {
+	apiBytes, err := msgpack.Marshal(api)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	os.MkdirAll(files.ParentDir(filepath.Join(LocalWorkspace, api.Key)), os.ModePerm)
+	err = files.WriteFile(apiBytes, filepath.Join(LocalWorkspace, api.Key))
+
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
 			"8888/tcp": []nat.PortBinding{
@@ -62,14 +96,13 @@ func DeployContainers(api *spec.API) error {
 		},
 		Mounts: []mount.Mount{
 			{
-				Type:     mount.TypeBind,
-				ReadOnly: true,
-				Source:   CWD,
-				Target:   "/mnt/project",
+				Type:   mount.TypeBind,
+				Source: CWD,
+				Target: "/mnt/project",
 			},
 			{
 				Type:   mount.TypeBind,
-				Source: filepath.Join(LocalWorkspace),
+				Source: LocalWorkspace,
 				Target: "/mnt/workspace",
 			},
 		},
@@ -80,21 +113,21 @@ func DeployContainers(api *spec.API) error {
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
-		Env: []string{
+		Env: append(
+			getAPIEnv(api),
 			"CORTEX_VERSION=master",
 			"CORTEX_SERVING_PORT=8888",
 			"CORTEX_PROVIDER=local",
-			"CORTEX_BASE_DIR=" + "/mnt/workspace",
-			"CORTEX_CACHE_DIR=" + "/mnt/cache",
-			"CORTEX_API_SPEC=" + filepath.Join("/mnt/workspace", api.Key),
-			"CORTEX_PROJECT_DIR=" + "/mnt/project",
+			"CORTEX_CACHE_DIR="+"/mnt/cache",
+			"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", api.Key),
+			"CORTEX_PROJECT_DIR="+"/mnt/project",
 			"CORTEX_WORKERS_PER_REPLICA=1",
 			"CORTEX_MAX_WORKER_CONCURRENCY=10",
 			"CORTEX_SO_MAX_CONN=10",
 			"CORTEX_THREADS_PER_WORKER=1",
-			"AWS_ACCESS_KEY_ID=" + os.Getenv("AWS_ACCESS_KEY_ID"),
-			"AWS_SECRET_ACCESS_KEY=" + os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		},
+			"AWS_ACCESS_KEY_ID="+os.Getenv("AWS_ACCESS_KEY_ID"),
+			"AWS_SECRET_ACCESS_KEY="+os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		),
 		ExposedPorts: nat.PortSet{
 			"8888/tcp": struct{}{},
 		},
@@ -118,78 +151,224 @@ func DeployContainers(api *spec.API) error {
 	return nil
 }
 
-// func ONNXSpec(api *spec.API) error {
-// 	modelPath := *api.Predictor.Model
+func ONNXSpec(api *spec.API) error {
+	modelPath := *api.Predictor.Model
 
-// 	hostConfig := &container.HostConfig{
-// 		PortBindings: nat.PortMap{
-// 			"8888/tcp": []nat.PortBinding{
-// 				{
-// 					// HostPort: "8888",
-// 				},
-// 			},
-// 		},
-// 		Mounts: []mount.Mount{
-// 			{
-// 				Type:   mount.TypeBind,
-// 				Source: CWD,
-// 				Target: "/mnt/project",
-// 			},
-// 			{
-// 				Type:   mount.TypeBind,
-// 				Source: CWD,
-// 				Target: "/mnt/project",
-// 			},
-// 			{
-// 				Type:   mount.TypeBind,
-// 				Source: filepath.Join(LocalWorkspace),
-// 				Target: "/mnt/workspace",
-// 			},
-// 		},
-// 	}
+	mountedModelPath := filepath.Join("/mnt/model", filepath.Base(modelPath))
 
-// 	containerConfig := &container.Config{
-// 		Image:        "cortexlabs/onnx-serve:latest",
-// 		Tty:          true,
-// 		AttachStdout: true,
-// 		AttachStderr: true,
-// 		Env: []string{
-// 			"CORTEX_VERSION=master",
-// 			"CORTEX_SERVING_PORT=8888",
-// 			"CORTEX_BASE_DIR=" + "/mnt/workspace",
-// 			"CORTEX_CACHE_DIR=" + "/mnt/cache",
-// 			"CORTEX_API_SPEC=" + filepath.Join("/mnt/workspace", api.Key),
-// 			"CORTEX_PROJECT_DIR=" + "/mnt/project",
-// 			"CORTEX_WORKERS_PER_REPLICA=1",
-// 			"CORTEX_MAX_WORKER_CONCURRENCY=10",
-// 			"CORTEX_SO_MAX_CONN=10",
-// 			"CORTEX_THREADS_PER_WORKER=1",
-// 			"AWS_ACCESS_KEY_ID=" + os.Getenv("AWS_ACCESS_KEY_ID"),
-// 			"AWS_SECRET_ACCESS_KEY=" + os.Getenv("AWS_SECRET_ACCESS_KEY"),
-// 		},
-// 		ExposedPorts: nat.PortSet{
-// 			"8888/tcp": struct{}{},
-// 		},
-// 		Labels: map[string]string{
-// 			"cortex":       "true",
-// 			"apiID":        api.ID,
-// 			"apiName":      api.Name,
-// 			"deploymentID": api.DeploymentID,
-// 		},
-// 	}
-// 	debug.Pp(containerConfig.Labels)
-// 	containerInfo, err := DockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
-// 	if err != nil {
-// 		return err
-// 	}
+	api.Predictor.Model = pointer.String(mountedModelPath)
 
-// 	err = DockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
-// 	if err != nil {
-// 		return err
-// 	}
+	apiBytes, err := msgpack.Marshal(api)
+	if err != nil {
+		exit.Error(err)
+	}
 
-// 	return nil
-// }
+	os.MkdirAll(files.ParentDir(filepath.Join(LocalWorkspace, api.Key)), os.ModePerm)
+	err = files.WriteFile(apiBytes, filepath.Join(LocalWorkspace, api.Key))
+
+	hostConfig := &container.HostConfig{
+		PortBindings: nat.PortMap{
+			"8888/tcp": []nat.PortBinding{
+				{
+					// HostPort: "8888",
+				},
+			},
+		},
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: CWD,
+				Target: "/mnt/project",
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: filepath.Dir(modelPath),
+				Target: "/mnt/model",
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: LocalWorkspace,
+				Target: "/mnt/workspace",
+			},
+		},
+	}
+
+	containerConfig := &container.Config{
+		Image:        "cortexlabs/onnx-serve:latest",
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Env: append(
+			getAPIEnv(api),
+			"CORTEX_VERSION=master",
+			"CORTEX_SERVING_PORT=8888",
+			"CORTEX_PROVIDER=local",
+			"CORTEX_CACHE_DIR="+"/mnt/cache",
+			"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", api.Key),
+			"CORTEX_PROJECT_DIR="+"/mnt/project",
+			"CORTEX_WORKERS_PER_REPLICA=1",
+			"CORTEX_MAX_WORKER_CONCURRENCY=10",
+			"CORTEX_SO_MAX_CONN=10",
+			"CORTEX_THREADS_PER_WORKER=1",
+			"AWS_ACCESS_KEY_ID="+os.Getenv("AWS_ACCESS_KEY_ID"),
+			"AWS_SECRET_ACCESS_KEY="+os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		),
+		ExposedPorts: nat.PortSet{
+			"8888/tcp": struct{}{},
+		},
+		Labels: map[string]string{
+			"cortex":       "true",
+			"apiID":        api.ID,
+			"apiName":      api.Name,
+			"deploymentID": api.DeploymentID,
+		},
+	}
+	containerInfo, err := DockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
+	if err != nil {
+		return err
+	}
+
+	err = DockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func TensorFlowSpec(api *spec.API) error {
+	modelPath := *api.Predictor.Model
+
+	mountPath := modelPath
+	if strings.HasSuffix(modelPath, ".zip") {
+		mountPath = filepath.Dir(modelPath)
+		fmt.Println(mountPath)
+		_, err := zip.UnzipFileToDir(modelPath, mountPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	api.Predictor.Model = pointer.String("/mnt/model")
+
+	apiBytes, err := msgpack.Marshal(api)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	os.MkdirAll(files.ParentDir(filepath.Join(LocalWorkspace, api.Key)), os.ModePerm)
+	err = files.WriteFile(apiBytes, filepath.Join(LocalWorkspace, api.Key))
+
+	serveHostConfig := &container.HostConfig{
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: mountPath,
+				Target: "/mnt/model",
+			},
+		},
+	}
+
+	serveContainerConfig := &container.Config{
+		Image:        "cortexlabs/tf-serve:latest",
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Cmd: strslice.StrSlice{
+			"--port=9000", "--model_base_path=/mnt/model",
+		},
+		ExposedPorts: nat.PortSet{
+			"9000/tcp": struct{}{},
+		},
+		Labels: map[string]string{
+			"cortex":       "true",
+			"apiID":        api.ID,
+			"apiName":      api.Name,
+			"deploymentID": api.DeploymentID,
+		},
+	}
+
+	containerCreateRequest, err := DockerClient().ContainerCreate(context.Background(), serveContainerConfig, serveHostConfig, nil, "")
+	if err != nil {
+		return err
+	}
+
+	err = DockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	containerInfo, err := DockerClient().ContainerInspect(context.Background(), containerCreateRequest.ID)
+	tfContainerHost := containerInfo.NetworkSettings.Networks["bridge"].IPAddress
+
+	apiHostConfig := &container.HostConfig{
+		PortBindings: nat.PortMap{
+			"8888/tcp": []nat.PortBinding{{}},
+		},
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: CWD,
+				Target: "/mnt/project",
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: mountPath,
+				Target: "/mnt/model",
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: LocalWorkspace,
+				Target: "/mnt/workspace",
+			},
+		},
+	}
+
+	apiContainerConfig := &container.Config{
+		Image:        "cortexlabs/tf-api:latest",
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Env: append(
+			getAPIEnv(api),
+			"CORTEX_VERSION=master",
+			"CORTEX_SERVING_PORT=8888",
+			"CORTEX_PROVIDER=local",
+			"CORTEX_CACHE_DIR="+"/mnt/cache",
+			"CORTEX_MODEL_DIR="+"/mnt/model",
+			"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", filepath.Base(api.Key)),
+			"CORTEX_PROJECT_DIR="+"/mnt/project",
+			"CORTEX_WORKERS_PER_REPLICA=1",
+			"CORTEX_TF_SERVING_PORT="+"9000",
+			"CORTEX_TF_SERVING_HOST="+tfContainerHost,
+			"CORTEX_MAX_WORKER_CONCURRENCY=10",
+			"CORTEX_SO_MAX_CONN=10",
+			"CORTEX_THREADS_PER_WORKER=1",
+			"AWS_ACCESS_KEY_ID="+os.Getenv("AWS_ACCESS_KEY_ID"),
+			"AWS_SECRET_ACCESS_KEY="+os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		),
+		ExposedPorts: nat.PortSet{
+			"8888/tcp": struct{}{},
+		},
+		Labels: map[string]string{
+			"cortex":       "true",
+			"apiID":        api.ID,
+			"apiName":      api.Name,
+			"deploymentID": api.DeploymentID,
+		},
+	}
+	containerCreateRequest, err = DockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")
+	if err != nil {
+		return err
+	}
+
+	err = DockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func DeleteContainers(apiName string) error {
 	containers, err := GetContainerByAPI(apiName)
@@ -224,15 +403,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	}
 
 	api := spec.GetAPISpec(apiConfig, projectID, deploymentID)
+	if _, ok := api.Predictor.Env["PYTHONDONTWRITEBYTECODE"]; !ok {
+		api.Predictor.Env["PYTHONDONTWRITEBYTECODE"] = "1"
+	}
 
 	if len(containers) == 0 {
-		apiBytes, err := msgpack.Marshal(api)
-		if err != nil {
-			exit.Error(err)
-		}
-		os.MkdirAll(files.ParentDir(filepath.Join(LocalWorkspace, api.Key)), os.ModePerm)
-		err = files.WriteFile(apiBytes, filepath.Join(LocalWorkspace, api.Key))
-
 		if err := DeployContainers(api); err != nil {
 			fmt.Println(err.Error())
 			DeleteContainers(api.Name)
@@ -246,17 +421,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		return api, fmt.Sprintf("%s is up to date", api.Name), nil
 	}
 
-	apiBytes, err := msgpack.Marshal(api)
-	if err != nil {
-		exit.Error(err)
-	}
-	os.MkdirAll(files.ParentDir(filepath.Join(LocalWorkspace, api.Key)), os.ModePerm)
-	err = files.WriteFile(apiBytes, filepath.Join(LocalWorkspace, api.Key))
-
 	DeleteContainers(api.Name)
 	if err := DeployContainers(api); err != nil {
-		panic("here")
-		fmt.Println("here")
 		DeleteContainers(api.Name)
 		return nil, "", err
 	}

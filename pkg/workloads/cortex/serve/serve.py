@@ -209,7 +209,8 @@ def start():
     spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     model_dir = os.getenv("CORTEX_MODEL_DIR", None)
-    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
+    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", "9000")
+    tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
     if provider == "local":
         storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
@@ -217,9 +218,9 @@ def start():
         storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
         raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
-        # raw_api_spec = raw_api_spec[0]
+        tf_serving_address = tf_serving_host + ":" + tf_serving_port
         api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
-        client = api.predictor.initialize_client(model_dir, tf_serving_port)
+        client = api.predictor.initialize_client(model_dir, tf_serving_address)
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
