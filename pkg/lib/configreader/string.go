@@ -50,7 +50,7 @@ type StringValidation struct {
 	CastScalar                           bool
 	AllowCortexResources                 bool
 	RequireCortexResources               bool
-	DockerImage                          bool
+	DockerImageOrEmpty                   bool
 	Validator                            func(string) (string, error)
 }
 
@@ -260,7 +260,7 @@ func ValidateStringVal(val string, v *StringValidation) error {
 		}
 	}
 
-	if v.DockerImage {
+	if v.DockerImageOrEmpty {
 		if !regex.IsValidDockerImage(val) && val != "" {
 			return ErrorInvalidDockerImage(val)
 		}

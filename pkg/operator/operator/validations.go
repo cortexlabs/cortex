@@ -107,17 +107,17 @@ var _predictorValidation = &cr.StructFieldValidation{
 			{
 				StructField: "Image",
 				StringValidation: &cr.StringValidation{
-					Required:    false,
-					AllowEmpty:  true,
-					DockerImage: true,
+					Required:           false,
+					AllowEmpty:         true,
+					DockerImageOrEmpty: true,
 				},
 			},
 			{
 				StructField: "TFServeImage",
 				StringValidation: &cr.StringValidation{
-					Required:    false,
-					AllowEmpty:  true,
-					DockerImage: true,
+					Required:           false,
+					AllowEmpty:         true,
+					DockerImageOrEmpty: true,
 				},
 			},
 			{
