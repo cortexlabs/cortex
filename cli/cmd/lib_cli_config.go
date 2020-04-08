@@ -196,7 +196,7 @@ var _envNamePromptValidation = &cr.PromptValidation{
 	},
 }
 
-func promptForEnvName() string {
+func promptEnvName() string {
 	envNameContainer := &struct {
 		EnvironmentName string
 	}{}
@@ -475,7 +475,7 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 
 		fmt.Printf("currently configured environments: %s\n\n", strings.Join(configuredEnvNames, ", "))
 
-		envName = promptForEnvName()
+		envName = promptEnvName()
 	} else {
 		fmt.Println("environment: " + envName + "\n")
 	}
