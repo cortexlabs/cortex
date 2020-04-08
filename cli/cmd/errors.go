@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 )
 
@@ -79,13 +80,13 @@ const (
 func ErrorInvalidProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidProvider,
-		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(ProviderStrings())),
+		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(types.ProviderTypeStrings())),
 	})
 }
 
 func ErrorLocalProviderNotSupported(environment Environment) error {
 	msg := "this command cannot run locally; please specify an existing environment (via --env=<name>) which points to an existing cluster, create/update an environment for an existing cluster (`cortex env configure <name>`), or create a cortex cluster (`cortex cluster up`)"
-	if environment.Name != Local.String() {
+	if environment.Name != types.LocalProviderType.String() {
 		msg = fmt.Sprintf("the %s environment uses the local provider, but ", environment.Name) + msg
 	}
 
@@ -95,7 +96,7 @@ func ErrorLocalProviderNotSupported(environment Environment) error {
 	})
 }
 
-func ErrorEnvironmentProviderNameConflict(envName string, provider Provider) error {
+func ErrorEnvironmentProviderNameConflict(envName string, provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentProviderNameConflict,
 		Message: fmt.Sprintf("the %s environment cannot use the %s provider", envName, provider.String()),

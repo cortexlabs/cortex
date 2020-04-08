@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -39,11 +40,11 @@ type CLIConfig struct {
 }
 
 type Environment struct {
-	Name               string   `json:"name" yaml:"name"`
-	Provider           Provider `json:"provider" yaml:"provider"`
-	OperatorEndpoint   *string  `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
-	AWSAccessKeyID     *string  `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
-	AWSSecretAccessKey *string  `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
+	Name               string             `json:"name" yaml:"name"`
+	Provider           types.ProviderType `json:"provider" yaml:"provider"`
+	OperatorEndpoint   *string            `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
+	AWSAccessKeyID     *string            `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
+	AWSSecretAccessKey *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
 }
 
 var _cliConfigValidation = &cr.StructValidation{
@@ -73,10 +74,10 @@ var _cliConfigValidation = &cr.StructValidation{
 							StructField: "Provider",
 							StringValidation: &cr.StringValidation{
 								Required:      true,
-								AllowedValues: ProviderStrings(),
+								AllowedValues: types.ProviderTypeStrings(),
 							},
 							Parser: func(str string) (interface{}, error) {
-								return ProviderFromString(str), nil
+								return types.ProviderTypeFromString(str), nil
 							},
 						},
 						{
@@ -121,10 +122,10 @@ func (cliConfig *CLIConfig) validate() error {
 	}
 
 	// Ensure the local env is always present
-	if !envNames.Has(Local.String()) {
+	if !envNames.Has(types.LocalProviderType.String()) {
 		localEnv := &Environment{
-			Name:     Local.String(),
-			Provider: Local,
+			Name:     types.LocalProviderType.String(),
+			Provider: types.LocalProviderType,
 		}
 
 		cliConfig.Environments = append([]*Environment{localEnv}, cliConfig.Environments...)
@@ -137,21 +138,21 @@ func (env *Environment) validate() error {
 	if env.Name == "" {
 		return errors.Wrap(cr.ErrorMustBeDefined(), "name")
 	}
-	if env.Provider == UnknownProvider {
-		return errors.Wrap(cr.ErrorMustBeDefined(ProviderStrings()), env.Name, "provider")
+	if env.Provider == types.UnknownProviderType {
+		return errors.Wrap(cr.ErrorMustBeDefined(types.ProviderTypeStrings()), env.Name, "provider")
 	}
 
 	if err := checkReservedEnvironmentNames(env.Name, env.Provider); err != nil {
 		return err
 	}
 
-	if env.Provider == Local {
+	if env.Provider == types.LocalProviderType {
 		if env.OperatorEndpoint != nil {
 			return errors.Wrap(ErrorOperatorEndpointInLocalEnvironment(), env.Name)
 		}
 	}
 
-	if env.Provider == AWS {
+	if env.Provider == types.AWSProviderType {
 		if env.OperatorEndpoint == nil {
 			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "operator_endpoint")
 		}
@@ -166,9 +167,9 @@ func (env *Environment) validate() error {
 	return nil
 }
 
-func checkReservedEnvironmentNames(envName string, provider Provider) error {
-	envNameProvider := ProviderFromString(envName)
-	if envNameProvider == UnknownProvider {
+func checkReservedEnvironmentNames(envName string, provider types.ProviderType) error {
+	envNameProvider := types.ProviderTypeFromString(envName)
+	if envNameProvider == types.UnknownProviderType {
 		return nil
 	}
 
@@ -181,7 +182,7 @@ func checkReservedEnvironmentNames(envName string, provider Provider) error {
 
 func providerPromptValidation(envName string, defaults Environment) *cr.PromptValidation {
 	defaultProviderStr := ""
-	if defaults.Provider != UnknownProvider {
+	if defaults.Provider != types.UnknownProviderType {
 		defaultProviderStr = defaults.Provider.String()
 	}
 
@@ -191,15 +192,15 @@ func providerPromptValidation(envName string, defaults Environment) *cr.PromptVa
 			{
 				StructField: "Provider",
 				PromptOpts: &prompt.Options{
-					Prompt: fmt.Sprintf("provider (%s)", s.StrsOr(ProviderStrings())),
+					Prompt: fmt.Sprintf("provider (%s)", s.StrsOr(types.ProviderTypeStrings())),
 				},
 				StringValidation: &cr.StringValidation{
 					Required:      true,
 					Default:       defaultProviderStr,
-					AllowedValues: ProviderStrings(),
+					AllowedValues: types.ProviderTypeStrings(),
 				},
 				Parser: func(str string) (interface{}, error) {
-					provider := ProviderFromString(str)
+					provider := types.ProviderTypeFromString(str)
 					if err := checkReservedEnvironmentNames(envName, provider); err != nil {
 						return nil, err
 					}
@@ -363,10 +364,10 @@ func readEnv(envName string) (*Environment, error) {
 		}
 	}
 
-	if envName == Local.String() {
+	if envName == types.LocalProviderType.String() {
 		return &Environment{
-			Name:     Local.String(),
-			Provider: Local,
+			Name:     types.LocalProviderType.String(),
+			Provider: types.LocalProviderType,
 		}, nil
 	}
 
@@ -380,7 +381,7 @@ func readOrConfigureNonLocalEnv(envName string) (Environment, error) {
 	}
 
 	if env != nil {
-		if env.Provider == Local {
+		if env.Provider == types.LocalProviderType {
 			return Environment{}, ErrorLocalProviderNotSupported(*env)
 		}
 		return *env, nil
@@ -392,7 +393,7 @@ func readOrConfigureNonLocalEnv(envName string) (Environment, error) {
 	prompt.YesOrExit(promptStr, yesMsg, noMsg)
 
 	fieldsToSkipPrompt := Environment{
-		Provider: AWS,
+		Provider: types.AWSProviderType,
 	}
 	return configureEnv(envName, fieldsToSkipPrompt)
 }
@@ -405,8 +406,8 @@ func getDefaultEnvConfig(envName string) Environment {
 		defaults = *prevEnv
 	}
 
-	if defaults.Provider == UnknownProvider {
-		if envNameProvider := ProviderFromString(envName); envNameProvider != UnknownProvider {
+	if defaults.Provider == types.UnknownProviderType {
+		if envNameProvider := types.ProviderTypeFromString(envName); envNameProvider != types.UnknownProviderType {
 			defaults.Provider = envNameProvider
 		}
 	}
@@ -429,8 +430,8 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 
 	defaults := getDefaultEnvConfig(envName)
 
-	if fieldsToSkipPrompt.Provider == UnknownProvider {
-		if envNameProvider := ProviderFromString(envName); envNameProvider != UnknownProvider {
+	if fieldsToSkipPrompt.Provider == types.UnknownProviderType {
+		if envNameProvider := types.ProviderTypeFromString(envName); envNameProvider != types.UnknownProviderType {
 			fieldsToSkipPrompt.Provider = envNameProvider
 		}
 	}
@@ -449,9 +450,9 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 	}
 
 	switch env.Provider {
-	case Local:
+	case types.LocalProviderType:
 		err = cr.ReadPrompt(&env, localEnvPromptValidation(defaults))
-	case AWS:
+	case types.AWSProviderType:
 		err = cr.ReadPrompt(&env, awsEnvPromptValidation(defaults))
 	}
 	if err != nil {
@@ -540,7 +541,7 @@ func removeEnvFromCLIConfig(envName string) error {
 		updatedEnvs = append(updatedEnvs, env)
 	}
 
-	if deleted == false && envName != Local.String() {
+	if deleted == false && envName != types.LocalProviderType.String() {
 		return ErrorEnvironmentNotConfigured(envName)
 	}
 

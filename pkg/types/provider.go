@@ -14,67 +14,67 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package types
 
-type Provider int
+type ProviderType int
 
 const (
-	UnknownProvider Provider = iota
-	Local
-	AWS
+	UnknownProviderType ProviderType = iota
+	LocalProviderType
+	AWSProviderType
 )
 
-var _providers = []string{
+var _providerTypes = []string{
 	"unknown",
 	"local",
 	"aws",
 }
 
-var _ = [1]int{}[int(AWS)-(len(_providers)-1)] // Ensure list length matches
+var _ = [1]int{}[int(AWSProviderType)-(len(_providerTypes)-1)] // Ensure list length matches
 
-func ProviderFromString(s string) Provider {
-	for i := 0; i < len(_providers); i++ {
-		if s == _providers[i] {
-			return Provider(i)
+func ProviderTypeFromString(s string) ProviderType {
+	for i := 0; i < len(_providerTypes); i++ {
+		if s == _providerTypes[i] {
+			return ProviderType(i)
 		}
 	}
-	return UnknownProvider
+	return UnknownProviderType
 }
 
-func ProviderStrings() []string {
-	return _providers[1:]
+func ProviderTypeStrings() []string {
+	return _providerTypes[1:]
 }
 
-func (t Provider) String() string {
-	return _providers[t]
+func (t ProviderType) String() string {
+	return _providerTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler
-func (t Provider) MarshalText() ([]byte, error) {
+func (t ProviderType) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
-func (t *Provider) UnmarshalText(text []byte) error {
+func (t *ProviderType) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(_providers); i++ {
-		if enum == _providers[i] {
-			*t = Provider(i)
+	for i := 0; i < len(_providerTypes); i++ {
+		if enum == _providerTypes[i] {
+			*t = ProviderType(i)
 			return nil
 		}
 	}
 
-	*t = UnknownProvider
+	*t = UnknownProviderType
 	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
-func (t *Provider) UnmarshalBinary(data []byte) error {
+func (t *ProviderType) UnmarshalBinary(data []byte) error {
 	return t.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
-func (t Provider) MarshalBinary() ([]byte, error) {
+func (t ProviderType) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }

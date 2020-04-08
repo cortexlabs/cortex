@@ -24,11 +24,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	addEnvFlag(_logsCmd, Local.String())
+	addEnvFlag(_logsCmd, types.LocalProviderType.String())
 }
 
 var _logsCmd = &cobra.Command{

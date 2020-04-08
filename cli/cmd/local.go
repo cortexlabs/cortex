@@ -43,11 +43,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/docker/docker/api/types"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/spf13/cobra"
@@ -55,7 +55,7 @@ import (
 
 func init() {
 	localCmd.PersistentFlags()
-	addEnvFlag(localCmd, Local.String())
+	addEnvFlag(localCmd, types.LocalProviderType.String())
 	_localWorkSpace = filepath.Join(_localDir, "local_workspace")
 }
 
@@ -379,7 +379,7 @@ func GetAllContainers() ([]dockertypes.Container, error) {
 
 	dargs := filters.NewArgs()
 	dargs.Add("label", "cortex=true")
-	containers, err := docker.ContainerList(context.Background(), types.ContainerListOptions{
+	containers, err := docker.ContainerList(context.Background(), dockertypes.ContainerListOptions{
 		All:     true,
 		Filters: dargs,
 	})
@@ -416,13 +416,13 @@ var localLogs = &cobra.Command{
 		if err != nil {
 			// TODO
 		}
-		debug.Pp(containers)
-		// containerIDs := []string{}
-		// for _, container := range containers {
-		// 	containerIDs = append(containerIDs, container.ID)
-		// }
 
-		// streamDockerLogs(containerIDs[0], containerIDs[1:]...)
+		containerIDs := []string{}
+		for _, container := range containers {
+			containerIDs = append(containerIDs, container.ID)
+		}
+
+		streamDockerLogs(containerIDs[0], containerIDs[1:]...)
 	},
 }
 

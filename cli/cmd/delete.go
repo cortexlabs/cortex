@@ -26,6 +26,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,7 @@ var _flagDeleteForce bool
 func init() {
 	_deleteCmd.PersistentFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the api")
 	_deleteCmd.PersistentFlags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
-	addEnvFlag(_deleteCmd, Local.String())
+	addEnvFlag(_deleteCmd, types.LocalProviderType.String())
 }
 
 var _deleteCmd = &cobra.Command{

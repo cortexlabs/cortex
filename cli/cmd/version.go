@@ -24,11 +24,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	addEnvFlag(_versionCmd, Local.String())
+	addEnvFlag(_versionCmd, types.LocalProviderType.String())
 }
 
 var _versionCmd = &cobra.Command{
@@ -39,7 +40,7 @@ var _versionCmd = &cobra.Command{
 		telemetry.Event("cli.version")
 
 		env, err := readEnv(_flagEnv)
-		if err != nil || env.Provider == Local {
+		if err != nil || env.Provider == types.LocalProviderType {
 			fmt.Println("cli version: " + consts.CortexVersion)
 			return
 		}

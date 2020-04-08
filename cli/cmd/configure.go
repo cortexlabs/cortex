@@ -24,6 +24,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,7 @@ var _flagAWSAccessKeyID string
 var _flagAWSSecretAccessKey string
 
 func init() {
-	addEnvFlag(_configureCmd, Local.String())
+	addEnvFlag(_configureCmd, types.LocalProviderType.String())
 	_configureCmd.Flags().StringVarP(&_flagProvider, "provider", "v", "", "set the provider without prompting")
 	_configureCmd.Flags().StringVarP(&_flagOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
 	_configureCmd.Flags().StringVarP(&_flagAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
@@ -51,10 +52,10 @@ var _configureCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.configure")
 
-		skipProvider := UnknownProvider
+		skipProvider := types.UnknownProviderType
 		if _flagProvider != "" {
-			skipProvider = ProviderFromString(_flagProvider)
-			if skipProvider == UnknownProvider {
+			skipProvider = types.ProviderTypeFromString(_flagProvider)
+			if skipProvider == types.UnknownProviderType {
 				exit.Error(ErrorInvalidProvider(_flagProvider))
 			}
 		}
@@ -134,7 +135,7 @@ var _configureRemoveCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if envName == Local.String() {
+		if envName == types.LocalProviderType.String() {
 			fmt.Printf("✓ cleared %s environment\n", envName)
 		} else {
 			fmt.Printf("✓ removed %s environment\n", envName)

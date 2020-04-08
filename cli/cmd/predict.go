@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +46,7 @@ var _predictClient = &GenericClient{
 }
 
 func init() {
-	addEnvFlag(_predictCmd, Local.String())
+	addEnvFlag(_predictCmd, types.LocalProviderType.String())
 	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }
 
