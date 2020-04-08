@@ -291,7 +291,9 @@ func (predictor *Predictor) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
+	if predictor.TFServeImage != "" {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
+	}
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&predictor.Config)
