@@ -42,7 +42,7 @@ func init() {
 
 	_envCmd.AddCommand(_envListCmd)
 
-	_envCmd.AddCommand(_envRemoveCmd)
+	_envCmd.AddCommand(_envDeleteCmd)
 }
 
 var _envCmd = &cobra.Command{
@@ -132,12 +132,12 @@ var _envListCmd = &cobra.Command{
 	},
 }
 
-var _envRemoveCmd = &cobra.Command{
-	Use:   "remove ENVIRONMENT_NAME",
-	Short: "remove an environment configuration",
+var _envDeleteCmd = &cobra.Command{
+	Use:   "delete ENVIRONMENT_NAME",
+	Short: "delete an environment configuration",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.configure.remove")
+		telemetry.Event("cli.configure.delete")
 
 		envName := args[0]
 
@@ -146,9 +146,9 @@ var _envRemoveCmd = &cobra.Command{
 		}
 
 		if envName == types.LocalProviderType.String() {
-			fmt.Printf("✓ cleared %s environment\n", envName)
+			fmt.Printf("✓ cleared %s environment configuration\n", envName)
 		} else {
-			fmt.Printf("✓ removed %s environment\n", envName)
+			fmt.Printf("✓ deleted %s environment configuration\n", envName)
 		}
 	},
 }
