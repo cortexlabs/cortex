@@ -133,13 +133,18 @@ var _envListCmd = &cobra.Command{
 }
 
 var _envDeleteCmd = &cobra.Command{
-	Use:   "delete ENVIRONMENT_NAME",
+	Use:   "delete [ENVIRONMENT_NAME]",
 	Short: "delete an environment configuration",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.configure.delete")
 
-		envName := args[0]
+		var envName string
+		if len(args) == 1 {
+			envName = args[0]
+		} else {
+			envName = promptEnvName("name of environment to delete", true)
+		}
 
 		if err := removeEnvFromCLIConfig(envName); err != nil {
 			exit.Error(err)

@@ -182,26 +182,37 @@ func checkReservedEnvironmentNames(envName string, provider types.ProviderType) 
 	return nil
 }
 
-var _envNamePromptValidation = &cr.PromptValidation{
-	PromptItemValidations: []*cr.PromptItemValidation{
-		{
-			StructField: "EnvironmentName",
-			PromptOpts: &prompt.Options{
-				Prompt: "name of environment to update or create",
-			},
-			StringValidation: &cr.StringValidation{
-				Required: true,
-			},
-		},
-	},
-}
+func promptEnvName(promptMsg string, requireExistingEnv bool) string {
+	configuredEnvNames, err := listConfiguredEnvs()
+	if err != nil {
+		exit.Error(err)
+	}
 
-func promptEnvName() string {
+	fmt.Printf("currently configured environments: %s\n\n", strings.Join(configuredEnvNames, ", "))
+
+	var allowedValues []string
+	if requireExistingEnv {
+		allowedValues = configuredEnvNames
+	}
+
 	envNameContainer := &struct {
 		EnvironmentName string
 	}{}
 
-	err := cr.ReadPrompt(envNameContainer, _envNamePromptValidation)
+	err = cr.ReadPrompt(envNameContainer, &cr.PromptValidation{
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "EnvironmentName",
+				PromptOpts: &prompt.Options{
+					Prompt: promptMsg,
+				},
+				StringValidation: &cr.StringValidation{
+					Required:      true,
+					AllowedValues: allowedValues,
+				},
+			},
+		},
+	})
 	if err != nil {
 		if err != nil {
 			exit.Error(err)
@@ -468,14 +479,7 @@ func getDefaultEnvConfig(envName string) Environment {
 // If envName is "", this will prompt for the environment name to configure
 func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, error) {
 	if envName == "" {
-		configuredEnvNames, err := listConfiguredEnvs()
-		if err != nil {
-			return Environment{}, err
-		}
-
-		fmt.Printf("currently configured environments: %s\n\n", strings.Join(configuredEnvNames, ", "))
-
-		envName = promptEnvName()
+		envName = promptEnvName("name of environment to update or create", false)
 	} else {
 		fmt.Println("environment: " + envName + "\n")
 	}
