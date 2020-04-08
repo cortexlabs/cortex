@@ -136,7 +136,7 @@ func Execute() {
 	_rootCmd.AddCommand(_clusterCmd)
 	_rootCmd.AddCommand(_versionCmd)
 
-	_rootCmd.AddCommand(_configureCmd)
+	_rootCmd.AddCommand(_envCmd)
 	_rootCmd.AddCommand(_completionCmd)
 
 	updateRootUsage()

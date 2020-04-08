@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
@@ -180,13 +182,42 @@ func checkReservedEnvironmentNames(envName string, provider types.ProviderType) 
 	return nil
 }
 
-func providerPromptValidation(envName string, defaults Environment) *cr.PromptValidation {
+var _envNamePromptValidation = &cr.PromptValidation{
+	PromptItemValidations: []*cr.PromptItemValidation{
+		{
+			StructField: "EnvironmentName",
+			PromptOpts: &prompt.Options{
+				Prompt: "name of environment to update or create",
+			},
+			StringValidation: &cr.StringValidation{
+				Required: true,
+			},
+		},
+	},
+}
+
+func promptForEnvName() string {
+	envNameContainer := &struct {
+		EnvironmentName string
+	}{}
+
+	err := cr.ReadPrompt(envNameContainer, _envNamePromptValidation)
+	if err != nil {
+		if err != nil {
+			exit.Error(err)
+		}
+	}
+
+	return envNameContainer.EnvironmentName
+}
+
+func promptProvider(env *Environment, envName string, defaults Environment) error {
 	defaultProviderStr := ""
 	if defaults.Provider != types.UnknownProviderType {
 		defaultProviderStr = defaults.Provider.String()
 	}
 
-	return &cr.PromptValidation{
+	return cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -208,21 +239,16 @@ func providerPromptValidation(envName string, defaults Environment) *cr.PromptVa
 				},
 			},
 		},
-	}
+	})
 }
 
-func localEnvPromptValidation(defaults Environment) *cr.PromptValidation {
+func promptLocalEnv(env *Environment, defaults Environment) error {
 	accessKeyIDPrompt := "aws access key id"
 	if defaults.AWSAccessKeyID == nil {
 		accessKeyIDPrompt += " [press ENTER to skip]"
 	}
 
-	secretAccessKeyPrompt := "aws secret access key"
-	if defaults.AWSSecretAccessKey == nil {
-		secretAccessKeyPrompt += " [press ENTER to skip]"
-	}
-
-	return &cr.PromptValidation{
+	err := cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -236,25 +262,39 @@ func localEnvPromptValidation(defaults Environment) *cr.PromptValidation {
 					Default:    defaults.AWSAccessKeyID,
 				},
 			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Don't prompt for secret access key if access key ID was not provided
+	if env.AWSAccessKeyID == nil {
+		env.AWSSecretAccessKey = nil
+		return nil
+	}
+
+	return cr.ReadPrompt(env, &cr.PromptValidation{
+		SkipNonEmptyFields: true,
+		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "AWSSecretAccessKey",
 				PromptOpts: &prompt.Options{
-					Prompt:      secretAccessKeyPrompt,
+					Prompt:      "aws secret access key",
 					MaskDefault: true,
 					HideTyping:  true,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					Required:   false,
-					AllowEmpty: true,
-					Default:    defaults.AWSSecretAccessKey,
+					Required: true,
+					Default:  defaults.AWSSecretAccessKey,
 				},
 			},
 		},
-	}
+	})
 }
 
-func awsEnvPromptValidation(defaults Environment) *cr.PromptValidation {
-	return &cr.PromptValidation{
+func promptAWSEnv(env *Environment, defaults Environment) error {
+	return cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -291,7 +331,7 @@ func awsEnvPromptValidation(defaults Environment) *cr.PromptValidation {
 				},
 			},
 		},
-	}
+	})
 }
 
 // Only validate this during prompt, not when reading from file
@@ -425,8 +465,20 @@ func getDefaultEnvConfig(envName string) Environment {
 	return defaults
 }
 
+// If envName is "", this will prompt for the environment name to configure
 func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, error) {
-	fmt.Println("environment: " + envName + "\n")
+	if envName == "" {
+		configuredEnvNames, err := listConfiguredEnvs()
+		if err != nil {
+			return Environment{}, err
+		}
+
+		fmt.Printf("currently configured environments: %s\n\n", strings.Join(configuredEnvNames, ", "))
+
+		envName = promptForEnvName()
+	} else {
+		fmt.Println("environment: " + envName + "\n")
+	}
 
 	defaults := getDefaultEnvConfig(envName)
 
@@ -444,16 +496,16 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 		AWSSecretAccessKey: fieldsToSkipPrompt.AWSSecretAccessKey,
 	}
 
-	err := cr.ReadPrompt(&env, providerPromptValidation(envName, defaults))
+	err := promptProvider(&env, envName, defaults)
 	if err != nil {
 		return Environment{}, err
 	}
 
 	switch env.Provider {
 	case types.LocalProviderType:
-		err = cr.ReadPrompt(&env, localEnvPromptValidation(defaults))
+		err = promptLocalEnv(&env, defaults)
 	case types.AWSProviderType:
-		err = cr.ReadPrompt(&env, awsEnvPromptValidation(defaults))
+		err = promptAWSEnv(&env, defaults)
 	}
 	if err != nil {
 		return Environment{}, err
@@ -491,6 +543,20 @@ func readCLIConfig() (CLIConfig, error) {
 	}
 
 	return cliConfig, nil
+}
+
+func listConfiguredEnvs() ([]string, error) {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	envNames := make([]string, len(cliConfig.Environments))
+	for i, env := range cliConfig.Environments {
+		envNames[i] = env.Name
+	}
+
+	return envNames, nil
 }
 
 func addEnvToCLIConfig(newEnv Environment) error {

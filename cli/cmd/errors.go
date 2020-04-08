@@ -85,7 +85,7 @@ func ErrorInvalidProvider(providerStr string) error {
 }
 
 func ErrorLocalProviderNotSupported(environment Environment) error {
-	msg := "this command cannot run locally; please specify an existing environment (via --env=<name>) which points to an existing cluster, create/update an environment for an existing cluster (`cortex env configure <name>`), or create a cortex cluster (`cortex cluster up`)"
+	msg := "this command cannot run locally; please specify an existing environment (via --env=<name>) which points to an existing cluster, create/update an environment for an existing cluster (`cortex env configure`), or create a cortex cluster (`cortex cluster up`)"
 	if environment.Name != types.LocalProviderType.String() {
 		msg = fmt.Sprintf("the %s environment uses the local provider, but ", environment.Name) + msg
 	}
@@ -179,10 +179,10 @@ func ErrorAPINotReady(apiName string, status string) error {
 	})
 }
 
-func ErrorFailedToConnectOperator(originalError error, operatorURL string) error {
+func ErrorFailedToConnectOperator(originalError error, envName string, operatorURL string) error {
 	operatorURLMsg := ""
 	if operatorURL != "" {
-		operatorURLMsg = fmt.Sprintf(" (%s)", operatorURL)
+		operatorURLMsg = fmt.Sprintf(" (operator endpoint: %s)", operatorURL)
 	}
 
 	originalErrMsg := ""
@@ -192,7 +192,7 @@ func ErrorFailedToConnectOperator(originalError error, operatorURL string) error
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToConnectOperator,
-		Message: fmt.Sprintf("%sfailed to connect to the operator%s; run `cortex configure` if you need to update the operator endpoint, `cortex cluster info` to show your operator endpoint, or `cortex cluster up` to create a new cluster", originalErrMsg, operatorURLMsg),
+		Message: fmt.Sprintf("%sfailed to connect to the operator in the %s environment %s; run `cortex env configure %s` if you need to update the operator endpoint, `cortex cluster info` to show your operator endpoint, or `cortex cluster up` to create a new cluster", originalErrMsg, envName, envName, operatorURLMsg),
 	})
 }
 

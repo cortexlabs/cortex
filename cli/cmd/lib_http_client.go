@@ -206,14 +206,14 @@ func StreamLogs(apiName string) error {
 
 	connection, response, err := dialer.Dial(wsURL, header)
 	if err != nil && response == nil {
-		return ErrorFailedToConnectOperator(err, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
+		return ErrorFailedToConnectOperator(err, _flagEnv, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
 	}
 	defer response.Body.Close()
 
 	if err != nil {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			return ErrorFailedToConnectOperator(err, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
+			return ErrorFailedToConnectOperator(err, _flagEnv, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
 		}
 		var output schema.ErrorResponse
 		err = json.Unmarshal(bodyBytes, &output)
@@ -298,7 +298,7 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, ErrorFailedToConnectOperator(err, operatorEndpointOrBlank())
+		return nil, ErrorFailedToConnectOperator(err, _flagEnv, operatorEndpointOrBlank())
 	}
 	defer response.Body.Close()
 
