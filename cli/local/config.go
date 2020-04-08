@@ -57,7 +57,7 @@ func init() {
 		exit.Error(err)
 	}
 
-	LocalWorkspace = filepath.Join(LocalDir, "local_workspace")
+	LocalWorkspace = filepath.Join(LocalDir, "workspace")
 	err = os.MkdirAll(LocalWorkspace, os.ModePerm)
 	if err != nil {
 		err := errors.Wrap(err, "unable to write to home directory", LocalWorkspace)

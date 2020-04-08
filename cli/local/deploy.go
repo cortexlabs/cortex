@@ -102,7 +102,7 @@ func PythonSpec(api *spec.API) error {
 			},
 			{
 				Type:   mount.TypeBind,
-				Source: LocalWorkspace,
+				Source: filepath.Join(LocalWorkspace, filepath.Dir(api.Key)),
 				Target: "/mnt/workspace",
 			},
 		},
@@ -119,7 +119,7 @@ func PythonSpec(api *spec.API) error {
 			"CORTEX_SERVING_PORT=8888",
 			"CORTEX_PROVIDER=local",
 			"CORTEX_CACHE_DIR="+"/mnt/cache",
-			"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", api.Key),
+			"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", filepath.Base(api.Key)),
 			"CORTEX_PROJECT_DIR="+"/mnt/project",
 			"CORTEX_WORKERS_PER_REPLICA=1",
 			"CORTEX_MAX_WORKER_CONCURRENCY=10",
@@ -133,6 +133,7 @@ func PythonSpec(api *spec.API) error {
 		},
 		Labels: map[string]string{
 			"cortex":       "true",
+			"type":         "api",
 			"apiID":        api.ID,
 			"apiName":      api.Name,
 			"deploymentID": api.DeploymentID,
@@ -187,7 +188,7 @@ func ONNXSpec(api *spec.API) error {
 			},
 			{
 				Type:   mount.TypeBind,
-				Source: LocalWorkspace,
+				Source: filepath.Join(LocalWorkspace, filepath.Dir(api.Key)),
 				Target: "/mnt/workspace",
 			},
 		},
@@ -218,6 +219,7 @@ func ONNXSpec(api *spec.API) error {
 		},
 		Labels: map[string]string{
 			"cortex":       "true",
+			"type":         "api",
 			"apiID":        api.ID,
 			"apiName":      api.Name,
 			"deploymentID": api.DeploymentID,
@@ -282,6 +284,7 @@ func TensorFlowSpec(api *spec.API) error {
 		},
 		Labels: map[string]string{
 			"cortex":       "true",
+			"type":         "serve",
 			"apiID":        api.ID,
 			"apiName":      api.Name,
 			"deploymentID": api.DeploymentID,
@@ -318,7 +321,7 @@ func TensorFlowSpec(api *spec.API) error {
 			},
 			{
 				Type:   mount.TypeBind,
-				Source: LocalWorkspace,
+				Source: filepath.Join(LocalWorkspace, filepath.Dir(api.Key)),
 				Target: "/mnt/workspace",
 			},
 		},
@@ -352,6 +355,7 @@ func TensorFlowSpec(api *spec.API) error {
 		},
 		Labels: map[string]string{
 			"cortex":       "true",
+			"type":         "api",
 			"apiID":        api.ID,
 			"apiName":      api.Name,
 			"deploymentID": api.DeploymentID,

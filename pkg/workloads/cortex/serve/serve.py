@@ -66,18 +66,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
+local_cache = {
+    "api": None,
+    "provider": None,
+    "predictor_impl": None,
+    "client": None,
+    "class_set": set(),
+}
 
 
 def update_api_liveness():
     threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
-    with open("/mnt/api_liveness.txt", "w") as f:
+    with open("/mnt/workspace/api_liveness.txt", "w") as f:
         f.write(str(math.ceil(time.time())))
 
 
 @app.on_event("startup")
 def startup():
-    open("/mnt/api_readiness.txt", "a").close()
+    open("/mnt/workspace/api_readiness.txt", "a").close()
     update_api_liveness()
 
 
@@ -124,9 +130,10 @@ async def register_request(request: Request, call_next):
     response = None
     try:
         if is_prediction_request(request):
-            request_id = request.headers["x-request-id"]
-            file_id = f"/mnt/requests/{request_id}"
-            open(file_id, "a").close()
+            if local_cache["provider"] != "local":
+                request_id = request.headers["x-request-id"]
+                file_id = f"/mnt/requests/{request_id}"
+                open(file_id, "a").close()
 
         response = await call_next(request)
     finally:
@@ -225,6 +232,7 @@ def start():
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
         local_cache["api"] = api
+        local_cache["provider"] = provider
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
     except:
