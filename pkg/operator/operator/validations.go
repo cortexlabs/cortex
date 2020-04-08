@@ -489,8 +489,7 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 	// }
 	// return &errors.Error{}
 
-	err := validateDockerImagePath(predictor.Image)
-	return &errors.Error{Message: err.Error()}
+	// err := validateDockerImagePath(predictor.Image)
 
 	for key := range predictor.Env {
 		if strings.HasPrefix(key, "CORTEX_") {

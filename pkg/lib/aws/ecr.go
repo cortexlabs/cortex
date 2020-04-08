@@ -33,11 +33,11 @@ type ECRAuthConfig struct {
 
 func (c *Client) GetECRAuthToken() (*ecr.GetAuthorizationTokenOutput, error) {
 	svc := c.ECR()
-	if result, err := svc.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{}); err != nil {
+	result, err := svc.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	if err != nil {
 		return result, errors.Wrap(err, "failed to retrieve ECR auth token")
-	} else {
-		return result, nil
 	}
+	return result, nil
 }
 
 func (c *Client) GetECRAuthConfig() (ECRAuthConfig, error) {
