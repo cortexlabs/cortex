@@ -51,6 +51,7 @@ const (
 	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
+	ErrRegistryAccountIDMismatch          = "operator.registry_account_id_mismatch"
 	ErrDockerImageInaccessible            = "operator.docker_image_inaccesible"
 )
 
@@ -262,6 +263,13 @@ func ErrorAPINotDeployed(apiName string) error {
 		Message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
 	})
 
+}
+
+func ErrorRegistryAccountIDMismatch(regID, opID string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrRegistryAccountIDMismatch,
+		Message: fmt.Sprintf("AWS registry account ID %s doesn't match operator's account ID %s", regID, opID),
+	})
 }
 
 func ErrorDockerImageInaccessible(image string) error {

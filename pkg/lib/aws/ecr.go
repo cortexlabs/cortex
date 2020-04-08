@@ -17,14 +17,12 @@ limitations under the License.
 package aws
 
 import (
-	"context"
 	"encoding/base64"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/regex"
 )
 
 type ECRAuthConfig struct {
@@ -33,56 +31,44 @@ type ECRAuthConfig struct {
 	ProxyEndpoint string
 }
 
-func GetECRAuthToken() (*ecr.GetAuthorizationTokenOutput, error) {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	svc := ecr.New(sess)
-	input := &ecr.GetAuthorizationTokenInput{}
-	result, err := svc.GetAuthorizationTokenWithContext(context.Background(), input)
-
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecr.ErrCodeServerException:
-				return result, errors.Wrap(aerr, ecr.ErrCodeServerException, "failed to retrieve ECR auth token")
-			case ecr.ErrCodeInvalidParameterException:
-				return result, errors.Wrap(
-					aerr,
-					ecr.ErrCodeInvalidParameterException,
-					"failed to retrieve ECR auth token",
-				)
-			default:
-				return result, errors.Wrap(aerr, "failed to retrieve ECR auth token")
-			}
-		} else {
-			return result, errors.Wrap(err, "failed to retrieve ECR auth token")
-		}
+func (c *Client) GetECRAuthToken() (*ecr.GetAuthorizationTokenOutput, error) {
+	svc := c.ECR()
+	if result, err := svc.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{}); err != nil {
+		return result, errors.Wrap(err, "failed to retrieve ECR auth token")
+	} else {
+		return result, nil
 	}
-
-	return result, nil
 }
 
-func ExtractECRAuthConfigFromTokenOutput(auth *ecr.GetAuthorizationTokenOutput) (ECRAuthConfig, error) {
-	var authConfig ECRAuthConfig
-	if len(auth.AuthorizationData) < 1 {
-		return authConfig, errors.Wrap(ErrorECRExtractingCredentials(), "index out of range")
+func (c *Client) GetECRAuthConfig() (ECRAuthConfig, error) {
+	tokenOutput, err := c.GetECRAuthToken()
+	if err != nil {
+		return ECRAuthConfig{}, err
 	}
-	authData := auth.AuthorizationData[0]
+	authData := tokenOutput.AuthorizationData[0]
 
 	credentials, err := base64.URLEncoding.DecodeString(*authData.AuthorizationToken)
 	if err != nil {
-		return authConfig, errors.Wrap(ErrorECRExtractingCredentials(), err.Error())
+		return ECRAuthConfig{}, errors.Wrap(err, ErrorECRExtractingCredentials().Error())
 	}
 	credentialsString := string(credentials)
 	splitCredentials := strings.Split(credentialsString, ":")
 	if len(splitCredentials) != 2 {
-		return authConfig, ErrorECRExtractingCredentials()
+		return ECRAuthConfig{}, ErrorECRExtractingCredentials()
 	}
 
-	authConfig.Username = splitCredentials[0]
-	authConfig.AccessToken = splitCredentials[1]
-	authConfig.ProxyEndpoint = *authData.ProxyEndpoint
+	return ECRAuthConfig{
+		Username:      splitCredentials[0],
+		AccessToken:   splitCredentials[1],
+		ProxyEndpoint: *authData.ProxyEndpoint,
+	}, nil
+}
 
-	return authConfig, nil
+func GetAccountIDFromECRURL(path string) string {
+	if regex.IsValidECRURL(path) {
+		split := strings.Split(path, ".")
+		accountID := split[0]
+		return accountID
+	}
+	return ""
 }

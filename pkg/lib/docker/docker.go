@@ -26,6 +26,14 @@ import (
 	dockerclient "github.com/docker/docker/client"
 )
 
+var (
+	NoAuth string
+)
+
+func init() {
+	NoAuth, _ = EncodeAuthConfig(dockertypes.AuthConfig{})
+}
+
 func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 	encoded, err := json.Marshal(authConfig)
 	if err != nil {
@@ -35,9 +43,7 @@ func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 	return registryAuth, nil
 }
 
-func IsImageAccessible(client *dockerclient.Client, dockerImage, registryAuth string) bool {
-	if _, err := client.DistributionInspect(context.Background(), dockerImage, registryAuth); err != nil {
-		return false
-	}
-	return true
+func CheckImageAccessible(c *dockerclient.Client, dockerImage, registryAuth string) error {
+	_, err := c.DistributionInspect(context.Background(), dockerImage, registryAuth)
+	return err
 }

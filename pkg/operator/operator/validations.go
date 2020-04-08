@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	// "github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -475,21 +475,22 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		}
 	}
 
-	images := []string{
-		predictor.Image,
-		predictor.TFServeImage,
-	}
-	keys := []string{
-		userconfig.ImageKey,
-		userconfig.TFServeImageKey,
-	}
+	// images := []string{
+	// 	predictor.Image,
+	// 	predictor.TFServeImage,
+	// }
+	// keys := []string{
+	// 	userconfig.ImageKey,
+	// 	userconfig.TFServeImageKey,
+	// }
 
-	fmt.Println(images)
-	// do it in one go to avoid generating credentials twice
-	if err := validateDockerImagePaths(images, keys); err != nil {
-		return err
-	}
-	return &errors.Error{}
+	// if err := validateDockerImagePaths(images, keys); err != nil {
+	// 	return err
+	// }
+	// return &errors.Error{}
+
+	err := validateDockerImagePath(predictor.Image)
+	return &errors.Error{Message: err.Error()}
 
 	for key := range predictor.Env {
 		if strings.HasPrefix(key, "CORTEX_") {
@@ -792,51 +793,52 @@ func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quant
 	return virtualServices, maxMem, err
 }
 
-func validateDockerImagePaths(images, keys []string) error {
-	ECRImages := make([]bool, len(images))
-	for i, image := range images {
-		if regex.IsValidECRURL(image) {
-			ECRImages[i] = true
-		}
-		if _, err := cr.ValidateImageVersion(image); err != nil {
-			return errors.Wrap(err, keys[i])
-		}
+func validateDockerImagePath(image string) error {
+	if _, err := cr.ValidateImageVersion(image); err != nil {
+		return err
 	}
 
-	ECRAuthConfig := aws.ECRAuthConfig{}
-	dockerECRAuthConfig := dockertypes.AuthConfig{}
-	if slices.HasTrue(ECRImages) {
-		tokenOutput, err := aws.GetECRAuthToken()
+	var authConfig dockertypes.AuthConfig
+	if regex.IsValidECRURL(image) {
+		operatorID, _, err := config.AWS.GetCachedAccountID()
 		if err != nil {
 			return err
 		}
-		ECRAuthConfig, err = aws.ExtractECRAuthConfigFromTokenOutput(tokenOutput)
+		registryID := aws.GetAccountIDFromECRURL(image)
+
+		if strings.Compare(operatorID, registryID) != 0 {
+			return ErrorRegistryAccountIDMismatch(registryID, operatorID)
+		}
+
+		ecrAuthConfig, err := config.AWS.GetECRAuthConfig()
 		if err != nil {
 			return err
 		}
-
-		dockerECRAuthConfig.Username = ECRAuthConfig.Username
-		dockerECRAuthConfig.Password = ECRAuthConfig.AccessToken
-		dockerECRAuthConfig.ServerAddress = ECRAuthConfig.ProxyEndpoint
+		authConfig = dockertypes.AuthConfig{
+			Username:      ecrAuthConfig.Username,
+			Password:      ecrAuthConfig.AccessToken,
+			ServerAddress: ecrAuthConfig.ProxyEndpoint,
+		}
+	} else {
+		authConfig = dockertypes.AuthConfig{}
 	}
 
-	ECRAuth, err := dockerlib.EncodeAuthConfig(dockerECRAuthConfig)
+	dockerAuth, err := dockerlib.EncodeAuthConfig(authConfig)
 	if err != nil {
 		return err
 	}
-	noAuth, _ := dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{})
+	client, err := dockerclient.NewEnvClient()
+	if err != nil {
+		return err
+	}
 
-	var auth string
-	cli, _ := dockerclient.NewEnvClient()
-	for i, image := range images {
-		if ECRImages[i] {
-			auth = ECRAuth
-		} else {
-			auth = noAuth
+	if err := dockerlib.CheckImageAccessible(client, image, dockerAuth); err != nil {
+		// docker errors come as string error
+		// it's just better to put it on a new line
+		quotedErr := &errors.Error{
+			Message: "\ndocker client: \"" + err.Error() + "\"",
 		}
-		if !dockerlib.IsImageAccessible(cli, image, auth) {
-			return errors.Wrap(ErrorDockerImageInaccessible(image), keys[i])
-		}
+		return errors.Wrap(quotedErr, ErrorDockerImageInaccessible(image).Error())
 	}
 
 	return nil
