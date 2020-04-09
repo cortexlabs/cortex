@@ -20,11 +20,30 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 cli_config_backup_path=$HOME/.cortex/cli-bak-$RANDOM.yaml
 mv $HOME/.cortex/cli.yaml $cli_config_backup_path
 
-for command in "deploy" "get" "logs" "refresh" "predict" "delete" "cluster up" "cluster info" "cluster update" "cluster down" "env configure" "env list" "env default" "env delete" "version" "completion"; do
-  echo "## ${command}"
+commands=(
+  "deploy"
+  "get"
+  "logs"
+  "refresh"
+  "predict"
+  "delete"
+  "cluster up"
+  "cluster info"
+  "cluster update"
+  "cluster down"
+  "env configure"
+  "env list"
+  "env default"
+  "env delete"
+  "version"
+  "completion"
+)
+
+for cmd in "${commands[@]}"; do
+  echo "## ${cmd}"
   echo
   echo '```text'
-  $ROOT/bin/cortex help ${command}
+  $ROOT/bin/cortex help ${cmd}
   echo '```'
   echo
 done
