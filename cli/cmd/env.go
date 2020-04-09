@@ -21,6 +21,8 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -141,17 +143,34 @@ var _envDefaultCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.env.default")
 
+		defaultEnv := getDefaultEnv(_generalCommandType)
+
 		var envName string
 		if len(args) == 1 {
 			envName = args[0]
+
+			if envName == defaultEnv {
+				print.BoldFirstLine(fmt.Sprintf("✓ %s is already the default environment", envName))
+				exit.Ok()
+			}
+
+			configuredEnvNames, err := listConfiguredEnvs()
+			if err != nil {
+				exit.Error(err)
+			}
+			if !slices.HasString(configuredEnvNames, envName) {
+				exit.Error(ErrorEnvironmentNotConfigured(envName))
+			}
+
 		} else {
-			defaultEnv := getDefaultEnv(_generalCommandType)
 			envName = promptEnvName("name of environment to set as default", defaultEnv, true)
 		}
 
 		if err := setDefaultEnv(envName); err != nil {
 			exit.Error(err)
 		}
+
+		print.BoldFirstLine(fmt.Sprintf("✓ set %s as the default environment", envName))
 	},
 }
 
@@ -174,9 +193,9 @@ var _envDeleteCmd = &cobra.Command{
 		}
 
 		if envName == types.LocalProviderType.String() {
-			fmt.Printf("✓ cleared %s environment configuration\n", envName)
+			print.BoldFirstLine(fmt.Sprintf("✓ cleared %s environment configuration", envName))
 		} else {
-			fmt.Printf("✓ deleted %s environment configuration\n", envName)
+			print.BoldFirstLine(fmt.Sprintf("✓ deleted %s environment configuration", envName))
 		}
 	},
 }

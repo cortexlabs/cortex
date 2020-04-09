@@ -106,7 +106,7 @@ func ErrorEnvironmentProviderNameConflict(envName string, provider types.Provide
 func ErrorEnvironmentNotConfigured(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotConfigured,
-		Message: fmt.Sprintf("%s environment is not configured", envName),
+		Message: fmt.Sprintf("%s environment is not configured; configure it with `cortex env configure %s`, or choose a different environment", envName, envName),
 	})
 }
 

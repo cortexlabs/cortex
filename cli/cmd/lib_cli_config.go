@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -569,6 +570,8 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 	if err := addEnvToCLIConfig(env); err != nil {
 		return Environment{}, err
 	}
+
+	print.BoldFirstLine(fmt.Sprintf("✓ configured %s environment", envName))
 
 	return env, nil
 }
