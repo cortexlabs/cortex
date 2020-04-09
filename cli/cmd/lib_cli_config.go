@@ -195,7 +195,7 @@ func checkReservedEnvironmentNames(envName string, provider types.ProviderType) 
 	return nil
 }
 
-func promptEnvName(promptMsg string, defaultEnv string, requireExistingEnv bool) string {
+func promptEnvName(promptMsg string, requireExistingEnv bool) string {
 	configuredEnvNames, err := listConfiguredEnvs()
 	if err != nil {
 		exit.Error(err)
@@ -222,7 +222,6 @@ func promptEnvName(promptMsg string, defaultEnv string, requireExistingEnv bool)
 				StringValidation: &cr.StringValidation{
 					Required:      true,
 					AllowedValues: allowedValues,
-					Default:       defaultEnv,
 				},
 			},
 		},
@@ -527,7 +526,7 @@ func getDefaultEnvConfig(envName string) Environment {
 // If envName is "", this will prompt for the environment name to configure
 func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, error) {
 	if envName == "" {
-		envName = promptEnvName("name of environment to update or create", "", false)
+		envName = promptEnvName("name of environment to update or create", false)
 	} else {
 		fmt.Println("environment: " + envName + "\n")
 	}

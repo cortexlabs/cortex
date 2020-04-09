@@ -149,11 +149,6 @@ var _envDefaultCmd = &cobra.Command{
 		if len(args) == 1 {
 			envName = args[0]
 
-			if envName == defaultEnv {
-				print.BoldFirstLine(fmt.Sprintf("✓ %s is already the default environment", envName))
-				exit.Ok()
-			}
-
 			configuredEnvNames, err := listConfiguredEnvs()
 			if err != nil {
 				exit.Error(err)
@@ -163,7 +158,13 @@ var _envDefaultCmd = &cobra.Command{
 			}
 
 		} else {
-			envName = promptEnvName("name of environment to set as default", defaultEnv, true)
+			fmt.Printf("current default environment: %s\n\n", defaultEnv)
+			envName = promptEnvName("name of environment to set as default", true)
+		}
+
+		if envName == defaultEnv {
+			print.BoldFirstLine(fmt.Sprintf("✓ %s is already the default environment", envName))
+			exit.Ok()
 		}
 
 		if err := setDefaultEnv(envName); err != nil {
@@ -185,7 +186,7 @@ var _envDeleteCmd = &cobra.Command{
 		if len(args) == 1 {
 			envName = args[0]
 		} else {
-			envName = promptEnvName("name of environment to delete", "", true)
+			envName = promptEnvName("name of environment to delete", true)
 		}
 
 		if err := removeEnvFromCLIConfig(envName); err != nil {
