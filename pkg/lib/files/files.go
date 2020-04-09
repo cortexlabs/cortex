@@ -17,7 +17,6 @@ limitations under the License.
 package files
 
 import (
-	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -25,7 +24,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -690,6 +688,10 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 	cleanDir = filepath.Clean(cleanDir)
 	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
+	if err := CheckDir(cleanDir); err != nil {
+		return nil, err
+	}
+
 	var fileList []string
 	walkErr := filepath.Walk(cleanDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -723,6 +725,84 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 	}
 
 	return fileList, nil
+}
+
+func ListDir(dir string, relative bool) ([]string, error) {
+	cleanDir, err := EscapeTilde(dir)
+	if err != nil {
+		return nil, err
+	}
+	cleanDir = filepath.Clean(cleanDir)
+	cleanDir = strings.TrimSuffix(cleanDir, "/")
+
+	if err := CheckDir(cleanDir); err != nil {
+		return nil, err
+	}
+
+	var filenames []string
+	fileInfo, err := ioutil.ReadDir(cleanDir)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.Message(ErrorReadDir(dir)))
+	}
+	for _, file := range fileInfo {
+		filename := file.Name()
+		if !relative {
+			filename = filepath.Join(cleanDir, filename)
+		}
+		filenames = append(filenames, filename)
+	}
+	return filenames, nil
+}
+
+func CopyFileOverwrite(src string, dest string) error {
+	srcFile, err := Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	destFile, err := Create(dest)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	if _, err = io.Copy(destFile, srcFile); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CopyDirOverwrite(src string, dest string, ignoreFns ...IgnoreFn) error {
+	srcRelFilePaths, err := ListDirRecursive(src, true, ignoreFns...)
+	if err != nil {
+		return err
+	}
+
+	if _, err := CreateDirIfMissing(dest); err != nil {
+		return err
+	}
+	createdDirs := strset.New(dest)
+
+	for _, srcRelFilePath := range srcRelFilePaths {
+		srcFilePath := filepath.Join(src, srcRelFilePath)
+		destFilePath := filepath.Join(dest, srcRelFilePath)
+
+		destFileDir := filepath.Dir(destFilePath)
+		if !createdDirs.Has(destFileDir) {
+			if _, err := CreateDirIfMissing(destFileDir); err != nil {
+				return err
+			}
+			createdDirs.Add(destFileDir)
+		}
+
+		if err := CopyFileOverwrite(srcFilePath, destFilePath); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func HashFile(path string) (string, error) {
@@ -781,44 +861,6 @@ func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
 	}
 
 	return hex.EncodeToString((md5Hash.Sum(nil))), nil
-}
-
-func ListDir(dir string, relative bool) ([]string, error) {
-	cleanDir, err := EscapeTilde(dir)
-	if err != nil {
-		return nil, err
-	}
-	cleanDir = filepath.Clean(cleanDir)
-	cleanDir = strings.TrimSuffix(cleanDir, "/")
-
-	var filenames []string
-	fileInfo, err := ioutil.ReadDir(cleanDir)
-	if err != nil {
-		return nil, errors.Wrap(err, errors.Message(ErrorReadDir(dir)))
-	}
-	for _, file := range fileInfo {
-		filename := file.Name()
-		if !relative {
-			filename = filepath.Join(cleanDir, filename)
-		}
-		filenames = append(filenames, filename)
-	}
-	return filenames, nil
-}
-
-func Copy(src string, dest string) error {
-	cmd := exec.Command("cp", "-r", src, dest)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-		return err
-	}
-	fmt.Println("Result: " + out.String())
-	return nil
 }
 
 func CloseSilent(closer io.Closer, closers ...io.Closer) {
