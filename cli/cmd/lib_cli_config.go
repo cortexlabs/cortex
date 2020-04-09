@@ -51,6 +51,8 @@ type Environment struct {
 	AWSSecretAccessKey *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
 }
 
+var _cachedCLIConfig *CLIConfig
+
 var _cliConfigValidation = &cr.StructValidation{
 	TreatNullAsEmpty: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
@@ -645,6 +647,10 @@ func removeEnvFromCLIConfig(envName string) error {
 }
 
 func readCLIConfig() (CLIConfig, error) {
+	if _cachedCLIConfig != nil {
+		return *_cachedCLIConfig, nil
+	}
+
 	if !files.IsFile(_cliConfigPath) {
 		cliConfig := CLIConfig{
 			DefaultEnvironment: types.LocalProviderType.String(),
@@ -665,6 +671,7 @@ func readCLIConfig() (CLIConfig, error) {
 			return CLIConfig{}, errors.Wrap(err, "unable to save CLI configuration file")
 		}
 
+		_cachedCLIConfig = &cliConfig
 		return cliConfig, nil
 	}
 
@@ -678,6 +685,7 @@ func readCLIConfig() (CLIConfig, error) {
 		return CLIConfig{}, errors.Wrap(err, _cliConfigPath)
 	}
 
+	_cachedCLIConfig = &cliConfig
 	return cliConfig, nil
 }
 
@@ -694,5 +702,6 @@ func writeCLIConfig(cliConfig CLIConfig) error {
 		return err
 	}
 
+	_cachedCLIConfig = &cliConfig
 	return nil
 }
