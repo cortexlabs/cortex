@@ -795,7 +795,6 @@ func validateDockerImagePath(image string) error {
 		return err
 	}
 
-	var authConfig dockertypes.AuthConfig
 	dockerAuth := dockerlib.NoAuth
 	if regex.IsValidECRURL(image) {
 		operatorID, _, err := config.AWS.GetCachedAccountID()
@@ -812,13 +811,12 @@ func validateDockerImagePath(image string) error {
 		if err != nil {
 			return err
 		}
-		authConfig = dockertypes.AuthConfig{
+
+		dAuth, err := dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{
 			Username:      ecrAuthConfig.Username,
 			Password:      ecrAuthConfig.AccessToken,
 			ServerAddress: ecrAuthConfig.ProxyEndpoint,
-		}
-
-		dAuth, err := dockerlib.EncodeAuthConfig(authConfig)
+		})
 		if err != nil {
 			return err
 		}
