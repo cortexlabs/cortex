@@ -112,10 +112,19 @@ var _envListCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		defaultEnv := getDefaultEnv(_generalCommandType)
+
 		for i, env := range cliConfig.Environments {
 			var items table.KeyValuePairs
-			items.Add("name", env.Name)
+
+			if env.Name == defaultEnv {
+				items.Add("name", env.Name+" (default)")
+			} else {
+				items.Add("name", env.Name)
+			}
+
 			items.Add("provider", env.Provider)
+
 			if env.OperatorEndpoint != nil {
 				items.Add("cortex operator endpoint", *env.OperatorEndpoint)
 			}
