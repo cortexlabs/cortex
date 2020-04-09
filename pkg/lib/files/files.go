@@ -17,6 +17,7 @@ limitations under the License.
 package files
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -805,6 +807,28 @@ func CopyDirOverwrite(src string, dest string, ignoreFns ...IgnoreFn) error {
 	return nil
 }
 
+func CopyRecursiveShell(src string, dest string) error {
+	cleanSrc, err := EscapeTilde(src)
+	if err != nil {
+		return err
+	}
+	cleanDest, err := EscapeTilde(dest)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("cp", "-r", cleanSrc, cleanDest)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, strings.TrimSpace(out.String()))
+	}
+
+	return nil
+}
+
 func HashFile(path string) (string, error) {
 	md5Hash := md5.New()
 
@@ -820,6 +844,7 @@ func HashFile(path string) (string, error) {
 
 	return hex.EncodeToString((md5Hash.Sum(nil))), nil
 }
+
 func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
 	md5Hash := md5.New()
 
