@@ -155,6 +155,7 @@ func (env *Environment) validate() error {
 	if env.Name == "" {
 		return errors.Wrap(cr.ErrorMustBeDefined(), "name")
 	}
+
 	if env.Provider == types.UnknownProviderType {
 		return errors.Wrap(cr.ErrorMustBeDefined(types.ProviderTypeStrings()), env.Name, "provider")
 	}

@@ -36,7 +36,7 @@ var _flagAWSAccessKeyID string
 var _flagAWSSecretAccessKey string
 
 func envInit() {
-	_envConfigureCmd.Flags().StringVarP(&_flagProvider, "provider", "v", "", "set the provider without prompting")
+	_envConfigureCmd.Flags().StringVarP(&_flagProvider, "provider", "p", "", "set the provider without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagAWSSecretAccessKey, "aws-secret-access-key", "s", "", "set the aws secret access key without prompting")
@@ -96,7 +96,9 @@ var _envConfigureCmd = &cobra.Command{
 			AWSSecretAccessKey: skipAWSSecretAccessKey,
 		}
 
-		configureEnv(envName, fieldsToSkipPrompt)
+		if _, err := configureEnv(envName, fieldsToSkipPrompt); err != nil {
+			exit.Error(err)
+		}
 	},
 }
 
