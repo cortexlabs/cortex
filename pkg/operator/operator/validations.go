@@ -17,6 +17,7 @@ limitations under the License.
 package operator
 
 import (
+	goerrs "errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -469,27 +470,24 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		if err := validateTensorFlowPredictor(predictor); err != nil {
 			return err
 		}
+		if err := validateDockerImagePath(predictor.TFServeImage); err != nil {
+			if errCause := errors.Cause(err); errCause != nil {
+				return errors.Wrap(errCause, userconfig.TFServeImageKey, err.Error())
+			}
+			return errors.Wrap(err, userconfig.TFServeImageKey)
+		}
 	case userconfig.ONNXPredictorType:
 		if err := validateONNXPredictor(predictor); err != nil {
 			return err
 		}
 	}
 
-	// images := []string{
-	// 	predictor.Image,
-	// 	predictor.TFServeImage,
-	// }
-	// keys := []string{
-	// 	userconfig.ImageKey,
-	// 	userconfig.TFServeImageKey,
-	// }
-
-	// if err := validateDockerImagePaths(images, keys); err != nil {
-	// 	return err
-	// }
-	// return &errors.Error{}
-
-	// err := validateDockerImagePath(predictor.Image)
+	if err := validateDockerImagePath(predictor.Image); err != nil {
+		if errCause := errors.Cause(err); errCause != nil {
+			return errors.Wrap(errCause, userconfig.ImageKey, err.Error())
+		}
+		return errors.Wrap(err, userconfig.ImageKey)
+	}
 
 	for key := range predictor.Env {
 		if strings.HasPrefix(key, "CORTEX_") {
@@ -576,7 +574,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 	}
 
 	if predictor.TFServeImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TFServeImageKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TFServeImageKey, userconfig.ONNXPredictorType)
 	}
 
 	return nil
@@ -798,6 +796,7 @@ func validateDockerImagePath(image string) error {
 	}
 
 	var authConfig dockertypes.AuthConfig
+	dockerAuth := dockerlib.NoAuth
 	if regex.IsValidECRURL(image) {
 		operatorID, _, err := config.AWS.GetCachedAccountID()
 		if err != nil {
@@ -818,26 +817,27 @@ func validateDockerImagePath(image string) error {
 			Password:      ecrAuthConfig.AccessToken,
 			ServerAddress: ecrAuthConfig.ProxyEndpoint,
 		}
-	} else {
-		authConfig = dockertypes.AuthConfig{}
+
+		dAuth, err := dockerlib.EncodeAuthConfig(authConfig)
+		if err != nil {
+			return err
+		}
+		dockerAuth = dAuth
 	}
 
-	dockerAuth, err := dockerlib.EncodeAuthConfig(authConfig)
-	if err != nil {
-		return err
-	}
 	client, err := dockerclient.NewEnvClient()
 	if err != nil {
 		return err
 	}
 
 	if err := dockerlib.CheckImageAccessible(client, image, dockerAuth); err != nil {
-		// docker errors come as string error
-		// it's just better to put it on a new line
-		quotedErr := &errors.Error{
-			Message: "\ndocker client: \"" + err.Error() + "\"",
-		}
-		return errors.Wrap(quotedErr, ErrorDockerImageInaccessible(image).Error())
+		// the concrete type of docker client errors is string
+		// it's just better to put them on a new line
+		// because they are quite verbosy
+		return ErrorDockerImageInaccessible(
+			image,
+			goerrs.New("docker client:\n"+err.Error()),
+		)
 	}
 
 	return nil

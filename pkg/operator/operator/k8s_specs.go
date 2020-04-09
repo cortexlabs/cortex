@@ -110,8 +110,6 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
-	apiImage := api.Predictor.Image
-	servingImage := api.Predictor.TFServeImage
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
@@ -151,7 +149,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 				Containers: []kcore.Container{
 					{
 						Name:            _apiContainerName,
-						Image:           apiImage,
+						Image:           api.Predictor.Image,
 						ImagePullPolicy: kcore.PullAlways,
 						Env: append(
 							getEnvVars(api),
@@ -181,7 +179,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 					*requestMonitorContainer(api),
 					{
 						Name:            _tfServingContainerName,
-						Image:           servingImage,
+						Image:           api.Predictor.TFServeImage,
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + _tfServingPortStr,
@@ -272,7 +270,6 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
-	servingImage := api.Predictor.Image
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
@@ -312,7 +309,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				Containers: []kcore.Container{
 					{
 						Name:            _apiContainerName,
-						Image:           servingImage,
+						Image:           api.Predictor.Image,
 						ImagePullPolicy: kcore.PullAlways,
 						Env:             getEnvVars(api),
 						EnvFrom:         _baseEnvVars,
@@ -380,7 +377,6 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
-	servingImage := api.Predictor.Image
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
@@ -419,7 +415,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 				Containers: []kcore.Container{
 					{
 						Name:            _apiContainerName,
-						Image:           servingImage,
+						Image:           api.Predictor.Image,
 						ImagePullPolicy: kcore.PullAlways,
 						Env: append(
 							getEnvVars(api),

@@ -272,9 +272,10 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	})
 }
 
-func ErrorDockerImageInaccessible(image string) error {
+func ErrorDockerImageInaccessible(image string, cause error) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDockerImageInaccessible,
 		Message: fmt.Sprintf("%s is not accessible", image),
+		Cause:   cause,
 	})
 }
