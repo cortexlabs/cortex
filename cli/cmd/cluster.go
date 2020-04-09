@@ -43,16 +43,16 @@ var _flagDebug bool
 
 func clusterInit() {
 	addClusterConfigFlag(_updateCmd)
-	addEnvFlag(_updateCmd, _clusterCommandType)
+	addEnvFlag(_updateCmd, _clusterCommandType, _envToConfigureUsage)
 	_clusterCmd.AddCommand(_updateCmd)
 
 	addClusterConfigFlag(_infoCmd)
-	addEnvFlag(_infoCmd, _clusterCommandType)
+	addEnvFlag(_infoCmd, _clusterCommandType, _envToUseUsage)
 	_infoCmd.PersistentFlags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
 	_clusterCmd.AddCommand(_infoCmd)
 
 	addClusterConfigFlag(_upCmd)
-	addEnvFlag(_upCmd, _clusterCommandType)
+	addEnvFlag(_upCmd, _clusterCommandType, _envToConfigureUsage)
 	_clusterCmd.AddCommand(_upCmd)
 
 	addClusterConfigFlag(_downCmd)

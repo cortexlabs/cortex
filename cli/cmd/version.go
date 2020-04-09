@@ -29,7 +29,7 @@ import (
 )
 
 func versionInit() {
-	addEnvFlag(_versionCmd, _generalCommandType)
+	addEnvFlag(_versionCmd, _generalCommandType, _envToUseUsage)
 }
 
 var _versionCmd = &cobra.Command{

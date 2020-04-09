@@ -54,7 +54,7 @@ import (
 
 func localInit() {
 	localCmd.PersistentFlags()
-	addEnvFlag(localCmd, _generalCommandType)
+	addEnvFlag(localCmd, _generalCommandType, _envToUseUsage)
 	_localWorkSpace = filepath.Join(_localDir, "local_workspace")
 }
 

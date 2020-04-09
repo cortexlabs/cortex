@@ -28,7 +28,7 @@ import (
 )
 
 func logsInit() {
-	addEnvFlag(_logsCmd, _generalCommandType)
+	addEnvFlag(_logsCmd, _generalCommandType, _envToUseUsage)
 }
 
 var _logsCmd = &cobra.Command{

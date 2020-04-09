@@ -44,7 +44,7 @@ import (
 var _flagWatch bool
 
 func getInit() {
-	addEnvFlag(_getCmd, _generalCommandType)
+	addEnvFlag(_getCmd, _generalCommandType, _envToUseUsage)
 	_getCmd.PersistentFlags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
 }
 

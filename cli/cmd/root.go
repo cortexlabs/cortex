@@ -193,7 +193,10 @@ const (
 	_clusterCommandType
 )
 
-func addEnvFlag(cmd *cobra.Command, cmdType commandType) {
+const _envToUseUsage = "environment to use"
+const _envToConfigureUsage = "environment to configure"
+
+func addEnvFlag(cmd *cobra.Command, cmdType commandType, usage string) {
 	defaultEnv := getDefaultEnv(cmdType)
-	cmd.Flags().StringVarP(&_flagEnv, "environment", "e", defaultEnv, "environment")
+	cmd.Flags().StringVarP(&_flagEnv, "environment", "e", defaultEnv, usage)
 }
