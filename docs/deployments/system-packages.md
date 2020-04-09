@@ -84,7 +84,7 @@ aws ecr create-repository --repository-name=org/my-api --region=us-west-2
 # take note of repository url
 ```
 
-Build the image based on your Dockerfile and push to its repository in ECR:
+Build the image based on your Dockerfile and push it to its repository in ECR:
 
 ```bash
 docker build . -t org/my-api:latest -t <repository_url>:latest
@@ -94,18 +94,22 @@ docker push <repository_url>:latest
 
 ### Configure Cortex
 
-Update your cluster configuration file to point to your image:
+Update your API configuration file to point to your image:
 
 ```yaml
-# cluster.yaml
+# cortex.yaml
 
-# ...
-image_python_serve: <repository_url>:latest
-# ...
+- name: my-api
+  ...
+  predictor:
+    image: <repository_url>:latest
+  ...
 ```
 
 Update your cluster for the change to take effect:
 
 ```bash
-cortex cluster update --config=cluster.yaml
+cortex deploy
 ```
+
+*Note: For [TensorFlow](#tensorflow-predictor) Predictor type, there's a 2nd available field `tf_serve_image` that can be used to override the image. The default `cortexlabs/tf-serve[-gpu]` image is based on the Tensorflow Serving image `tensorflow/serving`. Unless a different version of Tensorflow Serving is required, this image shouldn't have to be overridden.*

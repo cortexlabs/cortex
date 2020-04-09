@@ -48,21 +48,11 @@ log_group: cortex
 spot: false
 ```
 
-The docker images used by Cortex are listed below. They can be overridden to use custom images by specifying them in your cluster configuration file.
-
-You can follow these [instructions](../deployments/system-packages.md) to build and push custom Docker images to a registry and configure Cortex to use them.
-These images can also be configured on a per-API basis using `image` keys as documented in these [instructions](../deployments/api-configuration.md).
+The docker images used by the Cortex cluster are listed below. They can be overridden to use custom images by specifying them in your cluster configuration file.
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 # docker image paths
-image_python_serve: cortexlabs/python-serve:master
-image_python_serve_gpu: cortexlabs/python-serve-gpu:master
-image_tf_serve: cortexlabs/tf-serve:master
-image_tf_serve_gpu: cortexlabs/tf-serve-gpu:master
-image_tf_api: cortexlabs/tf-api:master
-image_onnx_serve: cortexlabs/onnx-serve:master
-image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:master
 image_operator: cortexlabs/operator:master
 image_manager: cortexlabs/manager:master
 image_downloader: cortexlabs/downloader:master
@@ -77,3 +67,5 @@ image_istio_pilot: cortexlabs/istio-pilot:master
 image_istio_citadel: cortexlabs/istio-citadel:master
 image_istio_galley: cortexlabs/istio-galley:master
 ```
+
+The docker images used by the Cortex API are listed in the instructions for [system packages](../deployments/system-packages.md).
