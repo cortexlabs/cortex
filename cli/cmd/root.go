@@ -199,5 +199,5 @@ const _envToConfigureUsage = "environment to configure"
 
 func addEnvFlag(cmd *cobra.Command, cmdType commandType, usage string) {
 	defaultEnv := getDefaultEnv(cmdType)
-	cmd.Flags().StringVarP(&_flagEnv, "environment", "e", defaultEnv, usage)
+	cmd.Flags().StringVarP(&_flagEnv, "env", "e", defaultEnv, usage)
 }

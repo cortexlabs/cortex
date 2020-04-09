@@ -11,10 +11,10 @@ Usage:
   cortex deploy [CONFIG_FILE] [flags]
 
 Flags:
-  -e, --environment string   environment to use (default "asdf")
-  -f, --force                override the in-progress api update
-  -y, --yes                  skip prompts
-  -h, --help                 help for deploy
+  -e, --env string   environment to use (default "local")
+  -f, --force        override the in-progress api update
+  -y, --yes          skip prompts
+  -h, --help         help for deploy
 ```
 
 ## get
@@ -26,9 +26,9 @@ Usage:
   cortex get [API_NAME] [flags]
 
 Flags:
-  -e, --environment string   environment to use (default "asdf")
-  -w, --watch                re-run the command every second
-  -h, --help                 help for get
+  -e, --env string   environment to use (default "local")
+  -w, --watch        re-run the command every second
+  -h, --help         help for get
 ```
 
 ## logs
@@ -40,8 +40,8 @@ Usage:
   cortex logs API_NAME [flags]
 
 Flags:
-  -e, --environment string   environment to use (default "asdf")
-  -h, --help                 help for logs
+  -e, --env string   environment to use (default "local")
+  -h, --help         help for logs
 ```
 
 ## refresh
@@ -53,9 +53,9 @@ Usage:
   cortex refresh API_NAME [flags]
 
 Flags:
-  -e, --environment string   environment to use (default "asdf")
-  -f, --force                override the in-progress api update
-  -h, --help                 help for refresh
+  -e, --env string   environment to use (default "local")
+  -f, --force        override the in-progress api update
+  -h, --help         help for refresh
 ```
 
 ## predict
@@ -67,9 +67,9 @@ Usage:
   cortex predict API_NAME JSON_FILE [flags]
 
 Flags:
-  -e, --environment string   environment to use (default "asdf")
-      --debug                predict with debug mode
-  -h, --help                 help for predict
+  -e, --env string   environment to use (default "local")
+      --debug        predict with debug mode
+  -h, --help         help for predict
 ```
 
 ## delete
@@ -81,10 +81,10 @@ Usage:
   cortex delete API_NAME [flags]
 
 Flags:
-  -e, --environment string   environment to use (default "asdf")
-  -f, --force                delete the api without confirmation
-  -c, --keep-cache           keep cached data for the api
-  -h, --help                 help for delete
+  -e, --env string   environment to use (default "local")
+  -f, --force        delete the api without confirmation
+  -c, --keep-cache   keep cached data for the api
+  -h, --help         help for delete
 ```
 
 ## cluster up
@@ -96,9 +96,9 @@ Usage:
   cortex cluster up [flags]
 
 Flags:
-  -c, --config string        path to a cluster configuration file
-  -e, --environment string   environment to configure (default "asdf")
-  -h, --help                 help for up
+  -c, --config string   path to a cluster configuration file
+  -e, --env string      environment to configure (default "aws")
+  -h, --help            help for up
 ```
 
 ## cluster info
@@ -110,10 +110,10 @@ Usage:
   cortex cluster info [flags]
 
 Flags:
-  -c, --config string        path to a cluster configuration file
-  -e, --environment string   environment to use (default "asdf")
-  -d, --debug                save the current cluster state to a file
-  -h, --help                 help for info
+  -c, --config string   path to a cluster configuration file
+  -e, --env string      environment to use (default "aws")
+  -d, --debug           save the current cluster state to a file
+  -h, --help            help for info
 ```
 
 ## cluster update
@@ -125,9 +125,9 @@ Usage:
   cortex cluster update [flags]
 
 Flags:
-  -c, --config string        path to a cluster configuration file
-  -e, --environment string   environment to configure (default "asdf")
-  -h, --help                 help for update
+  -c, --config string   path to a cluster configuration file
+  -e, --env string      environment to configure (default "aws")
+  -h, --help            help for update
 ```
 
 ## cluster down
@@ -204,8 +204,8 @@ Usage:
   cortex version [flags]
 
 Flags:
-  -e, --environment string   environment to use (default "asdf")
-  -h, --help                 help for version
+  -e, --env string   environment to use (default "local")
+  -h, --help         help for version
 ```
 
 ## completion
