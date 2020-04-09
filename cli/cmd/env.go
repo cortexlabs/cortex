@@ -36,16 +36,20 @@ var _flagAWSAccessKeyID string
 var _flagAWSSecretAccessKey string
 
 func envInit() {
+	_envConfigureCmd.Flags().SortFlags = false
 	_envConfigureCmd.Flags().StringVarP(&_flagProvider, "provider", "p", "", "set the provider without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagAWSSecretAccessKey, "aws-secret-access-key", "s", "", "set the aws secret access key without prompting")
 	_envCmd.AddCommand(_envConfigureCmd)
 
+	_envListCmd.Flags().SortFlags = false
 	_envCmd.AddCommand(_envListCmd)
 
+	_envDefaultCmd.Flags().SortFlags = false
 	_envCmd.AddCommand(_envDefaultCmd)
 
+	_envDeleteCmd.Flags().SortFlags = false
 	_envCmd.AddCommand(_envDeleteCmd)
 }
 

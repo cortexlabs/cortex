@@ -111,8 +111,8 @@ Usage:
 
 Flags:
   -c, --config string        path to a cluster configuration file
-  -d, --debug                save the current cluster state to a file
   -e, --environment string   environment to use (default "asdf")
+  -d, --debug                save the current cluster state to a file
   -h, --help                 help for info
 ```
 

@@ -45,6 +45,7 @@ var _predictClient = &GenericClient{
 }
 
 func predictInit() {
+	_predictCmd.Flags().SortFlags = false
 	addEnvFlag(_predictCmd, _generalCommandType, _envToUseUsage)
 	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }

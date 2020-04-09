@@ -28,6 +28,7 @@ import (
 )
 
 func logsInit() {
+	_logsCmd.Flags().SortFlags = false
 	addEnvFlag(_logsCmd, _generalCommandType, _envToUseUsage)
 }
 

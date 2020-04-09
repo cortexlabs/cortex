@@ -29,6 +29,7 @@ import (
 )
 
 func versionInit() {
+	_versionCmd.Flags().SortFlags = false
 	addEnvFlag(_versionCmd, _generalCommandType, _envToUseUsage)
 }
 

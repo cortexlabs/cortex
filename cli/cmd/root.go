@@ -97,6 +97,7 @@ func init() {
 	}
 
 	clusterInit()
+	completionInit()
 	deleteInit()
 	deployInit()
 	envInit()

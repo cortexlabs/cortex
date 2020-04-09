@@ -33,9 +33,10 @@ var _flagKeepCache bool
 var _flagDeleteForce bool
 
 func deleteInit() {
-	_deleteCmd.PersistentFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the api")
-	_deleteCmd.PersistentFlags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
+	_deleteCmd.Flags().SortFlags = false
 	addEnvFlag(_deleteCmd, _generalCommandType, _envToUseUsage)
+	_deleteCmd.LocalFlags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
+	_deleteCmd.LocalFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the api")
 }
 
 var _deleteCmd = &cobra.Command{
