@@ -33,7 +33,7 @@ var _flagOperatorEndpoint string
 var _flagAWSAccessKeyID string
 var _flagAWSSecretAccessKey string
 
-func init() {
+func envInit() {
 	_envConfigureCmd.Flags().StringVarP(&_flagProvider, "provider", "v", "", "set the provider without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")

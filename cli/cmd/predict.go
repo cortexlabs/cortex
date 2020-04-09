@@ -44,7 +44,7 @@ var _predictClient = &GenericClient{
 	},
 }
 
-func init() {
+func predictInit() {
 	addEnvFlag(_predictCmd, _generalCommandType)
 	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }

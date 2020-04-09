@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
+func versionInit() {
 	addEnvFlag(_versionCmd, _generalCommandType)
 }
 

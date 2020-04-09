@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
+func logsInit() {
 	addEnvFlag(_logsCmd, _generalCommandType)
 }
 

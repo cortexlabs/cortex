@@ -32,7 +32,7 @@ import (
 var _flagKeepCache bool
 var _flagDeleteForce bool
 
-func init() {
+func deleteInit() {
 	_deleteCmd.PersistentFlags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the api")
 	_deleteCmd.PersistentFlags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
 	addEnvFlag(_deleteCmd, _generalCommandType)

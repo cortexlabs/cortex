@@ -37,7 +37,7 @@ import (
 )
 
 type CLIConfig struct {
-	Telemetry          bool           `json:"telemetry" yaml:"telemetry"`
+	Telemetry          *bool          `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
 	DefaultEnvironment string         `json:"default_environment" yaml:"default_environment"`
 	Environments       []*Environment `json:"environments" yaml:"environments"`
 }
@@ -55,8 +55,7 @@ var _cliConfigValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "Telemetry",
-			BoolValidation: &cr.BoolValidation{
-				Default:  true,
+			BoolPtrValidation: &cr.BoolPtrValidation{
 				Required: false,
 			},
 		},
@@ -404,7 +403,11 @@ func readTelemetryConfig() (bool, error) {
 		return false, err
 	}
 
-	return cliConfig.Telemetry, nil
+	if cliConfig.Telemetry != nil && *cliConfig.Telemetry == false {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // Returns "local" if unable to read user's default value
@@ -572,12 +575,26 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 
 func readCLIConfig() (CLIConfig, error) {
 	if !files.IsFile(_cliConfigPath) {
-		// add empty file so that the file created by the manager container maintains current user permissions
-		files.MakeEmptyFile(_cliConfigPath)
+		cliConfig := CLIConfig{
+			DefaultEnvironment: types.LocalProviderType.String(),
+			Environments: []*Environment{
+				{
+					Name:     types.LocalProviderType.String(),
+					Provider: types.LocalProviderType,
+				},
+			},
+		}
 
-		return CLIConfig{
-			Telemetry: true,
-		}, nil
+		if err := cliConfig.validate(); err != nil {
+			return CLIConfig{}, err // unexpected
+		}
+
+		// create file so that the file created by the manager container maintains current user permissions
+		if err := writeCLIConfig(cliConfig); err != nil {
+			return CLIConfig{}, errors.Wrap(err, "unable to save CLI configuration file")
+		}
+
+		return cliConfig, nil
 	}
 
 	cliConfig := CLIConfig{}

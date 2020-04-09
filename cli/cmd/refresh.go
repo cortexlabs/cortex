@@ -28,7 +28,7 @@ import (
 
 var _flagRefreshForce bool
 
-func init() {
+func refreshInit() {
 	_refreshCmd.PersistentFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
 	addEnvFlag(_refreshCmd, _generalCommandType)
 }

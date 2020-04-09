@@ -95,6 +95,17 @@ func init() {
 	if enableTelemetry {
 		initTelemetry()
 	}
+
+	clusterInit()
+	deleteInit()
+	deployInit()
+	envInit()
+	getInit()
+	localInit()
+	logsInit()
+	predictInit()
+	refreshInit()
+	versionInit()
 }
 
 func initTelemetry() {

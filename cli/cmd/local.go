@@ -52,7 +52,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
+func localInit() {
 	localCmd.PersistentFlags()
 	addEnvFlag(localCmd, _generalCommandType)
 	_localWorkSpace = filepath.Join(_localDir, "local_workspace")

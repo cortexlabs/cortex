@@ -41,7 +41,7 @@ import (
 var _flagClusterConfig string
 var _flagDebug bool
 
-func init() {
+func clusterInit() {
 	addClusterConfigFlag(_updateCmd)
 	addEnvFlag(_updateCmd, _clusterCommandType)
 	_clusterCmd.AddCommand(_updateCmd)

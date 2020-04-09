@@ -41,7 +41,7 @@ var _warningFileCount = 1000
 var _flagDeployForce bool
 var _flagDeployYes bool
 
-func init() {
+func deployInit() {
 	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
 	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployYes, "yes", "y", false, "skip prompts")
 	addEnvFlag(_deployCmd, _generalCommandType)
