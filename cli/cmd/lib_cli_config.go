@@ -37,8 +37,9 @@ import (
 )
 
 type CLIConfig struct {
-	Telemetry    bool           `json:"telemetry" yaml:"telemetry"`
-	Environments []*Environment `json:"environments" yaml:"environments"`
+	Telemetry          bool           `json:"telemetry" yaml:"telemetry"`
+	DefaultEnvironment string         `json:"default_environment" yaml:"default_environment"`
+	Environments       []*Environment `json:"environments" yaml:"environments"`
 }
 
 type Environment struct {
@@ -57,6 +58,14 @@ var _cliConfigValidation = &cr.StructValidation{
 			BoolValidation: &cr.BoolValidation{
 				Default:  true,
 				Required: false,
+			},
+		},
+		{
+			StructField: "DefaultEnvironment",
+			StringValidation: &cr.StringValidation{
+				Default:    "local",
+				Required:   false,
+				AllowEmpty: true, // will get set to "local" in validate() if empty
 			},
 		},
 		{
@@ -109,6 +118,10 @@ var _cliConfigValidation = &cr.StructValidation{
 }
 
 func (cliConfig *CLIConfig) validate() error {
+	if cliConfig.DefaultEnvironment == "" {
+		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
+	}
+
 	envNames := strset.New()
 
 	for _, env := range cliConfig.Environments {
@@ -182,7 +195,7 @@ func checkReservedEnvironmentNames(envName string, provider types.ProviderType) 
 	return nil
 }
 
-func promptEnvName(promptMsg string, requireExistingEnv bool) string {
+func promptEnvName(promptMsg string, defaultEnv string, requireExistingEnv bool) string {
 	configuredEnvNames, err := listConfiguredEnvs()
 	if err != nil {
 		exit.Error(err)
@@ -209,6 +222,7 @@ func promptEnvName(promptMsg string, requireExistingEnv bool) string {
 				StringValidation: &cr.StringValidation{
 					Required:      true,
 					AllowedValues: allowedValues,
+					Default:       defaultEnv,
 				},
 			},
 		},
@@ -393,6 +407,36 @@ func readTelemetryConfig() (bool, error) {
 	return cliConfig.Telemetry, nil
 }
 
+// Returns "local" if unable to read user's default value
+func getDefaultEnv(cmdType commandType) string {
+	defaultEnv := types.LocalProviderType.String()
+
+	if cliConfig, err := readCLIConfig(); err == nil {
+		defaultEnv = cliConfig.DefaultEnvironment
+	}
+
+	if cmdType == _clusterCommandType && defaultEnv == types.LocalProviderType.String() {
+		defaultEnv = types.AWSProviderType.String()
+	}
+
+	return defaultEnv
+}
+
+func setDefaultEnv(envName string) error {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return err
+	}
+
+	cliConfig.DefaultEnvironment = envName
+
+	if err := writeCLIConfig(cliConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Returns false if there is an error reading the CLI config
 func isTelemetryEnabled() bool {
 	enabled, err := readTelemetryConfig()
@@ -479,7 +523,7 @@ func getDefaultEnvConfig(envName string) Environment {
 // If envName is "", this will prompt for the environment name to configure
 func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, error) {
 	if envName == "" {
-		envName = promptEnvName("name of environment to update or create", false)
+		envName = promptEnvName("name of environment to update or create", "", false)
 	} else {
 		fmt.Println("environment: " + envName + "\n")
 	}
@@ -582,13 +626,7 @@ func addEnvToCLIConfig(newEnv Environment) error {
 		cliConfig.Environments = append(cliConfig.Environments, &newEnv)
 	}
 
-	cliConfig.validate()
-
-	cliConfigBytes, err := yaml.Marshal(cliConfig)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
+	if err := writeCLIConfig(cliConfig); err != nil {
 		return err
 	}
 
@@ -617,7 +655,17 @@ func removeEnvFromCLIConfig(envName string) error {
 
 	cliConfig.Environments = updatedEnvs
 
-	cliConfig.validate()
+	if err := writeCLIConfig(cliConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeCLIConfig(cliConfig CLIConfig) error {
+	if err := cliConfig.validate(); err != nil {
+		return err
+	}
 
 	cliConfigBytes, err := yaml.Marshal(cliConfig)
 	if err != nil {

@@ -43,7 +43,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -55,7 +54,7 @@ import (
 
 func init() {
 	localCmd.PersistentFlags()
-	addEnvFlag(localCmd, types.LocalProviderType.String())
+	addEnvFlag(localCmd, _generalCommandType)
 	_localWorkSpace = filepath.Join(_localDir, "local_workspace")
 }
 

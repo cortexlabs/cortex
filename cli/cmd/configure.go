@@ -42,6 +42,8 @@ func init() {
 
 	_envCmd.AddCommand(_envListCmd)
 
+	_envCmd.AddCommand(_envDefaultCmd)
+
 	_envCmd.AddCommand(_envDeleteCmd)
 }
 
@@ -55,7 +57,7 @@ var _envConfigureCmd = &cobra.Command{
 	Short: "configure an environment",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.configure")
+		telemetry.Event("cli.env.configure")
 
 		var envName string
 		if len(args) == 1 {
@@ -101,7 +103,7 @@ var _envListCmd = &cobra.Command{
 	Short: "list all configured environments",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.configure.list")
+		telemetry.Event("cli.env.list")
 
 		cliConfig, err := readCLIConfig()
 		if err != nil {
@@ -132,18 +134,39 @@ var _envListCmd = &cobra.Command{
 	},
 }
 
-var _envDeleteCmd = &cobra.Command{
-	Use:   "delete [ENVIRONMENT_NAME]",
-	Short: "delete an environment configuration",
+var _envDefaultCmd = &cobra.Command{
+	Use:   "default [ENVIRONMENT_NAME]",
+	Short: "set the default environment",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.configure.delete")
+		telemetry.Event("cli.env.default")
 
 		var envName string
 		if len(args) == 1 {
 			envName = args[0]
 		} else {
-			envName = promptEnvName("name of environment to delete", true)
+			defaultEnv := getDefaultEnv(_generalCommandType)
+			envName = promptEnvName("name of environment to set as default", defaultEnv, true)
+		}
+
+		if err := setDefaultEnv(envName); err != nil {
+			exit.Error(err)
+		}
+	},
+}
+
+var _envDeleteCmd = &cobra.Command{
+	Use:   "delete [ENVIRONMENT_NAME]",
+	Short: "delete an environment configuration",
+	Args:  cobra.RangeArgs(0, 1),
+	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.env.delete")
+
+		var envName string
+		if len(args) == 1 {
+			envName = args[0]
+		} else {
+			envName = promptEnvName("name of environment to delete", "", true)
 		}
 
 		if err := removeEnvFromCLIConfig(envName); err != nil {

@@ -175,6 +175,14 @@ func printLeadingNewLine() {
 	fmt.Println("")
 }
 
-func addEnvFlag(cmd *cobra.Command, defaultEnv string) {
+type commandType int
+
+const (
+	_generalCommandType commandType = iota
+	_clusterCommandType
+)
+
+func addEnvFlag(cmd *cobra.Command, cmdType commandType) {
+	defaultEnv := getDefaultEnv(cmdType)
 	cmd.Flags().StringVarP(&_flagEnv, "environment", "e", defaultEnv, "environment")
 }

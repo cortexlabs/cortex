@@ -33,7 +33,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/spf13/cobra"
@@ -44,16 +43,16 @@ var _flagDebug bool
 
 func init() {
 	addClusterConfigFlag(_updateCmd)
-	addEnvFlag(_updateCmd, types.AWSProviderType.String())
+	addEnvFlag(_updateCmd, _clusterCommandType)
 	_clusterCmd.AddCommand(_updateCmd)
 
 	addClusterConfigFlag(_infoCmd)
-	addEnvFlag(_infoCmd, types.AWSProviderType.String())
+	addEnvFlag(_infoCmd, _clusterCommandType)
 	_infoCmd.PersistentFlags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
 	_clusterCmd.AddCommand(_infoCmd)
 
 	addClusterConfigFlag(_upCmd)
-	addEnvFlag(_upCmd, types.AWSProviderType.String())
+	addEnvFlag(_upCmd, _clusterCommandType)
 	_clusterCmd.AddCommand(_upCmd)
 
 	addClusterConfigFlag(_downCmd)

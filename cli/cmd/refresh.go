@@ -23,7 +23,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +30,7 @@ var _flagRefreshForce bool
 
 func init() {
 	_refreshCmd.PersistentFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
-	addEnvFlag(_refreshCmd, types.LocalProviderType.String())
+	addEnvFlag(_refreshCmd, _generalCommandType)
 }
 
 var _refreshCmd = &cobra.Command{
