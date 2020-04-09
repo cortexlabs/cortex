@@ -575,43 +575,6 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 	return env, nil
 }
 
-func readCLIConfig() (CLIConfig, error) {
-	if !files.IsFile(_cliConfigPath) {
-		cliConfig := CLIConfig{
-			DefaultEnvironment: types.LocalProviderType.String(),
-			Environments: []*Environment{
-				{
-					Name:     types.LocalProviderType.String(),
-					Provider: types.LocalProviderType,
-				},
-			},
-		}
-
-		if err := cliConfig.validate(); err != nil {
-			return CLIConfig{}, err // unexpected
-		}
-
-		// create file so that the file created by the manager container maintains current user permissions
-		if err := writeCLIConfig(cliConfig); err != nil {
-			return CLIConfig{}, errors.Wrap(err, "unable to save CLI configuration file")
-		}
-
-		return cliConfig, nil
-	}
-
-	cliConfig := CLIConfig{}
-	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
-	if errors.HasError(errs) {
-		return CLIConfig{}, errors.FirstError(errs...)
-	}
-
-	if err := cliConfig.validate(); err != nil {
-		return CLIConfig{}, errors.Wrap(err, _cliConfigPath)
-	}
-
-	return cliConfig, nil
-}
-
 func listConfiguredEnvs() ([]string, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
@@ -679,6 +642,43 @@ func removeEnvFromCLIConfig(envName string) error {
 	}
 
 	return nil
+}
+
+func readCLIConfig() (CLIConfig, error) {
+	if !files.IsFile(_cliConfigPath) {
+		cliConfig := CLIConfig{
+			DefaultEnvironment: types.LocalProviderType.String(),
+			Environments: []*Environment{
+				{
+					Name:     types.LocalProviderType.String(),
+					Provider: types.LocalProviderType,
+				},
+			},
+		}
+
+		if err := cliConfig.validate(); err != nil {
+			return CLIConfig{}, err // unexpected
+		}
+
+		// create file so that the file created by the manager container maintains current user permissions
+		if err := writeCLIConfig(cliConfig); err != nil {
+			return CLIConfig{}, errors.Wrap(err, "unable to save CLI configuration file")
+		}
+
+		return cliConfig, nil
+	}
+
+	cliConfig := CLIConfig{}
+	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
+	if errors.HasError(errs) {
+		return CLIConfig{}, errors.FirstError(errs...)
+	}
+
+	if err := cliConfig.validate(); err != nil {
+		return CLIConfig{}, errors.Wrap(err, _cliConfigPath)
+	}
+
+	return cliConfig, nil
 }
 
 func writeCLIConfig(cliConfig CLIConfig) error {
