@@ -19,11 +19,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -47,16 +46,11 @@ var _versionCmd = &cobra.Command{
 
 		fmt.Println()
 
-		httpResponse, err := HTTPGet("/info")
+		fmt.Println("cli version: " + consts.CortexVersion)
+		infoResponse, err := cluster.Info(MustGetOperatorConfig(env.Name))
 		if err != nil {
-			fmt.Println("cli version: " + consts.CortexVersion + "\n")
+			fmt.Println()
 			exit.Error(err)
-		}
-		var infoResponse schema.InfoResponse
-		err = json.Unmarshal(httpResponse, &infoResponse)
-		if err != nil {
-			fmt.Println("cli version: " + consts.CortexVersion + "\n")
-			exit.Error(err, "/info", string(httpResponse))
 		}
 
 		fmt.Println("cli version:     " + consts.CortexVersion)

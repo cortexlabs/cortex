@@ -17,13 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
-	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -45,48 +42,23 @@ var _deleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.delete")
-		delete(args[0], _flagKeepCache)
-	},
-}
 
-func delete(apiName string, keepCache bool) {
-	if !_flagDeleteForce {
-		readyReplicas := getReadyReplicasOrNil(apiName)
-		if readyReplicas != nil && *readyReplicas > 2 {
-			prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete %s (which has %d live replicas)?", apiName, *readyReplicas), "", "")
+		env := MustReadOrConfigureEnv(_flagEnv)
+		var deleteResponse schema.DeleteResponse
+		var err error
+		if env.Provider == types.AWSProviderType {
+			deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagKeepCache, _flagDeleteForce)
+			if err != nil {
+				exit.Error(err)
+			}
+		} else {
+			// TODO show that flags are being ignored?
+			deleteResponse, err = local.Delete(args[0])
+			if err != nil {
+				exit.Error(err)
+			}
 		}
-	}
 
-	params := map[string]string{
-		"apiName":   apiName,
-		"keepCache": s.Bool(keepCache),
-	}
-
-	httpRes, err := HTTPDelete("/delete/"+apiName, params)
-	if err != nil {
-		exit.Error(err)
-	}
-
-	var deleteRes schema.DeleteResponse
-	err = json.Unmarshal(httpRes, &deleteRes)
-	if err != nil {
-		exit.Error(err, "/delete", string(httpRes))
-	}
-
-	print.BoldFirstLine(deleteRes.Message)
-}
-
-func getReadyReplicasOrNil(apiName string) *int32 {
-	httpRes, err := HTTPGet("/get/" + apiName)
-	if err != nil {
-		return nil
-	}
-
-	var apiRes schema.GetAPIResponse
-	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
-		return nil
-	}
-
-	totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
-	return &totalReady
+		print.BoldFirstLine(deleteResponse.Message)
+	},
 }

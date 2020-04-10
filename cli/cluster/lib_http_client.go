@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package cluster
 
 import (
 	"bytes"
@@ -24,19 +24,15 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"os/signal"
-	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/gorilla/websocket"
 )
 
 type OperatorClient struct {
@@ -45,6 +41,16 @@ type OperatorClient struct {
 
 type GenericClient struct {
 	*http.Client
+}
+
+type OperatorConfig struct {
+	Telemetry   bool
+	ClientID    string
+	Environment cliconfig.Environment
+}
+
+func (oc OperatorConfig) AuthHeader() string {
+	return fmt.Sprintf("CortexAWS %s|%s", oc.Environment.AWSAccessKeyID, oc.Environment.AWSSecretAccessKey)
 }
 
 var _operatorClient = &OperatorClient{
@@ -65,46 +71,46 @@ var _apiClient = &GenericClient{
 	},
 }
 
-func HTTPGet(endpoint string, qParams ...map[string]string) ([]byte, error) {
-	req, err := operatorRequest("GET", endpoint, nil, qParams)
+func HTTPGet(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
+	req, err := operatorRequest(operatorConfig, "GET", endpoint, nil, qParams)
 	if err != nil {
 		return nil, err
 	}
-	return _operatorClient.MakeRequest(req)
+	return _operatorClient.MakeRequest(operatorConfig, req)
 }
 
-func HTTPPostObjAsJSON(endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
+func HTTPPostObjAsJSON(operatorConfig OperatorConfig, endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
 	jsonRequestData, err := json.Marshal(requestData)
 	if err != nil {
 		return nil, err
 	}
-	return HTTPPostJSON(endpoint, jsonRequestData, qParams...)
+	return HTTPPostJSON(operatorConfig, endpoint, jsonRequestData, qParams...)
 }
 
-func HTTPPostJSON(endpoint string, jsonRequestData []byte, qParams ...map[string]string) ([]byte, error) {
+func HTTPPostJSON(operatorConfig OperatorConfig, endpoint string, jsonRequestData []byte, qParams ...map[string]string) ([]byte, error) {
 	payload := bytes.NewBuffer(jsonRequestData)
-	req, err := operatorRequest("POST", endpoint, payload, qParams)
+	req, err := operatorRequest(operatorConfig, "POST", endpoint, payload, qParams)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	return _operatorClient.MakeRequest(req)
+	return _operatorClient.MakeRequest(operatorConfig, req)
 }
 
-func HTTPPostNoBody(endpoint string, qParams ...map[string]string) ([]byte, error) {
-	req, err := operatorRequest("POST", endpoint, nil, qParams)
+func HTTPPostNoBody(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
+	req, err := operatorRequest(operatorConfig, "POST", endpoint, nil, qParams)
 	if err != nil {
 		return nil, err
 	}
-	return _operatorClient.MakeRequest(req)
+	return _operatorClient.MakeRequest(operatorConfig, req)
 }
 
-func HTTPDelete(endpoint string, qParams ...map[string]string) ([]byte, error) {
-	req, err := operatorRequest("DELETE", endpoint, nil, qParams)
+func HTTPDelete(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
+	req, err := operatorRequest(operatorConfig, "DELETE", endpoint, nil, qParams)
 	if err != nil {
 		return nil, err
 	}
-	return _operatorClient.MakeRequest(req)
+	return _operatorClient.MakeRequest(operatorConfig, req)
 }
 
 type HTTPUploadInput struct {
@@ -112,7 +118,7 @@ type HTTPUploadInput struct {
 	Bytes     map[string][]byte
 }
 
-func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]string) ([]byte, error) {
+func HTTPUpload(operatorConfig OperatorConfig, endpoint string, input *HTTPUploadInput, qParams ...map[string]string) ([]byte, error) {
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 
@@ -138,13 +144,13 @@ func HTTPUpload(endpoint string, input *HTTPUploadInput, qParams ...map[string]s
 		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
 
-	req, err := operatorRequest("POST", endpoint, body, qParams)
+	req, err := operatorRequest(operatorConfig, "POST", endpoint, body, qParams)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return _operatorClient.MakeRequest(req)
+	return _operatorClient.MakeRequest(operatorConfig, req)
 }
 
 func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Reader) error {
@@ -159,7 +165,7 @@ func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Rea
 	return nil
 }
 
-func HTTPUploadZip(endpoint string, zipInput *zip.Input, fileName string, qParams ...map[string]string) ([]byte, error) {
+func HTTPUploadZip(operatorConfig OperatorConfig, endpoint string, zipInput *zip.Input, fileName string, qParams ...map[string]string) ([]byte, error) {
 	zipBytes, err := zip.ToMem(zipInput)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to zip configuration file")
@@ -170,102 +176,11 @@ func HTTPUploadZip(endpoint string, zipInput *zip.Input, fileName string, qParam
 			fileName: zipBytes,
 		},
 	}
-	return HTTPUpload(endpoint, uploadInput, qParams...)
+	return HTTPUpload(operatorConfig, endpoint, uploadInput, qParams...)
 }
 
-func StreamLogs(apiName string) error {
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
-	req, err := operatorRequest("GET", "/logs/"+apiName, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	values := req.URL.Query()
-	if isTelemetryEnabled() {
-		values.Set("clientID", clientID())
-	}
-
-	req.URL.RawQuery = values.Encode()
-	wsURL := req.URL.String()
-	wsURL = strings.Replace(wsURL, "http", "ws", 1)
-
-	authHeader, err := authHeader()
-	if err != nil {
-		return err
-	}
-
-	header := http.Header{}
-	header.Set("Authorization", authHeader)
-	header.Set("CortexAPIVersion", consts.CortexVersion)
-
-	var dialer = websocket.Dialer{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-
-	connection, response, err := dialer.Dial(wsURL, header)
-	if err != nil && response == nil {
-		return ErrorFailedToConnectOperator(err, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
-	}
-	defer response.Body.Close()
-
-	if err != nil {
-		bodyBytes, err := ioutil.ReadAll(response.Body)
-		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			return ErrorFailedToConnectOperator(err, strings.Replace(operatorEndpointOrBlank(), "http", "ws", 1))
-		}
-		var output schema.ErrorResponse
-		err = json.Unmarshal(bodyBytes, &output)
-		if err != nil || output.Message == "" {
-			return ErrorOperatorStreamResponseUnknown(string(bodyBytes), response.StatusCode)
-		}
-		return errors.WithStack(&errors.Error{
-			Kind:        output.Kind,
-			Message:     output.Message,
-			NoTelemetry: true,
-		})
-	}
-	defer connection.Close()
-
-	done := make(chan struct{})
-	handleConnection(connection, done)
-	closeConnection(connection, done, interrupt)
-	return nil
-}
-
-func handleConnection(connection *websocket.Conn, done chan struct{}) {
-	go func() {
-		defer close(done)
-		for {
-			_, message, err := connection.ReadMessage()
-			if err != nil {
-				exit.Error(ErrorOperatorSocketRead(err))
-			}
-			fmt.Println(string(message))
-		}
-	}()
-}
-
-func closeConnection(connection *websocket.Conn, done chan struct{}, interrupt chan os.Signal) {
-	for {
-		select {
-		case <-done:
-			return
-		case <-interrupt:
-			connection.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			return
-		}
-	}
-}
-
-func operatorRequest(method string, endpoint string, body io.Reader, qParams []map[string]string) (*http.Request, error) {
-	env, err := readOrConfigureNonLocalEnv(_flagEnv)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(method, *env.OperatorEndpoint+endpoint, body)
+func operatorRequest(operatorConfig OperatorConfig, method string, endpoint string, body io.Reader, qParams []map[string]string) (*http.Request, error) {
+	req, err := http.NewRequest(method, *operatorConfig.Environment.OperatorEndpoint+endpoint, body)
 	if err != nil {
 		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
@@ -281,24 +196,19 @@ func operatorRequest(method string, endpoint string, body io.Reader, qParams []m
 	return req, nil
 }
 
-func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error) {
-	if isTelemetryEnabled() {
+func (client *OperatorClient) MakeRequest(operatorConfig OperatorConfig, request *http.Request) ([]byte, error) {
+	if operatorConfig.Telemetry {
 		values := request.URL.Query()
-		values.Set("clientID", clientID())
+		values.Set("clientID", operatorConfig.ClientID)
 		request.URL.RawQuery = values.Encode()
 	}
 
-	authHeader, err := authHeader()
-	if err != nil {
-		return nil, err
-	}
-
-	request.Header.Set("Authorization", authHeader)
+	request.Header.Set("Authorization", operatorConfig.AuthHeader())
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, ErrorFailedToConnectOperator(err, operatorEndpointOrBlank())
+		return nil, ErrorFailedToConnectOperator(err, *operatorConfig.Environment.OperatorEndpoint)
 	}
 	defer response.Body.Close()
 
@@ -348,23 +258,4 @@ func (client *GenericClient) MakeRequest(request *http.Request) ([]byte, error) 
 		return nil, errors.Wrap(err, _errStrRead)
 	}
 	return bodyBytes, nil
-}
-
-func authHeader() (string, error) {
-	env, err := readOrConfigureNonLocalEnv(_flagEnv)
-
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("CortexAWS %s|%s", *env.AWSAccessKeyID, *env.AWSSecretAccessKey), err
-}
-
-// Returns empty string if not able to get operator endpoint
-func operatorEndpointOrBlank() string {
-	env, _ := readEnv(_flagEnv)
-
-	if env != nil {
-		return *env.OperatorEndpoint
-	}
-	return ""
 }

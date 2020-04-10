@@ -18,11 +18,11 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/tls"
 	"fmt"
 	"net/http"
-	"time"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -35,15 +35,6 @@ import (
 )
 
 var _flagPredictDebug bool
-
-var _predictClient = &GenericClient{
-	Client: &http.Client{
-		Timeout: 600 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	},
-}
 
 func init() {
 	addEnvFlag(_predictCmd, types.LocalProviderType.String())
@@ -60,14 +51,22 @@ var _predictCmd = &cobra.Command{
 		apiName := args[0]
 		jsonPath := args[1]
 
-		httpRes, err := HTTPGet("/get/" + apiName)
-		if err != nil {
-			exit.Error(err)
-		}
-
+		env := MustReadOrConfigureEnv(_flagEnv)
 		var apiRes schema.GetAPIResponse
-		if err = json.Unmarshal(httpRes, &apiRes); err != nil {
-			exit.Error(err, "/get"+apiName, string(httpRes))
+		var apiEndpoint string
+		if env.Provider == types.AWSProviderType {
+			apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+			if err != nil {
+				// TODO
+			}
+			apiEndpoint = urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
+
+		} else {
+			apiRes, err := local.GetAPI(apiName)
+			if err != nil {
+				// TODO
+			}
+			apiEndpoint = urls.Join(apiRes.BaseURL)
 		}
 
 		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
@@ -75,7 +74,6 @@ var _predictCmd = &cobra.Command{
 			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))
 		}
 
-		apiEndpoint := urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
 		if _flagPredictDebug {
 			apiEndpoint += "?debug=true"
 		}
@@ -106,7 +104,7 @@ func makePredictRequest(apiEndpoint string, jsonPath string) (interface{}, error
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := _predictClient.MakeRequest(req)
+	httpResponse, err := MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}

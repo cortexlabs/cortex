@@ -17,15 +17,11 @@ limitations under the License.
 package endpoints
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -107,61 +103,5 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	respond(w, schema.DeployResponse{
 		Results: results,
 		BaseURL: baseURL,
-		Message: deployMessage(results),
 	})
-}
-
-func deployMessage(results []schema.DeployResult) string {
-	statusMessage := mergeResultMessages(results)
-
-	if didAllResultsError(results) {
-		return statusMessage
-	}
-
-	apiCommandsMessage := getAPICommandsMessage(results)
-
-	return statusMessage + "\n\n" + apiCommandsMessage
-}
-
-func mergeResultMessages(results []schema.DeployResult) string {
-	var okMessages []string
-	var errMessages []string
-
-	for _, result := range results {
-		if result.Error != "" {
-			errMessages = append(errMessages, result.Error)
-		} else {
-			okMessages = append(okMessages, result.Message)
-		}
-	}
-
-	messages := append(okMessages, errMessages...)
-
-	return strings.Join(messages, "\n")
-}
-
-func didAllResultsError(results []schema.DeployResult) bool {
-	for _, result := range results {
-		if result.Error == "" {
-			return false
-		}
-	}
-	return true
-}
-
-func getAPICommandsMessage(results []schema.DeployResult) string {
-	apiName := "<api_name>"
-	if len(results) == 1 {
-		apiName = results[0].API.Name
-	}
-
-	var items table.KeyValuePairs
-	items.Add("cortex get", "(show api statuses)")
-	items.Add(fmt.Sprintf("cortex get %s", apiName), "(show api info)")
-	items.Add(fmt.Sprintf("cortex logs %s", apiName), "(stream api logs)")
-
-	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
-		Delimiter: pointer.String(""),
-		NumSpaces: pointer.Int(2),
-	}))
 }

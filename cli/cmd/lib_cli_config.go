@@ -22,30 +22,19 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 )
-
-type CLIConfig struct {
-	Telemetry    bool           `json:"telemetry" yaml:"telemetry"`
-	Environments []*Environment `json:"environments" yaml:"environments"`
-}
-
-type Environment struct {
-	Name               string             `json:"name" yaml:"name"`
-	Provider           types.ProviderType `json:"provider" yaml:"provider"`
-	OperatorEndpoint   *string            `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
-	AWSAccessKeyID     *string            `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
-	AWSSecretAccessKey *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
-}
 
 var _cliConfigValidation = &cr.StructValidation{
 	TreatNullAsEmpty: true,
@@ -58,7 +47,7 @@ var _cliConfigValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "Environments",
+			StructField: "cliconfig.Environments",
 			StructListValidation: &cr.StructListValidation{
 				AllowExplicitNull: true,
 				StructValidation: &cr.StructValidation{
@@ -106,81 +95,7 @@ var _cliConfigValidation = &cr.StructValidation{
 	},
 }
 
-func (cliConfig *CLIConfig) validate() error {
-	envNames := strset.New()
-
-	for _, env := range cliConfig.Environments {
-		if envNames.Has(env.Name) {
-			return errors.Wrap(ErrorDuplicateEnvironmentNames(env.Name), "environments")
-		}
-
-		envNames.Add(env.Name)
-
-		if err := env.validate(); err != nil {
-			return errors.Wrap(err, "environments")
-		}
-	}
-
-	// Ensure the local env is always present
-	if !envNames.Has(types.LocalProviderType.String()) {
-		localEnv := &Environment{
-			Name:     types.LocalProviderType.String(),
-			Provider: types.LocalProviderType,
-		}
-
-		cliConfig.Environments = append([]*Environment{localEnv}, cliConfig.Environments...)
-	}
-
-	return nil
-}
-
-func (env *Environment) validate() error {
-	if env.Name == "" {
-		return errors.Wrap(cr.ErrorMustBeDefined(), "name")
-	}
-	if env.Provider == types.UnknownProviderType {
-		return errors.Wrap(cr.ErrorMustBeDefined(types.ProviderTypeStrings()), env.Name, "provider")
-	}
-
-	if err := checkReservedEnvironmentNames(env.Name, env.Provider); err != nil {
-		return err
-	}
-
-	if env.Provider == types.LocalProviderType {
-		if env.OperatorEndpoint != nil {
-			return errors.Wrap(ErrorOperatorEndpointInLocalEnvironment(), env.Name)
-		}
-	}
-
-	if env.Provider == types.AWSProviderType {
-		if env.OperatorEndpoint == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "operator_endpoint")
-		}
-		if env.AWSAccessKeyID == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "aws_access_key_id")
-		}
-		if env.AWSSecretAccessKey == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "aws_secret_access_key")
-		}
-	}
-
-	return nil
-}
-
-func checkReservedEnvironmentNames(envName string, provider types.ProviderType) error {
-	envNameProvider := types.ProviderTypeFromString(envName)
-	if envNameProvider == types.UnknownProviderType {
-		return nil
-	}
-
-	if envNameProvider != provider {
-		return ErrorEnvironmentProviderNameConflict(envName, provider)
-	}
-
-	return nil
-}
-
-func providerPromptValidation(envName string, defaults Environment) *cr.PromptValidation {
+func providerPromptValidation(envName string, defaults cliconfig.Environment) *cr.PromptValidation {
 	defaultProviderStr := ""
 	if defaults.Provider != types.UnknownProviderType {
 		defaultProviderStr = defaults.Provider.String()
@@ -201,7 +116,7 @@ func providerPromptValidation(envName string, defaults Environment) *cr.PromptVa
 				},
 				Parser: func(str string) (interface{}, error) {
 					provider := types.ProviderTypeFromString(str)
-					if err := checkReservedEnvironmentNames(envName, provider); err != nil {
+					if err := cliconfig.CheckReservedEnvironmentNames(envName, provider); err != nil {
 						return nil, err
 					}
 					return provider, nil
@@ -211,7 +126,7 @@ func providerPromptValidation(envName string, defaults Environment) *cr.PromptVa
 	}
 }
 
-func localEnvPromptValidation(defaults Environment) *cr.PromptValidation {
+func localEnvPromptValidation(defaults cliconfig.Environment) *cr.PromptValidation {
 	accessKeyIDPrompt := "aws access key id"
 	if defaults.AWSAccessKeyID == nil {
 		accessKeyIDPrompt += " [press ENTER to skip]"
@@ -253,7 +168,7 @@ func localEnvPromptValidation(defaults Environment) *cr.PromptValidation {
 	}
 }
 
-func awsEnvPromptValidation(defaults Environment) *cr.PromptValidation {
+func awsEnvPromptValidation(defaults cliconfig.Environment) *cr.PromptValidation {
 	return &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
@@ -351,8 +266,104 @@ func isTelemetryEnabled() bool {
 	return enabled
 }
 
-// Will return nil if not configured, except for local
-func readEnv(envName string) (*Environment, error) {
+func readCLIConfig() (cliconfig.CLIConfig, error) {
+	if !files.IsFile(_cliConfigPath) {
+		// add empty file so that the file created by the manager container maintains current user permissions
+		files.MakeEmptyFile(_cliConfigPath)
+
+		return cliconfig.CLIConfig{
+			Telemetry: true,
+		}, nil
+	}
+
+	cliConfig := cliconfig.CLIConfig{}
+	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
+	if errors.HasError(errs) {
+		return cliconfig.CLIConfig{}, errors.FirstError(errs...)
+	}
+
+	if err := cliConfig.Validate(); err != nil {
+		return cliconfig.CLIConfig{}, errors.Wrap(err, _cliConfigPath)
+	}
+
+	return cliConfig, nil
+}
+
+func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return err
+	}
+
+	replaced := false
+	for i, prevEnv := range cliConfig.Environments {
+		if prevEnv.Name == newEnv.Name {
+			cliConfig.Environments[i] = &newEnv
+			replaced = true
+			break
+		}
+	}
+
+	if !replaced {
+		cliConfig.Environments = append(cliConfig.Environments, &newEnv)
+	}
+
+	err = cliConfig.Validate()
+	if err != nil {
+		return err
+	}
+
+	cliConfigBytes, err := yaml.Marshal(cliConfig)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeEnvFromCLIConfig(envName string) error {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return err
+	}
+
+	var updatedEnvs []*cliconfig.Environment
+	deleted := false
+	for _, env := range cliConfig.Environments {
+		if env.Name == envName {
+			deleted = true
+			continue
+		}
+		updatedEnvs = append(updatedEnvs, env)
+	}
+
+	if deleted == false && envName != types.LocalProviderType.String() {
+		return cliconfig.ErrorEnvironmentNotConfigured(envName)
+	}
+
+	cliConfig.Environments = updatedEnvs
+
+	err = cliConfig.Validate()
+	if err != nil {
+		return err
+	}
+
+	cliConfigBytes, err := yaml.Marshal(cliConfig)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// TODO Will return nil if not configured, except for local
+func readEnv(envName string) (*cliconfig.Environment, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return nil, err
@@ -365,7 +376,7 @@ func readEnv(envName string) (*Environment, error) {
 	}
 
 	if envName == types.LocalProviderType.String() {
-		return &Environment{
+		return &cliconfig.Environment{
 			Name:     types.LocalProviderType.String(),
 			Provider: types.LocalProviderType,
 		}, nil
@@ -374,15 +385,41 @@ func readEnv(envName string) (*Environment, error) {
 	return nil, nil
 }
 
-func readOrConfigureNonLocalEnv(envName string) (Environment, error) {
+func MustReadOrConfigureEnv(envName string) cliconfig.Environment {
+	existingEnv, err := readEnv(envName)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	if existingEnv != nil {
+		return *existingEnv
+	}
+
+	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running on AWS?", envName)
+	yesMsg := fmt.Sprintf("please configure the %s environment to point to your running cluster:\n", envName)
+	noMsg := "you can create a cluster on AWS by running the `cortex cluster up` command"
+	prompt.YesOrExit(promptStr, yesMsg, noMsg)
+
+	fieldsToSkipPrompt := cliconfig.Environment{
+		Provider: types.AWSProviderType,
+	}
+
+	env, err := configureEnv(envName, fieldsToSkipPrompt)
+	if err != nil {
+		exit.Error(err)
+	}
+	return env
+}
+
+func ReadOrConfigureNonLocalEnv(envName string) (cliconfig.Environment, error) {
 	env, err := readEnv(envName)
 	if err != nil {
-		return Environment{}, err
+		return cliconfig.Environment{}, err
 	}
 
 	if env != nil {
 		if env.Provider == types.LocalProviderType {
-			return Environment{}, ErrorLocalProviderNotSupported(*env)
+			return cliconfig.Environment{}, ErrorLocalProviderNotSupported(*env)
 		}
 		return *env, nil
 	}
@@ -392,14 +429,14 @@ func readOrConfigureNonLocalEnv(envName string) (Environment, error) {
 	noMsg := "you can create a cluster on AWS by running the `cortex cluster up` command"
 	prompt.YesOrExit(promptStr, yesMsg, noMsg)
 
-	fieldsToSkipPrompt := Environment{
+	fieldsToSkipPrompt := cliconfig.Environment{
 		Provider: types.AWSProviderType,
 	}
 	return configureEnv(envName, fieldsToSkipPrompt)
 }
 
-func getDefaultEnvConfig(envName string) Environment {
-	defaults := Environment{}
+func getDefaultEnvConfig(envName string) cliconfig.Environment {
+	defaults := cliconfig.Environment{}
 
 	prevEnv, err := readEnv(envName)
 	if err == nil && prevEnv != nil {
@@ -425,7 +462,7 @@ func getDefaultEnvConfig(envName string) Environment {
 	return defaults
 }
 
-func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, error) {
+func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cliconfig.Environment, error) {
 	fmt.Println("environment: " + envName + "\n")
 
 	defaults := getDefaultEnvConfig(envName)
@@ -436,7 +473,7 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 		}
 	}
 
-	env := Environment{
+	env := cliconfig.Environment{
 		Name:               envName,
 		Provider:           fieldsToSkipPrompt.Provider,
 		OperatorEndpoint:   fieldsToSkipPrompt.OperatorEndpoint,
@@ -446,7 +483,7 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 
 	err := cr.ReadPrompt(&env, providerPromptValidation(envName, defaults))
 	if err != nil {
-		return Environment{}, err
+		return cliconfig.Environment{}, err
 	}
 
 	switch env.Provider {
@@ -456,106 +493,34 @@ func configureEnv(envName string, fieldsToSkipPrompt Environment) (Environment, 
 		err = cr.ReadPrompt(&env, awsEnvPromptValidation(defaults))
 	}
 	if err != nil {
-		return Environment{}, err
+		return cliconfig.Environment{}, err
 	}
 
-	if err := env.validate(); err != nil {
-		return Environment{}, err
+	if err := env.Validate(); err != nil {
+		return cliconfig.Environment{}, err
 	}
 
 	if err := addEnvToCLIConfig(env); err != nil {
-		return Environment{}, err
+		return cliconfig.Environment{}, err
 	}
 
 	return env, nil
 }
 
-func readCLIConfig() (CLIConfig, error) {
-	if !files.IsFile(_cliConfigPath) {
-		// add empty file so that the file created by the manager container maintains current user permissions
-		files.MakeEmptyFile(_cliConfigPath)
-
-		return CLIConfig{
-			Telemetry: true,
-		}, nil
-	}
-
-	cliConfig := CLIConfig{}
-	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
-	if errors.HasError(errs) {
-		return CLIConfig{}, errors.FirstError(errs...)
-	}
-
-	if err := cliConfig.validate(); err != nil {
-		return CLIConfig{}, errors.Wrap(err, _cliConfigPath)
-	}
-
-	return cliConfig, nil
-}
-
-func addEnvToCLIConfig(newEnv Environment) error {
+func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
-		return err
+		exit.Error(err)
 	}
-
-	replaced := false
-	for i, prevEnv := range cliConfig.Environments {
-		if prevEnv.Name == newEnv.Name {
-			cliConfig.Environments[i] = &newEnv
-			replaced = true
-			break
-		}
-	}
-
-	if !replaced {
-		cliConfig.Environments = append(cliConfig.Environments, &newEnv)
-	}
-
-	cliConfig.validate()
-
-	cliConfigBytes, err := yaml.Marshal(cliConfig)
+	clientID := clientID()
+	env, err := cliConfig.GetEnv(envName)
 	if err != nil {
-		return errors.WithStack(err)
-	}
-	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
-		return err
+		exit.Error(err)
 	}
 
-	return nil
-}
-
-func removeEnvFromCLIConfig(envName string) error {
-	cliConfig, err := readCLIConfig()
-	if err != nil {
-		return err
+	return cluster.OperatorConfig{
+		Telemetry:   isTelemetryEnabled(),
+		ClientID:    clientID,
+		Environment: env,
 	}
-
-	var updatedEnvs []*Environment
-	deleted := false
-	for _, env := range cliConfig.Environments {
-		if env.Name == envName {
-			deleted = true
-			continue
-		}
-		updatedEnvs = append(updatedEnvs, env)
-	}
-
-	if deleted == false && envName != types.LocalProviderType.String() {
-		return ErrorEnvironmentNotConfigured(envName)
-	}
-
-	cliConfig.Environments = updatedEnvs
-
-	cliConfig.validate()
-
-	cliConfigBytes, err := yaml.Marshal(cliConfig)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
-		return err
-	}
-
-	return nil
 }

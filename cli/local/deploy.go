@@ -23,12 +23,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/docker/docker/api/types"
@@ -39,6 +42,52 @@ import (
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 )
+
+func Deploy(configPath string, deploymentBytesMap map[string][]byte) (schema.DeployResponse, error) {
+	projectFileMap, err := zip.UnzipMemToMem(deploymentBytesMap["project.zip"])
+	if err != nil {
+		return schema.DeployResponse{}, err
+	}
+
+	apiConfigs, err := spec.ExtractAPIConfigs(deploymentBytesMap["config"], projectFileMap, configPath)
+	if err != nil {
+		return schema.DeployResponse{}, err
+	}
+
+	err = ValidateLocalAPIs(apiConfigs, projectFileMap)
+	if err != nil {
+		return schema.DeployResponse{}, err
+	}
+	projectID := hash.Bytes(deploymentBytesMap["project.zip"])
+
+	// TODO try to pickup AWS credentials silently if aws creds in local environment are empty
+
+	// TODO use credentials from Local environment
+	os.Setenv("AWS_ACCESS_KEY_ID", "")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "")
+
+	results := make([]schema.DeployResult, len(apiConfigs))
+	for i, apiConfig := range apiConfigs {
+		if apiConfig.Predictor.Model != nil {
+			path, err := CacheModel(&apiConfig)
+			if err != nil {
+				results[i].Error = errors.Message(errors.Wrap(err, apiConfig.Name, userconfig.PredictorKey, userconfig.ModelKey))
+			}
+			apiConfig.Predictor.Model = pointer.String(path)
+		}
+		api, msg, err := UpdateAPI(&apiConfig, projectID)
+		results[i].Message = msg
+		if err != nil {
+			results[i].Error = errors.Message(err)
+		} else {
+			results[i].API = *api
+		}
+	}
+
+	return schema.DeployResponse{
+		Results: results,
+	}, nil
+}
 
 func GetContainerByAPI(apiName string) ([]dockertypes.Container, error) {
 	dargs := filters.NewArgs()

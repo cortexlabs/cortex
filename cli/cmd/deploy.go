@@ -20,14 +20,18 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"strings"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -55,8 +59,28 @@ var _deployCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.deploy")
 
+		env := MustReadOrConfigureEnv(_flagEnv)
 		configPath := getConfigPath(args)
-		deploy(configPath, _flagDeployForce)
+		deploymentBytes := getDeploymentBytes(configPath)
+		var deployResponse schema.DeployResponse
+		var err error
+		if env.Provider == types.AWSProviderType {
+			params := map[string]string{
+				"force":      s.Bool(_flagDeployForce),
+				"configPath": configPath,
+			}
+			deployResponse, err = cluster.Deploy(MustGetOperatorConfig(env.Name), deploymentBytes, params)
+			if err != nil {
+				// TODO
+			}
+		} else {
+			deployResponse, err = local.Deploy(configPath, deploymentBytes)
+			if err != nil {
+				// TODO
+			}
+		}
+		message := deployMessage(deployResponse.Results)
+		print.BoldFirstBlock(message)
 	},
 }
 
@@ -78,12 +102,7 @@ func getConfigPath(args []string) string {
 	return configPath
 }
 
-func deploy(configPath string, force bool) {
-	params := map[string]string{
-		"force":      s.Bool(force),
-		"configPath": configPath,
-	}
-
+func getDeploymentBytes(configPath string) map[string][]byte {
 	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
 		exit.Error(err)
@@ -152,20 +171,60 @@ func deploy(configPath string, force bool) {
 	}
 
 	uploadBytes["project.zip"] = projectZipBytes
+	return uploadBytes
+}
 
-	uploadInput := &HTTPUploadInput{
-		Bytes: uploadBytes,
+func deployMessage(results []schema.DeployResult) string {
+	statusMessage := mergeResultMessages(results)
+
+	if didAllResultsError(results) {
+		return statusMessage
 	}
 
-	response, err := HTTPUpload("/deploy", uploadInput, params)
-	if err != nil {
-		exit.Error(err)
+	apiCommandsMessage := getAPICommandsMessage(results)
+
+	return statusMessage + "\n\n" + apiCommandsMessage
+}
+
+func mergeResultMessages(results []schema.DeployResult) string {
+	var okMessages []string
+	var errMessages []string
+
+	for _, result := range results {
+		if result.Error != "" {
+			errMessages = append(errMessages, result.Error)
+		} else {
+			okMessages = append(okMessages, result.Message)
+		}
 	}
 
-	var deployResponse schema.DeployResponse
-	if err := json.Unmarshal(response, &deployResponse); err != nil {
-		exit.Error(err, "/deploy", string(response))
+	messages := append(okMessages, errMessages...)
+
+	return strings.Join(messages, "\n")
+}
+
+func didAllResultsError(results []schema.DeployResult) bool {
+	for _, result := range results {
+		if result.Error == "" {
+			return false
+		}
+	}
+	return true
+}
+
+func getAPICommandsMessage(results []schema.DeployResult) string {
+	apiName := "<api_name>"
+	if len(results) == 1 {
+		apiName = results[0].API.Name
 	}
 
-	print.BoldFirstBlock(deployResponse.Message)
+	var items table.KeyValuePairs
+	items.Add("cortex get", "(show api statuses)")
+	items.Add(fmt.Sprintf("cortex get %s", apiName), "(show api info)")
+	items.Add(fmt.Sprintf("cortex logs %s", apiName), "(stream api logs)")
+
+	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
+		Delimiter: pointer.String(""),
+		NumSpaces: pointer.Int(2),
+	}))
 }

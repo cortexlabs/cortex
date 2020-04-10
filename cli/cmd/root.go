@@ -128,10 +128,6 @@ func Execute() {
 	_rootCmd.AddCommand(_logsCmd)
 	_rootCmd.AddCommand(_predictCmd)
 	_rootCmd.AddCommand(_deleteCmd)
-	_rootCmd.AddCommand(localCmd)
-	_rootCmd.AddCommand(localGet)
-	_rootCmd.AddCommand(localDelete)
-	_rootCmd.AddCommand(localLogs)
 
 	_rootCmd.AddCommand(_clusterCmd)
 	_rootCmd.AddCommand(_versionCmd)

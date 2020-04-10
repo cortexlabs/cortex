@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -45,21 +46,15 @@ func getCloudFormationURL(clusterName, region string) string {
 const (
 	ErrInvalidProvider                    = "cli.invalid_provider"
 	ErrLocalProviderNotSupported          = "cli.local_provider_not_supported"
-	ErrEnvironmentNotConfigured           = "cli.environment_not_configured"
 	ErrEnvironmentProviderNameConflict    = "cli.environment_provider_name_conflict"
-	ErrDuplicateEnvironmentNames          = "cli.duplicate_environment_names"
 	ErrOperatorEndpointInLocalEnvironment = "cli.operator_endpoint_in_local_environment"
 	ErrInvalidOperatorEndpoint            = "cli.invalid_operator_endpoint"
 	ErrCortexYAMLNotFound                 = "cli.cortex_yaml_not_found"
 	ErrConnectToDockerDaemon              = "cli.connect_to_docker_daemon"
 	ErrDockerPermissions                  = "cli.docker_permissions"
 	ErrDockerCtrlC                        = "cli.docker_ctrl_c"
-	ErrAPINotReady                        = "cli.api_not_ready"
-	ErrFailedToConnectOperator            = "cli.failed_to_connect_operator"
-	ErrOperatorSocketRead                 = "cli.operator_socket_read"
 	ErrResponseUnknown                    = "cli.response_unknown"
-	ErrOperatorResponseUnknown            = "cli.operator_response_unknown"
-	ErrOperatorStreamResponseUnknown      = "cli.operator_stream_response_unknown"
+	ErrAPINotReady                        = "cli.api_not_ready"
 	ErrOneAWSEnvVarSet                    = "cli.one_aws_env_var_set"
 	ErrOneAWSConfigFieldSet               = "cli.one_aws_config_field_set"
 	ErrClusterUp                          = "cli.cluster_up"
@@ -84,7 +79,7 @@ func ErrorInvalidProvider(providerStr string) error {
 	})
 }
 
-func ErrorLocalProviderNotSupported(environment Environment) error {
+func ErrorLocalProviderNotSupported(environment cliconfig.Environment) error {
 	msg := "this command cannot run locally; please specify an existing environment (via --env=<name>) which points to an existing cluster, create/update an environment for an existing cluster (`cortex env configure <name>`), or create a cortex cluster (`cortex cluster up`)"
 	if environment.Name != types.LocalProviderType.String() {
 		msg = fmt.Sprintf("the %s environment uses the local provider, but ", environment.Name) + msg
@@ -100,20 +95,6 @@ func ErrorEnvironmentProviderNameConflict(envName string, provider types.Provide
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentProviderNameConflict,
 		Message: fmt.Sprintf("the %s environment cannot use the %s provider", envName, provider.String()),
-	})
-}
-
-func ErrorEnvironmentNotConfigured(envName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrEnvironmentNotConfigured,
-		Message: fmt.Sprintf("%s environment is not configured", envName),
-	})
-}
-
-func ErrorDuplicateEnvironmentNames(envName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateEnvironmentNames,
-		Message: fmt.Sprintf("duplicate environment names (%s is defined more than once)", s.UserStr(envName)),
 	})
 }
 
@@ -172,38 +153,6 @@ func ErrorDockerCtrlC() error {
 	})
 }
 
-func ErrorAPINotReady(apiName string, status string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPINotReady,
-		Message: fmt.Sprintf("%s is %s", apiName, status),
-	})
-}
-
-func ErrorFailedToConnectOperator(originalError error, operatorURL string) error {
-	operatorURLMsg := ""
-	if operatorURL != "" {
-		operatorURLMsg = fmt.Sprintf(" (%s)", operatorURL)
-	}
-
-	originalErrMsg := ""
-	if originalError != nil {
-		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFailedToConnectOperator,
-		Message: fmt.Sprintf("%sfailed to connect to the operator%s; run `cortex configure` if you need to update the operator endpoint, `cortex cluster info` to show your operator endpoint, or `cortex cluster up` to create a new cluster", originalErrMsg, operatorURLMsg),
-	})
-}
-
-func ErrorOperatorSocketRead(err error) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorSocketRead,
-		Message: err.Error(),
-		NoPrint: true,
-	})
-}
-
 func ErrorResponseUnknown(body string, statusCode int) error {
 	msg := body
 	if strings.TrimSpace(body) == "" {
@@ -216,17 +165,10 @@ func ErrorResponseUnknown(body string, statusCode int) error {
 	})
 }
 
-func ErrorOperatorResponseUnknown(body string, statusCode int) error {
+func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorResponseUnknown,
-		Message: fmt.Sprintf("unexpected response from operator (status code %d): %s", statusCode, body),
-	})
-}
-
-func ErrorOperatorStreamResponseUnknown(body string, statusCode int) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorStreamResponseUnknown,
-		Message: fmt.Sprintf("unexpected response from operator (status code %d): %s", statusCode, body),
+		Kind:    ErrAPINotReady,
+		Message: fmt.Sprintf("%s is %s", apiName, status),
 	})
 }
 

@@ -23,16 +23,16 @@ import (
 	"os"
 	"time"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
@@ -77,7 +77,7 @@ var _upCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up")
 
-		if err := checkDockerRunning(); err != nil {
+		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
@@ -144,7 +144,7 @@ var _updateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.update")
 
-		if err := checkDockerRunning(); err != nil {
+		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
@@ -204,7 +204,7 @@ var _infoCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info")
 
-		if err := checkDockerRunning(); err != nil {
+		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
@@ -233,7 +233,7 @@ var _downCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.down")
 
-		if err := checkDockerRunning(); err != nil {
+		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
@@ -368,20 +368,8 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 
 	fmt.Println()
 
-	httpResponse, err := HTTPGet("/info")
-	if err != nil {
-		fmt.Println(clusterConfig.UserStr() + "\n")
-		exit.Error(err, "unable to connect to operator", "/info")
-		return
-	}
+	infoResponse, err := cluster.Info(MustGetOperatorConfig(_flagEnv))
 
-	var infoResponse schema.InfoResponse
-	err = json.Unmarshal(httpResponse, &infoResponse)
-	if err != nil {
-		fmt.Println(clusterConfig.UserStr() + "\n")
-		exit.Error(err, "/info", string(httpResponse))
-		return
-	}
 	infoResponse.ClusterConfig.Config = clusterConfig
 
 	var items table.KeyValuePairs

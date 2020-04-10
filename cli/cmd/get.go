@@ -17,12 +17,17 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -56,51 +61,53 @@ var _getCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.get")
 
+		env := MustReadOrConfigureEnv(_flagEnv)
 		rerun(func() (string, error) {
-			return get(args)
+			return get(args, env)
 		})
 	},
 }
 
-func get(args []string) (string, error) {
+func get(args []string, env cliconfig.Environment) (string, error) {
 	if len(args) == 0 {
-		return getAPIs()
+		return getAPIs(env)
 	}
-	return getAPI(args[0])
+	return getAPI(env, args[0])
 }
 
-func getAPIs() (string, error) {
-	httpRes, err := HTTPGet("/get")
-	if err != nil {
-		return "", err
-	}
-
+func getAPIs(env cliconfig.Environment) (string, error) {
 	var apisRes schema.GetAPIsResponse
-	if err = json.Unmarshal(httpRes, &apisRes); err != nil {
-		return "", errors.Wrap(err, "/get", string(httpRes))
-	}
+	var err error
 
-	if len(apisRes.APIs) == 0 {
-		return console.Bold("no apis are deployed"), nil
+	if env.Provider == types.AWSProviderType {
+		apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
+		if err != nil {
+			// TODO
+		}
+	} else {
+		apisRes, err = local.GetAPIs()
+		if err != nil {
+			// TODO
+		}
 	}
 
 	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, true)
 	return t.MustFormat(), nil
 }
 
-func getAPI(apiName string) (string, error) {
-	httpRes, err := HTTPGet("/get/" + apiName)
-	if err != nil {
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.HasSuffix(errors.Message(err), "is not deployed") {
-			return console.Bold(errors.Message(err)), nil
-		}
-		return "", err
-	}
-
+func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	var apiRes schema.GetAPIResponse
-	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
-		return "", errors.Wrap(err, "/get/"+apiName, string(httpRes))
+	var err error
+	if env.Provider == types.AWSProviderType {
+		apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+		if err != nil {
+			// TODO
+		}
+	} else {
+		apiRes, err = local.GetAPI(apiName)
+		if err != nil {
+			// TODO
+		}
 	}
 
 	var out string
@@ -119,7 +126,10 @@ func getAPI(apiName string) (string, error) {
 		}
 	}
 
-	apiEndpoint := urls.Join(apiRes.BaseURL, *api.Endpoint)
+	apiEndpoint := urls.Join(apiRes.BaseURL, "/predict")
+	if env.Provider == types.AWSProviderType {
+		apiEndpoint = urls.Join(apiRes.BaseURL, *api.Endpoint)
+	}
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
 	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
@@ -323,6 +333,35 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 	return t.MustFormat()
 }
 
+func MakeRequest(request *http.Request) ([]byte, error) {
+	client := http.Client{
+		Timeout: 600 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		bodyBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, errors.Wrap(err, _errStrRead)
+		}
+		return nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
+	}
+
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, _errStrRead)
+	}
+	return bodyBytes, nil
+}
+
 func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", 1)
 	req, err := http.NewRequest("GET", httpsAPIEndpoint, nil)
@@ -330,7 +369,7 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := _apiClient.MakeRequest(req)
+	response, err := MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}

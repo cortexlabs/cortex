@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -40,15 +42,23 @@ var _logsCmd = &cobra.Command{
 		telemetry.Event("cli.logs")
 
 		apiName := args[0]
-
-		err := StreamLogs(apiName)
-		if err != nil {
-			// note: if modifying this string, search the codebase for it and change all occurrences
-			if strings.HasSuffix(errors.Message(err), "is not deployed") {
-				fmt.Println(console.Bold(errors.Message(err)))
-				return
+		env := MustReadOrConfigureEnv(_flagEnv)
+		if env.Provider == types.AWSProviderType {
+			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), apiName)
+			if err != nil {
+				// note: if modifying this string, search the codebase for it and change all occurrences
+				if strings.HasSuffix(errors.Message(err), "is not deployed") {
+					fmt.Println(console.Bold(errors.Message(err)))
+					return
+				}
+				exit.Error(err)
 			}
-			exit.Error(err)
+		} else {
+			err := local.StreamLogs(apiName)
+			if err != nil {
+				exit.Error(err)
+			}
 		}
+
 	},
 }

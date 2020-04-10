@@ -17,10 +17,10 @@ limitations under the License.
 package cmd
 
 import (
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -40,25 +40,23 @@ var _refreshCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.refresh")
-		refresh(args[0], _flagRefreshForce)
+
+		env := MustReadOrConfigureEnv(_flagEnv)
+		var refreshResponse schema.RefreshResponse
+		var err error
+		if env.Provider == types.AWSProviderType {
+			refreshResponse, err = cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)
+			if err != nil {
+				exit.Error(err)
+			}
+		} else {
+			// TODO show that flags are being ignored?
+			refreshResponse, err = local.Refresh(args[0])
+			if err != nil {
+				exit.Error(err)
+			}
+		}
+
+		print.BoldFirstLine(refreshResponse.Message)
 	},
-}
-
-func refresh(apiName string, force bool) {
-	params := map[string]string{
-		"force": s.Bool(force),
-	}
-
-	httpRes, err := HTTPPostNoBody("/refresh/"+apiName, params)
-	if err != nil {
-		exit.Error(err)
-	}
-
-	var refreshRes schema.RefreshResponse
-	err = json.Unmarshal(httpRes, &refreshRes)
-	if err != nil {
-		exit.Error(err, "/refresh", string(httpRes))
-	}
-
-	print.BoldFirstLine(refreshRes.Message)
 }

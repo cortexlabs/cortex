@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -75,7 +76,7 @@ var _configureCmd = &cobra.Command{
 			skipAWSSecretAccessKey = &_flagAWSSecretAccessKey
 		}
 
-		fieldsToSkipPrompt := Environment{
+		fieldsToSkipPrompt := cliconfig.Environment{
 			Provider:           skipProvider,
 			OperatorEndpoint:   skipOperatorEndpoint,
 			AWSAccessKeyID:     skipAWSAccessKeyID,
