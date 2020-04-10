@@ -137,6 +137,8 @@ var _upCmd = &cobra.Command{
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
+
+		fmt.Printf("\nyour cli environment named \"%s\" has been configured to connect to this cluster; append --env=%s in cortex commands to reference it, or set it as your default via `cortex env default %s`\n", _flagEnv, _flagEnv, _flagEnv)
 	},
 }
 
