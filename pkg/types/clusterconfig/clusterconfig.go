@@ -485,10 +485,6 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 		return ErrorInstanceTypeTooSmall()
 	}
 
-	if strings.HasPrefix(instanceMetadata.Type, "inf") {
-		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
-	}
-
 	if _, ok := awsutils.InstanceENIsAvailable[instanceMetadata.Type]; !ok {
 		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
 	}
