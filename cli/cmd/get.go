@@ -52,7 +52,7 @@ var _flagWatch bool
 func getInit() {
 	_getCmd.Flags().SortFlags = false
 	addEnvFlag(_getCmd, _generalCommandType, _envToUseUsage)
-	_getCmd.LocalFlags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
+	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
 }
 
 var _getCmd = &cobra.Command{

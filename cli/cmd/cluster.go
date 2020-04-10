@@ -50,7 +50,7 @@ func clusterInit() {
 	_infoCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_infoCmd)
 	addEnvFlag(_infoCmd, _clusterCommandType, _envToUseUsage)
-	_infoCmd.LocalFlags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
+	_infoCmd.Flags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
 	_clusterCmd.AddCommand(_infoCmd)
 
 	_updateCmd.Flags().SortFlags = false
@@ -64,8 +64,8 @@ func clusterInit() {
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
-	cmd.LocalFlags().StringVarP(&_flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
-	cmd.LocalFlags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
+	cmd.Flags().StringVarP(&_flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
+	cmd.Flags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
 }
 
 var _clusterCmd = &cobra.Command{
