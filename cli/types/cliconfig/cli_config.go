@@ -23,7 +23,7 @@ import (
 )
 
 type CLIConfig struct {
-	Telemetry          *bool          `json:"telemetry" yaml:"telemetry"`
+	Telemetry          *bool          `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
 	DefaultEnvironment string         `json:"default_environment" yaml:"default_environment"`
 	Environments       []*Environment `json:"environments" yaml:"environments"`
 }
