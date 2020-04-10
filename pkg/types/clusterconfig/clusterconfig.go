@@ -493,6 +493,10 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 }
 
 func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+	if strings.HasPrefix(target.Type, "inf") && !strings.HasPrefix(suggested.Type, "inf") {
+		return ErrorIncompatibleInfSpotInstanceType(target, suggested)
+	}
+
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
