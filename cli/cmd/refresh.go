@@ -29,9 +29,10 @@ import (
 
 var _flagRefreshForce bool
 
-func init() {
-	_refreshCmd.PersistentFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
-	addEnvFlag(_refreshCmd, types.LocalProviderType.String())
+func refreshInit() {
+	_refreshCmd.Flags().SortFlags = false
+	addEnvFlag(_refreshCmd, _generalCommandType, _envToUseUsage)
+	_refreshCmd.LocalFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
 }
 
 var _refreshCmd = &cobra.Command{

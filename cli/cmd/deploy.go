@@ -46,10 +46,11 @@ var _warningFileCount = 1000
 var _flagDeployForce bool
 var _flagDeployYes bool
 
-func init() {
-	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
-	_deployCmd.PersistentFlags().BoolVarP(&_flagDeployYes, "yes", "y", false, "skip prompts")
-	addEnvFlag(_deployCmd, types.LocalProviderType.String())
+func deployInit() {
+	_deployCmd.Flags().SortFlags = false
+	addEnvFlag(_deployCmd, _generalCommandType, _envToUseUsage)
+	_deployCmd.LocalFlags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
+	_deployCmd.LocalFlags().BoolVarP(&_flagDeployYes, "yes", "y", false, "skip prompts")
 }
 
 var _deployCmd = &cobra.Command{

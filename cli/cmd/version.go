@@ -27,8 +27,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	addEnvFlag(_versionCmd, types.LocalProviderType.String())
+func versionInit() {
+	_versionCmd.Flags().SortFlags = false
+	addEnvFlag(_versionCmd, _generalCommandType, _envToUseUsage)
 }
 
 var _versionCmd = &cobra.Command{

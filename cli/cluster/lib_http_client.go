@@ -208,7 +208,7 @@ func (client *OperatorClient) MakeRequest(operatorConfig OperatorConfig, request
 
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, ErrorFailedToConnectOperator(err, *operatorConfig.Environment.OperatorEndpoint)
+		return nil, ErrorFailedToConnectOperator(err, operatorConfig.Environment.Name, *operatorConfig.Environment.OperatorEndpoint)
 	}
 	defer response.Body.Close()
 

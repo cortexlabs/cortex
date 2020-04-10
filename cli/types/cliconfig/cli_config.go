@@ -23,8 +23,9 @@ import (
 )
 
 type CLIConfig struct {
-	Telemetry    bool           `json:"telemetry" yaml:"telemetry"`
-	Environments []*Environment `json:"environments" yaml:"environments"`
+	Telemetry          *bool          `json:"telemetry" yaml:"telemetry"`
+	DefaultEnvironment string         `json:"default_environment" yaml:"default_environment"`
+	Environments       []*Environment `json:"environments" yaml:"environments"`
 }
 
 func (cliConfig CLIConfig) GetEnv(envName string) (Environment, error) {
@@ -38,6 +39,10 @@ func (cliConfig CLIConfig) GetEnv(envName string) (Environment, error) {
 }
 
 func (cliConfig *CLIConfig) Validate() error {
+	if cliConfig.DefaultEnvironment == "" {
+		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
+	}
+
 	envNames := strset.New()
 
 	for _, env := range cliConfig.Environments {

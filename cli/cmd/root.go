@@ -95,6 +95,17 @@ func init() {
 	if enableTelemetry {
 		initTelemetry()
 	}
+
+	clusterInit()
+	completionInit()
+	deleteInit()
+	deployInit()
+	envInit()
+	getInit()
+	logsInit()
+	predictInit()
+	refreshInit()
+	versionInit()
 }
 
 func initTelemetry() {
@@ -132,7 +143,7 @@ func Execute() {
 	_rootCmd.AddCommand(_clusterCmd)
 	_rootCmd.AddCommand(_versionCmd)
 
-	_rootCmd.AddCommand(_configureCmd)
+	_rootCmd.AddCommand(_envCmd)
 	_rootCmd.AddCommand(_completionCmd)
 
 	updateRootUsage()
@@ -171,6 +182,17 @@ func printLeadingNewLine() {
 	fmt.Println("")
 }
 
-func addEnvFlag(cmd *cobra.Command, defaultEnv string) {
-	cmd.Flags().StringVarP(&_flagEnv, "environment", "e", defaultEnv, "environment")
+type commandType int
+
+const (
+	_generalCommandType commandType = iota
+	_clusterCommandType
+)
+
+const _envToUseUsage = "environment to use"
+const _envToConfigureUsage = "environment to configure"
+
+func addEnvFlag(cmd *cobra.Command, cmdType commandType, usage string) {
+	defaultEnv := getDefaultEnv(cmdType)
+	cmd.Flags().StringVarP(&_flagEnv, "env", "e", defaultEnv, usage)
 }

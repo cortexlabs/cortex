@@ -36,8 +36,9 @@ import (
 
 var _flagPredictDebug bool
 
-func init() {
-	addEnvFlag(_predictCmd, types.LocalProviderType.String())
+func predictInit() {
+	_predictCmd.Flags().SortFlags = false
+	addEnvFlag(_predictCmd, _generalCommandType, _envToUseUsage)
 	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }
 

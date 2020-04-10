@@ -23,6 +23,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func completionInit() {
+	_completionCmd.Flags().SortFlags = false
+}
+
 var _completionCmd = &cobra.Command{
 	Use:   "completion",
 	Short: "generate bash completion scripts",

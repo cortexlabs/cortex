@@ -80,7 +80,7 @@ func ErrorInvalidProvider(providerStr string) error {
 }
 
 func ErrorLocalProviderNotSupported(environment cliconfig.Environment) error {
-	msg := "this command cannot run locally; please specify an existing environment (via --env=<name>) which points to an existing cluster, create/update an environment for an existing cluster (`cortex env configure <name>`), or create a cortex cluster (`cortex cluster up`)"
+	msg := "this command cannot run locally; please specify an existing environment (via --env=<name>) which points to an existing cluster, create/update an environment for an existing cluster (`cortex env configure`), or create a cortex cluster (`cortex cluster up`)"
 	if environment.Name != types.LocalProviderType.String() {
 		msg = fmt.Sprintf("the %s environment uses the local provider, but ", environment.Name) + msg
 	}

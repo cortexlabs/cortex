@@ -68,14 +68,14 @@ func ErrorAuthAPIError() error {
 func ErrorAuthInvalid() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthInvalid,
-		Message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
+		Message: "invalid AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as the operator",
 	})
 }
 
 func ErrorAuthOtherAccount() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthOtherAccount,
-		Message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as your cluster",
+		Message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
 	})
 }
 

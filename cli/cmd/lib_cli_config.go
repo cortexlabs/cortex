@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
@@ -29,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -36,18 +38,27 @@ import (
 	"github.com/cortexlabs/yaml"
 )
 
+var _cachedCLIConfig *cliconfig.CLIConfig
+
 var _cliConfigValidation = &cr.StructValidation{
 	TreatNullAsEmpty: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "Telemetry",
-			BoolValidation: &cr.BoolValidation{
-				Default:  true,
+			BoolPtrValidation: &cr.BoolPtrValidation{
 				Required: false,
 			},
 		},
 		{
-			StructField: "cliconfig.Environments",
+			StructField: "DefaultEnvironment",
+			StringValidation: &cr.StringValidation{
+				Default:    "local",
+				Required:   false,
+				AllowEmpty: true, // will get set to "local" in validate() if empty
+			},
+		},
+		{
+			StructField: "Environments",
 			StructListValidation: &cr.StructListValidation{
 				AllowExplicitNull: true,
 				StructValidation: &cr.StructValidation{
@@ -95,13 +106,53 @@ var _cliConfigValidation = &cr.StructValidation{
 	},
 }
 
-func providerPromptValidation(envName string, defaults cliconfig.Environment) *cr.PromptValidation {
+func promptEnvName(promptMsg string, requireExistingEnv bool) string {
+	configuredEnvNames, err := listConfiguredEnvs()
+	if err != nil {
+		exit.Error(err)
+	}
+
+	fmt.Printf("currently configured environments: %s\n\n", strings.Join(configuredEnvNames, ", "))
+
+	var allowedValues []string
+	if requireExistingEnv {
+		allowedValues = configuredEnvNames
+	}
+
+	envNameContainer := &struct {
+		EnvironmentName string
+	}{}
+
+	err = cr.ReadPrompt(envNameContainer, &cr.PromptValidation{
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "EnvironmentName",
+				PromptOpts: &prompt.Options{
+					Prompt: promptMsg,
+				},
+				StringValidation: &cr.StringValidation{
+					Required:      true,
+					AllowedValues: allowedValues,
+				},
+			},
+		},
+	})
+	if err != nil {
+		if err != nil {
+			exit.Error(err)
+		}
+	}
+
+	return envNameContainer.EnvironmentName
+}
+
+func promptProvider(env *cliconfig.Environment, envName string, defaults cliconfig.Environment) error {
 	defaultProviderStr := ""
 	if defaults.Provider != types.UnknownProviderType {
 		defaultProviderStr = defaults.Provider.String()
 	}
 
-	return &cr.PromptValidation{
+	return cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -123,21 +174,16 @@ func providerPromptValidation(envName string, defaults cliconfig.Environment) *c
 				},
 			},
 		},
-	}
+	})
 }
 
-func localEnvPromptValidation(defaults cliconfig.Environment) *cr.PromptValidation {
+func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
 	accessKeyIDPrompt := "aws access key id"
 	if defaults.AWSAccessKeyID == nil {
 		accessKeyIDPrompt += " [press ENTER to skip]"
 	}
 
-	secretAccessKeyPrompt := "aws secret access key"
-	if defaults.AWSSecretAccessKey == nil {
-		secretAccessKeyPrompt += " [press ENTER to skip]"
-	}
-
-	return &cr.PromptValidation{
+	err := cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -151,25 +197,39 @@ func localEnvPromptValidation(defaults cliconfig.Environment) *cr.PromptValidati
 					Default:    defaults.AWSAccessKeyID,
 				},
 			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Don't prompt for secret access key if access key ID was not provided
+	if env.AWSAccessKeyID == nil {
+		env.AWSSecretAccessKey = nil
+		return nil
+	}
+
+	return cr.ReadPrompt(env, &cr.PromptValidation{
+		SkipNonEmptyFields: true,
+		PromptItemValidations: []*cr.PromptItemValidation{
 			{
 				StructField: "AWSSecretAccessKey",
 				PromptOpts: &prompt.Options{
-					Prompt:      secretAccessKeyPrompt,
+					Prompt:      "aws secret access key",
 					MaskDefault: true,
 					HideTyping:  true,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					Required:   false,
-					AllowEmpty: true,
-					Default:    defaults.AWSSecretAccessKey,
+					Required: true,
+					Default:  defaults.AWSSecretAccessKey,
 				},
 			},
 		},
-	}
+	})
 }
 
-func awsEnvPromptValidation(defaults cliconfig.Environment) *cr.PromptValidation {
-	return &cr.PromptValidation{
+func promptAWSEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
+	return cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -206,7 +266,7 @@ func awsEnvPromptValidation(defaults cliconfig.Environment) *cr.PromptValidation
 				},
 			},
 		},
-	}
+	})
 }
 
 // Only validate this during prompt, not when reading from file
@@ -254,7 +314,41 @@ func readTelemetryConfig() (bool, error) {
 		return false, err
 	}
 
-	return cliConfig.Telemetry, nil
+	if cliConfig.Telemetry != nil && *cliConfig.Telemetry == false {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// Returns "local" if unable to read user's default value
+func getDefaultEnv(cmdType commandType) string {
+	defaultEnv := types.LocalProviderType.String()
+
+	if cliConfig, err := readCLIConfig(); err == nil {
+		defaultEnv = cliConfig.DefaultEnvironment
+	}
+
+	if cmdType == _clusterCommandType && defaultEnv == types.LocalProviderType.String() {
+		defaultEnv = types.AWSProviderType.String()
+	}
+
+	return defaultEnv
+}
+
+func setDefaultEnv(envName string) error {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return err
+	}
+
+	cliConfig.DefaultEnvironment = envName
+
+	if err := writeCLIConfig(cliConfig); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Returns false if there is an error reading the CLI config
@@ -264,102 +358,6 @@ func isTelemetryEnabled() bool {
 		return false
 	}
 	return enabled
-}
-
-func readCLIConfig() (cliconfig.CLIConfig, error) {
-	if !files.IsFile(_cliConfigPath) {
-		// add empty file so that the file created by the manager container maintains current user permissions
-		files.MakeEmptyFile(_cliConfigPath)
-
-		return cliconfig.CLIConfig{
-			Telemetry: true,
-		}, nil
-	}
-
-	cliConfig := cliconfig.CLIConfig{}
-	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
-	if errors.HasError(errs) {
-		return cliconfig.CLIConfig{}, errors.FirstError(errs...)
-	}
-
-	if err := cliConfig.Validate(); err != nil {
-		return cliconfig.CLIConfig{}, errors.Wrap(err, _cliConfigPath)
-	}
-
-	return cliConfig, nil
-}
-
-func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
-	cliConfig, err := readCLIConfig()
-	if err != nil {
-		return err
-	}
-
-	replaced := false
-	for i, prevEnv := range cliConfig.Environments {
-		if prevEnv.Name == newEnv.Name {
-			cliConfig.Environments[i] = &newEnv
-			replaced = true
-			break
-		}
-	}
-
-	if !replaced {
-		cliConfig.Environments = append(cliConfig.Environments, &newEnv)
-	}
-
-	err = cliConfig.Validate()
-	if err != nil {
-		return err
-	}
-
-	cliConfigBytes, err := yaml.Marshal(cliConfig)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func removeEnvFromCLIConfig(envName string) error {
-	cliConfig, err := readCLIConfig()
-	if err != nil {
-		return err
-	}
-
-	var updatedEnvs []*cliconfig.Environment
-	deleted := false
-	for _, env := range cliConfig.Environments {
-		if env.Name == envName {
-			deleted = true
-			continue
-		}
-		updatedEnvs = append(updatedEnvs, env)
-	}
-
-	if deleted == false && envName != types.LocalProviderType.String() {
-		return cliconfig.ErrorEnvironmentNotConfigured(envName)
-	}
-
-	cliConfig.Environments = updatedEnvs
-
-	err = cliConfig.Validate()
-	if err != nil {
-		return err
-	}
-
-	cliConfigBytes, err := yaml.Marshal(cliConfig)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // TODO Will return nil if not configured, except for local
@@ -462,8 +460,13 @@ func getDefaultEnvConfig(envName string) cliconfig.Environment {
 	return defaults
 }
 
+// If envName is "", this will prompt for the environment name to configure
 func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cliconfig.Environment, error) {
-	fmt.Println("environment: " + envName + "\n")
+	if envName == "" {
+		envName = promptEnvName("name of environment to update or create", false)
+	} else {
+		fmt.Println("environment: " + envName + "\n")
+	}
 
 	defaults := getDefaultEnvConfig(envName)
 
@@ -481,16 +484,16 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 		AWSSecretAccessKey: fieldsToSkipPrompt.AWSSecretAccessKey,
 	}
 
-	err := cr.ReadPrompt(&env, providerPromptValidation(envName, defaults))
+	err := promptProvider(&env, envName, defaults)
 	if err != nil {
 		return cliconfig.Environment{}, err
 	}
 
 	switch env.Provider {
 	case types.LocalProviderType:
-		err = cr.ReadPrompt(&env, localEnvPromptValidation(defaults))
+		err = promptLocalEnv(&env, defaults)
 	case types.AWSProviderType:
-		err = cr.ReadPrompt(&env, awsEnvPromptValidation(defaults))
+		err = promptAWSEnv(&env, defaults)
 	}
 	if err != nil {
 		return cliconfig.Environment{}, err
@@ -503,6 +506,8 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 	if err := addEnvToCLIConfig(env); err != nil {
 		return cliconfig.Environment{}, err
 	}
+
+	print.BoldFirstLine(fmt.Sprintf("✓ configured %s environment", envName))
 
 	return env, nil
 }
@@ -523,4 +528,133 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 		ClientID:    clientID,
 		Environment: env,
 	}
+}
+
+func listConfiguredEnvs() ([]string, error) {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	envNames := make([]string, len(cliConfig.Environments))
+	for i, env := range cliConfig.Environments {
+		envNames[i] = env.Name
+	}
+
+	return envNames, nil
+}
+
+func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return err
+	}
+
+	replaced := false
+	for i, prevEnv := range cliConfig.Environments {
+		if prevEnv.Name == newEnv.Name {
+			cliConfig.Environments[i] = &newEnv
+			replaced = true
+			break
+		}
+	}
+
+	if !replaced {
+		cliConfig.Environments = append(cliConfig.Environments, &newEnv)
+	}
+
+	if err := writeCLIConfig(cliConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeEnvFromCLIConfig(envName string) error {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return err
+	}
+
+	var updatedEnvs []*cliconfig.Environment
+	deleted := false
+	for _, env := range cliConfig.Environments {
+		if env.Name == envName {
+			deleted = true
+			continue
+		}
+		updatedEnvs = append(updatedEnvs, env)
+	}
+
+	if deleted == false && envName != types.LocalProviderType.String() {
+		return cliconfig.ErrorEnvironmentNotConfigured(envName)
+	}
+
+	cliConfig.Environments = updatedEnvs
+
+	if err := writeCLIConfig(cliConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readCLIConfig() (cliconfig.CLIConfig, error) {
+	if _cachedCLIConfig != nil {
+		return *_cachedCLIConfig, nil
+	}
+
+	if !files.IsFile(_cliConfigPath) {
+		cliConfig := cliconfig.CLIConfig{
+			DefaultEnvironment: types.LocalProviderType.String(),
+			Environments: []*cliconfig.Environment{
+				{
+					Name:     types.LocalProviderType.String(),
+					Provider: types.LocalProviderType,
+				},
+			},
+		}
+
+		if err := cliConfig.Validate(); err != nil {
+			return cliconfig.CLIConfig{}, err // unexpected
+		}
+
+		// create file so that the file created by the manager container maintains current user permissions
+		if err := writeCLIConfig(cliConfig); err != nil {
+			return cliconfig.CLIConfig{}, errors.Wrap(err, "unable to save CLI configuration file")
+		}
+
+		_cachedCLIConfig = &cliConfig
+		return cliConfig, nil
+	}
+
+	cliConfig := cliconfig.CLIConfig{}
+	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
+	if errors.HasError(errs) {
+		return cliconfig.CLIConfig{}, errors.FirstError(errs...)
+	}
+
+	if err := cliConfig.Validate(); err != nil {
+		return cliconfig.CLIConfig{}, errors.Wrap(err, _cliConfigPath)
+	}
+
+	_cachedCLIConfig = &cliConfig
+	return cliConfig, nil
+}
+
+func writeCLIConfig(cliConfig cliconfig.CLIConfig) error {
+	if err := cliConfig.Validate(); err != nil {
+		return err
+	}
+
+	cliConfigBytes, err := yaml.Marshal(cliConfig)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if err := files.WriteFile(cliConfigBytes, _cliConfigPath); err != nil {
+		return err
+	}
+
+	_cachedCLIConfig = &cliConfig
+	return nil
 }

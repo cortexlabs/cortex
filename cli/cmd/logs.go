@@ -30,8 +30,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	addEnvFlag(_logsCmd, types.LocalProviderType.String())
+func logsInit() {
+	_logsCmd.Flags().SortFlags = false
+	addEnvFlag(_logsCmd, _generalCommandType, _envToUseUsage)
 }
 
 var _logsCmd = &cobra.Command{

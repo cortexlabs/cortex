@@ -64,7 +64,7 @@ func CacheModel(api *userconfig.API) (string, error) {
 	}
 
 	if files.IsDir(*api.Predictor.Model) {
-		err := files.Copy(strings.TrimSuffix(*api.Predictor.Model, "/"), s.EnsureSuffix(modelDir, "/"))
+		err := files.CopyDirOverwrite(strings.TrimSuffix(*api.Predictor.Model, "/"), s.EnsureSuffix(modelDir, "/"))
 		if err != nil {
 			return "", err
 		}
@@ -77,7 +77,7 @@ func CacheModel(api *userconfig.API) (string, error) {
 	}
 
 	modelFilePath := filepath.Join(modelDir, filepath.Base(*api.Predictor.Model))
-	err = files.Copy(*api.Predictor.Model, modelFilePath)
+	err = files.CopyDirOverwrite(*api.Predictor.Model, modelFilePath)
 	if err != nil {
 		return "", err
 	}
