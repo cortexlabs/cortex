@@ -36,24 +36,22 @@ class PythonPredictor:
 
 ## Custom Docker image
 
+### Create a Dockerfile
+
 Create a Dockerfile to build your custom image:
 
 ```bash
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
-The Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image.
-
-### Base Cortex images for model serving
+The default Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
-* Python (CPU): `cortexlabs/python-serve:master`
-* Python (GPU): `cortexlabs/python-serve-gpu:master`
-* TensorFlow (CPU or GPU): `cortexlabs/tf-api:master`
-* ONNX (CPU): `cortexlabs/onnx-serve:master`
-* ONNX (GPU): `cortexlabs/onnx-serve-gpu:master`
-
-Note that the Docker image version must match your cluster version displayed in `cortex version`.
+* Python Predictor (CPU): `cortexlabs/python-serve:master`
+* Python Predictor (GPU): `cortexlabs/python-serve-gpu:master`
+* TensorFlow Predictor (CPU and GPU): `cortexlabs/tf-api:master`
+* ONNX Predictor (CPU): `cortexlabs/onnx-serve:master`
+* ONNX Predictor (GPU): `cortexlabs/onnx-serve-gpu:master`
 
 The sample Dockerfile below inherits from Cortex's Python CPU serving image and installs the `tree` system package.
 
@@ -106,10 +104,10 @@ Update your API configuration file to point to your image:
   ...
 ```
 
-Update your cluster for the change to take effect:
+*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together serve predictions: one which runs your Predictor code (`cortexlabs/tf-api`), and TensorFlow Serving which loads the SavedModel (`cortexlabs/tf-serve[-gpu]`). There's a 2nd available field `tf_serve_image` that can be used to override the TensorFlow Serving image. The default image (`cortexlabs/tf-serve[-gpu]`) is based on the official Tensorflow Serving image (`tensorflow/serving`). Unless a different version of Tensorflow Serving is required, this image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
+
+Deploy your API as usual:
 
 ```bash
 cortex deploy
 ```
-
-*Note: For [TensorFlow](#tensorflow-predictor) Predictor type, there's a 2nd available field `tf_serve_image` that can be used to override the image. The default `cortexlabs/tf-serve[-gpu]` image is based on the Tensorflow Serving image `tensorflow/serving`. Unless a different version of Tensorflow Serving is required, this image shouldn't have to be overridden.*
