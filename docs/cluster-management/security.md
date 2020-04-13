@@ -18,7 +18,7 @@ In either case, the credentials used when spinning up the cluster will not be us
 
 ### Operator
 
-The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, read and write permissions for CloudWatch metrics and read permissions for ECR. The policy below may be used to restrict the Operator's access:
+The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, read and write permissions for CloudWatch metrics, and read permissions for ECR. The policy below may be used to restrict the Operator's access:
 
 ```json
 {
