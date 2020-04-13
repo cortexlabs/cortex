@@ -47,11 +47,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _flagWatch bool
+var (
+	_flagGetEnv string
+	_flagWatch  bool
+)
 
 func getInit() {
 	_getCmd.Flags().SortFlags = false
-	addEnvFlag(_getCmd, _generalCommandType, _envToUseUsage)
+	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
 }
 
@@ -62,7 +65,7 @@ var _getCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.get")
 
-		env := MustReadOrConfigureEnv(_flagEnv)
+		env := MustReadOrConfigureEnv(_flagGetEnv)
 		rerun(func() (string, error) {
 			return get(args, env)
 		})

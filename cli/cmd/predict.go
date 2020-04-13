@@ -34,11 +34,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _flagPredictDebug bool
+var (
+	_flagPredictEnv   string
+	_flagPredictDebug bool
+)
 
 func predictInit() {
 	_predictCmd.Flags().SortFlags = false
-	addEnvFlag(_predictCmd, _generalCommandType, _envToUseUsage)
+	_predictCmd.Flags().StringVarP(&_flagPredictEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }
 
@@ -52,7 +55,7 @@ var _predictCmd = &cobra.Command{
 		apiName := args[0]
 		jsonPath := args[1]
 
-		env := MustReadOrConfigureEnv(_flagEnv)
+		env := MustReadOrConfigureEnv(_flagPredictEnv)
 		var apiRes schema.GetAPIResponse
 		var apiEndpoint string
 		if env.Provider == types.AWSProviderType {

@@ -39,16 +39,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _warningFileBytes = 1024 * 1024 * 10
-var _warningProjectBytes = 1024 * 1024 * 10
-var _warningFileCount = 1000
+var (
+	_warningFileBytes    = 1024 * 1024 * 10
+	_warningProjectBytes = 1024 * 1024 * 10
+	_warningFileCount    = 1000
 
-var _flagDeployForce bool
-var _flagDeployYes bool
+	_flagDeployEnv   string
+	_flagDeployForce bool
+	_flagDeployYes   bool
+)
 
 func deployInit() {
 	_deployCmd.Flags().SortFlags = false
-	addEnvFlag(_deployCmd, _generalCommandType, _envToUseUsage)
+	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_deployCmd.Flags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
 	_deployCmd.Flags().BoolVarP(&_flagDeployYes, "yes", "y", false, "skip prompts")
 }
@@ -60,7 +63,7 @@ var _deployCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.deploy")
 
-		env := MustReadOrConfigureEnv(_flagEnv)
+		env := MustReadOrConfigureEnv(_flagDeployEnv)
 		configPath := getConfigPath(args)
 		deploymentBytes := getDeploymentBytes(configPath)
 		var deployResponse schema.DeployResponse

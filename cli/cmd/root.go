@@ -42,7 +42,12 @@ var _emailPath string
 var _debugPath string
 var _cwd string
 
-var _flagEnv string
+type commandType int
+
+const (
+	_generalCommandType commandType = iota
+	_clusterCommandType
+)
 
 func init() {
 	cwd, err := os.Getwd()
@@ -180,19 +185,4 @@ func printLeadingNewLine() {
 		return
 	}
 	fmt.Println("")
-}
-
-type commandType int
-
-const (
-	_generalCommandType commandType = iota
-	_clusterCommandType
-)
-
-const _envToUseUsage = "environment to use"
-const _envToConfigureUsage = "environment to configure"
-
-func addEnvFlag(cmd *cobra.Command, cmdType commandType, usage string) {
-	defaultEnv := getDefaultEnv(cmdType)
-	cmd.Flags().StringVarP(&_flagEnv, "env", "e", defaultEnv, usage)
 }

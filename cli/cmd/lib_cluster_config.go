@@ -360,7 +360,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	fmt.Printf("your cluster will cost %s per hour%s\n\n", priceStr, suffix)
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", clusterConfig.Bucket, clusterConfig.LogGroup)
-	fmt.Printf("your cli environment named \"%s\" will be configured to connect to this cluster\n\n", _flagEnv)
+	fmt.Printf("your cli environment named \"%s\" will be configured to connect to this cluster\n\n", _flagClusterEnv)
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {

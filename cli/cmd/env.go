@@ -31,17 +31,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _flagProvider string
-var _flagOperatorEndpoint string
-var _flagAWSAccessKeyID string
-var _flagAWSSecretAccessKey string
+var (
+	_flagEnvProvider           string
+	_flagEnvOperatorEndpoint   string
+	_flagEnvAWSAccessKeyID     string
+	_flagEnvAWSSecretAccessKey string
+)
 
 func envInit() {
 	_envConfigureCmd.Flags().SortFlags = false
-	_envConfigureCmd.Flags().StringVarP(&_flagProvider, "provider", "p", "", "set the provider without prompting")
-	_envConfigureCmd.Flags().StringVarP(&_flagOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
-	_envConfigureCmd.Flags().StringVarP(&_flagAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
-	_envConfigureCmd.Flags().StringVarP(&_flagAWSSecretAccessKey, "aws-secret-access-key", "s", "", "set the aws secret access key without prompting")
+	_envConfigureCmd.Flags().StringVarP(&_flagEnvProvider, "provider", "p", "", "set the provider without prompting")
+	_envConfigureCmd.Flags().StringVarP(&_flagEnvOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
+	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
+	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSSecretAccessKey, "aws-secret-access-key", "s", "", "set the aws secret access key without prompting")
 	_envCmd.AddCommand(_envConfigureCmd)
 
 	_envListCmd.Flags().SortFlags = false
@@ -72,26 +74,26 @@ var _envConfigureCmd = &cobra.Command{
 		}
 
 		skipProvider := types.UnknownProviderType
-		if _flagProvider != "" {
-			skipProvider = types.ProviderTypeFromString(_flagProvider)
+		if _flagEnvProvider != "" {
+			skipProvider = types.ProviderTypeFromString(_flagEnvProvider)
 			if skipProvider == types.UnknownProviderType {
-				exit.Error(ErrorInvalidProvider(_flagProvider))
+				exit.Error(ErrorInvalidProvider(_flagEnvProvider))
 			}
 		}
 
 		var skipOperatorEndpoint *string
-		if _flagOperatorEndpoint != "" {
-			skipOperatorEndpoint = &_flagOperatorEndpoint
+		if _flagEnvOperatorEndpoint != "" {
+			skipOperatorEndpoint = &_flagEnvOperatorEndpoint
 		}
 
 		var skipAWSAccessKeyID *string
-		if _flagAWSAccessKeyID != "" {
-			skipAWSAccessKeyID = &_flagAWSAccessKeyID
+		if _flagEnvAWSAccessKeyID != "" {
+			skipAWSAccessKeyID = &_flagEnvAWSAccessKeyID
 		}
 
 		var skipAWSSecretAccessKey *string
-		if _flagAWSSecretAccessKey != "" {
-			skipAWSSecretAccessKey = &_flagAWSSecretAccessKey
+		if _flagEnvAWSSecretAccessKey != "" {
+			skipAWSSecretAccessKey = &_flagEnvAWSSecretAccessKey
 		}
 
 		fieldsToSkipPrompt := cliconfig.Environment{

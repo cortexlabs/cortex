@@ -27,14 +27,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _flagKeepCache bool
-var _flagDeleteForce bool
+var (
+	_flagDeleteEnv       string
+	_flagDeleteKeepCache bool
+	_flagDeleteForce     bool
+)
 
 func deleteInit() {
 	_deleteCmd.Flags().SortFlags = false
-	addEnvFlag(_deleteCmd, _generalCommandType, _envToUseUsage)
+	_deleteCmd.Flags().StringVarP(&_flagDeleteEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
-	_deleteCmd.Flags().BoolVarP(&_flagKeepCache, "keep-cache", "c", false, "keep cached data for the api")
+	_deleteCmd.Flags().BoolVarP(&_flagDeleteKeepCache, "keep-cache", "c", false, "keep cached data for the api")
 }
 
 var _deleteCmd = &cobra.Command{
@@ -44,11 +47,11 @@ var _deleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.delete")
 
-		env := MustReadOrConfigureEnv(_flagEnv)
+		env := MustReadOrConfigureEnv(_flagDeleteEnv)
 		var deleteResponse schema.DeleteResponse
 		var err error
 		if env.Provider == types.AWSProviderType {
-			deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagKeepCache, _flagDeleteForce)
+			deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagDeleteKeepCache, _flagDeleteForce)
 			if err != nil {
 				exit.Error(err)
 			}

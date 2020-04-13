@@ -38,24 +38,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _flagClusterConfig string
-var _flagDebug bool
+var (
+	_flagClusterEnv       string
+	_flagClusterConfig    string
+	_flagClusterInfoDebug bool
+)
 
 func clusterInit() {
+	defaultEnv := getDefaultEnv(_clusterCommandType)
+
 	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
-	addEnvFlag(_upCmd, _clusterCommandType, _envToConfigureUsage)
+	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
 	_clusterCmd.AddCommand(_upCmd)
 
 	_infoCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_infoCmd)
-	addEnvFlag(_infoCmd, _clusterCommandType, _envToUseUsage)
-	_infoCmd.Flags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
+	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to use")
+	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
 	_clusterCmd.AddCommand(_infoCmd)
 
 	_updateCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_updateCmd)
-	addEnvFlag(_updateCmd, _clusterCommandType, _envToConfigureUsage)
+	_updateCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
 	_clusterCmd.AddCommand(_updateCmd)
 
 	_downCmd.Flags().SortFlags = false
@@ -138,7 +143,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		fmt.Printf("\nyour cli environment named \"%s\" has been configured to connect to this cluster; append --env=%s in cortex commands to reference it, or set it as your default via `cortex env default %s`\n", _flagEnv, _flagEnv, _flagEnv)
+		fmt.Printf("\nyour cli environment named \"%s\" has been configured to connect to this cluster; append --env=%s in cortex commands to reference it, or set it as your default via `cortex env default %s`\n", _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
 	},
 }
 
@@ -223,7 +228,7 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if _flagDebug {
+		if _flagClusterInfoDebug {
 			cmdDebug(awsCreds, accessConfig)
 		} else {
 			cmdInfo(awsCreds, accessConfig)
@@ -373,7 +378,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 
 	fmt.Println()
 
-	infoResponse, err := cluster.Info(MustGetOperatorConfig(_flagEnv))
+	infoResponse, err := cluster.Info(MustGetOperatorConfig(_flagClusterEnv))
 
 	infoResponse.ClusterConfig.Config = clusterConfig
 
