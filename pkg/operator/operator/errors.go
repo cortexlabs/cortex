@@ -52,7 +52,6 @@ const (
 	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
 	ErrRegistryAccountIDMismatch          = "operator.registry_account_id_mismatch"
-	ErrDockerImageInaccessible            = "operator.docker_image_inaccesible"
 )
 
 func ErrorCortexInstallationBroken() error {
