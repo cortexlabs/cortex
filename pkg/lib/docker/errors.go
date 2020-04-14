@@ -27,13 +27,10 @@ const (
 )
 
 func ErrorImageInaccessible(image string, cause error) error {
-	// the concrete type of docker client errors (cause) is string
-	// it's just better to put them on a new line
-	// because they are quite verbosy
 	dockerErrMsg := errors.Message(cause)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageInaccessible,
-		Message: fmt.Sprintf("%s is not accessible\n%s", image, dockerErrMsg),
+		Message: fmt.Sprintf("%s is not accessible\n%s", image, dockerErrMsg),  // add \n because docker client errors are verbose
 		Cause:   cause,
 	})
 }
