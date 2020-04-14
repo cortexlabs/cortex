@@ -17,6 +17,7 @@ limitations under the License.
 package operator
 
 import (
+	goerrs "errors"
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -272,9 +273,12 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 }
 
 func ErrorDockerImageInaccessible(image string, cause error) error {
+	// the concrete type of docker client errors (cause) is string
+	// it's just better to put them on a new line
+	// because they are quite verbosy
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDockerImageInaccessible,
 		Message: fmt.Sprintf("%s is not accessible", image),
-		Cause:   cause,
+		Cause:   goerrs.New("docker client:\n" + cause.Error()),
 	})
 }
