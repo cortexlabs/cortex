@@ -44,6 +44,8 @@ func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 }
 
 func CheckImageAccessible(c *dockerclient.Client, dockerImage, registryAuth string) error {
-	_, err := c.DistributionInspect(context.Background(), dockerImage, registryAuth)
-	return err
+	if _, err := c.DistributionInspect(context.Background(), dockerImage, registryAuth); err != nil {
+		return ErrorImageInaccessible(dockerImage, err)
+	}
+	return nil
 }

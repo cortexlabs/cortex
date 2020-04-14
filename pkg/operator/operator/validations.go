@@ -17,7 +17,6 @@ limitations under the License.
 package operator
 
 import (
-	goerrs "errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -828,15 +827,5 @@ func validateDockerImagePath(image string) error {
 		return err
 	}
 
-	if err := dockerlib.CheckImageAccessible(client, image, dockerAuth); err != nil {
-		// the concrete type of docker client errors is string
-		// it's just better to put them on a new line
-		// because they are quite verbosy
-		return ErrorDockerImageInaccessible(
-			image,
-			goerrs.New("docker client:\n"+err.Error()),
-		)
-	}
-
-	return nil
+	return dockerlib.CheckImageAccessible(client, image, dockerAuth)
 }
