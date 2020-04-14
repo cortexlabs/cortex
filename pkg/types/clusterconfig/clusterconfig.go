@@ -226,91 +226,91 @@ var UserValidation = &cr.StructValidation{
 			StructField: "ImageOperator",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/operator:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/manager:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageDownloader",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/downloader:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageRequestMonitor",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/request-monitor:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageClusterAutoscaler",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageMetricsServer",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/metrics-server:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageNvidia",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/nvidia:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageFluentd",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/fluentd:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageStatsd",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/statsd:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioProxy",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/istio-proxy:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/istio-pilot:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioCitadel",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/istio-citadel:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioGalley",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/istio-galley:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 		// Extra keys that exist in the cluster config file
@@ -347,6 +347,10 @@ func validateRegion(region string) (string, error) {
 	return region, nil
 }
 
+func validateImageVersion(image string) (string, error) {
+	return cr.ValidateImageVersion(image, consts.CortexVersion)
+}
+
 var Validation = &cr.StructValidation{
 	StructFieldValidations: append(UserValidation.StructFieldValidations,
 		&cr.StructFieldValidation{
@@ -379,7 +383,7 @@ var AccessValidation = &cr.StructValidation{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/manager:" + consts.CortexVersion,
-				Validator: cr.ValidateImageVersion,
+				Validator: validateImageVersion,
 			},
 		},
 	},

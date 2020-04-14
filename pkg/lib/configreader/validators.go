@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -151,7 +150,7 @@ func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
 	}
 }
 
-func ValidateImageVersion(image string) (string, error) {
+func ValidateImageVersion(image, version string) (string, error) {
 	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
 		return image, nil
 	}
@@ -167,7 +166,7 @@ func ValidateImageVersion(image string) (string, error) {
 		tag = "latest"
 	}
 
-	if !strings.HasPrefix(tag, consts.CortexVersion) {
+	if !strings.HasPrefix(tag, version) {
 		return "", ErrorImageVersionMismatch(image, tag)
 	}
 
