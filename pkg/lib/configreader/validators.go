@@ -167,7 +167,7 @@ func ValidateImageVersion(image, version string) (string, error) {
 	}
 
 	if !strings.HasPrefix(tag, version) {
-		return "", ErrorImageVersionMismatch(image, tag)
+		return "", ErrorImageVersionMismatch(image, tag, version)
 	}
 
 	return image, nil

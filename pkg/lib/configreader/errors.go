@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -356,9 +355,9 @@ func ErrorCortexResourceNotAllowed(resourceName string) error {
 	})
 }
 
-func ErrorImageVersionMismatch(image string, tag string) error {
+func ErrorImageVersionMismatch(image, tag, version string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageVersionMismatch,
-		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match the version of your CLI (%s); please update the image tag, remove the image from the API config file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, consts.CortexVersion),
+		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match the version of your CLI (%s); please update the image tag, remove the image from the API config file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, version),
 	})
 }
