@@ -89,7 +89,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), and [prediction monitoring](prediction-monitoring.md) and [system packages](system-packages.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md) and [system packages](system-packages.md).
 
 ## ONNX Predictor
 
@@ -131,4 +131,4 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), and [prediction monitoring](prediction-monitoring.md) and [system packages](system-packages.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md) and [system packages](system-packages.md).
