@@ -275,7 +275,7 @@ func ErrorClusterUpInProgress(clusterName string, region string) error {
 func ErrorClusterAlreadyCreated(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAlreadyCreated,
-		Message: fmt.Sprintf("cluster %s in %s has already been created", clusterName, region),
+		Message: fmt.Sprintf("a cluster named \"%s\" in %s already exists", clusterName, region),
 	})
 }
 
