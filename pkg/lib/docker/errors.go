@@ -30,7 +30,7 @@ func ErrorImageInaccessible(image string, cause error) error {
 	dockerErrMsg := errors.Message(cause)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageInaccessible,
-		Message: fmt.Sprintf("%s is not accessible\n%s", image, dockerErrMsg),  // add \n because docker client errors are verbose
+		Message: fmt.Sprintf("%s is not accessible\n%s", image, dockerErrMsg), // add \n because docker client errors are verbose
 		Cause:   cause,
 	})
 }
