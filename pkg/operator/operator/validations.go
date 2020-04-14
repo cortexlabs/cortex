@@ -470,9 +470,6 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 			return err
 		}
 		if err := validateDockerImagePath(predictor.TFServeImage); err != nil {
-			if errCause := errors.Cause(err); errCause != nil {
-				return errors.Wrap(errCause, userconfig.TFServeImageKey, err.Error())
-			}
 			return errors.Wrap(err, userconfig.TFServeImageKey)
 		}
 	case userconfig.ONNXPredictorType:
@@ -787,6 +784,9 @@ func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quant
 }
 
 func validateDockerImagePath(image string) error {
+	if consts.DefaultImagePathsSet.Has(image) {
+		return nil
+	}
 	if _, err := cr.ValidateImageVersion(image, consts.CortexVersion); err != nil {
 		return err
 	}
