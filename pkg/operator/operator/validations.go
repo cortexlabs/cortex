@@ -811,7 +811,7 @@ func validateDockerImagePath(image string) error {
 			return err
 		}
 
-		dAuth, err := dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{
+		dockerAuth, err = dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{
 			Username:      ecrAuthConfig.Username,
 			Password:      ecrAuthConfig.AccessToken,
 			ServerAddress: ecrAuthConfig.ProxyEndpoint,
@@ -819,7 +819,6 @@ func validateDockerImagePath(image string) error {
 		if err != nil {
 			return err
 		}
-		dockerAuth = dAuth
 	}
 
 	client, err := dockerclient.NewEnvClient()

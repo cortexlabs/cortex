@@ -32,8 +32,7 @@ type ECRAuthConfig struct {
 }
 
 func (c *Client) GetECRAuthToken() (*ecr.GetAuthorizationTokenOutput, error) {
-	svc := c.ECR()
-	result, err := svc.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	result, err := c.ECR().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		return result, errors.Wrap(err, "failed to retrieve ECR auth token")
 	}
@@ -66,9 +65,7 @@ func (c *Client) GetECRAuthConfig() (ECRAuthConfig, error) {
 
 func GetAccountIDFromECRURL(path string) string {
 	if regex.IsValidECRURL(path) {
-		split := strings.Split(path, ".")
-		accountID := split[0]
-		return accountID
+		return strings.Split(path, ".")[0]
 	}
 	return ""
 }
