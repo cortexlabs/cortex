@@ -150,7 +150,7 @@ func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
 	}
 }
 
-func ValidateImageVersion(image, version string) (string, error) {
+func ValidateImageVersion(image, cortexVersion string) (string, error) {
 	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
 		return image, nil
 	}
@@ -166,8 +166,8 @@ func ValidateImageVersion(image, version string) (string, error) {
 		tag = "latest"
 	}
 
-	if !strings.HasPrefix(tag, version) {
-		return "", ErrorImageVersionMismatch(image, tag, version)
+	if !strings.HasPrefix(tag, cortexVersion) {
+		return "", ErrorImageVersionMismatch(image, tag, cortexVersion)
 	}
 
 	return image, nil
