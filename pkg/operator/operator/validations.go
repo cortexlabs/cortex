@@ -482,9 +482,6 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 	}
 
 	if err := validateDockerImagePath(predictor.Image); err != nil {
-		if errCause := errors.Cause(err); errCause != nil {
-			return errors.Wrap(errCause, userconfig.ImageKey, err.Error())
-		}
 		return errors.Wrap(err, userconfig.ImageKey)
 	}
 
