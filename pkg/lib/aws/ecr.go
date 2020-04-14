@@ -44,6 +44,9 @@ func (c *Client) GetECRAuthConfig() (ECRAuthConfig, error) {
 	if err != nil {
 		return ECRAuthConfig{}, err
 	}
+	if len(tokenOutput.AuthorizationData) == 0 {
+		return ECRAuthConfig{}, ErrorECRExtractingCredentials()
+	}
 	authData := tokenOutput.AuthorizationData[0]
 
 	credentials, err := base64.URLEncoding.DecodeString(*authData.AuthorizationToken)
