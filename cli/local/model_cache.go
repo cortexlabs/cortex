@@ -116,7 +116,7 @@ func getS3ModelCachePath(api *userconfig.API) (string, error) {
 	}
 
 	// TODO fix max file count
-	s3Objects, err := awsClient.ListS3PathPrefix(*api.Predictor.Model, pointer.Int64(1000))
+	s3Objects, err := awsClient.ListS3PathPrefix(*api.Predictor.Model, false, pointer.Int64(1000))
 	if err != nil {
 		return "", err
 	}
@@ -152,13 +152,14 @@ func ResetCachedModel(modelDir string) error {
 	return nil
 }
 
+// TODO replace with awsClient.DownloadDir()
 func S3DownloadDir(api *userconfig.API, modelVersionDir string) (string, error) {
 	awsClient, err := aws.NewFromEnvS3Path(*api.Predictor.Model)
 	if err != nil {
 		return "", err
 	}
 
-	s3Objects, err := awsClient.ListS3PathDir(*api.Predictor.Model, pointer.Int64(1000))
+	s3Objects, err := awsClient.ListS3PathDir(*api.Predictor.Model, false, pointer.Int64(1000))
 	if err != nil {
 		return "", err
 	}
