@@ -267,7 +267,7 @@ func ErrorAPINotDeployed(apiName string) error {
 func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryAccountIDMismatch,
-		Message: fmt.Sprintf("AWS registry account ID %s doesn't match operator's account ID %s", regID, opID),
+		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
 	})
 }
 
