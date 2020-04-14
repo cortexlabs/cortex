@@ -803,7 +803,7 @@ func validateDockerImagePath(image string) error {
 		}
 		registryID := aws.GetAccountIDFromECRURL(image)
 
-		if strings.Compare(operatorID, registryID) != 0 {
+		if operatorID != registryID {
 			return ErrorRegistryAccountIDMismatch(registryID, operatorID)
 		}
 
