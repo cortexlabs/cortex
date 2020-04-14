@@ -58,7 +58,7 @@ func promptIfNotAdmin(awsClient *aws.Client) {
 	}
 
 	if !awsClient.IsAdmin() {
-		prompt.YesOrExit(fmt.Sprintf("warning: your IAM user%s does not have administrator access. This will likely prevent Cortex from installing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user. If you'd like, you may provide separate credentials for your cluster to use after it's running (see https://cortex.dev/cluster-management/security for instructions).\n\nare you sure you want to continue without administrator access?", accessKeyMsg), "", "")
+		prompt.YesOrExit(fmt.Sprintf("warning: your IAM user%s does not have administrator access. This will likely prevent Cortex from installing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user (or to a group that your IAM user belongs to) via the AWS IAM console. If you'd like, you may provide separate credentials for your cluster to use after it's running (see https://cortex.dev/cluster-management/security for instructions).\n\nare you sure you want to continue without administrator access?", accessKeyMsg), "", "")
 	}
 }
 

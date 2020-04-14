@@ -16,6 +16,8 @@ Spinning up Cortex on your AWS account requires more permissions that Cortex nee
 
 In either case, the credentials used when spinning up the cluster will not be used by the cluster itself, and can be safely revoked after the cluster is running. You may need credentials with similar access to run other `cortex cluster` commands, such as `cortex cluster update`, `cortex cluster info`, and `cortex cluster down`.
 
+It is recommended to use an IAM user with the `AdministratorAccess` policy to create your cluster, since the CLI requires many permissions for this step, and the list of permissions is evolving as Cortex adds new features.
+
 ### Operator
 
 The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, read and write permissions for CloudWatch metrics, and read permissions for ECR. The policy below may be used to restrict the Operator's access:

@@ -312,7 +312,7 @@ func deleteK8sResources(apiName string) error {
 
 func deleteS3Resources(apiName string) error {
 	prefix := filepath.Join("apis", apiName)
-	return config.AWS.DeleteDir(config.Cluster.Bucket, prefix, true)
+	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 }
 
 // returns true if min_replicas are not ready and no updated replicas have errored

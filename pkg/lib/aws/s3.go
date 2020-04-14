@@ -18,6 +18,7 @@ package aws
 
 import (
 	"bytes"
+	"io"
 	"path/filepath"
 	"strings"
 
@@ -31,7 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -119,6 +120,15 @@ func IsValidS3aPath(s3aPath string) bool {
 	return true
 }
 
+func GetBucketRegion(bucket string) (string, error) {
+	sess := session.Must(session.NewSession()) // credentials are not necessary for this request, and will not be used
+	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)
+	if err != nil {
+		return "", ErrorBucketNotFound(bucket)
+	}
+	return region, nil
+}
+
 func (c *Client) IsS3PathFile(s3Path string, s3Paths ...string) (bool, error) {
 	allS3Paths := append(s3Paths, s3Path)
 	for _, s3Path := range allS3Paths {
@@ -184,8 +194,9 @@ func (c *Client) IsS3Prefix(bucket string, prefix string, prefixes ...string) (b
 	allPrefixes := append(prefixes, prefix)
 	for _, prefix := range allPrefixes {
 		out, err := c.S3().ListObjectsV2(&s3.ListObjectsV2Input{
-			Bucket: aws.String(bucket),
-			Prefix: aws.String(prefix),
+			Bucket:  aws.String(bucket),
+			Prefix:  aws.String(prefix),
+			MaxKeys: aws.Int64(1),
 		})
 
 		if err != nil {
@@ -230,223 +241,6 @@ func (c *Client) IsS3Dir(bucket string, dirPath string, dirPaths ...string) (boo
 	return c.IsS3Prefix(bucket, fullDirPaths[0], fullDirPaths[1:]...)
 }
 
-func (c *Client) UploadBytesToS3(data []byte, bucket string, key string) error {
-	_, err := c.S3().PutObject(&s3.PutObjectInput{
-		Body:                 bytes.NewReader(data),
-		Key:                  aws.String(key),
-		Bucket:               aws.String(bucket),
-		ACL:                  aws.String("private"),
-		ContentDisposition:   aws.String("attachment"),
-		ServerSideEncryption: aws.String("AES256"),
-	})
-	return errors.Wrap(err, S3Path(bucket, key))
-}
-
-func (c *Client) UploadBytesesToS3(data []byte, bucket string, key string, keys ...string) error {
-	allKeys := append(keys, key)
-	fns := make([]func() error, len(allKeys))
-	for i, key := range allKeys {
-		key := key
-		fns[i] = func() error {
-			return c.UploadBytesToS3(data, bucket, key)
-		}
-	}
-	return parallel.RunFirstErr(fns[0], fns[1:]...)
-}
-
-func (c *Client) UploadFileToS3(filePath string, bucket string, key string) error {
-	data, err := files.ReadFileBytes(filePath)
-	if err != nil {
-		return err
-	}
-	return c.UploadBytesToS3(data, bucket, key)
-}
-
-func (c *Client) UploadBufferToS3(buffer *bytes.Buffer, bucket string, key string) error {
-	return c.UploadBytesToS3(buffer.Bytes(), bucket, key)
-}
-
-func (c *Client) UploadStringToS3(str string, bucket string, key string) error {
-	str = strings.TrimSpace(str)
-	return c.UploadBytesToS3([]byte(str), bucket, key)
-}
-
-func (c *Client) UploadJSONToS3(obj interface{}, bucket string, key string) error {
-	jsonBytes, err := json.Marshal(obj)
-	if err != nil {
-		return err
-	}
-	return c.UploadBytesToS3(jsonBytes, bucket, key)
-}
-
-func (c *Client) ReadJSONFromS3(objPtr interface{}, bucket string, key string) error {
-	jsonBytes, err := c.ReadBytesFromS3(bucket, key)
-	if err != nil {
-		return err
-	}
-	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), S3Path(bucket, key))
-}
-
-func (c *Client) UploadMsgpackToS3(obj interface{}, bucket string, key string) error {
-	msgpackBytes, err := msgpack.Marshal(obj)
-	if err != nil {
-		return err
-	}
-	return c.UploadBytesToS3(msgpackBytes, bucket, key)
-}
-
-func (c *Client) ReadMsgpackFromS3(objPtr interface{}, bucket string, key string) error {
-	msgpackBytes, err := c.ReadBytesFromS3(bucket, key)
-	if err != nil {
-		return err
-	}
-	return errors.Wrap(msgpack.Unmarshal(msgpackBytes, objPtr), S3Path(bucket, key))
-}
-
-func (c *Client) ReadStringFromS3Path(s3Path string) (string, error) {
-	bucket, key, err := SplitS3Path(s3Path)
-	if err != nil {
-		return "", err
-	}
-	return c.ReadStringFromS3(bucket, key)
-}
-
-func (c *Client) ReadStringFromS3(bucket string, key string) (string, error) {
-	response, err := c.S3().GetObject(&s3.GetObjectInput{
-		Key:    aws.String(key),
-		Bucket: aws.String(bucket),
-	})
-
-	if err != nil {
-		return "", errors.Wrap(err, S3Path(bucket, key))
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(response.Body)
-	return buf.String(), nil
-}
-
-func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
-	bucket, key, err := SplitS3Path(s3Path)
-	if err != nil {
-		return nil, err
-	}
-	return c.ReadBytesFromS3(bucket, key)
-}
-
-func (c *Client) ReadBytesFromS3(bucket string, key string) ([]byte, error) {
-	response, err := c.S3().GetObject(&s3.GetObjectInput{
-		Key:    aws.String(key),
-		Bucket: aws.String(bucket),
-	})
-
-	if err != nil {
-		return nil, errors.Wrap(err, S3Path(bucket, key))
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(response.Body)
-	return buf.Bytes(), nil
-}
-
-func (c *Client) ListDir(bucket string, prefix string, maxResults int64) ([]*s3.Object, error) {
-	prefix = s.EnsureSuffix(prefix, "/")
-	return c.ListPrefix(bucket, prefix, maxResults)
-}
-
-func (c *Client) ListPathDir(s3Path string, maxResults int64) ([]*s3.Object, error) {
-	s3Path = s.EnsureSuffix(s3Path, "/")
-	return c.ListPathPrefix(s3Path, maxResults)
-}
-
-func (c *Client) ListPrefix(bucket string, prefix string, maxResults int64) ([]*s3.Object, error) {
-	listObjectsInput := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(bucket),
-		Prefix:  aws.String(prefix),
-		MaxKeys: aws.Int64(maxResults),
-	}
-
-	output, err := c.S3().ListObjectsV2(listObjectsInput)
-	if err != nil {
-		return nil, errors.Wrap(err, S3Path(bucket, prefix))
-	}
-
-	return output.Contents, nil
-}
-
-func (c *Client) ListPathPrefix(s3Path string, maxResults int64) ([]*s3.Object, error) {
-	bucket, prefix, err := SplitS3Path(s3Path)
-	if err != nil {
-		return nil, err
-	}
-	return c.ListPrefix(bucket, prefix, maxResults)
-}
-
-func (c *Client) DeleteDir(bucket string, prefix string, continueIfFailure bool) error {
-	prefix = s.EnsureSuffix(prefix, "/")
-	return c.DeletePrefix(bucket, prefix, continueIfFailure)
-}
-
-func (c *Client) DeletePrefix(bucket string, prefix string, continueIfFailure bool) error {
-	listObjectsInput := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(bucket),
-		Prefix:  aws.String(prefix),
-		MaxKeys: aws.Int64(1000),
-	}
-
-	var subErr error
-
-	err := c.S3().ListObjectsV2Pages(listObjectsInput,
-		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {
-			deleteObjects := make([]*s3.ObjectIdentifier, len(listObjectsOutput.Contents))
-			for i, object := range listObjectsOutput.Contents {
-				deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
-			}
-			deleteObjectsInput := &s3.DeleteObjectsInput{
-				Bucket: aws.String(bucket),
-				Delete: &s3.Delete{
-					Objects: deleteObjects,
-					Quiet:   aws.Bool(true),
-				},
-			}
-			_, newSubErr := c.S3().DeleteObjects(deleteObjectsInput)
-			if newSubErr != nil {
-				subErr = newSubErr
-				if !continueIfFailure {
-					return false
-				}
-			}
-			return true
-		})
-
-	if subErr != nil {
-		return errors.Wrap(subErr, S3Path(bucket, prefix))
-	}
-
-	if err != nil {
-		return errors.Wrap(err, S3Path(bucket, prefix))
-	}
-
-	return nil
-}
-
-func (c *Client) CreateBucket(bucket string) error {
-	var bucketConfiguration *s3.CreateBucketConfiguration
-	if c.Region != "us-east-1" {
-		bucketConfiguration = &s3.CreateBucketConfiguration{
-			LocationConstraint: aws.String(c.Region),
-		}
-	}
-	_, err := c.S3().CreateBucket(&s3.CreateBucketInput{
-		Bucket:                    aws.String(bucket),
-		CreateBucketConfiguration: bucketConfiguration,
-	})
-	if err != nil {
-		return errors.Wrap(err, "creating bucket "+bucket)
-	}
-	return nil
-}
-
 // Checks bucket existence and accessibility with credentials
 func (c *Client) DoesBucketExist(bucket string) (bool, error) {
 	_, err := c.S3().HeadBucket(&s3.HeadBucketInput{
@@ -467,11 +261,395 @@ func (c *Client) DoesBucketExist(bucket string) (bool, error) {
 	return true, nil
 }
 
-func GetBucketRegion(bucket string) (string, error) {
-	sess := session.Must(session.NewSession()) // credentials are not necessary for this request, and will not be used
-	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)
-	if err != nil {
-		return "", ErrorBucketNotFound(bucket)
+func (c *Client) CreateBucket(bucket string) error {
+	var bucketConfiguration *s3.CreateBucketConfiguration
+	if c.Region != "us-east-1" {
+		bucketConfiguration = &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String(c.Region),
+		}
 	}
-	return region, nil
+	_, err := c.S3().CreateBucket(&s3.CreateBucketInput{
+		Bucket:                    aws.String(bucket),
+		CreateBucketConfiguration: bucketConfiguration,
+	})
+	if err != nil {
+		return errors.Wrap(err, "creating bucket "+bucket)
+	}
+	return nil
+}
+
+func (c *Client) UploadReaderToS3(data io.Reader, bucket string, key string) error {
+	_, err := c.S3Uploader().Upload(&s3manager.UploadInput{
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(key),
+		Body:                 data,
+		ACL:                  aws.String("private"),
+		ContentDisposition:   aws.String("attachment"),
+		ServerSideEncryption: aws.String("AES256"),
+	})
+
+	if err != nil {
+		return errors.Wrap(err, S3Path(bucket, key))
+	}
+
+	return nil
+}
+
+func (c *Client) UploadFileToS3(path string, bucket string, key string) error {
+	file, err := files.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return c.UploadReaderToS3(file, bucket, key)
+}
+
+func (c *Client) UploadBytesToS3(data []byte, bucket string, key string) error {
+	return c.UploadReaderToS3(bytes.NewReader(data), bucket, key)
+}
+
+func (c *Client) UploadStringToS3(str string, bucket string, key string) error {
+	return c.UploadReaderToS3(strings.NewReader(str), bucket, key)
+}
+
+func (c *Client) UploadJSONToS3(obj interface{}, bucket string, key string) error {
+	jsonBytes, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	return c.UploadBytesToS3(jsonBytes, bucket, key)
+}
+
+func (c *Client) UploadMsgpackToS3(obj interface{}, bucket string, key string) error {
+	msgpackBytes, err := msgpack.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	return c.UploadBytesToS3(msgpackBytes, bucket, key)
+}
+
+func (c *Client) UploadDirToS3(localDirPath string, bucket string, s3Dir string, ignoreFns ...files.IgnoreFn) error {
+	localRelPaths, err := files.ListDirRecursive(localDirPath, true, ignoreFns...)
+	if err != nil {
+		return err
+	}
+
+	for _, localRelPath := range localRelPaths {
+		localPath := filepath.Join(localDirPath, localRelPath)
+		key := filepath.Join(s3Dir, localRelPath)
+		if err := c.UploadFileToS3(localPath, bucket, key); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// returned io.ReadCloser should be closed by the caller
+func (c *Client) ReadReaderFromS3(bucket string, key string) (io.ReadCloser, error) {
+	// for reading into memory, s3.S3.GetObject() seems faster than s3manager.Downloader.Download() with aws.NewWriteAtBuffer([]byte{})
+	response, err := c.S3().GetObject(&s3.GetObjectInput{
+		Key:    aws.String(key),
+		Bucket: aws.String(bucket),
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, S3Path(bucket, key))
+	}
+
+	return response.Body, nil
+}
+
+func (c *Client) ReadBufferFromS3(bucket string, key string) (*bytes.Buffer, error) {
+	reader, err := c.ReadReaderFromS3(bucket, key)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(reader)
+
+	return buf, nil
+}
+
+func (c *Client) ReadBytesFromS3(bucket string, key string) ([]byte, error) {
+	buf, err := c.ReadBufferFromS3(bucket, key)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (c *Client) ReadStringFromS3(bucket string, key string) (string, error) {
+	buf, err := c.ReadBufferFromS3(bucket, key)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func (c *Client) ReadJSONFromS3(objPtr interface{}, bucket string, key string) error {
+	jsonBytes, err := c.ReadBytesFromS3(bucket, key)
+	if err != nil {
+		return err
+	}
+	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), S3Path(bucket, key))
+}
+
+func (c *Client) ReadMsgpackFromS3(objPtr interface{}, bucket string, key string) error {
+	msgpackBytes, err := c.ReadBytesFromS3(bucket, key)
+	if err != nil {
+		return err
+	}
+	return errors.Wrap(msgpack.Unmarshal(msgpackBytes, objPtr), S3Path(bucket, key))
+}
+
+func (c *Client) ReadStringFromS3Path(s3Path string) (string, error) {
+	bucket, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return "", err
+	}
+	return c.ReadStringFromS3(bucket, key)
+}
+
+func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
+	bucket, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return nil, err
+	}
+	return c.ReadBytesFromS3(bucket, key)
+}
+
+// overwrites existing file
+func (c *Client) DownloadFileFromS3(bucket string, key string, localPath string) error {
+	file, err := files.Create(localPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// for downloading files, s3manager.Downloader.Download() is faster than s3.S3.GetObject()
+	_, err = c.S3Downloader().Download(file, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		return errors.Wrap(err, S3Path(bucket, key))
+	}
+
+	return nil
+}
+
+func (c *Client) DownloadDirFromS3(bucket string, s3Dir string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
+	prefix := s.EnsureSuffix(s3Dir, "/")
+	return c.DownloadPrefixFromS3(bucket, prefix, localDirPath, shouldTrimDirPrefix, maxFiles)
+}
+
+// if shouldTrimDirPrefix is true, the directory path of prefix will be trimmed when downloading files
+//
+// example:
+// s3: [test/dir/1.txt, test/dir2/2.txt, test/directions.txt]
+// localDirPath: ~/downloads
+//
+// shouldTrimDirPrefix = true
+//   prefix: "test/dir"
+//   result: [~/downloads/dir/1.txt, ~/downloads/dir2/1.txt, ~/downloads/directions.txt]
+//
+//   prefix: "test/dir/"
+//   result: [~/downloads/1.txt]
+//
+// shouldTrimDirPrefix = false
+//   prefix: "test/dir"
+//   result: [~/downloads/test/dir/1.txt, ~/downloads/test/dir2/1.txt, ~/downloads/test/directions.txt]
+//
+//   prefix: "test/dir/"
+//   result: [~/downloads/test/dir/1.txt]
+func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
+	if _, err := files.CreateDirIfMissing(localDirPath); err != nil {
+		return err
+	}
+	createdDirs := strset.New(localDirPath)
+
+	var trimPrefix string
+	if shouldTrimDirPrefix {
+		lastIndex := strings.LastIndex(prefix, "/")
+		if lastIndex == -1 {
+			trimPrefix = ""
+		} else {
+			trimPrefix = prefix[:lastIndex+1]
+		}
+	}
+
+	err := c.S3Iterator(bucket, prefix, maxFiles, func(object *s3.Object) (bool, error) {
+		localRelPath := *object.Key
+		if shouldTrimDirPrefix {
+			localRelPath = strings.TrimPrefix(localRelPath, trimPrefix)
+		}
+
+		localPath := filepath.Join(localDirPath, localRelPath)
+
+		localDir := filepath.Dir(localPath)
+		if !createdDirs.Has(localDir) {
+			if _, err := files.CreateDirIfMissing(localDir); err != nil {
+				return false, err
+			}
+			createdDirs.Add(localDir)
+		}
+
+		if err := c.DownloadFileFromS3(bucket, *object.Key, localPath); err != nil {
+			return false, err
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) ListS3Dir(bucket string, s3Dir string, maxResults *int64) ([]*s3.Object, error) {
+	prefix := s.EnsureSuffix(s3Dir, "/")
+	return c.ListS3Prefix(bucket, prefix, maxResults)
+}
+
+func (c *Client) ListS3PathDir(s3DirPath string, maxResults *int64) ([]*s3.Object, error) {
+	s3Path := s.EnsureSuffix(s3DirPath, "/")
+	return c.ListS3PathPrefix(s3Path, maxResults)
+}
+
+func (c *Client) ListS3Prefix(bucket string, prefix string, maxResults *int64) ([]*s3.Object, error) {
+	var allObjects []*s3.Object
+
+	err := c.S3BatchIterator(bucket, prefix, maxResults, func(objects []*s3.Object) (bool, error) {
+		allObjects = append(allObjects, objects...)
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return allObjects, nil
+}
+
+func (c *Client) ListS3PathPrefix(s3Path string, maxResults *int64) ([]*s3.Object, error) {
+	bucket, prefix, err := SplitS3Path(s3Path)
+	if err != nil {
+		return nil, err
+	}
+	return c.ListS3Prefix(bucket, prefix, maxResults)
+}
+
+func (c *Client) DeleteS3Dir(bucket string, s3Dir string, continueIfFailure bool) error {
+	prefix := s.EnsureSuffix(s3Dir, "/")
+	return c.DeleteS3Prefix(bucket, prefix, continueIfFailure)
+}
+
+func (c *Client) DeleteS3Prefix(bucket string, prefix string, continueIfFailure bool) error {
+	err := c.S3BatchIterator(bucket, prefix, nil, func(objects []*s3.Object) (bool, error) {
+		deleteObjects := make([]*s3.ObjectIdentifier, len(objects))
+		for i, object := range objects {
+			deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
+		}
+
+		_, err := c.S3().DeleteObjects(&s3.DeleteObjectsInput{
+			Bucket: aws.String(bucket),
+			Delete: &s3.Delete{
+				Objects: deleteObjects,
+				Quiet:   aws.Bool(true),
+			},
+		})
+
+		if err != nil {
+			err := errors.Wrap(err, S3Path(bucket, prefix))
+			if !continueIfFailure {
+				return false, err
+			}
+			return true, err
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// The return value of fn(*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)
+func (c *Client) S3Iterator(bucket string, prefix string, maxResults *int64, fn func(*s3.Object) (bool, error)) error {
+	err := c.S3BatchIterator(bucket, prefix, maxResults, func(objects []*s3.Object) (bool, error) {
+		var subErr error
+		for _, object := range objects {
+			shouldContinue, newSubErr := fn(object)
+			if newSubErr != nil {
+				subErr = newSubErr
+			}
+			if !shouldContinue {
+				return false, subErr
+			}
+		}
+		return true, subErr
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// The return value of fn([]*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)
+func (c *Client) S3BatchIterator(bucket string, prefix string, maxResults *int64, fn func([]*s3.Object) (bool, error)) error {
+	var maxResultsRemaining *int64
+	if maxResults != nil {
+		maxResultsRemaining = pointer.Int64(*maxResults)
+	}
+
+	listObjectsInput := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: maxResultsRemaining,
+	}
+
+	var numSeen int64
+	var subErr error
+
+	err := c.S3().ListObjectsV2Pages(listObjectsInput,
+		func(listObjectsOutput *s3.ListObjectsV2Output, lastPage bool) bool {
+			shouldContinue, newSubErr := fn(listObjectsOutput.Contents)
+			if newSubErr != nil {
+				subErr = newSubErr
+			}
+			if !shouldContinue {
+				return false
+			}
+
+			numSeen += int64(len(listObjectsOutput.Contents))
+
+			if maxResults != nil {
+				if numSeen >= *maxResults {
+					return false
+				}
+				*maxResultsRemaining = *maxResults - numSeen
+			}
+
+			return true
+		})
+
+	if subErr != nil {
+		return subErr
+	}
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

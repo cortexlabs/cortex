@@ -25,12 +25,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 type clients struct {
 	s3                *s3.S3
+	s3Uploader        *s3manager.Uploader
+	s3Downloader      *s3manager.Downloader
 	sts               *sts.STS
 	ec2               *ec2.EC2
 	ecr               *ecr.ECR
@@ -47,6 +50,20 @@ func (c *Client) S3() *s3.S3 {
 		c.clients.s3 = s3.New(c.sess)
 	}
 	return c.clients.s3
+}
+
+func (c *Client) S3Uploader() *s3manager.Uploader {
+	if c.clients.s3Uploader == nil {
+		c.clients.s3Uploader = s3manager.NewUploader(c.sess)
+	}
+	return c.clients.s3Uploader
+}
+
+func (c *Client) S3Downloader() *s3manager.Downloader {
+	if c.clients.s3Downloader == nil {
+		c.clients.s3Downloader = s3manager.NewDownloader(c.sess)
+	}
+	return c.clients.s3Downloader
 }
 
 func (c *Client) STS() *sts.STS {
