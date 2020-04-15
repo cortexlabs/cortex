@@ -18,13 +18,43 @@ package docker
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 const (
-	ErrImageInaccessible = "docker.image_inaccessible"
+	ErrConnectToDockerDaemon = "cli.connect_to_docker_daemon"
+	ErrDockerPermissions     = "cli.docker_permissions"
+	ErrImageInaccessible     = "docker.image_inaccessible"
 )
+
+func ErrorConnectToDockerDaemon() error {
+	installMsg := "install it by following the instructions for your operating system: https://docs.docker.com/install"
+	if strings.HasPrefix(runtime.GOOS, "darwin") {
+		installMsg = "install it here: https://docs.docker.com/docker-for-mac/install"
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConnectToDockerDaemon,
+		Message: fmt.Sprintf("unable to connect to the Docker daemon\n\nplease confirm Docker is running, or if Docker is not installed, %s", installMsg),
+	})
+}
+
+func ErrorDockerPermissions(err error) error {
+	errStr := errors.Message(err)
+
+	var groupAddStr string
+	if strings.HasPrefix(runtime.GOOS, "linux") {
+		groupAddStr = " (e.g. by running `sudo groupadd docker && sudo gpasswd -a $USER docker`)"
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDockerPermissions,
+		Message: errStr + "\n\nyou can re-run this command with `sudo`, or grant your current user access to docker" + groupAddStr,
+	})
+}
 
 func ErrorImageInaccessible(image string, cause error) error {
 	dockerErrMsg := errors.Message(cause)
