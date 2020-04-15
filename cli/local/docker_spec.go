@@ -112,7 +112,7 @@ func PythonSpec(api *spec.API) error {
 	}
 
 	containerConfig := &container.Config{
-		Image: "cortexlabs/python-serve:latest",
+		Image: api.Predictor.Image,
 		Env: append(
 			getAPIEnv(api),
 		),
@@ -169,7 +169,7 @@ func ONNXSpec(api *spec.API) error {
 	}
 
 	containerConfig := &container.Config{
-		Image: "cortexlabs/onnx-serve:latest",
+		Image: api.Predictor.Image,
 		Env: append(
 			getAPIEnv(api),
 			"CORTEX_VERSION=master",
@@ -210,7 +210,7 @@ func TensorFlowSpec(api *spec.API) error {
 	}
 
 	serveContainerConfig := &container.Config{
-		Image: "cortexlabs/tf-serve:latest",
+		Image: api.Predictor.TFServeImage,
 		Cmd: strslice.StrSlice{
 			"--port=9000", "--model_base_path=/mnt/model",
 		},
@@ -263,7 +263,7 @@ func TensorFlowSpec(api *spec.API) error {
 	}
 
 	apiContainerConfig := &container.Config{
-		Image: "cortexlabs/tf-api:latest",
+		Image: api.Predictor.Image,
 		Env: append(
 			getAPIEnv(api),
 			"CORTEX_TF_SERVING_PORT="+"9000",
