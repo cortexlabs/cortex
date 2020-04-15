@@ -33,25 +33,6 @@ type Client struct {
 	hashedAccountID *string
 }
 
-func NewAnonymousClient() (*Client, error) {
-	return NewAnonymousClientWithRegion("us-east-1")
-}
-
-func NewAnonymousClientWithRegion(region string) (*Client, error) {
-	sess, err := session.NewSession(&aws.Config{
-		Credentials: credentials.AnonymousCredentials,
-		Region:      aws.String(region),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &Client{
-		sess:   sess,
-		Region: region,
-	}, nil
-}
-
 func NewFromEnv(region string) (*Client, error) {
 	return New(region, nil)
 }

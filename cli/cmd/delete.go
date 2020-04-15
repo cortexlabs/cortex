@@ -56,7 +56,7 @@ var _deleteCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		} else {
-			deleteResponse, err = local.Delete(args[0], _flagKeepCache)
+			deleteResponse, err = local.Delete(args[0], _flagDeleteKeepCache)
 			if err != nil {
 				exit.Error(err)
 			}
