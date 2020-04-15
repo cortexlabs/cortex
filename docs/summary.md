@@ -43,8 +43,9 @@
 
 * [Set up AWS API gateway](guides/api-gateway.md)
 * [Increase request timeout](guides/elb-timeout.md)
-* [Plot in-flight requests](guides/plot-in-flight-requests.md)
+* [Plot response code counts](guides/plot-response-code-counts.md)
 * [Plot API request time](guides/plot-request-time.md)
+* [Plot in-flight requests](guides/plot-in-flight-requests.md)
 * [Add a batch runner API](guides/batch-runner.md)
 
 ## Contributing
