@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/yaml"
@@ -45,6 +46,8 @@ type Predictor struct {
 	Path         string                 `json:"path" yaml:"path"`
 	Model        *string                `json:"model" yaml:"model"`
 	PythonPath   *string                `json:"python_path" yaml:"python_path"`
+	Image        string                 `json:"image" yaml:"image"`
+	TFServeImage string                 `json:"tf_serve_image" yaml:"tf_serve_image"`
 	Config       map[string]interface{} `json:"config" yaml:"config"`
 	Env          map[string]string      `json:"env" yaml:"env"`
 	SignatureKey *string                `json:"signature_key" yaml:"signature_key"`
@@ -85,6 +88,44 @@ type UpdateStrategy struct {
 
 func (api *API) Identify() string {
 	return IdentifyAPI(api.FilePath, api.Name, api.Index)
+}
+
+func (api *API) ApplyDefaultDockerPaths() {
+	usesGPU := false
+	if api.Compute.GPU > 0 {
+		usesGPU = true
+	}
+
+	predictor := api.Predictor
+	switch predictor.Type {
+	case PythonPredictorType:
+		if predictor.Image == "" {
+			if usesGPU {
+				predictor.Image = consts.DefaultImagePythonServeGPU
+			} else {
+				predictor.Image = consts.DefaultImagePythonServe
+			}
+		}
+	case TensorFlowPredictorType:
+		if predictor.Image == "" {
+			predictor.Image = consts.DefaultImageTFAPI
+		}
+		if predictor.TFServeImage == "" {
+			if usesGPU {
+				predictor.TFServeImage = consts.DefaultImageTFServeGPU
+			} else {
+				predictor.TFServeImage = consts.DefaultImageTFServe
+			}
+		}
+	case ONNXPredictorType:
+		if predictor.Image == "" {
+			if usesGPU {
+				predictor.Image = consts.DefaultImageONNXServeGPU
+			} else {
+				predictor.Image = consts.DefaultImageONNXServe
+			}
+		}
+	}
 }
 
 func IdentifyAPI(filePath string, name string, index int) string {
@@ -248,6 +289,10 @@ func (predictor *Predictor) UserStr() string {
 	}
 	if predictor.PythonPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
+	if predictor.TFServeImage != "" {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
 	}
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))

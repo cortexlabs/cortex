@@ -149,3 +149,26 @@ func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
 		return d, nil
 	}
 }
+
+func ValidateImageVersion(image, cortexVersion string) (string, error) {
+	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
+		return image, nil
+	}
+
+	var tag string
+
+	if colonIndex := strings.LastIndex(image, ":"); colonIndex != -1 {
+		tag = image[colonIndex+1:]
+	}
+
+	// in docker, missing tag implies "latest"
+	if tag == "" {
+		tag = "latest"
+	}
+
+	if !strings.HasPrefix(tag, cortexVersion) {
+		return "", ErrorImageVersionMismatch(image, tag, cortexVersion)
+	}
+
+	return image, nil
+}

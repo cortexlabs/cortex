@@ -33,6 +33,7 @@ const (
 	ErrTooShort                      = "configreader.too_short"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
+	ErrInvalidDockerImage            = "configreader.invalid_docker_image"
 	ErrMustHavePrefix                = "configreader.must_have_prefix"
 	ErrInvalidInterface              = "configreader.invalid_interface"
 	ErrInvalidFloat64                = "configreader.invalid_float64"
@@ -62,6 +63,7 @@ const (
 	ErrEmailInvalid                  = "configreader.email_invalid"
 	ErrCortexResourceOnlyAllowed     = "configreader.cortex_resource_only_allowed"
 	ErrCortexResourceNotAllowed      = "configreader.cortex_resource_not_allowed"
+	ErrImageVersionMismatch          = "operator.image_version_mismatch"
 )
 
 func ErrorParseConfig() error {
@@ -118,6 +120,13 @@ func ErrorAlphaNumericDashDotUnderscore(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAlphaNumericDashDotUnderscore,
 		Message: fmt.Sprintf("%s must contain only letters, numbers, underscores, dashes, and periods", s.UserStr(provided)),
+	})
+}
+
+func ErrorInvalidDockerImage(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidDockerImage,
+		Message: fmt.Sprintf("%s is not a valid docker image path", s.UserStr(provided)),
 	})
 }
 
@@ -343,5 +352,12 @@ func ErrorCortexResourceNotAllowed(resourceName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexResourceNotAllowed,
 		Message: fmt.Sprintf("@%s: cortex resource references (which start with @) are not allowed in this context", resourceName),
+	})
+}
+
+func ErrorImageVersionMismatch(image, tag, cortexVersion string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrImageVersionMismatch,
+		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image from your configuration file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, cortexVersion),
 	})
 }

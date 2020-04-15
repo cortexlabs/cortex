@@ -51,6 +51,7 @@ const (
 	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
+	ErrRegistryAccountIDMismatch          = "operator.registry_account_id_mismatch"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -259,5 +260,12 @@ func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotDeployed,
 		Message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
+	})
+}
+
+func ErrorRegistryAccountIDMismatch(regID, opID string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrRegistryAccountIDMismatch,
+		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
 	})
 }

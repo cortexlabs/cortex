@@ -16,6 +16,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/python-serve[-gpu])
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
@@ -44,7 +45,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), and [prediction monitoring](prediction-monitoring.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -58,6 +59,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/tf-api)
+    tf_serve_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tf-serve[-gpu], which is based on tensorflow/serving)
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
@@ -86,7 +89,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), and [prediction monitoring](prediction-monitoring.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
 
 ## ONNX Predictor
 
@@ -99,6 +102,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-serve[-gpu])
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
@@ -127,4 +131,4 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), and [prediction monitoring](prediction-monitoring.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).

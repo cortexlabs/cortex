@@ -20,7 +20,7 @@ It is recommended to use an IAM user with the `AdministratorAccess` policy to cr
 
 ### Operator
 
-The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, and read and write permissions for CloudWatch metrics. The policy below may be used to restrict the Operator's access:
+The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, read and write permissions for CloudWatch metrics, and read permissions for ECR. The policy below may be used to restrict the Operator's access:
 
 ```json
 {
@@ -42,7 +42,8 @@ The operator requires read permissions for any S3 bucket containing exported mod
         {
             "Action": [
                 "cloudwatch:*",
-                "logs:*"
+                "logs:*",
+                "ecr:GetAuthorizationToken"
             ],
             "Effect": "Allow",
             "Resource": "*"

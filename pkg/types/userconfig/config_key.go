@@ -31,6 +31,8 @@ const (
 	PathKey         = "path"
 	ModelKey        = "model"
 	PythonPathKey   = "python_path"
+	ImageKey        = "image"
+	TFServeImageKey = "tf_serve_image"
 	ConfigKey       = "config"
 	EnvKey          = "env"
 	SignatureKeyKey = "signature_key"
