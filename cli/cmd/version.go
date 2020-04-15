@@ -27,9 +27,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var _flagVersionEnv string
+
 func versionInit() {
 	_versionCmd.Flags().SortFlags = false
-	addEnvFlag(_versionCmd, _generalCommandType, _envToUseUsage)
+	_versionCmd.Flags().StringVarP(&_flagVersionEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 }
 
 var _versionCmd = &cobra.Command{
@@ -39,7 +41,7 @@ var _versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.version")
 
-		env, err := readEnv(_flagEnv)
+		env, err := readEnv(_flagVersionEnv)
 		if err != nil || env.Provider == types.LocalProviderType {
 			fmt.Println("cli version: " + consts.CortexVersion)
 			return

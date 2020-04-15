@@ -28,12 +28,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _flagRefreshForce bool
+var (
+	_flagRefreshEnv   string
+	_flagRefreshForce bool
+)
 
 func refreshInit() {
 	_refreshCmd.Flags().SortFlags = false
-	addEnvFlag(_refreshCmd, _generalCommandType, _envToUseUsage)
-	_refreshCmd.LocalFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
+	_refreshCmd.Flags().StringVarP(&_flagRefreshEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_refreshCmd.Flags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
 }
 
 var _refreshCmd = &cobra.Command{
@@ -43,7 +46,7 @@ var _refreshCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.refresh")
 
-		env := MustReadOrConfigureEnv(_flagEnv)
+		env := MustReadOrConfigureEnv(_flagRefreshEnv)
 		var refreshResponse schema.RefreshResponse
 		var err error
 		if env.Provider == types.LocalProviderType {

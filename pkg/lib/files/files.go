@@ -17,6 +17,7 @@ limitations under the License.
 package files
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -800,6 +802,28 @@ func CopyDirOverwrite(src string, dest string, ignoreFns ...IgnoreFn) error {
 		if err := CopyFileOverwrite(srcFilePath, destFilePath); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func CopyRecursiveShell(src string, dest string) error {
+	cleanSrc, err := EscapeTilde(src)
+	if err != nil {
+		return err
+	}
+	cleanDest, err := EscapeTilde(dest)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("cp", "-r", cleanSrc, cleanDest)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, strings.TrimSpace(out.String()))
 	}
 
 	return nil

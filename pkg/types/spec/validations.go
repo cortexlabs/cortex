@@ -553,7 +553,7 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		return "", err
 	}
 
-	objects, err := awsClient.ListS3PathDir(path, pointer.Int64(1000))
+	objects, err := awsClient.ListS3PathDir(path, false, pointer.Int64(1000))
 	if err != nil {
 		return "", err
 	} else if len(objects) == 0 {
@@ -562,12 +562,12 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 
 	highestVersion := int64(0)
 	var highestPath string
-	for _, key := range objects {
-		if !strings.HasSuffix(*key.Key, "saved_model.pb") {
+	for _, object := range objects {
+		if !strings.HasSuffix(*object.Key, "saved_model.pb") {
 			continue
 		}
 
-		keyParts := strings.Split(*key.Key, "/")
+		keyParts := strings.Split(*object.Key, "/")
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {

@@ -30,9 +30,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var _flagLogsEnv string
+
 func logsInit() {
 	_logsCmd.Flags().SortFlags = false
-	addEnvFlag(_logsCmd, _generalCommandType, _envToUseUsage)
+	_logsCmd.Flags().StringVarP(&_flagLogsEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 }
 
 var _logsCmd = &cobra.Command{
@@ -43,7 +45,7 @@ var _logsCmd = &cobra.Command{
 		telemetry.Event("cli.logs")
 
 		apiName := args[0]
-		env := MustReadOrConfigureEnv(_flagEnv)
+		env := MustReadOrConfigureEnv(_flagLogsEnv)
 		if env.Provider == types.AWSProviderType {
 			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), apiName)
 			if err != nil {
