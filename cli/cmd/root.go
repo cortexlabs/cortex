@@ -179,6 +179,18 @@ func updateRootUsage() {
 	})
 }
 
+func wasEnvFlagProvided() bool {
+	for _, str := range os.Args[1:] {
+		if str == "-e" || str == "--env" {
+			return true
+		}
+		if strings.HasPrefix(str, "-e=") || strings.HasPrefix(str, "--env=") {
+			return true
+		}
+	}
+	return false
+}
+
 func printLeadingNewLine() {
 	if len(os.Args) == 2 && os.Args[1] == "completion" {
 		return
