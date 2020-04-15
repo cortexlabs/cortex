@@ -51,10 +51,6 @@ spec:
         image: $CORTEX_IMAGE_TF_API
         command: [ "/bin/sh" ]
         args: [ "-c", "sleep 1000000" ]
-      - name: onnx-serve
-        image: $CORTEX_IMAGE_ONNX_SERVE_GPU
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
       - name: downloader
         image: $CORTEX_IMAGE_DOWNLOADER
         command: [ "/bin/sh" ]
