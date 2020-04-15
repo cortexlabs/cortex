@@ -440,19 +440,19 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 				continue
 			}
 			if _, ok := aws.InstanceMetadatas[*cc.Region][instanceType]; !ok {
-				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), InstanceDistributionKey)
+				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), SpotConfigKey, InstanceDistributionKey)
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
 			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
 			if err != nil {
-				return errors.Wrap(err, InstanceDistributionKey)
+				return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 			}
 
 			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
 			if awsErr == nil {
 				if err := CheckSpotInstancePriceCompatibility(chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
-					return errors.Wrap(err, InstanceDistributionKey)
+					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 				}
 			}
 
