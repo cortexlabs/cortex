@@ -31,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -172,9 +171,6 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics, includeAPIName bool) table.Table {
 	rows := make([][]interface{}, 0, len(apis))
 
-	debug.Pp(apis)
-	debug.Pp(statuses)
-	debug.Pp(allMetrics)
 	var totalFailed int32
 	var totalStale int32
 	var total4XX int

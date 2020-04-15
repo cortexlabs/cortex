@@ -23,7 +23,6 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -75,7 +74,6 @@ var _predictCmd = &cobra.Command{
 			apiEndpoint = "http://" + urls.Join(apiRes.BaseURL, "predict")
 		}
 
-		debug.Pp(apiRes)
 		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
 		if totalReady == 0 {
 			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))
