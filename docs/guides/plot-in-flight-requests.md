@@ -2,26 +2,34 @@
 
 ## Step 1
 
-Go to the CloudWatch Metrics page and click on your cluster name:
+Go to the CloudWatch Metrics page and click on your cluster name (in this case my cluster is named "cortex-dev", but the default is just "cortex"):
 
-![step 1](https://user-images.githubusercontent.com/808475/78299915-7b1f3200-74eb-11ea-8399-d9a465d2d7f1.png)
+![step 1](https://user-images.githubusercontent.com/808475/79396974-e0cedd80-7f31-11ea-85ca-f92bd6c0a175.png)
 
 ## Step 2
 
 Click on "apiName":
 
-![step 2](https://user-images.githubusercontent.com/808475/78299940-85d9c700-74eb-11ea-966c-c7ef97d76cd8.png)
+![step 2](https://user-images.githubusercontent.com/808475/79397644-67d08580-7f33-11ea-9310-f599d1289809.png)
 
 ## Step 3
 
-Select your API, and click on the "graphed metrics" tab. At this point, there are two options (due to cloudwatch retention policies):
+Select your API:
 
-### Step 3a
+![step 3](https://user-images.githubusercontent.com/808475/79397891-1f659780-7f34-11ea-9ea1-7ed9365b516d.png)
 
-If you are only looking at data in the last 3 hours, change the statistic to "Sum" and the period to 10 seconds (this is because each replica reports it's in-flight requests once per 10 seconds). This will plot total in-flight requests across the cluster.
+## Step 4
 
-![step 3a](https://user-images.githubusercontent.com/808475/78299975-968a3d00-74eb-11ea-82ec-968311e029d4.png)
+Click on the "graphed metrics" tab.
 
-### Step 3b
+At this point, there are two options (due to cloudwatch retention policies):
+
+### Step 4a
+
+If you are only looking at data in the last 3 hours, change the statistic to "Sum" and the period to 10 seconds (this is because each replica reports it's in-flight requests once per 10 seconds). This will plot total in-flight requests for your selected API (across all replicas). You can change the time window for your plot in the upper right corner.
+
+![step 4a](https://user-images.githubusercontent.com/808475/79397858-05c45000-7f34-11ea-8c44-badfae2a50e2.png)
+
+### Step 4b
 
 If you want data older than 3 hours, instead sum over 1 minute, but you will need to divide the y-axis by 6 to determine the actual number of in-flight requests (since the metrics are reported every 10 seconds). This is because cloudwatch aggregates second-granular data to minute-granular data after 3 hours.
