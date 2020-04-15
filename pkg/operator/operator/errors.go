@@ -25,9 +25,11 @@ import (
 const (
 	ErrCortexInstallationBroken    = "operator.cortex_installation_broken"
 	ErrLoadBalancerInitializing    = "operator.load_balancer_initializing"
+	ErrMalformedConfig             = "operator.malformed_config"
+	ErrNoAPIs                      = "operator.no_apis"
 	ErrAPIUpdating                 = "operator.api_updating"
 	ErrAPINotDeployed              = "operator.api_not_deployed"
-	ErrNoAvailableNodeComputeLimit = "spec.no_available_node_compute_limit"
+	ErrNoAvailableNodeComputeLimit = "operator.no_available_node_compute_limit"
 )
 
 func ErrorCortexInstallationBroken() error {

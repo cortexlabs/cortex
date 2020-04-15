@@ -75,10 +75,14 @@ func NewFromCredsS3Bucket(bucket string, accessKeyID string, secretAccessKey str
 }
 
 func New(region string, creds *credentials.Credentials) (*Client, error) {
-	sess, err := session.NewSession(&aws.Config{
-		Credentials: creds,
-		Region:      aws.String(region),
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Credentials: creds,
+			Region:      aws.String(region),
+		},
+		SharedConfigState: session.SharedConfigEnable,
 	})
+
 	if err != nil {
 		return nil, err
 	}

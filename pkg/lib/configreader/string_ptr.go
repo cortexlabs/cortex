@@ -42,6 +42,7 @@ type StringPtrValidation struct {
 	CastScalar                    bool
 	AllowCortexResources          bool
 	RequireCortexResources        bool
+	DockerImageOrEmpty            bool
 	Validator                     func(string) (string, error)
 }
 
@@ -61,6 +62,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		CastScalar:                    v.CastScalar,
 		AllowCortexResources:          v.AllowCortexResources,
 		RequireCortexResources:        v.RequireCortexResources,
+		DockerImageOrEmpty:            v.DockerImageOrEmpty,
 	}
 }
 

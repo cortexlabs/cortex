@@ -23,19 +23,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	dockerlib "github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	dockertypes "github.com/docker/docker/api/types"
+	dockerclient "github.com/docker/docker/client"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -98,6 +103,22 @@ var _predictorValidation = &cr.StructFieldValidation{
 					Validator: func(path string) (string, error) {
 						return s.EnsureSuffix(path, "/"), nil
 					},
+				},
+			},
+			{
+				StructField: "Image",
+				StringValidation: &cr.StringValidation{
+					Required:           false,
+					AllowEmpty:         true,
+					DockerImageOrEmpty: true,
+				},
+			},
+			{
+				StructField: "TFServeImage",
+				StringValidation: &cr.StringValidation{
+					Required:           false,
+					AllowEmpty:         true,
+					DockerImageOrEmpty: true,
 				},
 			},
 			{
@@ -365,6 +386,8 @@ func ExtractAPIConfigs(configBytes []byte, projectFiles ProjectFiles, filePath s
 		api.Index = i
 		api.FilePath = filePath
 
+		api.ApplyDefaultDockerPaths()
+
 		if api.Autoscaling != nil || api.Compute != nil || api.Tracker != nil || api.UpdateStrategy != nil {
 			fmt.Println(fmt.Sprintf("WARNING: %s, %s, %s and %s keys will be ignored because they are not supported for local provider\n", userconfig.AutoscalingKey, userconfig.ComputeKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
 		}
@@ -411,10 +434,17 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 		if err := validateTensorFlowPredictor(predictor, providerType, awsClient); err != nil {
 			return err
 		}
+		if err := validateDockerImagePath(predictor.TFServeImage, awsClient); err != nil {
+			return errors.Wrap(err, userconfig.TFServeImageKey)
+		}
 	case userconfig.ONNXPredictorType:
 		if err := validateONNXPredictor(predictor, providerType, awsClient); err != nil {
 			return err
 		}
+	}
+
+	if err := validateDockerImagePath(predictor.Image, awsClient); err != nil {
+		return errors.Wrap(err, userconfig.ImageKey)
 	}
 
 	for key := range predictor.Env {
@@ -446,6 +476,10 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 
 	if predictor.Model != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelKey, userconfig.PythonPredictorType)
+	}
+
+	if predictor.TFServeImage != "" {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TFServeImageKey, userconfig.PythonPredictorType)
 	}
 
 	return nil
@@ -725,4 +759,51 @@ func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 	}
 
 	return nil
+}
+
+func validateDockerImagePath(image string, awsClient *aws.Client) error {
+	if consts.DefaultImagePathsSet.Has(image) {
+		return nil
+	}
+	if _, err := cr.ValidateImageVersion(image, consts.CortexVersion); err != nil {
+		return err
+	}
+
+	dockerAuth := dockerlib.NoAuth
+	if regex.IsValidECRURL(image) {
+		operatorID, _, err := awsClient.GetCachedAccountID()
+		if err != nil {
+			return err
+		}
+		registryID := aws.GetAccountIDFromECRURL(image)
+
+		if operatorID != registryID {
+			return ErrorRegistryAccountIDMismatch(registryID, operatorID)
+		}
+
+		ecrAuthConfig, err := awsClient.GetECRAuthConfig()
+		if err != nil {
+			// because the operator's IAM user != instances's IAM role (which is created by eksctl and
+			// has access to ECR), if the operator IAM doesn't include ECR access, then this will fail
+			// even though the instance IAM role may have access; instead, ignore this error because the
+			// instance will have access (this will result in missing the case where the image does not exist)
+			return nil
+		}
+
+		dockerAuth, err = dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{
+			Username:      ecrAuthConfig.Username,
+			Password:      ecrAuthConfig.AccessToken,
+			ServerAddress: ecrAuthConfig.ProxyEndpoint,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	client, err := dockerclient.NewEnvClient()
+	if err != nil {
+		return err
+	}
+
+	return dockerlib.CheckImageAccessible(client, image, dockerAuth)
 }

@@ -237,41 +237,41 @@ func ErrorClusterDown(out string) error {
 func ErrorClusterDoesNotExist(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterDoesNotExist,
-		Message: fmt.Sprintf("cluster %s in %s does not exist", clusterName, region),
+		Message: fmt.Sprintf("there is no cluster named \"%s\" in %s", clusterName, region),
 	})
 }
 
 func ErrorClusterUpInProgress(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUpInProgress,
-		Message: fmt.Sprintf("creation of cluster %s in %s is currently in progress", clusterName, region),
+		Message: fmt.Sprintf("creation of cluster \"%s\" in %s is currently in progress", clusterName, region),
 	})
 }
 
 func ErrorClusterAlreadyCreated(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAlreadyCreated,
-		Message: fmt.Sprintf("cluster %s in %s has already been created", clusterName, region),
+		Message: fmt.Sprintf("a cluster named \"%s\" already exists in %s", clusterName, region),
 	})
 }
 
 func ErrorClusterDownInProgress(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterDownInProgress,
-		Message: fmt.Sprintf("deletion of cluster %s in %s is currently in progress", clusterName, region),
+		Message: fmt.Sprintf("deletion of cluster \"%s\" in %s is currently in progress", clusterName, region),
 	})
 }
 
 func ErrorClusterAlreadyDeleted(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAlreadyDeleted,
-		Message: fmt.Sprintf("cluster %s in %s has already been deleted or does not exist", clusterName, region),
+		Message: fmt.Sprintf("cluster \"%s\" in %s has already been deleted (or does not exist)", clusterName, region),
 	})
 }
 
 func ErrorFailedClusterStatus(status clusterstate.Status, clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedClusterStatus,
-		Message: fmt.Sprintf("cluster %s in %s encountered an unexpected status %s, please try to delete the cluster with `cortex cluster down` or delete the cloudformation stacks manually in your AWS console %s", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
+		Message: fmt.Sprintf("cluster \"%s\" in %s encountered an unexpected status %s, please try to delete the cluster with `cortex cluster down` or delete the cloudformation stacks manually in your AWS console %s", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
 	})
 }

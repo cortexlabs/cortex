@@ -444,28 +444,6 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {
 		items.Add(clusterconfig.TelemetryUserKey, clusterConfig.Telemetry)
 	}
-
-	if clusterConfig.ImagePythonServe != defaultConfig.ImagePythonServe {
-		items.Add(clusterconfig.ImagePythonServeUserKey, clusterConfig.ImagePythonServe)
-	}
-	if clusterConfig.ImagePythonServeGPU != defaultConfig.ImagePythonServeGPU {
-		items.Add(clusterconfig.ImagePythonServeGPUUserKey, clusterConfig.ImagePythonServeGPU)
-	}
-	if clusterConfig.ImageTFServe != defaultConfig.ImageTFServe {
-		items.Add(clusterconfig.ImageTFServeUserKey, clusterConfig.ImageTFServe)
-	}
-	if clusterConfig.ImageTFServeGPU != defaultConfig.ImageTFServeGPU {
-		items.Add(clusterconfig.ImageTFServeGPUUserKey, clusterConfig.ImageTFServeGPU)
-	}
-	if clusterConfig.ImageTFAPI != defaultConfig.ImageTFAPI {
-		items.Add(clusterconfig.ImageTFAPIUserKey, clusterConfig.ImageTFAPI)
-	}
-	if clusterConfig.ImageONNXServe != defaultConfig.ImageONNXServe {
-		items.Add(clusterconfig.ImageONNXServeUserKey, clusterConfig.ImageONNXServe)
-	}
-	if clusterConfig.ImageONNXServeGPU != defaultConfig.ImageONNXServeGPU {
-		items.Add(clusterconfig.ImageONNXServeGPUUserKey, clusterConfig.ImageONNXServeGPU)
-	}
 	if clusterConfig.ImageOperator != defaultConfig.ImageOperator {
 		items.Add(clusterconfig.ImageOperatorUserKey, clusterConfig.ImageOperator)
 	}

@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -71,7 +72,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFileMap map[string][]byte
 	}
 
 	for i := range apis {
-		if err := spec.ValidateAPI(&apis[i], projectFiles, "aws"); err != nil {
+		if err := spec.ValidateAPI(&apis[i], projectFiles, types.AWSProviderType, config.AWS); err != nil {
 			return err
 		}
 		if err := validateK8s(&apis[i], config.Cluster, virtualServices, maxMem); err != nil {
@@ -96,7 +97,6 @@ func validateK8s(api *userconfig.API,
 	config *clusterconfig.InternalConfig,
 	virtualServices []kunstructured.Unstructured,
 	maxMem *kresource.Quantity) error {
-
 	if err := validateCompute(api.Compute, config, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}

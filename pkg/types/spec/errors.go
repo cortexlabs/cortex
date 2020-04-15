@@ -50,6 +50,7 @@ const (
 	ErrNoAvailableNodeComputeLimit        = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed     = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrLocalPathNotSupportedByAWSProvider = "spec.local_path_not_supported_by_aws_provider"
+	ErrRegistryAccountIDMismatch          = "spec.registry_account_id_mismatch"
 )
 
 func ErrorMalformedConfig() error {
@@ -240,5 +241,12 @@ func ErrorLocalModelPathNotSupportedByAWSProvider() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrLocalPathNotSupportedByAWSProvider,
 		Message: fmt.Sprintf("local model paths are not supported for aws provider, please specify an S3 path"),
+	})
+}
+
+func ErrorRegistryAccountIDMismatch(regID, opID string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrRegistryAccountIDMismatch,
+		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
 	})
 }
