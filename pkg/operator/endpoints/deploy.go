@@ -65,13 +65,16 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, projectFileMap, configPath)
+	projectFiles := operator.ClusterProjectFiles{
+		ProjectByteMap: projectFileMap,
+	}
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, projectFiles, configPath)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	err = operator.ValidateClusterAPIs(apiConfigs, projectFileMap)
+	err = operator.ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
 		respondError(w, r, err)
 		return

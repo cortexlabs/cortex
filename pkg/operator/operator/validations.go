@@ -57,7 +57,7 @@ func (cpf ClusterProjectFiles) GetFile(fileName string) ([]byte, error) {
 	return bytes, nil
 }
 
-func ValidateClusterAPIs(apis []userconfig.API, projectFileMap map[string][]byte) error {
+func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
@@ -65,10 +65,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFileMap map[string][]byte
 	virtualServices, maxMem, err := getValidationK8sResources()
 	if err != nil {
 		return err
-	}
-
-	projectFiles := ClusterProjectFiles{
-		ProjectByteMap: projectFileMap,
 	}
 
 	for i := range apis {

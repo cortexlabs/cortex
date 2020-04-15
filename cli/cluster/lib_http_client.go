@@ -50,7 +50,7 @@ type OperatorConfig struct {
 }
 
 func (oc OperatorConfig) AuthHeader() string {
-	return fmt.Sprintf("CortexAWS %s|%s", oc.Environment.AWSAccessKeyID, oc.Environment.AWSSecretAccessKey)
+	return fmt.Sprintf("CortexAWS %s|%s", *oc.Environment.AWSAccessKeyID, *oc.Environment.AWSSecretAccessKey)
 }
 
 var _operatorClient = &OperatorClient{

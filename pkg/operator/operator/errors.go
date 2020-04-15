@@ -46,20 +46,6 @@ func ErrorLoadBalancerInitializing() error {
 	})
 }
 
-func ErrorMalformedConfig() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://cortex.dev for documentation)"),
-	})
-}
-
-func ErrorNoAPIs() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://cortex.dev for documentation)"),
-	})
-}
-
 func ErrorAPIUpdating(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIUpdating,

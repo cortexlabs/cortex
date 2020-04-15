@@ -259,7 +259,7 @@ func updateAutoscalerCron(deployment *kapps.Deployment) error {
 		return err
 	}
 
-	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), _autoscalingTickInterval)
+	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
 
 	return nil
 }

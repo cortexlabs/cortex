@@ -65,7 +65,6 @@ var _getCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.get")
-
 		env := MustReadOrConfigureEnv(_flagGetEnv)
 		rerun(func() (string, error) {
 			return get(args, env)
@@ -122,11 +121,17 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	if env.Provider == types.AWSProviderType {
 		apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 		if err != nil {
+			if strings.HasSuffix(errors.Message(err), "is not deployed") {
+				return console.Bold(errors.Message(err) + " in " + env.Name + " environment"), nil
+			}
 			return "", err
 		}
 	} else {
 		apiRes, err = local.GetAPI(apiName)
 		if err != nil {
+			if strings.HasSuffix(errors.Message(err), "is not deployed") {
+				return console.Bold(errors.Message(err) + " in " + env.Name + " environment"), nil
+			}
 			return "", err
 		}
 	}
