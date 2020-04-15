@@ -805,11 +805,10 @@ func validateDockerImagePath(image string) error {
 
 		ecrAuthConfig, err := config.AWS.GetECRAuthConfig()
 		if err != nil {
-			// because eksctl IAM role (w/ access to ECR) != operator IAM user;
-			// if the operator IAM user happens to not include ECR access, then this will fail
-			// anyway, even though eksctl IAM role has the access;
-			// instead, just ignore the error if the operator has no access,
-			// because eksctl will definitely have it;
+			// because the operator's IAM user != instances's IAM role (which is created by eksctl and
+			// has access to ECR), if the operator IAM doesn't include ECR access, then this will fail
+			// even though the instance IAM role may have access; instead, ignore this error because the
+			// instance will have access (this will result in missing the case where the image does not exist)
 			return nil
 		}
 
