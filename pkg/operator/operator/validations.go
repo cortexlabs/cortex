@@ -805,7 +805,12 @@ func validateDockerImagePath(image string) error {
 
 		ecrAuthConfig, err := config.AWS.GetECRAuthConfig()
 		if err != nil {
-			return err
+			// because eksctl IAM role (w/ access to ECR) != operator IAM user;
+			// if the operator IAM user happens to not include ECR access, then this will fail
+			// anyway, even though eksctl IAM role has the access;
+			// instead, just ignore the error if the operator has no access,
+			// because eksctl will definitely have it;
+			return nil
 		}
 
 		dockerAuth, err = dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{
