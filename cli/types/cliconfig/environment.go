@@ -28,7 +28,7 @@ type Environment struct {
 	OperatorEndpoint   *string            `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
 	AWSAccessKeyID     *string            `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
 	AWSSecretAccessKey *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
-	AWSRegion          *string            `json:"region,omitempty" yaml:"region,omitempty"`
+	AWSRegion          *string            `json:"aws_region,omitempty" yaml:"aws_region,omitempty"`
 }
 
 func CheckReservedEnvironmentNames(envName string, provider types.ProviderType) error {

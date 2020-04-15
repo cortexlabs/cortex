@@ -100,6 +100,13 @@ var _cliConfigValidation = &cr.StructValidation{
 								Required: false,
 							},
 						},
+						{
+							StructField: "AWSRegion",
+							StringPtrValidation: &cr.StringPtrValidation{
+								Required:      false,
+								AllowedValues: aws.S3Regions.Slice(),
+							},
+						},
 					},
 				},
 			},
@@ -336,9 +343,7 @@ func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) 
 			{
 				StructField: "AWSRegion",
 				PromptOpts: &prompt.Options{
-					Prompt:      "aws region",
-					MaskDefault: true,
-					HideTyping:  true,
+					Prompt: "aws region",
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					Required:      true,
