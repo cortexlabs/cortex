@@ -24,6 +24,6 @@ Filter by API name and select all API IDs:
 
 ## Step 4
 
-Go to the "Graphed metrics" tab and select your desired statistic, period, and time window. The graph below shows the p99 request time calculated every 10 seconds and plotted over the last 15 minutes:
+Go to the "Graphed metrics" tab and select your desired statistic, period, and time window. The graph below shows the p99 request time (in milliseconds) calculated every 10 seconds and plotted over the last 15 minutes:
 
 ![step 4](https://user-images.githubusercontent.com/808475/79397376-cf3a0580-7f32-11ea-843a-963a489c1d5e.png)
