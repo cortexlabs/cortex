@@ -19,26 +19,50 @@ package local
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
-func Refresh(apiName string) (schema.RefreshResponse, error) {
-	apiSpec, err := FindAPISpec(apiName)
-	if err != nil {
-		return schema.RefreshResponse{}, nil
+func Refresh(env cliconfig.Environment, apiName string) (schema.RefreshResponse, error) {
+	var awsClient *aws.Client
+	var err error
+	if env.AWSAccessKeyID != nil {
+		awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
+		if err != nil {
+			return schema.RefreshResponse{}, err
+		}
+	} else {
+		awsClient, err = aws.NewAnonymousClient()
+		if err != nil {
+			return schema.RefreshResponse{}, err
+		}
 	}
+	CacheModel(apiName, awsClient)
+	// apiSpec, err := FindAPISpec(apiName)
+	// if err != nil {
+	// 	return schema.RefreshResponse{}, nil
+	// }
 
-	err = DeleteContainers(apiName)
-	if err != nil {
-		// TODO
-		return schema.RefreshResponse{}, err
-	}
+	// var awsClient *aws.Client
+	// if env.AWSAccessKeyID != nil {
+	// 	awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
+	// 	if err != nil {
+	// 		return schema.RefreshResponse{}, err
+	// 	}
+	// } else {
+	// 	awsClient, err = aws.NewAnonymousClient()
+	// 	if err != nil {
+	// 		return schema.RefreshResponse{}, err
+	// 	}
+	// }
 
-	err = DeployContainers(&apiSpec)
-	if err != nil {
-		// TODO
-		return schema.RefreshResponse{}, err
-	}
+	// err := DeleteContainers(apiName)
+	// if err != nil {
+
+	// }
+
+	// UpdateAPI()
 
 	return schema.RefreshResponse{
 		Message: fmt.Sprintf("updating %s", apiName),

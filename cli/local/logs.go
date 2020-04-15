@@ -21,9 +21,9 @@ import (
 )
 
 func StreamLogs(apiName string) error {
-	containers, err := GetContainerByAPI(apiName)
+	containers, err := GetContainersByAPI(apiName)
 	if err != nil {
-		// TODO
+		return err
 	}
 
 	containerIDs := []string{}

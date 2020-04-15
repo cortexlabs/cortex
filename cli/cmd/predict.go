@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -54,22 +55,24 @@ var _predictCmd = &cobra.Command{
 
 		env := MustReadOrConfigureEnv(_flagEnv)
 		var apiRes schema.GetAPIResponse
+		var err error
 		var apiEndpoint string
 		if env.Provider == types.AWSProviderType {
-			apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+			apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 			if err != nil {
-				// TODO
+				exit.Error(err)
 			}
 			apiEndpoint = urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
 
 		} else {
-			apiRes, err := local.GetAPI(apiName)
+			apiRes, err = local.GetAPI(apiName)
 			if err != nil {
-				// TODO
+				exit.Error(err)
 			}
-			apiEndpoint = urls.Join(apiRes.BaseURL)
+			apiEndpoint = "http://" + urls.Join(apiRes.BaseURL, "predict")
 		}
 
+		debug.Pp(apiRes)
 		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
 		if totalReady == 0 {
 			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))

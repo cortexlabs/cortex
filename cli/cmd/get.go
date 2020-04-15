@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -83,17 +84,33 @@ func getAPIs(env cliconfig.Environment) (string, error) {
 	if env.Provider == types.AWSProviderType {
 		apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
 		if err != nil {
-			// TODO
+			return "", err
 		}
 	} else {
 		apisRes, err = local.GetAPIs()
 		if err != nil {
-			// TODO
+			return "", err
 		}
 	}
 
+	if len(apisRes.APIs) == 0 {
+		return console.Bold(fmt.Sprintf("no apis are deployed in %s environment", env.Name)), nil
+	}
+
 	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, true)
-	return t.MustFormat(), nil
+
+	out := t.MustFormat()
+
+	if env.Provider == types.LocalProviderType {
+		mismatchedAPINames, err := local.ListVersionMismatchedAPI()
+		if err != nil {
+			return "", err
+		}
+		if len(mismatchedAPINames) > 0 {
+			out += fmt.Sprintf("\nthe following apis: (%s) were found but were deployed using a different version of cortex cli; please delete them using `cortex delete <api_name>` and deploy them again.", strings.Join(mismatchedAPINames, ","))
+		}
+	}
+	return out, nil
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
@@ -102,12 +119,12 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	if env.Provider == types.AWSProviderType {
 		apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 		if err != nil {
-			// TODO
+			return "", err
 		}
 	} else {
 		apiRes, err = local.GetAPI(apiName)
 		if err != nil {
-			// TODO
+			return "", err
 		}
 	}
 
@@ -139,7 +156,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		out += "\n" + describeModelInput(&apiRes.Status, apiEndpoint)
 	}
 
-	out += titleStr("configuration") + strings.TrimSpace(api.UserStr())
+	out += titleStr("configuration") + strings.TrimSpace(api.UserStr(env.Provider))
 
 	return out, nil
 }
@@ -147,6 +164,9 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics, includeAPIName bool) table.Table {
 	rows := make([][]interface{}, 0, len(apis))
 
+	debug.Pp(apis)
+	debug.Pp(statuses)
+	debug.Pp(allMetrics)
 	var totalFailed int32
 	var totalStale int32
 	var total4XX int

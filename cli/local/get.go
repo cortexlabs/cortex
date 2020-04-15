@@ -19,67 +19,26 @@ package local
 import (
 	"context"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/docker"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 )
 
 func GetAPIs() (schema.GetAPIsResponse, error) {
-	containers, err := GetAllContainers()
+	apiSpecList, err := ListAllAPISpecs()
 	if err != nil {
 		return schema.GetAPIsResponse{}, err
-	}
-
-	if len(containers) == 0 {
-		return schema.GetAPIsResponse{}, err
-	}
-
-	apiSet := strset.New()
-	for _, container := range containers {
-		apiSet.Add(container.Labels["apiName"])
-	}
-
-	apiSpecList := []spec.API{}
-
-	for apiName := range apiSet {
-		filepaths, err := files.ListDirRecursive(filepath.Join(LocalWorkspace, "apis", apiName), false)
-		if err != nil {
-			// TODO
-		}
-		var apiSpec spec.API
-		found := false
-		for _, filepath := range filepaths {
-			if strings.HasSuffix(filepath, "spec.msgpack") {
-				bytes, err := files.ReadFileBytes(filepath)
-				if err != nil {
-					// TODO
-				}
-				err = msgpack.Unmarshal(bytes, &apiSpec)
-				if err != nil {
-					// TODO
-				}
-				debug.Pp(apiSpec)
-				apiSpecList = append(apiSpecList, apiSpec)
-				break
-			}
-		}
-		if !found {
-			// TODO
-		}
 	}
 
 	statusList := []status.Status{}
@@ -87,13 +46,13 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 	for _, apiSpec := range apiSpecList {
 		apiStatus, err := GetAPIStatus(&apiSpec)
 		if err != nil {
-			// TODO
+			return schema.GetAPIsResponse{}, err
 		}
 
 		statusList = append(statusList, apiStatus)
 		metrics, err := GetAPIMetrics(&apiSpec)
 		if err != nil {
-			// TODO
+			return schema.GetAPIsResponse{}, err
 		}
 		metricsList = append(metricsList, metrics)
 	}
@@ -105,107 +64,67 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 	}, nil
 }
 
-func GetAPIMetrics(api *spec.API) (metrics.Metrics, error) {
-	apiWorkspace := filepath.Join(LocalWorkspace, filepath.Dir(api.Key))
-
-	networkStats := metrics.NetworkStats{}
-
-	filepaths, err := files.ListDir(apiWorkspace, false)
+func ListAllAPISpecs() ([]spec.API, error) {
+	filepaths, err := files.ListDirRecursive(filepath.Join(LocalWorkspace, "apis"), false)
 	if err != nil {
-		// TODO
+		return nil, err
 	}
 
-	totalRequestTime := 0.0
-	for _, filepath := range filepaths {
-		if strings.HasSuffix(filepath, "2XX") {
-			fileContent, err := files.ReadFile(filepath)
-			if err != nil {
-				// TODO
-			}
-
-			count, err := strconv.ParseInt(fileContent, 10, 64)
-			networkStats.Code2XX += int(count)
+	apiSpecList := []spec.API{}
+	for _, specPath := range filepaths {
+		if !strings.HasSuffix(specPath, "spec.msgpack") {
+			continue
 		}
 
-		if strings.HasSuffix(filepath, "4XX") {
-			fileContent, err := files.ReadFile(filepath)
-			if err != nil {
-				// TODO
-			}
-
-			count, err := strconv.ParseInt(fileContent, 10, 64)
-			networkStats.Code4XX += int(count)
+		apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
+		if apiSpecVersion != consts.CortexVersion {
+			continue
 		}
 
-		if strings.HasSuffix(filepath, "5XX") {
-			fileContent, err := files.ReadFile(filepath)
-			if err != nil {
-				// TODO
-			}
-
-			count, err := strconv.ParseInt(fileContent, 10, 64)
-			networkStats.Code5XX += int(count)
+		var apiSpec spec.API
+		bytes, err := files.ReadFileBytes(specPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "api", specPath)
 		}
-
-		if strings.HasSuffix(filepath, "request_count") {
-			fileContent, err := files.ReadFile(filepath)
-			if err != nil {
-				// TODO
-			}
-
-			requestTime, err := strconv.ParseFloat(fileContent, 64)
-			totalRequestTime += requestTime
+		err = msgpack.Unmarshal(bytes, &apiSpec)
+		if err != nil {
+			return nil, errors.Wrap(err, "api", specPath)
 		}
+		apiSpecList = append(apiSpecList, apiSpec)
 	}
 
-	totalRequests := networkStats.Code2XX + networkStats.Code4XX + networkStats.Code5XX
-	networkStats.Total = totalRequests
-	if totalRequests != 0 {
-		networkStats.Latency = pointer.Float64(totalRequestTime / float64(totalRequests))
-	}
-	return metrics.Metrics{
-		APIName:      api.Name,
-		NetworkStats: &networkStats,
-	}, nil
+	return apiSpecList, nil
 }
 
-func GetAPIStatus(api *spec.API) (status.Status, error) {
-	apiStatus := status.Status{
-		APIID:   api.ID,
-		APIName: api.Name,
-		ReplicaCounts: status.ReplicaCounts{
-			Requested: 1,
-		},
-	}
-
-	containers, err := GetContainerByAPI(api.Name)
+func ListVersionMismatchedAPI() ([]string, error) {
+	filepaths, err := files.ListDirRecursive(filepath.Join(LocalWorkspace, "apis"), false)
 	if err != nil {
-		return status.Status{}, err
+		return nil, err
 	}
 
-	if api.Predictor.Type == userconfig.TensorFlowPredictorType && len(containers) != 2 {
-		apiStatus.ReplicaCounts.Updated.Failed = 1
-		apiStatus.Code = status.Error
-		return apiStatus, nil
-	}
-
-	if !files.IsFile(filepath.Join(LocalWorkspace, "apis", api.Name, api.ID, "api_readiness.txt")) {
-		apiStatus.ReplicaCounts.Updated.Initializing = 1
-		apiStatus.Code = status.Updating
-		return apiStatus, nil
-	}
-
-	for _, container := range containers {
-		if container.State != "running" {
-			apiStatus.ReplicaCounts.Updated.Failed = 1
-			apiStatus.Code = status.Error
-			return apiStatus, nil
+	apiNames := []string{}
+	for _, specPath := range filepaths {
+		if !strings.HasSuffix(specPath, "spec.msgpack") {
+			continue
 		}
+
+		apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
+		if apiSpecVersion == consts.CortexVersion {
+			continue
+		}
+
+		key, err := filepath.Rel(filepath.Join(LocalWorkspace, "apis"), specPath)
+		if err != nil {
+			return nil, err
+		}
+		splitKey := strings.Split(key, "/")
+		if len(splitKey) != 3 {
+			continue
+		}
+		apiNames = append(apiNames, splitKey[0])
 	}
 
-	apiStatus.ReplicaCounts.Updated.Ready = 1
-	apiStatus.Code = status.Live
-	return apiStatus, nil
+	return apiNames, nil
 }
 
 func GetAllContainers() ([]dockertypes.Container, error) {
@@ -227,60 +146,29 @@ func GetAllContainers() ([]dockertypes.Container, error) {
 	return containers, nil
 }
 
-func FindAPISpec(apiName string) (spec.API, error) {
-	apiWorkspace := filepath.Join(LocalWorkspace, "apis", apiName)
-	if !files.IsDir(apiWorkspace) {
-		// TODO
-	}
-	filepaths, err := files.ListDirRecursive(apiWorkspace, false)
-	if err != nil {
-		// TODO
-	}
-
-	var apiSpec spec.API
-	found := false
-	for _, filepath := range filepaths {
-		if strings.HasSuffix(filepath, "spec.msgpack") {
-			bytes, err := files.ReadFileBytes(filepath)
-			if err != nil {
-				// TODO
-			}
-			err = msgpack.Unmarshal(bytes, &apiSpec)
-			if err != nil {
-				// TODO
-			}
-			break
-		}
-	}
-	if !found {
-		// TODO
-	}
-	return apiSpec, nil
-}
-
 func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 	apiSpec, err := FindAPISpec(apiName)
 	if err != nil {
-		// TODO
+		return schema.GetAPIResponse{}, err
 	}
 
 	apiStatus, err := GetAPIStatus(&apiSpec)
 	if err != nil {
-		// TODO
+		return schema.GetAPIResponse{}, err
 	}
 
 	apiMetrics, err := GetAPIMetrics(&apiSpec)
 	if err != nil {
-		// TODO
+		return schema.GetAPIResponse{}, err
 	}
 
-	containers, err := GetContainerByAPI(apiName)
+	containers, err := GetContainersByAPI(apiName)
 	if err != nil {
-		// TODO
+		return schema.GetAPIResponse{}, err
 	}
 
 	if len(containers) == 0 {
-		// TODO
+		return schema.GetAPIResponse{}, ErrorAPIContainersNotFound(apiName)
 	}
 	apiContainer := containers[0]
 	if len(containers) == 2 && apiContainer.Labels["type"] != "api" {
@@ -298,6 +186,6 @@ func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 		API:     apiSpec,
 		Status:  apiStatus,
 		Metrics: apiMetrics,
-		BaseURL: "localhost:" + apiPort + "/predict",
+		BaseURL: "localhost:" + apiPort,
 	}, nil
 }

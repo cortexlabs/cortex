@@ -40,10 +40,7 @@ class Predictor:
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
-            model_path = self.model
-            if self.provider == "aws":
-                _, prefix = self.storage.deconstruct_s3_path(self.model)
-                model_path = os.path.join(model_dir, os.path.basename(prefix))
+            model_path = os.path.join(model_dir, os.path.basename(self.model))
             client = ONNXClient(model_path)
             cx_logger().info("ONNX model signature: {}".format(client.input_signature))
             return client
@@ -194,6 +191,7 @@ tf_expected_dir_structure = """tensorflow model directories must have the follow
 
 def validate_model_dir(model_dir):
     version = None
+    print(os.listdir(model_dir))
     for file_name in os.listdir(model_dir):
         if file_name.isdigit():
             version = file_name

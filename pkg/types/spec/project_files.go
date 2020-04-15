@@ -14,20 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package local
+package spec
 
-import (
-	"fmt"
-
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-)
-
-func Delete(apiName string, keepCache bool) (schema.DeleteResponse, error) {
-	err := DeleteAPI(apiName, keepCache)
-	if err != nil {
-		return schema.DeleteResponse{}, err
-	}
-	return schema.DeleteResponse{
-		Message: fmt.Sprintf("deleting %s", apiName),
-	}, nil
+type ProjectFiles interface {
+	GetAllPaths() []string
+	GetFile(string) ([]byte, error)
 }

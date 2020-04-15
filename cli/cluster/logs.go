@@ -61,7 +61,6 @@ func StreamLogs(operatorConfig OperatorConfig, apiName string) error {
 
 	connection, response, err := dialer.Dial(wsURL, header)
 	if err != nil && response == nil {
-		// TODO operatorEndpointOrBlank?
 		return ErrorFailedToConnectOperator(err, operatorConfig.Environment.Name, strings.Replace(*operatorConfig.Environment.OperatorEndpoint, "http", "ws", 1))
 	}
 	defer response.Body.Close()
@@ -69,7 +68,6 @@ func StreamLogs(operatorConfig OperatorConfig, apiName string) error {
 	if err != nil {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil || bodyBytes == nil || string(bodyBytes) == "" {
-			// TODO operatorEndpointOrBlank?
 			return ErrorFailedToConnectOperator(err, operatorConfig.Environment.Name, strings.Replace(*operatorConfig.Environment.OperatorEndpoint, "http", "ws", 1))
 		}
 		var output schema.ErrorResponse

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -31,6 +32,30 @@ import (
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+type ClusterProjectFiles struct {
+	ProjectByteMap map[string][]byte
+}
+
+func (cpf ClusterProjectFiles) GetAllPaths() []string {
+	files := make([]string, len(cpf.ProjectByteMap))
+
+	i := 0
+	for path := range cpf.ProjectByteMap {
+		files[i] = path
+	}
+
+	return files
+}
+
+func (cpf ClusterProjectFiles) GetFile(fileName string) ([]byte, error) {
+	bytes, ok := cpf.ProjectByteMap[fileName]
+	if !ok {
+		return nil, files.ErrorFileDoesNotExist(fileName)
+	}
+
+	return bytes, nil
+}
+
 func ValidateClusterAPIs(apis []userconfig.API, projectFileMap map[string][]byte) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
@@ -41,8 +66,12 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFileMap map[string][]byte
 		return err
 	}
 
+	projectFiles := ClusterProjectFiles{
+		ProjectByteMap: projectFileMap,
+	}
+
 	for i := range apis {
-		if err := spec.ValidateAPI(&apis[i], projectFileMap, "aws"); err != nil {
+		if err := spec.ValidateAPI(&apis[i], projectFiles, "aws"); err != nil {
 			return err
 		}
 		if err := validateK8s(&apis[i], config.Cluster, virtualServices, maxMem); err != nil {

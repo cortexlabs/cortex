@@ -62,7 +62,6 @@ var _deployCmd = &cobra.Command{
 
 		env := MustReadOrConfigureEnv(_flagEnv)
 		configPath := getConfigPath(args)
-		deploymentBytes := getDeploymentBytes(configPath)
 		var deployResponse schema.DeployResponse
 		var err error
 		if env.Provider == types.AWSProviderType {
@@ -70,14 +69,20 @@ var _deployCmd = &cobra.Command{
 				"force":      s.Bool(_flagDeployForce),
 				"configPath": configPath,
 			}
+			deploymentBytes := getDeploymentBytes(configPath)
+
 			deployResponse, err = cluster.Deploy(MustGetOperatorConfig(env.Name), deploymentBytes, params)
 			if err != nil {
-				// TODO
+				exit.Error(err)
 			}
 		} else {
-			deployResponse, err = local.Deploy(configPath, deploymentBytes)
+			projectFiles, err := findProjectFiles(configPath)
 			if err != nil {
-				// TODO
+				exit.Error(err)
+			}
+			deployResponse, err = local.Deploy(env, configPath, projectFiles)
+			if err != nil {
+				exit.Error(err)
 			}
 		}
 		message := deployMessage(deployResponse.Results)
@@ -103,18 +108,8 @@ func getConfigPath(args []string) string {
 	return configPath
 }
 
-func getDeploymentBytes(configPath string) map[string][]byte {
-	configBytes, err := files.ReadFileBytes(configPath)
-	if err != nil {
-		exit.Error(err)
-	}
-
-	uploadBytes := map[string][]byte{
-		"config": configBytes,
-	}
-
+func findProjectFiles(configPath string) ([]string, error) {
 	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
-
 	ignoreFns := []files.IgnoreFn{
 		files.IgnoreSpecificFiles(files.UserRelToAbsPath(configPath)),
 		files.IgnoreCortexDebug,
@@ -127,7 +122,7 @@ func getDeploymentBytes(configPath string) map[string][]byte {
 	if files.IsFile(cortexIgnorePath) {
 		cortexIgnore, err := files.GitIgnoreFn(cortexIgnorePath)
 		if err != nil {
-			exit.Error(err)
+			return nil, err
 		}
 		ignoreFns = append(ignoreFns, cortexIgnore)
 	}
@@ -137,6 +132,26 @@ func getDeploymentBytes(configPath string) map[string][]byte {
 	}
 
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
+	if err != nil {
+		return nil, err
+	}
+
+	return projectPaths, nil
+}
+
+func getDeploymentBytes(configPath string) map[string][]byte {
+	configBytes, err := files.ReadFileBytes(configPath)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	uploadBytes := map[string][]byte{
+		"config": configBytes,
+	}
+
+	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
+
+	projectPaths, err := findProjectFiles(projectRoot)
 	if err != nil {
 		exit.Error(err)
 	}

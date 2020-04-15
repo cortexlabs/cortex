@@ -42,7 +42,7 @@ var _flagClusterConfig string
 var _flagDebug bool
 
 func clusterInit() {
-	_upCmd.Flags().SortFlags = false
+	// _upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
 	addEnvFlag(_upCmd, _clusterCommandType, _envToConfigureUsage)
 	_clusterCmd.AddCommand(_upCmd)

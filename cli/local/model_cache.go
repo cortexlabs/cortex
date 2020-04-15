@@ -1,142 +1,161 @@
 package local
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
-	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func CacheModel(api *userconfig.API) (string, error) {
-	if strings.HasPrefix(*api.Predictor.Model, "s3://") {
-		modelDir, err := getS3ModelCachePath(api)
+func CacheModel(modelPath string, awsClient *aws.Client) (*spec.ModelMount, error) {
+	modelMount := spec.ModelMount{}
+
+	if strings.HasPrefix(modelPath, "s3://") {
+		bucket, prefix, err := aws.SplitS3Path(modelPath)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-
-		if files.IsFile(filepath.Join(modelDir, "_SUCCESS")) {
-			fmt.Println("already cached")
-			if strings.HasSuffix(*api.Predictor.Model, ".zip") || strings.HasSuffix(*api.Predictor.Model, ".onnx") {
-				_, key, err := aws.SplitS3Path(*api.Predictor.Model)
-				if err != nil {
-					return "", err
-				}
-				return filepath.Join(modelDir, filepath.Base(key)), nil
-			}
-			return modelDir, nil
-		}
-
-		err = ResetCachedModel(modelDir)
+		hash, err := awsClient.HashS3Dir(bucket, prefix, nil)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-
-		if strings.HasSuffix(*api.Predictor.Model, ".zip") || strings.HasSuffix(*api.Predictor.Model, ".onnx") {
-			return S3DownloadObj(api, modelDir)
+		modelMount.ID = hash
+	} else {
+		hash, err := getLocalModelHash(modelPath)
+		if err != nil {
+			return nil, err
 		}
-
-		return S3DownloadDir(api, modelDir)
+		modelMount.ID = hash
 	}
 
-	modelDir, err := getLocalModelCachePath(api)
-	if err != nil {
-		return "", err
-	}
+	modelDir := filepath.Join(ModelCacheDir, modelMount.ID)
 
 	if files.IsFile(filepath.Join(modelDir, "_SUCCESS")) {
-		if files.IsFile(*api.Predictor.Model) {
-			return filepath.Join(modelDir, filepath.Base(*api.Predictor.Model)), nil
-		}
-		return modelDir, nil
+		return &modelMount, nil
 	}
 
-	err = ResetCachedModel(modelDir)
+	err := ResetCachedModel(modelDir)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if files.IsDir(*api.Predictor.Model) {
-		err := files.CopyDirOverwrite(strings.TrimSuffix(*api.Predictor.Model, "/"), s.EnsureSuffix(modelDir, "/"))
+	if strings.HasPrefix(modelPath, "s3://") {
+		fmt.Println(fmt.Sprintf("downloading model %s...", modelPath))
+		bucket, prefix, err := aws.SplitS3Path(modelPath)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		err = files.MakeEmptyFile(filepath.Join(modelDir, "_SUCCESS"))
-		if err != nil {
-			return "", err
+		if strings.HasSuffix(modelPath, ".zip") || strings.HasSuffix(modelPath, ".onnx") {
+			err := awsClient.DownloadFileFromS3(bucket, prefix, filepath.Join(modelDir, filepath.Base(modelPath)))
+			if err != nil {
+				return nil, err
+			}
+			if strings.HasSuffix(modelPath, ".zip") {
+				err := unzipAndValidate(modelPath, filepath.Join(modelDir, filepath.Base(modelPath)), modelDir)
+				if err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			version := filepath.Base(prefix)
+			err := awsClient.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, version), true, nil)
+			if err != nil {
+				return nil, err
+			}
 		}
-
-		return modelDir, nil
-	}
-
-	modelFilePath := filepath.Join(modelDir, filepath.Base(*api.Predictor.Model))
-	err = files.CopyDirOverwrite(*api.Predictor.Model, modelFilePath)
-	if err != nil {
-		return "", err
+	} else {
+		if strings.HasSuffix(modelPath, ".zip") {
+			err := unzipAndValidate(modelPath, modelPath, modelDir)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			fmt.Println(fmt.Sprintf("caching model %s...", modelPath))
+			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(modelDir, "/"))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	err = files.MakeEmptyFile(filepath.Join(modelDir, "_SUCCESS"))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return modelFilePath, nil
+	modelMount.HostPath = modelDir
+
+	return &modelMount, nil
 }
 
-func getLocalModelCachePath(api *userconfig.API) (string, error) {
+func unzipAndValidate(originalModelPath string, zipFile string, destPath string) error {
+	fmt.Println(fmt.Sprintf("unzipping model %s...", originalModelPath))
+	_, err := zip.UnzipFileToDir(zipFile, destPath)
+	if err != nil {
+		return err
+	}
+
+	isValid, err := spec.IsValidTensorFlowLocalDirectory(destPath)
+	if err != nil {
+		return errors.Wrap(err, userconfig.ModelKey)
+	} else if !isValid {
+		return errors.Wrap(ErrorInvalidTensorFlowZip(originalModelPath))
+	}
+	err = os.Remove(zipFile)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getLocalModelHash(modelPath string) (string, error) {
 	var err error
 	modelHash := ""
-	if files.IsDir(*api.Predictor.Model) {
-		modelHash, err = files.HashDirectory(*api.Predictor.Model, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	if files.IsDir(modelPath) {
+		modelHash, err = files.HashDirectory(modelPath, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		modelHash, err = files.HashFile(*api.Predictor.Model)
+		modelHash, err = files.HashFile(modelPath)
 		if err != nil {
 			return "", err
 		}
 	}
-	modelDir := filepath.Join(ModelCacheDir, modelHash)
 
-	return modelDir, nil
+	return modelHash, nil
 }
 
-func getS3ModelCachePath(api *userconfig.API) (string, error) {
-	awsClient, err := aws.NewFromEnvS3Path(*api.Predictor.Model)
-	if err != nil {
-		return "", err
-	}
+// func getS3ModelHash(api *userconfig.API, awsClient *aws.Client) (string, error) {
+// 	// TODO fix max file count
+// 	s3Objects, err := awsClient.ListS3PathPrefix(*api.Predictor.Model, pointer.Int64(1000))
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	// TODO fix max file count
-	s3Objects, err := awsClient.ListS3PathPrefix(*api.Predictor.Model, pointer.Int64(1000))
-	if err != nil {
-		return "", err
-	}
+// 	if len(s3Objects) == 1000 {
+// 		return "", ErrorTensorFlowDirTooManyFiles(999)
+// 	}
 
-	if len(s3Objects) == 1000 {
-		return "", ErrorTensorFlowDirTooManyFiles(999)
-	}
+// 	md5Hash := md5.New()
+// 	for _, obj := range s3Objects {
+// 		if strings.HasSuffix(*obj.Key, "/") {
+// 			continue
+// 		}
 
-	md5Hash := md5.New()
-	for _, obj := range s3Objects {
-		if strings.HasSuffix(*obj.Key, "/") {
-			continue
-		}
+// 		io.WriteString(md5Hash, *obj.ETag)
+// 	}
 
-		io.WriteString(md5Hash, *obj.ETag)
-	}
-
-	modelPathHash := hex.EncodeToString((md5Hash.Sum(nil)))
-	return filepath.Join(ModelCacheDir, modelPathHash), nil
-}
+// 	return hex.EncodeToString((md5Hash.Sum(nil))), nil
+// }
 
 func ResetCachedModel(modelDir string) error {
 	err := files.DeleteDir(modelDir)
@@ -152,110 +171,91 @@ func ResetCachedModel(modelDir string) error {
 	return nil
 }
 
-func S3DownloadDir(api *userconfig.API, modelVersionDir string) (string, error) {
-	awsClient, err := aws.NewFromEnvS3Path(*api.Predictor.Model)
-	if err != nil {
-		return "", err
-	}
+// func S3DownloadDir(api *userconfig.API, modelVersionDir string, awsClient *aws.Client) (string, error) {
+// 	bucket, fullPathKey, err := aws.SplitS3Path(*api.Predictor.Model)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	s3Objects, err := awsClient.ListS3PathDir(*api.Predictor.Model, pointer.Int64(1000))
-	if err != nil {
-		return "", err
-	}
+// 	tfVersion := filepath.Base(*api.Predictor.Model)
 
-	if len(s3Objects) == 1000 {
-		return "", ErrorTensorFlowDirTooManyFiles(999)
-	}
+// 	for _, obj := range s3Objects {
+// 		relativePath, err := filepath.Rel(fullPathKey, *obj.Key)
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		localPath := filepath.Join(modelVersionDir, tfVersion, relativePath)
 
-	bucket, fullPathKey, err := aws.SplitS3Path(*api.Predictor.Model)
-	if err != nil {
-		return "", err
-	}
+// 		fmt.Println(fmt.Sprintf("Downloading from %s to %s (this may take a few minutes)...", *obj.Key, localPath))
+// 		if strings.HasSuffix(*obj.Key, "/") {
+// 			_, err = files.CreateDirIfMissing(localPath)
+// 			if err != nil {
+// 				return "", nil
+// 			}
+// 			continue
+// 		}
 
-	tfVersion := filepath.Base(*api.Predictor.Model)
+// 		/*
+// 			key: a.zip -> <hash>/<time>/a.zip
+// 			key: a/b   -> <hash>/<time>/contents of b
+// 			key: a/b.zip -> <hash>/<time>/b.zip
+// 		*/
+// 		_, err = files.CreateDirIfMissing(files.ParentDir(localPath))
+// 		if err != nil {
+// 			return "", nil
+// 		}
 
-	for _, obj := range s3Objects {
-		relativePath, err := filepath.Rel(fullPathKey, *obj.Key)
-		if err != nil {
-			return "", err
-		}
-		localPath := filepath.Join(modelVersionDir, tfVersion, relativePath)
+// 		// TODO: use s3 download manager here?
+// 		fileBytes, err := awsClient.ReadBytesFromS3(bucket, *obj.Key)
+// 		if err != nil {
+// 			return "", err
+// 		}
 
-		fmt.Println(fmt.Sprintf("Downloading from %s to %s (this may take a few minutes)...", *obj.Key, localPath))
-		if strings.HasSuffix(*obj.Key, "/") {
-			_, err = files.CreateDirIfMissing(localPath)
-			if err != nil {
-				return "", nil
-			}
-			continue
-		}
+// 		err = files.WriteFile(fileBytes, localPath)
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 	}
 
-		/*
-			key: a.zip -> <hash>/<time>/a.zip
-			key: a/b   -> <hash>/<time>/contents of b
-			key: a/b.zip -> <hash>/<time>/b.zip
-		*/
-		_, err = files.CreateDirIfMissing(files.ParentDir(localPath))
-		if err != nil {
-			return "", nil
-		}
+// 	err = files.MakeEmptyFile(filepath.Join(modelVersionDir, "_SUCCESS"))
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-		// TODO: use s3 download manager here?
-		fileBytes, err := awsClient.ReadBytesFromS3(bucket, *obj.Key)
-		if err != nil {
-			return "", err
-		}
+// 	return modelVersionDir, nil
+// }
 
-		err = files.WriteFile(fileBytes, localPath)
-		if err != nil {
-			return "", err
-		}
-	}
+// func S3DownloadObj(api *userconfig.API, modelVersionDir string, awsClient *aws.Client) (string, error) {
+// 	bucket, fullPathKey, err := aws.SplitS3Path(*api.Predictor.Model)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	err = files.MakeEmptyFile(filepath.Join(modelVersionDir, "_SUCCESS"))
-	if err != nil {
-		return "", err
-	}
+// 	fmt.Println(fmt.Sprintf("Downloading from %s to %s (this may take a few minutes)...", *api.Predictor.Model, modelVersionDir))
 
-	return modelVersionDir, nil
-}
+// 	fileKey := filepath.Dir(fullPathKey)
 
-func S3DownloadObj(api *userconfig.API, modelVersionDir string) (string, error) {
-	bucket, fullPathKey, err := aws.SplitS3Path(*api.Predictor.Model)
-	if err != nil {
-		return "", err
-	}
+// 	relativePath, err := filepath.Rel(fileKey, fullPathKey)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	localPath := filepath.Join(modelVersionDir, relativePath)
 
-	fmt.Println(fmt.Sprintf("Downloading from %s to %s (this may take a few minutes)...", *api.Predictor.Model, modelVersionDir))
+// 	// TODO: use s3 download manager here?
+// 	fileBytes, err := awsClient.ReadBytesFromS3(bucket, fullPathKey)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	fileKey := filepath.Dir(fullPathKey)
+// 	err = files.WriteFile(fileBytes, localPath)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	relativePath, err := filepath.Rel(fileKey, fullPathKey)
-	if err != nil {
-		return "", err
-	}
-	localPath := filepath.Join(modelVersionDir, relativePath)
+// 	err = files.MakeEmptyFile(filepath.Join(modelVersionDir, "_SUCCESS"))
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	awsClient, err := aws.NewFromEnvS3Path(*api.Predictor.Model)
-	if err != nil {
-		return "", err
-	}
-
-	// TODO: use s3 download manager here?
-	fileBytes, err := awsClient.ReadBytesFromS3(bucket, fullPathKey)
-	if err != nil {
-		return "", err
-	}
-
-	err = files.WriteFile(fileBytes, localPath)
-	if err != nil {
-		return "", err
-	}
-
-	err = files.MakeEmptyFile(filepath.Join(modelVersionDir, "_SUCCESS"))
-	if err != nil {
-		return "", err
-	}
-
-	return localPath, nil
-}
+// 	return localPath, nil
+// }

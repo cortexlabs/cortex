@@ -17,8 +17,9 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/cli/cluster"
-	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -45,19 +46,14 @@ var _refreshCmd = &cobra.Command{
 		env := MustReadOrConfigureEnv(_flagEnv)
 		var refreshResponse schema.RefreshResponse
 		var err error
-		if env.Provider == types.AWSProviderType {
-			refreshResponse, err = cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)
-			if err != nil {
-				exit.Error(err)
-			}
-		} else {
-			// TODO show that flags are being ignored?
-			refreshResponse, err = local.Refresh(args[0])
-			if err != nil {
-				exit.Error(err)
-			}
+		if env.Provider == types.LocalProviderType {
+			print.BoldFirstLine(fmt.Sprintf("`cortex refresh %s` is not supported for local provider; use `cortex delete %s -c` to clear cache and redeploy with `cortex deploy`", args[0], args[0]))
+			return
 		}
-
+		refreshResponse, err = cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)
+		if err != nil {
+			exit.Error(err)
+		}
 		print.BoldFirstLine(refreshResponse.Message)
 	},
 }

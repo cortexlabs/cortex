@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -35,6 +34,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -342,7 +342,7 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
-func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, filePath string) ([]userconfig.API, error) {
+func ExtractAPIConfigs(configBytes []byte, projectFiles ProjectFiles, filePath string) ([]userconfig.API, error) {
 	var err error
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
@@ -364,6 +364,11 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 		}
 		api.Index = i
 		api.FilePath = filePath
+
+		if api.Autoscaling != nil || api.Compute != nil || api.Tracker != nil || api.UpdateStrategy != nil {
+			fmt.Println(fmt.Sprintf("WARNING: %s, %s, %s and %s keys will be ignored because they are not supported for local provider\n", userconfig.AutoscalingKey, userconfig.ComputeKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
+		}
+
 		apis[i] = api
 	}
 
@@ -372,15 +377,16 @@ func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, fil
 
 func ValidateAPI(
 	api *userconfig.API,
-	projectFileMap map[string][]byte,
-	providerType string,
+	projectFiles ProjectFiles,
+	providerType types.ProviderType,
+	awsClient *aws.Client,
 ) error {
 
 	if api.Endpoint == nil {
 		api.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validatePredictor(api.Predictor, projectFileMap, providerType); err != nil {
+	if err := validatePredictor(api.Predictor, projectFiles, providerType, awsClient); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
@@ -395,18 +401,18 @@ func ValidateAPI(
 	return nil
 }
 
-func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[string][]byte, providerType string) error {
+func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFiles, providerType types.ProviderType, awsClient *aws.Client) error {
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
 		if err := validatePythonPredictor(predictor); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(predictor, providerType); err != nil {
+		if err := validateTensorFlowPredictor(predictor, providerType, awsClient); err != nil {
 			return err
 		}
 	case userconfig.ONNXPredictorType:
-		if err := validateONNXPredictor(predictor, providerType); err != nil {
+		if err := validateONNXPredictor(predictor, providerType, awsClient); err != nil {
 			return err
 		}
 	}
@@ -417,12 +423,15 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		}
 	}
 
-	if _, ok := projectFileMap[predictor.Path]; !ok {
-		return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), userconfig.PathKey)
+	if _, err := projectFiles.GetFile(predictor.Path); err != nil {
+		if errors.GetKind(err) == files.ErrFileDoesNotExist {
+			return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), userconfig.PathKey)
+		}
+		return errors.Wrap(err, userconfig.PathKey)
 	}
 
 	if predictor.PythonPath != nil {
-		if err := validatePythonPath(*predictor.PythonPath, projectFileMap); err != nil {
+		if err := validatePythonPath(*predictor.PythonPath, projectFiles); err != nil {
 			return errors.Wrap(err, userconfig.PythonPathKey)
 		}
 	}
@@ -442,7 +451,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	return nil
 }
 
-func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType string) error {
+func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, awsClient *aws.Client) error {
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
 	}
@@ -451,11 +460,6 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType s
 
 	if strings.HasPrefix(model, "s3://") {
 		model, err := cr.S3PathValidator(model)
-		if err != nil {
-			return errors.Wrap(err, userconfig.ModelKey)
-		}
-
-		awsClient, err := aws.NewFromEnvS3Path(model)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
@@ -474,7 +478,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType s
 			predictor.Model = pointer.String(path)
 		}
 	} else {
-		if providerType == "aws" {
+		if providerType == types.AWSProviderType {
 			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
 		}
 
@@ -488,7 +492,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType s
 				return errors.Wrap(err, userconfig.ModelKey)
 			}
 		} else {
-			path, err := getTFServingExportFromLocalPath(model)
+			path, err := GetTFServingExportFromLocalPath(model)
 			if err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
 			} else if path == "" {
@@ -501,7 +505,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType s
 	return nil
 }
 
-func validateONNXPredictor(predictor *userconfig.Predictor, providerType string) error {
+func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, awsClient *aws.Client) error {
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.ONNXPredictorType)
 	}
@@ -514,16 +518,11 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType string)
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
 
-		awsClient, err := aws.NewFromEnvS3Path(model)
-		if err != nil {
-			return errors.Wrap(err, userconfig.ModelKey)
-		}
-
 		if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
 			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 		}
 	} else {
-		if providerType == "aws" {
+		if providerType == types.AWSProviderType {
 			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
 		}
 		model, err := files.GetAbsPath(model)
@@ -608,12 +607,11 @@ func isValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 	return true
 }
 
-func getTFServingExportFromLocalPath(path string) (string, error) {
+func GetTFServingExportFromLocalPath(path string) (string, error) {
 	if !files.IsDir(path) {
 		return "", ErrorDirNotFoundOrEmpty(path)
 	}
 	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
-	debug.Pp(paths)
 	if err != nil {
 		return "", err
 	}
@@ -637,7 +635,7 @@ func getTFServingExportFromLocalPath(path string) (string, error) {
 			}
 
 			fmt.Println(possiblePath)
-			validTFDirectory, err := isValidTensorFlowLocalDirectory(possiblePath)
+			validTFDirectory, err := IsValidTensorFlowLocalDirectory(possiblePath)
 			if err != nil {
 				return "", err
 			}
@@ -651,7 +649,7 @@ func getTFServingExportFromLocalPath(path string) (string, error) {
 	return highestPath, nil
 }
 
-func isValidTensorFlowLocalDirectory(path string) (bool, error) {
+func IsValidTensorFlowLocalDirectory(path string) (bool, error) {
 	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return false, err
@@ -671,9 +669,9 @@ func isValidTensorFlowLocalDirectory(path string) (bool, error) {
 	return false, nil
 }
 
-func validatePythonPath(pythonPath string, projectFileMap map[string][]byte) error {
+func validatePythonPath(pythonPath string, projectFiles ProjectFiles) error {
 	validPythonPath := false
-	for fileKey := range projectFileMap {
+	for _, fileKey := range projectFiles.GetAllPaths() {
 		if strings.HasPrefix(fileKey, pythonPath) {
 			validPythonPath = true
 			break

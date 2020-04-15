@@ -33,12 +33,6 @@ func GetAPIs(operatorConfig OperatorConfig) (schema.GetAPIsResponse, error) {
 	if err = json.Unmarshal(httpRes, &apisRes); err != nil {
 		return schema.GetAPIsResponse{}, errors.Wrap(err, "/get", string(httpRes))
 	}
-
-	// TODO move this check to cmd/get.go
-	// if len(apisRes.APIs) == 0 {
-	// 	return console.Bold("no apis are deployed"), nil
-	// }
-
 	return apisRes, nil
 }
 

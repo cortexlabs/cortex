@@ -169,7 +169,7 @@ func getAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	return &spec.API{
 		API:          apiConfig,
 		ID:           id,
-		Key:          specKey(apiConfig.Name, id),
+		Key:          spec.SpecKey(apiConfig.Name, id),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: metadataRoot(apiConfig.Name, id),
@@ -391,7 +391,7 @@ func APIsBaseURL() (string, error) {
 }
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
-	s3Key := specKey(apiName, apiID)
+	s3Key := spec.SpecKey(apiName, apiID)
 	var api spec.API
 
 	if err := config.AWS.ReadMsgpackFromS3(&api, config.Cluster.Bucket, s3Key); err != nil {
@@ -425,15 +425,6 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 	}
 
 	return apis, nil
-}
-
-func specKey(apiName string, apiID string) string {
-	return filepath.Join(
-		"apis",
-		apiName,
-		apiID,
-		"spec.msgpack",
-	)
 }
 
 func metadataRoot(apiName string, apiID string) string {

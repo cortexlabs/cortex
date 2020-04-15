@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -28,13 +29,19 @@ import (
 
 type API struct {
 	*userconfig.API
-	ID           string `json:"id"`
-	Key          string `json:"key"`
-	DeploymentID string `json:"deployment_id"`
-	LastUpdated  int64  `json:"last_updated"`
-	MetadataRoot string `json:"metadata_root"`
-	ProjectID    string `json:"project_id"`
-	ProjectKey   string `json:"project_key"`
+	ID           string      `json:"id"`
+	Key          string      `json:"key"`
+	DeploymentID string      `json:"deployment_id"`
+	LastUpdated  int64       `json:"last_updated"`
+	MetadataRoot string      `json:"metadata_root"`
+	ProjectID    string      `json:"project_id"`
+	ProjectKey   string      `json:"project_key"`
+	ModelMount   *ModelMount `json:"model_mount"`
+}
+
+type ModelMount struct {
+	ID       string `json:"id"`
+	HostPath string `json:"host_path"`
 }
 
 func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
@@ -50,7 +57,7 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	return &API{
 		API:          apiConfig,
 		ID:           id,
-		Key:          specKey(apiConfig.Name, id),
+		Key:          SpecKey(apiConfig.Name, id),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: metadataRoot(apiConfig.Name, id),
@@ -59,12 +66,12 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	}
 }
 
-func specKey(apiName string, apiID string) string {
+func SpecKey(apiName string, apiID string) string {
 	return filepath.Join(
 		"apis",
 		apiName,
 		apiID,
-		"spec.msgpack",
+		consts.CortexVersion+"-spec.msgpack",
 	)
 }
 

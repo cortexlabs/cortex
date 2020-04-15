@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -205,7 +206,7 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 	return &a, nil
 }
 
-func (api *API) UserStr() string {
+func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
@@ -213,26 +214,27 @@ func (api *API) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
 
-	if api.Tracker != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
-		sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
-	}
+	if provider != types.LocalProviderType {
+		if api.Tracker != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
+			sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
+		}
 
-	if api.Compute != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
-		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
-	}
+		if api.Compute != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+			sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
+		}
 
-	if api.Autoscaling != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
-		sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
-	}
+		if api.Autoscaling != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
+			sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
+		}
 
-	if api.UpdateStrategy != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
-		sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
+		if api.UpdateStrategy != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
+			sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
+		}
 	}
-
 	return sb.String()
 }
 

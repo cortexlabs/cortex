@@ -18,6 +18,8 @@ package aws
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"path/filepath"
 	"strings"
@@ -581,6 +583,29 @@ func (c *Client) DeleteS3Prefix(bucket string, prefix string, continueIfFailure 
 	}
 
 	return nil
+}
+
+// The return value of fn(*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)
+func (c *Client) HashS3Dir(bucket string, prefix string, maxResults *int64) (string, error) {
+	md5Hash := md5.New()
+
+	err := c.S3BatchIterator(bucket, prefix, maxResults, func(objects []*s3.Object) (bool, error) {
+		var subErr error
+		for _, object := range objects {
+			if strings.HasSuffix(*object.Key, "/") {
+				continue
+			}
+
+			io.WriteString(md5Hash, *object.ETag)
+		}
+		return true, subErr
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString((md5Hash.Sum(nil))), nil
 }
 
 // The return value of fn(*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)

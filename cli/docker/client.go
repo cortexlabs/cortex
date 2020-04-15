@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
@@ -59,6 +60,19 @@ func GetDockerClient() (*dockerclient.Client, error) {
 	}
 
 	return dockerClient, nil
+}
+
+func MustDockerClient() *dockerclient.Client {
+	dockerClient, err := createDockerClient()
+	if err != nil {
+		exit.Error(err)
+	}
+
+	if _, err := dockerClient.Info(context.Background()); err != nil {
+		exit.Error(WrapDockerError(err))
+	}
+
+	return dockerClient
 }
 
 func WrapDockerError(err error) error {

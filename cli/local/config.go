@@ -17,10 +17,8 @@ limitations under the License.
 package local
 
 import (
-	"context"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -70,31 +68,4 @@ func init() {
 		err := errors.Wrap(err, "unable to write to home directory", ModelCacheDir)
 		exit.Error(err)
 	}
-}
-
-func DockerClient() *dockerclient.Client {
-	if _cachedDockerClient != nil {
-		return _cachedDockerClient
-	}
-
-	var err error
-	_cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
-	if err != nil {
-		exit.Error(wrapDockerError(err))
-	}
-
-	_cachedDockerClient.NegotiateAPIVersion(context.Background())
-	return _cachedDockerClient
-}
-
-func wrapDockerError(err error) error {
-	if dockerclient.IsErrConnectionFailed(err) {
-		return ErrorConnectToDockerDaemon()
-	}
-
-	if strings.Contains(strings.ToLower(err.Error()), "permission denied") {
-		return ErrorDockerPermissions(err)
-	}
-
-	return errors.WithStack(err)
 }

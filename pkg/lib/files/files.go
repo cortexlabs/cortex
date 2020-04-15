@@ -805,21 +805,25 @@ func CopyDirOverwrite(src string, dest string, ignoreFns ...IgnoreFn) error {
 	return nil
 }
 
-func HashFile(path string) (string, error) {
+func HashFile(path string, paths ...string) (string, error) {
 	md5Hash := md5.New()
 
-	f, err := os.Open(path)
-	if err != nil {
-		return "", errors.Wrap(err, path)
-	}
-	defer f.Close()
+	allPaths := append(paths, path)
+	for _, path := range allPaths {
+		f, err := os.Open(path)
+		if err != nil {
+			return "", errors.Wrap(err, path)
+		}
+		defer f.Close()
 
-	if _, err := io.Copy(md5Hash, f); err != nil {
-		return "", errors.Wrap(err, path)
+		if _, err := io.Copy(md5Hash, f); err != nil {
+			return "", errors.Wrap(err, path)
+		}
 	}
 
 	return hex.EncodeToString((md5Hash.Sum(nil))), nil
 }
+
 func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
 	md5Hash := md5.New()
 

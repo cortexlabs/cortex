@@ -53,8 +53,7 @@ var _deleteCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		} else {
-			// TODO show that flags are being ignored?
-			deleteResponse, err = local.Delete(args[0])
+			deleteResponse, err = local.Delete(args[0], _flagKeepCache)
 			if err != nil {
 				exit.Error(err)
 			}

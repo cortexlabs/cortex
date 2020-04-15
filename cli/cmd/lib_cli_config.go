@@ -25,6 +25,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -222,6 +223,19 @@ func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) 
 				StringPtrValidation: &cr.StringPtrValidation{
 					Required: true,
 					Default:  defaults.AWSSecretAccessKey,
+				},
+			},
+			{
+				StructField: "AWSRegion",
+				PromptOpts: &prompt.Options{
+					Prompt:      "aws region",
+					MaskDefault: true,
+					HideTyping:  true,
+				},
+				StringPtrValidation: &cr.StringPtrValidation{
+					Required:      true,
+					Default:       pointer.String("us-east-1"),
+					AllowedValues: aws.S3Regions.Slice(),
 				},
 			},
 		},
