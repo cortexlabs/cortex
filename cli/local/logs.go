@@ -17,7 +17,7 @@ limitations under the License.
 package local
 
 import (
-	"github.com/cortexlabs/cortex/cli/docker"
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 )
 
 func StreamLogs(apiName string) error {

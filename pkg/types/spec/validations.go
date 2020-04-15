@@ -27,7 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	dockerlib "github.com/cortexlabs/cortex/pkg/lib/docker"
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -40,7 +40,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	dockertypes "github.com/docker/docker/api/types"
-	dockerclient "github.com/docker/docker/client"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -769,7 +768,7 @@ func validateDockerImagePath(image string, awsClient *aws.Client) error {
 		return err
 	}
 
-	dockerAuth := dockerlib.NoAuth
+	dockerAuth := docker.NoAuth
 	if regex.IsValidECRURL(image) {
 		operatorID, _, err := awsClient.GetCachedAccountID()
 		if err != nil {
@@ -790,7 +789,7 @@ func validateDockerImagePath(image string, awsClient *aws.Client) error {
 			return nil
 		}
 
-		dockerAuth, err = dockerlib.EncodeAuthConfig(dockertypes.AuthConfig{
+		dockerAuth, err = docker.EncodeAuthConfig(dockertypes.AuthConfig{
 			Username:      ecrAuthConfig.Username,
 			Password:      ecrAuthConfig.AccessToken,
 			ServerAddress: ecrAuthConfig.ProxyEndpoint,
@@ -800,10 +799,10 @@ func validateDockerImagePath(image string, awsClient *aws.Client) error {
 		}
 	}
 
-	client, err := dockerclient.NewEnvClient()
+	dockerClient, err := docker.GetDockerClient()
 	if err != nil {
 		return err
 	}
 
-	return dockerlib.CheckImageAccessible(client, image, dockerAuth)
+	return docker.CheckImageAccessible(dockerClient, image, dockerAuth)
 }
