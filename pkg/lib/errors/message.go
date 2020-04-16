@@ -50,7 +50,7 @@ func MessageFirstLine(err error, strs ...string) string {
 
 	var errStr string
 	if _, ok := CauseOrSelf(wrappedErr).(awserr.Error); ok {
-		errStr = strings.Split(wrappedErr.Error(), "\n")[0]
+		errStr = strings.Split(strings.TrimSpace(wrappedErr.Error()), "\n")[0]
 	} else {
 		errStr = wrappedErr.Error()
 	}
