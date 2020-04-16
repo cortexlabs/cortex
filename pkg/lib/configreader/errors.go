@@ -105,7 +105,7 @@ func ErrorTooLong(provided string, maxLen int) error {
 func ErrorTooShort(provided string, minLen int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrTooShort,
-		Message: fmt.Sprintf("%s must be no fewer than %d characters", s.UserStr(provided), minLen),
+		Message: fmt.Sprintf("%s must be at least %d characters", s.UserStr(provided), minLen),
 	})
 }
 
