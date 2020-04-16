@@ -40,6 +40,7 @@ var _versionCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.version")
+		printEnvIfNotSpecified(_flagVersionEnv)
 
 		env, err := readEnv(_flagVersionEnv)
 		if err != nil || env.Provider == types.LocalProviderType {

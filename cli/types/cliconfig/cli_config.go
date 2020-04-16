@@ -38,6 +38,10 @@ func (cliConfig CLIConfig) GetEnv(envName string) (Environment, error) {
 	return Environment{}, ErrorEnvironmentNotConfigured(envName)
 }
 
+func (cliConfig CLIConfig) GetDefaultEnv() (Environment, error) {
+	return cliConfig.GetEnv(cliConfig.DefaultEnvironment)
+}
+
 func (cliConfig *CLIConfig) Validate() error {
 	if cliConfig.DefaultEnvironment == "" {
 		cliConfig.DefaultEnvironment = types.LocalProviderType.String()

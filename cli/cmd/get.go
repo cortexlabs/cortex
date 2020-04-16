@@ -64,18 +64,57 @@ var _getCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.get")
-		env := MustReadOrConfigureEnv(_flagGetEnv)
 		rerun(func() (string, error) {
-			return get(args, env)
+			if len(args) == 1 {
+				printEnvIfNotSpecified(_flagGetEnv)
+
+				env := MustReadOrConfigureEnv(_flagGetEnv)
+				return getAPI(env, args[0])
+			}
+
+			if wasEnvFlagProvided() {
+				return getAPIs(MustReadOrConfigureEnv(_flagGetEnv))
+			}
+
+			cliConfig, err := readCLIConfig()
+			if err != nil {
+				return "", nil
+			}
+
+			defaultEnv, err := cliConfig.GetDefaultEnv()
+			if err != nil {
+				return "", err
+			}
+
+			out := fmt.Sprintf("%s environment (default)\n", defaultEnv.Name)
+			envOutput, err := getAPIs(defaultEnv)
+			if err != nil {
+				out += err.Error()
+			} else {
+				out += envOutput
+			}
+
+			envs := []*cliconfig.Environment{}
+			envs = append(envs, cliConfig.Environments...)
+
+			for idx := range envs {
+				if envs[idx].Name == defaultEnv.Name {
+					continue
+				}
+				envOutput, _ := getAPIs(*envs[idx]) // TODO silence non default env errors?
+				if !strings.Contains(envOutput, "no apis are deployed") {
+					out += fmt.Sprintf("\n\n%s environment\n", envs[idx].Name)
+					out += envOutput
+				}
+			}
+
+			mistmatchedString, _ := getLocalMismatchedAPI()
+			if len(mistmatchedString) > 0 {
+				out += "\n" + mistmatchedString
+			}
+			return out, nil
 		})
 	},
-}
-
-func get(args []string, env cliconfig.Environment) (string, error) {
-	if len(args) == 0 {
-		return getAPIs(env)
-	}
-	return getAPI(env, args[0])
 }
 
 func getAPIs(env cliconfig.Environment) (string, error) {
@@ -95,23 +134,24 @@ func getAPIs(env cliconfig.Environment) (string, error) {
 	}
 
 	if len(apisRes.APIs) == 0 {
-		return console.Bold(fmt.Sprintf("no apis are deployed in %s environment", env.Name)), nil
+		return console.Bold("no apis are deployed"), nil
 	}
 
 	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, true)
 
-	out := t.MustFormat()
+	return t.MustFormat(), nil
+}
 
-	if env.Provider == types.LocalProviderType {
-		mismatchedAPINames, err := local.ListVersionMismatchedAPI()
-		if err != nil {
-			return "", err
-		}
-		if len(mismatchedAPINames) > 0 {
-			out += fmt.Sprintf("\nthe following apis: (%s) were found but were deployed using a different version of cortex cli; please delete them using `cortex delete <api_name>` and deploy them again.", strings.Join(mismatchedAPINames, ","))
-		}
+func getLocalMismatchedAPI() (string, error) {
+	mismatchedAPINames, err := local.ListVersionMismatchedAPI()
+	if err != nil {
+		return "", err
 	}
-	return out, nil
+	if len(mismatchedAPINames) == 0 {
+		return "", nil
+	}
+
+	return fmt.Sprintf("the following apis: %s were found but were deployed in your local environment using a different version of cortex cli; please delete them using `cortex delete <api_name>` to perform cleanup", strings.Join(mismatchedAPINames, ", ")), nil
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
@@ -142,7 +182,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 	api := apiRes.API
 
-	if api.Tracker != nil {
+	if env.Provider != types.LocalProviderType && api.Tracker != nil {
 		switch api.Tracker.ModelType {
 		case userconfig.ClassificationModelType:
 			out += "\n" + classificationMetricsStr(&apiRes.Metrics)

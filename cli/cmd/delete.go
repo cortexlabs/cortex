@@ -46,6 +46,7 @@ var _deleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.delete")
+		printEnvIfNotSpecified(_flagDeleteEnv)
 
 		env := MustReadOrConfigureEnv(_flagDeleteEnv)
 		var deleteResponse schema.DeleteResponse

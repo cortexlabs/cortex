@@ -106,7 +106,11 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		if apiSpec.ModelMount != nil {
 			modelID = apiSpec.ModelMount.ID
 		}
-		errList = append(errList, DeleteAPISpec(apiName))
+		err := DeleteAPISpec(apiName)
+		if err != nil {
+			errList = append(errList, errors.Wrap(ErrorFailedToDeleteAPISpec(filepath.Join(LocalWorkspace, "apis", apiName)), err.Error()))
+		}
+
 	} else {
 		// only add error if it isn't ErrCortexVersionMismatch
 		errList = append(errList, err)

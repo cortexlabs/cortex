@@ -48,6 +48,7 @@ const (
 	ErrLocalProviderNotSupported          = "cli.local_provider_not_supported"
 	ErrEnvironmentProviderNameConflict    = "cli.environment_provider_name_conflict"
 	ErrOperatorEndpointInLocalEnvironment = "cli.operator_endpoint_in_local_environment"
+	ErrOperatorConfigFromLocalEnvironment = "cli.operater_config_from_local_environment"
 	ErrInvalidOperatorEndpoint            = "cli.invalid_operator_endpoint"
 	ErrCortexYAMLNotFound                 = "cli.cortex_yaml_not_found"
 	ErrConnectToDockerDaemon              = "cli.connect_to_docker_daemon"
@@ -95,6 +96,13 @@ func ErrorEnvironmentProviderNameConflict(envName string, provider types.Provide
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentProviderNameConflict,
 		Message: fmt.Sprintf("the %s environment cannot use the %s provider", envName, provider.String()),
+	})
+}
+
+func ErrorOperatorConfigFromLocalEnvironment() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOperatorConfigFromLocalEnvironment,
+		Message: "attempting to retrieve cluster operator config from local environment",
 	})
 }
 

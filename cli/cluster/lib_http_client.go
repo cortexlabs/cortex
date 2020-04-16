@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -44,13 +43,16 @@ type GenericClient struct {
 }
 
 type OperatorConfig struct {
-	Telemetry   bool
-	ClientID    string
-	Environment cliconfig.Environment
+	Telemetry          bool
+	ClientID           string
+	EnvName            string
+	OperatorEndpoint   string
+	AWSAccessKeyID     string
+	AWSSecretAccessKey string
 }
 
 func (oc OperatorConfig) AuthHeader() string {
-	return fmt.Sprintf("CortexAWS %s|%s", *oc.Environment.AWSAccessKeyID, *oc.Environment.AWSSecretAccessKey)
+	return fmt.Sprintf("CortexAWS %s|%s", oc.AWSAccessKeyID, oc.AWSSecretAccessKey)
 }
 
 var _operatorClient = &OperatorClient{
@@ -180,7 +182,7 @@ func HTTPUploadZip(operatorConfig OperatorConfig, endpoint string, zipInput *zip
 }
 
 func operatorRequest(operatorConfig OperatorConfig, method string, endpoint string, body io.Reader, qParams []map[string]string) (*http.Request, error) {
-	req, err := http.NewRequest(method, *operatorConfig.Environment.OperatorEndpoint+endpoint, body)
+	req, err := http.NewRequest(method, operatorConfig.OperatorEndpoint+endpoint, body)
 	if err != nil {
 		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
@@ -208,7 +210,7 @@ func (client *OperatorClient) MakeRequest(operatorConfig OperatorConfig, request
 
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, ErrorFailedToConnectOperator(err, operatorConfig.Environment.Name, *operatorConfig.Environment.OperatorEndpoint)
+		return nil, ErrorFailedToConnectOperator(err, operatorConfig.EnvName, operatorConfig.OperatorEndpoint)
 	}
 	defer response.Body.Close()
 

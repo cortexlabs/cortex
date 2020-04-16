@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -452,6 +453,7 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 		}
 	}
 
+	debug.Pp(projectFiles.GetAllPaths())
 	if _, err := projectFiles.GetFile(predictor.Path); err != nil {
 		if errors.GetKind(err) == files.ErrFileDoesNotExist {
 			return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), userconfig.PathKey)

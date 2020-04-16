@@ -17,7 +17,7 @@ import yaml
 
 
 def update_cli_config(
-    cli_config_file_path, env_name, operator_endpoint, aws_access_key_id, aws_secret_access_key,
+    cli_config_file_path, env_name, operator_endpoint, aws_access_key_id, aws_secret_access_key
 ):
     new_env = {
         "name": env_name,

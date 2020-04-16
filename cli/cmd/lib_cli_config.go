@@ -650,11 +650,32 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 		exit.Error(err)
 	}
 
-	return cluster.OperatorConfig{
-		Telemetry:   isTelemetryEnabled(),
-		ClientID:    clientID,
-		Environment: env,
+	if env.Provider != types.AWSProviderType {
+		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
 	}
+
+	operatorConfig := cluster.OperatorConfig{
+		Telemetry: isTelemetryEnabled(),
+		ClientID:  clientID,
+		EnvName:   env.Name,
+	}
+
+	if env.OperatorEndpoint == nil {
+		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
+	}
+	operatorConfig.OperatorEndpoint = *env.OperatorEndpoint
+
+	if env.AWSAccessKeyID == nil {
+		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
+	}
+	operatorConfig.AWSAccessKeyID = *env.AWSAccessKeyID
+
+	if env.AWSSecretAccessKey == nil {
+		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
+	}
+	operatorConfig.AWSSecretAccessKey = *env.AWSSecretAccessKey
+
+	return operatorConfig
 }
 
 func listConfiguredEnvs() ([]string, error) {

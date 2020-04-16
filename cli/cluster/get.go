@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -48,8 +47,4 @@ func GetAPI(operatorConfig OperatorConfig, apiName string) (schema.GetAPIRespons
 	}
 
 	return apiRes, nil
-}
-
-func titleStr(title string) string {
-	return "\n" + console.Bold(title) + "\n"
 }

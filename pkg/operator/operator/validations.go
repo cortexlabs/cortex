@@ -43,12 +43,14 @@ func (cpf ClusterProjectFiles) GetAllPaths() []string {
 	i := 0
 	for path := range cpf.ProjectByteMap {
 		files[i] = path
+		i++
 	}
 
 	return files
 }
 
 func (cpf ClusterProjectFiles) GetFile(fileName string) ([]byte, error) {
+	fmt.Println(fileName)
 	bytes, ok := cpf.ProjectByteMap[fileName]
 	if !ok {
 		return nil, files.ErrorFileDoesNotExist(fileName)

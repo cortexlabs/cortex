@@ -43,6 +43,7 @@ var _logsCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.logs")
+		printEnvIfNotSpecified(_flagLogsEnv)
 
 		apiName := args[0]
 		env := MustReadOrConfigureEnv(_flagLogsEnv)

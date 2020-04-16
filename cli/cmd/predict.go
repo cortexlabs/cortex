@@ -51,6 +51,7 @@ var _predictCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.predict")
+		printEnvIfNotSpecified(_flagPredictEnv)
 
 		apiName := args[0]
 		jsonPath := args[1]

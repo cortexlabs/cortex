@@ -16,13 +16,16 @@
 
 set -e
 
+mkdir -p /mnt/workspace
+mkdir -p /mnt/requests
+
 cd /mnt/project
 
 # If the container restarted, ensure that it is not perceived as ready
-rm -rf /mnt/api_readiness.txt
+rm -rf /mnt/workspace/api_readiness.txt
 
 # Allow for the liveness check to pass until the API is running
-echo "9999999999" > /mnt/api_liveness.txt
+echo "9999999999" > /mnt/workspace/api_liveness.txt
 
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 
@@ -49,7 +52,5 @@ fi
 
 # Ensure predictor print() statements are always flushed
 export PYTHONUNBUFFERED=TRUE
-
-mkdir -p /mnt/requests
 
 /opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py

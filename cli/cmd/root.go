@@ -191,6 +191,12 @@ func wasEnvFlagProvided() bool {
 	return false
 }
 
+func printEnvIfNotSpecified(envName string) {
+	if !wasEnvFlagProvided() {
+		fmt.Println(fmt.Sprintf("using %s environment...\n", envName))
+	}
+}
+
 func printLeadingNewLine() {
 	if len(os.Args) == 2 && os.Args[1] == "completion" {
 		return

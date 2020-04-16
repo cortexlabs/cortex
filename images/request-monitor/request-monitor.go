@@ -79,13 +79,13 @@ func main() {
 	os.OpenFile("/request_monitor_ready.txt", os.O_RDONLY|os.O_CREATE, 0666)
 
 	for {
-		if _, err := os.Stat("/mnt/api_readiness.txt"); err == nil {
+		if _, err := os.Stat("/mnt/workspace/api_readiness.txt"); err == nil {
 			break
 		} else if os.IsNotExist(err) {
 			fmt.Println("waiting for replica to be ready...")
 			time.Sleep(_tickInterval)
 		} else {
-			log.Printf("error encountered while looking for /mnt/api_readiness.txt") // unexpected
+			log.Printf("error encountered while looking for /mnt/workspace/api_readiness.txt") // unexpected
 			time.Sleep(_tickInterval)
 		}
 	}

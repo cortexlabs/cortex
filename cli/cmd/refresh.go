@@ -45,6 +45,7 @@ var _refreshCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.refresh")
+		printEnvIfNotSpecified(_flagRefreshEnv)
 
 		env := MustReadOrConfigureEnv(_flagRefreshEnv)
 		var refreshResponse schema.RefreshResponse

@@ -24,6 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -62,6 +63,7 @@ var _deployCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.deploy")
+		printEnvIfNotSpecified(_flagDeployEnv)
 
 		env := MustReadOrConfigureEnv(_flagDeployEnv)
 		configPath := getConfigPath(args)
@@ -154,10 +156,13 @@ func getDeploymentBytes(configPath string) map[string][]byte {
 
 	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
 
-	projectPaths, err := findProjectFiles(projectRoot)
+	fmt.Println(projectRoot)
+	projectPaths, err := findProjectFiles(configPath)
 	if err != nil {
 		exit.Error(err)
 	}
+
+	debug.Pp(projectPaths)
 
 	canSkipPromptMsg := "you can skip this prompt next time with `cortex deploy --yes`\n"
 	rootDirMsg := "this directory"

@@ -56,8 +56,8 @@ const (
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
-	_apiReadinessFile                      = "/mnt/api_readiness.txt"
-	_apiLivenessFile                       = "/mnt/api_liveness.txt"
+	_apiReadinessFile                      = "/mnt/workspace/api_readiness.txt"
+	_apiLivenessFile                       = "/mnt/workspace/api_liveness.txt"
 	_apiLivenessStalePeriod                = 7 // seconds (there is a 2-second buffer to be safe)
 )
 

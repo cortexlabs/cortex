@@ -35,6 +35,7 @@ const (
 	ErrAPIContainerNotFound          = "local.api_container_not_found"
 	ErrFoundContainersWithoutAPISpec = "local.found_containers_without_api_spec"
 	ErrInvalidTensorFlowZip          = "local.invalid_tensorflow_zip"
+	ErrFailedToDeleteAPISpec         = "local.failed_to_delete_api_spec"
 )
 
 func ErrorConnectToDockerDaemon() error {
@@ -120,5 +121,12 @@ func ErrorInvalidTensorFlowZip(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowZip,
 		Message: message,
+	})
+}
+
+func ErrorFailedToDeleteAPISpec(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFailedToDeleteAPISpec,
+		Message: fmt.Sprintf("failed to delete api specification; `sudo rm -rf %s` can be run to manually to delete api specification", path),
 	})
 }
