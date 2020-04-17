@@ -57,7 +57,7 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	return &API{
 		API:          apiConfig,
 		ID:           id,
-		Key:          SpecKey(apiConfig.Name, id),
+		Key:          Key(apiConfig.Name, id),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: metadataRoot(apiConfig.Name, id),
@@ -66,7 +66,7 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	}
 }
 
-func SpecKey(apiName string, apiID string) string {
+func Key(apiName string, apiID string) string {
 	return filepath.Join(
 		"apis",
 		apiName,

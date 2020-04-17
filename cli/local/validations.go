@@ -24,20 +24,20 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-type LocalProjectFiles struct {
+type ProjectFiles struct {
 	ProjectFiles []string // make sure it is absolute paths
 }
 
-func (lpf LocalProjectFiles) GetAllPaths() []string {
-	return lpf.ProjectFiles
+func (projectFiles ProjectFiles) GetAllPaths() []string {
+	return projectFiles.ProjectFiles
 }
 
-func (lpf LocalProjectFiles) GetFile(fileName string) ([]byte, error) {
+func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
 	absPath, err := files.GetAbsPath(fileName)
 	if err != nil {
 		return nil, err
 	}
-	for _, path := range lpf.ProjectFiles {
+	for _, path := range projectFiles.ProjectFiles {
 		if path == absPath {
 			bytes, err := files.ReadFileBytes(absPath)
 			if err != nil {
@@ -50,13 +50,13 @@ func (lpf LocalProjectFiles) GetFile(fileName string) ([]byte, error) {
 	return nil, files.ErrorFileDoesNotExist(fileName)
 }
 
-func ValidateLocalAPIs(apis []userconfig.API, localProjectFiles LocalProjectFiles, awsClient *aws.Client) error {
+func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
 
 	for i := range apis {
-		if err := spec.ValidateAPI(&apis[i], localProjectFiles, types.LocalProviderType, awsClient); err != nil {
+		if err := spec.ValidateAPI(&apis[i], projectFiles, types.LocalProviderType, awsClient); err != nil {
 			return err
 		}
 	}

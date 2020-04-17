@@ -31,7 +31,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return schema.DeployResponse{}, err
 	}
 
-	projectFiles := LocalProjectFiles{
+	projectFiles := ProjectFiles{
 		ProjectFiles: projectFileList,
 	}
 
