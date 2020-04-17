@@ -192,7 +192,7 @@ var _envDefaultCmd = &cobra.Command{
 		}
 
 		if envName == defaultEnv {
-			print.BoldFirstLine(fmt.Sprintf("✓ %s is already the default environment", envName))
+			print.BoldFirstLine(fmt.Sprintf("%s is already the default environment", envName))
 			exit.Ok()
 		}
 
@@ -200,7 +200,7 @@ var _envDefaultCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		print.BoldFirstLine(fmt.Sprintf("✓ set %s as the default environment", envName)) // TODO we don't dispaly a check mark for other successful commands, I think we should delete this for consistency
+		print.BoldFirstLine(fmt.Sprintf("set %s as the default environment", envName))
 	},
 }
 
@@ -223,9 +223,9 @@ var _envDeleteCmd = &cobra.Command{
 		}
 
 		if envName == types.LocalProviderType.String() {
-			print.BoldFirstLine(fmt.Sprintf("✓ cleared %s environment configuration", envName))
+			print.BoldFirstLine(fmt.Sprintf("cleared %s environment configuration", envName))
 		} else {
-			print.BoldFirstLine(fmt.Sprintf("✓ deleted %s environment configuration", envName))
+			print.BoldFirstLine(fmt.Sprintf("deleted %s environment configuration", envName))
 		}
 	},
 }

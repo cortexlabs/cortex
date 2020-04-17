@@ -250,7 +250,10 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
+
+	if provider != types.LocalProviderType {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
+	}
 
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))

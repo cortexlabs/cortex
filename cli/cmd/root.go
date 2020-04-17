@@ -185,7 +185,9 @@ func wasEnvFlagProvided() bool {
 }
 
 func printEnvIfNotSpecified(envName string) {
-	if !wasEnvFlagProvided() {
+	envNames, _ := listConfiguredEnvNames()
+
+	if !wasEnvFlagProvided() && len(envNames) > 1 {
 		fmt.Println(fmt.Sprintf("using %s environment...\n", envName))
 	}
 }

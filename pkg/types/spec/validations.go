@@ -27,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -389,7 +388,7 @@ func ExtractAPIConfigs(configBytes []byte, projectFiles ProjectFiles, filePath s
 		api.ApplyDefaultDockerPaths()
 
 		if api.Autoscaling != nil || api.Compute != nil || api.Tracker != nil || api.UpdateStrategy != nil {
-			fmt.Println(fmt.Sprintf("WARNING: %s, %s, %s and %s keys will be ignored because they are not supported for local provider\n", userconfig.AutoscalingKey, userconfig.ComputeKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
+			fmt.Println(fmt.Sprintf("warning: %s, %s, %s, %s and %s keys will be ignored because they are not supported for in an environment using local provider\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.ComputeKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
 		}
 
 		apis[i] = api
@@ -453,7 +452,6 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 		}
 	}
 
-	debug.Pp(projectFiles.GetAllPaths())
 	if _, err := projectFiles.GetFile(predictor.Path); err != nil {
 		if errors.GetKind(err) == files.ErrFileDoesNotExist {
 			return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), userconfig.PathKey)

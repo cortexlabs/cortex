@@ -534,31 +534,8 @@ func MustReadOrConfigureEnv(envName string) cliconfig.Environment {
 	if err != nil {
 		exit.Error(err)
 	}
+
 	return env
-}
-
-func ReadOrConfigureNonLocalEnv(envName string) (cliconfig.Environment, error) {
-	env, err := readEnv(envName)
-	if err != nil {
-		return cliconfig.Environment{}, err
-	}
-
-	if env != nil {
-		if env.Provider == types.LocalProviderType {
-			return cliconfig.Environment{}, ErrorLocalProviderNotSupported(*env)
-		}
-		return *env, nil
-	}
-
-	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running on AWS?", envName)
-	yesMsg := fmt.Sprintf("please configure the %s environment to point to your running cluster:\n", envName)
-	noMsg := "you can create a cluster on AWS by running the `cortex cluster up` command"
-	prompt.YesOrExit(promptStr, yesMsg, noMsg)
-
-	fieldsToSkipPrompt := cliconfig.Environment{
-		Provider: types.AWSProviderType,
-	}
-	return configureEnv(envName, fieldsToSkipPrompt)
 }
 
 func getDefaultEnvConfig(envName string) cliconfig.Environment {
