@@ -219,6 +219,26 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		}
 		userClusterConfig.InstanceVolumeSize = cachedClusterConfig.InstanceVolumeSize
 
+		if userClusterConfig.SubnetVisibility != cachedClusterConfig.SubnetVisibility {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetVisibilityKey, cachedClusterConfig.SubnetVisibility)
+		}
+		userClusterConfig.SubnetVisibility = cachedClusterConfig.SubnetVisibility
+
+		if userClusterConfig.NATGateway != cachedClusterConfig.NATGateway {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.NATGatewayKey, cachedClusterConfig.NATGateway)
+		}
+		userClusterConfig.NATGateway = cachedClusterConfig.NATGateway
+
+		if userClusterConfig.APILoadBalancerScheme != cachedClusterConfig.APILoadBalancerScheme {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.APILoadBalancerSchemeKey, cachedClusterConfig.APILoadBalancerScheme)
+		}
+		userClusterConfig.APILoadBalancerScheme = cachedClusterConfig.APILoadBalancerScheme
+
+		if userClusterConfig.OperatorLoadBalancerScheme != cachedClusterConfig.OperatorLoadBalancerScheme {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OperatorLoadBalancerSchemeKey, cachedClusterConfig.OperatorLoadBalancerScheme)
+		}
+		userClusterConfig.OperatorLoadBalancerScheme = cachedClusterConfig.OperatorLoadBalancerScheme
+
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 		}
@@ -406,6 +426,19 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
 		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)
+	}
+
+	if clusterConfig.SubnetVisibility != defaultConfig.SubnetVisibility {
+		items.Add(clusterconfig.SubnetVisibilityUserKey, clusterConfig.SubnetVisibility)
+	}
+	if clusterConfig.NATGateway != defaultConfig.NATGateway {
+		items.Add(clusterconfig.NATGatewayUserKey, clusterConfig.NATGateway)
+	}
+	if clusterConfig.APILoadBalancerScheme != defaultConfig.APILoadBalancerScheme {
+		items.Add(clusterconfig.APILoadBalancerSchemeUserKey, clusterConfig.APILoadBalancerScheme)
+	}
+	if clusterConfig.OperatorLoadBalancerScheme != defaultConfig.OperatorLoadBalancerScheme {
+		items.Add(clusterconfig.OperatorLoadBalancerSchemeUserKey, clusterConfig.OperatorLoadBalancerScheme)
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
