@@ -31,9 +31,14 @@ class PythonPredictor:
         except ValueError:
             # exception can occur when the images are too small
             prediction_groups = []
+
+        image_list = []
         for img_predictions in prediction_groups:
+            boxes_per_image = []
             for predictions in img_predictions:
-                predictions = tuple([predictions[0], predictions[1].tolist()])
-        lps = {"license-plates": prediction_groups}
+                boxes_per_image.append([predictions[0], predictions[1].tolist()])
+            image_list.append(boxes_per_image)
+
+        lps = {"license-plates": image_list}
 
         return lps
