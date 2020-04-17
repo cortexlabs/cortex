@@ -36,6 +36,7 @@ var (
 	_flagEnvOperatorEndpoint   string
 	_flagEnvAWSAccessKeyID     string
 	_flagEnvAWSSecretAccessKey string
+	_flagEnvAWSRegion          string
 )
 
 func envInit() {
@@ -44,6 +45,7 @@ func envInit() {
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSSecretAccessKey, "aws-secret-access-key", "s", "", "set the aws secret access key without prompting")
+	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSRegion, "aws-region", "r", "", "set the aws region without prompting")
 	_envCmd.AddCommand(_envConfigureCmd)
 
 	_envListCmd.Flags().SortFlags = false
@@ -96,11 +98,17 @@ var _envConfigureCmd = &cobra.Command{
 			skipAWSSecretAccessKey = &_flagEnvAWSSecretAccessKey
 		}
 
+		var skipAWSRegion *string
+		if _flagEnvAWSRegion != "" {
+			skipAWSRegion = &_flagEnvAWSRegion
+		}
+
 		fieldsToSkipPrompt := cliconfig.Environment{
 			Provider:           skipProvider,
 			OperatorEndpoint:   skipOperatorEndpoint,
 			AWSAccessKeyID:     skipAWSAccessKeyID,
 			AWSSecretAccessKey: skipAWSSecretAccessKey,
+			AWSRegion:          skipAWSRegion,
 		}
 
 		if _, err := configureEnv(envName, fieldsToSkipPrompt); err != nil {
@@ -143,6 +151,9 @@ var _envListCmd = &cobra.Command{
 			if env.AWSSecretAccessKey != nil {
 				items.Add("aws secret access key", s.MaskString(*env.AWSSecretAccessKey, 4))
 			}
+			if env.AWSRegion != nil {
+				items.Add("aws region", *env.AWSRegion)
+			}
 
 			items.Print(&table.KeyValuePairOpts{
 				BoldFirstLine: pointer.Bool(true),
@@ -167,7 +178,7 @@ var _envDefaultCmd = &cobra.Command{
 		if len(args) == 1 {
 			envName = args[0]
 
-			configuredEnvNames, err := listConfiguredEnvs()
+			configuredEnvNames, err := listConfiguredEnvNames()
 			if err != nil {
 				exit.Error(err)
 			}
@@ -189,7 +200,7 @@ var _envDefaultCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		print.BoldFirstLine(fmt.Sprintf("✓ set %s as the default environment", envName))
+		print.BoldFirstLine(fmt.Sprintf("✓ set %s as the default environment", envName)) // TODO we don't dispaly a check mark for other successful commands, I think we should delete this for consistency
 	},
 }
 

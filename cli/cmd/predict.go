@@ -72,7 +72,7 @@ var _predictCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			apiEndpoint = "http://" + urls.Join(apiRes.BaseURL, "predict")
+			apiEndpoint = apiRes.BaseURL
 		}
 
 		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
@@ -110,7 +110,7 @@ func makePredictRequest(apiEndpoint string, jsonPath string) (interface{}, error
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := MakeRequest(req)
+	httpResponse, err := makeRequest(req)
 	if err != nil {
 		return nil, err
 	}

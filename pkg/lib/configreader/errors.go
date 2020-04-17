@@ -64,7 +64,7 @@ const (
 	ErrEmailInvalid                  = "configreader.email_invalid"
 	ErrCortexResourceOnlyAllowed     = "configreader.cortex_resource_only_allowed"
 	ErrCortexResourceNotAllowed      = "configreader.cortex_resource_not_allowed"
-	ErrImageVersionMismatch          = "operator.image_version_mismatch"
+	ErrImageVersionMismatch          = "configreader.image_version_mismatch"
 )
 
 func ErrorParseConfig() error {

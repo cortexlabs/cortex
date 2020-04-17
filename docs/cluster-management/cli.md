@@ -156,6 +156,7 @@ Flags:
   -o, --operator-endpoint string       set the operator endpoint without prompting
   -k, --aws-access-key-id string       set the aws access key id without prompting
   -s, --aws-secret-access-key string   set the aws secret access key without prompting
+  -r, --aws-region string              set the aws region without prompting
   -h, --help                           help for configure
 ```
 

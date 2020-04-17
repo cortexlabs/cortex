@@ -73,7 +73,7 @@ var _getCmd = &cobra.Command{
 			}
 
 			if wasEnvFlagProvided() {
-				return getAPIs(MustReadOrConfigureEnv(_flagGetEnv))
+				return getAPIs(MustReadOrConfigureEnv(_flagGetEnv), false)
 			}
 
 			cliConfig, err := readCLIConfig()
@@ -86,29 +86,29 @@ var _getCmd = &cobra.Command{
 				return "", err
 			}
 
-			out := fmt.Sprintf("%s environment (default)\n", defaultEnv.Name)
-			envOutput, err := getAPIs(defaultEnv)
+			out := fmt.Sprintf("%s environment (default):\n", defaultEnv.Name)
+			envOutput, err := getAPIs(defaultEnv, true)
 			if err != nil {
 				out += err.Error()
 			} else {
 				out += envOutput
 			}
 
-			envs := []*cliconfig.Environment{}
-			envs = append(envs, cliConfig.Environments...)
-
-			for idx := range envs {
-				if envs[idx].Name == defaultEnv.Name {
+			for idx := range cliConfig.Environments {
+				if cliConfig.Environments[idx].Name == defaultEnv.Name {
 					continue
 				}
-				envOutput, _ := getAPIs(*envs[idx]) // TODO silence non default env errors?
-				if !strings.Contains(envOutput, "no apis are deployed") {
-					out += fmt.Sprintf("\n\n%s environment\n", envs[idx].Name)
+				envOutput, err := getAPIs(*cliConfig.Environments[idx], true)
+				out += fmt.Sprintf("\n\n%s environment:\n", cliConfig.Environments[idx].Name)
+
+				if err != nil {
+					out += err.Error()
+				} else {
 					out += envOutput
 				}
 			}
 
-			mistmatchedString, _ := getLocalMismatchedAPI()
+			mistmatchedString, _ := getLocalVersionMismatchedAPI()
 			if len(mistmatchedString) > 0 {
 				out += "\n" + mistmatchedString
 			}
@@ -117,7 +117,7 @@ var _getCmd = &cobra.Command{
 	},
 }
 
-func getAPIs(env cliconfig.Environment) (string, error) {
+func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 	var apisRes schema.GetAPIsResponse
 	var err error
 
@@ -142,7 +142,7 @@ func getAPIs(env cliconfig.Environment) (string, error) {
 	return t.MustFormat(), nil
 }
 
-func getLocalMismatchedAPI() (string, error) {
+func getLocalVersionMismatchedAPI() (string, error) {
 	mismatchedAPINames, err := local.ListVersionMismatchedAPI()
 	if err != nil {
 		return "", err
@@ -151,7 +151,7 @@ func getLocalMismatchedAPI() (string, error) {
 		return "", nil
 	}
 
-	return fmt.Sprintf("the following apis: %s were found but were deployed in your local environment using a different version of cortex cli; please delete them using `cortex delete <api_name>` to perform cleanup", strings.Join(mismatchedAPINames, ", ")), nil
+	return fmt.Sprintf("the following apis (%s) were found but were deployed in your local environment using a different version of cortex cli; please delete them using `cortex delete <api_name>` to perform cleanup", strings.Join(mismatchedAPINames, ", ")), nil
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
@@ -160,16 +160,18 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	if env.Provider == types.AWSProviderType {
 		apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 		if err != nil {
+			// note: if modifying this string, search the codebase for it and change all occurrences
 			if strings.HasSuffix(errors.Message(err), "is not deployed") {
-				return console.Bold(errors.Message(err) + " in " + env.Name + " environment"), nil
+				return console.Bold(errors.Message(err)), nil
 			}
 			return "", err
 		}
 	} else {
 		apiRes, err = local.GetAPI(apiName)
 		if err != nil {
+			// note: if modifying this string, search the codebase for it and change all occurrences
 			if strings.HasSuffix(errors.Message(err), "is not deployed") {
-				return console.Bold(errors.Message(err) + " in " + env.Name + " environment"), nil
+				return console.Bold(errors.Message(err)), nil
 			}
 			return "", err
 		}
@@ -191,9 +193,9 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		}
 	}
 
-	apiEndpoint := urls.Join(apiRes.BaseURL, "/predict")
+	apiEndpoint := apiRes.BaseURL
 	if env.Provider == types.AWSProviderType {
-		apiEndpoint = urls.Join(apiRes.BaseURL, *api.Endpoint)
+		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "http://", "https://", 1)
 	}
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
@@ -398,7 +400,7 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 	return t.MustFormat()
 }
 
-func MakeRequest(request *http.Request) ([]byte, error) {
+func makeRequest(request *http.Request) ([]byte, error) {
 	client := http.Client{
 		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
@@ -428,13 +430,12 @@ func MakeRequest(request *http.Request) ([]byte, error) {
 }
 
 func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
-	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", 1)
-	req, err := http.NewRequest("GET", httpsAPIEndpoint, nil)
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := MakeRequest(req)
+	response, err := makeRequest(req)
 	if err != nil {
 		return nil, err
 	}

@@ -29,10 +29,10 @@ import (
 
 var _cachedDockerClient *dockerclient.Client
 
-var CWD string
-var LocalDir string
-var LocalWorkspace string
-var ModelCacheDir string
+var _cwd string
+var _localDir string
+var _localWorkspaceDir string
+var _modelCacheDir string
 
 func init() {
 	cwd, err := os.Getwd()
@@ -40,7 +40,7 @@ func init() {
 		err := errors.Wrap(err, "unable to determine current working directory")
 		exit.Error(err)
 	}
-	CWD = s.EnsureSuffix(cwd, "/")
+	_cwd = s.EnsureSuffix(cwd, "/")
 
 	homeDir, err := homedir.Dir()
 	if err != nil {
@@ -48,24 +48,24 @@ func init() {
 		exit.Error(err)
 	}
 
-	LocalDir = filepath.Join(homeDir, ".cortex")
-	err = os.MkdirAll(LocalDir, os.ModePerm)
+	_localDir = filepath.Join(homeDir, ".cortex")
+	err = os.MkdirAll(_localDir, os.ModePerm)
 	if err != nil {
-		err := errors.Wrap(err, "unable to write to home directory", LocalDir)
+		err := errors.Wrap(err, "unable to write to home directory", _localDir)
 		exit.Error(err)
 	}
 
-	LocalWorkspace = filepath.Join(LocalDir, "workspace")
-	err = os.MkdirAll(LocalWorkspace, os.ModePerm)
+	_localWorkspaceDir = filepath.Join(_localDir, "workspace")
+	err = os.MkdirAll(_localWorkspaceDir, os.ModePerm)
 	if err != nil {
-		err := errors.Wrap(err, "unable to write to home directory", LocalWorkspace)
+		err := errors.Wrap(err, "unable to write to home directory", _localWorkspaceDir)
 		exit.Error(err)
 	}
 
-	ModelCacheDir = filepath.Join(LocalDir, "model_cache")
-	err = os.MkdirAll(ModelCacheDir, os.ModePerm)
+	_modelCacheDir = filepath.Join(_localDir, "model_cache")
+	err = os.MkdirAll(_modelCacheDir, os.ModePerm)
 	if err != nil {
-		err := errors.Wrap(err, "unable to write to home directory", ModelCacheDir)
+		err := errors.Wrap(err, "unable to write to home directory", _modelCacheDir)
 		exit.Error(err)
 	}
 }

@@ -24,7 +24,6 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -68,13 +67,15 @@ var _deployCmd = &cobra.Command{
 		env := MustReadOrConfigureEnv(_flagDeployEnv)
 		configPath := getConfigPath(args)
 		var deployResponse schema.DeployResponse
-		var err error
 		if env.Provider == types.AWSProviderType {
 			params := map[string]string{
 				"force":      s.Bool(_flagDeployForce),
 				"configPath": configPath,
 			}
-			deploymentBytes := getDeploymentBytes(configPath)
+			deploymentBytes, err := getDeploymentBytes(configPath)
+			if err != nil {
+				exit.Error(err)
+			}
 
 			deployResponse, err = cluster.Deploy(MustGetOperatorConfig(env.Name), deploymentBytes, params)
 			if err != nil {
@@ -144,10 +145,10 @@ func findProjectFiles(configPath string) ([]string, error) {
 	return projectPaths, nil
 }
 
-func getDeploymentBytes(configPath string) map[string][]byte {
+func getDeploymentBytes(configPath string) (map[string][]byte, error) {
 	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
-		exit.Error(err)
+		return nil, err
 	}
 
 	uploadBytes := map[string][]byte{
@@ -156,13 +157,10 @@ func getDeploymentBytes(configPath string) map[string][]byte {
 
 	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
 
-	fmt.Println(projectRoot)
 	projectPaths, err := findProjectFiles(configPath)
 	if err != nil {
-		exit.Error(err)
+		return nil, err
 	}
-
-	debug.Pp(projectPaths)
 
 	canSkipPromptMsg := "you can skip this prompt next time with `cortex deploy --yes`\n"
 	rootDirMsg := "this directory"
@@ -186,7 +184,7 @@ func getDeploymentBytes(configPath string) map[string][]byte {
 		},
 	})
 	if err != nil {
-		exit.Error(errors.Wrap(err, "failed to zip project folder"))
+		return nil, errors.Wrap(err, "failed to zip project folder")
 	}
 
 	if !_flagDeployYes && !didPromptFileCount && len(projectZipBytes) >= _warningProjectBytes {
@@ -195,7 +193,7 @@ func getDeploymentBytes(configPath string) map[string][]byte {
 	}
 
 	uploadBytes["project.zip"] = projectZipBytes
-	return uploadBytes
+	return uploadBytes, nil
 }
 
 func deployMessage(results []schema.DeployResult) string {

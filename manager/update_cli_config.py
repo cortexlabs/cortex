@@ -17,7 +17,12 @@ import yaml
 
 
 def update_cli_config(
-    cli_config_file_path, env_name, operator_endpoint, aws_access_key_id, aws_secret_access_key
+    cli_config_file_path,
+    env_name,
+    operator_endpoint,
+    aws_access_key_id,
+    aws_secret_access_key,
+    region,
 ):
     new_env = {
         "name": env_name,
@@ -25,6 +30,7 @@ def update_cli_config(
         "operator_endpoint": operator_endpoint,
         "aws_access_key_id": aws_access_key_id,
         "aws_secret_access_key": aws_secret_access_key,
+        "aws_region": region,
     }
 
     try:
@@ -65,4 +71,5 @@ if __name__ == "__main__":
         operator_endpoint=sys.argv[3],
         aws_access_key_id=sys.argv[4],
         aws_secret_access_key=sys.argv[5],
+        region=sys.argv[6],
     )

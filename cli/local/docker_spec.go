@@ -19,10 +19,10 @@ package local
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -36,32 +36,29 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
-func DeployContainers(api *spec.API) error {
+const (
+	_apiContainerName       = "api"
+	_tfServingContainerName = "serve"
+	_defaultPortStr         = "8888"
+	_tfServingPortStr       = "9000"
+	_projectDir             = "/mnt/project"
+	_cacheDir               = "/mnt/cache"
+	_modelDir               = "/mnt/model"
+	_workspaceDir           = "/mnt/workspace"
+)
+
+func DeployContainers(api *spec.API, awsClient *aws.Client) error {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
-		return TensorFlowSpec(api)
+		return TensorFlowSpec(api, awsClient)
 	case userconfig.ONNXPredictorType:
-		return ONNXSpec(api)
+		return ONNXSpec(api, awsClient)
 	default:
-		return PythonSpec(api)
+		return PythonSpec(api, awsClient)
 	}
 }
 
-const (
-	_specCacheDir                          = "/mnt/spec"
-	_emptyDirMountPath                     = "/mnt"
-	_emptyDirVolumeName                    = "mnt"
-	_apiContainerName                      = "api"
-	_tfServingContainerName                = "serve"
-	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
-	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
-	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
-	_apiReadinessFile                      = "/mnt/workspace/api_readiness.txt"
-	_apiLivenessFile                       = "/mnt/workspace/api_liveness.txt"
-	_apiLivenessStalePeriod                = 7 // seconds (there is a 2-second buffer to be safe)
-)
-
-func getAPIEnv(api *spec.API) []string {
+func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 	envs := []string{}
 
 	for envName, envVal := range api.Predictor.Env {
@@ -72,15 +69,26 @@ func getAPIEnv(api *spec.API) []string {
 		"CORTEX_VERSION="+consts.CortexVersion,
 		"CORTEX_SERVING_PORT="+_defaultPortStr,
 		"CORTEX_PROVIDER="+"local",
-		"CORTEX_CACHE_DIR=/mnt/cache",
-		"CORTEX_MODEL_DIR=/mnt/model",
+		"CORTEX_CACHE_DIR="+_cacheDir,
+		"CORTEX_MODEL_DIR="+_modelDir,
 		"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", filepath.Base(api.Key)),
-		"CORTEX_PROJECT_DIR="+"/mnt/project",
+		"CORTEX_PROJECT_DIR="+_projectDir,
 		"CORTEX_WORKERS_PER_REPLICA=1",
 		"CORTEX_THREADS_PER_WORKER=1",
 		"CORTEX_MAX_WORKER_CONCURRENCY=10",
 		"CORTEX_SO_MAX_CONN=10",
+		"AWS_REGION="+awsClient.Region,
 	)
+
+	if awsClient.AccessKeyID() != nil {
+		awsAccessKeyID := awsClient.AccessKeyID()
+		envs = append(envs, "AWS_ACCESS_KEY_ID="+*awsAccessKeyID)
+	}
+
+	if awsClient.SecretAccessKey() != nil {
+		awsSecretAccessKey := awsClient.SecretAccessKey()
+		envs = append(envs, "AWS_SECRET_ACCESS_KEY="+*awsSecretAccessKey)
+	}
 
 	if _, ok := api.Predictor.Env["PYTHONDONTWRITEBYTECODE"]; !ok {
 		envs = append(envs, "PYTHONDONTWRITEBYTECODE=1")
@@ -88,24 +96,20 @@ func getAPIEnv(api *spec.API) []string {
 	return envs
 }
 
-func PythonSpec(api *spec.API) error {
+func PythonSpec(api *spec.API, awsClient *aws.Client) error {
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
-			"8888/tcp": []nat.PortBinding{
-				{
-					// HostPort: "8888",
-				},
-			},
+			_defaultPortStr + "/tcp": []nat.PortBinding{{}},
 		},
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: CWD,
-				Target: "/mnt/project",
+				Source: _cwd,
+				Target: _projectDir,
 			},
 			{
 				Type:   mount.TypeBind,
-				Source: filepath.Join(LocalWorkspace, filepath.Dir(api.Key)),
+				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
 				Target: "/mnt/workspace",
 			},
 		},
@@ -114,68 +118,10 @@ func PythonSpec(api *spec.API) error {
 	containerConfig := &container.Config{
 		Image: api.Predictor.Image,
 		Env: append(
-			getAPIEnv(api),
+			getAPIEnv(api, awsClient),
 		),
 		ExposedPorts: nat.PortSet{
-			"8888/tcp": struct{}{},
-		},
-		Labels: map[string]string{
-			"cortex":       "true",
-			"type":         "api",
-			"apiID":        api.ID,
-			"apiName":      api.Name,
-			"deploymentID": api.DeploymentID,
-		},
-	}
-	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
-	if err != nil {
-		return err
-	}
-
-	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ONNXSpec(api *spec.API) error {
-	hostConfig := &container.HostConfig{
-		PortBindings: nat.PortMap{
-			"8888/tcp": []nat.PortBinding{
-				{
-					// HostPort: "8888",
-				},
-			},
-		},
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: CWD,
-				Target: "/mnt/project",
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: api.ModelMount.HostPath,
-				Target: "/mnt/model",
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: filepath.Join(LocalWorkspace, filepath.Dir(api.Key)),
-				Target: "/mnt/workspace",
-			},
-		},
-	}
-
-	containerConfig := &container.Config{
-		Image: api.Predictor.Image,
-		Env: append(
-			getAPIEnv(api),
-			"CORTEX_VERSION=master",
-		),
-		ExposedPorts: nat.PortSet{
-			"8888/tcp": struct{}{},
+			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
 			"cortex":       "true",
@@ -198,13 +144,68 @@ func ONNXSpec(api *spec.API) error {
 	return nil
 }
 
-func TensorFlowSpec(api *spec.API) error {
+func ONNXSpec(api *spec.API, awsClient *aws.Client) error {
+	hostConfig := &container.HostConfig{
+		PortBindings: nat.PortMap{
+			_defaultPortStr + "/tcp": []nat.PortBinding{{}},
+		},
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: _cwd,
+				Target: _projectDir,
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: api.ModelMount.HostPath,
+				Target: _modelDir,
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
+				Target: "/mnt/workspace",
+			},
+		},
+	}
+
+	containerConfig := &container.Config{
+		Image: api.Predictor.Image,
+		Env: append(
+			getAPIEnv(api, awsClient),
+			"CORTEX_VERSION=master",
+		),
+		ExposedPorts: nat.PortSet{
+			_defaultPortStr + "/tcp": struct{}{},
+		},
+		Labels: map[string]string{
+			"cortex":       "true",
+			"type":         _apiContainerName,
+			"apiID":        api.ID,
+			"apiName":      api.Name,
+			"deploymentID": api.DeploymentID,
+			"modelID":      api.ModelMount.ID,
+		},
+	}
+	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
+	if err != nil {
+		return err
+	}
+
+	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
 	serveHostConfig := &container.HostConfig{
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
 				Source: api.ModelMount.HostPath,
-				Target: "/mnt/model",
+				Target: _modelDir,
 			},
 		},
 	}
@@ -212,10 +213,10 @@ func TensorFlowSpec(api *spec.API) error {
 	serveContainerConfig := &container.Config{
 		Image: api.Predictor.TFServeImage,
 		Cmd: strslice.StrSlice{
-			"--port=9000", "--model_base_path=/mnt/model",
+			"--port=" + _tfServingPortStr, "--model_base_path=" + _modelDir,
 		},
 		ExposedPorts: nat.PortSet{
-			"9000/tcp": struct{}{},
+			_tfServingPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
 			"cortex":       "true",
@@ -223,6 +224,7 @@ func TensorFlowSpec(api *spec.API) error {
 			"apiID":        api.ID,
 			"apiName":      api.Name,
 			"deploymentID": api.DeploymentID,
+			"modelID":      api.ModelMount.ID,
 		},
 	}
 
@@ -241,22 +243,22 @@ func TensorFlowSpec(api *spec.API) error {
 
 	apiHostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
-			"8888/tcp": []nat.PortBinding{{}},
+			_defaultPortStr + "/tcp": []nat.PortBinding{{}},
 		},
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: CWD,
-				Target: "/mnt/project",
+				Source: _cwd,
+				Target: _projectDir,
 			},
 			{
 				Type:   mount.TypeBind,
 				Source: api.ModelMount.HostPath,
-				Target: "/mnt/model",
+				Target: _modelDir,
 			},
 			{
 				Type:   mount.TypeBind,
-				Source: filepath.Join(LocalWorkspace, filepath.Dir(api.Key)),
+				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
 				Target: "/mnt/workspace",
 			},
 		},
@@ -265,14 +267,12 @@ func TensorFlowSpec(api *spec.API) error {
 	apiContainerConfig := &container.Config{
 		Image: api.Predictor.Image,
 		Env: append(
-			getAPIEnv(api),
-			"CORTEX_TF_SERVING_PORT="+"9000",
+			getAPIEnv(api, awsClient),
+			"CORTEX_TF_SERVING_PORT="+_tfServingContainerName,
 			"CORTEX_TF_SERVING_HOST="+tfContainerHost,
-			"AWS_ACCESS_KEY_ID="+os.Getenv("AWS_ACCESS_KEY_ID"),
-			"AWS_SECRET_ACCESS_KEY="+os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		),
 		ExposedPorts: nat.PortSet{
-			"8888/tcp": struct{}{},
+			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
 			"cortex":       "true",
@@ -280,6 +280,7 @@ func TensorFlowSpec(api *spec.API) error {
 			"apiID":        api.ID,
 			"apiName":      api.Name,
 			"deploymentID": api.DeploymentID,
+			"modelID":      api.ModelMount.ID,
 		},
 	}
 	containerCreateRequest, err = docker.MustDockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")

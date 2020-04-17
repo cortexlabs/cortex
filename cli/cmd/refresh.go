@@ -51,7 +51,7 @@ var _refreshCmd = &cobra.Command{
 		var refreshResponse schema.RefreshResponse
 		var err error
 		if env.Provider == types.LocalProviderType {
-			print.BoldFirstLine(fmt.Sprintf("`cortex refresh %s` is not supported for local provider; use `cortex delete %s -c` to clear cache and redeploy with `cortex deploy`", args[0], args[0]))
+			print.BoldFirstLine(fmt.Sprintf("`cortex refresh %s` is not supported for local provider; to refresh an api with local provider, use `cortex delete %s -c` to clear cache and redeploy with `cortex deploy`", args[0], args[0]))
 			return
 		}
 		refreshResponse, err = cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)

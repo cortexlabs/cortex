@@ -173,7 +173,7 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
 
     response = Response(content=json_string, media_type="application/json")
 
-    if api.tracker is not None:
+    if local_cache["provider"] != "local" and api.tracker is not None:
         try:
             predicted_value = api.tracker.extract_predicted_value(prediction)
             api.post_tracker_metrics(predicted_value)

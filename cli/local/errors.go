@@ -18,58 +18,20 @@ package local
 
 import (
 	"fmt"
-	"runtime"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 const (
-	ErrConnectToDockerDaemon         = "local.connect_to_docker_daemon"
-	ErrDockerPermissions             = "local.docker_permissions"
-	ErrTensorFlowDirTooManyFiles     = "local.tensorflow_dir_too_many_files"
 	ErrAPINotDeployed                = "local.api_not_deployed"
 	ErrAPISpecNotFound               = "local.api_specification_not_found"
 	ErrCortexVersionMismatch         = "local.err_cortex_version_mismatch"
-	ErrAPIContainerNotFound          = "local.api_container_not_found"
+	ErrAPIContainersNotFound         = "local.api_containers_not_found"
 	ErrFoundContainersWithoutAPISpec = "local.found_containers_without_api_spec"
 	ErrInvalidTensorFlowZip          = "local.invalid_tensorflow_zip"
 	ErrFailedToDeleteAPISpec         = "local.failed_to_delete_api_spec"
 )
-
-func ErrorConnectToDockerDaemon() error {
-	installMsg := "install it by following the instructions for your operating system: https://docs.docker.com/install"
-	if strings.HasPrefix(runtime.GOOS, "darwin") {
-		installMsg = "install it here: https://docs.docker.com/docker-for-mac/install"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrConnectToDockerDaemon,
-		Message: fmt.Sprintf("unable to connect to the Docker daemon\n\nplease confirm Docker is running, or if Docker is not installed, %s", installMsg),
-	})
-}
-
-func ErrorDockerPermissions(err error) error {
-	errStr := errors.Message(err)
-
-	var groupAddStr string
-	if strings.HasPrefix(runtime.GOOS, "linux") {
-		groupAddStr = " (e.g. by running `sudo groupadd docker && sudo gpasswd -a $USER docker`)"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrDockerPermissions,
-		Message: errStr + "\n\nyou can re-run this command with `sudo`, or grant your current user access to docker" + groupAddStr,
-	})
-}
-
-func ErrorTensorFlowDirTooManyFiles(count int32) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrTensorFlowDirTooManyFiles,
-		Message: fmt.Sprintf("more than %d many files found in tensorflow directory", count),
-	})
-}
 
 func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(&errors.Error{
@@ -101,8 +63,8 @@ func ErrorFoundContainersWithoutAPISpec(apiName string) error {
 
 func ErrorAPIContainersNotFound(apiName string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPIContainerNotFound,
-		Message: fmt.Sprintf("unable to find containers for %s api", apiName),
+		Kind:    ErrAPIContainersNotFound,
+		Message: fmt.Sprintf("unable to find container(s) for %s api", apiName),
 	})
 }
 

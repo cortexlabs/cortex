@@ -28,6 +28,7 @@ import (
 type Client struct {
 	Region          string
 	sess            *session.Session
+	IsAnonymous     bool
 	clients         clients
 	accountID       *string
 	hashedAccountID *string
@@ -106,7 +107,8 @@ func NewAnonymousClientWithRegion(region string) (*Client, error) {
 		return nil, err
 	}
 	return &Client{
-		sess:   sess,
-		Region: region,
+		sess:        sess,
+		Region:      region,
+		IsAnonymous: true,
 	}, nil
 }

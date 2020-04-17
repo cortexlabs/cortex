@@ -202,7 +202,7 @@ function main() {
   fi
 
   echo -n "￮ configuring cli "
-  python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENV_NAME" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
+  python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENV_NAME" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY" "$CORTEX_REGION"
   echo "✓"
 
   echo -e "\ncortex is ready!"

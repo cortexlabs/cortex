@@ -17,6 +17,7 @@ limitations under the License.
 package cliconfig
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -46,11 +47,11 @@ func CheckReservedEnvironmentNames(envName string, provider types.ProviderType) 
 
 func (env *Environment) Validate() error {
 	if env.Name == "" {
-		return errors.Wrap(cr.ErrorMustBeDefined(), "name")
+		return errors.Wrap(cr.ErrorMustBeDefined(), NameKey)
 	}
 
 	if env.Provider == types.UnknownProviderType {
-		return errors.Wrap(cr.ErrorMustBeDefined(types.ProviderTypeStrings()), env.Name, "provider")
+		return errors.Wrap(cr.ErrorMustBeDefined(types.ProviderTypeStrings()), env.Name, ProviderKey)
 	}
 
 	if err := CheckReservedEnvironmentNames(env.Name, env.Provider); err != nil {
@@ -65,13 +66,20 @@ func (env *Environment) Validate() error {
 
 	if env.Provider == types.AWSProviderType {
 		if env.OperatorEndpoint == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "operator_endpoint")
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, OperatorEndpointKey)
 		}
 		if env.AWSAccessKeyID == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "aws_access_key_id")
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSAccessKeyIDKey)
 		}
 		if env.AWSSecretAccessKey == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, "aws_secret_access_key")
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSSecretAccessKeyKey)
+		}
+	}
+
+	if env.AWSRegion != nil {
+		if !aws.S3Regions.Has(*env.AWSRegion) {
+			s3RegionSlice := aws.S3Regions.Slice()
+			return errors.Wrap(cr.ErrorInvalidStr(*env.AWSRegion, s3RegionSlice[0], s3RegionSlice[1:]...), env.Name, AWSRegionKey)
 		}
 	}
 

@@ -26,8 +26,9 @@ import (
 
 const (
 	ErrEnvironmentNotConfigured           = "cliconfig.environment_not_configured"
-	ErrDuplicateEnvironmentNames          = "cliconfig.duplicate_environment_names"
+	ErrDefaultEnvironmentDoesntExist      = "cliconfig.default_environment_doesnt_exist"
 	ErrEnvironmentProviderNameConflict    = "cliconfig.environment_provider_name_conflict"
+	ErrDuplicateEnvironmentNames          = "cliconfig.duplicate_environment_names"
 	ErrOperatorEndpointInLocalEnvironment = "cliconfig.operator_endpoint_in_local_environment"
 )
 
@@ -35,6 +36,13 @@ func ErrorEnvironmentNotConfigured(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotConfigured,
 		Message: fmt.Sprintf("%s environment is not configured", envName),
+	})
+}
+
+func ErrorDefaultEnvironmentDoesntExist(envName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDefaultEnvironmentDoesntExist,
+		Message: fmt.Sprintf("can set \"%s\" as default environment because it doesn't exist", envName),
 	})
 }
 

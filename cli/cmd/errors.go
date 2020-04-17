@@ -49,6 +49,7 @@ const (
 	ErrEnvironmentProviderNameConflict    = "cli.environment_provider_name_conflict"
 	ErrOperatorEndpointInLocalEnvironment = "cli.operator_endpoint_in_local_environment"
 	ErrOperatorConfigFromLocalEnvironment = "cli.operater_config_from_local_environment"
+	ErrFieldNotFoundInEnvironment         = "cli.err_field_not_found_in_environment"
 	ErrInvalidOperatorEndpoint            = "cli.invalid_operator_endpoint"
 	ErrCortexYAMLNotFound                 = "cli.cortex_yaml_not_found"
 	ErrConnectToDockerDaemon              = "cli.connect_to_docker_daemon"
@@ -103,6 +104,13 @@ func ErrorOperatorConfigFromLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorConfigFromLocalEnvironment,
 		Message: "attempting to retrieve cluster operator config from local environment",
+	})
+}
+
+func ErrorFieldNotFoundInEnvironment(fieldName string, envName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldNotFoundInEnvironment,
+		Message: fmt.Sprintf("%s was not found in %s environment", fieldName, envName),
 	})
 }
 

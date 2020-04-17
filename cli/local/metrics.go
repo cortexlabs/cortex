@@ -31,7 +31,7 @@ import (
 )
 
 func GetAPIMetrics(api *spec.API) (metrics.Metrics, error) {
-	apiWorkspace := filepath.Join(LocalWorkspace, filepath.Dir(api.Key))
+	apiWorkspace := filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key))
 
 	networkStats := metrics.NetworkStats{}
 
@@ -122,7 +122,7 @@ func GetAPIStatus(api *spec.API) (status.Status, error) {
 		}
 	}
 
-	if !files.IsFile(filepath.Join(LocalWorkspace, "apis", api.Name, api.ID, "api_readiness.txt")) {
+	if !files.IsFile(filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key), "api_readiness.txt")) {
 		apiStatus.ReplicaCounts.Updated.Initializing = 1
 		apiStatus.Code = status.Updating
 		return apiStatus, nil

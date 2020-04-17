@@ -363,7 +363,7 @@ func DeleteDir(path string) error {
 
 func DeleteDirIfPresent(path string) (bool, error) {
 	if IsFile(path) {
-		return false, ErrorNotAFile(path)
+		return false, ErrorNotADir(path)
 	}
 
 	if !IsDir(path) {

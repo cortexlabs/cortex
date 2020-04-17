@@ -70,13 +70,6 @@ func init() {
 		exit.Error(err)
 	}
 
-	_localWorkSpace = filepath.Join(_localDir, "local_workspace")
-	err = os.MkdirAll(_localWorkSpace, os.ModePerm)
-	if err != nil {
-		err := errors.Wrap(err, "unable to write to home directory", _localDir)
-		exit.Error(err)
-	}
-
 	_cliConfigPath = filepath.Join(_localDir, "cli.yaml")
 	_clientIDPath = filepath.Join(_localDir, "client-id.txt")
 	_emailPath = filepath.Join(_localDir, "email.txt")

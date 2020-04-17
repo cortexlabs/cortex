@@ -14,31 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package local
+package cliconfig
 
-import (
-	"github.com/cortexlabs/cortex/pkg/lib/docker"
+const (
+	EnvironmentsKey       = "environments"
+	DefaultEnvironmentKey = "default_environment"
+	NameKey               = "name"
+	ProviderKey           = "provider"
+	OperatorEndpointKey   = "operator_endpoint"
+	AWSAccessKeyIDKey     = "aws_access_key_id"
+	AWSSecretAccessKeyKey = "aws_secret_access_key"
+	AWSRegionKey          = "aws_region"
 )
-
-func StreamLogs(apiName string) error {
-	_, err := FindAPISpec(apiName)
-	if err != nil {
-		return err
-	}
-
-	containers, err := GetContainersByAPI(apiName)
-	if err != nil {
-		return err
-	}
-
-	if len(containers) == 0 {
-		return ErrorAPIContainersNotFound(apiName)
-	}
-
-	containerIDs := []string{}
-	for _, container := range containers {
-		containerIDs = append(containerIDs, container.ID)
-	}
-
-	return docker.StreamDockerLogs(containerIDs[0], containerIDs[1:]...)
-}

@@ -71,13 +71,9 @@ func GetDockerClient() (*dockerclient.Client, error) {
 }
 
 func MustDockerClient() *dockerclient.Client {
-	dockerClient, err := createDockerClient()
+	dockerClient, err := GetDockerClient()
 	if err != nil {
 		exit.Error(err)
-	}
-
-	if _, err := dockerClient.Info(context.Background()); err != nil {
-		exit.Error(WrapDockerError(err))
 	}
 
 	return dockerClient

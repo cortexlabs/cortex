@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	ErrConnectToDockerDaemon = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions     = "cli.docker_permissions"
+	ErrConnectToDockerDaemon = "docker.connect_to_docker_daemon"
+	ErrDockerPermissions     = "docker.docker_permissions"
 	ErrImageInaccessible     = "docker.image_inaccessible"
 )
 

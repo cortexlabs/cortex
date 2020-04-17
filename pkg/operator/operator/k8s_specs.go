@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
@@ -577,6 +578,10 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		kcore.EnvVar{
 			Name:  "CORTEX_PROJECT_DIR",
 			Value: path.Join(_emptyDirMountPath, "project"),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_PROVIDER",
+			Value: types.AWSProviderType.String(),
 		},
 	)
 

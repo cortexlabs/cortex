@@ -771,7 +771,7 @@ func validateDockerImagePath(image string, awsClient *aws.Client) error {
 	}
 
 	dockerAuth := docker.NoAuth
-	if regex.IsValidECRURL(image) {
+	if regex.IsValidECRURL(image) && !awsClient.IsAnonymous {
 		operatorID, _, err := awsClient.GetCachedAccountID()
 		if err != nil {
 			return err

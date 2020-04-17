@@ -57,6 +57,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
+
 	projectID, err := files.HashFile(projectFileList[0], projectFileList[1:]...)
 	if err != nil {
 		return schema.DeployResponse{}, err

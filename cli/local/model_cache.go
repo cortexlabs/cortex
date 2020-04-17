@@ -7,12 +7,10 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func CacheModel(modelPath string, awsClient *aws.Client) (*spec.ModelMount, error) {
@@ -29,14 +27,14 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.ModelMount, erro
 		}
 		modelMount.ID = hash
 	} else {
-		hash, err := getLocalModelHash(modelPath)
+		hash, err := localModelHash(modelPath)
 		if err != nil {
 			return nil, err
 		}
 		modelMount.ID = hash
 	}
 
-	modelDir := filepath.Join(ModelCacheDir, modelMount.ID)
+	modelDir := filepath.Join(_modelCacheDir, modelMount.ID)
 
 	if files.IsFile(filepath.Join(modelDir, "_SUCCESS")) {
 		return &modelMount, nil
@@ -91,6 +89,8 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.ModelMount, erro
 		return nil, err
 	}
 
+	fmt.Println("") // Newline to group all of the model information
+
 	modelMount.HostPath = modelDir
 
 	return &modelMount, nil
@@ -105,9 +105,9 @@ func unzipAndValidate(originalModelPath string, zipFile string, destPath string)
 
 	isValid, err := spec.IsValidTensorFlowLocalDirectory(destPath)
 	if err != nil {
-		return errors.Wrap(err, userconfig.ModelKey)
+		return err
 	} else if !isValid {
-		return errors.Wrap(ErrorInvalidTensorFlowZip(originalModelPath))
+		return ErrorInvalidTensorFlowZip(originalModelPath)
 	}
 	err = os.Remove(zipFile)
 	if err != nil {
@@ -116,7 +116,7 @@ func unzipAndValidate(originalModelPath string, zipFile string, destPath string)
 	return nil
 }
 
-func getLocalModelHash(modelPath string) (string, error) {
+func localModelHash(modelPath string) (string, error) {
 	var err error
 	modelHash := ""
 	if files.IsDir(modelPath) {

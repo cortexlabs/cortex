@@ -17,12 +17,10 @@ limitations under the License.
 package local
 
 import (
-	"context"
 	"path/filepath"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
@@ -31,8 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
-	dockertypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
 )
 
 func GetAPIs() (schema.GetAPIsResponse, error) {
@@ -65,7 +61,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 }
 
 func ListAllAPISpecs() ([]spec.API, error) {
-	filepaths, err := files.ListDirRecursive(filepath.Join(LocalWorkspace, "apis"), false)
+	filepaths, err := files.ListDirRecursive(filepath.Join(_localWorkspaceDir, "apis"), false)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +93,7 @@ func ListAllAPISpecs() ([]spec.API, error) {
 }
 
 func ListVersionMismatchedAPI() ([]string, error) {
-	filepaths, err := files.ListDirRecursive(filepath.Join(LocalWorkspace, "apis"), false)
+	filepaths, err := files.ListDirRecursive(filepath.Join(_localWorkspaceDir, "apis"), false)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +109,7 @@ func ListVersionMismatchedAPI() ([]string, error) {
 			continue
 		}
 
-		key, err := filepath.Rel(filepath.Join(LocalWorkspace, "apis"), specPath)
+		key, err := filepath.Rel(filepath.Join(_localWorkspaceDir, "apis"), specPath)
 		if err != nil {
 			return nil, err
 		}
@@ -125,25 +121,6 @@ func ListVersionMismatchedAPI() ([]string, error) {
 	}
 
 	return apiNames, nil
-}
-
-func GetAllContainers() ([]dockertypes.Container, error) {
-	dockerClient, err := docker.GetDockerClient()
-	if err != nil {
-		return nil, err
-	}
-
-	dargs := filters.NewArgs()
-	dargs.Add("label", "cortex=true")
-	containers, err := dockerClient.ContainerList(context.Background(), dockertypes.ContainerListOptions{
-		All:     true,
-		Filters: dargs,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return containers, nil
 }
 
 func GetAPI(apiName string) (schema.GetAPIResponse, error) {
@@ -186,6 +163,6 @@ func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 		API:     apiSpec,
 		Status:  apiStatus,
 		Metrics: apiMetrics,
-		BaseURL: "localhost:" + apiPort,
+		BaseURL: "http://localhost:" + apiPort + "/predict",
 	}, nil
 }

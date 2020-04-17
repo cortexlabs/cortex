@@ -223,7 +223,7 @@ func convertOldCLIConfig() (cliconfig.CLIConfig, bool) {
 }
 
 func promptEnvName(promptMsg string, requireExistingEnv bool) string {
-	configuredEnvNames, err := listConfiguredEnvs()
+	configuredEnvNames, err := listConfiguredEnvNames()
 	if err != nil {
 		exit.Error(err)
 	}
@@ -322,6 +322,7 @@ func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) 
 	// Don't prompt for secret access key if access key ID was not provided
 	if env.AWSAccessKeyID == nil {
 		env.AWSSecretAccessKey = nil
+		env.AWSRegion = nil
 		return nil
 	}
 
@@ -487,7 +488,7 @@ func isTelemetryEnabled() bool {
 	return enabled
 }
 
-// TODO Will return nil if not configured, except for local
+// Will return nil if not configured, except for local
 func readEnv(envName string) (*cliconfig.Environment, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
@@ -580,6 +581,9 @@ func getDefaultEnvConfig(envName string) cliconfig.Environment {
 	if defaults.AWSSecretAccessKey == nil && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
 		defaults.AWSSecretAccessKey = pointer.String(os.Getenv("AWS_SECRET_ACCESS_KEY"))
 	}
+	if defaults.AWSRegion == nil && os.Getenv("AWS_REGION") != "" {
+		defaults.AWSRegion = pointer.String(os.Getenv("AWS_REGION"))
+	}
 	if defaults.OperatorEndpoint == nil && os.Getenv("CORTEX_OPERATOR_ENDPOINT") != "" {
 		defaults.OperatorEndpoint = pointer.String(os.Getenv("CORTEX_OPERATOR_ENDPOINT"))
 	}
@@ -609,6 +613,7 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 		OperatorEndpoint:   fieldsToSkipPrompt.OperatorEndpoint,
 		AWSAccessKeyID:     fieldsToSkipPrompt.AWSAccessKeyID,
 		AWSSecretAccessKey: fieldsToSkipPrompt.AWSSecretAccessKey,
+		AWSRegion:          fieldsToSkipPrompt.AWSRegion,
 	}
 
 	err := promptProvider(&env, envName, defaults)
@@ -661,31 +666,40 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 	}
 
 	if env.OperatorEndpoint == nil {
-		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
+		exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.OperatorEndpointKey, env.Name))
 	}
 	operatorConfig.OperatorEndpoint = *env.OperatorEndpoint
 
 	if env.AWSAccessKeyID == nil {
-		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
+		exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSAccessKeyIDKey, env.Name))
 	}
 	operatorConfig.AWSAccessKeyID = *env.AWSAccessKeyID
 
 	if env.AWSSecretAccessKey == nil {
-		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
+		exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSSecretAccessKeyKey, env.Name))
 	}
 	operatorConfig.AWSSecretAccessKey = *env.AWSSecretAccessKey
 
 	return operatorConfig
 }
 
-func listConfiguredEnvs() ([]string, error) {
+func listConfiguredEnvs() ([]*cliconfig.Environment, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	envNames := make([]string, len(cliConfig.Environments))
-	for i, env := range cliConfig.Environments {
+	return cliConfig.Environments, nil
+}
+
+func listConfiguredEnvNames() ([]string, error) {
+	envList, err := listConfiguredEnvs()
+	if err != nil {
+		return nil, err
+	}
+
+	envNames := make([]string, len(envList))
+	for i, env := range envList {
 		envNames[i] = env.Name
 	}
 

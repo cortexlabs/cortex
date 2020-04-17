@@ -43,21 +43,17 @@ func (cliConfig CLIConfig) GetDefaultEnv() (Environment, error) {
 }
 
 func (cliConfig *CLIConfig) Validate() error {
-	if cliConfig.DefaultEnvironment == "" {
-		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
-	}
-
 	envNames := strset.New()
 
 	for _, env := range cliConfig.Environments {
 		if envNames.Has(env.Name) {
-			return errors.Wrap(ErrorDuplicateEnvironmentNames(env.Name), "environments")
+			return errors.Wrap(ErrorDuplicateEnvironmentNames(env.Name), EnvironmentsKey)
 		}
 
 		envNames.Add(env.Name)
 
 		if err := env.Validate(); err != nil {
-			return errors.Wrap(err, "environments")
+			return errors.Wrap(err, EnvironmentsKey)
 		}
 	}
 
@@ -69,6 +65,15 @@ func (cliConfig *CLIConfig) Validate() error {
 		}
 
 		cliConfig.Environments = append([]*Environment{localEnv}, cliConfig.Environments...)
+		envNames.Add("local")
+	}
+
+	if cliConfig.DefaultEnvironment == "" {
+		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
+	}
+
+	if !envNames.Has(cliConfig.DefaultEnvironment) {
+		return ErrorDefaultEnvironmentDoesntExist(cliConfig.DefaultEnvironment)
 	}
 
 	return nil
