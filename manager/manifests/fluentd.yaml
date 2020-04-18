@@ -176,7 +176,6 @@ spec:
     metadata:
       labels:
         app: fluentd
-        hallo: dummy
     spec:
       serviceAccountName: fluentd
       priorityClassName: fluentd

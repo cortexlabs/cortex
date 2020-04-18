@@ -28,7 +28,6 @@ metadata:
   name: nvidia-device-plugin-daemonset
   namespace: kube-system
 spec:
-
   selector:
     matchLabels:
       name: nvidia-device-plugin-ds
