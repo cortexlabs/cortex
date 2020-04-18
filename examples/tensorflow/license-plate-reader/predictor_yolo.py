@@ -40,6 +40,8 @@ class TensorFlowPredictor:
         # package the response
         response = {"boxes": []}
         for box in boxes:
-            response["boxes"].append([box.xmin, box.ymin, box.xmax, box.ymax, box.c, box.classes])
+            response["boxes"].append(
+                [box.xmin, box.ymin, box.xmax, box.ymax, float(box.c), box.classes.tolist()]
+            )
 
         return response
