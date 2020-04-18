@@ -168,10 +168,15 @@ metadata:
   name: fluentd
   namespace: default
 spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         app: fluentd
+        hallo: dummy
     spec:
       serviceAccountName: fluentd
       priorityClassName: fluentd

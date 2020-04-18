@@ -28,11 +28,14 @@ metadata:
   name: nvidia-device-plugin-daemonset
   namespace: kube-system
 spec:
+
   selector:
     matchLabels:
       name: nvidia-device-plugin-ds
   updateStrategy:
     type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   template:
     metadata:
       # This annotation is deprecated. Kept here for backward compatibility
