@@ -41,6 +41,13 @@ type NATMetadata struct {
 	Price  float64 `json:"price"`
 }
 
+//metadata type definition for different storage types
+type EBSType struct {
+	Region string  `json:"region"`
+	Price  float64 `json:"price"`
+	Type   string  `json:"type"`
+}
+
 type EBSMetadata struct {
 	Region string  `json:"region"`
 	Price  float64 `json:"price"`
@@ -3309,6 +3316,39 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.large":     {Region: "us-west-2", Type: "z1d.large", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.186},
 		"z1d.metal":     {Region: "us-west-2", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 4.464},
 		"z1d.xlarge":    {Region: "us-west-2", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.372},
+	},
+}
+
+var EBSMetadatas1 = map[string]map[string]EBSType{
+	"ap-east-1": {
+		"gp2": {Region: "ap-east-1", Type: "gp2", Price: 3.888},
+		"io1": {Region: "ap-east-1", Type: "io1", Price: 0.432},
+		"st1": {Region: "ap-east-1", Type: "st1", Price: 0.864},
+		"sc1": {Region: "ap-east-1", Type: "sc1", Price: 1.944},
+	},
+	"ap-northeast-1": {
+		"gp2": {Region: "ap-northeast-1", Type: "gp2", Price: 3.888},
+		"io1": {Region: "ap-northeast-1", Type: "io1", Price: 0.432},
+		"st1": {Region: "ap-northeast-1", Type: "st1", Price: 0.864},
+		"sc1": {Region: "ap-northeast-1", Type: "sc1", Price: 1.944},
+	},
+	"ap-northeast-2": {
+		"gp2": {Region: "ap-northeast-2", Type: "gp2", Price: 3.888},
+		"io1": {Region: "ap-northeast-2", Type: "io1", Price: 0.432},
+		"st1": {Region: "ap-northeast-2", Type: "st1", Price: 0.864},
+		"sc1": {Region: "ap-northeast-2", Type: "sc1", Price: 1.944},
+	},
+	"ap-south-1": {
+		"gp2": {Region: "ap-south-1", Type: "gp2", Price: 3.888},
+		"io1": {Region: "ap-south-1", Type: "io1", Price: 0.432},
+		"st1": {Region: "ap-south-1", Type: "st1", Price: 0.864},
+		"sc1": {Region: "ap-south-1", Type: "sc1", Price: 1.944},
+	},
+	"ap-southeast-1": {
+		"gp2": {Region: "ap-southeast-1", Type: "gp2", Price: 3.888},
+		"io1": {Region: "ap-southeast-1", Type: "io1", Price: 0.432},
+		"st1": {Region: "ap-southeast-1", Type: "st1", Price: 0.864},
+		"sc1": {Region: "ap-southeast-1", Type: "sc1", Price: 1.944},
 	},
 }
 

@@ -48,6 +48,8 @@ type Config struct {
 	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
 	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
+	VolumeType             string      `json:"volume_type" yaml:"volume_type"`
+	VolumeIops             int64       `json:"volume_iops" yaml:"volume_iops"`
 	Spot                   *bool       `json:"spot" yaml:"spot"`
 	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
 	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
@@ -123,6 +125,21 @@ var UserValidation = &cr.StructValidation{
 				Default:              50,
 				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
 				LessThanOrEqualTo:    pointer.Int64(16384),
+			},
+		},
+		{
+			StructField: "VolumeType",
+			StringValidation: &cr.StringValidation{
+				Default:   "gp2",
+				Validator: validateVolumeType,
+			},
+		},
+		{
+			StructField: "VolumeIops",
+			Int64Validation: &cr.Int64Validation{
+				Default:              10000,
+				GreaterThanOrEqualTo: pointer.Int64(100), // large enough to fit docker images and any other overhead
+				LessThanOrEqualTo:    pointer.Int64(64000),
 			},
 		},
 		{
@@ -350,6 +367,10 @@ func validateRegion(region string) (string, error) {
 
 func validateImageVersion(image string) (string, error) {
 	return cr.ValidateImageVersion(image, consts.CortexVersion)
+}
+
+func validateVolumeType(storagetype string) (string, error) {
+	return cr.ValidateVolumeType(storagetype)
 }
 
 var Validation = &cr.StructValidation{

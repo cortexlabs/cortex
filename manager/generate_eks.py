@@ -71,6 +71,8 @@ def apply_clusterconfig(nodegroup, config):
         "volumeSize": config["instance_volume_size"],
         "minSize": config["min_instances"],
         "maxSize": config["max_instances"],
+        "volumeType": config["volume_type"],
+        "volumeIOPS": config["volume_iops"],
         "desiredCapacity": desired_capacity,
     }
 
