@@ -18,7 +18,7 @@ Cortex is an open source platform for deploying machine learning models as produ
 * **Multi framework:** deploy TensorFlow, PyTorch, scikit-learn, and other models.
 * **Autoscaling:** automatically scale APIs to handle production workloads.
 * **CPU / GPU support:** run inference on CPU or GPU instances.
-* **Spot instances:** save money with EC2 spot instances.
+* **Spot instances:** save money with spot instances.
 * **Rolling updates:** update deployed APIs with no downtime.
 * **Log streaming:** stream logs from deployed models to your CLI.
 * **Prediction monitoring:** monitor API performance and track predictions.
@@ -134,7 +134,7 @@ Cortex is an open source alternative to serving models with SageMaker or buildin
 
 The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
 
-**Note:** Cortex manages its own Kubernetes cluster so that end-to-end functionality like request-based autoscaling, GPU support, and spot instance management can work out of the box without any DevOps work.
+Cortex manages its own Kubernetes cluster so that end-to-end functionality like request-based autoscaling, GPU support, and spot instance management can work out of the box without any additional DevOps work.
 
 <br>
 
