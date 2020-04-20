@@ -13,6 +13,9 @@ RUN pip install --upgrade pip && \
 
 RUN apk add --no-cache bash curl gettext jq openssl
 
+# use CNI 1.6 to support inf instances
+# https://github.com/weaveworks/eksctl/issues/2049
+ENV CNI_VERSION 1.6
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.17.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin
 
