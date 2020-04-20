@@ -160,22 +160,16 @@ function main() {
   echo "✓"
 
   echo -n "￮ configuring logging "
-  kubectl -n=default delete --ignore-not-found=true daemonset fluentd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-  until [ "$(kubectl -n=default get pods -l app=fluentd -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   echo -n "￮ configuring metrics "
-  kubectl -n=default delete --ignore-not-found=true daemonset cloudwatch-agent-statsd >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-  until [ "$(kubectl -n=default get pods -l name=cloudwatch-agent-statsd -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
-    kubectl -n=kube-system delete --ignore-not-found=true daemonset nvidia-device-plugin-daemonset >/dev/null 2>&1  # Pods in DaemonSets cannot be modified
-    until [ "$(kubectl -n=kube-system get pods -l name=nvidia-device-plugin-ds -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
     envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
