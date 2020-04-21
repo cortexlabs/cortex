@@ -131,6 +131,7 @@ ci-build-images:
 	@./build/build-image.sh images/request-monitor request-monitor
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/metrics-server metrics-server
+	@./build/build-image.sh images/inferentia inferentia
 	@./build/build-image.sh images/nvidia nvidia
 	@./build/build-image.sh images/fluentd fluentd
 	@./build/build-image.sh images/statsd statsd
@@ -153,6 +154,7 @@ ci-push-images:
 	@./build/push-image.sh request-monitor
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh metrics-server
+	@./build/push-image.sh inferentia
 	@./build/push-image.sh nvidia
 	@./build/push-image.sh fluentd
 	@./build/push-image.sh statsd

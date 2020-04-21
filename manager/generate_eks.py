@@ -112,12 +112,17 @@ def apply_gpu_settings(nodegroup):
 def is_gpu(instance_type):
     return instance_type.startswith("g") or instance_type.startswith("p")
 
+
 def apply_accelerator_settings(nodegroup):
     accelerator_settings = {
         # custom eks-optimized AMI for inf instances
+        # track https://github.com/aws/containers-roadmap/issues/619 ticket
+        # such that when an EKS-optimized AMI for inf instances is released,
+        # this ami override can be removed and reverted back to auto
         "ami": "ami-0d5a224787b16da0b"
     }
     return merge_override(nodegroup, accelerator_settings)
+
 
 def is_accelerator(instance_type):
     return instance_type.startswith("inf")

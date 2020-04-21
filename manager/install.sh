@@ -175,6 +175,12 @@ function main() {
     echo "✓"
   fi
 
+  if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+    echo -n "￮ configuring accelerator support "
+    envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
+    echo "✓"
+  fi
+
   echo -n "￮ starting operator "
   kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
   until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done

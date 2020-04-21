@@ -376,13 +376,13 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 }
 
 func confirmUpdateClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
-	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds, awsClient))
+	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds, awsClient))
 
 	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
 	prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
 }
 
-func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
+func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
@@ -461,6 +461,9 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	}
 	if clusterConfig.ImageMetricsServer != defaultConfig.ImageMetricsServer {
 		items.Add(clusterconfig.ImageMetricsServerUserKey, clusterConfig.ImageMetricsServer)
+	}
+	if clusterConfig.ImageInferentia != defaultConfig.ImageInferentia {
+		items.Add(clusterconfig.ImageInferentiaUserKey, clusterConfig.ImageInferentia)
 	}
 	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
 		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)
