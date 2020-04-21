@@ -254,7 +254,7 @@ func ErrorDuplicateCLIEnvNames(environment string) error {
 func ErrorInvalidOperatorEndpoint(endpoint string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidOperatorEndpoint,
-		Message: fmt.Sprintf("%s is not a cortex operator endpoint; run `cortex cluster info` to show your operator endpoint or run `cortex cluster up` to spin up a new cluster", endpoint),
+		Message: fmt.Sprintf("unable to connect to cortex operator at %s; run `cortex cluster info` to show your operator endpoint or run `cortex cluster up` to spin up a new cluster", endpoint),
 	})
 }
 
