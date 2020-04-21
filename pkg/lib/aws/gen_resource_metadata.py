@@ -126,19 +126,26 @@ def get_nat_metadata(pricing):
 
 
 def get_ebs_metadata(pricing):
+    storage_mapping = {}
+
     for product_id, product in pricing["products"].items():
         if product.get("attributes") is None:
             continue
         if product.get("productFamily") != "Storage":
             continue
-        if product["attributes"].get("volumeApiName") != "gp2":
-            continue
-
+        
         price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
             "priceDimensions"
         ]
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
-        return {"price": float(price)}
+        
+        metadata = {
+            "type": product["attributes"].get("volumeApiName"),          
+            "price": float(price),
+        }
+        storage_mapping[product["attributes"].get("volumeApiName")] = metadata
+    print(storage_mapping)
+    return storage_mapping
 
 
 def get_eks_price(region):
@@ -210,7 +217,8 @@ type NATMetadata struct {
 
 type EBSMetadata struct {
 	Region string  `json:"region"`
-	Price  float64 `json:"price"`
+	Price  float64 `json:"priceGB"`
+    Type  string `json:"type"`
 }
 
 // region -> instance type -> instance metadata
@@ -229,9 +237,10 @@ var NATMetadatas = map[string]NATMetadata{
 }
 
 // region -> EBS metadata
-var EBSMetadatas = map[string]EBSMetadata{
+var EBSMetadatas = map[string]map[string]EBSMetadata{
     ${ebs_region_map}
 }
+
 
 // region -> EKS price
 var EKSPrices = map[string]float64{
@@ -261,9 +270,14 @@ nat_region_map_template = Template(
     """"${region}": {Region: "${region}", Price: ${price}},
 """
 )
-
 ebs_region_map_template = Template(
-    """"${region}": {Region: "${region}", Price: ${price}},
+    """"${region}": map[string]EBSMetadata{
+	${ebs_metadata}
+},
+"""
+)
+ebs_type_map_template = Template(
+    """"${type}": {Region: "${region}",Type: "${type}", Price: ${price}},
 """
 )
 
@@ -307,6 +321,19 @@ def main():
                 }
             )
 
+        ebs_metadatas_str = ""
+
+        for ebs_type in sorted(ebs_metadata.keys()):
+            metadata = ebs_metadata[ebs_type]
+            ebs_metadatas_str += ebs_type_map_template.substitute(
+                {
+                    "region": region,
+                    "type": ebs_type,
+                    "price": metadata["price"],
+                }
+            )
+        print("METADATAS")
+        print(ebs_metadatas_str)
         instance_region_map_str += instance_region_map_template.substitute(
             {"region": region, "instance_metadatas": instance_metadatas_str}
         )
@@ -317,7 +344,7 @@ def main():
             {"region": region, "price": nat_metadata["price"]}
         )
         ebs_region_map_str += ebs_region_map_template.substitute(
-            {"region": region, "price": ebs_metadata["price"]}
+            {"region": region, "ebs_metadata": ebs_metadatas_str}
         )
         eks_region_map_str += eks_region_map_template.substitute(
             {"region": region, "price": eks_price}
