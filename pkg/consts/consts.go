@@ -17,9 +17,6 @@ limitations under the License.
 package consts
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
@@ -27,13 +24,13 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultImagePythonServe    = defaultDockerImage("python-serve")
-	DefaultImagePythonServeGPU = defaultDockerImage("python-serve-gpu")
-	DefaultImageTFServe        = defaultDockerImage("tf-serve")
-	DefaultImageTFServeGPU     = defaultDockerImage("tf-serve-gpu")
-	DefaultImageTFAPI          = defaultDockerImage("tf-api")
-	DefaultImageONNXServe      = defaultDockerImage("onnx-serve")
-	DefaultImageONNXServeGPU   = defaultDockerImage("onnx-serve-gpu")
+	DefaultImagePythonServe    = "cortexlabs/python-serve:" + CortexVersion
+	DefaultImagePythonServeGPU = "cortexlabs/python-serve-gpu:" + CortexVersion
+	DefaultImageTFServe        = "cortexlabs/tf-serve:" + CortexVersion
+	DefaultImageTFServeGPU     = "cortexlabs/tf-serve-gpu:" + CortexVersion
+	DefaultImageTFAPI          = "cortexlabs/tf-api:" + CortexVersion
+	DefaultImageONNXServe      = "cortexlabs/onnx-serve:" + CortexVersion
+	DefaultImageONNXServeGPU   = "cortexlabs/onnx-serve-gpu:" + CortexVersion
 	DefaultImagePathsSet       = strset.New(
 		DefaultImagePythonServe,
 		DefaultImagePythonServeGPU,
@@ -46,12 +43,3 @@ var (
 
 	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
 )
-
-func defaultDockerImage(imageName string) string {
-	// override default image paths in development
-	if imageOverride := os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"); imageOverride != "" {
-		return fmt.Sprintf("%s/%s:latest", imageOverride, imageName)
-	}
-
-	return fmt.Sprintf("cortexlabs/%s:%s", imageName, CortexVersion)
-}
