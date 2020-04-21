@@ -112,6 +112,16 @@ def apply_gpu_settings(nodegroup):
 def is_gpu(instance_type):
     return instance_type.startswith("g") or instance_type.startswith("p")
 
+def apply_accelerator_settings(nodegroup):
+    accelerator_settings = {
+        # custom eks-optimized AMI for inf instances
+        "ami": "ami-0d5a224787b16da0b"
+    }
+    return merge_override(nodegroup, accelerator_settings)
+
+def is_accelerator(instance_type):
+    return instance_type.startswith("inf")
+
 
 def generate_eks(configmap_yaml_path):
     with open(configmap_yaml_path, "r") as f:
@@ -139,6 +149,9 @@ def generate_eks(configmap_yaml_path):
     if is_gpu(cluster_configmap["instance_type"]):
         apply_gpu_settings(worker_nodegroup)
 
+    if is_accelerator(cluster_configmap["instance_type"]):
+        apply_accelerator_settings(worker_nodegroup)
+
     eks = {
         "apiVersion": "eksctl.io/v1alpha5",
         "kind": "ClusterConfig",
@@ -161,6 +174,8 @@ def generate_eks(configmap_yaml_path):
         apply_clusterconfig(backup_nodegroup, cluster_configmap)
         if is_gpu(cluster_configmap["instance_type"]):
             apply_gpu_settings(backup_nodegroup)
+        if is_accelerator(cluster_configmap["instance_type"]):
+            apply_accelerator_settings(backup_nodegroup)
 
         backup_nodegroup["minSize"] = 0
         backup_nodegroup["desiredCapacity"] = 0
