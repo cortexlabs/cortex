@@ -61,20 +61,20 @@ You should be SSH'd in!
 
 ### Step 6 - Terminal
 
-Take note of "Instance ID", "Availability Zone" and "Public DNS (IPv4)" fields of your instance.
+Take note of "Instance ID", "Availability Zone" and "Public DNS (IPv4)" fields of your worker instance.
 
 ![step 6](https://user-images.githubusercontent.com/26958764/80010486-2875dc00-84d3-11ea-8edf-afb3cdda6c17.png)
 
 ### Step 7 - Terminal
 
-Generate a new RSA key pair. OpenSSH and SSH2 are supported alongside 2048 and 4096 bit length.
+Generate a new RSA key pair. OpenSSH and SSH2 are supported alongside 2048 and 4096 bit lengths.
 ```bash
 ssh-keygen -t rsa -f my_rsa_key
 ```
 
 ### Step 8 - Terminal
 
-Provide the public key to the instance with `aws ec2-instance-connect send-ssh-public-key` command. The key is removed from the instance metadata within a 60 second timeframe. The public key can be reused any number of times. Then SSH in.
+Provide the public key to the worker instance with `aws ec2-instance-connect send-ssh-public-key` command. The key is removed from the instance metadata within a 60 second timeframe. The public key can be reused any number of times. Then SSH in.
 
 ```bash
 aws ec2-instance-connect send-ssh-public-key \
