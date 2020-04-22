@@ -40,6 +40,21 @@ max_instances: 5
 # instance volume size (GB) (default: 50)
 instance_volume_size: 50
 
+# whether the subnets used for EC2 instances should be public or private (default: "public")
+subnet_visibility: public  # must be "public" or "private"
+
+# whether to include a NAT gateway with the cluster (a NAT gateway is necessary when using private subnets)
+# default value is "none" if subnet_visibility is set to "public"; "single" if subnet_visibility is set to "private"
+nat_gateway: none  # must be "none", "single", and "highly_available" (one NAT gateway per availability zone)
+
+# whether the API load balancer should be internet-facing or internal (default: "internet-facing")
+# note: if using "internal", you must configure an API Gateway VPC Link or VPC Peering to connect to your APIs (see our guides)
+api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
+
+# whether the Operator load balancer should be internet-facing or internal (default: "internet-facing")
+# note: if using "internal", you must configure an API Gateway VPC Link or VPC Peering to connect to your cluster operator (see our guides)
+operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
+
 # CloudWatch log group for cortex (default: <cluster_name>)
 log_group: cortex
 
