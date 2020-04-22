@@ -41,6 +41,7 @@ gateways:
     serviceAnnotations:
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "600"
     type: LoadBalancer
+    externalTrafficPolicy: Local
     ports:
     - port: 80
       targetPort: 80
@@ -81,6 +82,7 @@ gateways:
     serviceAnnotations:
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "600"
     type: LoadBalancer
+    externalTrafficPolicy: Local
     ports:
     - port: 80
       targetPort: 80
