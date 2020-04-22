@@ -327,7 +327,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
-	fmt.Printf("aws access key id %s will be used to provision a cluster (%s) in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
+	fmt.Printf("aws access key id %s will be used to provision a cluster named \"%s\" in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
 
 	headers := []table.Header{
 		{Title: "aws resource"},
