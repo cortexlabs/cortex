@@ -52,7 +52,7 @@ EKS_PRICING_ENDPOINT_TEMPLATE = (
 def get_instance_metadatas(pricing):
     instance_mapping = {}
 
-    for product_id, product in pricing["products"].items():
+    for _, product in pricing["products"].items():
         if product.get("attributes") is None:
             continue
         if product["attributes"].get("servicecode") != "AmazonEC2":
@@ -124,16 +124,14 @@ def get_nat_metadata(pricing):
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
         return {"price": float(price)}
 
-
 def get_ebs_metadata(pricing):
     storage_mapping = {}
 
-    for product_id, product in pricing["products"].items():
+    for _, product in pricing["products"].items():
         if product.get("attributes") is None:
             continue
         if product.get("productFamily") != "Storage":
             continue
-        
         price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
             "priceDimensions"
         ]
@@ -141,10 +139,33 @@ def get_ebs_metadata(pricing):
         
         metadata = {
             "type": product["attributes"].get("volumeApiName"),          
-            "price": float(price),
+            "priceGB": float(price),
         }
+        # io1 and standard have per IOPS pricing --> add pricing to metadata
+        # if storagedevice does not price per IOPS will set value to 0
+        if product["attributes"].get("volumeApiName")=="io1" or product["attributes"].get("volumeApiName")=="standard":
+            # go through pricing data until found data about IOPS pricing
+            for _, product_iops in pricing["products"].items():
+                if product_iops.get("attributes") is None:
+                    continue
+                if product_iops.get("productFamily") != "System Operation":
+                    continue
+
+                price_dimensions = list(pricing["terms"]["OnDemand"][product_iops["sku"]].values())[0]["priceDimensions"]
+                price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
+
+                #add io1 IOPS pricing to metadata
+                if "io1" == product_iops.get("attributes")['volumeApiName'] and  "io1" == product["attributes"].get("volumeApiName"):
+                    metadata["priceIOPS"]= price
+
+                #add standard IOPS pricing to metadata (legacy storage devide)
+                elif "standard" == product_iops.get("attributes")['volumeApiName'] and "standard" == product["attributes"].get("volumeApiName"):
+                    metadata["priceIOPS"]= price
+        else:
+            metadata["priceIOPS"]= 0
+
         storage_mapping[product["attributes"].get("volumeApiName")] = metadata
-    print(storage_mapping)
+
     return storage_mapping
 
 
@@ -217,7 +238,8 @@ type NATMetadata struct {
 
 type EBSMetadata struct {
 	Region string  `json:"region"`
-	Price  float64 `json:"priceGB"`
+	PriceGB  float64 `json:"priceGB"`
+    PriceIOPS  float64 `json:"priceIOPS"`
     Type  string `json:"type"`
 }
 
@@ -277,7 +299,7 @@ ebs_region_map_template = Template(
 """
 )
 ebs_type_map_template = Template(
-    """"${type}": {Region: "${region}",Type: "${type}", Price: ${price}},
+    """"${type}": {Region: "${region}",Type: "${type}", PriceGB: ${priceGB}, PriceIOPS: ${priceIOPS}},
 """
 )
 
@@ -329,7 +351,8 @@ def main():
                 {
                     "region": region,
                     "type": ebs_type,
-                    "price": metadata["price"],
+                    "priceGB": metadata["priceGB"],
+                    "priceIOPS": metadata["priceIOPS"],
                 }
             )
         print("METADATAS")
@@ -349,7 +372,6 @@ def main():
         eks_region_map_str += eks_region_map_template.substitute(
             {"region": region, "price": eks_price}
         )
-
     file_str = file_template.substitute(
         {
             "instance_region_map": instance_region_map_str,

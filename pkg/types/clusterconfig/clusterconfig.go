@@ -138,7 +138,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "VolumeIops",
 			Int64Validation: &cr.Int64Validation{
 				Default:              10000,
-				GreaterThanOrEqualTo: pointer.Int64(100), // large enough to fit docker images and any other overhead
+				GreaterThanOrEqualTo: pointer.Int64(100),
 				LessThanOrEqualTo:    pointer.Int64(64000),
 			},
 		},

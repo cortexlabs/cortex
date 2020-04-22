@@ -177,7 +177,7 @@ func ValidateImageVersion(image, cortexVersion string) (string, error) {
 func ValidateVolumeType(storagetype string) (string, error) {
 
 	//loop over all possible sorage types which are availabe in all areas so we check if provided storagetype is an availbale option it ap-east-1
-	for k, _ := range aws.EBSMetadatas1["ap-east-1"] {
+	for k, _ := range aws.EBSMetadatas["ap-east-1"] {
 		if k == storagetype {
 			return storagetype, nil
 		}
