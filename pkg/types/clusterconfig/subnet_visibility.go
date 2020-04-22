@@ -23,8 +23,8 @@ const (
 
 var _subnetVisibilities = []string{
 	"unknown",
-	"private",
 	"public",
+	"private",
 }
 
 func SubnetVisibilityFromString(s string) SubnetVisibility {

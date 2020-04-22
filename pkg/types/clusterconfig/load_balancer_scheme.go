@@ -23,8 +23,8 @@ const (
 
 var _loadBalancerSchemes = []string{
 	"unknown",
-	"internal",
 	"internet-facing",
+	"internal",
 }
 
 func LoadBalancerSchemeFromString(s string) LoadBalancerScheme {
