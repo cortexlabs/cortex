@@ -55,7 +55,7 @@ type Config struct {
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	LogGroup                   string             `json:"log_group" yaml:"log_group"`
-	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"SubnetVisibility"`
+	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
