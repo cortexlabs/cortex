@@ -256,6 +256,15 @@ function setup_istio() {
     sleep 3
   done
 
+  export CORTEX_API_LOAD_BALANCER_ANNOTATION=""
+  if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    export CORTEX_API_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
+  fi
+  export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION=""
+  if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
+  fi
+
   envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
 }
 
