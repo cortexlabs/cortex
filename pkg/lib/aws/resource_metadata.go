@@ -31,7 +31,7 @@ type InstanceMetadata struct {
 	Price  float64            `json:"price"`
 }
 
-type ELBMetadata struct {
+type NLBMetadata struct {
 	Region string  `json:"region"`
 	Price  float64 `json:"price"`
 }
@@ -3312,25 +3312,25 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 	},
 }
 
-// region -> ELB metadata
-var ELBMetadatas = map[string]ELBMetadata{
-	"ap-east-1":      {Region: "ap-east-1", Price: 0.0308},
-	"ap-northeast-1": {Region: "ap-northeast-1", Price: 0.027},
-	"ap-northeast-2": {Region: "ap-northeast-2", Price: 0.025},
-	"ap-south-1":     {Region: "ap-south-1", Price: 0.0266},
-	"ap-southeast-1": {Region: "ap-southeast-1", Price: 0.028},
-	"ap-southeast-2": {Region: "ap-southeast-2", Price: 0.028},
-	"ca-central-1":   {Region: "ca-central-1", Price: 0.0275},
-	"eu-central-1":   {Region: "eu-central-1", Price: 0.03},
-	"eu-north-1":     {Region: "eu-north-1", Price: 0.0266},
-	"eu-west-1":      {Region: "eu-west-1", Price: 0.028},
-	"eu-west-2":      {Region: "eu-west-2", Price: 0.0294},
-	"eu-west-3":      {Region: "eu-west-3", Price: 0.0294},
-	"me-south-1":     {Region: "me-south-1", Price: 0.0308},
+// region -> NLB metadata
+var NLBMetadatas = map[string]NLBMetadata{
+	"ap-east-1":      {Region: "ap-east-1", Price: 0.0277},
+	"ap-northeast-1": {Region: "ap-northeast-1", Price: 0.0243},
+	"ap-northeast-2": {Region: "ap-northeast-2", Price: 0.0225},
+	"ap-south-1":     {Region: "ap-south-1", Price: 0.0239},
+	"ap-southeast-1": {Region: "ap-southeast-1", Price: 0.0252},
+	"ap-southeast-2": {Region: "ap-southeast-2", Price: 0.0252},
+	"ca-central-1":   {Region: "ca-central-1", Price: 0.02475},
+	"eu-central-1":   {Region: "eu-central-1", Price: 0.027},
+	"eu-north-1":     {Region: "eu-north-1", Price: 0.02394},
+	"eu-west-1":      {Region: "eu-west-1", Price: 0.0252},
+	"eu-west-2":      {Region: "eu-west-2", Price: 0.02646},
+	"eu-west-3":      {Region: "eu-west-3", Price: 0.02646},
+	"me-south-1":     {Region: "me-south-1", Price: 0.02772},
 	"sa-east-1":      {Region: "sa-east-1", Price: 0.034},
-	"us-east-1":      {Region: "us-east-1", Price: 0.025},
-	"us-east-2":      {Region: "us-east-2", Price: 0.025},
-	"us-west-2":      {Region: "us-west-2", Price: 0.025},
+	"us-east-1":      {Region: "us-east-1", Price: 0.0225},
+	"us-east-2":      {Region: "us-east-2", Price: 0.0225},
+	"us-west-2":      {Region: "us-west-2", Price: 0.0225},
 }
 
 // region -> NAT metadata

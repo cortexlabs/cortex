@@ -311,10 +311,19 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * 20 / 30 / 24
-	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
+	nlbPrice := aws.NLBMetadatas[*clusterConfig.Region].Price
+	natUnitPrice := aws.NATMetadatas[*clusterConfig.Region].Price
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
 	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
-	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice
+
+	var natTotalPrice float64
+	if clusterConfig.NATGateway == clusterconfig.SingleNAT {
+		natTotalPrice = natUnitPrice
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNAT {
+		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
+	}
+
+	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
@@ -356,7 +365,13 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
 	rows = append(rows, []interface{}{"1 t3.medium instance for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
-	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"})
+	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
+
+	if clusterConfig.NATGateway == clusterconfig.SingleNAT {
+		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natUnitPrice)})
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNAT {
+		rows = append(rows, []interface{}{fmt.Sprintf("%d nat gateways", len(clusterConfig.AvailabilityZones)), s.DollarsMaxPrecision(natUnitPrice) + " each"})
+	}
 
 	items := table.Table{
 		Headers: headers,

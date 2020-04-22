@@ -22,12 +22,12 @@ $ cortex cluster up
 aws resource                                cost per hour
 1 eks cluster                               $0.10
 0 - 5 g4dn.xlarge instances for your apis   $0.1578 - $0.526 each (varies based on spot price)
-0 - 5 20gb ebs volumes for your apis        $0.003 each
+0 - 5 50gb ebs volumes for your apis        $0.007 each
 1 t3.medium instance for the operator       $0.0416
 1 20gb ebs volume for the operator          $0.003
-2 elastic load balancers                    $0.025 each
+2 network load balancers                    $0.0225 each
 
-your cluster will cost $0.19 - $2.84 per hour based on the cluster size and spot instance availability
+your cluster will cost $0.19 - $2.85 per hour based on cluster size and spot pricing
 
 ￮ spinning up your cluster ...
 
