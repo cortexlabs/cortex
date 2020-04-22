@@ -119,6 +119,7 @@ test-examples:
 
 ci-build-images:
 	@./build/build-image.sh images/python-serve python-serve
+	@./build/build-image.sh images/python-serve-accelerator python-serve-accelerator
 	@./build/build-image.sh images/python-serve-gpu python-serve-gpu
 	@./build/build-image.sh images/tf-serve tf-serve
 	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
@@ -142,6 +143,7 @@ ci-build-images:
 
 ci-push-images:
 	@./build/push-image.sh python-serve
+	@./build/push-image.sh python-serve-accelerator
 	@./build/push-image.sh python-serve-gpu
 	@./build/push-image.sh tf-serve
 	@./build/push-image.sh tf-serve-gpu

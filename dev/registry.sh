@@ -36,6 +36,7 @@ function ecr_login() {
 
 function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/python-serve --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-serve-accelerator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/python-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
@@ -168,6 +169,7 @@ elif [ "$cmd" = "update" ]; then
 
   build_and_push $ROOT/images/manager manager latest
   build_and_push $ROOT/images/python-serve python-serve latest
+  build_and_push $ROOT/images/python-serve-accelerator python-serve-accelerator latest
   build_and_push $ROOT/images/python-serve-gpu python-serve-gpu latest
   build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
