@@ -35,7 +35,6 @@ var _cmdStr string
 var _configFileExts = []string{"yaml", "yml"}
 
 var _localDir string
-var _localWorkSpace string
 var _cliConfigPath string
 var _clientIDPath string
 var _emailPath string
@@ -184,12 +183,27 @@ func wasEnvFlagProvided() bool {
 	return false
 }
 
-func printEnvIfNotSpecified(envName string) {
-	envNames, _ := listConfiguredEnvNames()
+func printEnvIfNotSpecified(envName string) error {
+	out, err := envIfNotSpecified(envName)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(out)
+	return nil
+}
+
+func envIfNotSpecified(envName string) (string, error) {
+	envNames, err := listConfiguredEnvNames()
+	if err != nil {
+		return "", err
+	}
 
 	if !wasEnvFlagProvided() && len(envNames) > 1 {
-		fmt.Println(fmt.Sprintf("using %s environment...\n", envName))
+		return fmt.Sprintf("using %s environment...\n\n", envName), nil
 	}
+
+	return "", nil
 }
 
 func printLeadingNewLine() {

@@ -21,7 +21,12 @@ import (
 )
 
 func StreamLogs(apiName string) error {
-	_, err := FindAPISpec(apiName)
+	_, err := docker.GetDockerClient()
+	if err != nil {
+		return err
+	}
+
+	_, err = FindAPISpec(apiName)
 	if err != nil {
 		return err
 	}

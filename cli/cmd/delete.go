@@ -36,6 +36,8 @@ var (
 func deleteInit() {
 	_deleteCmd.Flags().SortFlags = false
 	_deleteCmd.Flags().StringVarP(&_flagDeleteEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+
+	// only applies to aws provider because local doesn't support multiple replicas
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteKeepCache, "keep-cache", "c", false, "keep cached data for the api")
 }
@@ -45,18 +47,26 @@ var _deleteCmd = &cobra.Command{
 	Short: "delete an api",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.delete")
-		printEnvIfNotSpecified(_flagDeleteEnv)
+		env, err := ReadOrConfigureEnv(_flagDeleteEnv)
+		if err != nil {
+			telemetry.Event("cli.delete")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.delete", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		env := MustReadOrConfigureEnv(_flagDeleteEnv)
+		err = printEnvIfNotSpecified(_flagDeleteEnv)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		var deleteResponse schema.DeleteResponse
-		var err error
 		if env.Provider == types.AWSProviderType {
 			deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagDeleteKeepCache, _flagDeleteForce)
 			if err != nil {
 				exit.Error(err)
 			}
 		} else {
+			// local only supports deploying 1 replica at a time so _flagDeleteForce will be ignored
 			deleteResponse, err = local.Delete(args[0], _flagDeleteKeepCache)
 			if err != nil {
 				exit.Error(err)

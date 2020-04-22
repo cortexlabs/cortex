@@ -58,7 +58,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	projectID := hash.Bytes(projectBytes)
-	projectKey := operator.ProjectKey(projectID)
+	projectKey := spec.ProjectKey(projectID)
 	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
 	if err != nil {
 		respondError(w, r, err)

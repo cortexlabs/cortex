@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/docker/docker/api/types"
@@ -46,6 +47,23 @@ const (
 	_modelDir               = "/mnt/model"
 	_workspaceDir           = "/mnt/workspace"
 )
+
+type DockerCompute struct {
+	MemBytes int64 `json:"mem_bytes"`
+	NanoCPUs int64 `json:"nano_cpus"`
+	GPU      bool  `json:"gpu"`
+}
+
+func ConvertToDockerCompute(compute *userconfig.Compute) DockerCompute {
+	cpu := compute.CPU.Quantity.MilliValue()
+	memBytes := compute.Mem.Quantity.Value()
+
+	return DockerCompute{
+		MemBytes: memBytes,
+		NanoCPUs: cpu * 1000 * 1000,
+		GPU:      compute.GPU > 0,
+	}
+}
 
 func DeployContainers(api *spec.API, awsClient *aws.Client) error {
 	switch api.Predictor.Type {
@@ -96,10 +114,26 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 	return envs
 }
 
-func PythonSpec(api *spec.API, awsClient *aws.Client) error {
+func GetHostConfig(api *spec.API) *container.HostConfig {
+	dc := ConvertToDockerCompute(api.Compute)
+	portBinding := nat.PortBinding{}
+	if api.LocalPort != nil {
+		portBinding.HostPort = s.Int(*api.LocalPort)
+	}
+
+	runtime := ""
+	if dc.GPU {
+		runtime = "nvidia"
+	}
+
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
-			_defaultPortStr + "/tcp": []nat.PortBinding{{}},
+			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
+		},
+		Runtime: runtime,
+		Resources: container.Resources{
+			NanoCPUs: dc.NanoCPUs,
+			Memory:   dc.MemBytes,
 		},
 		Mounts: []mount.Mount{
 			{
@@ -114,6 +148,12 @@ func PythonSpec(api *spec.API, awsClient *aws.Client) error {
 			},
 		},
 	}
+
+	return hostConfig
+}
+
+func PythonSpec(api *spec.API, awsClient *aws.Client) error {
+	hostConfig := GetHostConfig(api)
 
 	containerConfig := &container.Config{
 		Image: api.Predictor.Image,
@@ -133,40 +173,24 @@ func PythonSpec(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", api.Identify())
 	}
 
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", api.Identify())
 	}
 
 	return nil
 }
 
 func ONNXSpec(api *spec.API, awsClient *aws.Client) error {
-	hostConfig := &container.HostConfig{
-		PortBindings: nat.PortMap{
-			_defaultPortStr + "/tcp": []nat.PortBinding{{}},
-		},
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: _cwd,
-				Target: _projectDir,
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: api.ModelMount.HostPath,
-				Target: _modelDir,
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-				Target: "/mnt/workspace",
-			},
-		},
-	}
+	hostConfig := GetHostConfig(api)
+	hostConfig.Mounts = append(hostConfig.Mounts, mount.Mount{
+		Type:   mount.TypeBind,
+		Source: api.ModelMount.HostPath,
+		Target: _modelDir,
+	})
 
 	containerConfig := &container.Config{
 		Image: api.Predictor.Image,
@@ -188,12 +212,12 @@ func ONNXSpec(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", api.Identify())
 	}
 
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", api.Identify())
 	}
 
 	return nil
@@ -230,20 +254,28 @@ func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
 
 	containerCreateRequest, err := docker.MustDockerClient().ContainerCreate(context.Background(), serveContainerConfig, serveHostConfig, nil, "")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", api.Identify())
 	}
 
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", api.Identify())
 	}
 
 	containerInfo, err := docker.MustDockerClient().ContainerInspect(context.Background(), containerCreateRequest.ID)
+	if err != nil {
+		return errors.Wrap(err, "api", api.Identify())
+	}
+
 	tfContainerHost := containerInfo.NetworkSettings.Networks["bridge"].IPAddress
 
+	portBinding := nat.PortBinding{}
+	if api.LocalPort != nil {
+		portBinding.HostPort = fmt.Sprintf("%d", *api.LocalPort)
+	}
 	apiHostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
-			_defaultPortStr + "/tcp": []nat.PortBinding{{}},
+			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
 		Mounts: []mount.Mount{
 			{
@@ -268,7 +300,7 @@ func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
 		Image: api.Predictor.Image,
 		Env: append(
 			getAPIEnv(api, awsClient),
-			"CORTEX_TF_SERVING_PORT="+_tfServingContainerName,
+			"CORTEX_TF_SERVING_PORT="+_tfServingPortStr,
 			"CORTEX_TF_SERVING_HOST="+tfContainerHost,
 		),
 		ExposedPorts: nat.PortSet{
@@ -285,12 +317,12 @@ func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerCreateRequest, err = docker.MustDockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", api.Identify())
 	}
 
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", api.Identify())
 	}
 
 	return nil
@@ -306,7 +338,7 @@ func GetContainersByAPI(apiName string) ([]dockertypes.Container, error) {
 		Filters: dargs,
 	})
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "api", apiName)
 	}
 
 	return containers, nil
@@ -328,7 +360,7 @@ func DeleteContainers(apiName string) error {
 		}
 	}
 	if err != nil {
-		return err
+		return errors.Wrap(err, "api", apiName)
 	}
 	return nil
 }

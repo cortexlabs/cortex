@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -66,40 +67,63 @@ var _getCmd = &cobra.Command{
 		telemetry.Event("cli.get")
 		rerun(func() (string, error) {
 			if len(args) == 1 {
-				printEnvIfNotSpecified(_flagGetEnv)
+				env, err := ReadOrConfigureEnv(_flagGetEnv)
+				if err != nil {
+					telemetry.Event("cli.get")
+					exit.Error(err)
+				}
+				telemetry.Event("cli.get", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-				env := MustReadOrConfigureEnv(_flagGetEnv)
-				return getAPI(env, args[0])
+				out, _ := envIfNotSpecified(_flagGetEnv)
+				apiTable, err := getAPI(*env, args[0])
+				if err != nil {
+					return "", err
+				}
+				return out + apiTable, nil
 			}
 
 			if wasEnvFlagProvided() {
-				return getAPIs(MustReadOrConfigureEnv(_flagGetEnv), false)
+				env, err := ReadOrConfigureEnv(_flagGetEnv)
+				if err != nil {
+					telemetry.Event("cli.get")
+					exit.Error(err)
+				}
+				telemetry.Event("cli.get", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+
+				out, _ := envIfNotSpecified(_flagGetEnv)
+				apiTable, err := getAPIs(*env, false)
+				if err != nil {
+					return "", err
+				}
+				return out + apiTable, nil
 			}
 
+			telemetry.Event("cli.get")
 			cliConfig, err := readCLIConfig()
 			if err != nil {
-				return "", nil
+				return "", err
 			}
 
-			defaultEnv, err := cliConfig.GetDefaultEnv()
+			defaultEnvName := getDefaultEnv(_generalCommandType)
+			defaultEnv, err := readEnv(defaultEnvName)
 			if err != nil {
 				return "", err
 			}
 
 			out := fmt.Sprintf("%s environment (default):\n", defaultEnv.Name)
-			envOutput, err := getAPIs(defaultEnv, true)
+			envOutput, err := getAPIs(*defaultEnv, true)
 			if err != nil {
 				out += err.Error()
 			} else {
 				out += envOutput
 			}
 
-			for idx := range cliConfig.Environments {
-				if cliConfig.Environments[idx].Name == defaultEnv.Name {
+			for _, env := range cliConfig.Environments {
+				if env.Name == defaultEnv.Name {
 					continue
 				}
-				envOutput, err := getAPIs(*cliConfig.Environments[idx], true)
-				out += fmt.Sprintf("\n\n%s environment:\n", cliConfig.Environments[idx].Name)
+				envOutput, err := getAPIs(*env, true)
+				out += fmt.Sprintf("\n\n%s environment:\n", env.Name)
 
 				if err != nil {
 					out += err.Error()
@@ -108,10 +132,6 @@ var _getCmd = &cobra.Command{
 				}
 			}
 
-			mistmatchedString, _ := getLocalVersionMismatchedAPI()
-			if len(mistmatchedString) > 0 {
-				out += "\n" + mistmatchedString
-			}
 			return out, nil
 		})
 	},
@@ -139,7 +159,16 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 
 	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, true)
 
-	return t.MustFormat(), nil
+	out := t.MustFormat()
+
+	if env.Provider == types.LocalProviderType {
+		mismatchedVersionDeploy, _ := getLocalVersionMismatchedAPI()
+		if len(mismatchedVersionDeploy) > 0 {
+			out += "\n" + mismatchedVersionDeploy
+		}
+	}
+
+	return out, nil
 }
 
 func getLocalVersionMismatchedAPI() (string, error) {
@@ -151,7 +180,7 @@ func getLocalVersionMismatchedAPI() (string, error) {
 		return "", nil
 	}
 
-	return fmt.Sprintf("the following apis (%s) were found but were deployed in your local environment using a different version of cortex cli; please delete them using `cortex delete <api_name>` to perform cleanup", strings.Join(mismatchedAPINames, ", ")), nil
+	return fmt.Sprintf("the following apis (%s) were deployed in your local environment using a different version of the cortex cli; please update them using `cortex deploy` or delete them using `cortex delete <api_name>`", strings.Join(mismatchedAPINames, ", ")), nil
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
@@ -195,7 +224,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 	apiEndpoint := apiRes.BaseURL
 	if env.Provider == types.AWSProviderType {
-		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "http://", "https://", 1)
+		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "https://", "http://", 1)
 	}
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 

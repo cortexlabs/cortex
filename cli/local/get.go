@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
@@ -32,6 +33,11 @@ import (
 )
 
 func GetAPIs() (schema.GetAPIsResponse, error) {
+	_, err := docker.GetDockerClient()
+	if err != nil {
+		return schema.GetAPIsResponse{}, err
+	}
+
 	apiSpecList, err := ListAllAPISpecs()
 	if err != nil {
 		return schema.GetAPIsResponse{}, err
@@ -103,7 +109,6 @@ func ListVersionMismatchedAPI() ([]string, error) {
 		if !strings.HasSuffix(specPath, "spec.msgpack") {
 			continue
 		}
-
 		apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
 		if apiSpecVersion == consts.CortexVersion {
 			continue
@@ -124,17 +129,22 @@ func ListVersionMismatchedAPI() ([]string, error) {
 }
 
 func GetAPI(apiName string) (schema.GetAPIResponse, error) {
+	_, err := docker.GetDockerClient()
+	if err != nil {
+		return schema.GetAPIResponse{}, err
+	}
+
 	apiSpec, err := FindAPISpec(apiName)
 	if err != nil {
 		return schema.GetAPIResponse{}, err
 	}
 
-	apiStatus, err := GetAPIStatus(&apiSpec)
+	apiStatus, err := GetAPIStatus(apiSpec)
 	if err != nil {
 		return schema.GetAPIResponse{}, err
 	}
 
-	apiMetrics, err := GetAPIMetrics(&apiSpec)
+	apiMetrics, err := GetAPIMetrics(apiSpec)
 	if err != nil {
 		return schema.GetAPIResponse{}, err
 	}
@@ -160,9 +170,9 @@ func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 	}
 
 	return schema.GetAPIResponse{
-		API:     apiSpec,
+		API:     *apiSpec,
 		Status:  apiStatus,
 		Metrics: apiMetrics,
-		BaseURL: "http://localhost:" + apiPort + "/predict",
+		BaseURL: "http://localhost:" + apiPort,
 	}, nil
 }

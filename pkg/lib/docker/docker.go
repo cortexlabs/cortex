@@ -131,15 +131,6 @@ func StreamDockerLogs(containerID string, containerIDs ...string) error {
 		return err
 	}
 
-	// c := make(chan os.Signal, 1)
-	// signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	// caughtCtrlC := false
-	// go func() {
-	// 	<-c
-	// 	caughtCtrlC = true
-	// 	exit.Error(ErrorDockerCtrlC())
-	// }()
-
 	fns := make([]func() error, len(containerIDs))
 	for i, containerID := range containerIDs {
 		fns[i] = StreamDockerLogsFn(containerID, docker)
@@ -150,11 +141,6 @@ func StreamDockerLogs(containerID string, containerIDs ...string) error {
 	if err != nil {
 		return WrapDockerError(err)
 	}
-
-	// // Let the ctrl+c handler run its course
-	// if caughtCtrlC {
-	// 	time.Sleep(5 * time.Second)
-	// }
 
 	return nil
 }

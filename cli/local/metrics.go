@@ -108,6 +108,12 @@ func GetAPIStatus(api *spec.API) (status.Status, error) {
 		return status.Status{}, err
 	}
 
+	if len(containers) == 0 {
+		apiStatus.ReplicaCounts.Updated.Failed = 1
+		apiStatus.Code = status.Error
+		return apiStatus, nil
+	}
+
 	if api.Predictor.Type == userconfig.TensorFlowPredictorType && len(containers) != 2 {
 		apiStatus.ReplicaCounts.Updated.Failed = 1
 		apiStatus.Code = status.Error

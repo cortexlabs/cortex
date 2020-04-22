@@ -50,15 +50,22 @@ var _predictCmd = &cobra.Command{
 	Short: "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.predict")
-		printEnvIfNotSpecified(_flagPredictEnv)
+		env, err := ReadOrConfigureEnv(_flagPredictEnv)
+		if err != nil {
+			telemetry.Event("cli.predict")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.predict", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+
+		err = printEnvIfNotSpecified(_flagPredictEnv)
+		if err != nil {
+			exit.Error(err)
+		}
 
 		apiName := args[0]
 		jsonPath := args[1]
 
-		env := MustReadOrConfigureEnv(_flagPredictEnv)
 		var apiRes schema.GetAPIResponse
-		var err error
 		var apiEndpoint string
 		if env.Provider == types.AWSProviderType {
 			apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)

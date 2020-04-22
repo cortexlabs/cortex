@@ -21,11 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
@@ -132,34 +128,9 @@ var _envListCmd = &cobra.Command{
 		defaultEnv := getDefaultEnv(_generalCommandType)
 
 		for i, env := range cliConfig.Environments {
-			var items table.KeyValuePairs
-
-			if env.Name == defaultEnv {
-				items.Add("name", env.Name+" (default)")
-			} else {
-				items.Add("name", env.Name)
-			}
-
-			items.Add("provider", env.Provider)
-
-			if env.OperatorEndpoint != nil {
-				items.Add("cortex operator endpoint", *env.OperatorEndpoint)
-			}
-			if env.AWSAccessKeyID != nil {
-				items.Add("aws access key id", *env.AWSAccessKeyID)
-			}
-			if env.AWSSecretAccessKey != nil {
-				items.Add("aws secret access key", s.MaskString(*env.AWSSecretAccessKey, 4))
-			}
-			if env.AWSRegion != nil {
-				items.Add("aws region", *env.AWSRegion)
-			}
-
-			items.Print(&table.KeyValuePairOpts{
-				BoldFirstLine: pointer.Bool(true),
-			})
+			fmt.Println(env.String(defaultEnv == env.Name))
 			if i+1 < len(cliConfig.Environments) {
-				fmt.Println()
+				fmt.Println("")
 			}
 		}
 	},
@@ -175,20 +146,11 @@ var _envDefaultCmd = &cobra.Command{
 		defaultEnv := getDefaultEnv(_generalCommandType)
 
 		var envName string
-		if len(args) == 1 {
-			envName = args[0]
-
-			configuredEnvNames, err := listConfiguredEnvNames()
-			if err != nil {
-				exit.Error(err)
-			}
-			if !slices.HasString(configuredEnvNames, envName) {
-				exit.Error(cliconfig.ErrorEnvironmentNotConfigured(envName))
-			}
-
-		} else {
+		if len(args) == 0 {
 			fmt.Printf("current default environment: %s\n\n", defaultEnv)
-			envName = promptEnvName("name of environment to set as default", true)
+			envName = promptExistingEnvName("name of environment to set as default")
+		} else {
+			envName = args[0]
 		}
 
 		if envName == defaultEnv {
@@ -215,7 +177,7 @@ var _envDeleteCmd = &cobra.Command{
 		if len(args) == 1 {
 			envName = args[0]
 		} else {
-			envName = promptEnvName("name of environment to delete", true)
+			envName = promptExistingEnvName("name of environment to delete")
 		}
 
 		if err := removeEnvFromCLIConfig(envName); err != nil {

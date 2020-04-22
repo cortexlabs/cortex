@@ -50,7 +50,6 @@ func (cpf ClusterProjectFiles) GetAllPaths() []string {
 }
 
 func (cpf ClusterProjectFiles) GetFile(fileName string) ([]byte, error) {
-	fmt.Println(fileName)
 	bytes, ok := cpf.ProjectByteMap[fileName]
 	if !ok {
 		return nil, files.ErrorFileDoesNotExist(fileName)
@@ -69,12 +68,19 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		return err
 	}
 
+	warningFlag := false
+
 	for i := range apis {
 		if err := spec.ValidateAPI(&apis[i], projectFiles, types.AWSProviderType, config.AWS); err != nil {
 			return err
 		}
 		if err := validateK8s(&apis[i], config.Cluster, virtualServices, maxMem); err != nil {
 			return err
+		}
+
+		if !warningFlag && apis[i].LocalPort != nil {
+			fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
+			warningFlag = true
 		}
 	}
 

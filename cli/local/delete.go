@@ -19,14 +19,21 @@ package local
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 func Delete(apiName string, keepCache bool) (schema.DeleteResponse, error) {
-	err := DeleteAPI(apiName, keepCache)
+	_, err := docker.GetDockerClient()
 	if err != nil {
 		return schema.DeleteResponse{}, err
 	}
+
+	err = DeleteAPI(apiName, keepCache)
+	if err != nil {
+		return schema.DeleteResponse{}, err
+	}
+
 	return schema.DeleteResponse{
 		Message: fmt.Sprintf("deleting %s", apiName),
 	}, nil

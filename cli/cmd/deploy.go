@@ -61,23 +61,27 @@ var _deployCmd = &cobra.Command{
 	Short: "create or update apis",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.deploy")
-		printEnvIfNotSpecified(_flagDeployEnv)
+		env, err := ReadOrConfigureEnv(_flagDeployEnv)
+		if err != nil {
+			telemetry.Event("cli.deploy")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.deploy", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		env := MustReadOrConfigureEnv(_flagDeployEnv)
+		err = printEnvIfNotSpecified(_flagDeployEnv)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		configPath := getConfigPath(args)
 		var deployResponse schema.DeployResponse
 		if env.Provider == types.AWSProviderType {
-			params := map[string]string{
-				"force":      s.Bool(_flagDeployForce),
-				"configPath": configPath,
-			}
 			deploymentBytes, err := getDeploymentBytes(configPath)
 			if err != nil {
 				exit.Error(err)
 			}
 
-			deployResponse, err = cluster.Deploy(MustGetOperatorConfig(env.Name), deploymentBytes, params)
+			deployResponse, err = cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -86,7 +90,7 @@ var _deployCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			deployResponse, err = local.Deploy(env, configPath, projectFiles)
+			deployResponse, err = local.Deploy(*env, configPath, projectFiles)
 			if err != nil {
 				exit.Error(err)
 			}

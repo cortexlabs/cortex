@@ -95,7 +95,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		return "", nil, docker.WrapDockerError(err)
 	}
 
-	// Use ContainerAttach() since that allow logs to be streamed even if they don't end in new lines
+	// Use ContainerAttach() since that allows logs to be streamed even if they don't end in new lines
 	logsOutput, err := dockerClient.ContainerAttach(context.Background(), containerInfo.ID, dockertypes.ContainerAttachOptions{
 		Stream: true,
 		Stdout: true,
@@ -114,7 +114,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		return "", nil, errors.WithStack(err)
 	}
 
-	output := outputBuffer.String()
+	output := strings.ReplaceAll(outputBuffer.String(), "\r\n", "\n")
 
 	// Let the ctrl+c handler run its course
 	if caughtCtrlC {

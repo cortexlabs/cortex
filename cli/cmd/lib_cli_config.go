@@ -27,12 +27,15 @@ import (
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -222,18 +225,13 @@ func convertOldCLIConfig() (cliconfig.CLIConfig, bool) {
 	return cliConfig, true
 }
 
-func promptEnvName(promptMsg string, requireExistingEnv bool) string {
+func promptExistingEnvName(promptMsg string) string {
 	configuredEnvNames, err := listConfiguredEnvNames()
 	if err != nil {
 		exit.Error(err)
 	}
 
 	fmt.Printf("currently configured environments: %s\n\n", strings.Join(configuredEnvNames, ", "))
-
-	var allowedValues []string
-	if requireExistingEnv {
-		allowedValues = configuredEnvNames
-	}
 
 	envNameContainer := &struct {
 		EnvironmentName string
@@ -248,26 +246,55 @@ func promptEnvName(promptMsg string, requireExistingEnv bool) string {
 				},
 				StringValidation: &cr.StringValidation{
 					Required:      true,
-					AllowedValues: allowedValues,
+					AllowedValues: configuredEnvNames,
 				},
 			},
 		},
 	})
 	if err != nil {
-		if err != nil {
-			exit.Error(err)
-		}
+		exit.Error(err)
 	}
 
 	return envNameContainer.EnvironmentName
 }
 
-func promptProvider(env *cliconfig.Environment, envName string, defaults cliconfig.Environment) error {
-	defaultProviderStr := ""
-	if defaults.Provider != types.UnknownProviderType {
-		defaultProviderStr = defaults.Provider.String()
+func promptAWSEnvName() string {
+	configuredEnvNames, err := listConfiguredEnvNames()
+	if err != nil {
+		exit.Error(err)
 	}
 
+	envNamesSet := strset.New(configuredEnvNames...)
+	envNamesSet.Remove("local")
+	if len(envNamesSet) > 0 {
+		fmt.Printf("currently configured AWS environments: %s\n\n", strings.Join(envNamesSet.Slice(), ", "))
+	}
+
+	envNameContainer := &struct {
+		EnvironmentName string
+	}{}
+
+	err = cr.ReadPrompt(envNameContainer, &cr.PromptValidation{
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "EnvironmentName",
+				PromptOpts: &prompt.Options{
+					Prompt: "name of AWS environment to update or create",
+				},
+				StringValidation: &cr.StringValidation{
+					Required: true,
+				},
+			},
+		},
+	})
+	if err != nil {
+		exit.Error(err)
+	}
+
+	return envNameContainer.EnvironmentName
+}
+
+func promptProvider(env *cliconfig.Environment) error {
 	return cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
@@ -278,14 +305,10 @@ func promptProvider(env *cliconfig.Environment, envName string, defaults cliconf
 				},
 				StringValidation: &cr.StringValidation{
 					Required:      true,
-					Default:       defaultProviderStr,
 					AllowedValues: types.ProviderTypeStrings(),
 				},
 				Parser: func(str string) (interface{}, error) {
 					provider := types.ProviderTypeFromString(str)
-					if err := cliconfig.CheckReservedEnvironmentNames(envName, provider); err != nil {
-						return nil, err
-					}
 					return provider, nil
 				},
 			},
@@ -348,7 +371,7 @@ func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) 
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					Required:      true,
-					Default:       pointer.String("us-east-1"),
+					Default:       defaults.AWSRegion,
 					AllowedValues: aws.S3Regions.Slice(),
 				},
 			},
@@ -436,19 +459,6 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	return url, nil
 }
 
-func readTelemetryConfig() (bool, error) {
-	cliConfig, err := readCLIConfig()
-	if err != nil {
-		return false, err
-	}
-
-	if cliConfig.Telemetry != nil && *cliConfig.Telemetry == false {
-		return false, nil
-	}
-
-	return true, nil
-}
-
 // Returns "local" if unable to read user's default value
 func getDefaultEnv(cmdType commandType) string {
 	defaultEnv := types.LocalProviderType.String()
@@ -470,6 +480,14 @@ func setDefaultEnv(envName string) error {
 		return err
 	}
 
+	configuredEnvNames, err := listConfiguredEnvNames()
+	if err != nil {
+		return err
+	}
+	if !slices.HasString(configuredEnvNames, envName) {
+		return cliconfig.ErrorEnvironmentNotConfigured(envName)
+	}
+
 	cliConfig.DefaultEnvironment = envName
 
 	if err := writeCLIConfig(cliConfig); err != nil {
@@ -477,6 +495,19 @@ func setDefaultEnv(envName string) error {
 	}
 
 	return nil
+}
+
+func readTelemetryConfig() (bool, error) {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return false, err
+	}
+
+	if cliConfig.Telemetry != nil && *cliConfig.Telemetry == false {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // Returns false if there is an error reading the CLI config
@@ -511,14 +542,14 @@ func readEnv(envName string) (*cliconfig.Environment, error) {
 	return nil, nil
 }
 
-func MustReadOrConfigureEnv(envName string) cliconfig.Environment {
+func ReadOrConfigureEnv(envName string) (*cliconfig.Environment, error) {
 	existingEnv, err := readEnv(envName)
 	if err != nil {
-		exit.Error(err)
+		return nil, err
 	}
 
 	if existingEnv != nil {
-		return *existingEnv
+		return existingEnv, err
 	}
 
 	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running on AWS?", envName)
@@ -532,13 +563,13 @@ func MustReadOrConfigureEnv(envName string) cliconfig.Environment {
 
 	env, err := configureEnv(envName, fieldsToSkipPrompt)
 	if err != nil {
-		exit.Error(err)
+		return nil, err
 	}
 
-	return env
+	return &env, nil
 }
 
-func getDefaultEnvConfig(envName string) cliconfig.Environment {
+func getEnvConfigDefaults(envName string) cliconfig.Environment {
 	defaults := cliconfig.Environment{}
 
 	prevEnv, err := readEnv(envName)
@@ -546,6 +577,7 @@ func getDefaultEnvConfig(envName string) cliconfig.Environment {
 		defaults = *prevEnv
 	}
 
+	debug.Pp(defaults)
 	if defaults.Provider == types.UnknownProviderType {
 		if envNameProvider := types.ProviderTypeFromString(envName); envNameProvider != types.UnknownProviderType {
 			defaults.Provider = envNameProvider
@@ -561,6 +593,10 @@ func getDefaultEnvConfig(envName string) cliconfig.Environment {
 	if defaults.AWSRegion == nil && os.Getenv("AWS_REGION") != "" {
 		defaults.AWSRegion = pointer.String(os.Getenv("AWS_REGION"))
 	}
+	if defaults.AWSRegion == nil {
+		defaults.AWSRegion = pointer.String("us-east-1")
+	}
+
 	if defaults.OperatorEndpoint == nil && os.Getenv("CORTEX_OPERATOR_ENDPOINT") != "" {
 		defaults.OperatorEndpoint = pointer.String(os.Getenv("CORTEX_OPERATOR_ENDPOINT"))
 	}
@@ -570,20 +606,7 @@ func getDefaultEnvConfig(envName string) cliconfig.Environment {
 
 // If envName is "", this will prompt for the environment name to configure
 func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cliconfig.Environment, error) {
-	if envName == "" {
-		envName = promptEnvName("name of environment to update or create", false)
-	} else {
-		fmt.Println("environment: " + envName + "\n")
-	}
-
-	defaults := getDefaultEnvConfig(envName)
-
-	if fieldsToSkipPrompt.Provider == types.UnknownProviderType {
-		if envNameProvider := types.ProviderTypeFromString(envName); envNameProvider != types.UnknownProviderType {
-			fieldsToSkipPrompt.Provider = envNameProvider
-		}
-	}
-
+	fieldsToSkipPrompt.Provider = types.ProviderTypeFromString(envName)
 	env := cliconfig.Environment{
 		Name:               envName,
 		Provider:           fieldsToSkipPrompt.Provider,
@@ -593,19 +616,38 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 		AWSRegion:          fieldsToSkipPrompt.AWSRegion,
 	}
 
-	err := promptProvider(&env, envName, defaults)
+	if env.Provider == types.UnknownProviderType {
+		err := promptProvider(&env)
+		if err != nil {
+			return cliconfig.Environment{}, err
+		}
+	}
+
+	if envName == "" {
+		if env.Provider == types.LocalProviderType {
+			env.Name = types.LocalProviderType.String()
+		} else {
+			env.Name = promptAWSEnvName()
+		}
+	}
+
+	err := cliconfig.CheckProviderEnvironmentNameCompatibility(env.Name, env.Provider)
 	if err != nil {
 		return cliconfig.Environment{}, err
 	}
 
+	defaults := getEnvConfigDefaults(env.Name)
 	switch env.Provider {
 	case types.LocalProviderType:
-		err = promptLocalEnv(&env, defaults)
+		err := promptLocalEnv(&env, defaults)
+		if err != nil {
+			return cliconfig.Environment{}, err
+		}
 	case types.AWSProviderType:
-		err = promptAWSEnv(&env, defaults)
-	}
-	if err != nil {
-		return cliconfig.Environment{}, err
+		err := promptAWSEnv(&env, defaults)
+		if err != nil {
+			return cliconfig.Environment{}, err
+		}
 	}
 
 	if err := env.Validate(); err != nil {
@@ -616,18 +658,14 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 		return cliconfig.Environment{}, err
 	}
 
-	print.BoldFirstLine(fmt.Sprintf("✓ configured %s environment", envName))
+	print.BoldFirstLine(fmt.Sprintf("configured %s environment", env.Name))
 
 	return env, nil
 }
 
 func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
-	cliConfig, err := readCLIConfig()
-	if err != nil {
-		exit.Error(err)
-	}
 	clientID := clientID()
-	env, err := cliConfig.GetEnv(envName)
+	env, err := readEnv(envName)
 	if err != nil {
 		exit.Error(err)
 	}

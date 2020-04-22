@@ -599,13 +599,9 @@ func (c *Client) DeleteS3Prefix(bucket string, prefix string, continueIfFailure 
 func (c *Client) HashS3Dir(bucket string, prefix string, maxResults *int64) (string, error) {
 	md5Hash := md5.New()
 
-	err := c.S3BatchIterator(bucket, prefix, false, maxResults, func(objects []*s3.Object) (bool, error) {
+	err := c.S3BatchIterator(bucket, prefix, true, maxResults, func(objects []*s3.Object) (bool, error) {
 		var subErr error
 		for _, object := range objects {
-			if strings.HasSuffix(*object.Key, "/") {
-				continue
-			}
-
 			io.WriteString(md5Hash, *object.ETag)
 		}
 		return true, subErr

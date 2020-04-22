@@ -834,15 +834,16 @@ func HashFile(path string, paths ...string) (string, error) {
 
 	allPaths := append(paths, path)
 	for _, path := range allPaths {
-		f, err := os.Open(path)
+		f, err := Open(path)
 		if err != nil {
-			return "", errors.Wrap(err, path)
+			return "", err
 		}
-		defer f.Close()
 
 		if _, err := io.Copy(md5Hash, f); err != nil {
+			f.Close()
 			return "", errors.Wrap(err, path)
 		}
+		f.Close()
 	}
 
 	return hex.EncodeToString((md5Hash.Sum(nil))), nil

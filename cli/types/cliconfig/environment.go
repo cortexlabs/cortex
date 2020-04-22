@@ -17,9 +17,11 @@ limitations under the License.
 package cliconfig
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
@@ -32,7 +34,40 @@ type Environment struct {
 	AWSRegion          *string            `json:"aws_region,omitempty" yaml:"aws_region,omitempty"`
 }
 
-func CheckReservedEnvironmentNames(envName string, provider types.ProviderType) error {
+func (env Environment) String(isDefault bool) string {
+	var items table.KeyValuePairs
+
+	if isDefault {
+		items.Add("name", env.Name+" (default)")
+	} else {
+		items.Add("name", env.Name)
+	}
+
+	items.Add("provider", env.Provider)
+
+	if env.OperatorEndpoint != nil {
+		items.Add("cortex operator endpoint", *env.OperatorEndpoint)
+	}
+	if env.AWSAccessKeyID != nil {
+		items.Add("aws access key id", *env.AWSAccessKeyID)
+	}
+	if env.AWSSecretAccessKey != nil {
+		items.Add("aws secret access key", s.MaskString(*env.AWSSecretAccessKey, 4))
+	}
+	if env.AWSRegion != nil {
+		items.Add("aws region", *env.AWSRegion)
+	}
+
+	return items.String(&table.KeyValuePairOpts{
+		BoldFirstLine: pointer.Bool(true),
+	})
+}
+
+func CheckProviderEnvironmentNameCompatibility(envName string, provider types.ProviderType) error {
+	if provider == types.LocalProviderType && envName != types.LocalProviderType.String() {
+		return ErrorLocalEnvironmentMustBeNamedLocal(envName)
+	}
+
 	envNameProvider := types.ProviderTypeFromString(envName)
 	if envNameProvider == types.UnknownProviderType {
 		return nil
@@ -54,7 +89,7 @@ func (env *Environment) Validate() error {
 		return errors.Wrap(cr.ErrorMustBeDefined(types.ProviderTypeStrings()), env.Name, ProviderKey)
 	}
 
-	if err := CheckReservedEnvironmentNames(env.Name, env.Provider); err != nil {
+	if err := CheckProviderEnvironmentNameCompatibility(env.Name, env.Provider); err != nil {
 		return err
 	}
 
@@ -74,12 +109,8 @@ func (env *Environment) Validate() error {
 		if env.AWSSecretAccessKey == nil {
 			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSSecretAccessKeyKey)
 		}
-	}
-
-	if env.AWSRegion != nil {
-		if !aws.S3Regions.Has(*env.AWSRegion) {
-			s3RegionSlice := aws.S3Regions.Slice()
-			return errors.Wrap(cr.ErrorInvalidStr(*env.AWSRegion, s3RegionSlice[0], s3RegionSlice[1:]...), env.Name, AWSRegionKey)
+		if env.AWSRegion != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
 		}
 	}
 

@@ -28,20 +28,6 @@ type CLIConfig struct {
 	Environments       []*Environment `json:"environments" yaml:"environments"`
 }
 
-func (cliConfig CLIConfig) GetEnv(envName string) (Environment, error) {
-	for _, env := range cliConfig.Environments {
-		if env.Name == envName {
-			return *env, nil
-		}
-	}
-
-	return Environment{}, ErrorEnvironmentNotConfigured(envName)
-}
-
-func (cliConfig CLIConfig) GetDefaultEnv() (Environment, error) {
-	return cliConfig.GetEnv(cliConfig.DefaultEnvironment)
-}
-
 func (cliConfig *CLIConfig) Validate() error {
 	envNames := strset.New()
 
@@ -70,10 +56,6 @@ func (cliConfig *CLIConfig) Validate() error {
 
 	if cliConfig.DefaultEnvironment == "" {
 		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
-	}
-
-	if !envNames.Has(cliConfig.DefaultEnvironment) {
-		return ErrorDefaultEnvironmentDoesntExist(cliConfig.DefaultEnvironment)
 	}
 
 	return nil

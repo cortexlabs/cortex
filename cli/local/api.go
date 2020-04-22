@@ -47,9 +47,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, awsClient *aws.Clien
 		}
 	}
 
-	existingContainers, err := GetContainersByAPI(apiConfig.Name)
+	prevAPISpec, err := FindAPISpec(apiConfig.Name)
 	if err != nil {
-		return nil, "", err
+		if errors.GetKind(err) != ErrAPINotDeployed {
+			return nil, "", err
+		}
 	}
 
 	apiSpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
@@ -61,23 +63,22 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, awsClient *aws.Clien
 		apiSpec.ModelMount = modelMount
 	}
 
-	if len(existingContainers) != 0 {
-		prevContainerLabels := existingContainers[0].Labels
-		newModelID := ""
+	if prevAPISpec != nil {
+		prevModelID := ""
+		if prevAPISpec.ModelMount != nil {
+			prevModelID = prevAPISpec.ModelMount.ID
+		}
 
+		newModelID := ""
 		if apiSpec.ModelMount != nil {
 			newModelID = apiSpec.ModelMount.ID
 		}
 
-		oldModelID := prevContainerLabels["modelID"]
-
-		if prevContainerLabels["apiName"] == apiSpec.Name && prevContainerLabels["apiID"] == apiSpec.ID && newModelID == oldModelID {
+		if prevAPISpec.ID == apiSpec.ID && newModelID == prevModelID && ConvertToDockerCompute(prevAPISpec.Compute) == ConvertToDockerCompute(apiSpec.Compute) {
 			return apiSpec, fmt.Sprintf("%s is up to date", apiSpec.Name), nil
 		}
 
-		// keep the model cache if the model is being reused
-		keepCache := apiSpec.ModelMount != nil && apiSpec.ModelMount.ID == oldModelID
-		err = DeleteAPI(apiSpec.Name, keepCache)
+		err = DeleteAPI(apiSpec.Name, newModelID == prevModelID)
 		if err != nil {
 			return nil, "", err
 		}
@@ -102,7 +103,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, awsClient *aws.Clien
 		return nil, "", err
 	}
 
-	if len(existingContainers) == 0 {
+	if prevAPISpec == nil {
 		return apiSpec, fmt.Sprintf("creating %s", apiSpec.Name), nil
 	}
 
@@ -161,15 +162,15 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return errors.FirstError(errList...)
 }
 
-func FindAPISpec(apiName string) (spec.API, error) {
+func FindAPISpec(apiName string) (*spec.API, error) {
 	apiWorkspace := filepath.Join(_localWorkspaceDir, "apis", apiName)
 	if err := files.CheckDir(apiWorkspace); err != nil {
-		return spec.API{}, ErrorAPINotDeployed(apiName)
+		return nil, ErrorAPINotDeployed(apiName)
 	}
 
 	filepaths, err := files.ListDirRecursive(apiWorkspace, false)
 	if err != nil {
-		return spec.API{}, errors.Wrap(err, "api", apiName)
+		return nil, errors.Wrap(err, "api", apiName)
 	}
 
 	var apiSpec spec.API
@@ -177,21 +178,21 @@ func FindAPISpec(apiName string) (spec.API, error) {
 		if strings.HasSuffix(specPath, "spec.msgpack") {
 			apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
 			if apiSpecVersion != consts.CortexVersion {
-				return spec.API{}, ErrorCortexVersionMismatch(apiName, apiSpecVersion)
+				return nil, ErrorCortexVersionMismatch(apiName, apiSpecVersion)
 			}
 
 			bytes, err := files.ReadFileBytes(specPath)
 			if err != nil {
-				return spec.API{}, errors.Wrap(err, "api", apiName)
+				return nil, errors.Wrap(err, "api", apiName)
 			}
 			err = msgpack.Unmarshal(bytes, &apiSpec)
 			if err != nil {
-				return spec.API{}, errors.Wrap(err, "api", apiName)
+				return nil, errors.Wrap(err, "api", apiName)
 			}
-			return apiSpec, nil
+			return &apiSpec, nil
 		}
 	}
-	return spec.API{}, ErrorAPINotDeployed(apiName)
+	return nil, ErrorAPINotDeployed(apiName)
 }
 
 func GetVersionFromAPISpecFilePath(path string) string {

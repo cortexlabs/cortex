@@ -21,18 +21,23 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/spf13/cobra"
@@ -84,6 +89,10 @@ var _upCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up")
+
+		if _flagClusterEnv == "local" {
+			exit.Error(ErrorNotSupportedInLocalEnvironment())
+		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -153,6 +162,10 @@ var _updateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.update")
 
+		if _flagClusterEnv == "local" {
+			exit.Error(ErrorNotSupportedInLocalEnvironment())
+		}
+
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
@@ -211,6 +224,9 @@ var _infoCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info")
+		if _flagClusterEnv == "local" {
+			exit.Error(ErrorNotSupportedInLocalEnvironment())
+		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -374,7 +390,30 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 
 	fmt.Println()
 
-	infoResponse, err := cluster.Info(MustGetOperatorConfig(_flagClusterEnv))
+	var operatorEndpoint string
+	for _, line := range strings.Split(out, "\n") {
+		// before modifying this, search for this prefix
+		if strings.HasPrefix(line, "operator endpoint: ") {
+			operatorEndpoint = "https://" + strings.TrimPrefix(line, "operator endpoint: ")
+			break
+		}
+	}
+
+	fmt.Println(operatorEndpoint)
+
+	operatorConfig := cluster.OperatorConfig{
+		Telemetry:          isTelemetryEnabled(),
+		EnvName:            _flagClusterEnv,
+		ClientID:           clientID(),
+		OperatorEndpoint:   operatorEndpoint,
+		AWSAccessKeyID:     awsCreds.AWSAccessKeyID,
+		AWSSecretAccessKey: awsCreds.AWSSecretAccessKey,
+	}
+
+	infoResponse, err := cluster.Info(operatorConfig)
+	if err != nil {
+		exit.Error(err)
+	}
 
 	infoResponse.ClusterConfig.Config = clusterConfig
 
@@ -383,6 +422,37 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 	items.AddAll(infoResponse.ClusterConfig.UserTable())
 
 	items.Print()
+
+	prevEnv, err := readEnv(_flagClusterEnv)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	newEnvironment := cliconfig.Environment{
+		Name:               _flagClusterEnv,
+		Provider:           types.AWSProviderType,
+		OperatorEndpoint:   pointer.String(operatorEndpoint),
+		AWSAccessKeyID:     pointer.String(awsCreds.AWSAccessKeyID),
+		AWSSecretAccessKey: pointer.String(awsCreds.AWSSecretAccessKey),
+	}
+
+	writeEnv := false
+	if prevEnv == nil {
+		writeEnv = true
+	} else if *prevEnv.OperatorEndpoint != operatorConfig.OperatorEndpoint || *prevEnv.AWSAccessKeyID != operatorConfig.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != operatorConfig.AWSSecretAccessKey {
+		fmt.Println()
+		fmt.Println(newEnvironment.String(false))
+		writeEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it with the configuration above?", _flagClusterEnv), "", "")
+	}
+
+	if writeEnv {
+		err := addEnvToCLIConfig(newEnvironment)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		print.BoldFirstLine(fmt.Sprintf("configured %s environment", _flagClusterEnv))
+	}
 }
 
 func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {

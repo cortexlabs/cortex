@@ -25,7 +25,6 @@ const (
 	OOM
 	Live
 	Updating
-	VersionMismatch
 )
 
 var _codes = []string{
@@ -35,22 +34,20 @@ var _codes = []string{
 	"status_oom",
 	"status_live",
 	"status_updating",
-	"status_version_mismatch", // local only
 }
 
-var _ = [1]int{}[int(VersionMismatch)-(len(_codes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(Updating)-(len(_codes)-1)] // Ensure list length matches
 
 var _codeMessages = []string{
-	"unknown",                  // Unknown
-	"compute unavailable",      // Stalled
-	"error",                    // Error
-	"error (out of memory)",    // OOM
-	"live",                     // Live
-	"updating",                 // Updating
-	"error (version mismatch)", // cli version not equal to api spec version
+	"unknown",               // Unknown
+	"compute unavailable",   // Stalled
+	"error",                 // Error
+	"error (out of memory)", // OOM
+	"live",                  // Live
+	"updating",              // Updating
 }
 
-var _ = [1]int{}[int(VersionMismatch)-(len(_codeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(Updating)-(len(_codeMessages)-1)] // Ensure list length matches
 
 func (code Code) String() string {
 	if int(code) < 0 || int(code) >= len(_codes) {

@@ -38,10 +38,6 @@ type OperatorClient struct {
 	*http.Client
 }
 
-type GenericClient struct {
-	*http.Client
-}
-
 type OperatorConfig struct {
 	Telemetry          bool
 	ClientID           string
@@ -56,15 +52,6 @@ func (oc OperatorConfig) AuthHeader() string {
 }
 
 var _operatorClient = &OperatorClient{
-	Client: &http.Client{
-		Timeout: 600 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	},
-}
-
-var _apiClient = &GenericClient{
 	Client: &http.Client{
 		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
@@ -231,28 +218,6 @@ func (client *OperatorClient) MakeRequest(operatorConfig OperatorConfig, request
 			Message:     output.Message,
 			NoTelemetry: true,
 		})
-	}
-
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, _errStrRead)
-	}
-	return bodyBytes, nil
-}
-
-func (client *GenericClient) MakeRequest(request *http.Request) ([]byte, error) {
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		bodyBytes, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return nil, errors.Wrap(err, _errStrRead)
-		}
-		return nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)

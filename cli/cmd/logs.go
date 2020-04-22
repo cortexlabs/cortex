@@ -42,11 +42,19 @@ var _logsCmd = &cobra.Command{
 	Short: "stream logs from an api",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.logs")
-		printEnvIfNotSpecified(_flagLogsEnv)
+		env, err := ReadOrConfigureEnv(_flagLogsEnv)
+		if err != nil {
+			telemetry.Event("cli.logs")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.logs", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+
+		err = printEnvIfNotSpecified(_flagLogsEnv)
+		if err != nil {
+			exit.Error(err)
+		}
 
 		apiName := args[0]
-		env := MustReadOrConfigureEnv(_flagLogsEnv)
 		if env.Provider == types.AWSProviderType {
 			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), apiName)
 			if err != nil {
@@ -63,6 +71,5 @@ var _logsCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		}
-
 	},
 }

@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -45,8 +44,7 @@ func getCloudFormationURL(clusterName, region string) string {
 
 const (
 	ErrInvalidProvider                    = "cli.invalid_provider"
-	ErrLocalProviderNotSupported          = "cli.local_provider_not_supported"
-	ErrEnvironmentProviderNameConflict    = "cli.environment_provider_name_conflict"
+	ErrNotSupportedInLocalEnvironment     = "cli.not_supported_in_local_environment"
 	ErrOperatorEndpointInLocalEnvironment = "cli.operator_endpoint_in_local_environment"
 	ErrOperatorConfigFromLocalEnvironment = "cli.operater_config_from_local_environment"
 	ErrFieldNotFoundInEnvironment         = "cli.err_field_not_found_in_environment"
@@ -81,25 +79,14 @@ func ErrorInvalidProvider(providerStr string) error {
 	})
 }
 
-func ErrorLocalProviderNotSupported(environment cliconfig.Environment) error {
-	msg := "this command cannot run locally; please specify an existing environment (via --env=<name>) which points to an existing cluster, create/update an environment for an existing cluster (`cortex env configure`), or create a cortex cluster (`cortex cluster up`)"
-	if environment.Name != types.LocalProviderType.String() {
-		msg = fmt.Sprintf("the %s environment uses the local provider, but ", environment.Name) + msg
-	}
-
+func ErrorNotSupportedInLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalProviderNotSupported,
-		Message: msg,
+		Kind:    ErrNotSupportedInLocalEnvironment,
+		Message: "this command is not supported in local environment",
 	})
 }
 
-func ErrorEnvironmentProviderNameConflict(envName string, provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrEnvironmentProviderNameConflict,
-		Message: fmt.Sprintf("the %s environment cannot use the %s provider", envName, provider.String()),
-	})
-}
-
+// unexpected error if code tries to create operator config from local environment
 func ErrorOperatorConfigFromLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorConfigFromLocalEnvironment,
@@ -107,6 +94,7 @@ func ErrorOperatorConfigFromLocalEnvironment() error {
 	})
 }
 
+// unexpected error if code tries to create operator config from local environment
 func ErrorFieldNotFoundInEnvironment(fieldName string, envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldNotFoundInEnvironment,
@@ -117,7 +105,7 @@ func ErrorFieldNotFoundInEnvironment(fieldName string, envName string) error {
 func ErrorOperatorEndpointInLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorEndpointInLocalEnvironment,
-		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in local providers)"),
+		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in local environment)"),
 	})
 }
 

@@ -101,7 +101,7 @@ def shutdown():
 
 
 def is_prediction_request(request):
-    return request.url.path == "/predict" and request.method == "POST"
+    return request.url.path == local_cache["predict_route"] and request.method == "POST"
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -153,7 +153,6 @@ async def register_request(request: Request, call_next):
     return response
 
 
-@app.post("/predict")
 def predict(request: Any = Body(..., media_type="application/json"), debug=False):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
@@ -191,7 +190,6 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
     return response
 
 
-@app.get("/predict")
 def get_summary():
     response = {"message": API_SUMMARY_MESSAGE}
 
@@ -212,7 +210,7 @@ def get_spec(provider, storage, cache_dir, spec_path):
 
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    provider = os.getenv("CORTEX_PROVIDER", "aws")
+    provider = os.environ["CORTEX_PROVIDER"]
     spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     model_dir = os.getenv("CORTEX_MODEL_DIR", None)
@@ -235,14 +233,24 @@ def start():
         local_cache["provider"] = provider
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
+        predict_route = "/"
+        if provider != "local":
+            predict_route = "/predict"
+        local_cache["predict_route"] = predict_route
     except:
         cx_logger().exception("failed to start api")
         sys.exit(1)
+    if (
+        provider != "local"
+        and api.tracker is not None
+        and api.tracker.model_type == "classification"
+    ):
+        try:
+            local_cache["class_set"] = api.get_cached_classes()
+        except:
+            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
-    # if api.tracker is not None and api.tracker.model_type == "classification":
-    #     try:
-    #         local_cache["class_set"] = api.get_cached_classes()
-    #     except:
-    #         cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
+    app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
+    app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])
 
     return app

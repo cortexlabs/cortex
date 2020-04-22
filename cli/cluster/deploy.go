@@ -19,10 +19,15 @@ package cluster
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
-func Deploy(operatorConfig OperatorConfig, deploymentBytesMap map[string][]byte, params map[string]string) (schema.DeployResponse, error) {
+func Deploy(operatorConfig OperatorConfig, configPath string, deploymentBytesMap map[string][]byte, force bool) (schema.DeployResponse, error) {
+	params := map[string]string{
+		"force":      s.Bool(force),
+		"configPath": configPath,
+	}
 	uploadInput := &HTTPUploadInput{
 		Bytes: deploymentBytesMap,
 	}

@@ -32,6 +32,7 @@ import (
 type API struct {
 	Name           string          `json:"name" yaml:"name"`
 	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
+	LocalPort      *int            `json:"local_port" yaml:"local_port'`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Tracker        *Tracker        `json:"tracker" yaml:"tracker"`
 	Compute        *Compute        `json:"compute" yaml:"compute"`

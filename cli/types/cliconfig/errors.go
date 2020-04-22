@@ -26,7 +26,7 @@ import (
 
 const (
 	ErrEnvironmentNotConfigured           = "cliconfig.environment_not_configured"
-	ErrDefaultEnvironmentDoesntExist      = "cliconfig.default_environment_doesnt_exist"
+	ErrLocalEnvironmentMustBeNamedLocal   = "cliconfig.local_environment_must_be_named_local"
 	ErrEnvironmentProviderNameConflict    = "cliconfig.environment_provider_name_conflict"
 	ErrDuplicateEnvironmentNames          = "cliconfig.duplicate_environment_names"
 	ErrOperatorEndpointInLocalEnvironment = "cliconfig.operator_endpoint_in_local_environment"
@@ -39,17 +39,17 @@ func ErrorEnvironmentNotConfigured(envName string) error {
 	})
 }
 
-func ErrorDefaultEnvironmentDoesntExist(envName string) error {
+func ErrorLocalEnvironmentMustBeNamedLocal(envName string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDefaultEnvironmentDoesntExist,
-		Message: fmt.Sprintf("can set \"%s\" as default environment because it doesn't exist", envName),
+		Kind:    ErrLocalEnvironmentMustBeNamedLocal,
+		Message: fmt.Sprintf("local environment cannot be named \"%s\"; local environment is reserved and must be named \"local\"", envName),
 	})
 }
 
 func ErrorEnvironmentProviderNameConflict(envName string, provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentProviderNameConflict,
-		Message: fmt.Sprintf("the %s environment cannot use the %s provider", envName, provider.String()),
+		Message: fmt.Sprintf("an environment named \"%s\" cannot use %s provider", envName, provider.String()),
 	})
 }
 
@@ -63,6 +63,6 @@ func ErrorDuplicateEnvironmentNames(envName string) error {
 func ErrorOperatorEndpointInLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperatorEndpointInLocalEnvironment,
-		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in local providers)"),
+		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in the local environment)"),
 	})
 }

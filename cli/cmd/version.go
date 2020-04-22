@@ -39,25 +39,29 @@ var _versionCmd = &cobra.Command{
 	Short: "print the cli and cluster versions",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.version")
-		printEnvIfNotSpecified(_flagVersionEnv)
-
-		env, err := readEnv(_flagVersionEnv)
-		if err != nil || env.Provider == types.LocalProviderType {
-			fmt.Println("cli version: " + consts.CortexVersion)
-			return
-		}
-
-		fmt.Println()
-
-		fmt.Println("cli version: " + consts.CortexVersion)
-		infoResponse, err := cluster.Info(MustGetOperatorConfig(env.Name))
+		env, err := ReadOrConfigureEnv(_flagVersionEnv)
 		if err != nil {
-			fmt.Println()
+			telemetry.Event("cli.version")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.version", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+
+		err = printEnvIfNotSpecified(_flagVersionEnv)
+		if err != nil {
 			exit.Error(err)
 		}
 
-		fmt.Println("cli version:     " + consts.CortexVersion)
+		fmt.Println("cli version: " + consts.CortexVersion)
+
+		if env.Provider == types.LocalProviderType {
+			return
+		}
+
+		infoResponse, err := cluster.Info(MustGetOperatorConfig(env.Name))
+		if err != nil {
+			exit.Error(err)
+		}
+
 		fmt.Println("cluster version: " + infoResponse.ClusterConfig.APIVersion)
 	},
 }

@@ -17,13 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -44,17 +41,23 @@ var _refreshCmd = &cobra.Command{
 	Short: "restart all replicas for an api (witout downtime)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.refresh")
-		printEnvIfNotSpecified(_flagRefreshEnv)
+		env, err := ReadOrConfigureEnv(_flagRefreshEnv)
+		if err != nil {
+			telemetry.Event("cli.refresh")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.refresh", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		env := MustReadOrConfigureEnv(_flagRefreshEnv)
-		var refreshResponse schema.RefreshResponse
-		var err error
+		err = printEnvIfNotSpecified(_flagRefreshEnv)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		if env.Provider == types.LocalProviderType {
-			print.BoldFirstLine(fmt.Sprintf("`cortex refresh %s` is not supported for local provider; to refresh an api with local provider, use `cortex delete %s -c` to clear cache and redeploy with `cortex deploy`", args[0], args[0]))
+			print.BoldFirstLine("`cortex refresh` is not supported in the local environment; use `cortex deploy` instead")
 			return
 		}
-		refreshResponse, err = cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)
+		refreshResponse, err := cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)
 		if err != nil {
 			exit.Error(err)
 		}

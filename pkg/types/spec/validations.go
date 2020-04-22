@@ -62,6 +62,13 @@ var _apiValidation = &cr.StructValidation{
 				MaxLength: 1000, // no particular reason other than it works
 			},
 		},
+		{
+			StructField: "LocalPort",
+			IntPtrValidation: &cr.IntPtrValidation{
+				GreaterThan:       pointer.Int(0),
+				LessThanOrEqualTo: pointer.Int(65535),
+			},
+		},
 		_predictorValidation,
 		_trackerValidation,
 		_computeValidation,
@@ -387,10 +394,6 @@ func ExtractAPIConfigs(configBytes []byte, projectFiles ProjectFiles, filePath s
 
 		api.ApplyDefaultDockerPaths()
 
-		if api.Autoscaling != nil || api.Compute != nil || api.Tracker != nil || api.UpdateStrategy != nil {
-			fmt.Println(fmt.Sprintf("warning: %s, %s, %s, %s and %s keys will be ignored because they are not supported for in an environment using local provider\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.ComputeKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
-		}
-
 		apis[i] = api
 	}
 
@@ -403,8 +406,7 @@ func ValidateAPI(
 	providerType types.ProviderType,
 	awsClient *aws.Client,
 ) error {
-
-	if api.Endpoint == nil {
+	if providerType == types.AWSProviderType && api.Endpoint == nil {
 		api.Endpoint = pointer.String("/" + api.Name)
 	}
 

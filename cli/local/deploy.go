@@ -19,6 +19,7 @@ package local
 import (
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -26,6 +27,11 @@ import (
 )
 
 func Deploy(env cliconfig.Environment, configPath string, projectFileList []string) (schema.DeployResponse, error) {
+	_, err := docker.GetDockerClient()
+	if err != nil {
+		return schema.DeployResponse{}, err
+	}
+
 	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
 		return schema.DeployResponse{}, err
@@ -71,6 +77,9 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 			results[i].Error = errors.Message(err)
 		} else {
 			results[i].API = *api
+		}
+		if err != nil {
+			DeleteAPI(apiConfig.Name, false)
 		}
 	}
 

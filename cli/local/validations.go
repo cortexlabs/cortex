@@ -17,8 +17,12 @@ limitations under the License.
 package local
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -55,9 +59,25 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		return spec.ErrorNoAPIs()
 	}
 
+	warningFlag := false
+	apiPortMap := map[int]string{}
 	for i := range apis {
-		if err := spec.ValidateAPI(&apis[i], projectFiles, types.LocalProviderType, awsClient); err != nil {
+		api := &apis[i]
+		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
 			return err
+		}
+		if api.LocalPort != nil {
+			if collidingAPIName, ok := apiPortMap[*api.LocalPort]; ok {
+				return errors.Wrap(ErrorDuplicateLocalPort(collidingAPIName), api.Identify(), userconfig.LocalPortKey, s.Int(*apis[i].LocalPort))
+			}
+			apiPortMap[*api.LocalPort] = api.Name
+		}
+
+		if api.Endpoint != nil || api.Autoscaling != nil || api.Tracker != nil || api.UpdateStrategy != nil {
+			if !warningFlag {
+				fmt.Println(fmt.Sprintf("warning: %s, %s, %s, and %s keys will be ignored because they are not supported in local environment\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
+			}
+			warningFlag = true
 		}
 	}
 

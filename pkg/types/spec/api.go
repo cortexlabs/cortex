@@ -47,7 +47,12 @@ type ModelMount struct {
 func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
 	var buf bytes.Buffer
 	buf.WriteString(apiConfig.Name)
-	buf.WriteString(*apiConfig.Endpoint)
+	if apiConfig.Endpoint != nil {
+		buf.WriteString(*apiConfig.Endpoint)
+	}
+	if apiConfig.LocalPort != nil {
+		buf.WriteString(s.Obj(*apiConfig.LocalPort))
+	}
 	buf.WriteString(s.Obj(apiConfig.Predictor))
 	buf.WriteString(s.Obj(apiConfig.Tracker))
 	buf.WriteString(deploymentID)
@@ -60,7 +65,7 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		Key:          Key(apiConfig.Name, id),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
-		MetadataRoot: metadataRoot(apiConfig.Name, id),
+		MetadataRoot: MetadataRoot(apiConfig.Name, id),
 		ProjectID:    projectID,
 		ProjectKey:   ProjectKey(projectID),
 	}
@@ -75,7 +80,7 @@ func Key(apiName string, apiID string) string {
 	)
 }
 
-func metadataRoot(apiName string, apiID string) string {
+func MetadataRoot(apiName string, apiID string) string {
 	return filepath.Join(
 		"apis",
 		apiName,
