@@ -140,6 +140,12 @@ def generate_eks(cluster_config_path):
     if is_gpu(cluster_config["instance_type"]):
         apply_gpu_settings(worker_nodegroup)
 
+    nat_gateway = "Disable"
+    if cluster_config["nat_gateway"] == "single":
+        nat_gateway = "Single"
+    elif cluster_config["nat_gateway"] == "highly_available":
+        nat_gateway = "HighlyAvailable"
+
     eks = {
         "apiVersion": "eksctl.io/v1alpha5",
         "kind": "ClusterConfig",
@@ -148,7 +154,7 @@ def generate_eks(cluster_config_path):
             "region": cluster_config["region"],
             "version": "1.15",
         },
-        "vpc": {"nat": {"gateway": "Disable"}},
+        "vpc": {"nat": {"gateway": nat_gateway}},
         "availabilityZones": cluster_config["availability_zones"],
         "cloudWatch": {"clusterLogging": {"enableTypes": ["*"]}},
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
