@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-There can be cases when SSH-ing into an AWS Cortex instance is asked for. The following 5 steps are identical for both approaches of SSH-ing.
+There can be cases when SSH-ing into an AWS Cortex instance is asked for. The following 5 steps are identical for both approaches of SSH-ing in.
 
 ## Step 1
 
