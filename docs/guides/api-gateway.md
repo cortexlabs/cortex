@@ -6,7 +6,7 @@ We have plans to automatically configure API gateway when creating a Cortex API 
 
 One reason to use API Gateway is to get https working with valid certificates (either by using AWS's built-in certificates, or using your own via custom domains and the AWS Certificate Manager). Another reason could be to expose your APIs to the internet when configuring Cortex to use an internal load balancer for your APIs.
 
-If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file), use the [second section](#if-your-api-load-balancer-is-internal) of this guide.
+If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before spinning up your cluster), use the [second section](#if-your-api-load-balancer-is-internal) of this guide.
 
 If your API load balancer is internet-facing (which is the default, or you explicitly set `api_load_balancer_scheme: internet-facing` in your cluster configuration file), use the [first section](#if-your-api-load-balancer-is-internet-facing) of this guide.
 
