@@ -395,15 +395,25 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	fmt.Printf("your cluster will cost %s per hour%s\n\n", priceStr, suffix)
 
-	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", clusterConfig.Bucket, clusterConfig.LogGroup)
+	privateSubnetMsg := ""
+	if clusterConfig.SubnetVisibility == clusterconfig.PrivateSubnetVisibility {
+		privateSubnetMsg = ", and will use private subnets for all EC2 instances"
+	}
+	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.LogGroup, privateSubnetMsg)
+
+	if clusterConfig.APILoadBalancerScheme == clusterconfig.InternalLoadBalancer {
+		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure an API Gateway VPC Link or VPC Peering to the API load balancer to connect to your APIs (see our guides)\n\n")
+	}
+	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancer {
+		fmt.Print("warning: you've configured the Operator load balancer to be internal; you must configure an API Gateway VPC Link or VPC Peering to the operator load balancer to connect to your cluster operator (see our guides)\n\n")
+	}
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
-			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", consts.CortexVersionMinor)
+			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n\n", consts.CortexVersionMinor)
 		}
-		fmt.Println()
 	}
 
 	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)

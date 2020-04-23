@@ -48,11 +48,11 @@ subnet_visibility: public  # must be "public" or "private"
 nat_gateway: none  # must be "none", "single", and "highly_available" (one NAT gateway per availability zone)
 
 # whether the API load balancer should be internet-facing or internal (default: "internet-facing")
-# note: if using "internal", you must configure an API Gateway VPC Link or VPC Peering to connect to your APIs (see our guides)
+# note: if using "internal", you must configure an API Gateway VPC Link or VPC Peering to the API load balancer to connect to your APIs (see our guides)
 api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # whether the Operator load balancer should be internet-facing or internal (default: "internet-facing")
-# note: if using "internal", you must configure an API Gateway VPC Link or VPC Peering to connect to your cluster operator (see our guides)
+# note: if using "internal", you must configure an API Gateway VPC Link or VPC Peering to the operator load balancer to connect to your cluster operator (see our guides)
 operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # CloudWatch log group for cortex (default: <cluster_name>)
