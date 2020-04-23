@@ -47,6 +47,7 @@
 * [Plot API request time](guides/plot-request-time.md)
 * [Plot in-flight requests](guides/plot-in-flight-requests.md)
 * [Add a batch runner API](guides/batch-runner.md)
+* [Set up VPC peering](guides/vpc-peering.md)
 
 ## Contributing
 
