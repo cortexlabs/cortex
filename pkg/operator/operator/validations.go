@@ -822,7 +822,7 @@ func validateDockerImagePath(image string) error {
 		}
 	}
 
-	client, err := dockerclient.NewEnvClient()
+	client, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv, dockerclient.WithAPIVersionNegotiation())
 	if err != nil {
 		return err
 	}
