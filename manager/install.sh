@@ -144,6 +144,8 @@ function main() {
   if [ "$arg1" != "--update" ]; then
     if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
       envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
+    elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+      envsubst < manifests/image-downloader-accelerator.yaml | kubectl apply -f - &>/dev/null
     else
       envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi

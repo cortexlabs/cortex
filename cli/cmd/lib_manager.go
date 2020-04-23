@@ -241,6 +241,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 			"CORTEX_CLUSTER_CONFIG_FILE=" + mountedConfigPath,
 			"CORTEX_CLUSTER_WORKSPACE=" + clusterWorkspace,
 			"CORTEX_IMAGE_PYTHON_SERVE=" + consts.DefaultImagePythonServe,
+			"CORTEX_IMAGE_PYTHON_SERVE_ACCELERATOR=" + consts.DefaultImagePythonServeAccelerator,
 			"CORTEX_IMAGE_PYTHON_SERVE_GPU=" + consts.DefaultImagePythonServeGPU,
 			"CORTEX_IMAGE_TF_SERVE=" + consts.DefaultImageTFServe,
 			"CORTEX_IMAGE_TF_SERVE_GPU=" + consts.DefaultImageTFServeGPU,
