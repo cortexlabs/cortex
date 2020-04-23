@@ -131,6 +131,7 @@ func operatorTelemetry() error {
 		"region":                   *config.Cluster.Region,
 		"instance_count":           totalInstances,
 		"instances":                instanceInfos,
+		"fixed_price":              fixedPrice,
 		"total_price":              totalInstancePrice + fixedPrice,
 		"total_price_if_on_demand": totalInstancePriceIfOnDemand + fixedPrice,
 	}
