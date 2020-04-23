@@ -41,6 +41,7 @@ gateways:
     serviceAnnotations:
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "600"
     type: LoadBalancer
+    externalTrafficPolicy: Local  # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
     ports:
     - port: 80
       targetPort: 80
@@ -81,6 +82,7 @@ gateways:
     serviceAnnotations:
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "600"
     type: LoadBalancer
+    externalTrafficPolicy: Local  # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
     ports:
     - port: 80
       targetPort: 80
