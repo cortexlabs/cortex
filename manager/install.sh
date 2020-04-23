@@ -315,11 +315,13 @@ function validate_cortex() {
       operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
-    if [ "$operator_endpoint_reachable" != "ready" ]; then
-      if ! curl $operator_endpoint >/dev/null 2>&1; then
-        continue
+    if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+      if [ "$operator_endpoint_reachable" != "ready" ]; then
+        if ! curl $operator_endpoint >/dev/null 2>&1; then
+          continue
+        fi
+        operator_endpoint_reachable="ready"
       fi
-      operator_endpoint_reachable="ready"
     fi
 
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
