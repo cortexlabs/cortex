@@ -55,6 +55,10 @@ metadata:
   name: cloudwatch-agent-statsd
   namespace: default
 spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   selector:
     matchLabels:
       name: cloudwatch-agent-statsd
