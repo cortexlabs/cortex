@@ -121,11 +121,11 @@ def apply_accelerator_settings(nodegroup):
         # this ami override can be removed and reverted back to auto
         "ami": "ami-0d5a224787b16da0b",
         "tags": {
-            "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/inf": "true",
-            "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/inf=true",
+            "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",
+            "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/infa=true",
         },
-        "labels": {"aws.amazon.com/inf": "true"},
-        "taints": {"aws.amazon.com/inf": "true:NoSchedule"},
+        "labels": {"aws.amazon.com/infa": "true"},
+        "taints": {"aws.amazon.com/infa": "true:NoSchedule"},
     }
     return merge_override(nodegroup, accelerator_settings)
 

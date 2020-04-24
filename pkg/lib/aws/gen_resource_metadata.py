@@ -48,6 +48,13 @@ EKS_PRICING_ENDPOINT_TEMPLATE = (
     "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEKS/current/{}/index.json"
 )
 
+accelerators_per_instance_type = {
+    "inf1.xlarge": 1,
+    "inf1.2xlarge": 1,
+    "inf1.6xlarge": 4,
+    "inf1.24xlarge": 16,
+}
+
 
 def get_instance_metadatas(pricing):
     instance_mapping = {}
@@ -85,6 +92,12 @@ def get_instance_metadatas(pricing):
         instance_mapping[instance_type] = metadata
 
     return instance_mapping
+
+
+def get_accelerators_per_instance_type(instance_type):
+    if instance_type not in accelerators_per_instance_type.keys():
+        return 0
+    return accelerators_per_instance_type[instance_type]
 
 
 def get_elb_metadata(pricing):
@@ -190,12 +203,13 @@ import (
 )
 
 type InstanceMetadata struct {
-	Region string             `json:"region"`
-	Type   string             `json:"type"`
-	Memory kresource.Quantity `json:"memory"`
-	CPU    kresource.Quantity `json:"cpu"`
-	GPU    int64              `json:"gpu"`
-	Price  float64            `json:"price"`
+	Region      string             `json:"region"`
+	Type        string             `json:"type"`
+	Memory      kresource.Quantity `json:"memory"`
+	CPU         kresource.Quantity `json:"cpu"`
+	GPU         int64              `json:"gpu"`
+    Accelerator int64              `json:"accelerator"`
+	Price       float64            `json:"price"`
 }
 
 type ELBMetadata struct {
@@ -241,14 +255,14 @@ var EKSPrices = map[string]float64{
 )
 
 instance_region_map_template = Template(
-    """"${region}": map[string]InstanceMetadata{
+    """"${region}": {
 	${instance_metadatas}
 },
 """
 )
 
 instance_metadata_template = Template(
-    """"${type}": {Region: "${region}", Type: "${type}", Memory: kresource.MustParse("${memory}Mi"), CPU: kresource.MustParse("${cpu}"), GPU: ${gpu}, Price: ${price}},
+    """"${type}": {Region: "${region}", Type: "${type}", Memory: kresource.MustParse("${memory}Mi"), CPU: kresource.MustParse("${cpu}"), GPU: ${gpu}, Accelerator: ${accelerator}, Price: ${price}},
 """
 )
 
@@ -303,6 +317,7 @@ def main():
                     "memory": metadata["mem"],
                     "cpu": metadata["cpu"],
                     "gpu": metadata["gpu"],
+                    "accelerator": get_accelerators_per_instance_type(instance_type),
                     "price": metadata["price"],
                 }
             )
