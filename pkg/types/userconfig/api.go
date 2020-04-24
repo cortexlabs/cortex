@@ -263,8 +263,7 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
 
-	emptyCompute := Compute{}
-	if api.Compute != nil && *api.Compute != emptyCompute {
+	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
@@ -329,13 +328,17 @@ func (tracker *Tracker) UserStr() string {
 
 func (compute *Compute) UserStr() string {
 	var sb strings.Builder
-	if compute.CPU != nil {
+	if compute.CPU == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", CPUKey))
+	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
 	}
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
-	if compute.Mem != nil {
+	if compute.Mem == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", MemKey))
+	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
 	return sb.String()
