@@ -34,7 +34,7 @@ import (
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
 	err := docker.PullImage(apiConfig.Predictor.Image)
 	if err != nil {
 		return nil, "", err
@@ -62,8 +62,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, a
 		}
 		apiSpec.LocalModelCache = localModelCache
 	}
-	apiSpec.LocalProjectDir = filepath.Dir(configPath)
-
+	apiSpec.LocalProjectDir = filepath.Dir(cortexYAMLPath)
 	if prevAPISpec != nil {
 		prevModelID := ""
 		if prevAPISpec.LocalModelCache != nil {
@@ -79,11 +78,6 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, a
 			return apiSpec, fmt.Sprintf("%s is up to date", apiSpec.Name), nil
 		}
 
-		fmt.Println(newModelID)
-		fmt.Println(apiSpec.LocalModelCache.HostPath)
-
-		fmt.Println(prevModelID)
-		fmt.Println(prevAPISpec.LocalModelCache.HostPath)
 		keepCache := newModelID == prevModelID
 		err = DeleteAPI(apiSpec.Name, keepCache)
 		if err != nil {
@@ -154,7 +148,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		errList = append(errList, err)
 	}
 
-	if !keepCache && len(modelsToDelete) != 0 {
+	if !keepCache && len(modelsToDelete) > 0 {
 		modelsInUse := strset.New()
 		apiSpecList, err := ListAPISpecs()
 		errList = append(errList, err)
@@ -167,7 +161,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 
 		modelsToDelete.Subtract(modelsInUse)
 		for modelID := range modelsToDelete {
-			fmt.Println("deleting: " + filepath.Join(_modelCacheDir, modelID))
 			err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
 			if err != nil {
 				errList = append(errList, err)

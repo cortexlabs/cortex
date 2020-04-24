@@ -40,12 +40,12 @@ type ProjectFiles struct {
 
 func NewProjectFiles(projectFileList []string, absoluteConfigFilePath string) (ProjectFiles, error) {
 	if !filepath.IsAbs(absoluteConfigFilePath) {
-		return ProjectFiles{}, ErrorNotAbsolutePath(absoluteConfigFilePath)
+		return ProjectFiles{}, ErrorNotAbsolutePath(absoluteConfigFilePath) // unexpected
 	}
 
 	for _, projectFile := range projectFileList {
 		if !filepath.IsAbs(projectFile) {
-			return ProjectFiles{}, ErrorNotAbsolutePath(absoluteConfigFilePath)
+			return ProjectFiles{}, ErrorNotAbsolutePath(absoluteConfigFilePath) // unexpected
 		}
 	}
 
@@ -125,7 +125,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		}
 
 		if _, ok := infoResponse.Runtimes["nvidia"]; !ok {
-			fmt.Println(fmt.Sprintf("warning: unable to find nvidia runtime on your docker (confirm with `docker info|grep -i runtime`); see https://github.com/NVIDIA/nvidia-container-runtime#installation to register nvidia runtime on your docker; in the meantime, the following api(s): %s will be run without GPU\n", strings.Join(apisRequiringGPU.Slice(), ", ")))
+			fmt.Println(fmt.Sprintf("warning: unable to find nvidia runtime on your docker (confirm with `docker info | grep -i runtime`); see https://github.com/NVIDIA/nvidia-container-runtime#installation to register nvidia runtime on your docker; in the meantime, the following api(s) will be run without GPU access: %s\n", strings.Join(apisRequiringGPU.Slice(), ", ")))
 		}
 
 		for i := range apis {

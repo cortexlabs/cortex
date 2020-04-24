@@ -44,306 +44,326 @@ import (
 
 var AutoscalingTickInterval = 10 * time.Second
 
-var _apiValidation = &cr.StructValidation{
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "Name",
-			StringValidation: &cr.StringValidation{
-				Required:  true,
-				DNS1035:   true,
-				MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
-			},
-		},
-		{
-			StructField: "Endpoint",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: urls.ValidateEndpoint,
-				MaxLength: 1000, // no particular reason other than it works
-			},
-		},
-		{
-			StructField: "LocalPort",
-			IntPtrValidation: &cr.IntPtrValidation{
-				GreaterThan:       pointer.Int(0),
-				LessThanOrEqualTo: pointer.Int(65535),
-			},
-		},
-		_predictorValidation,
-		_trackerValidation,
-		_computeValidation,
-		_autoscalingValidation,
-		_updateStrategyValidation,
-	},
-}
-
-var _predictorValidation = &cr.StructFieldValidation{
-	StructField: "Predictor",
-	StructValidation: &cr.StructValidation{
-		Required: true,
+func apiValidation(provider types.ProviderType) *cr.StructValidation {
+	return &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
 			{
-				StructField: "Type",
+				StructField: "Name",
 				StringValidation: &cr.StringValidation{
-					Required:      true,
-					AllowedValues: userconfig.PredictorTypeStrings(),
-				},
-				Parser: func(str string) (interface{}, error) {
-					return userconfig.PredictorTypeFromString(str), nil
+					Required:  true,
+					DNS1035:   true,
+					MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
 				},
 			},
 			{
-				StructField: "Path",
-				StringValidation: &cr.StringValidation{
-					Required: true,
-				},
-			},
-			{
-				StructField:         "Model",
-				StringPtrValidation: &cr.StringPtrValidation{},
-			},
-			{
-				StructField: "PythonPath",
+				StructField: "Endpoint",
 				StringPtrValidation: &cr.StringPtrValidation{
-					AllowEmpty: true,
-					Validator: func(path string) (string, error) {
-						return s.EnsureSuffix(path, "/"), nil
+					Validator: urls.ValidateEndpoint,
+					MaxLength: 1000, // no particular reason other than it works
+				},
+			},
+			{
+				StructField: "LocalPort",
+				IntPtrValidation: &cr.IntPtrValidation{
+					GreaterThan:       pointer.Int(0),
+					LessThanOrEqualTo: pointer.Int(65535),
+				},
+			},
+			predictorValidation(provider),
+			trackerValidation(provider),
+			computeValidation(provider),
+			autoscalingValidation(provider),
+			updateStrategyValidation(provider),
+		},
+	}
+}
+
+func predictorValidation(provider types.ProviderType) *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Predictor",
+		StructValidation: &cr.StructValidation{
+			Required: true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Type",
+					StringValidation: &cr.StringValidation{
+						Required:      true,
+						AllowedValues: userconfig.PredictorTypeStrings(),
+					},
+					Parser: func(str string) (interface{}, error) {
+						return userconfig.PredictorTypeFromString(str), nil
+					},
+				},
+				{
+					StructField: "Path",
+					StringValidation: &cr.StringValidation{
+						Required: true,
+					},
+				},
+				{
+					StructField:         "Model",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				{
+					StructField: "PythonPath",
+					StringPtrValidation: &cr.StringPtrValidation{
+						AllowEmpty: true,
+						Validator: func(path string) (string, error) {
+							return s.EnsureSuffix(path, "/"), nil
+						},
+					},
+				},
+				{
+					StructField: "Image",
+					StringValidation: &cr.StringValidation{
+						Required:           false,
+						AllowEmpty:         true,
+						DockerImageOrEmpty: true,
+					},
+				},
+				{
+					StructField: "TFServeImage",
+					StringValidation: &cr.StringValidation{
+						Required:           false,
+						AllowEmpty:         true,
+						DockerImageOrEmpty: true,
+					},
+				},
+				{
+					StructField: "Config",
+					InterfaceMapValidation: &cr.InterfaceMapValidation{
+						StringKeysOnly: true,
+						AllowEmpty:     true,
+						Default:        map[string]interface{}{},
+					},
+				},
+				{
+					StructField: "Env",
+					StringMapValidation: &cr.StringMapValidation{
+						Default:    map[string]string{},
+						AllowEmpty: true,
+					},
+				},
+				{
+					StructField:         "SignatureKey",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+			},
+		},
+	}
+}
+
+func trackerValidation(provider types.ProviderType) *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Tracker",
+		StructValidation: &cr.StructValidation{
+			DefaultNil: true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField:         "Key",
+					StringPtrValidation: &cr.StringPtrValidation{},
+				},
+				{
+					StructField: "ModelType",
+					StringValidation: &cr.StringValidation{
+						Required:      false,
+						AllowEmpty:    true,
+						AllowedValues: userconfig.ModelTypeStrings(),
+					},
+					Parser: func(str string) (interface{}, error) {
+						return userconfig.ModelTypeFromString(str), nil
 					},
 				},
 			},
-			{
-				StructField: "Image",
-				StringValidation: &cr.StringValidation{
-					Required:           false,
-					AllowEmpty:         true,
-					DockerImageOrEmpty: true,
-				},
-			},
-			{
-				StructField: "TFServeImage",
-				StringValidation: &cr.StringValidation{
-					Required:           false,
-					AllowEmpty:         true,
-					DockerImageOrEmpty: true,
-				},
-			},
-			{
-				StructField: "Config",
-				InterfaceMapValidation: &cr.InterfaceMapValidation{
-					StringKeysOnly: true,
-					AllowEmpty:     true,
-					Default:        map[string]interface{}{},
-				},
-			},
-			{
-				StructField: "Env",
-				StringMapValidation: &cr.StringMapValidation{
-					Default:    map[string]string{},
-					AllowEmpty: true,
-				},
-			},
-			{
-				StructField:         "SignatureKey",
-				StringPtrValidation: &cr.StringPtrValidation{},
-			},
 		},
-	},
+	}
 }
 
-var _trackerValidation = &cr.StructFieldValidation{
-	StructField: "Tracker",
-	StructValidation: &cr.StructValidation{
-		DefaultNil: true,
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField:         "Key",
-				StringPtrValidation: &cr.StringPtrValidation{},
-			},
-			{
-				StructField: "ModelType",
-				StringValidation: &cr.StringValidation{
-					Required:      false,
-					AllowEmpty:    true,
-					AllowedValues: userconfig.ModelTypeStrings(),
+func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
+	cpuDefault := "200m"
+	if provider == types.LocalProviderType {
+		cpuDefault = "1"
+	}
+	return &cr.StructFieldValidation{
+		StructField: "Compute",
+		StructValidation: &cr.StructValidation{
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "CPU",
+					StringValidation: &cr.StringValidation{
+						Default:     cpuDefault,
+						CastNumeric: true,
+					},
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+						GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20m")),
+					}),
 				},
-				Parser: func(str string) (interface{}, error) {
-					return userconfig.ModelTypeFromString(str), nil
+				{
+					StructField: "Mem",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default: nil,
+					},
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{
+						GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20Mi")),
+					}),
+				},
+				{
+					StructField: "GPU",
+					Int64Validation: &cr.Int64Validation{
+						Default:              0,
+						GreaterThanOrEqualTo: pointer.Int64(0),
+					},
 				},
 			},
 		},
-	},
+	}
 }
 
-var _computeValidation = &cr.StructFieldValidation{
-	StructField: "Compute",
-	StructValidation: &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "CPU",
-				StringValidation: &cr.StringValidation{
-					Default:     "200m",
-					CastNumeric: true,
+func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidation {
+	defaultNil := provider == types.LocalProviderType
+	return &cr.StructFieldValidation{
+		StructField: "Autoscaling",
+		StructValidation: &cr.StructValidation{
+			DefaultNil: defaultNil,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "MinReplicas",
+					Int32Validation: &cr.Int32Validation{
+						Default:     1,
+						GreaterThan: pointer.Int32(0),
+					},
 				},
-				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-					GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20m")),
-				}),
-			},
-			{
-				StructField: "Mem",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Default: nil,
+				{
+					StructField: "MaxReplicas",
+					Int32Validation: &cr.Int32Validation{
+						Default:     100,
+						GreaterThan: pointer.Int32(0),
+					},
 				},
-				Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-					GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20Mi")),
-				}),
-			},
-			{
-				StructField: "GPU",
-				Int64Validation: &cr.Int64Validation{
-					Default:              0,
-					GreaterThanOrEqualTo: pointer.Int64(0),
+				{
+					StructField:  "InitReplicas",
+					DefaultField: "MinReplicas",
+					Int32Validation: &cr.Int32Validation{
+						GreaterThan: pointer.Int32(0),
+					},
+				},
+				{
+					StructField: "WorkersPerReplica",
+					Int32Validation: &cr.Int32Validation{
+						Default:              1,
+						GreaterThanOrEqualTo: pointer.Int32(1),
+						LessThanOrEqualTo:    pointer.Int32(20),
+					},
+				},
+				{
+					StructField: "ThreadsPerWorker",
+					Int32Validation: &cr.Int32Validation{
+						Default:              1,
+						GreaterThanOrEqualTo: pointer.Int32(1),
+					},
+				},
+				{
+					StructField: "TargetReplicaConcurrency",
+					Float64PtrValidation: &cr.Float64PtrValidation{
+						GreaterThan: pointer.Float64(0),
+					},
+				},
+				{
+					StructField: "MaxReplicaConcurrency",
+					Int64Validation: &cr.Int64Validation{
+						Default:     1024,
+						GreaterThan: pointer.Int64(0),
+					},
+				},
+				{
+					StructField: "Window",
+					StringValidation: &cr.StringValidation{
+						Default: "60s",
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThanOrEqualTo: &AutoscalingTickInterval,
+						MultipleOf:           &AutoscalingTickInterval,
+					}),
+				},
+				{
+					StructField: "DownscaleStabilizationPeriod",
+					StringValidation: &cr.StringValidation{
+						Default: "5m",
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
+					}),
+				},
+				{
+					StructField: "UpscaleStabilizationPeriod",
+					StringValidation: &cr.StringValidation{
+						Default: "1m",
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
+					}),
+				},
+				{
+					StructField: "MaxDownscaleFactor",
+					Float64Validation: &cr.Float64Validation{
+						Default:              0.75,
+						GreaterThanOrEqualTo: pointer.Float64(0),
+						LessThan:             pointer.Float64(1),
+					},
+				},
+				{
+					StructField: "MaxUpscaleFactor",
+					Float64Validation: &cr.Float64Validation{
+						Default:     1.5,
+						GreaterThan: pointer.Float64(1),
+					},
+				},
+				{
+					StructField: "DownscaleTolerance",
+					Float64Validation: &cr.Float64Validation{
+						Default:              0.05,
+						GreaterThanOrEqualTo: pointer.Float64(0),
+						LessThan:             pointer.Float64(1),
+					},
+				},
+				{
+					StructField: "UpscaleTolerance",
+					Float64Validation: &cr.Float64Validation{
+						Default:              0.05,
+						GreaterThanOrEqualTo: pointer.Float64(0),
+					},
 				},
 			},
 		},
-	},
+	}
 }
 
-var _autoscalingValidation = &cr.StructFieldValidation{
-	StructField: "Autoscaling",
-	StructValidation: &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "MinReplicas",
-				Int32Validation: &cr.Int32Validation{
-					Default:     1,
-					GreaterThan: pointer.Int32(0),
+func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValidation {
+	defaultNil := provider == types.LocalProviderType
+	return &cr.StructFieldValidation{
+		StructField: "UpdateStrategy",
+		StructValidation: &cr.StructValidation{
+			DefaultNil: defaultNil,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "MaxSurge",
+					StringValidation: &cr.StringValidation{
+						Default:   "25%",
+						CastInt:   true,
+						Validator: surgeOrUnavailableValidator,
+					},
 				},
-			},
-			{
-				StructField: "MaxReplicas",
-				Int32Validation: &cr.Int32Validation{
-					Default:     100,
-					GreaterThan: pointer.Int32(0),
-				},
-			},
-			{
-				StructField:  "InitReplicas",
-				DefaultField: "MinReplicas",
-				Int32Validation: &cr.Int32Validation{
-					GreaterThan: pointer.Int32(0),
-				},
-			},
-			{
-				StructField: "WorkersPerReplica",
-				Int32Validation: &cr.Int32Validation{
-					Default:              1,
-					GreaterThanOrEqualTo: pointer.Int32(1),
-					LessThanOrEqualTo:    pointer.Int32(20),
-				},
-			},
-			{
-				StructField: "ThreadsPerWorker",
-				Int32Validation: &cr.Int32Validation{
-					Default:              1,
-					GreaterThanOrEqualTo: pointer.Int32(1),
-				},
-			},
-			{
-				StructField: "TargetReplicaConcurrency",
-				Float64PtrValidation: &cr.Float64PtrValidation{
-					GreaterThan: pointer.Float64(0),
-				},
-			},
-			{
-				StructField: "MaxReplicaConcurrency",
-				Int64Validation: &cr.Int64Validation{
-					Default:     1024,
-					GreaterThan: pointer.Int64(0),
-				},
-			},
-			{
-				StructField: "Window",
-				StringValidation: &cr.StringValidation{
-					Default: "60s",
-				},
-				Parser: cr.DurationParser(&cr.DurationValidation{
-					GreaterThanOrEqualTo: &AutoscalingTickInterval,
-					MultipleOf:           &AutoscalingTickInterval,
-				}),
-			},
-			{
-				StructField: "DownscaleStabilizationPeriod",
-				StringValidation: &cr.StringValidation{
-					Default: "5m",
-				},
-				Parser: cr.DurationParser(&cr.DurationValidation{
-					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
-				}),
-			},
-			{
-				StructField: "UpscaleStabilizationPeriod",
-				StringValidation: &cr.StringValidation{
-					Default: "1m",
-				},
-				Parser: cr.DurationParser(&cr.DurationValidation{
-					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
-				}),
-			},
-			{
-				StructField: "MaxDownscaleFactor",
-				Float64Validation: &cr.Float64Validation{
-					Default:              0.75,
-					GreaterThanOrEqualTo: pointer.Float64(0),
-					LessThan:             pointer.Float64(1),
-				},
-			},
-			{
-				StructField: "MaxUpscaleFactor",
-				Float64Validation: &cr.Float64Validation{
-					Default:     1.5,
-					GreaterThan: pointer.Float64(1),
-				},
-			},
-			{
-				StructField: "DownscaleTolerance",
-				Float64Validation: &cr.Float64Validation{
-					Default:              0.05,
-					GreaterThanOrEqualTo: pointer.Float64(0),
-					LessThan:             pointer.Float64(1),
-				},
-			},
-			{
-				StructField: "UpscaleTolerance",
-				Float64Validation: &cr.Float64Validation{
-					Default:              0.05,
-					GreaterThanOrEqualTo: pointer.Float64(0),
+				{
+					StructField: "MaxUnavailable",
+					StringValidation: &cr.StringValidation{
+						Default:   "25%",
+						CastInt:   true,
+						Validator: surgeOrUnavailableValidator,
+					},
 				},
 			},
 		},
-	},
-}
-
-var _updateStrategyValidation = &cr.StructFieldValidation{
-	StructField: "UpdateStrategy",
-	StructValidation: &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "MaxSurge",
-				StringValidation: &cr.StringValidation{
-					Default:   "25%",
-					CastInt:   true,
-					Validator: surgeOrUnavailableValidator,
-				},
-			},
-			{
-				StructField: "MaxUnavailable",
-				StringValidation: &cr.StringValidation{
-					Default:   "25%",
-					CastInt:   true,
-					Validator: surgeOrUnavailableValidator,
-				},
-			},
-		},
-	},
+	}
 }
 
 func surgeOrUnavailableValidator(str string) (string, error) {
@@ -368,7 +388,7 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
-func ExtractAPIConfigs(configBytes []byte, projectFiles ProjectFiles, filePath string) ([]userconfig.API, error) {
+func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectFiles ProjectFiles, filePath string) ([]userconfig.API, error) {
 	var err error
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
@@ -383,7 +403,7 @@ func ExtractAPIConfigs(configBytes []byte, projectFiles ProjectFiles, filePath s
 	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
 		api := userconfig.API{}
-		errs := cr.Struct(&api, data, _apiValidation)
+		errs := cr.Struct(&api, data, apiValidation(provider))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			return nil, errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
@@ -405,16 +425,24 @@ func ValidateAPI(
 	providerType types.ProviderType,
 	awsClient *aws.Client,
 ) error {
+	if providerType == types.AWSProviderType && api.Endpoint == nil {
+		api.Endpoint = pointer.String("/" + api.Name)
+	}
+
 	if err := validatePredictor(api.Predictor, projectFiles, providerType, awsClient); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
-	if err := validateAutoscaling(api.Autoscaling); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.AutoscalingKey)
+	if api.Autoscaling != nil {
+		if err := validateAutoscaling(api.Autoscaling); err != nil {
+			return errors.Wrap(err, api.Identify(), userconfig.AutoscalingKey)
+		}
 	}
 
-	if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.UpdateStrategyKey)
+	if api.UpdateStrategy != nil {
+		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
+			return errors.Wrap(err, api.Identify(), userconfig.UpdateStrategyKey)
+		}
 	}
 
 	return nil

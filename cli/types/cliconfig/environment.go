@@ -109,6 +109,9 @@ func (env *Environment) Validate() error {
 		if env.AWSSecretAccessKey == nil {
 			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSSecretAccessKeyKey)
 		}
+		if env.AWSRegion != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
 	}
 
 	return nil

@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -36,7 +35,7 @@ import (
 
 type ProjectFiles struct {
 	ProjectByteMap map[string][]byte
-	ConfigFile     string
+	ConfigFilePath string
 }
 
 func (projectFiles ProjectFiles) GetAllPaths() []string {
@@ -61,7 +60,7 @@ func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
 }
 
 func (projectFiles ProjectFiles) GetConfigFilePath() string {
-	return projectFiles.ConfigFile
+	return projectFiles.ConfigFilePath
 }
 
 func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
@@ -78,10 +77,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 	for i := range apis {
 		api := &apis[i]
-		if api.Endpoint == nil {
-			api.Endpoint = pointer.String("/" + api.Name)
-		}
-
 		if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
 			return err
 		}

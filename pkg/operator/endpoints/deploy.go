@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
@@ -43,7 +44,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, errors.WithStack(err))
 		return
 	} else if len(configBytes) == 0 {
-		respondError(w, r, ErrorFormFileMustBeProvided("configPath"))
+		respondError(w, r, ErrorFormFileMustBeProvided("config"))
 		return
 	}
 
@@ -68,9 +69,9 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	projectFiles := operator.ProjectFiles{
 		ProjectByteMap: projectFileMap,
-		ConfigFile:     configPath,
+		ConfigFilePath: configPath,
 	}
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, projectFiles, configPath)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
 	if err != nil {
 		respondError(w, r, err)
 		return

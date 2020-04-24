@@ -102,11 +102,11 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 	}
 
 	runtime := ""
-	resource := container.Resources{}
+	resources := container.Resources{}
 	if api.Compute != nil {
-		resource.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
+		resources.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
 		if api.Compute.Mem != nil {
-			resource.Memory = api.Compute.Mem.Quantity.Value()
+			resources.Memory = api.Compute.Mem.Quantity.Value()
 		}
 		if api.Compute.GPU > 0 {
 			runtime = "nvidia"
@@ -118,7 +118,7 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
 		Runtime:   runtime,
-		Resources: resource,
+		Resources: resources,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
@@ -168,11 +168,11 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 	}
 
 	runtime := ""
-	resource := container.Resources{}
+	resources := container.Resources{}
 	if api.Compute != nil {
-		resource.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
+		resources.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
 		if api.Compute.Mem != nil {
-			resource.Memory = api.Compute.Mem.Quantity.Value()
+			resources.Memory = api.Compute.Mem.Quantity.Value()
 		}
 		if api.Compute.GPU > 0 {
 			runtime = "nvidia"
@@ -184,7 +184,7 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
 		Runtime:   runtime,
-		Resources: resource,
+		Resources: resources,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
@@ -235,17 +235,17 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 
 func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	serveRuntime := ""
-	serveResource := container.Resources{}
-	apiResource := container.Resources{}
+	serveResources := container.Resources{}
+	apiResources := container.Resources{}
 
 	if api.Compute != nil {
 		totalNanoCPUs := api.Compute.CPU.MilliValue() * 1000 * 1000
-		apiResource.NanoCPUs = totalNanoCPUs / 2
-		serveResource.NanoCPUs = totalNanoCPUs - apiResource.NanoCPUs
+		apiResources.NanoCPUs = totalNanoCPUs / 2
+		serveResources.NanoCPUs = totalNanoCPUs - apiResources.NanoCPUs
 		if api.Compute.Mem != nil {
 			totalMemory := api.Compute.Mem.Quantity.Value()
-			apiResource.Memory = totalMemory / 2
-			serveResource.Memory = totalMemory - apiResource.NanoCPUs
+			apiResources.Memory = totalMemory / 2
+			serveResources.Memory = totalMemory - apiResources.NanoCPUs
 		}
 		if api.Compute.GPU > 0 {
 			serveRuntime = "nvidia"
@@ -254,7 +254,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 
 	serveHostConfig := &container.HostConfig{
 		Runtime:   serveRuntime,
-		Resources: serveResource,
+		Resources: serveResources,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
@@ -306,7 +306,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		PortBindings: nat.PortMap{
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
-		Resources: apiResource,
+		Resources: apiResources,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,

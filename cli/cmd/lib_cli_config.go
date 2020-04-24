@@ -458,7 +458,7 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	return url, nil
 }
 
-// Returns "local" if default value  is not set
+// Returns "local" if default value is not set
 func getDefaultEnv(cmdType commandType) string {
 	defaultEnv := types.LocalProviderType.String()
 

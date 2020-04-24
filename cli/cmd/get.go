@@ -64,6 +64,7 @@ var _getCmd = &cobra.Command{
 	Short: "get information about apis",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
+		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
 		if len(args) == 1 || wasEnvFlagProvided() {
 			env, err := ReadOrConfigureEnv(_flagGetEnv)
 			if err != nil {
@@ -175,7 +176,7 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 	out := t.MustFormat()
 
 	if env.Provider == types.LocalProviderType {
-		mismatchedVersionAPIsErrorMessage, _ := getLocalVersionMismatchedAPIs()
+		mismatchedVersionAPIsErrorMessage, _ := getLocalVersionMismatchedAPIsMessage()
 		if len(mismatchedVersionAPIsErrorMessage) > 0 {
 			out += "\n" + mismatchedVersionAPIsErrorMessage
 		}
@@ -184,7 +185,7 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 	return out, nil
 }
 
-func getLocalVersionMismatchedAPIs() (string, error) {
+func getLocalVersionMismatchedAPIsMessage() (string, error) {
 	mismatchedAPINames, err := local.ListVersionMismatchedAPIs()
 	if err != nil {
 		return "", err

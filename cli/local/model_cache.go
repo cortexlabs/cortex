@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -132,7 +133,7 @@ func unzipAndValidate(originalModelPath string, zipFile string, destPath string)
 		return err
 	}
 
-	// returns a tensorflow directory with version
+	// returns a tensorflow directory with the version as the suffix of the path
 	tensorflowDir, err := spec.GetTFServingExportFromLocalPath(tmpDir)
 	if err != nil {
 		return err
@@ -146,13 +147,12 @@ func unzipAndValidate(originalModelPath string, zipFile string, destPath string)
 	}
 
 	destPathWithVersion := filepath.Join(destPath, filepath.Base(tensorflowDir))
-
 	err = os.Rename(strings.TrimSuffix(tensorflowDir, "/"), strings.TrimSuffix(destPathWithVersion, "/"))
 	if err != nil {
-		panic(err)
+		return errors.WithStack(err)
 	}
 
-	_, err = files.DeleteDirIfPresent(tmpDir)
+	err = files.DeleteDir(tmpDir)
 	if err != nil {
 		return err
 	}

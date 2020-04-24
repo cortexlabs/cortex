@@ -252,7 +252,7 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 
-	if provider != types.AWSProviderType && api.LocalPort != nil {
+	if provider == types.LocalProviderType && api.LocalPort != nil {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))
 	}
 
@@ -338,20 +338,20 @@ func (compute *Compute) UserStr() string {
 	return sb.String()
 }
 
-func (c1 Compute) Equals(c2 *Compute) bool {
-	if !c1.CPU.Equal(c2.CPU) {
+func (compute Compute) Equals(c2 *Compute) bool {
+	if !compute.CPU.Equal(c2.CPU) {
 		return false
 	}
 
-	if c1.Mem == nil && c2.Mem != nil || c1.Mem != nil && c2.Mem == nil {
+	if compute.Mem == nil && c2.Mem != nil || compute.Mem != nil && c2.Mem == nil {
 		return false
 	}
 
-	if c1.Mem != nil && c2.Mem != nil && !c1.Mem.Equal(*c2.Mem) {
+	if compute.Mem != nil && c2.Mem != nil && !compute.Mem.Equal(*c2.Mem) {
 		return false
 	}
 
-	if c1.GPU != c2.GPU {
+	if compute.GPU != c2.GPU {
 		return false
 	}
 

@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
@@ -55,7 +56,7 @@ func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileLis
 		}
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, projectFiles, absoluteConfigPath)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, projectFiles, absoluteConfigPath)
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
