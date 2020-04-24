@@ -47,6 +47,7 @@
 * [Plot API request time](guides/plot-request-time.md)
 * [Plot in-flight requests](guides/plot-in-flight-requests.md)
 * [Add a batch runner API](guides/batch-runner.md)
+* [SSH into AWS instance](guides/ssh-instance.md)
 
 ## Contributing
 

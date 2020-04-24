@@ -75,10 +75,16 @@ spec:
         volumeMounts:
           - name: cluster-config
             mountPath: /configs/cluster
+          - name: docker-client
+            mountPath: /var/run/docker.sock
       volumes:
         - name: cluster-config
           configMap:
             name: cluster-config
+        - name: docker-client
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
 
 ---
 
