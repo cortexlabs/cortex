@@ -69,8 +69,8 @@ func apiValidation(provider types.ProviderType) *cr.StructValidation {
 					LessThanOrEqualTo: pointer.Int(65535),
 				},
 			},
-			predictorValidation(provider),
-			trackerValidation(provider),
+			predictorValidation(),
+			trackerValidation(),
 			computeValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
@@ -78,7 +78,7 @@ func apiValidation(provider types.ProviderType) *cr.StructValidation {
 	}
 }
 
-func predictorValidation(provider types.ProviderType) *cr.StructFieldValidation {
+func predictorValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Predictor",
 		StructValidation: &cr.StructValidation{
@@ -153,7 +153,7 @@ func predictorValidation(provider types.ProviderType) *cr.StructFieldValidation 
 	}
 }
 
-func trackerValidation(provider types.ProviderType) *cr.StructFieldValidation {
+func trackerValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Tracker",
 		StructValidation: &cr.StructValidation{
@@ -433,13 +433,13 @@ func ValidateAPI(
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
-	if api.Autoscaling != nil {
+	if api.Autoscaling != nil { // should only be nil for local provider
 		if err := validateAutoscaling(api.Autoscaling); err != nil {
 			return errors.Wrap(err, api.Identify(), userconfig.AutoscalingKey)
 		}
 	}
 
-	if api.UpdateStrategy != nil {
+	if api.UpdateStrategy != nil { // should only be nil for local provider
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, api.Identify(), userconfig.UpdateStrategyKey)
 		}
