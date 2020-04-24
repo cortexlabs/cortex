@@ -22,7 +22,6 @@ import threading
 import math
 import asyncio
 from typing import Any
-import yaml
 
 from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
