@@ -252,22 +252,26 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 
-	if provider != types.LocalProviderType {
+	if provider != types.AWSProviderType && api.LocalPort != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))
+	}
+
+	if provider != types.LocalProviderType && api.Endpoint != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
 	}
 
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
 
+	if api.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
+	}
+
 	if provider != types.LocalProviderType {
 		if api.Tracker != nil {
 			sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
 			sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
-		}
-
-		if api.Compute != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
-			sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 		}
 
 		if api.Autoscaling != nil {
@@ -332,6 +336,26 @@ func (compute *Compute) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
 	return sb.String()
+}
+
+func (c1 Compute) Equals(c2 *Compute) bool {
+	if !c1.CPU.Equal(c2.CPU) {
+		return false
+	}
+
+	if c1.Mem == nil && c2.Mem != nil || c1.Mem != nil && c2.Mem == nil {
+		return false
+	}
+
+	if c1.Mem != nil && c2.Mem != nil && !c1.Mem.Equal(*c2.Mem) {
+		return false
+	}
+
+	if c1.GPU != c2.GPU {
+		return false
+	}
+
+	return true
 }
 
 func (autoscaling *Autoscaling) UserStr() string {

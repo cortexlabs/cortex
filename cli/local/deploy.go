@@ -26,19 +26,20 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func Deploy(env cliconfig.Environment, configPath string, projectFileList []string) (schema.DeployResponse, error) {
+func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileList []string) (schema.DeployResponse, error) {
 	_, err := docker.GetDockerClient()
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
 
-	configBytes, err := files.ReadFileBytes(configPath)
+	configBytes, err := files.ReadFileBytes(absoluteConfigPath)
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
 
-	projectFiles := ProjectFiles{
-		ProjectFiles: projectFileList,
+	projectFiles, err := NewProjectFiles(projectFileList, absoluteConfigPath)
+	if err != nil {
+		return schema.DeployResponse{}, err
 	}
 
 	var awsClient *aws.Client
@@ -54,7 +55,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		}
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, projectFiles, configPath)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, projectFiles, absoluteConfigPath)
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
@@ -71,7 +72,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := UpdateAPI(&apiConfig, projectID, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, absoluteConfigPath, projectID, awsClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)

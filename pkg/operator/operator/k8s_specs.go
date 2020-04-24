@@ -49,6 +49,7 @@ const (
 	_downloaderLastLog                     = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
+	_tfServingHost                         = "localhost"
 	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
 	_apiReadinessFile                      = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                       = "/mnt/workspace/api_liveness.txt"
@@ -161,6 +162,10 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 							kcore.EnvVar{
 								Name:  "CORTEX_TF_SERVING_PORT",
 								Value: _tfServingPortStr,
+							},
+							kcore.EnvVar{
+								Name:  "CORTEX_TF_SERVING_HOST",
+								Value: _tfServingHost,
 							},
 						),
 						EnvFrom:        _baseEnvVars,

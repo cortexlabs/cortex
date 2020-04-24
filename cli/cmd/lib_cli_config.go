@@ -27,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -459,7 +458,7 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	return url, nil
 }
 
-// Returns "local" if unable to read user's default value
+// Returns "local" if default value  is not set
 func getDefaultEnv(cmdType commandType) string {
 	defaultEnv := types.LocalProviderType.String()
 
@@ -542,14 +541,14 @@ func readEnv(envName string) (*cliconfig.Environment, error) {
 	return nil, nil
 }
 
-func ReadOrConfigureEnv(envName string) (*cliconfig.Environment, error) {
+func ReadOrConfigureEnv(envName string) (cliconfig.Environment, error) {
 	existingEnv, err := readEnv(envName)
 	if err != nil {
-		return nil, err
+		return cliconfig.Environment{}, err
 	}
 
 	if existingEnv != nil {
-		return existingEnv, err
+		return *existingEnv, nil
 	}
 
 	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running on AWS?", envName)
@@ -563,10 +562,10 @@ func ReadOrConfigureEnv(envName string) (*cliconfig.Environment, error) {
 
 	env, err := configureEnv(envName, fieldsToSkipPrompt)
 	if err != nil {
-		return nil, err
+		return cliconfig.Environment{}, err
 	}
 
-	return &env, nil
+	return env, nil
 }
 
 func getEnvConfigDefaults(envName string) cliconfig.Environment {
@@ -577,7 +576,6 @@ func getEnvConfigDefaults(envName string) cliconfig.Environment {
 		defaults = *prevEnv
 	}
 
-	debug.Pp(defaults)
 	if defaults.Provider == types.UnknownProviderType {
 		if envNameProvider := types.ProviderTypeFromString(envName); envNameProvider != types.UnknownProviderType {
 			defaults.Provider = envNameProvider
@@ -668,6 +666,10 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 	env, err := readEnv(envName)
 	if err != nil {
 		exit.Error(err)
+	}
+
+	if env == nil {
+		exit.Error(ErrorEnvironmentNotFound(envName))
 	}
 
 	if env.Provider != types.AWSProviderType {

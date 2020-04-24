@@ -117,16 +117,19 @@ func makePredictRequest(apiEndpoint string, jsonPath string) (interface{}, error
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := makeRequest(req)
+	header, httpResponse, err := makeRequest(req)
 	if err != nil {
 		return nil, err
 	}
 
-	var predictResponse interface{}
-	err = json.DecodeWithNumber(httpResponse, &predictResponse)
-	if err != nil {
-		return nil, errors.Wrap(err, "prediction response")
+	if header.Get("Content-Type") == "application/json" {
+		var predictResponse interface{}
+		err = json.DecodeWithNumber(httpResponse, &predictResponse)
+		if err != nil {
+			return nil, errors.Wrap(err, "prediction response")
+		}
+		return predictResponse, nil
 	}
 
-	return predictResponse, nil
+	return string(httpResponse), nil
 }

@@ -76,7 +76,7 @@ var _deployCmd = &cobra.Command{
 		configPath := getConfigPath(args)
 		var deployResponse schema.DeployResponse
 		if env.Provider == types.AWSProviderType {
-			deploymentBytes, err := getDeploymentBytes(configPath)
+			deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -86,11 +86,13 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		} else {
-			projectFiles, err := findProjectFiles(configPath)
+			projectFiles, err := findProjectFiles(env.Provider, configPath)
 			if err != nil {
 				exit.Error(err)
 			}
-			deployResponse, err = local.Deploy(*env, configPath, projectFiles)
+
+			absoluteConfigPath := files.RelToAbsPath(configPath, _cwd)
+			deployResponse, err = local.Deploy(env, absoluteConfigPath, projectFiles)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -118,8 +120,9 @@ func getConfigPath(args []string) string {
 	return configPath
 }
 
-func findProjectFiles(configPath string) ([]string, error) {
+func findProjectFiles(provider types.ProviderType, configPath string) ([]string, error) {
 	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
+
 	ignoreFns := []files.IgnoreFn{
 		files.IgnoreSpecificFiles(files.UserRelToAbsPath(configPath)),
 		files.IgnoreCortexDebug,
@@ -137,7 +140,7 @@ func findProjectFiles(configPath string) ([]string, error) {
 		ignoreFns = append(ignoreFns, cortexIgnore)
 	}
 
-	if !_flagDeployYes {
+	if !_flagDeployYes && provider != types.LocalProviderType {
 		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 	}
 
@@ -149,7 +152,7 @@ func findProjectFiles(configPath string) ([]string, error) {
 	return projectPaths, nil
 }
 
-func getDeploymentBytes(configPath string) (map[string][]byte, error) {
+func getDeploymentBytes(provider types.ProviderType, configPath string) (map[string][]byte, error) {
 	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
 		return nil, err
@@ -161,7 +164,7 @@ func getDeploymentBytes(configPath string) (map[string][]byte, error) {
 
 	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
 
-	projectPaths, err := findProjectFiles(configPath)
+	projectPaths, err := findProjectFiles(provider, configPath)
 	if err != nil {
 		return nil, err
 	}

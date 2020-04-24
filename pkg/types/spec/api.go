@@ -29,17 +29,18 @@ import (
 
 type API struct {
 	*userconfig.API
-	ID           string      `json:"id"`
-	Key          string      `json:"key"`
-	DeploymentID string      `json:"deployment_id"`
-	LastUpdated  int64       `json:"last_updated"`
-	MetadataRoot string      `json:"metadata_root"`
-	ProjectID    string      `json:"project_id"`
-	ProjectKey   string      `json:"project_key"`
-	ModelMount   *ModelMount `json:"model_mount"`
+	ID              string           `json:"id"`
+	Key             string           `json:"key"`
+	DeploymentID    string           `json:"deployment_id"`
+	LastUpdated     int64            `json:"last_updated"`
+	MetadataRoot    string           `json:"metadata_root"`
+	ProjectID       string           `json:"project_id"`
+	ProjectKey      string           `json:"project_key"`
+	LocalModelCache *LocalModelCache `json:"local_model_cache"` // local only
+	LocalProjectDir string           `json:"local_project_dir"`
 }
 
-type ModelMount struct {
+type LocalModelCache struct {
 	ID       string `json:"id"`
 	HostPath string `json:"host_path"`
 }

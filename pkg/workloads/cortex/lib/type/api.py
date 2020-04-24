@@ -34,7 +34,7 @@ class API:
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
         self.endpoint = kwargs["endpoint"]
-        self.predictor = Predictor(provider, storage, cache_dir, **kwargs["predictor"])
+        self.predictor = Predictor(provider, cache_dir, **kwargs["predictor"])
         self.tracker = None
         if kwargs.get("tracker") is not None:
             self.tracker = Tracker(**kwargs["tracker"])
@@ -70,7 +70,6 @@ class API:
 
     def post_request_metrics(self, status_code, total_time):
         total_time_ms = total_time * 1000
-        print(f"provider: {self.provider}")
         if self.provider == "local":
             self.store_metrics_locally(status_code, total_time_ms)
         else:
@@ -102,14 +101,14 @@ class API:
         status_code_file_name = f"/mnt/workspace/{os.getpid()}.{status_code_series}XX"
         self.increment_counter_file(status_code_file_name, 1)
 
-        request_time_file = f"/mnt/workspace/{os.getpid()}.request_count"
+        request_time_file = f"/mnt/workspace/{os.getpid()}.request_time"
         self.increment_counter_file(request_time_file, total_time)
 
     def increment_counter_file(self, file_name, value):
         previous_val = 0
         if Path(file_name).is_file():
             with open(file_name, "r") as f:
-                previous_val = json.load(f)
+                previous_val = json.load(f)  # values are either of type int or float
 
         with open(file_name, "w") as f:
             json.dump(previous_val + value, f)

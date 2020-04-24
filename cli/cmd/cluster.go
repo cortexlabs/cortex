@@ -59,7 +59,7 @@ func clusterInit() {
 
 	_infoCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_infoCmd)
-	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to use")
+	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
 	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
 	_clusterCmd.AddCommand(_infoCmd)
 
@@ -394,12 +394,10 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
 		if strings.HasPrefix(line, "operator endpoint: ") {
-			operatorEndpoint = "https://" + strings.TrimPrefix(line, "operator endpoint: ")
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator endpoint: "))
 			break
 		}
 	}
-
-	fmt.Println(operatorEndpoint)
 
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:          isTelemetryEnabled(),
@@ -436,16 +434,16 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 		AWSSecretAccessKey: pointer.String(awsCreds.AWSSecretAccessKey),
 	}
 
-	writeEnv := false
+	shouldWriteEnv := false
 	if prevEnv == nil {
-		writeEnv = true
+		shouldWriteEnv = true
 	} else if *prevEnv.OperatorEndpoint != operatorConfig.OperatorEndpoint || *prevEnv.AWSAccessKeyID != operatorConfig.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != operatorConfig.AWSSecretAccessKey {
 		fmt.Println()
 		fmt.Println(newEnvironment.String(false))
-		writeEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it with the configuration above?", _flagClusterEnv), "", "")
+		shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it with the configuration above?", _flagClusterEnv), "", "")
 	}
 
-	if writeEnv {
+	if shouldWriteEnv {
 		err := addEnvToCLIConfig(newEnvironment)
 		if err != nil {
 			exit.Error(err)

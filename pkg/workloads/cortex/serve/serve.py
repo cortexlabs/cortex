@@ -70,6 +70,7 @@ local_cache = {
     "api": None,
     "provider": None,
     "predictor_impl": None,
+    "predict_route": None,
     "client": None,
     "class_set": set(),
 }
@@ -160,17 +161,23 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
     debug_obj("payload", request, debug)
     prediction = predictor_impl.predict(request)
 
-    try:
-        json_string = json.dumps(prediction)
-    except Exception as e:
-        raise UserRuntimeException(
-            f"the return value of predict() or one of its nested values is not JSON serializable",
-            str(e),
-        ) from e
-
-    debug_obj("prediction", json_string, debug)
-
-    response = Response(content=json_string, media_type="application/json")
+    if isinstance(prediction, bytes):
+        response = Response(content=prediction, media_type="application/octet-stream")
+    elif isinstance(prediction, str):
+        response = Response(content=prediction, media_type="text/plain")
+        debug_obj("prediction", prediction, debug)
+    elif isinstance(prediction, Response):
+        response = prediction
+    else:
+        try:
+            json_string = json.dumps(prediction)
+            debug_obj("prediction", prediction, debug)
+        except Exception as e:
+            raise UserRuntimeException(
+                str(e),
+                "please return an object that is JSON serializable (including its nested fields), a bytes object, a string, or a starlette.response.Response object",
+            ) from e
+        response = Response(content=json_string, media_type="application/json")
 
     if local_cache["provider"] != "local" and api.tracker is not None:
         try:
@@ -223,9 +230,10 @@ def start():
         storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
         raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
-        tf_serving_address = tf_serving_host + ":" + tf_serving_port
         api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
-        client = api.predictor.initialize_client(model_dir, tf_serving_address)
+        client = api.predictor.initialize_client(
+            model_dir, tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+        )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
 

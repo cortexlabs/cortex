@@ -184,7 +184,7 @@ func wasEnvFlagProvided() bool {
 }
 
 func printEnvIfNotSpecified(envName string) error {
-	out, err := envIfNotSpecified(envName)
+	out, err := envStringIfNotSpecified(envName)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func printEnvIfNotSpecified(envName string) error {
 	return nil
 }
 
-func envIfNotSpecified(envName string) (string, error) {
+func envStringIfNotSpecified(envName string) (string, error) {
 	envNames, err := listConfiguredEnvNames()
 	if err != nil {
 		return "", err

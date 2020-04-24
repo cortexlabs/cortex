@@ -1,13 +1,15 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
+import torch
 from allennlp.predictors.predictor import Predictor as AllenNLPPredictor
 
 
 class PythonPredictor:
     def __init__(self, config):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         cuda_device = -1
-        if config["device"] == "cuda":
+        if self.device == "cuda":
             cuda_device = 0
 
         self.predictor = AllenNLPPredictor.from_path(

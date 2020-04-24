@@ -40,11 +40,12 @@ const (
 	ErrSurgeAndUnavailableBothZero        = "spec.surge_and_unavailable_both_zero"
 	ErrImplDoesNotExist                   = "spec.impl_does_not_exist"
 	ErrFileNotFound                       = "spec.file_not_found"
-	ErrDirNotFoundOrEmpty                 = "spec.dir_not_found_or_empty"
+	ErrDirIsEmpty                         = "spec.dir_is_empty"
 	ErrS3FileNotFound                     = "spec.s3_file_not_found"
 	ErrS3DirNotFoundOrEmpty               = "spec.s3_dir_not_found_or_empty"
-	ErrONNXDoesntSupportZip               = "spec.onnx_doesnt_support_zip"
 	ErrInvalidTensorFlowDir               = "spec.invalid_tensorflow_dir"
+	ErrInvalidTensorFlowModelPath         = "spec.invalid_tensorflow_model_path"
+	ErrInvalidONNXModelPath               = "spec.invalid_onnx_model_path"
 	ErrFieldMustBeDefinedForPredictorType = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType   = "spec.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit        = "spec.no_available_node_compute_limit"
@@ -170,10 +171,10 @@ func ErrorFileNotFound(path string) error {
 	})
 }
 
-func ErrorDirNotFoundOrEmpty(path string) error {
+func ErrorDirIsEmpty(path string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDirNotFoundOrEmpty,
-		Message: fmt.Sprintf("%s: directory not found or empty", path),
+		Kind:    ErrDirIsEmpty,
+		Message: fmt.Sprintf("%s: directory is empty", path),
 	})
 }
 
@@ -188,13 +189,6 @@ func ErrorS3DirNotFoundOrEmpty(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3DirNotFoundOrEmpty,
 		Message: fmt.Sprintf("%s: directory not found or empty", path),
-	})
-}
-
-func ErrorONNXDoesntSupportZip() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrONNXDoesntSupportZip,
-		Message: fmt.Sprintf("zip files are not supported for ONNX models"),
 	})
 }
 
@@ -213,6 +207,20 @@ func ErrorInvalidTensorFlowDir(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowDir,
 		Message: message,
+	})
+}
+
+func ErrorInvalidTensorFlowModelPath() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidTensorFlowModelPath,
+		Message: "tensorflow model path must either be a directory or a zip file ending in `.zip`",
+	})
+}
+
+func ErrorInvalidONNXModelPath() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidONNXModelPath,
+		Message: "onnx model path must be an onnx exported file ending in `.onnx`",
 	})
 }
 

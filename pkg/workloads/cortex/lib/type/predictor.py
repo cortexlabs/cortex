@@ -23,7 +23,7 @@ from cortex.lib.exceptions import CortexException, UserException, UserRuntimeExc
 
 
 class Predictor:
-    def __init__(self, provider, storage, cache_dir, **kwargs):
+    def __init__(self, provider, cache_dir, **kwargs):
         self.provider = provider
         self.type = kwargs["type"]
         self.path = kwargs["path"]
@@ -34,9 +34,8 @@ class Predictor:
         self.signature_key = kwargs.get("signature_key")
 
         self.cache_dir = cache_dir
-        self.storage = storage
 
-    def initialize_client(self, model_dir=None, tf_serve_address=None):
+    def initialize_client(self, model_dir=None, tf_serving_host=None, tf_serving_port=None):
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
@@ -47,8 +46,9 @@ class Predictor:
         elif self.type == "tensorflow":
             from cortex.lib.client.tensorflow import TensorFlowClient
 
+            tf_serving_address = tf_serving_host + ":" + tf_serving_port
             validate_model_dir(model_dir)
-            client = TensorFlowClient(tf_serve_address, self.signature_key)
+            client = TensorFlowClient(tf_serving_address, self.signature_key)
             cx_logger().info("TensorFlow model signature: {}".format(client.input_signature))
             return client
 
@@ -191,7 +191,6 @@ tf_expected_dir_structure = """tensorflow model directories must have the follow
 
 def validate_model_dir(model_dir):
     version = None
-    print(os.listdir(model_dir))
     for file_name in os.listdir(model_dir):
         if file_name.isdigit():
             version = file_name

@@ -38,7 +38,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 		return schema.GetAPIsResponse{}, err
 	}
 
-	apiSpecList, err := ListAllAPISpecs()
+	apiSpecList, err := ListAPISpecs()
 	if err != nil {
 		return schema.GetAPIsResponse{}, err
 	}
@@ -50,8 +50,8 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 		if err != nil {
 			return schema.GetAPIsResponse{}, err
 		}
-
 		statusList = append(statusList, apiStatus)
+
 		metrics, err := GetAPIMetrics(&apiSpec)
 		if err != nil {
 			return schema.GetAPIsResponse{}, err
@@ -66,7 +66,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 	}, nil
 }
 
-func ListAllAPISpecs() ([]spec.API, error) {
+func ListAPISpecs() ([]spec.API, error) {
 	filepaths, err := files.ListDirRecursive(filepath.Join(_localWorkspaceDir, "apis"), false)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func ListAllAPISpecs() ([]spec.API, error) {
 
 	apiSpecList := []spec.API{}
 	for _, specPath := range filepaths {
-		if !strings.HasSuffix(specPath, "spec.msgpack") {
+		if !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
 			continue
 		}
 
@@ -98,7 +98,7 @@ func ListAllAPISpecs() ([]spec.API, error) {
 	return apiSpecList, nil
 }
 
-func ListVersionMismatchedAPI() ([]string, error) {
+func ListVersionMismatchedAPIs() ([]string, error) {
 	filepaths, err := files.ListDirRecursive(filepath.Join(_localWorkspaceDir, "apis"), false)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func ListVersionMismatchedAPI() ([]string, error) {
 
 	apiNames := []string{}
 	for _, specPath := range filepaths {
-		if !strings.HasSuffix(specPath, "spec.msgpack") {
+		if !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
 			continue
 		}
 		apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)

@@ -32,9 +32,10 @@ import (
 func Deploy(w http.ResponseWriter, r *http.Request) {
 	force := getOptionalBoolQParam("force", false, r)
 
-	configPath := getOptionalQParam("configPath", r)
-	if configPath == "" {
-		configPath = "api config file"
+	configPath, err := getRequiredQueryParam("configPath", r)
+	if err != nil {
+		respondError(w, r, errors.WithStack(err))
+		return
 	}
 
 	configBytes, err := files.ReadReqFile(r, "config")
@@ -42,7 +43,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, errors.WithStack(err))
 		return
 	} else if len(configBytes) == 0 {
-		respondError(w, r, ErrorFormFileMustBeProvided("config"))
+		respondError(w, r, ErrorFormFileMustBeProvided("configPath"))
 		return
 	}
 
@@ -65,8 +66,9 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectFiles := operator.ClusterProjectFiles{
+	projectFiles := operator.ProjectFiles{
 		ProjectByteMap: projectFileMap,
+		ConfigFile:     configPath,
 	}
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, projectFiles, configPath)
 	if err != nil {

@@ -24,6 +24,7 @@ import (
 )
 
 const (
+	ErrNotAbsolutePath               = "local.not_absolute_path"
 	ErrAPINotDeployed                = "local.api_not_deployed"
 	ErrAPISpecNotFound               = "local.api_specification_not_found"
 	ErrCortexVersionMismatch         = "local.err_cortex_version_mismatch"
@@ -33,6 +34,13 @@ const (
 	ErrFailedToDeleteAPISpec         = "local.failed_to_delete_api_spec"
 	ErrDuplicateLocalPort            = "local.err_duplicate_local_port"
 )
+
+func ErrorNotAbsolutePath(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNotAbsolutePath,
+		Message: fmt.Sprintf("%s is not an absolute path", path),
+	})
+}
 
 func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(&errors.Error{
@@ -78,7 +86,7 @@ var _tfExpectedStructMessage = `For TensorFlow models, the zipped file must be a
       ├── variables.data-00001-of-00003
       └── variables.data-00002-of-...`
 
-func ErrorInvalidTensorFlowZip(path string) error {
+func ErrorInvalidTensorFlowZip() error {
 	message := "invalid TensorFlow zip.\n"
 	message += _tfExpectedStructMessage
 	return errors.WithStack(&errors.Error{
@@ -90,13 +98,13 @@ func ErrorInvalidTensorFlowZip(path string) error {
 func ErrorFailedToDeleteAPISpec(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToDeleteAPISpec,
-		Message: fmt.Sprintf("failed to delete api specification; `sudo rm -rf %s` can be run to manually to delete api specification", path),
+		Message: fmt.Sprintf("failed to delete api specification; run `sudo rm -rf %s` to cleanup", path),
 	})
 }
 
 func ErrorDuplicateLocalPort(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateLocalPort,
-		Message: fmt.Sprintf("port is already being used by %s", apiName),
+		Message: fmt.Sprintf("port has already been assigned to api %s", apiName),
 	})
 }

@@ -23,11 +23,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	dockerclient "github.com/docker/docker/client"
 	"github.com/mitchellh/go-homedir"
 )
-
-var _cachedDockerClient *dockerclient.Client
 
 var _cwd string
 var _localDir string

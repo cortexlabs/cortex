@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 type ProjectFiles interface {
+	GetConfigFilePath() string
 	GetAllPaths() []string
 	GetFile(string) ([]byte, error)
 }

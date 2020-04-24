@@ -17,11 +17,16 @@ limitations under the License.
 package local
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -29,19 +34,36 @@ import (
 )
 
 type ProjectFiles struct {
-	ProjectFiles []string // make sure it is absolute paths
+	projectFileList []string // make sure it is absolute paths
+	configFilePath  string
+}
+
+func NewProjectFiles(projectFileList []string, absoluteConfigFilePath string) (ProjectFiles, error) {
+	if !filepath.IsAbs(absoluteConfigFilePath) {
+		return ProjectFiles{}, ErrorNotAbsolutePath(absoluteConfigFilePath)
+	}
+
+	for _, projectFile := range projectFileList {
+		if !filepath.IsAbs(projectFile) {
+			return ProjectFiles{}, ErrorNotAbsolutePath(absoluteConfigFilePath)
+		}
+	}
+
+	return ProjectFiles{
+		projectFileList: projectFileList,
+		configFilePath:  absoluteConfigFilePath,
+	}, nil
 }
 
 func (projectFiles ProjectFiles) GetAllPaths() []string {
-	return projectFiles.ProjectFiles
+	return projectFiles.projectFileList
 }
 
 func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
-	absPath, err := files.GetAbsPath(fileName)
-	if err != nil {
-		return nil, err
-	}
-	for _, path := range projectFiles.ProjectFiles {
+	baseDir := filepath.Dir(projectFiles.configFilePath)
+
+	absPath := files.RelToAbsPath(fileName, baseDir)
+	for _, path := range projectFiles.projectFileList {
 		if path == absPath {
 			bytes, err := files.ReadFileBytes(absPath)
 			if err != nil {
@@ -54,18 +76,24 @@ func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
 	return nil, files.ErrorFileDoesNotExist(fileName)
 }
 
+func (projectFiles ProjectFiles) GetConfigFilePath() string {
+	return projectFiles.configFilePath
+}
+
 func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
 
-	warningFlag := false
+	didPrintWarning := false
 	apiPortMap := map[int]string{}
+	apisRequiringGPU := strset.New()
 	for i := range apis {
 		api := &apis[i]
 		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
 			return err
 		}
+
 		if api.LocalPort != nil {
 			if collidingAPIName, ok := apiPortMap[*api.LocalPort]; ok {
 				return errors.Wrap(ErrorDuplicateLocalPort(collidingAPIName), api.Identify(), userconfig.LocalPortKey, s.Int(*apis[i].LocalPort))
@@ -74,10 +102,37 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		}
 
 		if api.Endpoint != nil || api.Autoscaling != nil || api.Tracker != nil || api.UpdateStrategy != nil {
-			if !warningFlag {
-				fmt.Println(fmt.Sprintf("warning: %s, %s, %s, and %s keys will be ignored because they are not supported in local environment\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
+			if !didPrintWarning {
+				fmt.Println(fmt.Sprintf("note: %s, %s, %s, and %s keys will be ignored because they are not supported in local environment\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
 			}
-			warningFlag = true
+			didPrintWarning = true
+		}
+
+		if api.Compute.GPU > 0 {
+			apisRequiringGPU.Add(api.Name)
+		}
+	}
+
+	if len(apisRequiringGPU) > 0 {
+		dockerClient, err := docker.GetDockerClient()
+		if err != nil {
+			return err
+		}
+
+		infoResponse, err := dockerClient.Info(context.Background())
+		if err != nil {
+			return err
+		}
+
+		if _, ok := infoResponse.Runtimes["nvidia"]; !ok {
+			fmt.Println(fmt.Sprintf("warning: unable to find nvidia runtime on your docker (confirm with `docker info|grep -i runtime`); see https://github.com/NVIDIA/nvidia-container-runtime#installation to register nvidia runtime on your docker; in the meantime, the following api(s): %s will be run without GPU\n", strings.Join(apisRequiringGPU.Slice(), ", ")))
+		}
+
+		for i := range apis {
+			api := &apis[i]
+			if apisRequiringGPU.Has(api.Name) {
+				api.Compute.GPU = 0
+			}
 		}
 	}
 

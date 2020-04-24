@@ -82,7 +82,7 @@ def sample_sequence(
 class PythonPredictor:
     def __init__(self, config):
         self.num_words = config.get("num_words", 20)
-        self.device = config.get("device", "cpu")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
 
         model = GPT2LMHeadModel.from_pretrained("distilgpt2")

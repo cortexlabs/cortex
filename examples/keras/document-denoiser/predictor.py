@@ -1,6 +1,8 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 import boto3, base64, cv2, re, os, requests
+from botocore import UNSIGNED
+from botocore.client import Config
 import numpy as np
 from tensorflow.keras.models import load_model
 
@@ -35,11 +37,10 @@ def image_to_png_bytes(image):
 class PythonPredictor:
     def __init__(self, config):
         # download the model
-        model_path = config["model"]
+        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
+        s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
         model_name = "model.h5"
-        bucket, key = re.match("s3://(.+?)/(.+)", model_path).groups()
-        s3 = boto3.client("s3")
-        s3.download_file(bucket, os.path.join(key, model_name), model_name)
+        s3.download_file(bucket, key, model_name)
 
         # load the model
         self.model = load_model(model_name)

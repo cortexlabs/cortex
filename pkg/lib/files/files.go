@@ -227,23 +227,6 @@ func PathRelativeToCWD(absPath string) string {
 	return strings.TrimPrefix(absPath, cwd)
 }
 
-func GetAbsPath(path string) (string, error) {
-	if strings.HasPrefix(path, "/") {
-		return path, nil
-	}
-
-	if strings.HasPrefix(path, "~/") || path == "~" {
-		return EscapeTilde(path)
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", nil
-	}
-
-	return RelToAbsPath(path, cwd), nil
-}
-
 func DirPathRelativeToCWD(absPath string) string {
 	return s.EnsureSuffix(PathRelativeToCWD(absPath), "/")
 }

@@ -48,31 +48,14 @@ const (
 	_workspaceDir           = "/mnt/workspace"
 )
 
-type DockerCompute struct {
-	MemBytes int64 `json:"mem_bytes"`
-	NanoCPUs int64 `json:"nano_cpus"`
-	GPU      bool  `json:"gpu"`
-}
-
-func ConvertToDockerCompute(compute *userconfig.Compute) DockerCompute {
-	cpu := compute.CPU.Quantity.MilliValue()
-	memBytes := compute.Mem.Quantity.Value()
-
-	return DockerCompute{
-		MemBytes: memBytes,
-		NanoCPUs: cpu * 1000 * 1000,
-		GPU:      compute.GPU > 0,
-	}
-}
-
 func DeployContainers(api *spec.API, awsClient *aws.Client) error {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
-		return TensorFlowSpec(api, awsClient)
+		return deployTensorFlowContainers(api, awsClient)
 	case userconfig.ONNXPredictorType:
-		return ONNXSpec(api, awsClient)
+		return deployONNXContainer(api, awsClient)
 	default:
-		return PythonSpec(api, awsClient)
+		return deployPythonContainer(api, awsClient)
 	}
 }
 
@@ -93,18 +76,16 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_PROJECT_DIR="+_projectDir,
 		"CORTEX_WORKERS_PER_REPLICA=1",
 		"CORTEX_THREADS_PER_WORKER=1",
-		"CORTEX_MAX_WORKER_CONCURRENCY=10",
-		"CORTEX_SO_MAX_CONN=10",
+		"CORTEX_MAX_WORKER_CONCURRENCY=1000",
+		"CORTEX_SO_MAX_CONN=1000",
 		"AWS_REGION="+awsClient.Region,
 	)
 
-	if awsClient.AccessKeyID() != nil {
-		awsAccessKeyID := awsClient.AccessKeyID()
+	if awsAccessKeyID := awsClient.AccessKeyID(); awsAccessKeyID != nil {
 		envs = append(envs, "AWS_ACCESS_KEY_ID="+*awsAccessKeyID)
 	}
 
-	if awsClient.SecretAccessKey() != nil {
-		awsSecretAccessKey := awsClient.SecretAccessKey()
+	if awsSecretAccessKey := awsClient.SecretAccessKey(); awsSecretAccessKey != nil {
 		envs = append(envs, "AWS_SECRET_ACCESS_KEY="+*awsSecretAccessKey)
 	}
 
@@ -114,31 +95,34 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 	return envs
 }
 
-func GetHostConfig(api *spec.API) *container.HostConfig {
-	dc := ConvertToDockerCompute(api.Compute)
+func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 	portBinding := nat.PortBinding{}
 	if api.LocalPort != nil {
 		portBinding.HostPort = s.Int(*api.LocalPort)
 	}
 
 	runtime := ""
-	if dc.GPU {
-		runtime = "nvidia"
+	resource := container.Resources{}
+	if api.Compute != nil {
+		resource.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
+		if api.Compute.Mem != nil {
+			resource.Memory = api.Compute.Mem.Quantity.Value()
+		}
+		if api.Compute.GPU > 0 {
+			runtime = "nvidia"
+		}
 	}
 
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
-		Runtime: runtime,
-		Resources: container.Resources{
-			NanoCPUs: dc.NanoCPUs,
-			Memory:   dc.MemBytes,
-		},
+		Runtime:   runtime,
+		Resources: resource,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: _cwd,
+				Source: api.LocalProjectDir,
 				Target: _projectDir,
 			},
 			{
@@ -149,12 +133,6 @@ func GetHostConfig(api *spec.API) *container.HostConfig {
 		},
 	}
 
-	return hostConfig
-}
-
-func PythonSpec(api *spec.API, awsClient *aws.Client) error {
-	hostConfig := GetHostConfig(api)
-
 	containerConfig := &container.Config{
 		Image: api.Predictor.Image,
 		Env: append(
@@ -164,11 +142,10 @@ func PythonSpec(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":       "true",
-			"type":         _apiContainerName,
-			"apiID":        api.ID,
-			"apiName":      api.Name,
-			"deploymentID": api.DeploymentID,
+			"cortex":  "true",
+			"type":    _apiContainerName,
+			"apiID":   api.ID,
+			"apiName": api.Name,
 		},
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
@@ -184,51 +161,104 @@ func PythonSpec(api *spec.API, awsClient *aws.Client) error {
 	return nil
 }
 
-func ONNXSpec(api *spec.API, awsClient *aws.Client) error {
-	hostConfig := GetHostConfig(api)
-	hostConfig.Mounts = append(hostConfig.Mounts, mount.Mount{
-		Type:   mount.TypeBind,
-		Source: api.ModelMount.HostPath,
-		Target: _modelDir,
-	})
+func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
+	portBinding := nat.PortBinding{}
+	if api.LocalPort != nil {
+		portBinding.HostPort = s.Int(*api.LocalPort)
+	}
 
-	containerConfig := &container.Config{
-		Image: api.Predictor.Image,
-		Env: append(
-			getAPIEnv(api, awsClient),
-			"CORTEX_VERSION=master",
-		),
-		ExposedPorts: nat.PortSet{
-			_defaultPortStr + "/tcp": struct{}{},
+	runtime := ""
+	resource := container.Resources{}
+	if api.Compute != nil {
+		resource.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
+		if api.Compute.Mem != nil {
+			resource.Memory = api.Compute.Mem.Quantity.Value()
+		}
+		if api.Compute.GPU > 0 {
+			runtime = "nvidia"
+		}
+	}
+
+	hostConfig := &container.HostConfig{
+		PortBindings: nat.PortMap{
+			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
-		Labels: map[string]string{
-			"cortex":       "true",
-			"type":         _apiContainerName,
-			"apiID":        api.ID,
-			"apiName":      api.Name,
-			"deploymentID": api.DeploymentID,
-			"modelID":      api.ModelMount.ID,
-		},
-	}
-	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
-	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
-	}
-
-	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
-	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
-	}
-
-	return nil
-}
-
-func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
-	serveHostConfig := &container.HostConfig{
+		Runtime:   runtime,
+		Resources: resource,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: api.ModelMount.HostPath,
+				Source: api.LocalProjectDir,
+				Target: _projectDir,
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
+				Target: "/mnt/workspace",
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: api.LocalModelCache.HostPath,
+				Target: _modelDir,
+			},
+		},
+	}
+
+	containerConfig := &container.Config{
+		Image: api.Predictor.Image,
+		Env: append(
+			getAPIEnv(api, awsClient),
+		),
+		ExposedPorts: nat.PortSet{
+			_defaultPortStr + "/tcp": struct{}{},
+		},
+		Labels: map[string]string{
+			"cortex":  "true",
+			"type":    _apiContainerName,
+			"apiID":   api.ID,
+			"apiName": api.Name,
+			"modelID": api.LocalModelCache.ID,
+		},
+	}
+	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
+	if err != nil {
+		return errors.Wrap(err, "api", api.Identify())
+	}
+
+	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
+	if err != nil {
+		return errors.Wrap(err, "api", api.Identify())
+	}
+
+	return nil
+}
+
+func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
+	serveRuntime := ""
+	serveResource := container.Resources{}
+	apiResource := container.Resources{}
+
+	if api.Compute != nil {
+		totalNanoCPUs := api.Compute.CPU.MilliValue() * 1000 * 1000
+		apiResource.NanoCPUs = totalNanoCPUs / 2
+		serveResource.NanoCPUs = totalNanoCPUs - apiResource.NanoCPUs
+		if api.Compute.Mem != nil {
+			totalMemory := api.Compute.Mem.Quantity.Value()
+			apiResource.Memory = totalMemory / 2
+			serveResource.Memory = totalMemory - apiResource.NanoCPUs
+		}
+		if api.Compute.GPU > 0 {
+			serveRuntime = "nvidia"
+		}
+	}
+
+	serveHostConfig := &container.HostConfig{
+		Runtime:   serveRuntime,
+		Resources: serveResource,
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: api.LocalModelCache.HostPath,
 				Target: _modelDir,
 			},
 		},
@@ -243,12 +273,11 @@ func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
 			_tfServingPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":       "true",
-			"type":         _tfServingContainerName,
-			"apiID":        api.ID,
-			"apiName":      api.Name,
-			"deploymentID": api.DeploymentID,
-			"modelID":      api.ModelMount.ID,
+			"cortex":  "true",
+			"type":    _tfServingContainerName,
+			"apiID":   api.ID,
+			"apiName": api.Name,
+			"modelID": api.LocalModelCache.ID,
 		},
 	}
 
@@ -277,6 +306,7 @@ func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
 		PortBindings: nat.PortMap{
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
+		Resources: apiResource,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
@@ -285,7 +315,7 @@ func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
 			},
 			{
 				Type:   mount.TypeBind,
-				Source: api.ModelMount.HostPath,
+				Source: api.LocalModelCache.HostPath,
 				Target: _modelDir,
 			},
 			{
@@ -307,12 +337,11 @@ func TensorFlowSpec(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":       "true",
-			"type":         _apiContainerName,
-			"apiID":        api.ID,
-			"apiName":      api.Name,
-			"deploymentID": api.DeploymentID,
-			"modelID":      api.ModelMount.ID,
+			"cortex":  "true",
+			"type":    _apiContainerName,
+			"apiID":   api.ID,
+			"apiName": api.Name,
+			"modelID": api.LocalModelCache.ID,
 		},
 	}
 	containerCreateRequest, err = docker.MustDockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")

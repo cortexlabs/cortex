@@ -18,12 +18,12 @@ package local
 
 import (
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -42,50 +42,61 @@ func GetAPIMetrics(api *spec.API) (metrics.Metrics, error) {
 
 	totalRequestTime := 0.0
 	for _, filepath := range filepaths {
-		if strings.HasSuffix(filepath, "2XX") {
+		if strings.HasSuffix(filepath, ".2XX") {
 			fileContent, err := files.ReadFile(filepath)
 			if err != nil {
 				return metrics.Metrics{}, errors.Wrap(err, "api", api.Name)
 			}
-
-			count, err := strconv.ParseInt(fileContent, 10, 64)
+			count, ok := s.ParseInt(fileContent)
+			if !ok {
+				count = 0
+			}
 			networkStats.Code2XX += int(count)
 		}
 
-		if strings.HasSuffix(filepath, "4XX") {
+		if strings.HasSuffix(filepath, ".4XX") {
 			fileContent, err := files.ReadFile(filepath)
 			if err != nil {
 				return metrics.Metrics{}, errors.Wrap(err, "api", api.Name)
 			}
 
-			count, err := strconv.ParseInt(fileContent, 10, 64)
+			count, ok := s.ParseInt(fileContent)
+			if !ok {
+				count = 0
+			}
 			networkStats.Code4XX += int(count)
 		}
 
-		if strings.HasSuffix(filepath, "5XX") {
+		if strings.HasSuffix(filepath, ".5XX") {
 			fileContent, err := files.ReadFile(filepath)
 			if err != nil {
 				return metrics.Metrics{}, errors.Wrap(err, "api", api.Name)
 			}
 
-			count, err := strconv.ParseInt(fileContent, 10, 64)
+			count, ok := s.ParseInt(fileContent)
+			if !ok {
+				count = 0
+			}
 			networkStats.Code5XX += int(count)
 		}
 
-		if strings.HasSuffix(filepath, "request_count") {
+		if strings.HasSuffix(filepath, ".request_time") {
 			fileContent, err := files.ReadFile(filepath)
 			if err != nil {
 				return metrics.Metrics{}, errors.Wrap(err, "api", api.Name)
 			}
 
-			requestTime, err := strconv.ParseFloat(fileContent, 64)
+			requestTime, ok := s.ParseFloat64(fileContent)
+			if !ok {
+				requestTime = 0
+			}
 			totalRequestTime += requestTime
 		}
 	}
 
 	totalRequests := networkStats.Code2XX + networkStats.Code4XX + networkStats.Code5XX
 	networkStats.Total = totalRequests
-	if totalRequests != 0 {
+	if totalRequests != 0 && totalRequestTime != 0 {
 		networkStats.Latency = pointer.Float64(totalRequestTime / float64(totalRequests))
 	}
 	return metrics.Metrics{

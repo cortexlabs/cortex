@@ -17,7 +17,6 @@ limitations under the License.
 package spec
 
 import (
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -406,10 +405,6 @@ func ValidateAPI(
 	providerType types.ProviderType,
 	awsClient *aws.Client,
 ) error {
-	if providerType == types.AWSProviderType && api.Endpoint == nil {
-		api.Endpoint = pointer.String("/" + api.Name)
-	}
-
 	if err := validatePredictor(api.Predictor, projectFiles, providerType, awsClient); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
@@ -432,14 +427,14 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(predictor, providerType, awsClient); err != nil {
+		if err := validateTensorFlowPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
 		if err := validateDockerImagePath(predictor.TFServeImage, awsClient); err != nil {
 			return errors.Wrap(err, userconfig.TFServeImageKey)
 		}
 	case userconfig.ONNXPredictorType:
-		if err := validateONNXPredictor(predictor, providerType, awsClient); err != nil {
+		if err := validateONNXPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
 	}
@@ -486,7 +481,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	return nil
 }
 
-func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, awsClient *aws.Client) error {
+func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
 	}
@@ -517,16 +512,14 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
 		}
 
-		model, err := files.GetAbsPath(model)
-		if err != nil {
-			return errors.Wrap(err, userconfig.ModelKey)
-		}
-		predictor.Model = pointer.String(model)
+		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
+		model := files.RelToAbsPath(*predictor.Model, configFileDir)
 		if strings.HasSuffix(model, ".zip") {
 			if err := files.CheckFile(model); err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
 			}
-		} else {
+			predictor.Model = pointer.String(model)
+		} else if files.IsDir(model) {
 			path, err := GetTFServingExportFromLocalPath(model)
 			if err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
@@ -534,18 +527,24 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 			}
 			predictor.Model = pointer.String(path)
+		} else {
+			return errors.Wrap(ErrorInvalidTensorFlowModelPath(), userconfig.ModelKey, model)
 		}
 	}
 
 	return nil
 }
 
-func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, awsClient *aws.Client) error {
+func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.ONNXPredictorType)
 	}
 
 	model := *predictor.Model
+
+	if !strings.HasSuffix(model, ".onnx") {
+		return errors.Wrap(ErrorInvalidONNXModelPath(), userconfig.ModelKey, model)
+	}
 
 	if strings.HasPrefix(model, "s3://") {
 		model, err := cr.S3PathValidator(model)
@@ -560,15 +559,13 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		if providerType == types.AWSProviderType {
 			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
 		}
-		model, err := files.GetAbsPath(model)
-		if err != nil {
-			return errors.Wrap(err, userconfig.ModelKey)
-		}
 
-		predictor.Model = pointer.String(model)
+		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
+		model := files.RelToAbsPath(*predictor.Model, configFileDir)
 		if err := files.CheckFile(model); err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
+		predictor.Model = pointer.String(model)
 	}
 
 	if predictor.SignatureKey != nil {
@@ -643,8 +640,8 @@ func isValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 }
 
 func GetTFServingExportFromLocalPath(path string) (string, error) {
-	if !files.IsDir(path) {
-		return "", ErrorDirNotFoundOrEmpty(path)
+	if err := files.CheckDir(path); err != nil {
+		return "", err
 	}
 	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
@@ -652,7 +649,7 @@ func GetTFServingExportFromLocalPath(path string) (string, error) {
 	}
 
 	if len(paths) == 0 {
-		return "", ErrorDirNotFoundOrEmpty(path)
+		return "", ErrorDirIsEmpty(path)
 	}
 
 	highestVersion := int64(0)
@@ -663,13 +660,11 @@ func GetTFServingExportFromLocalPath(path string) (string, error) {
 			possiblePath := filepath.Dir(path)
 
 			versionStr := filepath.Base(possiblePath)
-			fmt.Println(versionStr)
 			version, err := strconv.ParseInt(versionStr, 10, 64)
 			if err != nil {
 				version = 0
 			}
 
-			fmt.Println(possiblePath)
 			validTFDirectory, err := IsValidTensorFlowLocalDirectory(possiblePath)
 			if err != nil {
 				return "", err

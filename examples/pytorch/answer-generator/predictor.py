@@ -20,10 +20,12 @@ class PythonPredictor:
         weights.pop("lm_head.decoder.weight", None)
 
         model.load_state_dict(weights)
-        model.eval()
-        model.to(config["device"])
 
-        self.device = config["device"]
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model.to(device)
+        model.eval()
+
+        self.device = device
         self.model = model
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 

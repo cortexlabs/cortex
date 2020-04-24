@@ -45,6 +45,7 @@ func getCloudFormationURL(clusterName, region string) string {
 const (
 	ErrInvalidProvider                    = "cli.invalid_provider"
 	ErrNotSupportedInLocalEnvironment     = "cli.not_supported_in_local_environment"
+	ErrEnvironmentNotFound                = "cli.environment_not_found"
 	ErrOperatorEndpointInLocalEnvironment = "cli.operator_endpoint_in_local_environment"
 	ErrOperatorConfigFromLocalEnvironment = "cli.operater_config_from_local_environment"
 	ErrFieldNotFoundInEnvironment         = "cli.err_field_not_found_in_environment"
@@ -83,6 +84,13 @@ func ErrorNotSupportedInLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotSupportedInLocalEnvironment,
 		Message: "this command is not supported in local environment",
+	})
+}
+
+func ErrorEnvironmentNotFound(envName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrEnvironmentNotFound,
+		Message: fmt.Sprintf("unable to find environment named \"%s\"", envName),
 	})
 }
 

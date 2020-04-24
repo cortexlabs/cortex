@@ -130,7 +130,7 @@ var _envListCmd = &cobra.Command{
 		for i, env := range cliConfig.Environments {
 			fmt.Println(env.String(defaultEnv == env.Name))
 			if i+1 < len(cliConfig.Environments) {
-				fmt.Println("")
+				fmt.Println()
 			}
 		}
 	},

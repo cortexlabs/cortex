@@ -29,8 +29,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func CacheModel(modelPath string, awsClient *aws.Client) (*spec.ModelMount, error) {
-	modelMount := spec.ModelMount{}
+func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache, error) {
+	localModelCache := spec.LocalModelCache{}
 
 	if strings.HasPrefix(modelPath, "s3://") {
 		bucket, prefix, err := aws.SplitS3Path(modelPath)
@@ -41,22 +41,23 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.ModelMount, erro
 		if err != nil {
 			return nil, err
 		}
-		modelMount.ID = hash
+		localModelCache.ID = hash
 	} else {
 		hash, err := localModelHash(modelPath)
 		if err != nil {
 			return nil, err
 		}
-		modelMount.ID = hash
+		localModelCache.ID = hash
 	}
 
-	modelDir := filepath.Join(_modelCacheDir, modelMount.ID)
+	modelDir := filepath.Join(_modelCacheDir, localModelCache.ID)
 
 	if files.IsFile(filepath.Join(modelDir, "_SUCCESS")) {
-		return &modelMount, nil
+		localModelCache.HostPath = modelDir
+		return &localModelCache, nil
 	}
 
-	err := ResetCachedModel(modelDir)
+	err := ResetModelCacheDir(modelDir)
 	if err != nil {
 		return nil, err
 	}
@@ -68,19 +69,25 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.ModelMount, erro
 			return nil, err
 		}
 		if strings.HasSuffix(modelPath, ".zip") || strings.HasSuffix(modelPath, ".onnx") {
-			err := awsClient.DownloadFileFromS3(bucket, prefix, filepath.Join(modelDir, filepath.Base(modelPath)))
+			localPath := filepath.Join(modelDir, filepath.Base(modelPath))
+			err := awsClient.DownloadFileFromS3(bucket, prefix, localPath)
 			if err != nil {
 				return nil, err
 			}
 			if strings.HasSuffix(modelPath, ".zip") {
-				err := unzipAndValidate(modelPath, filepath.Join(modelDir, filepath.Base(modelPath)), modelDir)
+				err := unzipAndValidate(modelPath, localPath, modelDir)
+				if err != nil {
+					return nil, err
+				}
+				err = os.Remove(localPath)
 				if err != nil {
 					return nil, err
 				}
 			}
+
 		} else {
-			version := filepath.Base(prefix)
-			err := awsClient.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, version), true, nil)
+			tfModelVersion := filepath.Base(prefix)
+			err := awsClient.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, tfModelVersion), true, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -107,28 +114,49 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.ModelMount, erro
 
 	fmt.Println("") // Newline to group all of the model information
 
-	modelMount.HostPath = modelDir
+	localModelCache.HostPath = modelDir
 
-	return &modelMount, nil
+	return &localModelCache, nil
 }
 
 func unzipAndValidate(originalModelPath string, zipFile string, destPath string) error {
 	fmt.Println(fmt.Sprintf("unzipping model %s...", originalModelPath))
-	_, err := zip.UnzipFileToDir(zipFile, destPath)
+	tmpDir := filepath.Join(filepath.Dir(destPath), filepath.Base(destPath)+"-tmp")
+	err := files.CreateDir(tmpDir)
 	if err != nil {
 		return err
 	}
 
-	isValid, err := spec.IsValidTensorFlowLocalDirectory(destPath)
+	_, err = zip.UnzipFileToDir(zipFile, tmpDir)
+	if err != nil {
+		return err
+	}
+
+	// returns a tensorflow directory with version
+	tensorflowDir, err := spec.GetTFServingExportFromLocalPath(tmpDir)
+	if err != nil {
+		return err
+	}
+
+	isValid, err := spec.IsValidTensorFlowLocalDirectory(tensorflowDir)
 	if err != nil {
 		return err
 	} else if !isValid {
-		return ErrorInvalidTensorFlowZip(originalModelPath)
+		return ErrorInvalidTensorFlowZip()
 	}
-	err = os.Remove(zipFile)
+
+	destPathWithVersion := filepath.Join(destPath, filepath.Base(tensorflowDir))
+
+	err = os.Rename(strings.TrimSuffix(tensorflowDir, "/"), strings.TrimSuffix(destPathWithVersion, "/"))
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = files.DeleteDirIfPresent(tmpDir)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -141,6 +169,9 @@ func localModelHash(modelPath string) (string, error) {
 			return "", err
 		}
 	} else {
+		if err := files.CheckFile(modelPath); err != nil {
+			return "", err
+		}
 		modelHash, err = files.HashFile(modelPath)
 		if err != nil {
 			return "", err
@@ -150,8 +181,8 @@ func localModelHash(modelPath string) (string, error) {
 	return modelHash, nil
 }
 
-func ResetCachedModel(modelDir string) error {
-	err := files.DeleteDir(modelDir)
+func ResetModelCacheDir(modelDir string) error {
+	_, err := files.DeleteDirIfPresent(modelDir)
 	if err != nil {
 		return err
 	}

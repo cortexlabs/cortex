@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -33,15 +34,16 @@ import (
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type ClusterProjectFiles struct {
+type ProjectFiles struct {
 	ProjectByteMap map[string][]byte
+	ConfigFile     string
 }
 
-func (cpf ClusterProjectFiles) GetAllPaths() []string {
-	files := make([]string, len(cpf.ProjectByteMap))
+func (projectFiles ProjectFiles) GetAllPaths() []string {
+	files := make([]string, len(projectFiles.ProjectByteMap))
 
 	i := 0
-	for path := range cpf.ProjectByteMap {
+	for path := range projectFiles.ProjectByteMap {
 		files[i] = path
 		i++
 	}
@@ -49,13 +51,17 @@ func (cpf ClusterProjectFiles) GetAllPaths() []string {
 	return files
 }
 
-func (cpf ClusterProjectFiles) GetFile(fileName string) ([]byte, error) {
-	bytes, ok := cpf.ProjectByteMap[fileName]
+func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
+	bytes, ok := projectFiles.ProjectByteMap[fileName]
 	if !ok {
 		return nil, files.ErrorFileDoesNotExist(fileName)
 	}
 
 	return bytes, nil
+}
+
+func (projectFiles ProjectFiles) GetConfigFilePath() string {
+	return projectFiles.ConfigFile
 }
 
 func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
@@ -68,19 +74,24 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		return err
 	}
 
-	warningFlag := false
+	didPrintWarning := false
 
 	for i := range apis {
-		if err := spec.ValidateAPI(&apis[i], projectFiles, types.AWSProviderType, config.AWS); err != nil {
+		api := &apis[i]
+		if api.Endpoint == nil {
+			api.Endpoint = pointer.String("/" + api.Name)
+		}
+
+		if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
 			return err
 		}
-		if err := validateK8s(&apis[i], config.Cluster, virtualServices, maxMem); err != nil {
+		if err := validateK8s(api, config.Cluster, virtualServices, maxMem); err != nil {
 			return err
 		}
 
-		if !warningFlag && apis[i].LocalPort != nil {
+		if !didPrintWarning && api.LocalPort != nil {
 			fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
-			warningFlag = true
+			didPrintWarning = true
 		}
 	}
 

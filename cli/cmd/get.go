@@ -64,18 +64,30 @@ var _getCmd = &cobra.Command{
 	Short: "get information about apis",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.get")
+		if len(args) == 1 || wasEnvFlagProvided() {
+			env, err := ReadOrConfigureEnv(_flagGetEnv)
+			if err != nil {
+				telemetry.Event("cli.get")
+				exit.Error(err)
+			}
+			telemetry.Event("cli.get", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+		} else {
+			telemetry.Event("cli.get")
+		}
+
 		rerun(func() (string, error) {
 			if len(args) == 1 {
 				env, err := ReadOrConfigureEnv(_flagGetEnv)
 				if err != nil {
-					telemetry.Event("cli.get")
 					exit.Error(err)
 				}
-				telemetry.Event("cli.get", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-				out, _ := envIfNotSpecified(_flagGetEnv)
-				apiTable, err := getAPI(*env, args[0])
+				out, err := envStringIfNotSpecified(_flagGetEnv)
+				if err != nil {
+					return "", err
+				}
+
+				apiTable, err := getAPI(env, args[0])
 				if err != nil {
 					return "", err
 				}
@@ -85,20 +97,21 @@ var _getCmd = &cobra.Command{
 			if wasEnvFlagProvided() {
 				env, err := ReadOrConfigureEnv(_flagGetEnv)
 				if err != nil {
-					telemetry.Event("cli.get")
 					exit.Error(err)
 				}
-				telemetry.Event("cli.get", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-				out, _ := envIfNotSpecified(_flagGetEnv)
-				apiTable, err := getAPIs(*env, false)
+				out, err := envStringIfNotSpecified(_flagGetEnv)
+				if err != nil {
+					return "", err
+				}
+
+				apiTable, err := getAPIs(env, false)
 				if err != nil {
 					return "", err
 				}
 				return out + apiTable, nil
 			}
 
-			telemetry.Event("cli.get")
 			cliConfig, err := readCLIConfig()
 			if err != nil {
 				return "", err
@@ -162,17 +175,17 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 	out := t.MustFormat()
 
 	if env.Provider == types.LocalProviderType {
-		mismatchedVersionDeploy, _ := getLocalVersionMismatchedAPI()
-		if len(mismatchedVersionDeploy) > 0 {
-			out += "\n" + mismatchedVersionDeploy
+		mismatchedVersionAPIsErrorMessage, _ := getLocalVersionMismatchedAPIs()
+		if len(mismatchedVersionAPIsErrorMessage) > 0 {
+			out += "\n" + mismatchedVersionAPIsErrorMessage
 		}
 	}
 
 	return out, nil
 }
 
-func getLocalVersionMismatchedAPI() (string, error) {
-	mismatchedAPINames, err := local.ListVersionMismatchedAPI()
+func getLocalVersionMismatchedAPIs() (string, error) {
+	mismatchedAPINames, err := local.ListVersionMismatchedAPIs()
 	if err != nil {
 		return "", err
 	}
@@ -429,7 +442,7 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 	return t.MustFormat()
 }
 
-func makeRequest(request *http.Request) ([]byte, error) {
+func makeRequest(request *http.Request) (http.Header, []byte, error) {
 	client := http.Client{
 		Timeout: 600 * time.Second,
 		Transport: &http.Transport{
@@ -439,23 +452,23 @@ func makeRequest(request *http.Request) ([]byte, error) {
 
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
+		return nil, nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
 		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, errors.Wrap(err, _errStrRead)
+			return nil, nil, errors.Wrap(err, _errStrRead)
 		}
-		return nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
+		return nil, nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, _errStrRead)
+		return nil, nil, errors.Wrap(err, _errStrRead)
 	}
-	return bodyBytes, nil
+	return response.Header, bodyBytes, nil
 }
 
 func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
@@ -464,7 +477,7 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := makeRequest(req)
+	_, response, err := makeRequest(req)
 	if err != nil {
 		return nil, err
 	}
