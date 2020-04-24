@@ -385,9 +385,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	if totalMinPrice != totalMaxPrice {
 		priceStr = fmt.Sprintf("%s - %s", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice))
 		if isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
-			suffix = " based on cluster size and spot pricing"
+			suffix = " based on cluster size and spot instance pricing/availability"
 		} else if isSpot && *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-			suffix = " based on spot pricing"
+			suffix = " based on spot instance pricing/availability"
 		} else if !isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
 			suffix = " based on cluster size"
 		}

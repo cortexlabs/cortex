@@ -27,7 +27,7 @@ aws resource                                cost per hour
 1 20gb ebs volume for the operator          $0.003
 2 network load balancers                    $0.0225 each
 
-your cluster will cost $0.19 - $2.85 per hour based on cluster size and spot pricing
+your cluster will cost $0.19 - $2.85 per hour based on cluster size and spot instance pricing/availability
 
 ￮ spinning up your cluster ...
 
