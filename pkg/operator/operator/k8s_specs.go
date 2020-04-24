@@ -94,11 +94,13 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	q1, q2 := k8s.SplitInTwo(userPodCPURequest)
-	apiResourceList[kcore.ResourceCPU] = *q1
-	tfServingResourceList[kcore.ResourceCPU] = *q2
+	if api.Compute.CPU != nil {
+		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		q1, q2 := k8s.SplitInTwo(userPodCPURequest)
+		apiResourceList[kcore.ResourceCPU] = *q1
+		tfServingResourceList[kcore.ResourceCPU] = *q2
+	}
 
 	if api.Compute.Mem != nil {
 		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
@@ -262,9 +264,11 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	if api.Compute.CPU != nil {
+		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	}
 
 	if api.Compute.Mem != nil {
 		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
@@ -369,9 +373,11 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	if api.Compute.CPU != nil {
+		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	}
 
 	if api.Compute.Mem != nil {
 		userPodMemRequest := api.Compute.Mem.Quantity.Copy()

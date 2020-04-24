@@ -131,13 +131,11 @@ func validateCompute(compute *userconfig.Compute, config *clusterconfig.Internal
 		maxMem.Sub(_nvidiaMemReserve)
 	}
 
-	if maxCPU.Cmp(compute.CPU.Quantity) < 0 {
+	if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
 		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
 	}
-	if compute.Mem != nil {
-		if maxMem.Cmp(compute.Mem.Quantity) < 0 {
-			return ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String())
-		}
+	if compute.Mem != nil && maxMem.Cmp(compute.Mem.Quantity) < 0 {
+		return ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String())
 	}
 	if compute.GPU > maxGPU {
 		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
