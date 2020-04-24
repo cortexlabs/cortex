@@ -59,6 +59,13 @@ func init() {
 		exit.Error(err)
 	}
 
+	localAPISWorkspaceDir := filepath.Join(_localWorkspaceDir, "apis")
+	err = os.MkdirAll(localAPISWorkspaceDir, os.ModePerm)
+	if err != nil {
+		err := errors.Wrap(err, "unable to write to home directory", localAPISWorkspaceDir)
+		exit.Error(err)
+	}
+
 	_modelCacheDir = filepath.Join(_localDir, "model_cache")
 	err = os.MkdirAll(_modelCacheDir, os.ModePerm)
 	if err != nil {
