@@ -271,6 +271,11 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	if api.Compute.Accelerator > 0 {
+		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(api.Compute.Accelerator*256, kresource.DecimalSI)
+		resourceLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
+	}
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
@@ -649,6 +654,12 @@ var _tolerations = []kcore.Toleration{
 	},
 	{
 		Key:      "nvidia.com/gpu",
+		Operator: kcore.TolerationOpEqual,
+		Value:    "true",
+		Effect:   kcore.TaintEffectNoSchedule,
+	},
+	{
+		Key:      "aws.amazon.com/infa",
 		Operator: kcore.TolerationOpEqual,
 		Value:    "true",
 		Effect:   kcore.TaintEffectNoSchedule,

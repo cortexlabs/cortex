@@ -197,6 +197,13 @@ var _computeValidation = &cr.StructFieldValidation{
 					GreaterThanOrEqualTo: pointer.Int64(0),
 				},
 			},
+			{
+				StructField: "Accelerator",
+				Int64Validation: &cr.Int64Validation{
+					Default:              0,
+					GreaterThanOrEqualTo: pointer.Int64(0),
+				},
+			},
 		},
 	},
 }
@@ -440,7 +447,8 @@ func validateAPI(
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
-	if err := validateCompute(api.Compute, maxMem); err != nil {
+	predictorType := api.Predictor.Type
+	if err := validateCompute(api.Compute, predictorType, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
@@ -651,7 +659,7 @@ func validatePythonPath(pythonPath string, projectFileMap map[string][]byte) err
 	return nil
 }
 
-func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
+func validateCompute(compute *userconfig.Compute, predictorType userconfig.PredictorType, maxMem *kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -664,6 +672,8 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 		maxMem.Sub(_nvidiaMemReserve)
 	}
 
+	maxAccelerator := config.Cluster.InstanceMetadata.Accelerator
+
 	if maxCPU.Cmp(compute.CPU.Quantity) < 0 {
 		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
 	}
@@ -674,6 +684,12 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 	}
 	if compute.GPU > maxGPU {
 		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
+	}
+	if compute.Accelerator > maxAccelerator {
+		return ErrorNoAvailableNodeComputeLimit("Accelerator", fmt.Sprintf("%d", compute.Accelerator), fmt.Sprintf("%d", maxAccelerator))
+	}
+	if compute.Accelerator > 0 && predictorType == userconfig.ONNXPredictorType {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.AcceleratorKey, predictorType)
 	}
 	return nil
 }
