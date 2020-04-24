@@ -411,11 +411,12 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
 	}
 
-	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
-		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
+	primaryInstanceType := *cc.InstanceType
+	if _, ok := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, *cc.Region), InstanceTypeKey)
 	}
 
-	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
+	if err := awsClient.VerifyInstanceQuota(primaryInstanceType); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
 			return errors.Wrap(err, InstanceTypeKey)
@@ -427,11 +428,11 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	if cc.Spot != nil && *cc.Spot {
-		cc.FillEmptyFields(awsClient)
+		cc.FillEmptySpotFields(awsClient)
 
-		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
+		primaryInstance := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]
 		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
-			if instanceType == *cc.InstanceType {
+			if instanceType == primaryInstanceType {
 				continue
 			}
 			if _, ok := aws.InstanceMetadatas[*cc.Region][instanceType]; !ok {
@@ -439,14 +440,14 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
+			err := CheckSpotInstanceCompatibility(primaryInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 			}
 
 			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
 			if awsErr == nil {
-				if err := CheckSpotInstancePriceCompatibility(chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
+				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
 					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 				}
 			}
@@ -509,7 +510,7 @@ func CheckSpotInstancePriceCompatibility(target aws.InstanceMetadata, suggested 
 }
 
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
-	chosenInstance := aws.InstanceMetadatas[region][instanceType]
+	primaryInstance := aws.InstanceMetadatas[region][instanceType]
 	cleanedDistribution := []string{instanceType}
 	for _, spotInstance := range spotConfig.InstanceDistribution {
 		if spotInstance != instanceType {
@@ -519,7 +520,7 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	spotConfig.InstanceDistribution = cleanedDistribution
 
 	if spotConfig.MaxPrice == nil {
-		spotConfig.MaxPrice = &chosenInstance.Price
+		spotConfig.MaxPrice = &primaryInstance.Price
 	}
 
 	if spotConfig.OnDemandBaseCapacity == nil {
@@ -545,7 +546,7 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	return nil
 }
 
-func (cc *Config) FillEmptyFields(awsClient *aws.Client) error {
+func (cc *Config) FillEmptySpotFields(awsClient *aws.Client) error {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
