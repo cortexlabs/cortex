@@ -405,6 +405,10 @@ func Index(index int) string {
 }
 
 func Indent(str string, indent string) string {
+	if str == "" {
+		return indent
+	}
+
 	if str[len(str)-1:] == "\n" {
 		out := ""
 		for _, line := range strings.Split(str[:len(str)-1], "\n") {
