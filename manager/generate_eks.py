@@ -119,7 +119,13 @@ def apply_accelerator_settings(nodegroup):
         # track https://github.com/aws/containers-roadmap/issues/619 ticket
         # such that when an EKS-optimized AMI for inf instances is released,
         # this ami override can be removed and reverted back to auto
-        "ami": "ami-0d5a224787b16da0b"
+        "ami": "ami-0d5a224787b16da0b",
+        "tags": {
+            "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/inf": "true",
+            "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/inf=true",
+        },
+        "labels": {"aws.amazon.com/inf": "true"},
+        "taints": {"aws.amazon.com/inf": "true:NoSchedule"},
     }
     return merge_override(nodegroup, accelerator_settings)
 

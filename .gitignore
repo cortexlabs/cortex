@@ -17,3 +17,4 @@ __pycache__/
 # MISC
 *.zip
 .unison*
+.vscode/
