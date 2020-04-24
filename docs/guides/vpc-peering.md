@@ -6,7 +6,7 @@ If your are using a internal operator load balancer (i.e. you set `operator_load
 
 If your are using a internal API load balancer (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to enable prediction requests from another VPC. _Note: if you intend to create a public endpoint for your internal API load balancer, see our [API Gateway guide](api-gateway.md)._
 
-These instructions illustrate how to create a VPC Peering connection between a VPC of your choice and the Cortex load balancers.
+This guide illustrates how to create a VPC Peering connection between a VPC of your choice and the Cortex load balancers.
 
 ## Step 1
 
@@ -28,7 +28,7 @@ The VPC ID here should match that of the load balancer.
 
 Identify the ID and CIDR block of the VPC from which you'd like to connect to the Cortex VPC.
 
-In my case, I have a VPC in the same AWS account and region, and I can locate its ID from AWS's VPC dashboard:
+In my case, I have a VPC in the same AWS account and region, and I can locate its ID and CIDR block from AWS's VPC dashboard:
 
 ![step 2](https://user-images.githubusercontent.com/808475/80125729-eb4b3180-8546-11ea-8d20-6bc2478747ae.png)
 
@@ -76,11 +76,11 @@ Navigate back to the VPC Route Tables page. There will be a route table for each
 
 ![step 6a](https://user-images.githubusercontent.com/808475/80138244-5dc50d00-8559-11ea-9248-fc201d011530.png)
 
-Fore each of these route tables, click "Edit routes", and add a new route where the "Destination" is the CIDR block for the VPC from which you will be connecting to the Cortex cluster (identified in Step 2), and the "Target" is the newly-created Peering Connection:
+Fore each of these route tables, click "Edit routes" and add a new route where the "Destination" is the CIDR block for the VPC from which you will be connecting to the Cortex cluster (identified in Step 2), and the "Target" is the newly-created Peering Connection:
 
 ![step 6b](https://user-images.githubusercontent.com/808475/80138653-f78cba00-8559-11ea-8444-406e218c3bab.png)
 
-Repeat adding this route for each route table associated with the Cortex operator's subnets; in my case there were three.
+Repeat adding this route for each route table associated with the Cortex operator's subnets; in my case there were three. Do not create new route tables or change subnet associations.
 
 You should now be able to use the Cortex CLI and make prediction requests from your VPC.
 
