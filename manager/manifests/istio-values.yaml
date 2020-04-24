@@ -42,7 +42,7 @@ gateways:
       ${CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION}
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     type: LoadBalancer
-    externalTrafficPolicy: Local
+    externalTrafficPolicy: Local  # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
     ports:
     - port: 80
       targetPort: 80
@@ -84,7 +84,7 @@ gateways:
       ${CORTEX_API_LOAD_BALANCER_ANNOTATION}
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     type: LoadBalancer
-    externalTrafficPolicy: Local
+    externalTrafficPolicy: Local  # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
     ports:
     - port: 80
       targetPort: 80

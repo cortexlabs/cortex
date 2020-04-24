@@ -68,18 +68,18 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 
 		if authHeader == "" {
-			respondError(w, r, ErrorAuthHeaderMissing())
+			respondError(w, r, ErrorHeaderMissing("Authorization"))
 			return
 		}
 
 		if len(authHeader) < 10 || !strings.HasPrefix(authHeader, "CortexAWS") {
-			respondError(w, r, ErrorAuthHeaderMalformed())
+			respondError(w, r, ErrorHeaderMalformed("Authorization"))
 			return
 		}
 
 		parts := strings.Split(authHeader[10:], "|")
 		if len(parts) != 2 {
-			respondError(w, r, ErrorAuthHeaderMalformed())
+			respondError(w, r, ErrorHeaderMalformed("Authorization"))
 			return
 		}
 
@@ -119,6 +119,11 @@ func APIVersionCheckMiddleware(next http.Handler) http.Handler {
 		}
 
 		clientVersion := r.Header.Get("CortexAPIVersion")
+		if clientVersion == "" {
+			respondError(w, r, ErrorHeaderMissing("CortexAPIVersion"))
+			return
+		}
+
 		if clientVersion != consts.CortexVersion {
 			respondError(w, r, ErrorAPIVersionMismatch(consts.CortexVersion, clientVersion))
 			return

@@ -217,6 +217,7 @@ var UserValidation = &cr.StructValidation{
 			StringValidation: &cr.StringValidation{
 				AllowEmpty:       true,
 				TreatNullAsEmpty: true,
+				Validator:        validateBucketNameOrEmpty,
 			},
 		},
 		{
@@ -760,6 +761,7 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 					Default:   defaultBucket,
 					MinLength: 3,
 					MaxLength: 63,
+					Validator: validateBucketName,
 				},
 			},
 			{
@@ -871,6 +873,20 @@ func validateClusterName(clusterName string) (string, error) {
 		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), clusterName)
 	}
 	return clusterName, nil
+}
+
+func validateBucketNameOrEmpty(bucket string) (string, error) {
+	if bucket == "" {
+		return "", nil
+	}
+	return validateBucketName(bucket)
+}
+
+func validateBucketName(bucket string) (string, error) {
+	if !_strictS3BucketRegex.MatchString(bucket) {
+		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), bucket)
+	}
+	return bucket, nil
 }
 
 func validateInstanceType(instanceType string) (string, error) {

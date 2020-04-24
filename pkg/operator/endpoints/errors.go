@@ -25,8 +25,8 @@ import (
 
 const (
 	ErrAPIVersionMismatch     = "endpoints.api_version_mismatch"
-	ErrAuthHeaderMissing      = "endpoints.auth_header_missing"
-	ErrAuthHeaderMalformed    = "endpoints.auth_header_malformed"
+	ErrHeaderMissing          = "endpoints.header_missing"
+	ErrHeaderMalformed        = "endpoints.header_malformed"
 	ErrAuthAPIError           = "endpoints.auth_api_error"
 	ErrAuthInvalid            = "endpoints.auth_invalid"
 	ErrAuthOtherAccount       = "endpoints.auth_other_account"
@@ -44,17 +44,17 @@ func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error
 	})
 }
 
-func ErrorAuthHeaderMissing() error {
+func ErrorHeaderMissing(header string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrAuthHeaderMissing,
-		Message: "auth header missing",
+		Kind:    ErrHeaderMissing,
+		Message: fmt.Sprintf("missing %s header", header),
 	})
 }
 
-func ErrorAuthHeaderMalformed() error {
+func ErrorHeaderMalformed(header string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrAuthHeaderMalformed,
-		Message: "auth header malformed",
+		Kind:    ErrHeaderMalformed,
+		Message: fmt.Sprintf("malformed %s header", header),
 	})
 }
 
