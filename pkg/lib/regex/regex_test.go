@@ -427,7 +427,7 @@ func TestValidDockerImage(t *testing.T) {
 		},
 		{
 			input: "registry.com:8080/myapp@2bad",
-			match: false, // TODO(dmcgowan): Support this as valid
+			match: false, // Support this as valid?
 		},
 		{
 			input: "680880929103.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/python-serve:latest",
