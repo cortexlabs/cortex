@@ -19,7 +19,6 @@ package clusterconfig
 import (
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
@@ -436,14 +435,9 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	if cc.Spot != nil && *cc.Spot {
-		cc.AutoFillSpot(awsClient)
-		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, cc.SpotConfig.MaxPrice, _spotInstanceDistributionLength)
-		if len(compatibleSpots) == 0 {
-			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
-		}
+		cc.FillEmptyFields(awsClient)
 
-		compatibleInstanceCount := 0
+		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
 		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
 			if instanceType == *cc.InstanceType {
 				continue
@@ -464,16 +458,6 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 				}
 			}
-
-			compatibleInstanceCount++
-		}
-
-		if compatibleInstanceCount == 0 {
-			suggestions := []string{}
-			for _, compatibleInstance := range compatibleSpots {
-				suggestions = append(suggestions, compatibleInstance.Type)
-			}
-			return ErrorAtLeastOneInstanceDistribution(*cc.InstanceType, suggestions[0], suggestions[1:]...)
 		}
 
 		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > *cc.MaxInstances {
@@ -532,48 +516,6 @@ func CheckSpotInstancePriceCompatibility(target aws.InstanceMetadata, suggested 
 	return nil
 }
 
-func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceMetadata, maxPrice *float64, numInstances int) []aws.InstanceMetadata {
-	compatibleInstances := []aws.InstanceMetadata{}
-	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
-	availableInstances := []aws.InstanceMetadata{}
-
-	for instanceType, instanceMetadata := range instanceMap {
-		if instanceType == targetInstance.Type {
-			continue
-		}
-		availableInstances = append(availableInstances, instanceMetadata)
-	}
-
-	sort.Slice(availableInstances, func(i, j int) bool {
-		return availableInstances[i].Price < availableInstances[j].Price
-	})
-
-	for _, instanceMetadata := range availableInstances {
-		if err := CheckCortexSupport(instanceMetadata); err != nil {
-			continue
-		}
-
-		if err := CheckSpotInstanceCompatibility(targetInstance, instanceMetadata); err != nil {
-			continue
-		}
-
-		spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
-		if awsErr == nil {
-			if err := CheckSpotInstancePriceCompatibility(targetInstance, instanceMetadata, maxPrice, spotInstancePrice); err != nil {
-				continue
-			}
-		}
-
-		compatibleInstances = append(compatibleInstances, instanceMetadata)
-
-		if len(compatibleInstances) == numInstances {
-			break
-		}
-	}
-
-	return compatibleInstances
-}
-
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
 	chosenInstance := aws.InstanceMetadatas[region][instanceType]
 	cleanedDistribution := []string{instanceType}
@@ -583,17 +525,6 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 		}
 	}
 	spotConfig.InstanceDistribution = cleanedDistribution
-
-	if len(spotConfig.InstanceDistribution) == 1 {
-		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
-		if len(compatibleSpots) == 0 {
-			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
-		}
-
-		for _, instance := range compatibleSpots {
-			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instance.Type)
-		}
-	}
 
 	if spotConfig.MaxPrice == nil {
 		spotConfig.MaxPrice = &chosenInstance.Price
@@ -622,7 +553,7 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	return nil
 }
 
-func (cc *Config) AutoFillSpot(awsClient *aws.Client) error {
+func (cc *Config) FillEmptyFields(awsClient *aws.Client) error {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
