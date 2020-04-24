@@ -263,7 +263,8 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
 
-	if api.Compute != nil {
+	emptyCompute := Compute{}
+	if api.Compute != nil && *api.Compute != emptyCompute {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
