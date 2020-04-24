@@ -99,12 +99,12 @@ var _upCmd = &cobra.Command{
 		}
 
 		promptForEmail()
-		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsCreds)
+		clusterConfig, err := getInstallClusterConfig(awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -139,7 +139,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
+		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -170,7 +170,7 @@ var _updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -205,7 +205,7 @@ var _updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
+		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -232,7 +232,7 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -261,7 +261,7 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -295,7 +295,7 @@ var _downCmd = &cobra.Command{
 
 		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -380,7 +380,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds)
+	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -454,7 +454,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 }
 
 func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
-	out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
+	out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -488,7 +488,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
 	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
 	fmt.Println("fetching cluster configuration ..." + "\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)
 	}
