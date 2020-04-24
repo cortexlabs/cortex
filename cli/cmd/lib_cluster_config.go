@@ -405,7 +405,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see www.cortex.dev/guides/vpc-peering or www.cortex.dev/guides/api-gateway)\n\n")
 	}
 	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancer {
-		fmt.Print("warning: you've configured the Operator load balancer to be internal; you must configure VPC Peering to connect to your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)\n\n")
+		fmt.Print("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect to your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)\n\n")
 	}
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
