@@ -126,12 +126,11 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 		if _, ok := infoResponse.Runtimes["nvidia"]; !ok {
 			fmt.Println(fmt.Sprintf("warning: unable to find nvidia runtime on your docker (confirm with `docker info | grep -i runtime`); see https://github.com/NVIDIA/nvidia-container-runtime#installation to register nvidia runtime on your docker; in the meantime, the following api(s) will be run without GPU access: %s\n", strings.Join(apisRequiringGPU.Slice(), ", ")))
-		}
-
-		for i := range apis {
-			api := &apis[i]
-			if apisRequiringGPU.Has(api.Name) {
-				api.Compute.GPU = 0
+			for i := range apis {
+				api := &apis[i]
+				if apisRequiringGPU.Has(api.Name) {
+					api.Compute.GPU = 0
+				}
 			}
 		}
 	}
