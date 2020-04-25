@@ -42,7 +42,7 @@ commands=(
 for cmd in "${commands[@]}"; do
   echo "## ${cmd}"
   echo
-  echo '```text'
+  echo -n '```text'
   $ROOT/bin/cortex help ${cmd}
   echo '```'
   echo

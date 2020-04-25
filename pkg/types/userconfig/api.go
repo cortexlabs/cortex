@@ -61,7 +61,7 @@ type Tracker struct {
 }
 
 type Compute struct {
-	CPU k8s.Quantity  `json:"cpu" yaml:"cpu"`
+	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
 	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
 }
@@ -328,18 +328,32 @@ func (tracker *Tracker) UserStr() string {
 
 func (compute *Compute) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
+	if compute.CPU == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", CPUKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
+	}
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
-	if compute.Mem != nil {
+	if compute.Mem == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", MemKey))
+	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
 	return sb.String()
 }
 
 func (compute Compute) Equals(c2 *Compute) bool {
-	if !compute.CPU.Equal(c2.CPU) {
+	if c2 == nil {
+		return false
+	}
+
+	if compute.CPU == nil && c2.CPU != nil || compute.CPU != nil && c2.CPU == nil {
+		return false
+	}
+
+	if compute.CPU != nil && c2.CPU != nil && !compute.CPU.Equal(*c2.CPU) {
 		return false
 	}
 

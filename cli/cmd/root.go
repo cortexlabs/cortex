@@ -200,7 +200,7 @@ func envStringIfNotSpecified(envName string) (string, error) {
 	}
 
 	if !wasEnvFlagProvided() && len(envNames) > 1 {
-		return fmt.Sprintf("using %s environment...\n\n", envName), nil
+		return fmt.Sprintf("using %s environment\n\n", envName), nil
 	}
 
 	return "", nil

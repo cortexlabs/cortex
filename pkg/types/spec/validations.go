@@ -180,9 +180,9 @@ func trackerValidation() *cr.StructFieldValidation {
 }
 
 func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	cpuDefault := "200m"
+	cpuDefault := pointer.String("200m")
 	if provider == types.LocalProviderType {
-		cpuDefault = "1"
+		cpuDefault = nil
 	}
 	return &cr.StructFieldValidation{
 		StructField: "Compute",
@@ -190,9 +190,10 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "CPU",
-					StringValidation: &cr.StringValidation{
-						Default:     cpuDefault,
-						CastNumeric: true,
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default:           cpuDefault,
+						AllowExplicitNull: true,
+						CastNumeric:       true,
 					},
 					Parser: k8s.QuantityParser(&k8s.QuantityValidation{
 						GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20m")),
@@ -201,7 +202,8 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 				{
 					StructField: "Mem",
 					StringPtrValidation: &cr.StringPtrValidation{
-						Default: nil,
+						Default:           nil,
+						AllowExplicitNull: true,
 					},
 					Parser: k8s.QuantityParser(&k8s.QuantityValidation{
 						GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20Mi")),

@@ -104,7 +104,9 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 	runtime := ""
 	resources := container.Resources{}
 	if api.Compute != nil {
-		resources.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
+		if api.Compute.CPU != nil {
+			resources.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
+		}
 		if api.Compute.Mem != nil {
 			resources.Memory = api.Compute.Mem.Quantity.Value()
 		}
@@ -170,7 +172,9 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 	runtime := ""
 	resources := container.Resources{}
 	if api.Compute != nil {
-		resources.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
+		if api.Compute.CPU != nil {
+			resources.NanoCPUs = api.Compute.CPU.MilliValue() * 1000 * 1000
+		}
 		if api.Compute.Mem != nil {
 			resources.Memory = api.Compute.Mem.Quantity.Value()
 		}
@@ -239,13 +243,15 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	apiResources := container.Resources{}
 
 	if api.Compute != nil {
-		totalNanoCPUs := api.Compute.CPU.MilliValue() * 1000 * 1000
-		apiResources.NanoCPUs = totalNanoCPUs / 2
-		serveResources.NanoCPUs = totalNanoCPUs - apiResources.NanoCPUs
+		if api.Compute.CPU != nil {
+			totalNanoCPUs := api.Compute.CPU.MilliValue() * 1000 * 1000
+			apiResources.NanoCPUs = totalNanoCPUs / 2
+			serveResources.NanoCPUs = totalNanoCPUs - apiResources.NanoCPUs
+		}
 		if api.Compute.Mem != nil {
 			totalMemory := api.Compute.Mem.Quantity.Value()
 			apiResources.Memory = totalMemory / 2
-			serveResources.Memory = totalMemory - apiResources.NanoCPUs
+			serveResources.Memory = totalMemory - apiResources.Memory
 		}
 		if api.Compute.GPU > 0 {
 			serveRuntime = "nvidia"

@@ -111,7 +111,7 @@ Usage:
 
 Flags:
   -c, --config string   path to a cluster configuration file
-  -e, --env string      environment to use (default "aws")
+  -e, --env string      environment to configure (default "aws")
   -d, --debug           save the current cluster state to a file
   -h, --help            help for info
 ```
