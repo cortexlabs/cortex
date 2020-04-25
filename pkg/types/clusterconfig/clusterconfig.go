@@ -48,8 +48,8 @@ type Config struct {
 	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
 	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
-	VolumeType             string      `json:"volume_type" yaml:"volume_type"`
-	VolumeIops             int64       `json:"volume_iops" yaml:"volume_iops"`
+	InstanceVolumeType     *string     `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeIops     *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
 	Spot                   *bool       `json:"spot" yaml:"spot"`
 	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
 	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
@@ -128,18 +128,17 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "VolumeType",
-			StringValidation: &cr.StringValidation{
-				Default:   "gp2",
+			StructField: "InstanceVolumeType",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Default:   pointer.String("gp2"),
 				Validator: validateVolumeType,
 			},
 		},
 		{
-			StructField: "VolumeIops",
-			Int64Validation: &cr.Int64Validation{
-				Default:              10000,
-				GreaterThanOrEqualTo: pointer.Int64(100),
-				LessThanOrEqualTo:    pointer.Int64(64000),
+			StructField: "InstanceVolumeIops",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				Default:           pointer.Int64(3000),
+				LessThanOrEqualTo: pointer.Int64(64000),
 			},
 		},
 		{
@@ -435,6 +434,11 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
+	}
+
+	//check that Iops is set to zero if it is not configurable
+	if aws.EBSMetadatas[*cc.Region][*cc.InstanceVolumeType].IopsConfigurable == "No" {
+		*cc.InstanceVolumeIops = 0
 	}
 
 	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {

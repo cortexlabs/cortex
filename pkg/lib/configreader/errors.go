@@ -362,3 +362,10 @@ func ErrorImageVersionMismatch(image, tag, cortexVersion string) error {
 		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image from your configuration file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, cortexVersion),
 	})
 }
+
+func ErrorInvalidStorageType(storagetype string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrorStorageNotAvailable,
+		Message: fmt.Sprintf("the specified soragetype (%s) is not availabe as EBS storage. Only the following storagetypes are available for EBS: %s", storagetype, availableStorageTypes),
+	})
+}

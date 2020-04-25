@@ -45,6 +45,7 @@ type EBSMetadata struct {
 	Region string  `json:"region"`
 	PriceGB  float64 `json:"priceGB"`
     PriceIOPS  float64 `json:"priceIOPS"`
+    IopsConfigurable string `json:"iops_configurable"`
     Type  string `json:"type"`
 }
 
@@ -3379,139 +3380,122 @@ var NATMetadatas = map[string]NATMetadata{
 // region -> EBS metadata
 var EBSMetadatas = map[string]map[string]EBSMetadata{
     "ap-east-1": map[string]EBSMetadata{
-	"gp2": {Region: "ap-east-1",Type: "gp2", PriceGB: 0.132, PriceIOPS: 0},
-"io1": {Region: "ap-east-1",Type: "io1", PriceGB: 0.1518, PriceIOPS: 0.0792000000},
-"sc1": {Region: "ap-east-1",Type: "sc1", PriceGB: 0.033, PriceIOPS: 0},
-"st1": {Region: "ap-east-1",Type: "st1", PriceGB: 0.0594, PriceIOPS: 0},
-"standard": {Region: "ap-east-1",Type: "standard", PriceGB: 0.088, PriceIOPS: 0.0000000880},
+	"gp2": {Region: "ap-east-1",Type: "gp2", PriceGB: 0.132, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "ap-east-1",Type: "io1", PriceGB: 0.1518, PriceIOPS: 0.0792000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "ap-east-1",Type: "sc1", PriceGB: 0.033, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "ap-east-1",Type: "st1", PriceGB: 0.0594, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "ap-northeast-1": map[string]EBSMetadata{
-	"gp2": {Region: "ap-northeast-1",Type: "gp2", PriceGB: 0.12, PriceIOPS: 0},
-"io1": {Region: "ap-northeast-1",Type: "io1", PriceGB: 0.142, PriceIOPS: 0.0740000000},
-"sc1": {Region: "ap-northeast-1",Type: "sc1", PriceGB: 0.03, PriceIOPS: 0},
-"st1": {Region: "ap-northeast-1",Type: "st1", PriceGB: 0.054, PriceIOPS: 0},
-"standard": {Region: "ap-northeast-1",Type: "standard", PriceGB: 0.08, PriceIOPS: 0.0000000800},
+	"gp2": {Region: "ap-northeast-1",Type: "gp2", PriceGB: 0.12, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "ap-northeast-1",Type: "io1", PriceGB: 0.142, PriceIOPS: 0.0740000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "ap-northeast-1",Type: "sc1", PriceGB: 0.03, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "ap-northeast-1",Type: "st1", PriceGB: 0.054, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "ap-northeast-2": map[string]EBSMetadata{
-	"gp2": {Region: "ap-northeast-2",Type: "gp2", PriceGB: 0.114, PriceIOPS: 0},
-"io1": {Region: "ap-northeast-2",Type: "io1", PriceGB: 0.1278, PriceIOPS: 0.0666000000},
-"sc1": {Region: "ap-northeast-2",Type: "sc1", PriceGB: 0.029, PriceIOPS: 0},
-"st1": {Region: "ap-northeast-2",Type: "st1", PriceGB: 0.051, PriceIOPS: 0},
-"standard": {Region: "ap-northeast-2",Type: "standard", PriceGB: 0.08, PriceIOPS: 0.0000000800},
+	"gp2": {Region: "ap-northeast-2",Type: "gp2", PriceGB: 0.114, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "ap-northeast-2",Type: "io1", PriceGB: 0.1278, PriceIOPS: 0.0666000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "ap-northeast-2",Type: "sc1", PriceGB: 0.029, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "ap-northeast-2",Type: "st1", PriceGB: 0.051, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "ap-south-1": map[string]EBSMetadata{
-	"gp2": {Region: "ap-south-1",Type: "gp2", PriceGB: 0.114, PriceIOPS: 0},
-"io1": {Region: "ap-south-1",Type: "io1", PriceGB: 0.131, PriceIOPS: 0.0680000000},
-"sc1": {Region: "ap-south-1",Type: "sc1", PriceGB: 0.029, PriceIOPS: 0},
-"st1": {Region: "ap-south-1",Type: "st1", PriceGB: 0.051, PriceIOPS: 0},
-"standard": {Region: "ap-south-1",Type: "standard", PriceGB: 0.08, PriceIOPS: 0.0000000800},
+	"gp2": {Region: "ap-south-1",Type: "gp2", PriceGB: 0.114, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "ap-south-1",Type: "io1", PriceGB: 0.131, PriceIOPS: 0.0680000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "ap-south-1",Type: "sc1", PriceGB: 0.029, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "ap-south-1",Type: "st1", PriceGB: 0.051, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "ap-southeast-1": map[string]EBSMetadata{
-	"gp2": {Region: "ap-southeast-1",Type: "gp2", PriceGB: 0.12, PriceIOPS: 0},
-"io1": {Region: "ap-southeast-1",Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000},
-"sc1": {Region: "ap-southeast-1",Type: "sc1", PriceGB: 0.03, PriceIOPS: 0},
-"st1": {Region: "ap-southeast-1",Type: "st1", PriceGB: 0.054, PriceIOPS: 0},
-"standard": {Region: "ap-southeast-1",Type: "standard", PriceGB: 0.08, PriceIOPS: 0.0000000800},
+	"gp2": {Region: "ap-southeast-1",Type: "gp2", PriceGB: 0.12, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "ap-southeast-1",Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "ap-southeast-1",Type: "sc1", PriceGB: 0.03, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "ap-southeast-1",Type: "st1", PriceGB: 0.054, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "ap-southeast-2": map[string]EBSMetadata{
-	"gp2": {Region: "ap-southeast-2",Type: "gp2", PriceGB: 0.12, PriceIOPS: 0},
-"io1": {Region: "ap-southeast-2",Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000},
-"sc1": {Region: "ap-southeast-2",Type: "sc1", PriceGB: 0.03, PriceIOPS: 0},
-"st1": {Region: "ap-southeast-2",Type: "st1", PriceGB: 0.054, PriceIOPS: 0},
-"standard": {Region: "ap-southeast-2",Type: "standard", PriceGB: 0.08, PriceIOPS: 0.0000000800},
+	"gp2": {Region: "ap-southeast-2",Type: "gp2", PriceGB: 0.12, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "ap-southeast-2",Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "ap-southeast-2",Type: "sc1", PriceGB: 0.03, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "ap-southeast-2",Type: "st1", PriceGB: 0.054, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "ca-central-1": map[string]EBSMetadata{
-	"gp2": {Region: "ca-central-1",Type: "gp2", PriceGB: 0.11, PriceIOPS: 0},
-"io1": {Region: "ca-central-1",Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000},
-"sc1": {Region: "ca-central-1",Type: "sc1", PriceGB: 0.028, PriceIOPS: 0},
-"st1": {Region: "ca-central-1",Type: "st1", PriceGB: 0.05, PriceIOPS: 0},
-"standard": {Region: "ca-central-1",Type: "standard", PriceGB: 0.055, PriceIOPS: 0.0000000550},
+	"gp2": {Region: "ca-central-1",Type: "gp2", PriceGB: 0.11, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "ca-central-1",Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "ca-central-1",Type: "sc1", PriceGB: 0.028, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "ca-central-1",Type: "st1", PriceGB: 0.05, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "eu-central-1": map[string]EBSMetadata{
-	"gp2": {Region: "eu-central-1",Type: "gp2", PriceGB: 0.119, PriceIOPS: 0},
-"io1": {Region: "eu-central-1",Type: "io1", PriceGB: 0.149, PriceIOPS: 0.0780000000},
-"sc1": {Region: "eu-central-1",Type: "sc1", PriceGB: 0.03, PriceIOPS: 0},
-"st1": {Region: "eu-central-1",Type: "st1", PriceGB: 0.054, PriceIOPS: 0},
-"standard": {Region: "eu-central-1",Type: "standard", PriceGB: 0.059, PriceIOPS: 0.0000000590},
+	"gp2": {Region: "eu-central-1",Type: "gp2", PriceGB: 0.119, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "eu-central-1",Type: "io1", PriceGB: 0.149, PriceIOPS: 0.0780000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "eu-central-1",Type: "sc1", PriceGB: 0.03, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "eu-central-1",Type: "st1", PriceGB: 0.054, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "eu-north-1": map[string]EBSMetadata{
-	"gp2": {Region: "eu-north-1",Type: "gp2", PriceGB: 0.1045, PriceIOPS: 0},
-"io1": {Region: "eu-north-1",Type: "io1", PriceGB: 0.1311, PriceIOPS: 0.0684000000},
-"sc1": {Region: "eu-north-1",Type: "sc1", PriceGB: 0.0266, PriceIOPS: 0},
-"st1": {Region: "eu-north-1",Type: "st1", PriceGB: 0.0475, PriceIOPS: 0},
-"standard": {Region: "eu-north-1",Type: "standard", PriceGB: 0.05225, PriceIOPS: 0.0000000520},
+	"gp2": {Region: "eu-north-1",Type: "gp2", PriceGB: 0.1045, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "eu-north-1",Type: "io1", PriceGB: 0.1311, PriceIOPS: 0.0684000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "eu-north-1",Type: "sc1", PriceGB: 0.0266, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "eu-north-1",Type: "st1", PriceGB: 0.0475, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "eu-west-1": map[string]EBSMetadata{
-	"gp2": {Region: "eu-west-1",Type: "gp2", PriceGB: 0.11, PriceIOPS: 0},
-"io1": {Region: "eu-west-1",Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000},
-"sc1": {Region: "eu-west-1",Type: "sc1", PriceGB: 0.028, PriceIOPS: 0},
-"st1": {Region: "eu-west-1",Type: "st1", PriceGB: 0.05, PriceIOPS: 0},
-"standard": {Region: "eu-west-1",Type: "standard", PriceGB: 0.055, PriceIOPS: 0.0000000550},
+	"gp2": {Region: "eu-west-1",Type: "gp2", PriceGB: 0.11, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "eu-west-1",Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "eu-west-1",Type: "sc1", PriceGB: 0.028, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "eu-west-1",Type: "st1", PriceGB: 0.05, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "eu-west-2": map[string]EBSMetadata{
-	"gp2": {Region: "eu-west-2",Type: "gp2", PriceGB: 0.116, PriceIOPS: 0},
-"io1": {Region: "eu-west-2",Type: "io1", PriceGB: 0.145, PriceIOPS: 0.0760000000},
-"sc1": {Region: "eu-west-2",Type: "sc1", PriceGB: 0.029, PriceIOPS: 0},
-"st1": {Region: "eu-west-2",Type: "st1", PriceGB: 0.053, PriceIOPS: 0},
-"standard": {Region: "eu-west-2",Type: "standard", PriceGB: 0.058, PriceIOPS: 0.0000000580},
+	"gp2": {Region: "eu-west-2",Type: "gp2", PriceGB: 0.116, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "eu-west-2",Type: "io1", PriceGB: 0.145, PriceIOPS: 0.0760000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "eu-west-2",Type: "sc1", PriceGB: 0.029, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "eu-west-2",Type: "st1", PriceGB: 0.053, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "eu-west-3": map[string]EBSMetadata{
-	"gp2": {Region: "eu-west-3",Type: "gp2", PriceGB: 0.116, PriceIOPS: 0},
-"io1": {Region: "eu-west-3",Type: "io1", PriceGB: 0.145, PriceIOPS: 0.0760000000},
-"sc1": {Region: "eu-west-3",Type: "sc1", PriceGB: 0.029, PriceIOPS: 0},
-"st1": {Region: "eu-west-3",Type: "st1", PriceGB: 0.053, PriceIOPS: 0},
-"standard": {Region: "eu-west-3",Type: "standard", PriceGB: 0.058, PriceIOPS: 0.0000000580},
+	"gp2": {Region: "eu-west-3",Type: "gp2", PriceGB: 0.116, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "eu-west-3",Type: "io1", PriceGB: 0.145, PriceIOPS: 0.0760000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "eu-west-3",Type: "sc1", PriceGB: 0.029, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "eu-west-3",Type: "st1", PriceGB: 0.053, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "me-south-1": map[string]EBSMetadata{
-	"gp2": {Region: "me-south-1",Type: "gp2", PriceGB: 0.121, PriceIOPS: 0},
-"io1": {Region: "me-south-1",Type: "io1", PriceGB: 0.1518, PriceIOPS: 0.0792000000},
-"sc1": {Region: "me-south-1",Type: "sc1", PriceGB: 0.0308, PriceIOPS: 0},
-"st1": {Region: "me-south-1",Type: "st1", PriceGB: 0.055, PriceIOPS: 0},
-"standard": {Region: "me-south-1",Type: "standard", PriceGB: 0.0605, PriceIOPS: 0.0000000605},
+	"gp2": {Region: "me-south-1",Type: "gp2", PriceGB: 0.121, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "me-south-1",Type: "io1", PriceGB: 0.1518, PriceIOPS: 0.0792000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "me-south-1",Type: "sc1", PriceGB: 0.0308, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "me-south-1",Type: "st1", PriceGB: 0.055, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "sa-east-1": map[string]EBSMetadata{
-	"gp2": {Region: "sa-east-1",Type: "gp2", PriceGB: 0.19, PriceIOPS: 0},
-"io1": {Region: "sa-east-1",Type: "io1", PriceGB: 0.238, PriceIOPS: 0.0910000000},
-"sc1": {Region: "sa-east-1",Type: "sc1", PriceGB: 0.048, PriceIOPS: 0},
-"st1": {Region: "sa-east-1",Type: "st1", PriceGB: 0.086, PriceIOPS: 0},
-"standard": {Region: "sa-east-1",Type: "standard", PriceGB: 0.12, PriceIOPS: 0.0000001200},
+	"gp2": {Region: "sa-east-1",Type: "gp2", PriceGB: 0.19, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "sa-east-1",Type: "io1", PriceGB: 0.238, PriceIOPS: 0.0910000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "sa-east-1",Type: "sc1", PriceGB: 0.048, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "sa-east-1",Type: "st1", PriceGB: 0.086, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "us-east-1": map[string]EBSMetadata{
-	"gp2": {Region: "us-east-1",Type: "gp2", PriceGB: 0.1, PriceIOPS: 0},
-"io1": {Region: "us-east-1",Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000},
-"sc1": {Region: "us-east-1",Type: "sc1", PriceGB: 0.025, PriceIOPS: 0},
-"st1": {Region: "us-east-1",Type: "st1", PriceGB: 0.045, PriceIOPS: 0},
-"standard": {Region: "us-east-1",Type: "standard", PriceGB: 0.05, PriceIOPS: 0.0000000500},
+	"gp2": {Region: "us-east-1",Type: "gp2", PriceGB: 0.1, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "us-east-1",Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "us-east-1",Type: "sc1", PriceGB: 0.025, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "us-east-1",Type: "st1", PriceGB: 0.045, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "us-east-2": map[string]EBSMetadata{
-	"gp2": {Region: "us-east-2",Type: "gp2", PriceGB: 0.1, PriceIOPS: 0},
-"io1": {Region: "us-east-2",Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000},
-"sc1": {Region: "us-east-2",Type: "sc1", PriceGB: 0.025, PriceIOPS: 0},
-"st1": {Region: "us-east-2",Type: "st1", PriceGB: 0.045, PriceIOPS: 0},
-"standard": {Region: "us-east-2",Type: "standard", PriceGB: 0.05, PriceIOPS: 0.0000000500},
+	"gp2": {Region: "us-east-2",Type: "gp2", PriceGB: 0.1, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "us-east-2",Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "us-east-2",Type: "sc1", PriceGB: 0.025, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "us-east-2",Type: "st1", PriceGB: 0.045, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 "us-west-2": map[string]EBSMetadata{
-	"gp2": {Region: "us-west-2",Type: "gp2", PriceGB: 0.1, PriceIOPS: 0},
-"io1": {Region: "us-west-2",Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000},
-"sc1": {Region: "us-west-2",Type: "sc1", PriceGB: 0.025, PriceIOPS: 0},
-"st1": {Region: "us-west-2",Type: "st1", PriceGB: 0.045, PriceIOPS: 0},
-"standard": {Region: "us-west-2",Type: "standard", PriceGB: 0.05, PriceIOPS: 0.0000000500},
+	"gp2": {Region: "us-west-2",Type: "gp2", PriceGB: 0.1, PriceIOPS: 0, IopsConfigurable: "No"},
+"io1": {Region: "us-west-2",Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000, IopsConfigurable: "Yes"},
+"sc1": {Region: "us-west-2",Type: "sc1", PriceGB: 0.025, PriceIOPS: 0, IopsConfigurable: "No"},
+"st1": {Region: "us-west-2",Type: "st1", PriceGB: 0.045, PriceIOPS: 0, IopsConfigurable: "No"},
 
 },
 

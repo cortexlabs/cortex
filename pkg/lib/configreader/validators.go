@@ -26,6 +26,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
+var availableStorageTypes = []string{
+	"standard",
+	"gp2",
+	"io1",
+	"sc1",
+	"st1",
+}
+
 var _portRe *regexp.Regexp
 var _emailRegex *regexp.Regexp
 
@@ -171,4 +179,18 @@ func ValidateImageVersion(image, cortexVersion string) (string, error) {
 	}
 
 	return image, nil
+}
+
+//check if Volumetype an option provided by AWS
+func ValidateVolumeType(storagetype string) (string, error) {
+
+	//loop over all possible sorage types which are availabe in all areas so we check if provided storagetype is an availbale option it ap-east-1
+	for _, types := range availableStorageTypes {
+		if types == storagetype {
+			return storagetype, nil
+		}
+	}
+
+	return "", ErrorInvalidStorageType(storagetype)
+
 }
