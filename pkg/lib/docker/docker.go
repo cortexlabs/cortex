@@ -25,6 +25,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -37,9 +38,11 @@ import (
 var NoAuth string
 
 var _cachedDockerClient *dockerclient.Client
+var _cachedEncodedAuthConfig string
 
 func init() {
 	NoAuth, _ = EncodeAuthConfig(dockertypes.AuthConfig{})
+	_cachedEncodedAuthConfig = NoAuth
 }
 
 func createDockerClient() (*dockerclient.Client, error) {
@@ -55,6 +58,36 @@ func createDockerClient() (*dockerclient.Client, error) {
 
 	_cachedDockerClient.NegotiateAPIVersion(context.Background())
 	return _cachedDockerClient, nil
+}
+
+func LoginAWS(awsClient *aws.Client) error {
+	dockerClient, err := GetDockerClient()
+	if err != nil {
+		return err
+	}
+
+	ecrAuthConfig, err := awsClient.GetECRAuthConfig()
+	if err != nil {
+		return err
+	}
+
+	auth := dockertypes.AuthConfig{
+		Username:      ecrAuthConfig.Username,
+		Password:      ecrAuthConfig.AccessToken,
+		ServerAddress: ecrAuthConfig.ProxyEndpoint,
+	}
+
+	_, err = dockerClient.RegistryLogin(context.Background(), auth)
+	if err != nil {
+		return err
+	}
+
+	_cachedEncodedAuthConfig, err = EncodeAuthConfig(auth)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func GetDockerClient() (*dockerclient.Client, error) {
@@ -110,7 +143,9 @@ func PullImage(managerImage string) error {
 		}
 	}
 
-	pullOutput, err := docker.ImagePull(context.Background(), managerImage, dockertypes.ImagePullOptions{})
+	pullOutput, err := docker.ImagePull(context.Background(), managerImage, dockertypes.ImagePullOptions{
+		RegistryAuth: _cachedEncodedAuthConfig,
+	})
 	if err != nil {
 		return WrapDockerError(err)
 	}

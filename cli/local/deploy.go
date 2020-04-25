@@ -17,6 +17,8 @@ limitations under the License.
 package local
 
 import (
+	"path/filepath"
+
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
@@ -49,6 +51,10 @@ func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileLis
 		if err != nil {
 			return schema.DeployResponse{}, err
 		}
+		err = docker.LoginAWS(awsClient)
+		if err != nil {
+			return schema.DeployResponse{}, err
+		}
 	} else {
 		awsClient, err = aws.NewAnonymousClient()
 		if err != nil {
@@ -68,7 +74,7 @@ func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileLis
 
 	projectID, err := files.HashFile(projectFileList[0], projectFileList[1:]...)
 	if err != nil {
-		return schema.DeployResponse{}, err
+		return schema.DeployResponse{}, errors.Wrap(err, "failed to hash directory", filepath.Dir(absoluteConfigPath))
 	}
 
 	results := make([]schema.DeployResult, len(apiConfigs))
