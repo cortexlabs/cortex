@@ -119,25 +119,18 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
-	fmt.Println("before default")
-	fmt.Println(*clusterConfig)
 	err := clusterconfig.SetDefaults(clusterConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("before clusterflg")
-	fmt.Println(*clusterConfig.InstanceVolumeIops)
-	fmt.Println(*clusterConfig.InstanceVolumeType)
 	if _flagClusterConfig != "" {
 		err := readUserClusterConfigFile(clusterConfig)
 		if err != nil {
 			return nil, err
 		}
 	}
-	fmt.Println("before regionpromp")
-	fmt.Println(*clusterConfig.InstanceVolumeIops)
-	fmt.Println(*clusterConfig.InstanceVolumeType)
+
 	err = clusterconfig.RegionPrompt(clusterConfig)
 	if err != nil {
 		return nil, err
@@ -159,9 +152,6 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 		return nil, err
 	}
 
-	fmt.Println("before validate")
-	fmt.Println(*clusterConfig.InstanceVolumeIops)
-	fmt.Println(*clusterConfig.InstanceVolumeType)
 	err = clusterConfig.Validate(awsClient)
 	if err != nil {
 		if _flagClusterConfig != "" {
@@ -169,9 +159,6 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 		}
 		return nil, err
 	}
-	fmt.Println("after validate")
-	fmt.Println(*clusterConfig.InstanceVolumeIops)
-	fmt.Println(*clusterConfig.InstanceVolumeType)
 
 	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient)
 
@@ -303,7 +290,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][*clusterConfig.InstanceVolumeType].PriceGB*20/30/24 + aws.EBSMetadatas[*clusterConfig.Region][*clusterConfig.InstanceVolumeType].PriceIOPS*float64(*clusterConfig.InstanceVolumeIops)/30/24
+	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
 	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
 	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][*clusterConfig.InstanceVolumeType].PriceGB*float64(clusterConfig.InstanceVolumeSize)/30/24 + aws.EBSMetadatas[*clusterConfig.Region][*clusterConfig.InstanceVolumeType].PriceIOPS*float64(*clusterConfig.InstanceVolumeIops)/30/24
