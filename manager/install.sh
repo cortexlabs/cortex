@@ -37,10 +37,7 @@ function ensure_eks() {
 
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
-    echo -e $CORTEX_CLUSTER_WORKSPACE
-
     python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
-
 
     eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
 

@@ -70,7 +70,7 @@ def apply_clusterconfig(nodegroup, config):
         "volumeType": config["instance_volume_type"],
         "desiredCapacity": 1 if config["min_instances"]==0 else config["min_instances"],
     }
-    #add iops to setting volume type is io1
+    #add iops to settings if volume_type is io1
     if config["instance_volume_type"]=="io1":
         clusterconfig_settings["volumeIOPS"]= config["instance_volume_iops"]
 
@@ -113,8 +113,8 @@ def is_gpu(instance_type):
     return instance_type.startswith("g") or instance_type.startswith("p")
 
 
-def generate_eks(cluster_config_path):
-    with open(cluster_config_path, "r") as f:
+def generate_eks(configmap_yaml_path):
+    with open(configmap_yaml_path, "r") as f:
         cluster_configmap = yaml.safe_load(f)
 
     operator_nodegroup = deepcopy(default_nodegroup)
@@ -181,4 +181,4 @@ class IgnoreAliases(yaml.Dumper):
 
 
 if __name__ == "__main__":
-    generate_eks(cluster_config_path=sys.argv[1])
+    generate_eks(configmap_yaml_path=sys.argv[1])

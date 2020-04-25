@@ -27,7 +27,6 @@ import (
 )
 
 var availableStorageTypes = []string{
-	"standard",
 	"gp2",
 	"io1",
 	"sc1",
