@@ -42,7 +42,6 @@ const (
 	ErrFileNotFound                       = "spec.file_not_found"
 	ErrDirIsEmpty                         = "spec.dir_is_empty"
 	ErrS3FileNotFound                     = "spec.s3_file_not_found"
-	ErrS3DirNotFoundOrEmpty               = "spec.s3_dir_not_found_or_empty"
 	ErrInvalidTensorFlowDir               = "spec.invalid_tensorflow_dir"
 	ErrInvalidTensorFlowModelPath         = "spec.invalid_tensorflow_model_path"
 	ErrInvalidONNXModelPath               = "spec.invalid_onnx_model_path"
@@ -185,13 +184,6 @@ func ErrorS3FileNotFound(path string) error {
 	})
 }
 
-func ErrorS3DirNotFoundOrEmpty(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrS3DirNotFoundOrEmpty,
-		Message: fmt.Sprintf("%s: directory not found or empty", path),
-	})
-}
-
 var _tfExpectedStructMessage = `For TensorFlow models, the path must contain a directory with the following structure:
   1523423423/ (Version prefix, usually a timestamp)
   ├── saved_model.pb
@@ -213,7 +205,7 @@ func ErrorInvalidTensorFlowDir(path string) error {
 func ErrorInvalidTensorFlowModelPath() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowModelPath,
-		Message: "tensorflow model path must either be a directory or a zip file ending in `.zip`",
+		Message: "TensorFlow model path must be a directory or a zip file ending in `.zip`",
 	})
 }
 

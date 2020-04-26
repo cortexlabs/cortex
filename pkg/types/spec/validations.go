@@ -619,7 +619,7 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 	if err != nil {
 		return "", err
 	} else if len(objects) == 0 {
-		return "", ErrorS3DirNotFoundOrEmpty(path)
+		return "", errors.Wrap(ErrorInvalidTensorFlowModelPath(), path)
 	}
 
 	highestVersion := int64(0)
