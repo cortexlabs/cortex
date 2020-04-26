@@ -23,10 +23,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 )
 
+var _maxBoldLength = 150
+
 func BoldFirstLine(msg string) {
 	msgParts := strings.Split(msg, "\n")
 
-	if len(msgParts[0]) > 200 {
+	if len(msgParts[0]) > _maxBoldLength {
 		fmt.Println(msg)
 		return
 	}
@@ -41,7 +43,7 @@ func BoldFirstLine(msg string) {
 func BoldFirstBlock(msg string) {
 	msgParts := strings.Split(msg, "\n\n")
 
-	if len(msgParts[0]) > 200 {
+	if len(msgParts[0]) > _maxBoldLength {
 		fmt.Println(msg)
 		return
 	}
