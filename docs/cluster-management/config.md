@@ -40,6 +40,12 @@ max_instances: 5
 # instance volume size (GB) (default: 50)
 instance_volume_size: 50
 
+# instance volume type [gp2, io1, st1, sc1] (default: gp2)
+instance_volume_type: 50
+
+# instance volume iops only applicaple to io1 storage type (default: 3000)
+instance_volume_iops: 3000
+
 # CloudWatch log group for cortex (default: <cluster_name>)
 log_group: cortex
 
