@@ -319,6 +319,7 @@ func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) 
 	accessKeyIDPrompt := "aws access key id"
 	if defaults.AWSAccessKeyID == nil {
 		accessKeyIDPrompt += " [press ENTER to skip]"
+		fmt.Print("if you have an AWS account and wish to access resources in it when running locally (e.g. S3 files), you can provide AWS credentials now\n\n")
 	}
 
 	err := cr.ReadPrompt(env, &cr.PromptValidation{
