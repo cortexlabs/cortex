@@ -797,6 +797,11 @@ func validateDockerImagePath(image string, awsClient *aws.Client) error {
 
 	dockerAuth := docker.NoAuth
 	if regex.IsValidECRURL(image) && !awsClient.IsAnonymous {
+		ecrRegion := aws.GetRegionFromECRURL(image)
+		if ecrRegion != awsClient.Region {
+			return ErrorRegistryInDifferentRegion(ecrRegion, awsClient.Region)
+		}
+
 		operatorID, _, err := awsClient.GetCachedAccountID()
 		if err != nil {
 			return err

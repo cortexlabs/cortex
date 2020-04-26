@@ -50,6 +50,7 @@ const (
 	ErrNoAvailableNodeComputeLimit        = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed     = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrLocalPathNotSupportedByAWSProvider = "spec.local_path_not_supported_by_aws_provider"
+	ErrRegistryInDifferentRegion          = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch          = "spec.registry_account_id_mismatch"
 )
 
@@ -241,6 +242,13 @@ func ErrorLocalModelPathNotSupportedByAWSProvider() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrLocalPathNotSupportedByAWSProvider,
 		Message: fmt.Sprintf("local model paths are not supported for aws provider, please specify an S3 path"),
+	})
+}
+
+func ErrorRegistryInDifferentRegion(registryRegion string, awsClientRegion string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrRegistryInDifferentRegion,
+		Message: fmt.Sprintf("registry region (%s) does not match cortex's region (%s); images can only be pulled from repositories in the same region as cortex", registryRegion, awsClientRegion),
 	})
 }
 
