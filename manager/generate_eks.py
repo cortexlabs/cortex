@@ -60,7 +60,7 @@ def apply_worker_settings(nodegroup):
 
 
 def apply_clusterconfig(nodegroup, config):
-    
+
     clusterconfig_settings = {
         "instanceType": config["instance_type"],
         "availabilityZones": config["availability_zones"],
@@ -68,11 +68,11 @@ def apply_clusterconfig(nodegroup, config):
         "minSize": config["min_instances"],
         "maxSize": config["max_instances"],
         "volumeType": config["instance_volume_type"],
-        "desiredCapacity": 1 if config["min_instances"]==0 else config["min_instances"],
+        "desiredCapacity": 1 if config["min_instances"] == 0 else config["min_instances"],
     }
-    #add iops to settings if volume_type is io1
-    if config["instance_volume_type"]=="io1":
-        clusterconfig_settings["volumeIOPS"]= config["instance_volume_iops"]
+    # add iops to settings if volume_type is io1
+    if config["instance_volume_type"] == "io1":
+        clusterconfig_settings["volumeIOPS"] = config["instance_volume_iops"]
 
     return merge_override(nodegroup, clusterconfig_settings)
 

@@ -88,7 +88,7 @@ def get_instance_metadatas(pricing):
 
 
 def get_elb_metadata(pricing):
-    for product_id, product in pricing["products"].items():
+    for _, product in pricing["products"].items():
         if product.get("attributes") is None:
             continue
         if product.get("productFamily") != "Load Balancer":
@@ -106,7 +106,7 @@ def get_elb_metadata(pricing):
 
 
 def get_nat_metadata(pricing):
-    for product_id, product in pricing["products"].items():
+    for _, product in pricing["products"].items():
         if product.get("attributes") is None:
             continue
         if product.get("productFamily") != "NAT Gateway":
@@ -124,6 +124,7 @@ def get_nat_metadata(pricing):
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
         return {"price": float(price)}
 
+
 def get_ebs_metadata(pricing):
     storage_mapping = {}
 
@@ -132,22 +133,22 @@ def get_ebs_metadata(pricing):
             continue
         if product.get("productFamily") != "Storage":
             continue
-        #ignore legacy standard storage
-        if product["attributes"].get("volumeApiName")=="standard":
+        # ignore legacy standard storage
+        if product["attributes"].get("volumeApiName") == "standard":
             continue
 
         price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
             "priceDimensions"
         ]
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
-        
+
         metadata = {
-            "type": product["attributes"].get("volumeApiName"),          
+            "type": product["attributes"].get("volumeApiName"),
             "priceGB": float(price),
         }
         # io1 has per IOPS pricing --> add pricing to metadata
         # if storagedevice does not price per IOPS will set value to 0
-        if product["attributes"].get("volumeApiName")=="io1":
+        if product["attributes"].get("volumeApiName") == "io1":
             # go through pricing data until found data about IOPS pricing
             for _, product_iops in pricing["products"].items():
                 if product_iops.get("attributes") is None:
@@ -155,19 +156,21 @@ def get_ebs_metadata(pricing):
                 if product_iops.get("productFamily") != "System Operation":
                     continue
 
-                price_dimensions = list(pricing["terms"]["OnDemand"][product_iops["sku"]].values())[0]["priceDimensions"]
+                price_dimensions = list(pricing["terms"]["OnDemand"][product_iops["sku"]].values())[
+                    0
+                ]["priceDimensions"]
                 price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
-                #add io1 IOPS pricing to metadata
-                if "io1" == product_iops.get("attributes")['volumeApiName']:
-                    metadata["priceIOPS"]= price
+                # add io1 IOPS pricing to metadata
+                if "io1" == product_iops.get("attributes")["volumeApiName"]:
+                    metadata["priceIOPS"] = price
                     # add information about iops configurability
-                    iops_configurable=product_iops["attributes"]['provisioned']
-                    metadata['iops_configurable']=iops_configurable
-        #set default values for all other storage types
+                    iops_configurable = product_iops["attributes"]["provisioned"]
+                    metadata["iops_configurable"] = iops_configurable
+        # set default values for all other storage types
         else:
-            metadata["priceIOPS"]= 0
-            metadata['iops_configurable']="No"
+            metadata["priceIOPS"] = 0
+            metadata["iops_configurable"] = "No"
 
         storage_mapping[product["attributes"].get("volumeApiName")] = metadata
     return storage_mapping
@@ -358,7 +361,7 @@ def main():
                     "type": ebs_type,
                     "priceGB": metadata["priceGB"],
                     "priceIOPS": metadata["priceIOPS"],
-                    "iops_configurable": metadata['iops_configurable']
+                    "iops_configurable": metadata["iops_configurable"],
                 }
             )
 
