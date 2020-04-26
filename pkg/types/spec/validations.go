@@ -836,5 +836,12 @@ func validateDockerImagePath(image string, awsClient *aws.Client) error {
 		return err
 	}
 
-	return docker.CheckImageAccessible(dockerClient, image, dockerAuth)
+	if err := docker.CheckImageAccessible(dockerClient, image, dockerAuth); err != nil {
+		if regex.IsValidECRURL(image) && awsClient.IsAnonymous && strings.Contains(err.Error(), "no basic auth credentials") {
+			err = errors.Append(err, "\nif you're ECR registry is private, you must provide AWS credentials to access it (run `cortex env configure local`)")
+		}
+		return err
+	}
+
+	return nil
 }
