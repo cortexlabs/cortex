@@ -36,15 +36,17 @@ function ensure_eks() {
     fi
 
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
+    envsubst < eks_cluster.yaml | eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f -
 
-    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
-
-    eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
     # use CNI 1.6 to support inf instances
     # track https://github.com/weaveworks/eksctl/issues/2049 ticket
     # so that when CNI version is updated to >= 1.6, the following env
     # variable can be removed alongside its dependents
     kubectl apply -f manifests/aws-k8s-cni.yaml >/dev/null
+
+    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
+    eksctl create nodegroup --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks_nodegroup.yaml
+
 
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")

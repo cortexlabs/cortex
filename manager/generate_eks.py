@@ -171,9 +171,6 @@ def generate_eks(configmap_yaml_path):
             "region": cluster_configmap["region"],
             "version": "1.15",
         },
-        "vpc": {"nat": {"gateway": "Disable"}},
-        "availabilityZones": cluster_configmap["availability_zones"],
-        "cloudWatch": {"clusterLogging": {"enableTypes": ["*"]}},
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
 
