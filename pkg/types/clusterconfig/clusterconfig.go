@@ -196,7 +196,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
+				Validator: RegionValidator,
 			},
 		},
 		{
@@ -341,7 +341,7 @@ func ValidateRegion(region string) error {
 	return nil
 }
 
-func validateRegion(region string) (string, error) {
+func RegionValidator(region string) (string, error) {
 	if err := ValidateRegion(region); err != nil {
 		return "", err
 	}
@@ -377,7 +377,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
+				Validator: RegionValidator,
 			},
 		},
 		{
@@ -664,7 +664,7 @@ func RegionPrompt(clusterConfig *Config) error {
 					Prompt: RegionUserKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: validateRegion,
+					Validator: RegionValidator,
 					Default:   defaults.Region,
 				},
 			},
@@ -807,7 +807,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 				Prompt: RegionUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
+				Validator: RegionValidator,
 				Default:   pointer.String("us-west-2"),
 			},
 		},

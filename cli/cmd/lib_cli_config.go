@@ -25,7 +25,6 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -38,6 +37,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -105,8 +105,8 @@ var _cliConfigValidation = &cr.StructValidation{
 						{
 							StructField: "AWSRegion",
 							StringPtrValidation: &cr.StringPtrValidation{
-								Required:      false,
-								AllowedValues: aws.S3Regions.Slice(),
+								Required:  false,
+								Validator: clusterconfig.RegionValidator,
 							},
 						},
 					},
@@ -322,102 +322,146 @@ func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) 
 		fmt.Print("if you have an AWS account and wish to access resources in it when running locally (e.g. S3 files), you can provide AWS credentials now\n\n")
 	}
 
-	err := cr.ReadPrompt(env, &cr.PromptValidation{
-		SkipNonEmptyFields: true,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "AWSAccessKeyID",
-				PromptOpts: &prompt.Options{
-					Prompt: accessKeyIDPrompt,
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required:   false,
-					AllowEmpty: true,
-					Default:    defaults.AWSAccessKeyID,
+	for true {
+		err := cr.ReadPrompt(env, &cr.PromptValidation{
+			SkipNonEmptyFields: true,
+			PromptItemValidations: []*cr.PromptItemValidation{
+				{
+					StructField: "AWSAccessKeyID",
+					PromptOpts: &prompt.Options{
+						Prompt: accessKeyIDPrompt,
+					},
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required:   false,
+						AllowEmpty: true,
+						Default:    defaults.AWSAccessKeyID,
+					},
 				},
 			},
-		},
-	})
-	if err != nil {
-		return err
-	}
+		})
+		if err != nil {
+			return err
+		}
 
-	// Don't prompt for secret access key if access key ID was not provided
-	if env.AWSAccessKeyID == nil {
-		env.AWSSecretAccessKey = nil
-		env.AWSRegion = nil
+		// Don't prompt for secret access key if access key ID was not provided
+		if env.AWSAccessKeyID == nil {
+			env.AWSSecretAccessKey = nil
+			env.AWSRegion = nil
+			return nil
+		}
+
+		err = cr.ReadPrompt(env, &cr.PromptValidation{
+			SkipNonEmptyFields: true,
+			PromptItemValidations: []*cr.PromptItemValidation{
+				{
+					StructField: "AWSSecretAccessKey",
+					PromptOpts: &prompt.Options{
+						Prompt:      "aws secret access key",
+						MaskDefault: true,
+						HideTyping:  true,
+					},
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required: true,
+						Default:  defaults.AWSSecretAccessKey,
+					},
+				},
+				{
+					StructField: "AWSRegion",
+					PromptOpts: &prompt.Options{
+						Prompt: "aws region",
+					},
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required:  true,
+						Default:   defaults.AWSRegion,
+						Validator: clusterconfig.RegionValidator,
+					},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		if err := validateAWSCreds(*env); err != nil {
+			errors.PrintError(err)
+			fmt.Println()
+
+			// reset fields so they get re-prompted
+			env.AWSAccessKeyID = nil
+			env.AWSSecretAccessKey = nil
+			if env.AWSRegion != nil {
+				defaults.AWSRegion = env.AWSRegion // update default since we know a valid region was provided
+			}
+			env.AWSRegion = nil
+
+			continue
+		}
+
 		return nil
 	}
 
-	return cr.ReadPrompt(env, &cr.PromptValidation{
-		SkipNonEmptyFields: true,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "AWSSecretAccessKey",
-				PromptOpts: &prompt.Options{
-					Prompt:      "aws secret access key",
-					MaskDefault: true,
-					HideTyping:  true,
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required: true,
-					Default:  defaults.AWSSecretAccessKey,
-				},
-			},
-			{
-				StructField: "AWSRegion",
-				PromptOpts: &prompt.Options{
-					Prompt: "aws region",
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required:      true,
-					Default:       defaults.AWSRegion,
-					AllowedValues: aws.S3Regions.Slice(),
-				},
-			},
-		},
-	})
+	return nil
 }
 
 func promptAWSEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
-	return cr.ReadPrompt(env, &cr.PromptValidation{
-		SkipNonEmptyFields: true,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "OperatorEndpoint",
-				PromptOpts: &prompt.Options{
-					Prompt: "cortex operator endpoint",
+	for true {
+		err := cr.ReadPrompt(env, &cr.PromptValidation{
+			SkipNonEmptyFields: true,
+			PromptItemValidations: []*cr.PromptItemValidation{
+				{
+					StructField: "OperatorEndpoint",
+					PromptOpts: &prompt.Options{
+						Prompt: "cortex operator endpoint",
+					},
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required:  true,
+						Default:   defaults.OperatorEndpoint,
+						Validator: validateOperatorEndpoint,
+					},
 				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required:  true,
-					Default:   defaults.OperatorEndpoint,
-					Validator: validateOperatorEndpoint,
+				{
+					StructField: "AWSAccessKeyID",
+					PromptOpts: &prompt.Options{
+						Prompt: "aws access key id",
+					},
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required: true,
+						Default:  defaults.AWSAccessKeyID,
+					},
+				},
+				{
+					StructField: "AWSSecretAccessKey",
+					PromptOpts: &prompt.Options{
+						Prompt:      "aws secret access key",
+						MaskDefault: true,
+						HideTyping:  true,
+					},
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required: true,
+						Default:  defaults.AWSSecretAccessKey,
+					},
 				},
 			},
-			{
-				StructField: "AWSAccessKeyID",
-				PromptOpts: &prompt.Options{
-					Prompt: "aws access key id",
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required: true,
-					Default:  defaults.AWSAccessKeyID,
-				},
-			},
-			{
-				StructField: "AWSSecretAccessKey",
-				PromptOpts: &prompt.Options{
-					Prompt:      "aws secret access key",
-					MaskDefault: true,
-					HideTyping:  true,
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required: true,
-					Default:  defaults.AWSSecretAccessKey,
-				},
-			},
-		},
-	})
+		})
+		if err != nil {
+			return err
+		}
+
+		if err := validateAWSCreds(*env); err != nil {
+			errors.PrintError(err)
+			fmt.Println()
+
+			// reset fields so they get re-prompted
+			env.AWSAccessKeyID = nil
+			env.AWSSecretAccessKey = nil
+
+			continue
+		}
+
+		return nil
+	}
+
+	return nil
 }
 
 // Only validate this during prompt, not when reading from file
@@ -660,6 +704,29 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 	print.BoldFirstLine(fmt.Sprintf("configured %s environment", env.Name))
 
 	return env, nil
+}
+
+func validateAWSCreds(env cliconfig.Environment) error {
+	if env.AWSAccessKeyID == nil || env.AWSSecretAccessKey == nil {
+		return nil
+	}
+
+	// region is not applicable for the AWS provider, so we can use a default if it's missing
+	region := "us-east-1"
+	if env.AWSRegion != nil {
+		region = *env.AWSRegion
+	}
+
+	awsCreds := AWSCredentials{
+		AWSAccessKeyID:     *env.AWSAccessKeyID,
+		AWSSecretAccessKey: *env.AWSSecretAccessKey,
+	}
+
+	if _, err := newAWSClient(region, awsCreds); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
