@@ -47,7 +47,7 @@ func ErrorDockerPermissions(err error) error {
 
 	var groupAddStr string
 	if strings.HasPrefix(runtime.GOOS, "linux") {
-		groupAddStr = " (e.g. by running `sudo groupadd docker && sudo gpasswd -a $USER docker`)"
+		groupAddStr = " (e.g. by running `sudo groupadd docker; sudo gpasswd -a $USER docker` and then restarting your terminal)"
 	}
 
 	return errors.WithStack(&errors.Error{
