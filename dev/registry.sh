@@ -37,9 +37,9 @@ function ecr_login() {
 function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/python-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/python-serve-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-cpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tensorflow-predictor --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
@@ -144,8 +144,8 @@ elif [ "$cmd" = "update-manager-local" ]; then
 
 elif [ "$cmd" = "update" ]; then
   if [ "$env" != "dev" ]; then
-    build_and_push $ROOT/images/tf-serve tf-serve latest
-    build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
+    build_and_push $ROOT/images/tensorflow-serving-cpu tensorflow-serving-cpu latest
+    build_and_push $ROOT/images/tensorflow-serving-gpu tensorflow-serving-gpu latest
 
     cache_builder $ROOT/images/operator operator
     build_and_push $ROOT/images/operator operator latest
@@ -167,7 +167,7 @@ elif [ "$cmd" = "update" ]; then
   build_and_push $ROOT/images/manager manager latest
   build_and_push $ROOT/images/python-serve python-serve latest
   build_and_push $ROOT/images/python-serve-gpu python-serve-gpu latest
-  build_and_push $ROOT/images/tf-api tf-api latest
+  build_and_push $ROOT/images/tensorflow-predictor tensorflow-predictor latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest
   build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
   build_and_push $ROOT/images/downloader downloader latest

@@ -113,7 +113,7 @@ var _predictorValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
-				StructField: "TFServeImage",
+				StructField: "TensorFlowServingImage",
 				StringValidation: &cr.StringValidation{
 					Required:           false,
 					AllowEmpty:         true,
@@ -469,8 +469,8 @@ func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[strin
 		if err := validateTensorFlowPredictor(predictor); err != nil {
 			return err
 		}
-		if err := validateDockerImagePath(predictor.TFServeImage); err != nil {
-			return errors.Wrap(err, userconfig.TFServeImageKey)
+		if err := validateDockerImagePath(predictor.TensorFlowServingImage); err != nil {
+			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
 	case userconfig.ONNXPredictorType:
 		if err := validateONNXPredictor(predictor); err != nil {
@@ -510,8 +510,8 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelKey, userconfig.PythonPredictorType)
 	}
 
-	if predictor.TFServeImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TFServeImageKey, userconfig.PythonPredictorType)
+	if predictor.TensorFlowServingImage != "" {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
 	}
 
 	return nil
@@ -566,8 +566,8 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.ONNXPredictorType)
 	}
 
-	if predictor.TFServeImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TFServeImageKey, userconfig.ONNXPredictorType)
+	if predictor.TensorFlowServingImage != "" {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.ONNXPredictorType)
 	}
 
 	return nil

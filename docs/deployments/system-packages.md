@@ -49,7 +49,7 @@ The default Docker images used to deploy your models are listed below. Based on 
 <!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
 * Python Predictor (CPU): `cortexlabs/python-serve:master`
 * Python Predictor (GPU): `cortexlabs/python-serve-gpu:master`
-* TensorFlow Predictor (CPU and GPU): `cortexlabs/tf-api:master`
+* TensorFlow Predictor (CPU and GPU): `cortexlabs/tensorflow-predictor:master`
 * ONNX Predictor (CPU): `cortexlabs/onnx-serve:master`
 * ONNX Predictor (GPU): `cortexlabs/onnx-serve-gpu:master`
 
@@ -104,7 +104,7 @@ Update your API configuration file to point to your image:
   ...
 ```
 
-*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together serve predictions: one which runs your Predictor code (`cortexlabs/tf-api`), and TensorFlow Serving which loads the SavedModel (`cortexlabs/tf-serve[-gpu]`). There's a 2nd available field `tf_serve_image` that can be used to override the TensorFlow Serving image. The default image (`cortexlabs/tf-serve[-gpu]`) is based on the official Tensorflow Serving image (`tensorflow/serving`). Unless a different version of Tensorflow Serving is required, this image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
+*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together serve predictions: one which runs your Predictor code (`cortexlabs/tensorflow-predictor`), and TensorFlow Serving which loads the SavedModel (`cortexlabs/tensorflow-serving-cpu[-gpu]`). There's a 2nd available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. The default image (`cortexlabs/tensorflow-serving-cpu[-gpu]`) is based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, this image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
 
 Deploy your API as usual:
 

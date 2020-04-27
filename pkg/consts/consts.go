@@ -27,19 +27,19 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultImagePythonServe    = defaultDockerImage("python-serve")
-	DefaultImagePythonServeGPU = defaultDockerImage("python-serve-gpu")
-	DefaultImageTFServe        = defaultDockerImage("tf-serve")
-	DefaultImageTFServeGPU     = defaultDockerImage("tf-serve-gpu")
-	DefaultImageTFAPI          = defaultDockerImage("tf-api")
-	DefaultImageONNXServe      = defaultDockerImage("onnx-serve")
-	DefaultImageONNXServeGPU   = defaultDockerImage("onnx-serve-gpu")
-	DefaultImagePathsSet       = strset.New(
+	DefaultImagePythonServe          = defaultDockerImage("python-serve")
+	DefaultImagePythonServeGPU       = defaultDockerImage("python-serve-gpu")
+	DefaultImageTensorFlowServingCPU = defaultDockerImage("tensorflow-serving-cpu")
+	DefaultImageTensorFlowServingGPU = defaultDockerImage("tensorflow-serving-gpu")
+	DefaultImageTensorFlowPredictor  = defaultDockerImage("tensorflow-predictor")
+	DefaultImageONNXServe            = defaultDockerImage("onnx-serve")
+	DefaultImageONNXServeGPU         = defaultDockerImage("onnx-serve-gpu")
+	DefaultImagePathsSet             = strset.New(
 		DefaultImagePythonServe,
 		DefaultImagePythonServeGPU,
-		DefaultImageTFServe,
-		DefaultImageTFServeGPU,
-		DefaultImageTFAPI,
+		DefaultImageTensorFlowServingCPU,
+		DefaultImageTensorFlowServingGPU,
+		DefaultImageTensorFlowPredictor,
 		DefaultImageONNXServe,
 		DefaultImageONNXServeGPU,
 	)

@@ -27,15 +27,15 @@ const (
 	UpdateStrategyKey = "update_strategy"
 
 	// Predictor
-	TypeKey         = "type"
-	PathKey         = "path"
-	ModelKey        = "model"
-	PythonPathKey   = "python_path"
-	ImageKey        = "image"
-	TFServeImageKey = "tf_serve_image"
-	ConfigKey       = "config"
-	EnvKey          = "env"
-	SignatureKeyKey = "signature_key"
+	TypeKey                   = "type"
+	PathKey                   = "path"
+	ModelKey                  = "model"
+	PythonPathKey             = "python_path"
+	ImageKey                  = "image"
+	TensorFlowServingImageKey = "tensorflow_serving_image"
+	ConfigKey                 = "config"
+	EnvKey                    = "env"
+	SignatureKeyKey           = "signature_key"
 
 	// Tracker
 	KeyKey       = "key"

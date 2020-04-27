@@ -59,8 +59,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: cortexlabs/tf-api)
-    tf_serve_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tf-serve[-gpu], which is based on tensorflow/serving)
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
+    tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tensorflow-serving[-cpu|-gpu], which is based on tensorflow/serving)
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)

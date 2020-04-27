@@ -43,12 +43,12 @@ spec:
         image: $CORTEX_IMAGE_PYTHON_SERVE_GPU
         command: [ "/bin/sh" ]
         args: [ "-c", "sleep 1000000" ]
-      - name: tf-serve
-        image: $CORTEX_IMAGE_TF_SERVE_GPU
+      - name: tensorflow-serving-cpu
+        image: $CORTEX_IMAGE_TENSORFLOW_SERVING_GPU
         command: [ "/bin/sh" ]
         args: [ "-c", "sleep 1000000" ]
-      - name: tf-api
-        image: $CORTEX_IMAGE_TF_API
+      - name: tensorflow-predictor
+        image: $CORTEX_IMAGE_TENSORFLOW_PREDICTOR
         command: [ "/bin/sh" ]
         args: [ "-c", "sleep 1000000" ]
       - name: downloader

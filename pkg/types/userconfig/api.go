@@ -42,15 +42,15 @@ type API struct {
 }
 
 type Predictor struct {
-	Type         PredictorType          `json:"type" yaml:"type"`
-	Path         string                 `json:"path" yaml:"path"`
-	Model        *string                `json:"model" yaml:"model"`
-	PythonPath   *string                `json:"python_path" yaml:"python_path"`
-	Image        string                 `json:"image" yaml:"image"`
-	TFServeImage string                 `json:"tf_serve_image" yaml:"tf_serve_image"`
-	Config       map[string]interface{} `json:"config" yaml:"config"`
-	Env          map[string]string      `json:"env" yaml:"env"`
-	SignatureKey *string                `json:"signature_key" yaml:"signature_key"`
+	Type                   PredictorType          `json:"type" yaml:"type"`
+	Path                   string                 `json:"path" yaml:"path"`
+	Model                  *string                `json:"model" yaml:"model"`
+	PythonPath             *string                `json:"python_path" yaml:"python_path"`
+	Image                  string                 `json:"image" yaml:"image"`
+	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
+	Config                 map[string]interface{} `json:"config" yaml:"config"`
+	Env                    map[string]string      `json:"env" yaml:"env"`
+	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 }
 
 type Tracker struct {
@@ -108,13 +108,13 @@ func (api *API) ApplyDefaultDockerPaths() {
 		}
 	case TensorFlowPredictorType:
 		if predictor.Image == "" {
-			predictor.Image = consts.DefaultImageTFAPI
+			predictor.Image = consts.DefaultImageTensorFlowPredictor
 		}
-		if predictor.TFServeImage == "" {
+		if predictor.TensorFlowServingImage == "" {
 			if usesGPU {
-				predictor.TFServeImage = consts.DefaultImageTFServeGPU
+				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
 			} else {
-				predictor.TFServeImage = consts.DefaultImageTFServe
+				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServing
 			}
 		}
 	case ONNXPredictorType:
@@ -291,8 +291,8 @@ func (predictor *Predictor) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
-	if predictor.TFServeImage != "" {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
+	if predictor.TensorFlowServingImage != "" {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TensorFlowServingImageKey, predictor.TensorFlowServingImage))
 	}
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))

@@ -210,17 +210,17 @@ Take note of the following images:
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve:latest
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve-gpu:latest
 
-# for Tensorflow Predictor
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-api:latest
+# for TensorFlow Predictor
+XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-cpu:latest
+XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-gpu:latest
+XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-predictor:latest
 
 # for ONNX Predictor
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve:latest
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-serve-gpu:latest
 ```
 
-Edit `cortex.yaml` and override `image`/`tf_serve_image` with the appropriate image(s) for the given predictor type:
+Edit `cortex.yaml` and override `image`/`tensorflow_serving_image` with the appropriate image(s) for the given predictor type:
 ```yaml
 # cortex.yaml
 
