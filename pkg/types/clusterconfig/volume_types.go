@@ -17,10 +17,10 @@ type VolumeType int
 
 const (
 	UnknownVolumeType VolumeType = iota
-	Gp2VolumeType
-	io1VolumeType
-	sc1VolumeType
-	st1VolumeType
+	GP2VolumeType
+	IO1VolumeType
+	SC1VolumeType
+	ST1VolumeType
 )
 
 var _availableVolumeTypes = []string{

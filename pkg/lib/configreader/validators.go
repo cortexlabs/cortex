@@ -26,13 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
-var availableStorageTypes = []string{
-	"gp2",
-	"io1",
-	"sc1",
-	"st1",
-}
-
 var _portRe *regexp.Regexp
 var _emailRegex *regexp.Regexp
 

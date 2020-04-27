@@ -146,6 +146,7 @@ def get_ebs_metadata(pricing):
             "type": product["attributes"].get("volumeApiName"),
             "price_gb": float(price),
         }
+
         # io1 has per IOPS pricing --> add pricing to metadata
         # if storagedevice does not price per IOPS will set value to 0
         if product["attributes"].get("volumeApiName") == "io1":
@@ -155,11 +156,11 @@ def get_ebs_metadata(pricing):
                     continue
                 if product_iops.get("productFamily") != "System Operation":
                     continue
-                if "io1" != product_iops.get("attributes")["volumeApiName"]:
+                if product_iops["attributes"].get("volumeApiName") != "io1":
                     continue
                 if product_iops["attributes"].get("group") != "EBS IOPS":
                     continue
-                if product_iops["attributes"]["provisioned"] != "Yes":
+                if product_iops["attributes"].get("provisioned") != "Yes":
                     continue
 
                 price_dimensions = list(pricing["terms"]["OnDemand"][product_iops["sku"]].values())[
@@ -168,7 +169,6 @@ def get_ebs_metadata(pricing):
                 price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
                 metadata["price_iops"] = price
-                # add information about iops configurability
                 metadata["iops_configurable"] = "true"
 
         # set default values for all other storage types
@@ -177,6 +177,7 @@ def get_ebs_metadata(pricing):
             metadata["iops_configurable"] = "false"
 
         storage_mapping[product["attributes"]["volumeApiName"]] = metadata
+
     return storage_mapping
 
 
@@ -250,9 +251,9 @@ type NATMetadata struct {
 type EBSMetadata struct {
 	Region string  `json:"region"`
 	PriceGB  float64 `json:"price_gb"`
-    PriceIOPS  float64 `json:"price_iops"`
-    IopsConfigurable bool `json:"iops_configurable"`
-    Type  string `json:"type"`
+	PriceIOPS  float64 `json:"price_iops"`
+	IOPSConfigurable bool `json:"iops_configurable"`
+	Type  string `json:"type"`
 }
 
 // region -> instance type -> instance metadata
@@ -312,7 +313,7 @@ ebs_region_map_template = Template(
 )
 
 ebs_type_map_template = Template(
-    """"${type}": {Region: "${region}",Type: "${type}", PriceGB: ${price_gb}, PriceIOPS: ${price_iops}, IopsConfigurable: ${iops_configurable}},
+    """"${type}": {Region: "${region}",Type: "${type}", PriceGB: ${price_gb}, PriceIOPS: ${price_iops}, IOPSConfigurable: ${iops_configurable}},
 """
 )
 
@@ -385,6 +386,7 @@ def main():
         eks_region_map_str += eks_region_map_template.substitute(
             {"region": region, "price": eks_price}
         )
+
     file_str = file_template.substitute(
         {
             "instance_region_map": instance_region_map_str,
