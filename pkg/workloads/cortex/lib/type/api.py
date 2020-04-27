@@ -15,6 +15,8 @@
 import os
 import base64
 import time
+from pathlib import Path
+import json
 
 import datadog
 
@@ -25,13 +27,14 @@ from cortex.lib.type.tracker import Tracker
 
 
 class API:
-    def __init__(self, storage, cache_dir=".", **kwargs):
+    def __init__(self, provider, storage, cache_dir=".", **kwargs):
+        self.provider = provider
         self.id = kwargs["id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
         self.endpoint = kwargs["endpoint"]
-        self.predictor = Predictor(storage, cache_dir, **kwargs["predictor"])
+        self.predictor = Predictor(provider, cache_dir, **kwargs["predictor"])
         self.tracker = None
         if kwargs.get("tracker") is not None:
             self.tracker = Tracker(**kwargs["tracker"])
@@ -39,9 +42,10 @@ class API:
         self.cache_dir = cache_dir
         self.storage = storage
 
-        host_ip = os.environ["HOST_IP"]
-        datadog.initialize(statsd_host=host_ip, statsd_port="8125")
-        self.statsd = datadog.statsd
+        if provider != "local":
+            host_ip = os.environ["HOST_IP"]
+            datadog.initialize(statsd_host=host_ip, statsd_port="8125")
+            self.statsd = datadog.statsd
 
     def get_cached_classes(self):
         prefix = os.path.join(self.metadata_root, self.id, "classes") + "/"
@@ -65,8 +69,12 @@ class API:
         return [{"Name": "APIName", "Value": self.name}, {"Name": "APIID", "Value": self.id}]
 
     def post_request_metrics(self, status_code, total_time):
-        metrics = [self.status_code_metric(status_code), self.latency_metric(total_time)]
-        self.post_metrics(metrics)
+        total_time_ms = total_time * 1000
+        if self.provider == "local":
+            self.store_metrics_locally(status_code, total_time_ms)
+        else:
+            metrics = [self.status_code_metric(status_code), self.latency_metric(total_time_ms)]
+            self.post_metrics(metrics)
 
     def post_tracker_metrics(self, prediction_value=None):
         if prediction_value is not None:
@@ -87,6 +95,24 @@ class API:
         except:
             cx_logger().warn("failure encountered while publishing metrics", exc_info=True)
 
+    def store_metrics_locally(self, status_code, total_time):
+        status_code_series = int(status_code / 100)
+
+        status_code_file_name = f"/mnt/workspace/{os.getpid()}.{status_code_series}XX"
+        self.increment_counter_file(status_code_file_name, 1)
+
+        request_time_file = f"/mnt/workspace/{os.getpid()}.request_time"
+        self.increment_counter_file(request_time_file, total_time)
+
+    def increment_counter_file(self, file_name, value):
+        previous_val = 0
+        if Path(file_name).is_file():
+            with open(file_name, "r") as f:
+                previous_val = json.load(f)  # values are either of type int or float
+
+        with open(file_name, "w") as f:
+            json.dump(previous_val + value, f)
+
     def status_code_metric(self, status_code):
         status_code_series = int(status_code / 100)
         status_code_dimensions = self.metric_dimensions() + [
@@ -103,7 +129,7 @@ class API:
         return {
             "MetricName": "Latency",
             "Dimensions": self.metric_dimensions(),
-            "Value": total_time * 1000,  # milliseconds
+            "Value": total_time,  # milliseconds
         }
 
     def prediction_metrics(self, prediction_value):

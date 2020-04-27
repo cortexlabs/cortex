@@ -165,7 +165,7 @@ func Int64PtrFromPrompt(promptOpts *prompt.Options, v *Int64PtrValidation) (*int
 
 func ValidateInt64PtrMissing(v *Int64PtrValidation) (*int64, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateInt64Ptr(v.Default, v)
 }

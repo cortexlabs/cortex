@@ -19,7 +19,6 @@ package clusterconfig
 import (
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
@@ -215,7 +214,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
+				Validator: RegionValidator,
 			},
 		},
 		{
@@ -360,7 +359,7 @@ func ValidateRegion(region string) error {
 	return nil
 }
 
-func validateRegion(region string) (string, error) {
+func RegionValidator(region string) (string, error) {
 	if err := ValidateRegion(region); err != nil {
 		return "", err
 	}
@@ -396,7 +395,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
+				Validator: RegionValidator,
 			},
 		},
 		{
@@ -431,8 +430,9 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
 	}
 
-	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
-		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
+	primaryInstanceType := *cc.InstanceType
+	if _, ok := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, *cc.Region), InstanceTypeKey)
 	}
 
 	//Throw error if IOPS defined for other storage than io1
@@ -443,7 +443,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		cc.InstanceVolumeIops = pointer.Int64(3000)
 	}
 
-	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
+	if err := awsClient.VerifyInstanceQuota(primaryInstanceType); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
 			return errors.Wrap(err, InstanceTypeKey)
@@ -455,44 +455,29 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	if cc.Spot != nil && *cc.Spot {
-		cc.AutoFillSpot(awsClient)
-		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
-		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, cc.SpotConfig.MaxPrice, _spotInstanceDistributionLength)
-		if len(compatibleSpots) == 0 {
-			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
-		}
+		cc.FillEmptySpotFields(awsClient)
 
-		compatibleInstanceCount := 0
+		primaryInstance := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]
 		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
-			if instanceType == *cc.InstanceType {
+			if instanceType == primaryInstanceType {
 				continue
 			}
 			if _, ok := aws.InstanceMetadatas[*cc.Region][instanceType]; !ok {
-				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), InstanceDistributionKey)
+				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), SpotConfigKey, InstanceDistributionKey)
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
+			err := CheckSpotInstanceCompatibility(primaryInstance, instanceMetadata)
 			if err != nil {
-				return errors.Wrap(err, InstanceDistributionKey)
+				return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 			}
 
 			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
 			if awsErr == nil {
-				if err := CheckSpotInstancePriceCompatibility(chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
-					return errors.Wrap(err, InstanceDistributionKey)
+				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
+					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 				}
 			}
-
-			compatibleInstanceCount++
-		}
-
-		if compatibleInstanceCount == 0 {
-			suggestions := []string{}
-			for _, compatibleInstance := range compatibleSpots {
-				suggestions = append(suggestions, compatibleInstance.Type)
-			}
-			return ErrorAtLeastOneInstanceDistribution(*cc.InstanceType, suggestions[0], suggestions[1:]...)
 		}
 
 		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > *cc.MaxInstances {
@@ -551,50 +536,8 @@ func CheckSpotInstancePriceCompatibility(target aws.InstanceMetadata, suggested 
 	return nil
 }
 
-func CompatibleSpotInstances(awsClient *aws.Client, targetInstance aws.InstanceMetadata, maxPrice *float64, numInstances int) []aws.InstanceMetadata {
-	compatibleInstances := []aws.InstanceMetadata{}
-	instanceMap := aws.InstanceMetadatas[targetInstance.Region]
-	availableInstances := []aws.InstanceMetadata{}
-
-	for instanceType, instanceMetadata := range instanceMap {
-		if instanceType == targetInstance.Type {
-			continue
-		}
-		availableInstances = append(availableInstances, instanceMetadata)
-	}
-
-	sort.Slice(availableInstances, func(i, j int) bool {
-		return availableInstances[i].Price < availableInstances[j].Price
-	})
-
-	for _, instanceMetadata := range availableInstances {
-		if err := CheckCortexSupport(instanceMetadata); err != nil {
-			continue
-		}
-
-		if err := CheckSpotInstanceCompatibility(targetInstance, instanceMetadata); err != nil {
-			continue
-		}
-
-		spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
-		if awsErr == nil {
-			if err := CheckSpotInstancePriceCompatibility(targetInstance, instanceMetadata, maxPrice, spotInstancePrice); err != nil {
-				continue
-			}
-		}
-
-		compatibleInstances = append(compatibleInstances, instanceMetadata)
-
-		if len(compatibleInstances) == numInstances {
-			break
-		}
-	}
-
-	return compatibleInstances
-}
-
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
-	chosenInstance := aws.InstanceMetadatas[region][instanceType]
+	primaryInstance := aws.InstanceMetadatas[region][instanceType]
 	cleanedDistribution := []string{instanceType}
 	for _, spotInstance := range spotConfig.InstanceDistribution {
 		if spotInstance != instanceType {
@@ -603,19 +546,8 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	}
 	spotConfig.InstanceDistribution = cleanedDistribution
 
-	if len(spotConfig.InstanceDistribution) == 1 {
-		compatibleSpots := CompatibleSpotInstances(awsClient, chosenInstance, spotConfig.MaxPrice, _spotInstanceDistributionLength)
-		if len(compatibleSpots) == 0 {
-			return errors.Wrap(ErrorNoCompatibleSpotInstanceFound(chosenInstance.Type), InstanceTypeKey)
-		}
-
-		for _, instance := range compatibleSpots {
-			spotConfig.InstanceDistribution = append(spotConfig.InstanceDistribution, instance.Type)
-		}
-	}
-
 	if spotConfig.MaxPrice == nil {
-		spotConfig.MaxPrice = &chosenInstance.Price
+		spotConfig.MaxPrice = &primaryInstance.Price
 	}
 
 	if spotConfig.OnDemandBaseCapacity == nil {
@@ -641,7 +573,7 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	return nil
 }
 
-func (cc *Config) AutoFillSpot(awsClient *aws.Client) error {
+func (cc *Config) FillEmptySpotFields(awsClient *aws.Client) error {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
@@ -691,7 +623,7 @@ func RegionPrompt(clusterConfig *Config) error {
 					Prompt: RegionUserKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: validateRegion,
+					Validator: RegionValidator,
 					Default:   defaults.Region,
 				},
 			},
@@ -834,7 +766,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 				Prompt: RegionUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
+				Validator: RegionValidator,
 				Default:   pointer.String("us-west-2"),
 			},
 		},

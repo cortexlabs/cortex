@@ -165,7 +165,7 @@ func Float64PtrFromPrompt(promptOpts *prompt.Options, v *Float64PtrValidation) (
 
 func ValidateFloat64PtrMissing(v *Float64PtrValidation) (*float64, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateFloat64Ptr(v.Default, v)
 }

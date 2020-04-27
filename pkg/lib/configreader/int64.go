@@ -158,7 +158,7 @@ func Int64FromPrompt(promptOpts *prompt.Options, v *Int64Validation) (int64, err
 
 func ValidateInt64Missing(v *Int64Validation) (int64, error) {
 	if v.Required {
-		return 0, ErrorMustBeDefined()
+		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateInt64(v.Default, v)
 }

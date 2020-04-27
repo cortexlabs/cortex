@@ -4,5 +4,7 @@
   predictor:
     type: python
     path: predictor.py
+    config:
+      model: s3://cortex-examples/pytorch/sentiment-analyzer/export.pkl
   compute:
     cpu: 1

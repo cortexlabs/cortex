@@ -381,6 +381,18 @@ func UserStrs(val interface{}) []string {
 		return nil
 	}
 
+	// Handle case where caller passed in a nested slice
+	if inVal.Len() == 1 {
+		if inVal.Index(0).Kind() == reflect.Slice {
+			inVal = inVal.Index(0)
+		} else if inVal.Index(0).Kind() == reflect.Interface { // Handle case where input is e.g. []interface{[]string{"test"}}
+			firstElementVal := reflect.ValueOf(inVal.Index(0).Interface())
+			if firstElementVal.Kind() == reflect.Slice {
+				inVal = firstElementVal
+			}
+		}
+	}
+
 	out := make([]string, inVal.Len())
 	for i := 0; i < inVal.Len(); i++ {
 		out[i] = UserStrValue(inVal.Index(i))
@@ -393,6 +405,10 @@ func Index(index int) string {
 }
 
 func Indent(str string, indent string) string {
+	if str == "" {
+		return indent
+	}
+
 	if str[len(str)-1:] == "\n" {
 		out := ""
 		for _, line := range strings.Split(str[:len(str)-1], "\n") {

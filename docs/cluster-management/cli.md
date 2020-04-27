@@ -11,10 +11,10 @@ Usage:
   cortex deploy [CONFIG_FILE] [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
+  -e, --env string   environment to use (default "local")
   -f, --force        override the in-progress api update
-  -h, --help         help for deploy
   -y, --yes          skip prompts
+  -h, --help         help for deploy
 ```
 
 ## get
@@ -26,9 +26,9 @@ Usage:
   cortex get [API_NAME] [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
-  -h, --help         help for get
+  -e, --env string   environment to use (default "local")
   -w, --watch        re-run the command every second
+  -h, --help         help for get
 ```
 
 ## logs
@@ -40,7 +40,7 @@ Usage:
   cortex logs API_NAME [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
+  -e, --env string   environment to use (default "local")
   -h, --help         help for logs
 ```
 
@@ -53,7 +53,7 @@ Usage:
   cortex refresh API_NAME [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
+  -e, --env string   environment to use (default "local")
   -f, --force        override the in-progress api update
   -h, --help         help for refresh
 ```
@@ -67,8 +67,8 @@ Usage:
   cortex predict API_NAME JSON_FILE [flags]
 
 Flags:
+  -e, --env string   environment to use (default "local")
       --debug        predict with debug mode
-  -e, --env string   environment (default "default")
   -h, --help         help for predict
 ```
 
@@ -81,10 +81,10 @@ Usage:
   cortex delete API_NAME [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
+  -e, --env string   environment to use (default "local")
   -f, --force        delete the api without confirmation
-  -h, --help         help for delete
   -c, --keep-cache   keep cached data for the api
+  -h, --help         help for delete
 ```
 
 ## cluster up
@@ -97,7 +97,7 @@ Usage:
 
 Flags:
   -c, --config string   path to a cluster configuration file
-  -e, --env string      environment (default "default")
+  -e, --env string      environment to configure (default "aws")
   -h, --help            help for up
 ```
 
@@ -111,8 +111,8 @@ Usage:
 
 Flags:
   -c, --config string   path to a cluster configuration file
+  -e, --env string      environment to configure (default "aws")
   -d, --debug           save the current cluster state to a file
-  -e, --env string      environment (default "default")
   -h, --help            help for info
 ```
 
@@ -126,7 +126,7 @@ Usage:
 
 Flags:
   -c, --config string   path to a cluster configuration file
-  -e, --env string      environment (default "default")
+  -e, --env string      environment to configure (default "aws")
   -h, --help            help for update
 ```
 
@@ -143,6 +143,59 @@ Flags:
   -h, --help            help for down
 ```
 
+## env configure
+
+```text
+configure an environment
+
+Usage:
+  cortex env configure [ENVIRONMENT_NAME] [flags]
+
+Flags:
+  -p, --provider string                set the provider without prompting
+  -o, --operator-endpoint string       set the operator endpoint without prompting
+  -k, --aws-access-key-id string       set the aws access key id without prompting
+  -s, --aws-secret-access-key string   set the aws secret access key without prompting
+  -r, --aws-region string              set the aws region without prompting
+  -h, --help                           help for configure
+```
+
+## env list
+
+```text
+list all configured environments
+
+Usage:
+  cortex env list [flags]
+
+Flags:
+  -h, --help   help for list
+```
+
+## env default
+
+```text
+set the default environment
+
+Usage:
+  cortex env default [ENVIRONMENT_NAME] [flags]
+
+Flags:
+  -h, --help   help for default
+```
+
+## env delete
+
+```text
+delete an environment configuration
+
+Usage:
+  cortex env delete [ENVIRONMENT_NAME] [flags]
+
+Flags:
+  -h, --help   help for delete
+```
+
 ## version
 
 ```text
@@ -152,25 +205,8 @@ Usage:
   cortex version [flags]
 
 Flags:
-  -e, --env string   environment (default "default")
+  -e, --env string   environment to use (default "local")
   -h, --help         help for version
-```
-
-## configure
-
-```text
-configure the cli
-
-Usage:
-  cortex configure [flags]
-
-Flags:
-  -k, --aws-access-key-id string       set the aws access key id without prompting
-  -s, --aws-secret-access-key string   set the aws secret access key without prompting
-  -e, --env string                     environment (default "default")
-  -h, --help                           help for configure
-  -o, --operator-endpoint string       set the operator endpoint without prompting
-  -p, --print                          print the configuration
 ```
 
 ## completion

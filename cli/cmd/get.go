@@ -17,16 +17,22 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -34,6 +40,7 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -41,11 +48,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _flagWatch bool
+var (
+	_flagGetEnv string
+	_flagWatch  bool
+)
 
-func init() {
-	addEnvFlag(_getCmd)
-	_getCmd.PersistentFlags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
+func getInit() {
+	_getCmd.Flags().SortFlags = false
+	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
 }
 
 var _getCmd = &cobra.Command{
@@ -53,30 +64,107 @@ var _getCmd = &cobra.Command{
 	Short: "get information about apis",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.get")
+		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
+		if len(args) == 1 || wasEnvFlagProvided() {
+			env, err := ReadOrConfigureEnv(_flagGetEnv)
+			if err != nil {
+				telemetry.Event("cli.get")
+				exit.Error(err)
+			}
+			telemetry.Event("cli.get", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+		} else {
+			telemetry.Event("cli.get")
+		}
 
 		rerun(func() (string, error) {
-			return get(args)
+			if len(args) == 1 {
+				env, err := ReadOrConfigureEnv(_flagGetEnv)
+				if err != nil {
+					exit.Error(err)
+				}
+
+				out, err := envStringIfNotSpecified(_flagGetEnv)
+				if err != nil {
+					return "", err
+				}
+
+				apiTable, err := getAPI(env, args[0])
+				if err != nil {
+					return "", err
+				}
+				return out + apiTable, nil
+			}
+
+			if wasEnvFlagProvided() {
+				env, err := ReadOrConfigureEnv(_flagGetEnv)
+				if err != nil {
+					exit.Error(err)
+				}
+
+				out, err := envStringIfNotSpecified(_flagGetEnv)
+				if err != nil {
+					return "", err
+				}
+
+				apiTable, err := getAPIs(env, false)
+				if err != nil {
+					return "", err
+				}
+				return out + apiTable, nil
+			}
+
+			cliConfig, err := readCLIConfig()
+			if err != nil {
+				return "", err
+			}
+
+			defaultEnvName := getDefaultEnv(_generalCommandType)
+			defaultEnv, err := readEnv(defaultEnvName)
+			if err != nil {
+				return "", err
+			}
+
+			out := fmt.Sprintf("%s environment (default):\n", defaultEnv.Name)
+			envOutput, err := getAPIs(*defaultEnv, true)
+			if err != nil {
+				out += err.Error()
+			} else {
+				out += envOutput
+			}
+
+			for _, env := range cliConfig.Environments {
+				if env.Name == defaultEnv.Name {
+					continue
+				}
+				envOutput, err := getAPIs(*env, true)
+				out += fmt.Sprintf("\n\n%s environment:\n", env.Name)
+
+				if err != nil {
+					out += err.Error()
+				} else {
+					out += envOutput
+				}
+			}
+
+			return out, nil
 		})
 	},
 }
 
-func get(args []string) (string, error) {
-	if len(args) == 0 {
-		return getAPIs()
-	}
-	return getAPI(args[0])
-}
-
-func getAPIs() (string, error) {
-	httpRes, err := HTTPGet("/get")
-	if err != nil {
-		return "", err
-	}
-
+func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 	var apisRes schema.GetAPIsResponse
-	if err = json.Unmarshal(httpRes, &apisRes); err != nil {
-		return "", errors.Wrap(err, "/get", string(httpRes))
+	var err error
+
+	if env.Provider == types.AWSProviderType {
+		apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
+		if err != nil {
+			return "", err
+		}
+	} else {
+		apisRes, err = local.GetAPIs()
+		if err != nil {
+			return "", err
+		}
 	}
 
 	if len(apisRes.APIs) == 0 {
@@ -84,22 +172,52 @@ func getAPIs() (string, error) {
 	}
 
 	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, true)
-	return t.MustFormat(), nil
-}
 
-func getAPI(apiName string) (string, error) {
-	httpRes, err := HTTPGet("/get/" + apiName)
-	if err != nil {
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.HasSuffix(errors.Message(err), "is not deployed") {
-			return console.Bold(errors.Message(err)), nil
+	out := t.MustFormat()
+
+	if env.Provider == types.LocalProviderType {
+		mismatchedVersionAPIsErrorMessage, _ := getLocalVersionMismatchedAPIsMessage()
+		if len(mismatchedVersionAPIsErrorMessage) > 0 {
+			out += "\n" + mismatchedVersionAPIsErrorMessage
 		}
-		return "", err
 	}
 
+	return out, nil
+}
+
+func getLocalVersionMismatchedAPIsMessage() (string, error) {
+	mismatchedAPINames, err := local.ListVersionMismatchedAPIs()
+	if err != nil {
+		return "", err
+	}
+	if len(mismatchedAPINames) == 0 {
+		return "", nil
+	}
+
+	return fmt.Sprintf("the following apis (%s) were deployed in your local environment using a different version of the cortex cli; please update them using `cortex deploy` or delete them using `cortex delete <api_name>`", strings.Join(mismatchedAPINames, ", ")), nil
+}
+
+func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	var apiRes schema.GetAPIResponse
-	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
-		return "", errors.Wrap(err, "/get/"+apiName, string(httpRes))
+	var err error
+	if env.Provider == types.AWSProviderType {
+		apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+		if err != nil {
+			// note: if modifying this string, search the codebase for it and change all occurrences
+			if strings.HasSuffix(errors.Message(err), "is not deployed") {
+				return console.Bold(errors.Message(err)), nil
+			}
+			return "", err
+		}
+	} else {
+		apiRes, err = local.GetAPI(apiName)
+		if err != nil {
+			// note: if modifying this string, search the codebase for it and change all occurrences
+			if strings.HasSuffix(errors.Message(err), "is not deployed") {
+				return console.Bold(errors.Message(err)), nil
+			}
+			return "", err
+		}
 	}
 
 	var out string
@@ -109,7 +227,7 @@ func getAPI(apiName string) (string, error) {
 
 	api := apiRes.API
 
-	if api.Tracker != nil {
+	if env.Provider != types.LocalProviderType && api.Tracker != nil {
 		switch api.Tracker.ModelType {
 		case userconfig.ClassificationModelType:
 			out += "\n" + classificationMetricsStr(&apiRes.Metrics)
@@ -118,7 +236,10 @@ func getAPI(apiName string) (string, error) {
 		}
 	}
 
-	apiEndpoint := urls.Join(apiRes.BaseURL, *api.Endpoint)
+	apiEndpoint := apiRes.BaseURL
+	if env.Provider == types.AWSProviderType {
+		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "https://", "http://", 1)
+	}
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
 	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
@@ -127,7 +248,7 @@ func getAPI(apiName string) (string, error) {
 		out += "\n" + describeModelInput(&apiRes.Status, apiEndpoint)
 	}
 
-	out += titleStr("configuration") + strings.TrimSpace(api.UserStr())
+	out += titleStr("configuration") + strings.TrimSpace(api.UserStr(env.Provider))
 
 	return out, nil
 }
@@ -322,14 +443,42 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 	return t.MustFormat()
 }
 
+func makeRequest(request *http.Request) (http.Header, []byte, error) {
+	client := http.Client{
+		Timeout: 600 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		bodyBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, _errStrRead)
+		}
+		return nil, nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
+	}
+
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, _errStrRead)
+	}
+	return response.Header, bodyBytes, nil
+}
+
 func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
-	httpsAPIEndpoint := strings.Replace(apiEndpoint, "http://", "https://", 1)
-	req, err := http.NewRequest("GET", httpsAPIEndpoint, nil)
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	response, err := _apiClient.MakeRequest(req)
+	_, response, err := makeRequest(req)
 	if err != nil {
 		return nil, err
 	}

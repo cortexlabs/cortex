@@ -23,7 +23,7 @@ kill $(pgrep -f rerun) >/dev/null 2>&1 || true
 
 eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yaml")
 
-python3 $ROOT/manager/update_cli_config.py "$HOME/.cortex/cli.yaml" "default" "http://localhost:8888" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
+python3 $ROOT/manager/update_cli_config.py "$HOME/.cortex/cli.yaml" "aws" "http://localhost:8888" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
 
 cp -r $ROOT/dev/config/cluster.yaml ~/.cortex/cluster-dev.yaml
 

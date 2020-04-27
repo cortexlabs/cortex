@@ -103,7 +103,7 @@ func ErrorIncompatibleSpotInstanceTypeGPU(target aws.InstanceMetadata, suggested
 func ErrorSpotPriceGreaterThanTargetOnDemand(suggestedSpotPrice float64, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpotPriceGreaterThanTargetOnDemand,
-		Message: fmt.Sprintf("%s will not be allocated because its current spot price is $%g which is greater than than %s's on-demand price of $%g", suggested.Type, suggestedSpotPrice, target.Type, target.Price),
+		Message: fmt.Sprintf("%s will not be allocated because its current spot price is $%g which is greater than %s's on-demand price of $%g", suggested.Type, suggestedSpotPrice, target.Type, target.Price),
 	})
 }
 
@@ -118,22 +118,6 @@ func ErrorInstanceTypeNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeNotSupported,
 		Message: fmt.Sprintf("instance type %s is not supported", instanceType),
-	})
-}
-
-func ErrorAtLeastOneInstanceDistribution(instanceType string, suggestion string, suggestions ...string) error {
-	allSuggestions := append(suggestions, suggestion)
-	message := strings.Join(allSuggestions, ", ")
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAtLeastOneInstanceDistribution,
-		Message: fmt.Sprintf("at least one compatible instance type other than %s must be specified (suggestions: %s)", instanceType, message),
-	})
-}
-
-func ErrorNoCompatibleSpotInstanceFound(instanceType string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoCompatibleSpotInstanceFound,
-		Message: fmt.Sprintf("unable to find compatible spot instance types for %s", instanceType),
 	})
 }
 

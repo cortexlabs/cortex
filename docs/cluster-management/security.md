@@ -2,6 +2,8 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
+_The information on this page assumes you are running Cortex on AWS. If you're only deploying locally, this information does not apply (although AWS credentials can still be passed into your APIs, and can be specified with `cortex env configure local`)_
+
 ## IAM permissions
 
 If you are not using a sensitive AWS account and do not have a lot of experience with IAM configuration, attaching the built-in `AdministratorAccess` policy to your IAM user will make getting started much easier. If you would like to limit IAM permissions, continue reading.
@@ -56,7 +58,7 @@ It is possible to further restrict access by limiting access to particular resou
 
 ### CLI
 
-In order to connect to the operator via the CLI, you must provide valid AWS credentials for any user with access to the account. No special permissions are required. The CLI can be configured using the `cortex configure` command.
+In order to connect to the operator via the CLI, you must provide valid AWS credentials for any user with access to the account. No special permissions are required. The CLI can be configured using the `cortex env configure ENVIRONMENT_NAME` command (e.g. `cortex env configure aws`).
 
 ## HTTPS
 

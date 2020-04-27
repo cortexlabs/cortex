@@ -41,7 +41,12 @@ var _emailPath string
 var _debugPath string
 var _cwd string
 
-var _flagEnv string
+type commandType int
+
+const (
+	_generalCommandType commandType = iota
+	_clusterCommandType
+)
 
 func init() {
 	cwd, err := os.Getwd()
@@ -86,6 +91,17 @@ func init() {
 	if enableTelemetry {
 		initTelemetry()
 	}
+
+	clusterInit()
+	completionInit()
+	deleteInit()
+	deployInit()
+	envInit()
+	getInit()
+	logsInit()
+	predictInit()
+	refreshInit()
+	versionInit()
 }
 
 func initTelemetry() {
@@ -123,7 +139,7 @@ func Execute() {
 	_rootCmd.AddCommand(_clusterCmd)
 	_rootCmd.AddCommand(_versionCmd)
 
-	_rootCmd.AddCommand(_configureCmd)
+	_rootCmd.AddCommand(_envCmd)
 	_rootCmd.AddCommand(_completionCmd)
 
 	updateRootUsage()
@@ -155,13 +171,44 @@ func updateRootUsage() {
 	})
 }
 
+func wasEnvFlagProvided() bool {
+	for _, str := range os.Args[1:] {
+		if str == "-e" || str == "--env" {
+			return true
+		}
+		if strings.HasPrefix(str, "-e=") || strings.HasPrefix(str, "--env=") {
+			return true
+		}
+	}
+	return false
+}
+
+func printEnvIfNotSpecified(envName string) error {
+	out, err := envStringIfNotSpecified(envName)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(out)
+	return nil
+}
+
+func envStringIfNotSpecified(envName string) (string, error) {
+	envNames, err := listConfiguredEnvNames()
+	if err != nil {
+		return "", err
+	}
+
+	if !wasEnvFlagProvided() && len(envNames) > 1 {
+		return fmt.Sprintf("using %s environment\n\n", envName), nil
+	}
+
+	return "", nil
+}
+
 func printLeadingNewLine() {
 	if len(os.Args) == 2 && os.Args[1] == "completion" {
 		return
 	}
 	fmt.Println("")
-}
-
-func addEnvFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&_flagEnv, "env", "e", "default", "environment")
 }
