@@ -51,7 +51,7 @@ type EBSMetadata struct {
 
 // region -> instance type -> instance metadata
 var InstanceMetadatas = map[string]map[string]InstanceMetadata{
-	"ap-east-1": map[string]InstanceMetadata{
+	"ap-east-1": {
 		"c5.18xlarge":   {Region: "ap-east-1", Type: "c5.18xlarge", Memory: kresource.MustParse("147456Mi"), CPU: kresource.MustParse("72"), GPU: 0, Price: 3.888},
 		"c5.2xlarge":    {Region: "ap-east-1", Type: "c5.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.432},
 		"c5.4xlarge":    {Region: "ap-east-1", Type: "c5.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.864},
@@ -126,7 +126,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"x1.16xlarge":   {Region: "ap-east-1", Type: "x1.16xlarge", Memory: kresource.MustParse("999424Mi"), CPU: kresource.MustParse("64"), GPU: 0, Price: 10.638},
 		"x1.32xlarge":   {Region: "ap-east-1", Type: "x1.32xlarge", Memory: kresource.MustParse("1998848Mi"), CPU: kresource.MustParse("128"), GPU: 0, Price: 21.276},
 	},
-	"ap-northeast-1": map[string]InstanceMetadata{
+	"ap-northeast-1": {
 		"a1.2xlarge":    {Region: "ap-northeast-1", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.2568},
 		"a1.4xlarge":    {Region: "ap-northeast-1", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.5136},
 		"a1.large":      {Region: "ap-northeast-1", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.0642},
@@ -381,7 +381,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "ap-northeast-1", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 5.448},
 		"z1d.xlarge":    {Region: "ap-northeast-1", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.454},
 	},
-	"ap-northeast-2": map[string]InstanceMetadata{
+	"ap-northeast-2": {
 		"c3.2xlarge":    {Region: "ap-northeast-2", Type: "c3.2xlarge", Memory: kresource.MustParse("15360Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.46},
 		"c3.4xlarge":    {Region: "ap-northeast-2", Type: "c3.4xlarge", Memory: kresource.MustParse("30720Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.919},
 		"c3.8xlarge":    {Region: "ap-northeast-2", Type: "c3.8xlarge", Memory: kresource.MustParse("61440Mi"), CPU: kresource.MustParse("32"), GPU: 0, Price: 1.839},
@@ -583,7 +583,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "ap-northeast-2", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 5.4},
 		"z1d.xlarge":    {Region: "ap-northeast-2", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.45},
 	},
-	"ap-south-1": map[string]InstanceMetadata{
+	"ap-south-1": {
 		"a1.2xlarge":    {Region: "ap-south-1", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.204},
 		"a1.4xlarge":    {Region: "ap-south-1", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.408},
 		"a1.large":      {Region: "ap-south-1", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.051},
@@ -770,7 +770,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "ap-south-1", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 4.704},
 		"z1d.xlarge":    {Region: "ap-south-1", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.392},
 	},
-	"ap-southeast-1": map[string]InstanceMetadata{
+	"ap-southeast-1": {
 		"a1.2xlarge":    {Region: "ap-southeast-1", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.2352},
 		"a1.4xlarge":    {Region: "ap-southeast-1", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.4704},
 		"a1.large":      {Region: "ap-southeast-1", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.0588},
@@ -1019,7 +1019,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "ap-southeast-1", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 5.424},
 		"z1d.xlarge":    {Region: "ap-southeast-1", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.452},
 	},
-	"ap-southeast-2": map[string]InstanceMetadata{
+	"ap-southeast-2": {
 		"a1.2xlarge":    {Region: "ap-southeast-2", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.2664},
 		"a1.4xlarge":    {Region: "ap-southeast-2", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.5328},
 		"a1.large":      {Region: "ap-southeast-2", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.0666},
@@ -1241,7 +1241,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "ap-southeast-2", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 5.424},
 		"z1d.xlarge":    {Region: "ap-southeast-2", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.452},
 	},
-	"ca-central-1": map[string]InstanceMetadata{
+	"ca-central-1": {
 		"c4.2xlarge":    {Region: "ca-central-1", Type: "c4.2xlarge", Memory: kresource.MustParse("15360Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.438},
 		"c4.4xlarge":    {Region: "ca-central-1", Type: "c4.4xlarge", Memory: kresource.MustParse("30720Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.876},
 		"c4.8xlarge":    {Region: "ca-central-1", Type: "c4.8xlarge", Memory: kresource.MustParse("61440Mi"), CPU: kresource.MustParse("36"), GPU: 0, Price: 1.75},
@@ -1412,7 +1412,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"x1e.8xlarge":   {Region: "ca-central-1", Type: "x1e.8xlarge", Memory: kresource.MustParse("999424Mi"), CPU: kresource.MustParse("32"), GPU: 0, Price: 7.334},
 		"x1e.xlarge":    {Region: "ca-central-1", Type: "x1e.xlarge", Memory: kresource.MustParse("124928Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.917},
 	},
-	"eu-central-1": map[string]InstanceMetadata{
+	"eu-central-1": {
 		"a1.2xlarge":    {Region: "eu-central-1", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.2328},
 		"a1.4xlarge":    {Region: "eu-central-1", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.4656},
 		"a1.large":      {Region: "eu-central-1", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.0582},
@@ -1653,7 +1653,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "eu-central-1", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 5.4},
 		"z1d.xlarge":    {Region: "eu-central-1", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.45},
 	},
-	"eu-north-1": map[string]InstanceMetadata{
+	"eu-north-1": {
 		"c5.12xlarge":   {Region: "eu-north-1", Type: "c5.12xlarge", Memory: kresource.MustParse("98304Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 2.184},
 		"c5.18xlarge":   {Region: "eu-north-1", Type: "c5.18xlarge", Memory: kresource.MustParse("147456Mi"), CPU: kresource.MustParse("72"), GPU: 0, Price: 3.276},
 		"c5.24xlarge":   {Region: "eu-north-1", Type: "c5.24xlarge", Memory: kresource.MustParse("196608Mi"), CPU: kresource.MustParse("96"), GPU: 0, Price: 4.368},
@@ -1732,7 +1732,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"t3.small":      {Region: "eu-north-1", Type: "t3.small", Memory: kresource.MustParse("2048Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.0216},
 		"t3.xlarge":     {Region: "eu-north-1", Type: "t3.xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.1728},
 	},
-	"eu-west-1": map[string]InstanceMetadata{
+	"eu-west-1": {
 		"a1.2xlarge":    {Region: "eu-west-1", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.2304},
 		"a1.4xlarge":    {Region: "eu-west-1", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.4608},
 		"a1.large":      {Region: "eu-west-1", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.0576},
@@ -1994,7 +1994,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "eu-west-1", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 4.992},
 		"z1d.xlarge":    {Region: "eu-west-1", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.416},
 	},
-	"eu-west-2": map[string]InstanceMetadata{
+	"eu-west-2": {
 		"c4.2xlarge":    {Region: "eu-west-2", Type: "c4.2xlarge", Memory: kresource.MustParse("15360Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.476},
 		"c4.4xlarge":    {Region: "eu-west-2", Type: "c4.4xlarge", Memory: kresource.MustParse("30720Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.95},
 		"c4.8xlarge":    {Region: "eu-west-2", Type: "c4.8xlarge", Memory: kresource.MustParse("61440Mi"), CPU: kresource.MustParse("36"), GPU: 0, Price: 1.902},
@@ -2160,7 +2160,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "eu-west-2", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 5.273},
 		"z1d.xlarge":    {Region: "eu-west-2", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.439},
 	},
-	"eu-west-3": map[string]InstanceMetadata{
+	"eu-west-3": {
 		"c5.12xlarge":   {Region: "eu-west-3", Type: "c5.12xlarge", Memory: kresource.MustParse("98304Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 2.424},
 		"c5.18xlarge":   {Region: "eu-west-3", Type: "c5.18xlarge", Memory: kresource.MustParse("147456Mi"), CPU: kresource.MustParse("72"), GPU: 0, Price: 3.636},
 		"c5.24xlarge":   {Region: "eu-west-3", Type: "c5.24xlarge", Memory: kresource.MustParse("196608Mi"), CPU: kresource.MustParse("96"), GPU: 0, Price: 4.848},
@@ -2298,7 +2298,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"x1.16xlarge":   {Region: "eu-west-3", Type: "x1.16xlarge", Memory: kresource.MustParse("999424Mi"), CPU: kresource.MustParse("64"), GPU: 0, Price: 8.403},
 		"x1.32xlarge":   {Region: "eu-west-3", Type: "x1.32xlarge", Memory: kresource.MustParse("1998848Mi"), CPU: kresource.MustParse("128"), GPU: 0, Price: 16.806},
 	},
-	"me-south-1": map[string]InstanceMetadata{
+	"me-south-1": {
 		"c5.18xlarge":   {Region: "me-south-1", Type: "c5.18xlarge", Memory: kresource.MustParse("147456Mi"), CPU: kresource.MustParse("72"), GPU: 0, Price: 3.802},
 		"c5.2xlarge":    {Region: "me-south-1", Type: "c5.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.422},
 		"c5.4xlarge":    {Region: "me-south-1", Type: "c5.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.845},
@@ -2374,7 +2374,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"t3.small":      {Region: "me-south-1", Type: "t3.small", Memory: kresource.MustParse("2048Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.0251},
 		"t3.xlarge":     {Region: "me-south-1", Type: "t3.xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.2006},
 	},
-	"sa-east-1": map[string]InstanceMetadata{
+	"sa-east-1": {
 		"c1.medium":     {Region: "sa-east-1", Type: "c1.medium", Memory: kresource.MustParse("1740Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.179},
 		"c1.xlarge":     {Region: "sa-east-1", Type: "c1.xlarge", Memory: kresource.MustParse("7168Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.718},
 		"c3.2xlarge":    {Region: "sa-east-1", Type: "c3.2xlarge", Memory: kresource.MustParse("15360Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.65},
@@ -2547,7 +2547,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"x1.32xlarge":   {Region: "sa-east-1", Type: "x1.32xlarge", Memory: kresource.MustParse("1998848Mi"), CPU: kresource.MustParse("128"), GPU: 0, Price: 26.01},
 		"x1e.32xlarge":  {Region: "sa-east-1", Type: "x1e.32xlarge", Memory: kresource.MustParse("3997696Mi"), CPU: kresource.MustParse("128"), GPU: 0, Price: 52.019},
 	},
-	"us-east-1": map[string]InstanceMetadata{
+	"us-east-1": {
 		"a1.2xlarge":    {Region: "us-east-1", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.204},
 		"a1.4xlarge":    {Region: "us-east-1", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.408},
 		"a1.large":      {Region: "us-east-1", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.051},
@@ -2817,7 +2817,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "us-east-1", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 4.464},
 		"z1d.xlarge":    {Region: "us-east-1", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.372},
 	},
-	"us-east-2": map[string]InstanceMetadata{
+	"us-east-2": {
 		"a1.2xlarge":    {Region: "us-east-2", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.204},
 		"a1.4xlarge":    {Region: "us-east-2", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.408},
 		"a1.large":      {Region: "us-east-2", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.051},
@@ -3047,7 +3047,7 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 		"z1d.metal":     {Region: "us-east-2", Type: "z1d.metal", Memory: kresource.MustParse("393216Mi"), CPU: kresource.MustParse("48"), GPU: 0, Price: 4.464},
 		"z1d.xlarge":    {Region: "us-east-2", Type: "z1d.xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("4"), GPU: 0, Price: 0.372},
 	},
-	"us-west-2": map[string]InstanceMetadata{
+	"us-west-2": {
 		"a1.2xlarge":    {Region: "us-west-2", Type: "a1.2xlarge", Memory: kresource.MustParse("16384Mi"), CPU: kresource.MustParse("8"), GPU: 0, Price: 0.204},
 		"a1.4xlarge":    {Region: "us-west-2", Type: "a1.4xlarge", Memory: kresource.MustParse("32768Mi"), CPU: kresource.MustParse("16"), GPU: 0, Price: 0.408},
 		"a1.large":      {Region: "us-west-2", Type: "a1.large", Memory: kresource.MustParse("4096Mi"), CPU: kresource.MustParse("2"), GPU: 0, Price: 0.051},
@@ -3359,103 +3359,103 @@ var NATMetadatas = map[string]NATMetadata{
 
 // region -> EBS metadata
 var EBSMetadatas = map[string]map[string]EBSMetadata{
-	"ap-east-1": map[string]EBSMetadata{
+	"ap-east-1": {
 		"gp2": {Region: "ap-east-1", Type: "gp2", PriceGB: 0.132, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "ap-east-1", Type: "io1", PriceGB: 0.1518, PriceIOPS: 0.0792000000, IopsConfigurable: true},
 		"sc1": {Region: "ap-east-1", Type: "sc1", PriceGB: 0.033, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "ap-east-1", Type: "st1", PriceGB: 0.0594, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"ap-northeast-1": map[string]EBSMetadata{
+	"ap-northeast-1": {
 		"gp2": {Region: "ap-northeast-1", Type: "gp2", PriceGB: 0.12, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "ap-northeast-1", Type: "io1", PriceGB: 0.142, PriceIOPS: 0.0740000000, IopsConfigurable: true},
 		"sc1": {Region: "ap-northeast-1", Type: "sc1", PriceGB: 0.03, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "ap-northeast-1", Type: "st1", PriceGB: 0.054, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"ap-northeast-2": map[string]EBSMetadata{
+	"ap-northeast-2": {
 		"gp2": {Region: "ap-northeast-2", Type: "gp2", PriceGB: 0.114, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "ap-northeast-2", Type: "io1", PriceGB: 0.1278, PriceIOPS: 0.0666000000, IopsConfigurable: true},
 		"sc1": {Region: "ap-northeast-2", Type: "sc1", PriceGB: 0.029, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "ap-northeast-2", Type: "st1", PriceGB: 0.051, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"ap-south-1": map[string]EBSMetadata{
+	"ap-south-1": {
 		"gp2": {Region: "ap-south-1", Type: "gp2", PriceGB: 0.114, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "ap-south-1", Type: "io1", PriceGB: 0.131, PriceIOPS: 0.0680000000, IopsConfigurable: true},
 		"sc1": {Region: "ap-south-1", Type: "sc1", PriceGB: 0.029, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "ap-south-1", Type: "st1", PriceGB: 0.051, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"ap-southeast-1": map[string]EBSMetadata{
+	"ap-southeast-1": {
 		"gp2": {Region: "ap-southeast-1", Type: "gp2", PriceGB: 0.12, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "ap-southeast-1", Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000, IopsConfigurable: true},
 		"sc1": {Region: "ap-southeast-1", Type: "sc1", PriceGB: 0.03, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "ap-southeast-1", Type: "st1", PriceGB: 0.054, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"ap-southeast-2": map[string]EBSMetadata{
+	"ap-southeast-2": {
 		"gp2": {Region: "ap-southeast-2", Type: "gp2", PriceGB: 0.12, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "ap-southeast-2", Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000, IopsConfigurable: true},
 		"sc1": {Region: "ap-southeast-2", Type: "sc1", PriceGB: 0.03, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "ap-southeast-2", Type: "st1", PriceGB: 0.054, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"ca-central-1": map[string]EBSMetadata{
+	"ca-central-1": {
 		"gp2": {Region: "ca-central-1", Type: "gp2", PriceGB: 0.11, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "ca-central-1", Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000, IopsConfigurable: true},
 		"sc1": {Region: "ca-central-1", Type: "sc1", PriceGB: 0.028, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "ca-central-1", Type: "st1", PriceGB: 0.05, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"eu-central-1": map[string]EBSMetadata{
+	"eu-central-1": {
 		"gp2": {Region: "eu-central-1", Type: "gp2", PriceGB: 0.119, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "eu-central-1", Type: "io1", PriceGB: 0.149, PriceIOPS: 0.0780000000, IopsConfigurable: true},
 		"sc1": {Region: "eu-central-1", Type: "sc1", PriceGB: 0.03, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "eu-central-1", Type: "st1", PriceGB: 0.054, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"eu-north-1": map[string]EBSMetadata{
+	"eu-north-1": {
 		"gp2": {Region: "eu-north-1", Type: "gp2", PriceGB: 0.1045, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "eu-north-1", Type: "io1", PriceGB: 0.1311, PriceIOPS: 0.0684000000, IopsConfigurable: true},
 		"sc1": {Region: "eu-north-1", Type: "sc1", PriceGB: 0.0266, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "eu-north-1", Type: "st1", PriceGB: 0.0475, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"eu-west-1": map[string]EBSMetadata{
+	"eu-west-1": {
 		"gp2": {Region: "eu-west-1", Type: "gp2", PriceGB: 0.11, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "eu-west-1", Type: "io1", PriceGB: 0.138, PriceIOPS: 0.0720000000, IopsConfigurable: true},
 		"sc1": {Region: "eu-west-1", Type: "sc1", PriceGB: 0.028, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "eu-west-1", Type: "st1", PriceGB: 0.05, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"eu-west-2": map[string]EBSMetadata{
+	"eu-west-2": {
 		"gp2": {Region: "eu-west-2", Type: "gp2", PriceGB: 0.116, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "eu-west-2", Type: "io1", PriceGB: 0.145, PriceIOPS: 0.0760000000, IopsConfigurable: true},
 		"sc1": {Region: "eu-west-2", Type: "sc1", PriceGB: 0.029, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "eu-west-2", Type: "st1", PriceGB: 0.053, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"eu-west-3": map[string]EBSMetadata{
+	"eu-west-3": {
 		"gp2": {Region: "eu-west-3", Type: "gp2", PriceGB: 0.116, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "eu-west-3", Type: "io1", PriceGB: 0.145, PriceIOPS: 0.0760000000, IopsConfigurable: true},
 		"sc1": {Region: "eu-west-3", Type: "sc1", PriceGB: 0.029, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "eu-west-3", Type: "st1", PriceGB: 0.053, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"me-south-1": map[string]EBSMetadata{
+	"me-south-1": {
 		"gp2": {Region: "me-south-1", Type: "gp2", PriceGB: 0.121, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "me-south-1", Type: "io1", PriceGB: 0.1518, PriceIOPS: 0.0792000000, IopsConfigurable: true},
 		"sc1": {Region: "me-south-1", Type: "sc1", PriceGB: 0.0308, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "me-south-1", Type: "st1", PriceGB: 0.055, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"sa-east-1": map[string]EBSMetadata{
+	"sa-east-1": {
 		"gp2": {Region: "sa-east-1", Type: "gp2", PriceGB: 0.19, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "sa-east-1", Type: "io1", PriceGB: 0.238, PriceIOPS: 0.0910000000, IopsConfigurable: true},
 		"sc1": {Region: "sa-east-1", Type: "sc1", PriceGB: 0.048, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "sa-east-1", Type: "st1", PriceGB: 0.086, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"us-east-1": map[string]EBSMetadata{
+	"us-east-1": {
 		"gp2": {Region: "us-east-1", Type: "gp2", PriceGB: 0.1, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "us-east-1", Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000, IopsConfigurable: true},
 		"sc1": {Region: "us-east-1", Type: "sc1", PriceGB: 0.025, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "us-east-1", Type: "st1", PriceGB: 0.045, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"us-east-2": map[string]EBSMetadata{
+	"us-east-2": {
 		"gp2": {Region: "us-east-2", Type: "gp2", PriceGB: 0.1, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "us-east-2", Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000, IopsConfigurable: true},
 		"sc1": {Region: "us-east-2", Type: "sc1", PriceGB: 0.025, PriceIOPS: 0, IopsConfigurable: false},
 		"st1": {Region: "us-east-2", Type: "st1", PriceGB: 0.045, PriceIOPS: 0, IopsConfigurable: false},
 	},
-	"us-west-2": map[string]EBSMetadata{
+	"us-west-2": {
 		"gp2": {Region: "us-west-2", Type: "gp2", PriceGB: 0.1, PriceIOPS: 0, IopsConfigurable: false},
 		"io1": {Region: "us-west-2", Type: "io1", PriceGB: 0.125, PriceIOPS: 0.0650000000, IopsConfigurable: true},
 		"sc1": {Region: "us-west-2", Type: "sc1", PriceGB: 0.025, PriceIOPS: 0, IopsConfigurable: false},
