@@ -225,7 +225,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		userClusterConfig.Spot = cachedClusterConfig.Spot
 
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-			err = userClusterConfig.AutoFillSpot(awsClient)
+			err = userClusterConfig.FillEmptySpotFields(awsClient)
 			if err != nil {
 				return nil, err
 			}
