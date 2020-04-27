@@ -30,7 +30,7 @@ func PrintError(err error, strs ...string) {
 }
 
 func PrintErrorForUser(err error, strs ...string) {
-	print.ForUser(errorStr(err, strs...))
+	print.BoldFirstLine(errorStr(err, strs...))
 	// PrintStacktrace(err)
 }
 

@@ -158,7 +158,7 @@ func Int32FromPrompt(promptOpts *prompt.Options, v *Int32Validation) (int32, err
 
 func ValidateInt32Missing(v *Int32Validation) (int32, error) {
 	if v.Required {
-		return 0, ErrorMustBeDefined()
+		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateInt32(v.Default, v)
 }

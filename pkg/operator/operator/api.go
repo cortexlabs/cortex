@@ -17,19 +17,15 @@ limitations under the License.
 package operator
 
 import (
-	"bytes"
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -52,7 +48,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	api := getAPISpec(apiConfig, projectID, deploymentID)
+	api := spec.GetAPISpec(apiConfig, projectID, deploymentID)
 
 	if prevDeployment == nil {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
@@ -120,7 +116,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = getAPISpec(api.API, api.ProjectID, k8s.RandomName())
+	api = spec.GetAPISpec(api.API, api.ProjectID, k8s.RandomName())
 
 	if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
@@ -154,28 +150,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	}
 
 	return nil
-}
-
-func getAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *spec.API {
-	var buf bytes.Buffer
-	buf.WriteString(apiConfig.Name)
-	buf.WriteString(*apiConfig.Endpoint)
-	buf.WriteString(s.Obj(apiConfig.Predictor))
-	buf.WriteString(s.Obj(apiConfig.Tracker))
-	buf.WriteString(deploymentID)
-	buf.WriteString(projectID)
-	id := hash.Bytes(buf.Bytes())
-
-	return &spec.API{
-		API:          apiConfig,
-		ID:           id,
-		Key:          specKey(apiConfig.Name, id),
-		DeploymentID: deploymentID,
-		LastUpdated:  time.Now().Unix(),
-		MetadataRoot: metadataRoot(apiConfig.Name, id),
-		ProjectID:    projectID,
-		ProjectKey:   ProjectKey(projectID),
-	}
 }
 
 func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *kunstructured.Unstructured, error) {
@@ -259,7 +233,7 @@ func updateAutoscalerCron(deployment *kapps.Deployment) error {
 		return err
 	}
 
-	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), _autoscalingTickInterval)
+	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
 
 	return nil
 }
@@ -391,7 +365,7 @@ func APIsBaseURL() (string, error) {
 }
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
-	s3Key := specKey(apiName, apiID)
+	s3Key := spec.Key(apiName, apiID)
 	var api spec.API
 
 	if err := config.AWS.ReadMsgpackFromS3(&api, config.Cluster.Bucket, s3Key); err != nil {
@@ -425,29 +399,4 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 	}
 
 	return apis, nil
-}
-
-func specKey(apiName string, apiID string) string {
-	return filepath.Join(
-		"apis",
-		apiName,
-		apiID,
-		"spec.msgpack",
-	)
-}
-
-func metadataRoot(apiName string, apiID string) string {
-	return filepath.Join(
-		"apis",
-		apiName,
-		apiID,
-		"metadata",
-	)
-}
-
-func ProjectKey(projectID string) string {
-	return filepath.Join(
-		"projects",
-		projectID+".zip",
-	)
 }

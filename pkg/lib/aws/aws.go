@@ -28,6 +28,7 @@ import (
 type Client struct {
 	Region          string
 	sess            *session.Session
+	IsAnonymous     bool
 	clients         clients
 	accountID       *string
 	hashedAccountID *string
@@ -90,5 +91,24 @@ func New(region string, creds *credentials.Credentials) (*Client, error) {
 	return &Client{
 		sess:   sess,
 		Region: *sess.Config.Region,
+	}, nil
+}
+
+func NewAnonymousClient() (*Client, error) {
+	return NewAnonymousClientWithRegion("us-east-1") // region is always required
+}
+
+func NewAnonymousClientWithRegion(region string) (*Client, error) {
+	sess, err := session.NewSession(&aws.Config{
+		Credentials: credentials.AnonymousCredentials,
+		Region:      aws.String(region),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Client{
+		sess:        sess,
+		Region:      region,
+		IsAnonymous: true,
 	}, nil
 }

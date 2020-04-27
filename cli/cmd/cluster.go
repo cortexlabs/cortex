@@ -21,47 +21,61 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/spf13/cobra"
 )
 
-var _flagClusterConfig string
-var _flagDebug bool
+var (
+	_flagClusterEnv       string
+	_flagClusterConfig    string
+	_flagClusterInfoDebug bool
+)
 
-func init() {
-	addClusterConfigFlag(_updateCmd)
-	addEnvFlag(_updateCmd)
-	_clusterCmd.AddCommand(_updateCmd)
+func clusterInit() {
+	defaultEnv := getDefaultEnv(_clusterCommandType)
 
-	addClusterConfigFlag(_infoCmd)
-	addEnvFlag(_infoCmd)
-	_infoCmd.PersistentFlags().BoolVarP(&_flagDebug, "debug", "d", false, "save the current cluster state to a file")
-	_clusterCmd.AddCommand(_infoCmd)
-
+	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
-	addEnvFlag(_upCmd)
+	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
 	_clusterCmd.AddCommand(_upCmd)
 
+	_infoCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_infoCmd)
+	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
+	_clusterCmd.AddCommand(_infoCmd)
+
+	_updateCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_updateCmd)
+	_updateCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	_clusterCmd.AddCommand(_updateCmd)
+
+	_downCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_downCmd)
 	_clusterCmd.AddCommand(_downCmd)
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&_flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
-	cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
+	cmd.Flags().StringVarP(&_flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
+	cmd.Flags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
 }
 
 var _clusterCmd = &cobra.Command{
@@ -76,17 +90,21 @@ var _upCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up")
 
-		if err := checkDockerRunning(); err != nil {
+		if _flagClusterEnv == "local" {
+			exit.Error(ErrorNotSupportedInLocalEnvironment())
+		}
+
+		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
 		promptForEmail()
-		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsCreds)
+		clusterConfig, err := getInstallClusterConfig(awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -121,7 +139,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds)
+		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -132,6 +150,8 @@ var _upCmd = &cobra.Command{
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
+
+		fmt.Printf("\nyour cli environment named \"%s\" has been configured to connect to this cluster; append --env=%s in cortex commands to reference it, or set it as your default via `cortex env default %s`\n", _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
 	},
 }
 
@@ -142,11 +162,15 @@ var _updateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.update")
 
-		if err := checkDockerRunning(); err != nil {
+		if _flagClusterEnv == "local" {
+			exit.Error(ErrorNotSupportedInLocalEnvironment())
+		}
+
+		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -181,7 +205,7 @@ var _updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds)
+		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -200,12 +224,15 @@ var _infoCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info")
+		if _flagClusterEnv == "local" {
+			exit.Error(ErrorNotSupportedInLocalEnvironment())
+		}
 
-		if err := checkDockerRunning(); err != nil {
+		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -215,7 +242,7 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if _flagDebug {
+		if _flagClusterInfoDebug {
 			cmdDebug(awsCreds, accessConfig)
 		} else {
 			cmdInfo(awsCreds, accessConfig)
@@ -230,11 +257,11 @@ var _downCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.down")
 
-		if err := checkDockerRunning(); err != nil {
+		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -268,7 +295,7 @@ var _downCmd = &cobra.Command{
 
 		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds)
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -353,7 +380,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds)
 
-	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds)
+	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -363,20 +390,29 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 
 	fmt.Println()
 
-	httpResponse, err := HTTPGet("/info")
-	if err != nil {
-		fmt.Println(clusterConfig.UserStr() + "\n")
-		exit.Error(err, "unable to connect to operator", "/info")
-		return
+	var operatorEndpoint string
+	for _, line := range strings.Split(out, "\n") {
+		// before modifying this, search for this prefix
+		if strings.HasPrefix(line, "operator endpoint: ") {
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator endpoint: "))
+			break
+		}
 	}
 
-	var infoResponse schema.InfoResponse
-	err = json.Unmarshal(httpResponse, &infoResponse)
-	if err != nil {
-		fmt.Println(clusterConfig.UserStr() + "\n")
-		exit.Error(err, "/info", string(httpResponse))
-		return
+	operatorConfig := cluster.OperatorConfig{
+		Telemetry:          isTelemetryEnabled(),
+		EnvName:            _flagClusterEnv,
+		ClientID:           clientID(),
+		OperatorEndpoint:   operatorEndpoint,
+		AWSAccessKeyID:     awsCreds.AWSAccessKeyID,
+		AWSSecretAccessKey: awsCreds.AWSSecretAccessKey,
 	}
+
+	infoResponse, err := cluster.Info(operatorConfig)
+	if err != nil {
+		exit.Error(err)
+	}
+
 	infoResponse.ClusterConfig.Config = clusterConfig
 
 	var items table.KeyValuePairs
@@ -384,10 +420,41 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 	items.AddAll(infoResponse.ClusterConfig.UserTable())
 
 	items.Print()
+
+	prevEnv, err := readEnv(_flagClusterEnv)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	newEnvironment := cliconfig.Environment{
+		Name:               _flagClusterEnv,
+		Provider:           types.AWSProviderType,
+		OperatorEndpoint:   pointer.String(operatorEndpoint),
+		AWSAccessKeyID:     pointer.String(awsCreds.AWSAccessKeyID),
+		AWSSecretAccessKey: pointer.String(awsCreds.AWSSecretAccessKey),
+	}
+
+	shouldWriteEnv := false
+	if prevEnv == nil {
+		shouldWriteEnv = true
+	} else if *prevEnv.OperatorEndpoint != operatorConfig.OperatorEndpoint || *prevEnv.AWSAccessKeyID != operatorConfig.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != operatorConfig.AWSSecretAccessKey {
+		fmt.Println()
+		fmt.Println(newEnvironment.String(false))
+		shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it with the configuration above?", _flagClusterEnv), "", "")
+	}
+
+	if shouldWriteEnv {
+		err := addEnvToCLIConfig(newEnvironment)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		print.BoldFirstLine(fmt.Sprintf("configured %s environment", _flagClusterEnv))
+	}
 }
 
 func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
-	out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds)
+	out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -421,7 +488,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
 	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
 	fmt.Println("fetching cluster configuration ..." + "\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)
 	}

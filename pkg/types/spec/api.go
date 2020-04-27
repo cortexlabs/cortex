@@ -17,16 +17,82 @@ limitations under the License.
 package spec
 
 import (
+	"bytes"
+	"path/filepath"
+	"time"
+
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type API struct {
 	*userconfig.API
-	ID           string `json:"id"`
-	Key          string `json:"key"`
-	DeploymentID string `json:"deployment_id"`
-	LastUpdated  int64  `json:"last_updated"`
-	MetadataRoot string `json:"metadata_root"`
-	ProjectID    string `json:"project_id"`
-	ProjectKey   string `json:"project_key"`
+	ID              string           `json:"id"`
+	Key             string           `json:"key"`
+	DeploymentID    string           `json:"deployment_id"`
+	LastUpdated     int64            `json:"last_updated"`
+	MetadataRoot    string           `json:"metadata_root"`
+	ProjectID       string           `json:"project_id"`
+	ProjectKey      string           `json:"project_key"`
+	LocalModelCache *LocalModelCache `json:"local_model_cache"` // local only
+	LocalProjectDir string           `json:"local_project_dir"`
+}
+
+type LocalModelCache struct {
+	ID       string `json:"id"`
+	HostPath string `json:"host_path"`
+}
+
+func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
+	var buf bytes.Buffer
+	buf.WriteString(apiConfig.Name)
+	if apiConfig.Endpoint != nil {
+		buf.WriteString(*apiConfig.Endpoint)
+	}
+	if apiConfig.LocalPort != nil {
+		buf.WriteString(s.Obj(*apiConfig.LocalPort))
+	}
+	buf.WriteString(s.Obj(apiConfig.Predictor))
+	buf.WriteString(s.Obj(apiConfig.Tracker))
+	buf.WriteString(deploymentID)
+	buf.WriteString(projectID)
+	id := hash.Bytes(buf.Bytes())
+
+	return &API{
+		API:          apiConfig,
+		ID:           id,
+		Key:          Key(apiConfig.Name, id),
+		DeploymentID: deploymentID,
+		LastUpdated:  time.Now().Unix(),
+		MetadataRoot: MetadataRoot(apiConfig.Name, id),
+		ProjectID:    projectID,
+		ProjectKey:   ProjectKey(projectID),
+	}
+}
+
+func Key(apiName string, apiID string) string {
+	return filepath.Join(
+		"apis",
+		apiName,
+		apiID,
+		consts.CortexVersion+"-spec.msgpack",
+	)
+}
+
+func MetadataRoot(apiName string, apiID string) string {
+	return filepath.Join(
+		"apis",
+		apiName,
+		apiID,
+		"metadata",
+	)
+}
+
+func ProjectKey(projectID string) string {
+	return filepath.Join(
+		"projects",
+		projectID+".zip",
+	)
 }
