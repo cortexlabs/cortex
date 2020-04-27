@@ -19,6 +19,7 @@ package local
 import (
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -112,6 +113,12 @@ func GetAPIStatus(api *spec.API) (status.Status, error) {
 		ReplicaCounts: status.ReplicaCounts{
 			Requested: 1,
 		},
+	}
+
+	if api.LastUpdated+10 > time.Now().Unix() {
+		apiStatus.ReplicaCounts.Updated.Initializing = 1
+		apiStatus.Code = status.Updating
+		return apiStatus, nil
 	}
 
 	containers, err := GetContainersByAPI(api.Name)
