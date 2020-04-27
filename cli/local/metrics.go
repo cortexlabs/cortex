@@ -115,6 +115,7 @@ func GetAPIStatus(api *spec.API) (status.Status, error) {
 		},
 	}
 
+	// 10 second grace period between creating api spec file and looking for containers
 	if api.LastUpdated+10 > time.Now().Unix() {
 		apiStatus.ReplicaCounts.Updated.Initializing = 1
 		apiStatus.Code = status.Updating

@@ -263,6 +263,6 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotAccessECRWithAnonymousAWSCreds,
-		Message: fmt.Sprintf("cannot access ECR with anonymous aws credentials; run `cortex env configure <env_name>` to specify AWS credentials with access to ECR"),
+		Message: fmt.Sprintf("cannot access ECR with anonymous aws credentials; run `cortex env configure local` to specify AWS credentials with access to ECR"),
 	})
 }
