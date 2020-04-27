@@ -365,7 +365,7 @@ def main():
                     "region": region,
                     "type": ebs_type,
                     "price_gb": metadata["price_gb"],
-                    "price_iops": metadata["price_gb"],
+                    "price_iops": metadata["price_iops"],
                     "iops_configurable": metadata["iops_configurable"],
                 }
             )
