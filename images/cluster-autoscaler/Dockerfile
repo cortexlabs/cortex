@@ -1,1 +1,1 @@
-FROM gcr.io/google-containers/cluster-autoscaler:v1.15.5
+FROM us.gcr.io/k8s-artifacts-prod/autoscaling/cluster-autoscaler:v1.18.1
