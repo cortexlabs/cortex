@@ -51,10 +51,6 @@ func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileLis
 		if err != nil {
 			return schema.DeployResponse{}, err
 		}
-		err = docker.LoginAWS(awsClient)
-		if err != nil {
-			return schema.DeployResponse{}, err
-		}
 	} else {
 		awsClient, err = aws.NewAnonymousClient()
 		if err != nil {

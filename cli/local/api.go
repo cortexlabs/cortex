@@ -23,7 +23,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
@@ -35,18 +34,6 @@ import (
 var _deploymentID = "local"
 
 func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
-	err := docker.PullImage(apiConfig.Predictor.Image)
-	if err != nil {
-		return nil, "", err
-	}
-
-	if apiConfig.Predictor.Type == userconfig.TensorFlowPredictorType {
-		err := docker.PullImage(apiConfig.Predictor.TFServeImage)
-		if err != nil {
-			return nil, "", err
-		}
-	}
-
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
 	if err != nil {
 		if errors.GetKind(err) != ErrAPINotDeployed {

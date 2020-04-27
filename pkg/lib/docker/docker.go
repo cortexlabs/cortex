@@ -38,11 +38,9 @@ import (
 var NoAuth string
 
 var _cachedDockerClient *dockerclient.Client
-var _cachedEncodedAuthConfig string
 
 func init() {
 	NoAuth, _ = EncodeAuthConfig(dockertypes.AuthConfig{})
-	_cachedEncodedAuthConfig = NoAuth
 }
 
 func createDockerClient() (*dockerclient.Client, error) {
@@ -58,36 +56,6 @@ func createDockerClient() (*dockerclient.Client, error) {
 
 	_cachedDockerClient.NegotiateAPIVersion(context.Background())
 	return _cachedDockerClient, nil
-}
-
-func LoginAWS(awsClient *aws.Client) error {
-	dockerClient, err := GetDockerClient()
-	if err != nil {
-		return err
-	}
-
-	ecrAuthConfig, err := awsClient.GetECRAuthConfig()
-	if err != nil {
-		return err
-	}
-
-	auth := dockertypes.AuthConfig{
-		Username:      ecrAuthConfig.Username,
-		Password:      ecrAuthConfig.AccessToken,
-		ServerAddress: ecrAuthConfig.ProxyEndpoint,
-	}
-
-	_, err = dockerClient.RegistryLogin(context.Background(), auth)
-	if err != nil {
-		return err
-	}
-
-	_cachedEncodedAuthConfig, err = EncodeAuthConfig(auth)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func GetDockerClient() (*dockerclient.Client, error) {
@@ -112,6 +80,36 @@ func MustDockerClient() *dockerclient.Client {
 	return dockerClient
 }
 
+func AWSAuthConfig(awsClient *aws.Client) (string, error) {
+	dockerClient, err := GetDockerClient()
+	if err != nil {
+		return "", err
+	}
+
+	ecrAuthConfig, err := awsClient.GetECRAuthConfig()
+	if err != nil {
+		return "", err
+	}
+
+	auth := dockertypes.AuthConfig{
+		Username:      ecrAuthConfig.Username,
+		Password:      ecrAuthConfig.AccessToken,
+		ServerAddress: ecrAuthConfig.ProxyEndpoint,
+	}
+
+	_, err = dockerClient.RegistryLogin(context.Background(), auth)
+	if err != nil {
+		return "", err
+	}
+
+	authConfig, err := EncodeAuthConfig(auth)
+	if err != nil {
+		return "", err
+	}
+
+	return authConfig, nil
+}
+
 func WrapDockerError(err error) error {
 	if dockerclient.IsErrConnectionFailed(err) {
 		return ErrorConnectToDockerDaemon()
@@ -124,7 +122,7 @@ func WrapDockerError(err error) error {
 	return errors.WithStack(err)
 }
 
-func PullImage(managerImage string) error {
+func PullImage(managerImage, encodedAuthConfig string) error {
 	docker, err := GetDockerClient()
 	if err != nil {
 		return err
@@ -144,7 +142,7 @@ func PullImage(managerImage string) error {
 	}
 
 	pullOutput, err := docker.ImagePull(context.Background(), managerImage, dockertypes.ImagePullOptions{
-		RegistryAuth: _cachedEncodedAuthConfig,
+		RegistryAuth: encodedAuthConfig,
 	})
 	if err != nil {
 		return WrapDockerError(err)
@@ -210,8 +208,8 @@ func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 	return registryAuth, nil
 }
 
-func CheckImageAccessible(c *dockerclient.Client, dockerImage, registryAuth string) error {
-	if _, err := c.DistributionInspect(context.Background(), dockerImage, registryAuth); err != nil {
+func CheckImageAccessible(c *dockerclient.Client, dockerImage, authConfig string) error {
+	if _, err := c.DistributionInspect(context.Background(), dockerImage, authConfig); err != nil {
 		return ErrorImageInaccessible(dockerImage, err)
 	}
 	return nil

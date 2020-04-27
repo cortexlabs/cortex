@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
@@ -38,7 +39,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	dockertypes "github.com/docker/docker/api/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -812,21 +812,16 @@ func validateDockerImagePath(image string, awsClient *aws.Client) error {
 			return ErrorRegistryAccountIDMismatch(registryID, operatorID)
 		}
 
-		ecrAuthConfig, err := awsClient.GetECRAuthConfig()
+		dockerAuth, err = docker.AWSAuthConfig(awsClient)
 		if err != nil {
-			// because the operator's IAM user != instances's IAM role (which is created by eksctl and
-			// has access to ECR), if the operator IAM doesn't include ECR access, then this will fail
-			// even though the instance IAM role may have access; instead, ignore this error because the
-			// instance will have access (this will result in missing the case where the image does not exist)
-			return nil
-		}
+			if _, ok := errors.CauseOrSelf(err).(awserr.Error); ok {
+				// because the operator's IAM user != instances's IAM role (which is created by eksctl and
+				// has access to ECR), if the operator IAM doesn't include ECR access, then this will fail
+				// even though the instance IAM role may have access; instead, ignore this error because the
+				// instance will have access (this will result in missing the case where the image does not exist)
+				return nil
+			}
 
-		dockerAuth, err = docker.EncodeAuthConfig(dockertypes.AuthConfig{
-			Username:      ecrAuthConfig.Username,
-			Password:      ecrAuthConfig.AccessToken,
-			ServerAddress: ecrAuthConfig.ProxyEndpoint,
-		})
-		if err != nil {
 			return err
 		}
 	}

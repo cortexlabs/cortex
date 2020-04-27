@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -140,5 +141,28 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		return spec.ErrorDuplicateName(dups)
 	}
 
+	imageSet := strset.New()
+	for _, api := range apis {
+		imageSet.Add(api.Predictor.Image)
+		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
+			imageSet.Add(api.Predictor.TFServeImage)
+		}
+	}
+
+	for image := range imageSet {
+		var err error
+		dockerAuth := docker.NoAuth
+		if regex.IsValidECRURL(image) {
+			dockerAuth, err = docker.AWSAuthConfig(awsClient)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = docker.PullImage(image, dockerAuth)
+		if err != nil {
+			return errors.Wrap(err, "failed to pull image", image)
+		}
+	}
 	return nil
 }
