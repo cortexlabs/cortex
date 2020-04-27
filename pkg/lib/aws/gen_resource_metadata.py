@@ -40,9 +40,13 @@ REGIONS = [
 
 OUTPUT_FILE_NAME = "resource_metadata.go"
 
-EC2_PRICING_ENDPOINT_TEMPLATE = "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/{}/index.json"
+EC2_PRICING_ENDPOINT_TEMPLATE = (
+    "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/{}/index.json"
+)
 
-EKS_PRICING_ENDPOINT_TEMPLATE = "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEKS/current/{}/index.json"
+EKS_PRICING_ENDPOINT_TEMPLATE = (
+    "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEKS/current/{}/index.json"
+)
 
 
 def get_instance_metadatas(pricing):
@@ -61,9 +65,9 @@ def get_instance_metadatas(pricing):
             continue
         if product["attributes"].get("operation") != "RunInstances":
             continue
-        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[
-            0
-        ]["priceDimensions"]
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
 
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
@@ -71,12 +75,7 @@ def get_instance_metadatas(pricing):
         metadata = {
             "cpu": int(product["attributes"]["vcpu"]),
             "mem": int(
-                float(
-                    re.sub(
-                        "[^0-9\\.]", "", product["attributes"]["memory"].split(" ")[0]
-                    )
-                )
-                * 1024
+                float(re.sub("[^0-9\\.]", "", product["attributes"]["memory"].split(" ")[0])) * 1024
             ),
             "price": float(price),
             "gpu": 0,
@@ -99,9 +98,9 @@ def get_elb_metadata(pricing):
         if product["attributes"].get("operation") != "LoadBalancing":
             continue
 
-        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[
-            0
-        ]["priceDimensions"]
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
         return {"price": float(price)}
 
@@ -119,9 +118,9 @@ def get_nat_metadata(pricing):
         if not product["attributes"].get("usagetype", "").endswith("-Hours"):
             continue
 
-        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[
-            0
-        ]["priceDimensions"]
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
         return {"price": float(price)}
 
@@ -138,9 +137,9 @@ def get_ebs_metadata(pricing):
         if product["attributes"].get("volumeApiName") == "standard":
             continue
 
-        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[
-            0
-        ]["priceDimensions"]
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
         metadata = {
@@ -163,9 +162,9 @@ def get_ebs_metadata(pricing):
                 if product_iops["attributes"]["provisioned"] != "Yes":
                     continue
 
-                price_dimensions = list(
-                    pricing["terms"]["OnDemand"][product_iops["sku"]].values()
-                )[0]["priceDimensions"]
+                price_dimensions = list(pricing["terms"]["OnDemand"][product_iops["sku"]].values())[
+                    0
+                ]["priceDimensions"]
                 price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
                 metadata["price_iops"] = price
@@ -194,16 +193,12 @@ def get_eks_price(region):
             continue
         if product["attributes"].get("operation") != "CreateOperation":
             continue
-        if (
-            not product["attributes"]
-            .get("usagetype", "")
-            .endswith("-AmazonEKS-Hours:perCluster")
-        ):
+        if not product["attributes"].get("usagetype", "").endswith("-AmazonEKS-Hours:perCluster"):
             continue
 
-        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[
-            0
-        ]["priceDimensions"]
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
         return float(price)
 
