@@ -152,7 +152,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	for image := range imageSet {
 		var err error
 		dockerAuth := docker.NoAuth
-		if regex.IsValidECRURL(image) {
+		if regex.IsValidECRURL(image) && !awsClient.IsAnonymous {
 			dockerAuth, err = docker.AWSAuthConfig(awsClient)
 			if err != nil {
 				return err

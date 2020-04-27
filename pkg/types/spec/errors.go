@@ -26,32 +26,33 @@ import (
 )
 
 const (
-	ErrMalformedConfig                    = "spec.malformed_config"
-	ErrNoAPIs                             = "spec.no_apis"
-	ErrDuplicateName                      = "spec.duplicate_name"
-	ErrDuplicateEndpointInOneDeploy       = "spec.duplicate_endpoint_in_one_deploy"
-	ErrDuplicateEndpoint                  = "spec.duplicate_endpoint"
-	ErrSpecifyAllOrNone                   = "spec.specify_all_or_none"
-	ErrOneOfPrerequisitesNotDefined       = "spec.one_of_prerequisites_not_defined"
-	ErrMinReplicasGreaterThanMax          = "spec.min_replicas_greater_than_max"
-	ErrInitReplicasGreaterThanMax         = "spec.init_replicas_greater_than_max"
-	ErrInitReplicasLessThanMin            = "spec.init_replicas_less_than_min"
-	ErrInvalidSurgeOrUnavailable          = "spec.invalid_surge_or_unavailable"
-	ErrSurgeAndUnavailableBothZero        = "spec.surge_and_unavailable_both_zero"
-	ErrImplDoesNotExist                   = "spec.impl_does_not_exist"
-	ErrFileNotFound                       = "spec.file_not_found"
-	ErrDirIsEmpty                         = "spec.dir_is_empty"
-	ErrS3FileNotFound                     = "spec.s3_file_not_found"
-	ErrInvalidTensorFlowDir               = "spec.invalid_tensorflow_dir"
-	ErrInvalidTensorFlowModelPath         = "spec.invalid_tensorflow_model_path"
-	ErrInvalidONNXModelPath               = "spec.invalid_onnx_model_path"
-	ErrFieldMustBeDefinedForPredictorType = "spec.field_must_be_defined_for_predictor_type"
-	ErrFieldNotSupportedByPredictorType   = "spec.field_not_supported_by_predictor_type"
-	ErrNoAvailableNodeComputeLimit        = "spec.no_available_node_compute_limit"
-	ErrCortexPrefixedEnvVarNotAllowed     = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrLocalPathNotSupportedByAWSProvider = "spec.local_path_not_supported_by_aws_provider"
-	ErrRegistryInDifferentRegion          = "spec.registry_in_different_region"
-	ErrRegistryAccountIDMismatch          = "spec.registry_account_id_mismatch"
+	ErrMalformedConfig                      = "spec.malformed_config"
+	ErrNoAPIs                               = "spec.no_apis"
+	ErrDuplicateName                        = "spec.duplicate_name"
+	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
+	ErrDuplicateEndpoint                    = "spec.duplicate_endpoint"
+	ErrSpecifyAllOrNone                     = "spec.specify_all_or_none"
+	ErrOneOfPrerequisitesNotDefined         = "spec.one_of_prerequisites_not_defined"
+	ErrMinReplicasGreaterThanMax            = "spec.min_replicas_greater_than_max"
+	ErrInitReplicasGreaterThanMax           = "spec.init_replicas_greater_than_max"
+	ErrInitReplicasLessThanMin              = "spec.init_replicas_less_than_min"
+	ErrInvalidSurgeOrUnavailable            = "spec.invalid_surge_or_unavailable"
+	ErrSurgeAndUnavailableBothZero          = "spec.surge_and_unavailable_both_zero"
+	ErrImplDoesNotExist                     = "spec.impl_does_not_exist"
+	ErrFileNotFound                         = "spec.file_not_found"
+	ErrDirIsEmpty                           = "spec.dir_is_empty"
+	ErrS3FileNotFound                       = "spec.s3_file_not_found"
+	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
+	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
+	ErrInvalidONNXModelPath                 = "spec.invalid_onnx_model_path"
+	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
+	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
+	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
+	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
+	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
+	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
+	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
+	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
 )
 
 func ErrorMalformedConfig() error {
@@ -256,5 +257,12 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryAccountIDMismatch,
 		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
+	})
+}
+
+func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCannotAccessECRWithAnonymousAWSCreds,
+		Message: fmt.Sprintf("cannot access ECR with anonymous aws credentials; run `cortex env configure <env_name>` to specify AWS credentials with access to ECR"),
 	})
 }
