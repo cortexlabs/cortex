@@ -153,9 +153,6 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 	}
 
 	err = clusterConfig.Validate(awsClient)
-	fmt.Println("lol")
-	fmt.Println(clusterConfig.InstanceVolumeType.String())
-	fmt.Println(*clusterConfig.InstanceVolumeIops)
 	if err != nil {
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
