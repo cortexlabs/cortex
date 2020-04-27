@@ -15,11 +15,11 @@ class PythonPredictor:
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
-        s3.download_file(bucket, key, "model.pth")
+        s3.download_file(bucket, key, "/tmp/model.pth")
 
         # initialize the model
         model = IrisNet()
-        model.load_state_dict(torch.load("model.pth"))
+        model.load_state_dict(torch.load("/tmp/model.pth"))
         model.eval()
 
         self.model = model

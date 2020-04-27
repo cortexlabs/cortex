@@ -59,7 +59,6 @@ def sample_sequence(
     generated = context
     with torch.no_grad():
         for _ in trange(length):
-
             inputs = {"input_ids": generated}
             outputs = model(
                 **inputs

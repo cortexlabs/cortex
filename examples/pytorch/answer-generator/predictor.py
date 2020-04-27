@@ -12,10 +12,10 @@ class PythonPredictor:
         model = GPT2LMHeadModel(medium_config)
         wget.download(
             "https://convaisharables.blob.core.windows.net/lsp/multiref/medium_ft.pkl",
-            "medium_ft.pkl",
+            "/tmp/medium_ft.pkl",
         )
 
-        weights = torch.load("medium_ft.pkl")
+        weights = torch.load("/tmp/medium_ft.pkl")
         weights["lm_head.weight"] = weights["lm_head.decoder.weight"]
         weights.pop("lm_head.decoder.weight", None)
 

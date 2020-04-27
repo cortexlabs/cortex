@@ -11,8 +11,8 @@ labels = ["setosa", "versicolor", "virginica"]
 class PythonPredictor:
     def __init__(self, config):
         s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
-        s3.download_file(config["bucket"], config["key"], "model.pkl")
-        self.model = pickle.load(open("model.pkl", "rb"))
+        s3.download_file(config["bucket"], config["key"], "/tmp/model.pkl")
+        self.model = pickle.load(open("/tmp/model.pkl", "rb"))
 
     def predict(self, payload):
         measurements = [
