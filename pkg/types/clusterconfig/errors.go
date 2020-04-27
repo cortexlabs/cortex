@@ -48,6 +48,7 @@ const (
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
+	ErrIopsNotSupported                       = "clusterconfig.iops_not_supported"
 )
 
 func ErrorInvalidRegion(region string) error {
@@ -215,5 +216,12 @@ func ErrorInvalidInstanceType(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidInstanceType,
 		Message: fmt.Sprintf("%s is not a valid instance type", instanceType),
+	})
+}
+
+func ErrorIopsNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIopsNotSupported,
+		Message: fmt.Sprintf("IOPS can not be configured for storage type %s", instanceType),
 	})
 }

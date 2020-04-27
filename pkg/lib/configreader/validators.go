@@ -179,17 +179,3 @@ func ValidateImageVersion(image, cortexVersion string) (string, error) {
 
 	return image, nil
 }
-
-//check if Volumetype an option provided by AWS
-func ValidateVolumeType(storagetype string) (string, error) {
-
-	//loop over all possible sorage types which are availabe in all areas so we check if provided storagetype is an availbale option it ap-east-1
-	for _, types := range availableStorageTypes {
-		if types == storagetype {
-			return storagetype, nil
-		}
-	}
-
-	return "", ErrorInvalidStorageType(storagetype)
-
-}

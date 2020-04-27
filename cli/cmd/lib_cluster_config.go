@@ -153,6 +153,9 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 	}
 
 	err = clusterConfig.Validate(awsClient)
+	fmt.Println("lol")
+	fmt.Println(clusterConfig.InstanceVolumeType.String())
+	fmt.Println(*clusterConfig.InstanceVolumeIops)
 	if err != nil {
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
@@ -293,7 +296,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
 	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
-	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][*clusterConfig.InstanceVolumeType].PriceGB*float64(clusterConfig.InstanceVolumeSize)/30/24 + aws.EBSMetadatas[*clusterConfig.Region][*clusterConfig.InstanceVolumeType].PriceIOPS*float64(*clusterConfig.InstanceVolumeIops)/30/24
+	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
+	if clusterConfig.InstanceVolumeIops != nil && clusterConfig.InstanceVolumeType.String() == "io1" {
+		apiEBSPrice = aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB*float64(clusterConfig.InstanceVolumeSize)/30/24 + aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS*float64(*clusterConfig.InstanceVolumeIops)/30/24
+	}
 	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)

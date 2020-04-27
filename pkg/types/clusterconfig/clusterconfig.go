@@ -48,7 +48,7 @@ type Config struct {
 	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
 	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
-	InstanceVolumeType     *string     `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeType     VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
 	InstanceVolumeIops     *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
 	Spot                   *bool       `json:"spot" yaml:"spot"`
 	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
@@ -129,16 +129,19 @@ var UserValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "InstanceVolumeType",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Default:   pointer.String("gp2"),
-				Validator: validateVolumeType,
+			StringValidation: &cr.StringValidation{
+				AllowedValues: VolumeTypesStrings(),
+				Default:       Gp2VolumeType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return VolumeTypeFromString(str), nil
 			},
 		},
 		{
 			StructField: "InstanceVolumeIops",
 			Int64PtrValidation: &cr.Int64PtrValidation{
-				Default:           pointer.Int64(3000),
-				LessThanOrEqualTo: pointer.Int64(64000),
+				GreaterThanOrEqualTo: pointer.Int64(100),
+				LessThanOrEqualTo:    pointer.Int64(64000),
 			},
 		},
 		{
@@ -368,10 +371,6 @@ func validateImageVersion(image string) (string, error) {
 	return cr.ValidateImageVersion(image, consts.CortexVersion)
 }
 
-func validateVolumeType(storagetype string) (string, error) {
-	return cr.ValidateVolumeType(storagetype)
-}
-
 var Validation = &cr.StructValidation{
 	StructFieldValidations: append(UserValidation.StructFieldValidations,
 		&cr.StructFieldValidation{
@@ -436,9 +435,12 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
 	}
 
-	//check that Iops is set to zero if it is not configurable
-	if aws.EBSMetadatas[*cc.Region][*cc.InstanceVolumeType].IopsConfigurable == "No" {
-		*cc.InstanceVolumeIops = 0
+	//Throw error if IOPS defined for other storage than io1
+	if cc.InstanceVolumeType.String() != "io1" && cc.InstanceVolumeIops != nil {
+		return ErrorIopsNotSupported(cc.InstanceVolumeType.String())
+	}
+	if aws.EBSMetadatas[*cc.Region][cc.InstanceVolumeType.String()].IopsConfigurable && cc.InstanceVolumeIops == nil {
+		cc.InstanceVolumeIops = pointer.Int64(3000)
 	}
 
 	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
