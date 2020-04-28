@@ -17,8 +17,8 @@ type LoadBalancerScheme int
 
 const (
 	UnknownLoadBalancerScheme LoadBalancerScheme = iota
-	InternetFacingLoadBalancer
-	InternalLoadBalancer
+	InternetFacingLoadBalancerScheme
+	InternalLoadBalancerScheme
 )
 
 var _loadBalancerSchemes = []string{

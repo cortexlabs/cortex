@@ -256,7 +256,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "APILoadBalancerScheme",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: LoadBalancerSchemeStrings(),
-				Default:       InternetFacingLoadBalancer.String(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return LoadBalancerSchemeFromString(str), nil
@@ -266,7 +266,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "OperatorLoadBalancerScheme",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: LoadBalancerSchemeStrings(),
-				Default:       InternetFacingLoadBalancer.String(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return LoadBalancerSchemeFromString(str), nil

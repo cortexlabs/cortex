@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 We have plans to automatically configure API gateway when creating a Cortex API ([#326](https://github.com/cortexlabs/cortex/issues/326)), but until that's implemented, it's fairly straightforward to set it up manually.
 
-One reason to use API Gateway is to get https working with valid certificates (either by using AWS's built-in certificates, or using your own via custom domains and the AWS Certificate Manager). Another reason could be to expose your APIs to the internet when configuring Cortex to use an internal load balancer.
+One reason to use API Gateway is to get HTTPS working with valid certificates (either by using AWS's built-in certificates, or using your own via custom domains and the AWS Certificate Manager). Another reason could be to expose your APIs to the internet when configuring Cortex to use an internal load balancer.
 
 If your API load balancer is internet-facing (which is the default, or you explicitly set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster), use the [first section](#if-your-api-load-balancer-is-internet-facing) of this guide.
 
@@ -80,7 +80,7 @@ curl https://31qjv48rs6.execute-api.us-west-2.amazonaws.com/dev/iris-classifier 
 
 Delete the API Gateway before spinning down your Cortex cluster:
 
-![delete api](https://user-images.githubusercontent.com/808475/80155073-bdc9ac80-8575-11ea-99a1-95c0579da79e.png)
+![delete api gateway](https://user-images.githubusercontent.com/808475/80155073-bdc9ac80-8575-11ea-99a1-95c0579da79e.png)
 
 ## If your API load balancer is internal
 

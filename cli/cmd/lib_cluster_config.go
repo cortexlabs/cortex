@@ -403,10 +403,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	fmt.Printf("your cli environment named \"%s\" will be configured to connect to this cluster\n\n", envName)
 
-	if clusterConfig.APILoadBalancerScheme == clusterconfig.InternalLoadBalancer {
+	if clusterConfig.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
 		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see www.cortex.dev/guides/vpc-peering or www.cortex.dev/guides/api-gateway)\n\n")
 	}
-	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancer {
+	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
 		fmt.Print("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)\n\n")
 	}
 
