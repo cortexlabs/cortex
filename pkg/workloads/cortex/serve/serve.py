@@ -35,7 +35,7 @@ from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API
 from cortex.lib.log import cx_logger, debug_obj
-from cortex.lib.storage import S3
+from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
 
 if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
@@ -65,36 +65,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
+local_cache = {
+    "api": None,
+    "provider": None,
+    "predictor_impl": None,
+    "predict_route": None,
+    "client": None,
+    "class_set": set(),
+}
 
 
 def update_api_liveness():
     threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
-    with open("/mnt/api_liveness.txt", "w") as f:
+    with open("/mnt/workspace/api_liveness.txt", "w") as f:
         f.write(str(math.ceil(time.time())))
 
 
 @app.on_event("startup")
 def startup():
-    open("/mnt/api_readiness.txt", "a").close()
+    open("/mnt/workspace/api_readiness.txt", "a").close()
     update_api_liveness()
 
 
 @app.on_event("shutdown")
 def shutdown():
     try:
-        os.remove("/mnt/api_readiness.txt")
+        os.remove("/mnt/workspace/api_readiness.txt")
     except:
         pass
 
     try:
-        os.remove("/mnt/api_liveness.txt")
+        os.remove("/mnt/workspace/api_liveness.txt")
     except:
         pass
 
 
 def is_prediction_request(request):
-    return request.url.path == "/predict" and request.method == "POST"
+    return request.url.path == local_cache["predict_route"] and request.method == "POST"
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -123,9 +130,10 @@ async def register_request(request: Request, call_next):
     response = None
     try:
         if is_prediction_request(request):
-            request_id = request.headers["x-request-id"]
-            file_id = f"/mnt/requests/{request_id}"
-            open(file_id, "a").close()
+            if local_cache["provider"] != "local":
+                request_id = request.headers["x-request-id"]
+                file_id = f"/mnt/requests/{request_id}"
+                open(file_id, "a").close()
 
         response = await call_next(request)
     finally:
@@ -145,24 +153,24 @@ async def register_request(request: Request, call_next):
     return response
 
 
-@app.post("/predict")
 def predict(request: Any = Body(..., media_type="application/json"), debug=False):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
 
     debug_obj("payload", request, debug)
     prediction = predictor_impl.predict(request)
-    debug_obj("prediction", prediction, debug)
 
     if isinstance(prediction, bytes):
         response = Response(content=prediction, media_type="application/octet-stream")
     elif isinstance(prediction, str):
         response = Response(content=prediction, media_type="text/plain")
+        debug_obj("prediction", prediction, debug)
     elif isinstance(prediction, Response):
         response = prediction
     else:
         try:
             json_string = json.dumps(prediction)
+            debug_obj("prediction", prediction, debug)
         except Exception as e:
             raise UserRuntimeException(
                 str(e),
@@ -170,7 +178,7 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
-    if api.tracker is not None:
+    if local_cache["provider"] != "local" and api.tracker is not None:
         try:
             predicted_value = api.tracker.extract_predicted_value(prediction)
             api.post_tracker_metrics(predicted_value)
@@ -188,7 +196,6 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
     return response
 
 
-@app.get("/predict")
 def get_summary():
     response = {"message": API_SUMMARY_MESSAGE}
 
@@ -197,39 +204,60 @@ def get_summary():
     return response
 
 
-def get_spec(storage, cache_dir, s3_path):
+def get_spec(provider, storage, cache_dir, spec_path):
+    if provider == "local":
+        return util.read_msgpack(spec_path)
+
     local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    _, key = S3.deconstruct_s3_path(s3_path)
+    _, key = S3.deconstruct_s3_path(spec_path)
     storage.download_file(key, local_spec_path)
     return util.read_msgpack(local_spec_path)
 
 
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    spec = os.environ["CORTEX_API_SPEC"]
+    provider = os.environ["CORTEX_PROVIDER"]
+    spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     model_dir = os.getenv("CORTEX_MODEL_DIR", None)
-    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
-    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", "9000")
+    tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
+    if provider == "local":
+        storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
+    else:
+        storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
-        raw_api_spec = get_spec(storage, cache_dir, spec)
-        api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
-        client = api.predictor.initialize_client(model_dir, tf_serving_port)
+        raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
+        api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
+        client = api.predictor.initialize_client(
+            model_dir, tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+        )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
         local_cache["api"] = api
+        local_cache["provider"] = provider
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
+        predict_route = "/"
+        if provider != "local":
+            predict_route = "/predict"
+        local_cache["predict_route"] = predict_route
     except:
         cx_logger().exception("failed to start api")
         sys.exit(1)
-
-    if api.tracker is not None and api.tracker.model_type == "classification":
+    if (
+        provider != "local"
+        and api.tracker is not None
+        and api.tracker.model_type == "classification"
+    ):
         try:
             local_cache["class_set"] = api.get_cached_classes()
         except:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
+
+    app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
+    app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])
 
     return app

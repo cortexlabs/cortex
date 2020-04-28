@@ -6,7 +6,6 @@
     path: predictor.py
     config:
       num_words: 50
-      device: cuda  # use "cpu" to run on CPUs
   compute:
     cpu: 1
     gpu: 1

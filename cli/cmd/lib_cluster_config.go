@@ -116,7 +116,7 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsCreds AWSCredentials, envName string) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
@@ -160,7 +160,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials) (*clusterconfig.Config, er
 		return nil, err
 	}
 
-	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient)
+	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient, envName)
 
 	return clusterConfig, nil
 }
@@ -245,7 +245,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		userClusterConfig.Spot = cachedClusterConfig.Spot
 
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-			err = userClusterConfig.AutoFillSpot(awsClient)
+			err = userClusterConfig.FillEmptySpotFields(awsClient)
 			if err != nil {
 				return nil, err
 			}
@@ -307,7 +307,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 	return userClusterConfig, nil
 }
 
-func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, envName string) {
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * 20 / 30 / 24
@@ -400,6 +400,8 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		privateSubnetMsg = ", and will use private subnets for all EC2 instances"
 	}
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.LogGroup, privateSubnetMsg)
+
+	fmt.Printf("your cli environment named \"%s\" will be configured to connect to this cluster\n\n", envName)
 
 	if clusterConfig.APILoadBalancerScheme == clusterconfig.InternalLoadBalancer {
 		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see www.cortex.dev/guides/vpc-peering or www.cortex.dev/guides/api-gateway)\n\n")

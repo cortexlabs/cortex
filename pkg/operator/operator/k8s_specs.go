@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
@@ -48,9 +49,10 @@ const (
 	_downloaderLastLog                     = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
+	_tfServingHost                         = "localhost"
 	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
-	_apiReadinessFile                      = "/mnt/api_readiness.txt"
-	_apiLivenessFile                       = "/mnt/api_liveness.txt"
+	_apiReadinessFile                      = "/mnt/workspace/api_readiness.txt"
+	_apiLivenessFile                       = "/mnt/workspace/api_liveness.txt"
 	_apiLivenessStalePeriod                = 7 // seconds (there is a 2-second buffer to be safe)
 )
 
@@ -92,11 +94,13 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	q1, q2 := k8s.SplitInTwo(userPodCPURequest)
-	apiResourceList[kcore.ResourceCPU] = *q1
-	tfServingResourceList[kcore.ResourceCPU] = *q2
+	if api.Compute.CPU != nil {
+		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		q1, q2 := k8s.SplitInTwo(userPodCPURequest)
+		apiResourceList[kcore.ResourceCPU] = *q1
+		tfServingResourceList[kcore.ResourceCPU] = *q2
+	}
 
 	if api.Compute.Mem != nil {
 		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
@@ -160,6 +164,10 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 							kcore.EnvVar{
 								Name:  "CORTEX_TF_SERVING_PORT",
 								Value: _tfServingPortStr,
+							},
+							kcore.EnvVar{
+								Name:  "CORTEX_TF_SERVING_HOST",
+								Value: _tfServingHost,
 							},
 						),
 						EnvFrom:        _baseEnvVars,
@@ -256,9 +264,11 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	if api.Compute.CPU != nil {
+		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	}
 
 	if api.Compute.Mem != nil {
 		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
@@ -363,9 +373,11 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	if api.Compute.CPU != nil {
+		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	}
 
 	if api.Compute.Mem != nil {
 		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
@@ -577,6 +589,10 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		kcore.EnvVar{
 			Name:  "CORTEX_PROJECT_DIR",
 			Value: path.Join(_emptyDirMountPath, "project"),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_PROVIDER",
+			Value: types.AWSProviderType.String(),
 		},
 	)
 

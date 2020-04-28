@@ -165,7 +165,7 @@ func IntPtrFromPrompt(promptOpts *prompt.Options, v *IntPtrValidation) (*int, er
 
 func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateIntPtr(v.Default, v)
 }

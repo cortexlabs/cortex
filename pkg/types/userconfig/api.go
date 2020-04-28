@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,6 +32,7 @@ import (
 type API struct {
 	Name           string          `json:"name" yaml:"name"`
 	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
+	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Tracker        *Tracker        `json:"tracker" yaml:"tracker"`
 	Compute        *Compute        `json:"compute" yaml:"compute"`
@@ -59,7 +61,7 @@ type Tracker struct {
 }
 
 type Compute struct {
-	CPU k8s.Quantity  `json:"cpu" yaml:"cpu"`
+	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
 	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
 }
@@ -246,34 +248,42 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 	return &a, nil
 }
 
-func (api *API) UserStr() string {
+func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
+
+	if provider == types.LocalProviderType && api.LocalPort != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))
+	}
+
+	if provider != types.LocalProviderType && api.Endpoint != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
+	}
 
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
-
-	if api.Tracker != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
-		sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
-	}
 
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
 
-	if api.Autoscaling != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
-		sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
-	}
+	if provider != types.LocalProviderType {
+		if api.Tracker != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
+			sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
+		}
 
-	if api.UpdateStrategy != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
-		sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
-	}
+		if api.Autoscaling != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
+			sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
+		}
 
+		if api.UpdateStrategy != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
+			sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
+		}
+	}
 	return sb.String()
 }
 
@@ -318,14 +328,48 @@ func (tracker *Tracker) UserStr() string {
 
 func (compute *Compute) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
+	if compute.CPU == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", CPUKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
+	}
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
-	if compute.Mem != nil {
+	if compute.Mem == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", MemKey))
+	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
 	return sb.String()
+}
+
+func (compute Compute) Equals(c2 *Compute) bool {
+	if c2 == nil {
+		return false
+	}
+
+	if compute.CPU == nil && c2.CPU != nil || compute.CPU != nil && c2.CPU == nil {
+		return false
+	}
+
+	if compute.CPU != nil && c2.CPU != nil && !compute.CPU.Equal(*c2.CPU) {
+		return false
+	}
+
+	if compute.Mem == nil && c2.Mem != nil || compute.Mem != nil && c2.Mem == nil {
+		return false
+	}
+
+	if compute.Mem != nil && c2.Mem != nil && !compute.Mem.Equal(*c2.Mem) {
+		return false
+	}
+
+	if compute.GPU != c2.GPU {
+		return false
+	}
+
+	return true
 }
 
 func (autoscaling *Autoscaling) UserStr() string {

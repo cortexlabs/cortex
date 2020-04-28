@@ -11,7 +11,7 @@ from torchvision import transforms
 
 class PythonPredictor:
     def __init__(self, config):
-        self.device = config["device"]
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True).to(self.device)
         model.eval()
 

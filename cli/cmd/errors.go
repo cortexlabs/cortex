@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 )
 
@@ -42,44 +43,84 @@ func getCloudFormationURL(clusterName, region string) string {
 }
 
 const (
-	ErrCLINotConfigured              = "cli.cli_not_configured"
-	ErrCortexYAMLNotFound            = "cli.cortex_yaml_not_found"
-	ErrConnectToDockerDaemon         = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions             = "cli.docker_permissions"
-	ErrDockerCtrlC                   = "cli.docker_ctrl_c"
-	ErrAPINotReady                   = "cli.api_not_ready"
-	ErrFailedToConnectOperator       = "cli.failed_to_connect_operator"
-	ErrOperatorSocketRead            = "cli.operator_socket_read"
-	ErrResponseUnknown               = "cli.response_unknown"
-	ErrOperatorResponseUnknown       = "cli.operator_response_unknown"
-	ErrOperatorStreamResponseUnknown = "cli.operator_stream_response_unknown"
-	ErrOneAWSEnvVarSet               = "cli.one_aws_env_var_set"
-	ErrOneAWSConfigFieldSet          = "cli.one_aws_config_field_set"
-	ErrClusterUp                     = "cli.cluster_up"
-	ErrClusterUpdate                 = "cli.cluster_update"
-	ErrClusterInfo                   = "cli.cluster_info"
-	ErrClusterDebug                  = "cli.cluster_debug"
-	ErrClusterRefresh                = "cli.cluster_refresh"
-	ErrClusterDown                   = "cli.cluster_down"
-	ErrDuplicateCLIEnvNames          = "cli.duplicate_cli_env_names"
-	ErrInvalidOperatorEndpoint       = "cli.invalid_operator_endpoint"
-	ErrClusterUpInProgress           = "cli.cluster_up_in_progress"
-	ErrClusterAlreadyCreated         = "cli.cluster_already_created"
-	ErrClusterDownInProgress         = "cli.cluster_down_in_progress"
-	ErrClusterAlreadyDeleted         = "cli.cluster_already_deleted"
-	ErrFailedClusterStatus           = "cli.failed_cluster_status"
-	ErrClusterDoesNotExist           = "cli.cluster_does_not_exist"
+	ErrInvalidProvider                    = "cli.invalid_provider"
+	ErrNotSupportedInLocalEnvironment     = "cli.not_supported_in_local_environment"
+	ErrEnvironmentNotFound                = "cli.environment_not_found"
+	ErrOperatorEndpointInLocalEnvironment = "cli.operator_endpoint_in_local_environment"
+	ErrOperatorConfigFromLocalEnvironment = "cli.operater_config_from_local_environment"
+	ErrFieldNotFoundInEnvironment         = "cli.err_field_not_found_in_environment"
+	ErrInvalidOperatorEndpoint            = "cli.invalid_operator_endpoint"
+	ErrCortexYAMLNotFound                 = "cli.cortex_yaml_not_found"
+	ErrConnectToDockerDaemon              = "cli.connect_to_docker_daemon"
+	ErrDockerPermissions                  = "cli.docker_permissions"
+	ErrDockerCtrlC                        = "cli.docker_ctrl_c"
+	ErrResponseUnknown                    = "cli.response_unknown"
+	ErrAPINotReady                        = "cli.api_not_ready"
+	ErrOneAWSEnvVarSet                    = "cli.one_aws_env_var_set"
+	ErrOneAWSConfigFieldSet               = "cli.one_aws_config_field_set"
+	ErrClusterUp                          = "cli.cluster_up"
+	ErrClusterUpdate                      = "cli.cluster_update"
+	ErrClusterInfo                        = "cli.cluster_info"
+	ErrClusterDebug                       = "cli.cluster_debug"
+	ErrClusterRefresh                     = "cli.cluster_refresh"
+	ErrClusterDown                        = "cli.cluster_down"
+	ErrDuplicateCLIEnvNames               = "cli.duplicate_cli_env_names"
+	ErrClusterUpInProgress                = "cli.cluster_up_in_progress"
+	ErrClusterAlreadyCreated              = "cli.cluster_already_created"
+	ErrClusterDownInProgress              = "cli.cluster_down_in_progress"
+	ErrClusterAlreadyDeleted              = "cli.cluster_already_deleted"
+	ErrFailedClusterStatus                = "cli.failed_cluster_status"
+	ErrClusterDoesNotExist                = "cli.cluster_does_not_exist"
 )
 
-func ErrorCLINotConfigured(env string) error {
-	msg := "your cli is not configured; run `cortex configure`"
-	if env != "default" {
-		msg = fmt.Sprintf("your cli is not configured; run `cortex configure --env=%s`", env)
-	}
-
+func ErrorInvalidProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrCLINotConfigured,
-		Message: msg,
+		Kind:    ErrInvalidProvider,
+		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(types.ProviderTypeStrings())),
+	})
+}
+
+func ErrorNotSupportedInLocalEnvironment() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNotSupportedInLocalEnvironment,
+		Message: "this command is not supported in local environment",
+	})
+}
+
+func ErrorEnvironmentNotFound(envName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrEnvironmentNotFound,
+		Message: fmt.Sprintf("unable to find environment named \"%s\"", envName),
+	})
+}
+
+// unexpected error if code tries to create operator config from local environment
+func ErrorOperatorConfigFromLocalEnvironment() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOperatorConfigFromLocalEnvironment,
+		Message: "attempting to retrieve cluster operator config from local environment",
+	})
+}
+
+// unexpected error if code tries to create operator config from local environment
+func ErrorFieldNotFoundInEnvironment(fieldName string, envName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldNotFoundInEnvironment,
+		Message: fmt.Sprintf("%s was not found in %s environment", fieldName, envName),
+	})
+}
+
+func ErrorOperatorEndpointInLocalEnvironment() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOperatorEndpointInLocalEnvironment,
+		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in local environment)"),
+	})
+}
+
+func ErrorInvalidOperatorEndpoint(endpoint string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidOperatorEndpoint,
+		Message: fmt.Sprintf("%s is not a cortex operator endpoint; run `cortex cluster info` to show your operator endpoint or run `cortex cluster up` to spin up a new cluster", endpoint),
 	})
 }
 
@@ -124,38 +165,6 @@ func ErrorDockerCtrlC() error {
 	})
 }
 
-func ErrorAPINotReady(apiName string, status string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPINotReady,
-		Message: fmt.Sprintf("%s is %s", apiName, status),
-	})
-}
-
-func ErrorFailedToConnectOperator(originalError error, operatorURL string) error {
-	operatorURLMsg := ""
-	if operatorURL != "" {
-		operatorURLMsg = fmt.Sprintf(" (%s)", operatorURL)
-	}
-
-	originalErrMsg := ""
-	if originalError != nil {
-		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFailedToConnectOperator,
-		Message: fmt.Sprintf("%sfailed to connect to the operator%s; run `cortex configure` if you need to update the operator endpoint, `cortex cluster info` to show your operator endpoint, or `cortex cluster up` to create a new cluster", originalErrMsg, operatorURLMsg),
-	})
-}
-
-func ErrorOperatorSocketRead(err error) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorSocketRead,
-		Message: err.Error(),
-		NoPrint: true,
-	})
-}
-
 func ErrorResponseUnknown(body string, statusCode int) error {
 	msg := body
 	if strings.TrimSpace(body) == "" {
@@ -168,17 +177,10 @@ func ErrorResponseUnknown(body string, statusCode int) error {
 	})
 }
 
-func ErrorOperatorResponseUnknown(body string, statusCode int) error {
+func ErrorAPINotReady(apiName string, status string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorResponseUnknown,
-		Message: fmt.Sprintf("unexpected response from operator (status code %d): %s", statusCode, body),
-	})
-}
-
-func ErrorOperatorStreamResponseUnknown(body string, statusCode int) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorStreamResponseUnknown,
-		Message: fmt.Sprintf("unexpected response from operator (status code %d): %s", statusCode, body),
+		Kind:    ErrAPINotReady,
+		Message: fmt.Sprintf("%s is %s", apiName, status),
 	})
 }
 
@@ -241,20 +243,6 @@ func ErrorClusterDown(out string) error {
 		Kind:    ErrClusterDown,
 		Message: out,
 		NoPrint: true,
-	})
-}
-
-func ErrorDuplicateCLIEnvNames(environment string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateCLIEnvNames,
-		Message: fmt.Sprintf("duplicate environment names: %s is defined more than once", s.UserStr(environment)),
-	})
-}
-
-func ErrorInvalidOperatorEndpoint(endpoint string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidOperatorEndpoint,
-		Message: fmt.Sprintf("unable to connect to cortex operator at %s; run `cortex cluster info` to show your operator endpoint or run `cortex cluster up` to spin up a new cluster", endpoint),
 	})
 }
 

@@ -165,7 +165,7 @@ func Int32PtrFromPrompt(promptOpts *prompt.Options, v *Int32PtrValidation) (*int
 
 func ValidateInt32PtrMissing(v *Int32PtrValidation) (*int32, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateInt32Ptr(v.Default, v)
 }

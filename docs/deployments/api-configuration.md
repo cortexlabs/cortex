@@ -22,9 +22,9 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
   compute:
-    cpu: <string | int | float>  # CPU request per replica (default: 200m)
+    cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
-    mem: <string>  # memory request per replica (default: Null)
+    mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
   autoscaling:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -66,9 +66,9 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
   compute:
-    cpu: <string | int | float>  # CPU request per replica (default: 200m)
+    cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
-    mem: <string>  # memory request per replica (default: Null)
+    mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
   autoscaling:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -108,9 +108,9 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
     model_type: <string>  # model type, must be "classification" or "regression" (required)
   compute:
-    cpu: <string | int | float>  # CPU request per replica (default: 200m)
+    cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
-    mem: <string>  # memory request per replica (default: Null)
+    mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
   autoscaling:
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)

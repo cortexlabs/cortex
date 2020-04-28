@@ -40,6 +40,23 @@ func (c *Client) AccessKeyID() *string {
 	return &sessCreds.AccessKeyID
 }
 
+func (c *Client) SecretAccessKey() *string {
+	if c.sess.Config.Credentials == nil {
+		return nil
+	}
+
+	sessCreds, err := c.sess.Config.Credentials.Get()
+	if err != nil {
+		return nil
+	}
+
+	if sessCreds.SecretAccessKey == "" {
+		return nil
+	}
+
+	return &sessCreds.SecretAccessKey
+}
+
 func GetCredentialsFromCLIConfigFile() (string, string, error) {
 	creds := credentials.NewSharedCredentials("", "")
 	if creds == nil {

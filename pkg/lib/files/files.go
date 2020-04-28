@@ -17,11 +17,15 @@ limitations under the License.
 package files
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -259,6 +263,7 @@ func CheckDirErrPath(dirPath string, errMsgPath string) error {
 	if err != nil {
 		return errors.Wrap(err, errors.Message(ErrorDirDoesNotExist(errMsgPath)))
 	}
+
 	if !fileInfo.IsDir() {
 		return ErrorNotADir(errMsgPath)
 	}
@@ -341,7 +346,7 @@ func DeleteDir(path string) error {
 
 func DeleteDirIfPresent(path string) (bool, error) {
 	if IsFile(path) {
-		return false, ErrorFileAlreadyExists(path)
+		return false, ErrorNotADir(path)
 	}
 
 	if !IsDir(path) {
@@ -479,6 +484,9 @@ func IgnoreHiddenFolders(path string, fi os.FileInfo) (bool, error) {
 }
 
 func IgnorePythonGeneratedFiles(path string, fi os.FileInfo) (bool, error) {
+	if fi.IsDir() && fi.Name() == "__pycache__" {
+		return true, nil
+	}
 	if !fi.IsDir() {
 		ext := filepath.Ext(path)
 		return ext == ".pyc" || ext == ".pyo" || ext == ".pyd", nil
@@ -665,6 +673,10 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 	cleanDir = filepath.Clean(cleanDir)
 	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
+	if err := CheckDir(cleanDir); err != nil {
+		return nil, err
+	}
+
 	var fileList []string
 	walkErr := filepath.Walk(cleanDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -685,7 +697,7 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 		}
 
 		if !fi.IsDir() {
-			if relative {
+			if relative && dir != "." {
 				path = path[len(cleanDir)+1:]
 			}
 			fileList = append(fileList, path)
@@ -708,6 +720,10 @@ func ListDir(dir string, relative bool) ([]string, error) {
 	cleanDir = filepath.Clean(cleanDir)
 	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
+	if err := CheckDir(cleanDir); err != nil {
+		return nil, err
+	}
+
 	var filenames []string
 	fileInfo, err := ioutil.ReadDir(cleanDir)
 	if err != nil {
@@ -721,6 +737,142 @@ func ListDir(dir string, relative bool) ([]string, error) {
 		filenames = append(filenames, filename)
 	}
 	return filenames, nil
+}
+
+func CopyFileOverwrite(src string, dest string) error {
+	srcFile, err := Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	destFile, err := Create(dest)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	if _, err = io.Copy(destFile, srcFile); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CopyDirOverwrite(src string, dest string, ignoreFns ...IgnoreFn) error {
+	srcRelFilePaths, err := ListDirRecursive(src, true, ignoreFns...)
+	if err != nil {
+		return err
+	}
+
+	if _, err := CreateDirIfMissing(dest); err != nil {
+		return err
+	}
+	createdDirs := strset.New(dest)
+
+	for _, srcRelFilePath := range srcRelFilePaths {
+		srcFilePath := filepath.Join(src, srcRelFilePath)
+		destFilePath := filepath.Join(dest, srcRelFilePath)
+
+		destFileDir := filepath.Dir(destFilePath)
+		if !createdDirs.Has(destFileDir) {
+			if _, err := CreateDirIfMissing(destFileDir); err != nil {
+				return err
+			}
+			createdDirs.Add(destFileDir)
+		}
+
+		if err := CopyFileOverwrite(srcFilePath, destFilePath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CopyRecursiveShell(src string, dest string) error {
+	cleanSrc, err := EscapeTilde(src)
+	if err != nil {
+		return err
+	}
+	cleanDest, err := EscapeTilde(dest)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("cp", "-r", cleanSrc, cleanDest)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, strings.TrimSpace(out.String()))
+	}
+
+	return nil
+}
+
+func HashFile(path string, paths ...string) (string, error) {
+	md5Hash := md5.New()
+
+	allPaths := append(paths, path)
+	for _, path := range allPaths {
+		f, err := Open(path)
+		if err != nil {
+			return "", err
+		}
+
+		if _, err := io.Copy(md5Hash, f); err != nil {
+			f.Close()
+			return "", errors.Wrap(err, path)
+		}
+		f.Close()
+	}
+
+	return hex.EncodeToString((md5Hash.Sum(nil))), nil
+}
+
+func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
+	md5Hash := md5.New()
+
+	walkErr := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return errors.Wrap(err, path)
+		}
+
+		for _, ignoreFn := range ignoreFns {
+			ignore, err := ignoreFn(path, fi)
+			if err != nil {
+				return errors.Wrap(err, path)
+			}
+			if ignore {
+				if fi.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+		}
+		if fi.IsDir() {
+			return nil
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return errors.Wrap(err, path)
+		}
+		defer f.Close()
+
+		if _, err := io.Copy(md5Hash, f); err != nil {
+			return errors.Wrap(err, path)
+		}
+
+		return nil
+	})
+
+	if walkErr != nil {
+		return "", walkErr
+	}
+
+	return hex.EncodeToString((md5Hash.Sum(nil))), nil
 }
 
 func CloseSilent(closer io.Closer, closers ...io.Closer) {

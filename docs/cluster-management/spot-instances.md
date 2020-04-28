@@ -11,7 +11,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 spot: false
 
 spot_config:
-  # additional instances with identical or better specs than the primary instance type (defaults to 2 instances sorted by price)
+  # additional instances with identical or better specs than the primary instance type (defaults to only the primary instance)
   instance_distribution: [similar_instance_type_1, similar_instance_type_2]
 
   # minimum number of on demand instances (default: 0)
@@ -31,7 +31,7 @@ spot_config:
   on_demand_backup: true
 ```
 
-Spot instances are not guaranteed to be available. The chances of getting spot instances can be improved by providing `instance_distribution`, a list of alternative instance types to the primary `instance_type` you specified. If left blank, Cortex will autofill `instance_distribution` with up to 2 other similar instances. Cortex defaults the `max_price` to the on-demand price of the primary instance.
+Spot instances are not guaranteed to be available. The chances of getting spot instances can be improved by providing `instance_distribution`, a list of alternative instance types to the primary `instance_type` you specified. If left blank, Cortex will only include the primary instance type in the `instance_distribution`. Cortex defaults the `max_price` to the on-demand price of the primary instance.
 
 Spot instances can be mixed with on-demand instances by configuring `on_demand_base_capacity` and `on_demand_percentage_above_base_capacity`. `on_demand_base_capacity` enforces the minimum number of nodes that will be fulfilled by on-demand instances as your cluster is scaling up. `on_demand_percentage_above_base_capacity` defines the percentage of instances that will be on-demand after the base capacity has been fulfilled (the rest being spot instances). `instance_pools` is the number of pools per availability zone to allocate your instances from. See [here](https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_InstancesDistribution.html) for more details.
 

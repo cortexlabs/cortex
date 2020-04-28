@@ -138,7 +138,7 @@ func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
 }
 
 // awsCreds is what was read from the cluster config YAML
-func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
+func setInstallAWSCredentials(awsCreds *AWSCredentials, envName string) error {
 	// First check env vars
 	if os.Getenv("AWS_SESSION_TOKEN") != "" {
 		fmt.Println("warning: credentials requiring aws session tokens are not supported")
@@ -176,10 +176,10 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials) error {
 	}
 
 	// Next check Cortex CLI config file
-	cliEnvConfig, err := readCLIEnvConfig(_flagEnv)
-	if err != nil && cliEnvConfig != nil && cliEnvConfig.AWSAccessKeyID != "" && cliEnvConfig.AWSSecretAccessKey != "" {
-		awsCreds.AWSAccessKeyID = cliEnvConfig.AWSAccessKeyID
-		awsCreds.AWSSecretAccessKey = cliEnvConfig.AWSSecretAccessKey
+	env, err := readEnv(envName)
+	if err != nil && env != nil && env.AWSAccessKeyID != nil && env.AWSSecretAccessKey != nil {
+		awsCreds.AWSAccessKeyID = *env.AWSAccessKeyID
+		awsCreds.AWSSecretAccessKey = *env.AWSSecretAccessKey
 		return nil
 	}
 
@@ -224,14 +224,14 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 	return nil
 }
 
-func getAWSCredentials(userClusterConfigPath string) (AWSCredentials, error) {
+func getAWSCredentials(userClusterConfigPath string, envName string) (AWSCredentials, error) {
 	awsCreds := AWSCredentials{}
 
 	if userClusterConfigPath != "" {
 		readAWSCredsFromConfigFile(&awsCreds, userClusterConfigPath)
 	}
 
-	err := setInstallAWSCredentials(&awsCreds)
+	err := setInstallAWSCredentials(&awsCreds, envName)
 	if err != nil {
 		return AWSCredentials{}, err
 	}

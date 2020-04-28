@@ -83,6 +83,17 @@ func Wrap(err error, strs ...string) error {
 	return cortexError
 }
 
+// adds to the end of the error message (without adding any whitespace or punctuation)
+func Append(err error, str string) error {
+	if err == nil {
+		return nil
+	}
+
+	cortexError := WithStack(err).(*Error)
+	cortexError.Message = cortexError.Message + str
+	return cortexError
+}
+
 func getCortexError(err error) *Error {
 	if cortexError, ok := err.(*Error); ok {
 		return cortexError

@@ -20,6 +20,7 @@ const (
 	// API
 	NameKey           = "name"
 	EndpointKey       = "endpoint"
+	LocalPortKey      = "local_port"
 	PredictorKey      = "predictor"
 	TrackerKey        = "tracker"
 	ComputeKey        = "compute"

@@ -20,15 +20,21 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	addEnvFlag(_logsCmd)
+var _flagLogsEnv string
+
+func logsInit() {
+	_logsCmd.Flags().SortFlags = false
+	_logsCmd.Flags().StringVarP(&_flagLogsEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 }
 
 var _logsCmd = &cobra.Command{
@@ -36,18 +42,34 @@ var _logsCmd = &cobra.Command{
 	Short: "stream logs from an api",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.logs")
+		env, err := ReadOrConfigureEnv(_flagLogsEnv)
+		if err != nil {
+			telemetry.Event("cli.logs")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.logs", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+
+		err = printEnvIfNotSpecified(_flagLogsEnv)
+		if err != nil {
+			exit.Error(err)
+		}
 
 		apiName := args[0]
-
-		err := StreamLogs(apiName)
-		if err != nil {
-			// note: if modifying this string, search the codebase for it and change all occurrences
-			if strings.HasSuffix(errors.Message(err), "is not deployed") {
-				fmt.Println(console.Bold(errors.Message(err)))
-				return
+		if env.Provider == types.AWSProviderType {
+			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), apiName)
+			if err != nil {
+				// note: if modifying this string, search the codebase for it and change all occurrences
+				if strings.HasSuffix(errors.Message(err), "is not deployed") {
+					fmt.Println(console.Bold(errors.Message(err)))
+					return
+				}
+				exit.Error(err)
 			}
-			exit.Error(err)
+		} else {
+			err := local.StreamLogs(apiName)
+			if err != nil {
+				exit.Error(err)
+			}
 		}
 	},
 }

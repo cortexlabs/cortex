@@ -27,11 +27,10 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
 )
-
-var _autoscalingTickInterval = 10 * time.Second
 
 type recommendations map[time.Time]int32
 
@@ -247,7 +246,7 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 		return nil, nil // no metrics were available in the last 2 tick intervals
 	}
 
-	steps := int(window.Nanoseconds() / _autoscalingTickInterval.Nanoseconds())
+	steps := int(window.Nanoseconds() / spec.AutoscalingTickInterval.Nanoseconds())
 
 	endTimeStampCounter := libmath.MinInt(timestampCounter+steps, len(output.MetricDataResults[0].Timestamps))
 
