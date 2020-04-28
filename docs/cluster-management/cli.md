@@ -98,6 +98,7 @@ Usage:
 Flags:
   -c, --config string   path to a cluster configuration file
   -e, --env string      environment to configure (default "aws")
+  -y, --yes             skip prompts
   -h, --help            help for up
 ```
 
@@ -113,6 +114,7 @@ Flags:
   -c, --config string   path to a cluster configuration file
   -e, --env string      environment to configure (default "aws")
   -d, --debug           save the current cluster state to a file
+  -y, --yes             skip prompts
   -h, --help            help for info
 ```
 
@@ -127,6 +129,7 @@ Usage:
 Flags:
   -c, --config string   path to a cluster configuration file
   -e, --env string      environment to configure (default "aws")
+  -y, --yes             skip prompts
   -h, --help            help for update
 ```
 
@@ -140,6 +143,7 @@ Usage:
 
 Flags:
   -c, --config string   path to a cluster configuration file
+  -y, --yes             skip prompts
   -h, --help            help for down
 ```
 

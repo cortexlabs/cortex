@@ -79,7 +79,7 @@ func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	return nil
 }
 
-func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
+func getClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig, error) {
 	accessConfig, err := clusterconfig.DefaultAccessConfig()
 	if err != nil {
 		return nil, err
@@ -108,6 +108,20 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 		}
 	}
 
+	if disallowPrompt {
+		if len(cachedPaths) > 1 && (accessConfig.ClusterName == nil || accessConfig.Region == nil) {
+			return nil, ErrorClusterAccessConfigOrPromptsRequired()
+		}
+
+		if accessConfig.ClusterName == nil {
+			accessConfig.ClusterName = pointer.String("cortex")
+		}
+		if accessConfig.Region == nil {
+			accessConfig.Region = pointer.String("us-west-2")
+		}
+		return accessConfig, nil
+	}
+
 	err = cr.ReadPrompt(accessConfig, clusterconfig.AccessPromptValidation)
 	if err != nil {
 		return nil, err
@@ -116,7 +130,7 @@ func getClusterAccessConfig() (*clusterconfig.AccessConfig, error) {
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsCreds AWSCredentials, envName string) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsCreds AWSCredentials, envName string, disallowPrompt bool) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
@@ -131,7 +145,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string) (*clusterc
 		}
 	}
 
-	err = clusterconfig.RegionPrompt(clusterConfig)
+	err = clusterconfig.RegionPrompt(clusterConfig, disallowPrompt)
 	if err != nil {
 		return nil, err
 	}
@@ -140,9 +154,9 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string) (*clusterc
 	if err != nil {
 		return nil, err
 	}
-	promptIfNotAdmin(awsClient)
+	promptIfNotAdmin(awsClient, disallowPrompt)
 
-	err = clusterconfig.InstallPrompt(clusterConfig, awsClient)
+	err = clusterconfig.InstallPrompt(clusterConfig, awsClient, disallowPrompt)
 	if err != nil {
 		return nil, err
 	}
@@ -160,26 +174,32 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string) (*clusterc
 		return nil, err
 	}
 
-	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient, envName)
+	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient, envName, disallowPrompt)
 
 	return clusterConfig, nil
 }
 
-func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials) (*clusterconfig.Config, error) {
+func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) (*clusterconfig.Config, error) {
 	userClusterConfig := &clusterconfig.Config{}
 	var awsClient *aws.Client
 
 	if _flagClusterConfig == "" {
+		if disallowPrompt {
+			return nil, ErrorClusterConfigOrPromptsRequired()
+		}
+
 		userClusterConfig = &cachedClusterConfig
-		err := cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(false, &cachedClusterConfig))
+		err := clusterconfig.UpdatePrompt(userClusterConfig, &cachedClusterConfig, false, disallowPrompt)
 		if err != nil {
 			return nil, err
 		}
+
 		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
 		if err != nil {
 			return nil, err
 		}
-		promptIfNotAdmin(awsClient)
+		promptIfNotAdmin(awsClient, disallowPrompt)
+
 	} else {
 		err := readUserClusterConfigFile(userClusterConfig)
 		if err != nil {
@@ -192,7 +212,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		if err != nil {
 			return nil, err
 		}
-		promptIfNotAdmin(awsClient)
+		promptIfNotAdmin(awsClient, disallowPrompt)
 
 		if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
@@ -272,7 +292,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		}
 		userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
-		err = cr.ReadPrompt(userClusterConfig, clusterconfig.UpdatePromptValidation(true, &cachedClusterConfig))
+		err = clusterconfig.UpdatePrompt(userClusterConfig, &cachedClusterConfig, true, disallowPrompt)
 		if err != nil {
 			return nil, err
 		}
@@ -292,12 +312,12 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		return nil, err
 	}
 
-	confirmUpdateClusterConfig(*userClusterConfig, awsCreds, awsClient)
+	confirmUpdateClusterConfig(*userClusterConfig, awsCreds, awsClient, disallowPrompt)
 
 	return userClusterConfig, nil
 }
 
-func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, envName string) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, envName string, disallowPrompt bool) {
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
@@ -384,15 +404,19 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		fmt.Println()
 	}
 
-	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
-	prompt.YesOrExit("would you like to continue?", "", exitMessage)
+	if !disallowPrompt {
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
+		prompt.YesOrExit("would you like to continue?", "", exitMessage)
+	}
 }
 
-func confirmUpdateClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) {
+func confirmUpdateClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, disallowPrompt bool) {
 	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds, awsClient))
 
-	exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
-	prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
+	if !disallowPrompt {
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
+		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
+	}
 }
 
 func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
