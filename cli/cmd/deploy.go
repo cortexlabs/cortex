@@ -44,16 +44,16 @@ var (
 	_warningProjectBytes = 1024 * 1024 * 10
 	_warningFileCount    = 1000
 
-	_flagDeployEnv   string
-	_flagDeployForce bool
-	_flagDeployYes   bool
+	_flagDeployEnv            string
+	_flagDeployForce          bool
+	_flagDeployDisallowPrompt bool
 )
 
 func deployInit() {
 	_deployCmd.Flags().SortFlags = false
 	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_deployCmd.Flags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
-	_deployCmd.Flags().BoolVarP(&_flagDeployYes, "yes", "y", false, "skip prompts")
+	_deployCmd.Flags().BoolVarP(&_flagDeployDisallowPrompt, "yes", "y", false, "skip prompts")
 }
 
 var _deployCmd = &cobra.Command{
@@ -140,7 +140,7 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 		ignoreFns = append(ignoreFns, cortexIgnore)
 	}
 
-	if !_flagDeployYes && provider != types.LocalProviderType {
+	if !_flagDeployDisallowPrompt && provider != types.LocalProviderType {
 		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 	}
 
@@ -176,7 +176,7 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 	}
 
 	didPromptFileCount := false
-	if !_flagDeployYes && len(projectPaths) >= _warningFileCount {
+	if !_flagDeployDisallowPrompt && len(projectPaths) >= _warningFileCount {
 		msg := fmt.Sprintf("cortex will zip %d files in %s and upload them to the cluster; we recommend that you upload large files/directories (e.g. models) to s3 and download them in your api's __init__ function, and avoid sending unnecessary files by removing them from this directory or referencing them in a .cortexignore file. Would you like to continue?", len(projectPaths), rootDirMsg)
 		prompt.YesOrExit(msg, canSkipPromptMsg, "")
 		didPromptFileCount = true
@@ -194,7 +194,7 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 		return nil, errors.Wrap(err, "failed to zip project folder")
 	}
 
-	if !_flagDeployYes && !didPromptFileCount && len(projectZipBytes) >= _warningProjectBytes {
+	if !_flagDeployDisallowPrompt && !didPromptFileCount && len(projectZipBytes) >= _warningProjectBytes {
 		msg := fmt.Sprintf("cortex will zip %d files in %s (%s) and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg, s.IntToBase2Byte(len(projectZipBytes)))
 		prompt.YesOrExit(msg, canSkipPromptMsg, "")
 	}

@@ -26,6 +26,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 )
 
@@ -43,34 +44,37 @@ func getCloudFormationURL(clusterName, region string) string {
 }
 
 const (
-	ErrInvalidProvider                    = "cli.invalid_provider"
-	ErrNotSupportedInLocalEnvironment     = "cli.not_supported_in_local_environment"
-	ErrEnvironmentNotFound                = "cli.environment_not_found"
-	ErrOperatorEndpointInLocalEnvironment = "cli.operator_endpoint_in_local_environment"
-	ErrOperatorConfigFromLocalEnvironment = "cli.operater_config_from_local_environment"
-	ErrFieldNotFoundInEnvironment         = "cli.err_field_not_found_in_environment"
-	ErrInvalidOperatorEndpoint            = "cli.invalid_operator_endpoint"
-	ErrCortexYAMLNotFound                 = "cli.cortex_yaml_not_found"
-	ErrConnectToDockerDaemon              = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions                  = "cli.docker_permissions"
-	ErrDockerCtrlC                        = "cli.docker_ctrl_c"
-	ErrResponseUnknown                    = "cli.response_unknown"
-	ErrAPINotReady                        = "cli.api_not_ready"
-	ErrOneAWSEnvVarSet                    = "cli.one_aws_env_var_set"
-	ErrOneAWSConfigFieldSet               = "cli.one_aws_config_field_set"
-	ErrClusterUp                          = "cli.cluster_up"
-	ErrClusterUpdate                      = "cli.cluster_update"
-	ErrClusterInfo                        = "cli.cluster_info"
-	ErrClusterDebug                       = "cli.cluster_debug"
-	ErrClusterRefresh                     = "cli.cluster_refresh"
-	ErrClusterDown                        = "cli.cluster_down"
-	ErrDuplicateCLIEnvNames               = "cli.duplicate_cli_env_names"
-	ErrClusterUpInProgress                = "cli.cluster_up_in_progress"
-	ErrClusterAlreadyCreated              = "cli.cluster_already_created"
-	ErrClusterDownInProgress              = "cli.cluster_down_in_progress"
-	ErrClusterAlreadyDeleted              = "cli.cluster_already_deleted"
-	ErrFailedClusterStatus                = "cli.failed_cluster_status"
-	ErrClusterDoesNotExist                = "cli.cluster_does_not_exist"
+	ErrInvalidProvider                      = "cli.invalid_provider"
+	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
+	ErrEnvironmentNotFound                  = "cli.environment_not_found"
+	ErrOperatorEndpointInLocalEnvironment   = "cli.operator_endpoint_in_local_environment"
+	ErrOperatorConfigFromLocalEnvironment   = "cli.operater_config_from_local_environment"
+	ErrFieldNotFoundInEnvironment           = "cli.err_field_not_found_in_environment"
+	ErrInvalidOperatorEndpoint              = "cli.invalid_operator_endpoint"
+	ErrCortexYAMLNotFound                   = "cli.cortex_yaml_not_found"
+	ErrConnectToDockerDaemon                = "cli.connect_to_docker_daemon"
+	ErrDockerPermissions                    = "cli.docker_permissions"
+	ErrDockerCtrlC                          = "cli.docker_ctrl_c"
+	ErrResponseUnknown                      = "cli.response_unknown"
+	ErrAPINotReady                          = "cli.api_not_ready"
+	ErrOneAWSEnvVarSet                      = "cli.one_aws_env_var_set"
+	ErrOneAWSConfigFieldSet                 = "cli.one_aws_config_field_set"
+	ErrClusterUp                            = "cli.cluster_up"
+	ErrClusterUpdate                        = "cli.cluster_update"
+	ErrClusterInfo                          = "cli.cluster_info"
+	ErrClusterDebug                         = "cli.cluster_debug"
+	ErrClusterRefresh                       = "cli.cluster_refresh"
+	ErrClusterDown                          = "cli.cluster_down"
+	ErrDuplicateCLIEnvNames                 = "cli.duplicate_cli_env_names"
+	ErrClusterUpInProgress                  = "cli.cluster_up_in_progress"
+	ErrClusterAlreadyCreated                = "cli.cluster_already_created"
+	ErrClusterDownInProgress                = "cli.cluster_down_in_progress"
+	ErrClusterAlreadyDeleted                = "cli.cluster_already_deleted"
+	ErrFailedClusterStatus                  = "cli.failed_cluster_status"
+	ErrClusterDoesNotExist                  = "cli.cluster_does_not_exist"
+	ErrAWSCredentialsRequired               = "cli.aws_credentials_required"
+	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
+	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -285,5 +289,26 @@ func ErrorFailedClusterStatus(status clusterstate.Status, clusterName string, re
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedClusterStatus,
 		Message: fmt.Sprintf("cluster \"%s\" in %s encountered an unexpected status %s, please try to delete the cluster with `cortex cluster down` or delete the cloudformation stacks manually in your AWS console %s", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
+	})
+}
+
+func ErrorAWSCredentialsRequired() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAWSCredentialsRequired,
+		Message: "AWS credentials are required; please set them in your cluster configuration file (if you're using one), your environment variables (i.e. AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY), or your AWS CLI (i.e. via `aws configure`)",
+	})
+}
+
+func ErrorClusterConfigOrPromptsRequired() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterConfigOrPromptsRequired,
+		Message: "this command requires either a cluster configuration file (e.g. `--config=cluster.yaml`) or prompts to be enabled (i.e. omit the `--yes` flag)",
+	})
+}
+
+func ErrorClusterAccessConfigOrPromptsRequired() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterAccessConfigOrPromptsRequired,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. `--config=cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
 	})
 }

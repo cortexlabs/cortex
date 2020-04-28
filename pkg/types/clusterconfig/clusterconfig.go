@@ -585,8 +585,16 @@ func applyPromptDefaults(defaults Config) *Config {
 	return defaultConfig
 }
 
-func RegionPrompt(clusterConfig *Config) error {
+func RegionPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
+
+	if disallowPrompt {
+		if clusterConfig.Region == nil {
+			clusterConfig.Region = defaults.Region
+		}
+		return nil
+	}
+
 	regionPrompt := &cr.PromptValidation{
 		SkipNonNilFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
@@ -610,7 +618,7 @@ func RegionPrompt(clusterConfig *Config) error {
 	return nil
 }
 
-func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
+func InstallPrompt(clusterConfig *Config, awsClient *aws.Client, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 	accountID, _, err := awsClient.GetCachedAccountID()
 	if err != nil {
@@ -624,6 +632,22 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	}
 	if strings.HasSuffix(defaultBucket, "-") {
 		defaultBucket = defaultBucket[:len(defaultBucket)-1]
+	}
+
+	if disallowPrompt {
+		if clusterConfig.Bucket == "" {
+			clusterConfig.Bucket = defaultBucket
+		}
+		if clusterConfig.InstanceType == nil {
+			clusterConfig.InstanceType = defaults.InstanceType
+		}
+		if clusterConfig.MinInstances == nil {
+			clusterConfig.MinInstances = defaults.MinInstances
+		}
+		if clusterConfig.MaxInstances == nil {
+			clusterConfig.MaxInstances = defaults.MaxInstances
+		}
+		return nil
 	}
 
 	remainingPrompts := &cr.PromptValidation{
@@ -686,10 +710,28 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	return nil
 }
 
-func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Config) *cr.PromptValidation {
-	defaults := applyPromptDefaults(*userClusterConfig)
+func UpdatePrompt(userClusterConfig *Config, cachedClusterConfig *Config, skipPopulatedFields bool, disallowPrompt bool) error {
+	defaults := applyPromptDefaults(*cachedClusterConfig)
 
-	return &cr.PromptValidation{
+	if disallowPrompt {
+		if userClusterConfig.MinInstances == nil {
+			if cachedClusterConfig.MinInstances != nil {
+				userClusterConfig.MinInstances = cachedClusterConfig.MinInstances
+			} else {
+				userClusterConfig.MinInstances = defaults.MinInstances
+			}
+		}
+		if userClusterConfig.MaxInstances == nil {
+			if cachedClusterConfig.MaxInstances != nil {
+				userClusterConfig.MaxInstances = cachedClusterConfig.MaxInstances
+			} else {
+				userClusterConfig.MaxInstances = defaults.MaxInstances
+			}
+		}
+		return nil
+	}
+
+	remainingPrompts := &cr.PromptValidation{
 		SkipNonNilFields: skipPopulatedFields,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -716,6 +758,13 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Config)
 			},
 		},
 	}
+
+	err := cr.ReadPrompt(userClusterConfig, remainingPrompts)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 var AccessPromptValidation = &cr.PromptValidation{

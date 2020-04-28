@@ -44,9 +44,10 @@ import (
 )
 
 var (
-	_flagClusterEnv       string
-	_flagClusterConfig    string
-	_flagClusterInfoDebug bool
+	_flagClusterEnv            string
+	_flagClusterConfig         string
+	_flagClusterInfoDebug      bool
+	_flagClusterDisallowPrompt bool
 )
 
 func clusterInit() {
@@ -55,21 +56,25 @@ func clusterInit() {
 	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
 	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_upCmd)
 
 	_infoCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_infoCmd)
 	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
 	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
+	_infoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_infoCmd)
 
 	_updateCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_updateCmd)
 	_updateCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	_updateCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_updateCmd)
 
 	_downCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_downCmd)
+	_downCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_downCmd)
 }
 
@@ -98,13 +103,16 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		promptForEmail()
-		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
+		if !_flagClusterDisallowPrompt {
+			promptForEmail()
+		}
+
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsCreds, _flagClusterEnv)
+		clusterConfig, err := getInstallClusterConfig(awsCreds, _flagClusterEnv, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -170,12 +178,12 @@ var _updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfig()
+		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -198,9 +206,9 @@ var _updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		cachedClusterConfig := refreshCachedClusterConfig(awsCreds)
+		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, _flagClusterDisallowPrompt)
 
-		clusterConfig, err := getClusterUpdateConfig(cachedClusterConfig, awsCreds)
+		clusterConfig, err := getClusterUpdateConfig(cachedClusterConfig, awsCreds, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -232,12 +240,12 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfig()
+		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -245,7 +253,7 @@ var _infoCmd = &cobra.Command{
 		if _flagClusterInfoDebug {
 			cmdDebug(awsCreds, accessConfig)
 		} else {
-			cmdInfo(awsCreds, accessConfig)
+			cmdInfo(awsCreds, accessConfig, _flagClusterDisallowPrompt)
 		}
 	},
 }
@@ -261,12 +269,12 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv)
+		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfig()
+		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -293,7 +301,9 @@ var _downCmd = &cobra.Command{
 			exit.Error(ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region))
 		}
 
-		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
+		if !_flagClusterDisallowPrompt {
+			prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
+		}
 
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
@@ -353,7 +363,7 @@ func promptForEmail() {
 	}
 }
 
-func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
+func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) {
 	awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
 	if err != nil {
 		exit.Error(err)
@@ -378,7 +388,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 		exit.Error(err)
 	}
 
-	clusterConfig := refreshCachedClusterConfig(awsCreds)
+	clusterConfig := refreshCachedClusterConfig(awsCreds, disallowPrompt)
 
 	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
@@ -440,7 +450,12 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) 
 	} else if *prevEnv.OperatorEndpoint != operatorConfig.OperatorEndpoint || *prevEnv.AWSAccessKeyID != operatorConfig.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != operatorConfig.AWSSecretAccessKey {
 		fmt.Println()
 		fmt.Println(newEnvironment.String(false))
-		shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it with the configuration above?", _flagClusterEnv), "", "")
+		if disallowPrompt {
+			fmt.Print(fmt.Sprintf("found an existing environment named \"%s\"; overwriting it with the configuration above\n\n", _flagClusterEnv))
+			shouldWriteEnv = true
+		} else {
+			shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it with the configuration above?", _flagClusterEnv), "", "")
+		}
 	}
 
 	if shouldWriteEnv {
@@ -473,8 +488,8 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 	return
 }
 
-func refreshCachedClusterConfig(awsCreds AWSCredentials) clusterconfig.Config {
-	accessConfig, err := getClusterAccessConfig()
+func refreshCachedClusterConfig(awsCreds AWSCredentials, disallowPrompt bool) clusterconfig.Config {
+	accessConfig, err := getClusterAccessConfig(disallowPrompt)
 	if err != nil {
 		exit.Error(err)
 	}
