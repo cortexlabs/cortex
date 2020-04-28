@@ -41,6 +41,7 @@ max_instances: 5
 instance_volume_size: 50
 
 # whether the subnets used for EC2 instances should be public or private (default: "public")
+# if "public", instances will be assigned public IP addresses; if "private", instances won't have public IPs and a NAT gateway will be created to allow outgoing newtwork requests
 subnet_visibility: public  # must be "public" or "private"
 
 # whether to include a NAT gateway with the cluster (a NAT gateway is necessary when using private subnets)

@@ -6,7 +6,7 @@ _The information on this page assumes you are running Cortex on AWS. If you're o
 
 ## Private cluster
 
-By default, instances are created in public subnets and are assigned public IP addresses. You can configure all instances in your cluster to use private subnets by setting `subnet_visibility: private` in your [cluster configuration](config.md) file before creating your cluster (e.g. via `cortex cluster up -c cluster.yaml`).
+By default, instances are created in public subnets and are assigned public IP addresses. You can configure all instances in your cluster to use private subnets by setting `subnet_visibility: private` in your [cluster configuration](config.md) file before creating your cluster (e.g. via `cortex cluster up -c cluster.yaml`). If private subnets are used, instances will not have public IP addresses, and Cortex will create a NAT gateway to allow outgoing newtwork requests.
 
 By default, the API load balancer is internet-facing, and therefore APIs are publicly accessible. You can configure your API load balancer to be internal by setting `api_load_balancer_scheme: internal` in your cluster configuration file (before creating your cluster). If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) or an [API Gateway with VPC Link](../guides/api-gateway.md) to make prediction requests to your APIs.
 
