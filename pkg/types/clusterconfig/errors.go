@@ -46,6 +46,7 @@ const (
 	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
 	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
+	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
@@ -187,6 +188,13 @@ func ErrorDidNotMatchStrictS3Regex() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDidNotMatchStrictS3Regex,
 		Message: "only lowercase alphanumeric characters and dashes are allowed, with no consecutive dashes and no leading or trailing dashes",
+	})
+}
+
+func ErrorNATRequiredWithPrivateSubnetVisibility() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNATRequiredWithPrivateSubnetVisibility,
+		Message: fmt.Sprintf("a nat gateway is required when `%s: %s` is specified; either set %s to %s or %s, or set %s to %s", SubnetVisibilityKey, PrivateSubnetVisibility, NATGatewayKey, s.UserStr(SingleNATGateway), s.UserStr(HighlyAvailableNATGateway), SubnetVisibilityKey, s.UserStr(PublicSubnetVisibility)),
 	})
 }
 

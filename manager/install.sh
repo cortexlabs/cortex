@@ -250,6 +250,15 @@ function setup_istio() {
     sleep 3
   done
 
+  export CORTEX_API_LOAD_BALANCER_ANNOTATION=""
+  if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    export CORTEX_API_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
+  fi
+  export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION=""
+  if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
+  fi
+
   envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
 }
 
@@ -300,11 +309,13 @@ function validate_cortex() {
       operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
-    if [ "$operator_endpoint_reachable" != "ready" ]; then
-      if ! curl $operator_endpoint >/dev/null 2>&1; then
-        continue
+    if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+      if [ "$operator_endpoint_reachable" != "ready" ]; then
+        if ! curl $operator_endpoint >/dev/null 2>&1; then
+          continue
+        fi
+        operator_endpoint_reachable="ready"
       fi
-      operator_endpoint_reachable="ready"
     fi
 
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then

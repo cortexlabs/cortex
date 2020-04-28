@@ -46,6 +46,22 @@ instance_volume_type: gp2
 # instance volume iops (only applicable to io1 storage type) (default: 3000)
 # instance_volume_iops: 3000
 
+# whether the subnets used for EC2 instances should be public or private (default: "public")
+# if "public", instances will be assigned public IP addresses; if "private", instances won't have public IPs and a NAT gateway will be created to allow outgoing network requests
+subnet_visibility: public  # must be "public" or "private"
+
+# whether to include a NAT gateway with the cluster (a NAT gateway is necessary when using private subnets)
+# default value is "none" if subnet_visibility is set to "public"; "single" if subnet_visibility is "private"
+nat_gateway: none  # must be "none", "single", or "highly_available" (highly_available means one NAT gateway per availability zone)
+
+# whether the API load balancer should be internet-facing or internal (default: "internet-facing")
+# note: if using "internal", you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see www.cortex.dev/guides/vpc-peering or www.cortex.dev/guides/api-gateway)
+api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
+
+# whether the operator load balancer should be internet-facing or internal (default: "internet-facing")
+# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)
+operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
+
 # CloudWatch log group for cortex (default: <cluster_name>)
 log_group: cortex
 

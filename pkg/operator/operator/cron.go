@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -115,15 +116,49 @@ func operatorTelemetry() error {
 		instanceInfos[instanceInfosKey] = &info
 	}
 
+	apiEBSPrice := aws.EBSMetadatas[*config.Cluster.Region][config.Cluster.InstanceVolumeType.String()].PriceGB * float64(config.Cluster.InstanceVolumeSize) / 30 / 24
+	if config.Cluster.InstanceVolumeType.String() == "io1" && config.Cluster.InstanceVolumeIOPS != nil {
+		apiEBSPrice += aws.EBSMetadatas[*config.Cluster.Region][config.Cluster.InstanceVolumeType.String()].PriceIOPS * float64(*config.Cluster.InstanceVolumeIOPS) / 30 / 24
+	}
+
+	var totalInstancePrice float64
+	var totalInstancePriceIfOnDemand float64
+	for _, info := range instanceInfos {
+		totalInstancePrice += ((info.Price + apiEBSPrice) * float64(info.Count))
+		totalInstancePriceIfOnDemand += ((info.OnDemandPrice + apiEBSPrice) * float64(info.Count))
+	}
+
+	fixedPrice := clusterFixedPrice()
+
 	properties := map[string]interface{}{
-		"region":         *config.Cluster.Region,
-		"instance_count": totalInstances,
-		"instances":      instanceInfos,
+		"region":                   *config.Cluster.Region,
+		"instance_count":           totalInstances,
+		"instances":                instanceInfos,
+		"fixed_price":              fixedPrice,
+		"total_price":              totalInstancePrice + fixedPrice,
+		"total_price_if_on_demand": totalInstancePriceIfOnDemand + fixedPrice,
 	}
 
 	telemetry.Event("operator.cron", properties)
 
 	return nil
+}
+
+func clusterFixedPrice() float64 {
+	eksPrice := aws.EKSPrices[*config.Cluster.Region]
+	operatorInstancePrice := aws.InstanceMetadatas[*config.Cluster.Region]["t3.medium"].Price
+	operatorEBSPrice := aws.EBSMetadatas[*config.Cluster.Region]["gp2"].PriceGB * 20 / 30 / 24
+	nlbPrice := aws.NLBMetadatas[*config.Cluster.Region].Price
+	natUnitPrice := aws.NATMetadatas[*config.Cluster.Region].Price
+
+	var natTotalPrice float64
+	if config.Cluster.NATGateway == clusterconfig.SingleNATGateway {
+		natTotalPrice = natUnitPrice
+	} else if config.Cluster.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+		natTotalPrice = natUnitPrice * float64(len(config.Cluster.AvailabilityZones))
+	}
+
+	return eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
 }
 
 func cronErrHandler(cronName string) func(error) {

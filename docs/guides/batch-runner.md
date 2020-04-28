@@ -8,7 +8,7 @@ _Note: this is experimental. Also, this behavior can be implemented outside of C
 
 This example assumes you have deployed an iris-classifier API, e.g. [examples/sklearn/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/sklearn/iris-classifier) or [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/iris-classifier).
 
-Create a new directory (outside of the iris example directory) with the files listed below, and run `cortex deploy` in that directory to deploy the batch API. Run `python test.py http://***.us-west-2.elb.amazonaws.com/iris-classifier-batch` to submit a batch of requests to the batch api (replace `***` with your actual endpoint). You can still send individual requests to the prediction API (bypassing the batch API) if you'd like.
+Create a new directory (outside of the iris example directory) with the files listed below, and run `cortex deploy` in that directory to deploy the batch API. Run `python test.py http://***.elb.us-west-2.amazonaws.com/iris-classifier-batch` to submit a batch of requests to the batch api (replace `***` with your actual endpoint). You can still send individual requests to the prediction API (bypassing the batch API) if you'd like.
 
 Feel free to reach out on [gitter](https://gitter.im/cortexlabs/cortex) if you have questions.
 
@@ -87,7 +87,7 @@ class PythonPredictor:
     type: python
     path: batch.py
     config:  # you can pass in your API endpoint like this (replace ***):
-      endpoint: http://***.us-west-2.elb.amazonaws.com/iris-classifier
+      endpoint: http://***.elb.us-west-2.amazonaws.com/iris-classifier
   autoscaling:
     max_replicas: 1  # this API may need to autoscale depending on how many batch requests, but disable it to start
     threads_per_worker: 1  # set this to the number of batch requests you'd like to be able to be able to work on at a time
@@ -107,7 +107,7 @@ import json
 
 if len(sys.argv) != 2:
     print("usage: python test.py BATCH_API_URL")
-    print("e.g. python test.py http://***.us-west-2.elb.amazonaws.com/iris-classifier-batch")
+    print("e.g. python test.py http://***.elb.us-west-2.amazonaws.com/iris-classifier-batch")
     sys.exit(1)
 
 batch_endpoint = sys.argv[1]

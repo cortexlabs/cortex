@@ -249,6 +249,26 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		}
 		userClusterConfig.InstanceVolumeIOPS = cachedClusterConfig.InstanceVolumeIOPS
 
+		if userClusterConfig.SubnetVisibility != cachedClusterConfig.SubnetVisibility {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetVisibilityKey, cachedClusterConfig.SubnetVisibility)
+		}
+		userClusterConfig.SubnetVisibility = cachedClusterConfig.SubnetVisibility
+
+		if userClusterConfig.NATGateway != cachedClusterConfig.NATGateway {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.NATGatewayKey, cachedClusterConfig.NATGateway)
+		}
+		userClusterConfig.NATGateway = cachedClusterConfig.NATGateway
+
+		if userClusterConfig.APILoadBalancerScheme != cachedClusterConfig.APILoadBalancerScheme {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.APILoadBalancerSchemeKey, cachedClusterConfig.APILoadBalancerScheme)
+		}
+		userClusterConfig.APILoadBalancerScheme = cachedClusterConfig.APILoadBalancerScheme
+
+		if userClusterConfig.OperatorLoadBalancerScheme != cachedClusterConfig.OperatorLoadBalancerScheme {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OperatorLoadBalancerSchemeKey, cachedClusterConfig.OperatorLoadBalancerScheme)
+		}
+		userClusterConfig.OperatorLoadBalancerScheme = cachedClusterConfig.OperatorLoadBalancerScheme
+
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 		}
@@ -321,17 +341,26 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
-	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
+	nlbPrice := aws.NLBMetadatas[*clusterConfig.Region].Price
+	natUnitPrice := aws.NATMetadatas[*clusterConfig.Region].Price
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
 	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
 	if clusterConfig.InstanceVolumeType.String() == "io1" && clusterConfig.InstanceVolumeIOPS != nil {
 		apiEBSPrice += aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS * float64(*clusterConfig.InstanceVolumeIOPS) / 30 / 24
 	}
-	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice
+
+	var natTotalPrice float64
+	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
+		natTotalPrice = natUnitPrice
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
+	}
+
+	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
-	fmt.Printf("aws access key id %s will be used to provision a cluster (%s) in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
+	fmt.Printf("aws access key id %s will be used to provision a cluster named \"%s\" in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -369,7 +398,13 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
 	rows = append(rows, []interface{}{"1 t3.medium instance for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
-	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"})
+	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
+
+	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
+		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natUnitPrice)})
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+		rows = append(rows, []interface{}{fmt.Sprintf("%d nat gateways", len(clusterConfig.AvailabilityZones)), s.DollarsMaxPrecision(natUnitPrice) + " each"})
+	}
 
 	items := table.Table{
 		Headers: headers,
@@ -383,25 +418,37 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	if totalMinPrice != totalMaxPrice {
 		priceStr = fmt.Sprintf("%s - %s", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice))
 		if isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
-			suffix = " based on cluster size and spot pricing"
+			suffix = " based on cluster size and spot instance pricing/availability"
 		} else if isSpot && *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-			suffix = " based on spot pricing"
+			suffix = " based on spot instance pricing/availability"
 		} else if !isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
 			suffix = " based on cluster size"
 		}
 	}
 
 	fmt.Printf("your cluster will cost %s per hour%s\n\n", priceStr, suffix)
-	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)\n\n", clusterConfig.Bucket, clusterConfig.LogGroup)
+
+	privateSubnetMsg := ""
+	if clusterConfig.SubnetVisibility == clusterconfig.PrivateSubnetVisibility {
+		privateSubnetMsg = ", and will use private subnets for all EC2 instances"
+	}
+	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.LogGroup, privateSubnetMsg)
+
 	fmt.Printf("your cli environment named \"%s\" will be configured to connect to this cluster\n\n", envName)
+
+	if clusterConfig.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see www.cortex.dev/guides/vpc-peering or www.cortex.dev/guides/api-gateway)\n\n")
+	}
+	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+		fmt.Print("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)\n\n")
+	}
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
-			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n", consts.CortexVersionMinor)
+			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n\n", consts.CortexVersionMinor)
 		}
-		fmt.Println()
 	}
 
 	if !disallowPrompt {
@@ -415,7 +462,7 @@ func confirmUpdateClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWS
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
-		prompt.YesOrExit(fmt.Sprintf("your cluster (%s in %s) will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
 	}
 }
 
@@ -449,6 +496,19 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	}
 	if clusterConfig.InstanceVolumeIOPS != nil {
 		items.Add(clusterconfig.InstanceVolumeIOPSUserKey, *clusterConfig.InstanceVolumeIOPS)
+	}
+
+	if clusterConfig.SubnetVisibility != defaultConfig.SubnetVisibility {
+		items.Add(clusterconfig.SubnetVisibilityUserKey, clusterConfig.SubnetVisibility)
+	}
+	if clusterConfig.NATGateway != defaultConfig.NATGateway {
+		items.Add(clusterconfig.NATGatewayUserKey, clusterConfig.NATGateway)
+	}
+	if clusterConfig.APILoadBalancerScheme != defaultConfig.APILoadBalancerScheme {
+		items.Add(clusterconfig.APILoadBalancerSchemeUserKey, clusterConfig.APILoadBalancerScheme)
+	}
+	if clusterConfig.OperatorLoadBalancerScheme != defaultConfig.OperatorLoadBalancerScheme {
+		items.Add(clusterconfig.OperatorLoadBalancerSchemeUserKey, clusterConfig.OperatorLoadBalancerScheme)
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
