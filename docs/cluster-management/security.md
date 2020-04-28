@@ -4,9 +4,11 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Private cluster
 
-You can configure all instances in your cluster to use private subnets by setting `subnet_visibility: private` in your [cluster configuration](config.md) file before creating your cluster (e.g. via `cortex cluster up -c cluster.yaml`).
+By default, instances are created in public subnets and are assigned public IP addresses. You can configure all instances in your cluster to use private subnets by setting `subnet_visibility: private` in your [cluster configuration](config.md) file before creating your cluster (e.g. via `cortex cluster up -c cluster.yaml`).
 
-You can also configure your operator load balancer (which is what the `cortex` CLI connects to) and/or your API load balancer to be internal by setting `api_load_balancer_scheme: internal` and `operator_load_balancer_scheme: internal` in your cluster configuration file (before creating your cluster). If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) to connect to Cortex's VPC.
+By default, the API load balancer is internet-facing, and therefore APIs are publicly accessible. You can configure your API load balancer to be internal by setting `api_load_balancer_scheme: internal` in your cluster configuration file (before creating your cluster). If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) or an [API Gateway with VPC Link](../guides/api-gateway.md) to make prediction requests.
+
+By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator confirms that the requester is an active IAM user in the same AWS account as the Cortex cluster (see [below](#cli)). Therefore it is usually unnecessary to configure the operator's load balancer to be internal, but this can be done by by setting `operator_load_balancer_scheme: internal` in your cluster configuration file (before creating your cluster). If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) to connect your CLI to the Cortex operator to run any `cortex` commands.
 
 ## IAM permissions
 

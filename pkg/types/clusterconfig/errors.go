@@ -208,7 +208,7 @@ func ErrorDidNotMatchStrictS3Regex() error {
 func ErrorNATRequiredWithPrivateSubnetVisibility() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNATRequiredWithPrivateSubnetVisibility,
-		Message: fmt.Sprintf("a nat gateway is required with private subnets; either set %s to %s or %s, or set %s to %s", NATGatewayKey, s.UserStr(SingleNAT), s.UserStr(HighlyAvailableNAT), SubnetVisibilityKey, s.UserStr(PublicSubnetVisibility)),
+		Message: fmt.Sprintf("a nat gateway is required when `%s: %s` is specified; either set %s to %s or %s, or set %s to %s", SubnetVisibilityKey, PrivateSubnetVisibility, NATGatewayKey, s.UserStr(SingleNATGateway), s.UserStr(HighlyAvailableNATGateway), SubnetVisibilityKey, s.UserStr(PublicSubnetVisibility)),
 	})
 }
 

@@ -317,9 +317,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
 
 	var natTotalPrice float64
-	if clusterConfig.NATGateway == clusterconfig.SingleNAT {
+	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
 		natTotalPrice = natUnitPrice
-	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNAT {
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
 
@@ -367,9 +367,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
-	if clusterConfig.NATGateway == clusterconfig.SingleNAT {
+	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
 		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natUnitPrice)})
-	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNAT {
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		rows = append(rows, []interface{}{fmt.Sprintf("%d nat gateways", len(clusterConfig.AvailabilityZones)), s.DollarsMaxPrecision(natUnitPrice) + " each"})
 	}
 
@@ -405,7 +405,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see www.cortex.dev/guides/vpc-peering or www.cortex.dev/guides/api-gateway)\n\n")
 	}
 	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancer {
-		fmt.Print("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect to your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)\n\n")
+		fmt.Print("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)\n\n")
 	}
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {

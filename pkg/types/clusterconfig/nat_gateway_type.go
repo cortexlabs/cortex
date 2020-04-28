@@ -17,9 +17,9 @@ type NATGateway int
 
 const (
 	UnknownNATGateway NATGateway = iota
-	NoNAT
-	SingleNAT
-	HighlyAvailableNAT
+	NoneNATGateway
+	SingleNATGateway
+	HighlyAvailableNATGateway
 )
 
 var _natGateways = []string{

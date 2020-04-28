@@ -248,9 +248,9 @@ var UserValidation = &cr.StructValidation{
 			DefaultField: "SubnetVisibility",
 			DefaultFieldFunc: func(val interface{}) interface{} {
 				if val.(SubnetVisibility) == PublicSubnetVisibility {
-					return NoNAT.String()
+					return NoneNATGateway.String()
 				}
-				return SingleNAT.String()
+				return SingleNATGateway.String()
 			},
 		},
 		{
@@ -457,7 +457,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	if cc.SubnetVisibility == PrivateSubnetVisibility && cc.NATGateway == NoNAT {
+	if cc.SubnetVisibility == PrivateSubnetVisibility && cc.NATGateway == NoneNATGateway {
 		return ErrorNATRequiredWithPrivateSubnetVisibility()
 	}
 

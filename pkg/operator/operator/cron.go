@@ -149,9 +149,9 @@ func clusterFixedPrice() float64 {
 	natUnitPrice := aws.NATMetadatas[*config.Cluster.Region].Price
 
 	var natTotalPrice float64
-	if config.Cluster.NATGateway == clusterconfig.SingleNAT {
+	if config.Cluster.NATGateway == clusterconfig.SingleNATGateway {
 		natTotalPrice = natUnitPrice
-	} else if config.Cluster.NATGateway == clusterconfig.HighlyAvailableNAT {
+	} else if config.Cluster.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		natTotalPrice = natUnitPrice * float64(len(config.Cluster.AvailabilityZones))
 	}
 
