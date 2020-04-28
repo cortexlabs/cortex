@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
@@ -191,7 +190,7 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials, envName string, disallow
 
 	// Prompt
 	if disallowPrompt {
-		exit.Error(ErrorAWSCredentialsRequired())
+		return ErrorAWSCredentialsRequired()
 	}
 	err = cr.ReadPrompt(awsCreds, _awsCredentialsPromptValidation)
 	if err != nil {
