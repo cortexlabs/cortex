@@ -40,6 +40,12 @@ max_instances: 5
 # instance volume size (GB) (default: 50)
 instance_volume_size: 50
 
+# instance volume type [gp2, io1, st1, sc1] (default: gp2)
+instance_volume_type: gp2
+
+# instance volume iops (only applicable to io1 storage type) (default: 3000)
+# instance_volume_iops: 3000
+
 # whether the subnets used for EC2 instances should be public or private (default: "public")
 # if "public", instances will be assigned public IP addresses; if "private", instances won't have public IPs and a NAT gateway will be created to allow outgoing newtwork requests
 subnet_visibility: public  # must be "public" or "private"

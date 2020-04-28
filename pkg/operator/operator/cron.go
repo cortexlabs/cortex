@@ -116,7 +116,10 @@ func operatorTelemetry() error {
 		instanceInfos[instanceInfosKey] = &info
 	}
 
-	apiEBSPrice := aws.EBSMetadatas[*config.Cluster.Region].Price * float64(config.Cluster.InstanceVolumeSize) / 30 / 24
+	apiEBSPrice := aws.EBSMetadatas[*config.Cluster.Region][config.Cluster.InstanceVolumeType.String()].PriceGB * float64(config.Cluster.InstanceVolumeSize) / 30 / 24
+	if config.Cluster.InstanceVolumeType.String() == "io1" && config.Cluster.InstanceVolumeIOPS != nil {
+		apiEBSPrice += aws.EBSMetadatas[*config.Cluster.Region][config.Cluster.InstanceVolumeType.String()].PriceIOPS * float64(*config.Cluster.InstanceVolumeIOPS) / 30 / 24
+	}
 
 	var totalInstancePrice float64
 	var totalInstancePriceIfOnDemand float64
@@ -144,7 +147,7 @@ func operatorTelemetry() error {
 func clusterFixedPrice() float64 {
 	eksPrice := aws.EKSPrices[*config.Cluster.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*config.Cluster.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[*config.Cluster.Region].Price * 20 / 30 / 24
+	operatorEBSPrice := aws.EBSMetadatas[*config.Cluster.Region]["gp2"].PriceGB * 20 / 30 / 24
 	nlbPrice := aws.NLBMetadatas[*config.Cluster.Region].Price
 	natUnitPrice := aws.NATMetadatas[*config.Cluster.Region].Price
 
