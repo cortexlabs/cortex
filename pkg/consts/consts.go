@@ -27,7 +27,7 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultImagePythonServe          = defaultDockerImage("python-predictor-cpu")
+	DefaultImagePythonPredictorCPU   = defaultDockerImage("python-predictor-cpu")
 	DefaultImagePythonPredictorGPU   = defaultDockerImage("python-predictor-gpu")
 	DefaultImageTensorFlowServingCPU = defaultDockerImage("tensorflow-serving-cpu")
 	DefaultImageTensorFlowServingGPU = defaultDockerImage("tensorflow-serving-gpu")
@@ -35,7 +35,7 @@ var (
 	DefaultImageONNXPredictorCPU     = defaultDockerImage("onnx-predictor-cpu")
 	DefaultImageONNXPredictorGPU     = defaultDockerImage("onnx-predictor-gpu")
 	DefaultImagePathsSet             = strset.New(
-		DefaultImagePythonServe,
+		DefaultImagePythonPredictorCPU,
 		DefaultImagePythonPredictorGPU,
 		DefaultImageTensorFlowServingCPU,
 		DefaultImageTensorFlowServingGPU,

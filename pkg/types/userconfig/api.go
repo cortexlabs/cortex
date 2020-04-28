@@ -105,7 +105,7 @@ func (api *API) ApplyDefaultDockerPaths() {
 			if usesGPU {
 				predictor.Image = consts.DefaultImagePythonPredictorGPU
 			} else {
-				predictor.Image = consts.DefaultImagePythonServe
+				predictor.Image = consts.DefaultImagePythonPredictorCPU
 			}
 		}
 	case TensorFlowPredictorType:
