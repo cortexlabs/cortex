@@ -674,6 +674,9 @@ func validateCompute(compute *userconfig.Compute, predictorType userconfig.Predi
 
 	maxAccelerator := config.Cluster.InstanceMetadata.Accelerator
 
+	if compute.GPU > 0 && compute.Accelerator > 0 {
+		return ErrorGPUAndAcceleratorConflict(compute.GPU, compute.Accelerator)
+	}
 	if maxCPU.Cmp(compute.CPU.Quantity) < 0 {
 		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
 	}

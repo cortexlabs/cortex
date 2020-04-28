@@ -130,6 +130,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.Image == "" {
 			if usesGPU {
 				predictor.Image = consts.DefaultImageONNXServeGPU
+			} else if usesAccelerator {
+				predictor.Image = consts.DefaultImageONNXServeAccelerator
 			} else {
 				predictor.Image = consts.DefaultImageONNXServe
 			}

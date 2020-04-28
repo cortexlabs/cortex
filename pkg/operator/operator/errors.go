@@ -52,6 +52,7 @@ const (
 	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
 	ErrRegistryAccountIDMismatch          = "operator.registry_account_id_mismatch"
+	ErrGPUAndAcceleratorConflict          = "operator.conflicting_resources"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -267,5 +268,12 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryAccountIDMismatch,
 		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
+	})
+}
+
+func ErrorGPUAndAcceleratorConflict(numGPU, numAccelerator int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGPUAndAcceleratorConflict,
+		Message: fmt.Sprintf("API cannot have a mix of %d GPU(s) and %d Accelerator(s)", numGPU, numAccelerator),
 	})
 }

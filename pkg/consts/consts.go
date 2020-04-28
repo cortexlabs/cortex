@@ -36,6 +36,7 @@ var (
 	DefaultImageTFAPI                  = defaultDockerImage("tf-api")
 	DefaultImageONNXServe              = defaultDockerImage("onnx-serve")
 	DefaultImageONNXServeGPU           = defaultDockerImage("onnx-serve-gpu")
+	DefaultImageONNXServeAccelerator   = defaultDockerImage("onnx-serve-accelerator")
 	DefaultImagePathsSet               = strset.New(
 		DefaultImagePythonServe,
 		DefaultImagePythonServeGPU,
@@ -46,6 +47,7 @@ var (
 		DefaultImageTFAPI,
 		DefaultImageONNXServe,
 		DefaultImageONNXServeGPU,
+		DefaultImageONNXServeAccelerator,
 	)
 
 	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
