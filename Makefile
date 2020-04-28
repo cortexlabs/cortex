@@ -118,13 +118,13 @@ test-examples:
 ###############
 
 ci-build-images:
-	@./build/build-image.sh images/python-serve python-serve
-	@./build/build-image.sh images/python-serve-gpu python-serve-gpu
+	@./build/build-image.sh images/python-predictor-cpu python-predictor-cpu
+	@./build/build-image.sh images/python-predictor-gpu python-predictor-gpu
 	@./build/build-image.sh images/tensorflow-serving-cpu tensorflow-serving-cpu
 	@./build/build-image.sh images/tensorflow-serving-gpu tensorflow-serving-gpu
 	@./build/build-image.sh images/tensorflow-predictor tensorflow-predictor
-	@./build/build-image.sh images/onnx-serve onnx-serve
-	@./build/build-image.sh images/onnx-serve-gpu onnx-serve-gpu
+	@./build/build-image.sh images/onnx-predictor-cpu onnx-predictor-cpu
+	@./build/build-image.sh images/onnx-predictor-gpu onnx-predictor-gpu
 	@./build/build-image.sh images/operator operator
 	@./build/build-image.sh images/manager manager
 	@./build/build-image.sh images/downloader downloader
@@ -140,13 +140,13 @@ ci-build-images:
 	@./build/build-image.sh images/istio-galley istio-galley
 
 ci-push-images:
-	@./build/push-image.sh python-serve
-	@./build/push-image.sh python-serve-gpu
+	@./build/push-image.sh python-predictor-cpu
+	@./build/push-image.sh python-predictor-gpu
 	@./build/push-image.sh tensorflow-serving-cpu
 	@./build/push-image.sh tensorflow-serving-gpu
 	@./build/push-image.sh tensorflow-predictor
-	@./build/push-image.sh onnx-serve
-	@./build/push-image.sh onnx-serve-gpu
+	@./build/push-image.sh onnx-predictor-cpu
+	@./build/push-image.sh onnx-predictor-gpu
 	@./build/push-image.sh operator
 	@./build/push-image.sh manager
 	@./build/push-image.sh downloader

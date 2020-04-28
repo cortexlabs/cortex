@@ -47,11 +47,11 @@ mkdir my-api && cd my-api && touch Dockerfile
 The default Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
-* Python Predictor (CPU): `cortexlabs/python-serve:master`
-* Python Predictor (GPU): `cortexlabs/python-serve-gpu:master`
+* Python Predictor (CPU): `cortexlabs/python-predictor-cpu:master`
+* Python Predictor (GPU): `cortexlabs/python-predictor-gpu:master`
 * TensorFlow Predictor (CPU and GPU): `cortexlabs/tensorflow-predictor:master`
-* ONNX Predictor (CPU): `cortexlabs/onnx-serve:master`
-* ONNX Predictor (GPU): `cortexlabs/onnx-serve-gpu:master`
+* ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu:master`
+* ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu:master`
 
 The sample Dockerfile below inherits from Cortex's Python CPU serving image and installs the `tree` system package.
 
@@ -59,7 +59,7 @@ The sample Dockerfile below inherits from Cortex's Python CPU serving image and 
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-serve:master
+FROM cortexlabs/python-predictor-cpu:master
 
 RUN apt-get update \
     && apt-get install -y tree \

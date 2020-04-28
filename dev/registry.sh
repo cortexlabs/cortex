@@ -35,13 +35,13 @@ function ecr_login() {
 }
 
 function create_registry() {
-  aws ecr create-repository --repository-name=cortexlabs/python-serve --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-predictor-cpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-predictor-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-cpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tensorflow-predictor --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-cpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/downloader --region=$REGISTRY_REGION || true
@@ -165,11 +165,11 @@ elif [ "$cmd" = "update" ]; then
   build_and_push $ROOT/images/request-monitor request-monitor latest
 
   build_and_push $ROOT/images/manager manager latest
-  build_and_push $ROOT/images/python-serve python-serve latest
-  build_and_push $ROOT/images/python-serve-gpu python-serve-gpu latest
+  build_and_push $ROOT/images/python-predictor-cpu python-predictor-cpu latest
+  build_and_push $ROOT/images/python-predictor-gpu python-predictor-gpu latest
   build_and_push $ROOT/images/tensorflow-predictor tensorflow-predictor latest
-  build_and_push $ROOT/images/onnx-serve onnx-serve latest
-  build_and_push $ROOT/images/onnx-serve-gpu onnx-serve-gpu latest
+  build_and_push $ROOT/images/onnx-predictor-cpu onnx-predictor-cpu latest
+  build_and_push $ROOT/images/onnx-predictor-gpu onnx-predictor-gpu latest
   build_and_push $ROOT/images/downloader downloader latest
 
   cleanup_local

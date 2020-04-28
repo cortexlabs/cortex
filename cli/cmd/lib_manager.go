@@ -240,13 +240,13 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 			"CORTEX_CLUSTER_CONFIG_FILE=" + mountedConfigPath,
 			"CORTEX_CLUSTER_WORKSPACE=" + clusterWorkspace,
-			"CORTEX_IMAGE_PYTHON_SERVE=" + consts.DefaultImagePythonServe,
-			"CORTEX_IMAGE_PYTHON_SERVE_GPU=" + consts.DefaultImagePythonServeGPU,
-			"CORTEX_IMAGE_TF_SERVE=" + consts.DefaultImageTensorFlowServingCPU,
+			"CORTEX_IMAGE_PYTHON_PREDICTOR_CPU=" + consts.DefaultImagePythonServe,
+			"CORTEX_IMAGE_PYTHON_PREDICTOR_GPU=" + consts.DefaultImagePythonPredictorGPU,
+			"CORTEX_IMAGE_TENSORFLOW_SERVING_CPU=" + consts.DefaultImageTensorFlowServingCPU,
 			"CORTEX_IMAGE_TENSORFLOW_SERVING_GPU=" + consts.DefaultImageTensorFlowServingGPU,
 			"CORTEX_IMAGE_TENSORFLOW_PREDICTOR=" + consts.DefaultImageTensorFlowPredictor,
-			"CORTEX_IMAGE_ONNX_SERVE=" + consts.DefaultImageONNXServe,
-			"CORTEX_IMAGE_ONNX_SERVE_GPU=" + consts.DefaultImageONNXServeGPU,
+			"CORTEX_IMAGE_ONNX_PREDICTOR_CPU=" + consts.DefaultImageONNXPredictorCPU,
+			"CORTEX_IMAGE_ONNX_PREDICTOR_GPU=" + consts.DefaultImageONNXPredictorGPU,
 		},
 	}
 

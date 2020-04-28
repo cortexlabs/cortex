@@ -105,7 +105,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## CUDA
 
-1. Update the `nvidia/cuda` base image in `images/python-serve-gpu/Dockerfile` and `images/onnx-serve-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-serve-gpu/Dockerfile` and `images/tensorflow-serving-gpu/Dockerfile`) to the desired version based on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu#ubuntu_1804_cuda_101) / [TensorFlow's compatability table](https://www.tensorflow.org/install/source#gpu) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
+1. Update the `nvidia/cuda` base image in `images/python-predictor-gpu/Dockerfile` and `images/onnx-predictor-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-predictor-gpu/Dockerfile` and `images/tensorflow-serving-gpu/Dockerfile`) to the desired version based on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu#ubuntu_1804_cuda_101) / [TensorFlow's compatability table](https://www.tensorflow.org/install/source#gpu) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (it's possible these versions will diverge depending on ONNX runtime support)
 
 ## ONNX runtime
 

@@ -35,12 +35,12 @@ spec:
         effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:
-      - name: python-serve
-        image: $CORTEX_IMAGE_PYTHON_SERVE
+      - name: python-predictor-cpu
+        image: $CORTEX_IMAGE_PYTHON_PREDICTOR_CPU
         command: [ "/bin/sh" ]
         args: [ "-c", "sleep 1000000" ]
       - name: tensorflow-serving-cpu
-        image: $CORTEX_IMAGE_TF_SERVE
+        image: $CORTEX_IMAGE_TENSORFLOW_SERVING_CPU
         command: [ "/bin/sh" ]
         args: [ "-c", "sleep 1000000" ]
       - name: tensorflow-predictor

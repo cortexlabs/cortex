@@ -153,7 +153,7 @@ xgboost==1.0.2
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/python-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU) or [images/python-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU).
+The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU) or [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 
@@ -305,7 +305,7 @@ requests==2.23.0
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/onnx-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve/Dockerfile) (for CPU) or [images/onnx-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-serve-gpu/Dockerfile) (for GPU).
+The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-cpu/Dockerfile) (for CPU) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-gpu/Dockerfile) (for GPU).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 

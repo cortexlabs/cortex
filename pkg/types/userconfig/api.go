@@ -101,7 +101,7 @@ func (api *API) ApplyDefaultDockerPaths() {
 	case PythonPredictorType:
 		if predictor.Image == "" {
 			if usesGPU {
-				predictor.Image = consts.DefaultImagePythonServeGPU
+				predictor.Image = consts.DefaultImagePythonPredictorGPU
 			} else {
 				predictor.Image = consts.DefaultImagePythonServe
 			}
@@ -120,9 +120,9 @@ func (api *API) ApplyDefaultDockerPaths() {
 	case ONNXPredictorType:
 		if predictor.Image == "" {
 			if usesGPU {
-				predictor.Image = consts.DefaultImageONNXServeGPU
+				predictor.Image = consts.DefaultImageONNXPredictorGPU
 			} else {
-				predictor.Image = consts.DefaultImageONNXServe
+				predictor.Image = consts.DefaultImageONNXPredictorCPU
 			}
 		}
 	}
