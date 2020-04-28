@@ -16,7 +16,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: cortexlabs/python-predictor[-cpu|-gpu])
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/python-predictor-cpu or cortexlabs/python-predictor-gpu based on compute)
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
@@ -60,7 +60,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
-    tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tensorflow-serving[-cpu|-gpu], which is based on tensorflow/serving)
+    tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tensorflow-serving-gpu or cortexlabs/tensorflow-serving-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
@@ -102,7 +102,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-cpu[-gpu])
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-gpu or cortexlabs/onnx-predictor-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)

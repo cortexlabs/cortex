@@ -104,7 +104,7 @@ Update your API configuration file to point to your image:
   ...
 ```
 
-*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together serve predictions: one which runs your Predictor code (`cortexlabs/tensorflow-predictor`), and TensorFlow Serving which loads the SavedModel (`cortexlabs/tensorflow-serving-cpu[-gpu]`). There's a 2nd available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. The default image (`cortexlabs/tensorflow-serving-cpu[-gpu]`) is based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, this image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
+*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together to serve predictions: one runs your Predictor code (`cortexlabs/tensorflow-predictor`), and the other is TensorFlow serving to load the SavedModel (`cortexlabs/tensorflow-serving-gpu` or `cortexlabs/tensorflow-serving-cpu`). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images (`cortexlabs/tensorflow-serving-gpu` and `cortexlabs/tensorflow-serving-cpu`) are based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
 
 Deploy your API as usual:
 
