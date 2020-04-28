@@ -29,6 +29,7 @@ import (
 	dockerlib "github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	m "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
@@ -447,12 +448,11 @@ func validateAPI(
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
-	predictorType := api.Predictor.Type
-	if err := validateCompute(api.Compute, predictorType, maxMem); err != nil {
+	if err := validateCompute(api, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
-	if err := validateAutoscaling(api.Autoscaling); err != nil {
+	if err := validateAutoscaling(api); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.AutoscalingKey)
 	}
 
@@ -659,7 +659,7 @@ func validatePythonPath(pythonPath string, projectFileMap map[string][]byte) err
 	return nil
 }
 
-func validateCompute(compute *userconfig.Compute, predictorType userconfig.PredictorType, maxMem *kresource.Quantity) error {
+func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -674,8 +674,9 @@ func validateCompute(compute *userconfig.Compute, predictorType userconfig.Predi
 
 	maxAccelerator := config.Cluster.InstanceMetadata.Accelerator
 
+	compute := api.Compute
 	if compute.GPU > 0 && compute.Accelerator > 0 {
-		return ErrorGPUAndAcceleratorConflict(compute.GPU, compute.Accelerator)
+		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.AcceleratorKey)
 	}
 	if maxCPU.Cmp(compute.CPU.Quantity) < 0 {
 		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
@@ -691,13 +692,16 @@ func validateCompute(compute *userconfig.Compute, predictorType userconfig.Predi
 	if compute.Accelerator > maxAccelerator {
 		return ErrorNoAvailableNodeComputeLimit("Accelerator", fmt.Sprintf("%d", compute.Accelerator), fmt.Sprintf("%d", maxAccelerator))
 	}
-	if compute.Accelerator > 0 && predictorType == userconfig.ONNXPredictorType {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.AcceleratorKey, predictorType)
+	// TODO remove accelerator limitation for ONNX predictors
+	if compute.Accelerator > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.AcceleratorKey, api.Predictor.Type)
 	}
 	return nil
 }
 
-func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
+func validateAutoscaling(api *userconfig.API) error {
+	autoscaling := api.Autoscaling
+
 	if autoscaling.TargetReplicaConcurrency == nil {
 		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(autoscaling.WorkersPerReplica * autoscaling.ThreadsPerWorker))
 	}
@@ -712,6 +716,15 @@ func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
 
 	if autoscaling.InitReplicas < autoscaling.MinReplicas {
 		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
+	}
+
+	if api.Compute.Accelerator > 0 {
+		numAcceleratorCores := api.Compute.Accelerator * consts.CoresPerAccelerator
+		workersPerReplica := int64(api.Autoscaling.WorkersPerReplica)
+		if m.CheckDivisibleByInt64(numAcceleratorCores, workersPerReplica) {
+			workerSuggestions := m.FindDivisibleNumbersOfInt64(numAcceleratorCores)
+			return ErrorInvalidNumberOfAcceleratorWorkers(workersPerReplica, numAcceleratorCores, workerSuggestions)
+		}
 	}
 
 	return nil

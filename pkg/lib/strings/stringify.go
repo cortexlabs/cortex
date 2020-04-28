@@ -100,6 +100,58 @@ func Uintptr(val uintptr) string {
 	return fmt.Sprint(val)
 }
 
+func ListBool(list []bool) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListFloat32(list []float32) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListFloat64(list []float64) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListInt(list []int) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListInt64(list []int64) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListInt32(list []int32) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListInt16(list []int16) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListInt8(list []int8) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListUint(list []uint) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListUint8(list []uint8) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListUint16(list []uint16) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListUint32(list []uint32) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
+func ListUint64(list []uint64) []string {
+	return strings.Split(fmt.Sprint(list), " ")
+}
+
 func Round(val float64, decimalPlaces int, padToDecimalPlaces int) string {
 	rounded := math.Round(val*math.Pow10(decimalPlaces)) / math.Pow10(decimalPlaces)
 	str := strconv.FormatFloat(rounded, 'f', -1, 64)

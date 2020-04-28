@@ -18,6 +18,7 @@ package operator
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -52,7 +53,8 @@ const (
 	ErrCortexPrefixedEnvVarNotAllowed     = "operator.cortex_prefixed_env_var_not_allowed"
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
 	ErrRegistryAccountIDMismatch          = "operator.registry_account_id_mismatch"
-	ErrGPUAndAcceleratorConflict          = "operator.conflicting_resources"
+	ErrComputeResourceConflict            = "operator.compute_resource_conflict"
+	ErrInvalidNumberOfAcceleratorWorkers  = "operator.invalid_number_of_accelerator_workers"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -271,9 +273,18 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	})
 }
 
-func ErrorGPUAndAcceleratorConflict(numGPU, numAccelerator int64) error {
+func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrGPUAndAcceleratorConflict,
-		Message: fmt.Sprintf("API cannot have a mix of %d GPU(s) and %d Accelerator(s)", numGPU, numAccelerator),
+		Kind:    ErrComputeResourceConflict,
+		Message: fmt.Sprintf("resources %s and %s cannot be mixed together", resourceA, resourceB),
+	})
+}
+
+func ErrorInvalidNumberOfAcceleratorWorkers(requestedWorkers int64, numAcceleratorCores int64, acceptableWorkers []int64) error {
+	msgAcceptableWorkers := strings.Join(s.ListInt64(acceptableWorkers), ",")
+	message := fmt.Sprintf("cannot evenly distribute %d accelerator cores over %d workers; acceptable numbers of workers are %s", requestedWorkers, numAcceleratorCores, msgAcceptableWorkers)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidNumberOfAcceleratorWorkers,
+		Message: message,
 	})
 }

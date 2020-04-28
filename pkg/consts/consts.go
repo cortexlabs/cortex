@@ -51,6 +51,8 @@ var (
 	)
 
 	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
+	HugePagesPerAccelerator     = int64(256)
+	CoresPerAccelerator         = int64(4)
 )
 
 func defaultDockerImage(imageName string) string {

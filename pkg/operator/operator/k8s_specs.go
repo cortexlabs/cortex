@@ -23,6 +23,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -112,9 +113,10 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	}
 
 	if api.Compute.Accelerator > 0 {
-		tfServingResourceList["hugepages-2Mi"] = *kresource.NewQuantity(api.Compute.Accelerator*256, kresource.DecimalSI)
+		totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
+		tfServingResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.DecimalSI)
 		tfServingResourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-		tfServingLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(api.Compute.Accelerator*256, kresource.DecimalSI)
+		tfServingLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.DecimalSI)
 		tfServingLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
 	}
 
@@ -279,9 +281,10 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	}
 
 	if api.Compute.Accelerator > 0 {
-		resourceList["hugepages-2Mi"] = *kresource.NewQuantity(api.Compute.Accelerator*256, kresource.DecimalSI)
+		totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
+		resourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.DecimalSI)
 		resourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(api.Compute.Accelerator*256, kresource.DecimalSI)
+		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.DecimalSI)
 		resourceLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
 	}
 
@@ -393,9 +396,10 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	}
 
 	if api.Compute.Accelerator > 0 {
-		resourceList["hugepages-2Mi"] = *kresource.NewQuantity(api.Compute.Accelerator*256, kresource.DecimalSI)
+		totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
+		resourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.DecimalSI)
 		resourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(api.Compute.Accelerator*256, kresource.DecimalSI)
+		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.DecimalSI)
 		resourceLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
 	}
 
@@ -606,6 +610,20 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			Name:  "PYTHON_PATH",
 			Value: path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath),
 		})
+	}
+
+	if api.Compute.Accelerator > 0 {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "NEURONCORE_GROUP_SIZES",
+			Value: s.Int64(api.Compute.Accelerator * consts.CoresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica)),
+		})
+
+		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
+			envVars = append(envVars, kcore.EnvVar{
+				Name:  "TF_WORKERS",
+				Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+			})
+		}
 	}
 
 	return envVars

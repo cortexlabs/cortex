@@ -35,3 +35,20 @@ func MaxInt64(val int64, vals ...int64) int64 {
 	}
 	return max
 }
+
+func CheckDivisibleByInt64(num int64, divisor int64) bool {
+	if num%divisor == 0 {
+		return true
+	}
+	return false
+}
+
+func FindDivisibleNumbersOfInt64(num int64) []int64 {
+	divisibleNumbers := []int64{}
+	for divisor := int64(1); divisor <= num; divisor++ {
+		if CheckDivisibleByInt64(num, divisor) {
+			divisibleNumbers = append(divisibleNumbers, divisor)
+		}
+	}
+	return divisibleNumbers
+}

@@ -35,3 +35,20 @@ func MaxInt32(val int32, vals ...int32) int32 {
 	}
 	return max
 }
+
+func CheckDivisibleByInt32(num int32, divisor int32) bool {
+	if num%divisor == 0 {
+		return true
+	}
+	return false
+}
+
+func FindDivisibleNumbersOfInt32(num int32) []int32 {
+	divisibleNumbers := []int32{}
+	for divisor := int32(1); divisor <= num; divisor++ {
+		if CheckDivisibleByInt32(num, divisor) {
+			divisibleNumbers = append(divisibleNumbers, divisor)
+		}
+	}
+	return divisibleNumbers
+}
