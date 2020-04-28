@@ -165,7 +165,7 @@ func Float32PtrFromPrompt(promptOpts *prompt.Options, v *Float32PtrValidation) (
 
 func ValidateFloat32PtrMissing(v *Float32PtrValidation) (*float32, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateFloat32Ptr(v.Default, v)
 }

@@ -19,16 +19,19 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	addEnvFlag(_versionCmd)
+var _flagVersionEnv string
+
+func versionInit() {
+	_versionCmd.Flags().SortFlags = false
+	_versionCmd.Flags().StringVarP(&_flagVersionEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 }
 
 var _versionCmd = &cobra.Command{
@@ -36,27 +39,29 @@ var _versionCmd = &cobra.Command{
 	Short: "print the cli and cluster versions",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.version")
+		env, err := ReadOrConfigureEnv(_flagVersionEnv)
+		if err != nil {
+			telemetry.Event("cli.version")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.version", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		if cliConfigured, err := isCLIEnvConfigured(_flagEnv); err != nil || !cliConfigured {
-			fmt.Println("cli version: " + consts.CortexVersion + "\n")
-			fmt.Println("run `cortex configure` to connect the cli to a cluster")
+		err = printEnvIfNotSpecified(_flagVersionEnv)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		fmt.Println("cli version: " + consts.CortexVersion)
+
+		if env.Provider == types.LocalProviderType {
 			return
 		}
 
-		httpResponse, err := HTTPGet("/info")
+		infoResponse, err := cluster.Info(MustGetOperatorConfig(env.Name))
 		if err != nil {
-			fmt.Println("cli version: " + consts.CortexVersion + "\n")
 			exit.Error(err)
 		}
-		var infoResponse schema.InfoResponse
-		err = json.Unmarshal(httpResponse, &infoResponse)
-		if err != nil {
-			fmt.Println("cli version: " + consts.CortexVersion + "\n")
-			exit.Error(err, "/info", string(httpResponse))
-		}
 
-		fmt.Println("cli version:     " + consts.CortexVersion)
 		fmt.Println("cluster version: " + infoResponse.ClusterConfig.APIVersion)
 	},
 }

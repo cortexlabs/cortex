@@ -18,11 +18,11 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/tls"
 	"fmt"
 	"net/http"
-	"time"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -30,22 +30,18 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-var _flagPredictDebug bool
+var (
+	_flagPredictEnv   string
+	_flagPredictDebug bool
+)
 
-var _predictClient = &GenericClient{
-	Client: &http.Client{
-		Timeout: 600 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	},
-}
-
-func init() {
-	addEnvFlag(_predictCmd)
+func predictInit() {
+	_predictCmd.Flags().SortFlags = false
+	_predictCmd.Flags().StringVarP(&_flagPredictEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }
 
@@ -54,19 +50,36 @@ var _predictCmd = &cobra.Command{
 	Short: "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.predict")
+		env, err := ReadOrConfigureEnv(_flagPredictEnv)
+		if err != nil {
+			telemetry.Event("cli.predict")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.predict", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		apiName := args[0]
-		jsonPath := args[1]
-
-		httpRes, err := HTTPGet("/get/" + apiName)
+		err = printEnvIfNotSpecified(_flagPredictEnv)
 		if err != nil {
 			exit.Error(err)
 		}
 
+		apiName := args[0]
+		jsonPath := args[1]
+
 		var apiRes schema.GetAPIResponse
-		if err = json.Unmarshal(httpRes, &apiRes); err != nil {
-			exit.Error(err, "/get"+apiName, string(httpRes))
+		var apiEndpoint string
+		if env.Provider == types.AWSProviderType {
+			apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+			if err != nil {
+				exit.Error(err)
+			}
+			apiEndpoint = urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
+
+		} else {
+			apiRes, err = local.GetAPI(apiName)
+			if err != nil {
+				exit.Error(err)
+			}
+			apiEndpoint = apiRes.BaseURL
 		}
 
 		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
@@ -74,7 +87,6 @@ var _predictCmd = &cobra.Command{
 			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))
 		}
 
-		apiEndpoint := urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
 		if _flagPredictDebug {
 			apiEndpoint += "?debug=true"
 		}
@@ -105,16 +117,19 @@ func makePredictRequest(apiEndpoint string, jsonPath string) (interface{}, error
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	httpResponse, err := _predictClient.MakeRequest(req)
+	header, httpResponseBody, err := makeRequest(req)
 	if err != nil {
 		return nil, err
 	}
 
-	var predictResponse interface{}
-	err = json.DecodeWithNumber(httpResponse, &predictResponse)
-	if err != nil {
-		return nil, errors.Wrap(err, "prediction response")
+	if header.Get("Content-Type") == "application/json" {
+		var predictResponse interface{}
+		err = json.DecodeWithNumber(httpResponseBody, &predictResponse)
+		if err != nil {
+			return nil, errors.Wrap(err, "prediction response")
+		}
+		return predictResponse, nil
 	}
 
-	return predictResponse, nil
+	return string(httpResponseBody), nil
 }

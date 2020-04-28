@@ -31,7 +31,6 @@ type InfoResponse struct {
 type DeployResponse struct {
 	Results []DeployResult `json:"results"`
 	BaseURL string         `json:"base_url"`
-	Message string         `json:"message"`
 }
 
 type DeployResult struct {

@@ -17,20 +17,23 @@ limitations under the License.
 package cmd
 
 import (
+	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-var _flagRefreshForce bool
+var (
+	_flagRefreshEnv   string
+	_flagRefreshForce bool
+)
 
-func init() {
-	_refreshCmd.PersistentFlags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
-	addEnvFlag(_refreshCmd)
+func refreshInit() {
+	_refreshCmd.Flags().SortFlags = false
+	_refreshCmd.Flags().StringVarP(&_flagRefreshEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_refreshCmd.Flags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
 }
 
 var _refreshCmd = &cobra.Command{
@@ -38,26 +41,26 @@ var _refreshCmd = &cobra.Command{
 	Short: "restart all replicas for an api (witout downtime)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.refresh")
-		refresh(args[0], _flagRefreshForce)
+		env, err := ReadOrConfigureEnv(_flagRefreshEnv)
+		if err != nil {
+			telemetry.Event("cli.refresh")
+			exit.Error(err)
+		}
+		telemetry.Event("cli.refresh", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+
+		err = printEnvIfNotSpecified(_flagRefreshEnv)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		if env.Provider == types.LocalProviderType {
+			print.BoldFirstLine("`cortex refresh` is not supported in the local environment; use `cortex deploy` instead")
+			return
+		}
+		refreshResponse, err := cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)
+		if err != nil {
+			exit.Error(err)
+		}
+		print.BoldFirstLine(refreshResponse.Message)
 	},
-}
-
-func refresh(apiName string, force bool) {
-	params := map[string]string{
-		"force": s.Bool(force),
-	}
-
-	httpRes, err := HTTPPostNoBody("/refresh/"+apiName, params)
-	if err != nil {
-		exit.Error(err)
-	}
-
-	var refreshRes schema.RefreshResponse
-	err = json.Unmarshal(httpRes, &refreshRes)
-	if err != nil {
-		exit.Error(err, "/refresh", string(httpRes))
-	}
-
-	print.ForUser(refreshRes.Message)
 }
