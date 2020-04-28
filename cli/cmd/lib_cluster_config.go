@@ -239,6 +239,16 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		}
 		userClusterConfig.InstanceVolumeSize = cachedClusterConfig.InstanceVolumeSize
 
+		if userClusterConfig.InstanceVolumeType != cachedClusterConfig.InstanceVolumeType {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeTypeKey, cachedClusterConfig.InstanceVolumeType)
+		}
+		userClusterConfig.InstanceVolumeType = cachedClusterConfig.InstanceVolumeType
+
+		if userClusterConfig.InstanceVolumeIOPS != cachedClusterConfig.InstanceVolumeIOPS {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeIOPSKey, cachedClusterConfig.InstanceVolumeIOPS)
+		}
+		userClusterConfig.InstanceVolumeIOPS = cachedClusterConfig.InstanceVolumeIOPS
+
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 		}
@@ -310,10 +320,13 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, envName string, disallowPrompt bool) {
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * 20 / 30 / 24
+	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
 	elbPrice := aws.ELBMetadatas[*clusterConfig.Region].Price
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
-	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
+	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
+	if clusterConfig.InstanceVolumeType.String() == "io1" && clusterConfig.InstanceVolumeIOPS != nil {
+		apiEBSPrice += aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS * float64(*clusterConfig.InstanceVolumeIOPS) / 30 / 24
+	}
 	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
@@ -430,6 +443,12 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
 		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)
+	}
+	if clusterConfig.InstanceVolumeType != defaultConfig.InstanceVolumeType {
+		items.Add(clusterconfig.InstanceVolumeTypeUserKey, clusterConfig.InstanceVolumeType)
+	}
+	if clusterConfig.InstanceVolumeIOPS != nil {
+		items.Add(clusterconfig.InstanceVolumeIOPSUserKey, *clusterConfig.InstanceVolumeIOPS)
 	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {

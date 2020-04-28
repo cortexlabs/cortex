@@ -28,6 +28,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -47,6 +48,8 @@ type Config struct {
 	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
 	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
+	InstanceVolumeType     VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeIOPS     *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
 	Spot                   *bool       `json:"spot" yaml:"spot"`
 	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
 	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
@@ -122,6 +125,23 @@ var UserValidation = &cr.StructValidation{
 				Default:              50,
 				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
 				LessThanOrEqualTo:    pointer.Int64(16384),
+			},
+		},
+		{
+			StructField: "InstanceVolumeType",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: VolumeTypesStrings(),
+				Default:       GP2VolumeType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return VolumeTypeFromString(str), nil
+			},
+		},
+		{
+			StructField: "InstanceVolumeIOPS",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThanOrEqualTo: pointer.Int64(100),
+				LessThanOrEqualTo:    pointer.Int64(64000),
 			},
 		},
 		{
@@ -414,6 +434,21 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	primaryInstanceType := *cc.InstanceType
 	if _, ok := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]; !ok {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, *cc.Region), InstanceTypeKey)
+	}
+
+	// Throw error if IOPS defined for other storage than io1
+	if cc.InstanceVolumeType != IO1VolumeType && cc.InstanceVolumeIOPS != nil {
+		return ErrorIOPSNotSupported(cc.InstanceVolumeType)
+	}
+
+	if cc.InstanceVolumeType == IO1VolumeType && cc.InstanceVolumeIOPS != nil {
+		if *cc.InstanceVolumeIOPS > cc.InstanceVolumeSize*50 {
+			return ErrorIOPSTooLarge(*cc.InstanceVolumeIOPS, cc.InstanceVolumeSize)
+		}
+	}
+
+	if aws.EBSMetadatas[*cc.Region][cc.InstanceVolumeType.String()].IOPSConfigurable && cc.InstanceVolumeIOPS == nil {
+		cc.InstanceVolumeIOPS = pointer.Int64(math.MinInt64(cc.InstanceVolumeSize*50, 3000))
 	}
 
 	if err := awsClient.VerifyInstanceQuota(primaryInstanceType); err != nil {
@@ -903,6 +938,8 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
 	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
 	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
+	items.Add(InstanceVolumeTypeUserKey, cc.InstanceVolumeType)
+	items.Add(InstanceVolumeIOPSUserKey, cc.InstanceVolumeIOPS)
 	items.Add(SpotUserKey, s.YesNo(*cc.Spot))
 
 	if cc.Spot != nil && *cc.Spot {

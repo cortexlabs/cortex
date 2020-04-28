@@ -48,6 +48,8 @@ const (
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
+	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
+	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
 )
 
 func ErrorInvalidRegion(region string) error {
@@ -199,5 +201,19 @@ func ErrorInvalidInstanceType(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidInstanceType,
 		Message: fmt.Sprintf("%s is not a valid instance type", instanceType),
+	})
+}
+
+func ErrorIOPSNotSupported(volumeType VolumeType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSNotSupported,
+		Message: fmt.Sprintf("IOPS cannot be configured for volume type %s; set `%s: %s` or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, IO1VolumeType, InstanceVolumeIOPSKey),
+	})
+}
+
+func ErrorIOPSTooLarge(iops int64, volumeSize int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSTooLarge,
+		Message: fmt.Sprintf("%s (%d) cannot be more than 50 times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", InstanceVolumeIOPSKey, iops, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
 	})
 }
