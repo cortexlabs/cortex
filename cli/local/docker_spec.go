@@ -271,7 +271,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	}
 
 	serveContainerConfig := &container.Config{
-		Image: api.Predictor.TFServeImage,
+		Image: api.Predictor.TensorFlowServingImage,
 		Cmd: strslice.StrSlice{
 			"--port=" + _tfServingPortStr, "--model_base_path=" + _modelDir,
 		},

@@ -79,7 +79,7 @@ type downloadContainerArg struct {
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
-		return tfAPISpec(api, prevDeployment)
+		return tensorflowPredictorSpec(api, prevDeployment)
 	case userconfig.ONNXPredictorType:
 		return onnxAPISpec(api, prevDeployment)
 	case userconfig.PythonPredictorType:
@@ -89,7 +89,7 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 	}
 }
 
-func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
+func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
@@ -187,7 +187,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 					*requestMonitorContainer(api),
 					{
 						Name:            _tfServingContainerName,
-						Image:           api.Predictor.TFServeImage,
+						Image:           api.Predictor.TensorFlowServingImage,
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + _tfServingPortStr,

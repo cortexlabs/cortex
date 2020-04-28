@@ -145,7 +145,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	for _, api := range apis {
 		imageSet.Add(api.Predictor.Image)
 		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
-			imageSet.Add(api.Predictor.TFServeImage)
+			imageSet.Add(api.Predictor.TensorFlowServingImage)
 		}
 	}
 

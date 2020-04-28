@@ -27,21 +27,21 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultImagePythonServe    = defaultDockerImage("python-serve")
-	DefaultImagePythonServeGPU = defaultDockerImage("python-serve-gpu")
-	DefaultImageTFServe        = defaultDockerImage("tf-serve")
-	DefaultImageTFServeGPU     = defaultDockerImage("tf-serve-gpu")
-	DefaultImageTFAPI          = defaultDockerImage("tf-api")
-	DefaultImageONNXServe      = defaultDockerImage("onnx-serve")
-	DefaultImageONNXServeGPU   = defaultDockerImage("onnx-serve-gpu")
-	DefaultImagePathsSet       = strset.New(
-		DefaultImagePythonServe,
-		DefaultImagePythonServeGPU,
-		DefaultImageTFServe,
-		DefaultImageTFServeGPU,
-		DefaultImageTFAPI,
-		DefaultImageONNXServe,
-		DefaultImageONNXServeGPU,
+	DefaultImagePythonPredictorCPU   = defaultDockerImage("python-predictor-cpu")
+	DefaultImagePythonPredictorGPU   = defaultDockerImage("python-predictor-gpu")
+	DefaultImageTensorFlowServingCPU = defaultDockerImage("tensorflow-serving-cpu")
+	DefaultImageTensorFlowServingGPU = defaultDockerImage("tensorflow-serving-gpu")
+	DefaultImageTensorFlowPredictor  = defaultDockerImage("tensorflow-predictor")
+	DefaultImageONNXPredictorCPU     = defaultDockerImage("onnx-predictor-cpu")
+	DefaultImageONNXPredictorGPU     = defaultDockerImage("onnx-predictor-gpu")
+	DefaultImagePathsSet             = strset.New(
+		DefaultImagePythonPredictorCPU,
+		DefaultImagePythonPredictorGPU,
+		DefaultImageTensorFlowServingCPU,
+		DefaultImageTensorFlowServingGPU,
+		DefaultImageTensorFlowPredictor,
+		DefaultImageONNXPredictorCPU,
+		DefaultImageONNXPredictorGPU,
 	)
 
 	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
