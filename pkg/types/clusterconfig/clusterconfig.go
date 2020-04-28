@@ -28,6 +28,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -43,31 +44,37 @@ var (
 )
 
 type Config struct {
-	InstanceType           *string     `json:"instance_type" yaml:"instance_type"`
-	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
-	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
-	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
-	Spot                   *bool       `json:"spot" yaml:"spot"`
-	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
-	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
-	Region                 *string     `json:"region" yaml:"region"`
-	AvailabilityZones      []string    `json:"availability_zones" yaml:"availability_zones"`
-	Bucket                 string      `json:"bucket" yaml:"bucket"`
-	LogGroup               string      `json:"log_group" yaml:"log_group"`
-	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
-	ImageOperator          string      `json:"image_operator" yaml:"image_operator"`
-	ImageManager           string      `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader        string      `json:"image_downloader" yaml:"image_downloader"`
-	ImageRequestMonitor    string      `json:"image_request_monitor" yaml:"image_request_monitor"`
-	ImageClusterAutoscaler string      `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer     string      `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageNvidia            string      `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentd           string      `json:"image_fluentd" yaml:"image_fluentd"`
-	ImageStatsd            string      `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy        string      `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot        string      `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel      string      `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley       string      `json:"image_istio_galley" yaml:"image_istio_galley"`
+	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
+	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
+	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize         int64              `json:"instance_volume_size" yaml:"instance_volume_size"`
+	InstanceVolumeType         VolumeType         `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeIOPS         *int64             `json:"instance_volume_iops" yaml:"instance_volume_iops"`
+	Spot                       *bool              `json:"spot" yaml:"spot"`
+	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
+	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
+	Region                     *string            `json:"region" yaml:"region"`
+	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
+	Bucket                     string             `json:"bucket" yaml:"bucket"`
+	LogGroup                   string             `json:"log_group" yaml:"log_group"`
+	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
+	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
+	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
+	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader            string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor        string             `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageClusterAutoscaler     string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer         string             `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageNvidia                string             `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentd               string             `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
+	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageIstioCitadel          string             `json:"image_istio_citadel" yaml:"image_istio_citadel"`
+	ImageIstioGalley           string             `json:"image_istio_galley" yaml:"image_istio_galley"`
 }
 
 type SpotConfig struct {
@@ -122,6 +129,23 @@ var UserValidation = &cr.StructValidation{
 				Default:              50,
 				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
 				LessThanOrEqualTo:    pointer.Int64(16384),
+			},
+		},
+		{
+			StructField: "InstanceVolumeType",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: VolumeTypesStrings(),
+				Default:       GP2VolumeType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return VolumeTypeFromString(str), nil
+			},
+		},
+		{
+			StructField: "InstanceVolumeIOPS",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThanOrEqualTo: pointer.Int64(100),
+				LessThanOrEqualTo:    pointer.Int64(64000),
 			},
 		},
 		{
@@ -221,6 +245,52 @@ var UserValidation = &cr.StructValidation{
 				MaxLength: 63,
 			},
 			DefaultField: "ClusterName",
+		},
+		{
+			StructField: "SubnetVisibility",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: SubnetVisibilityStrings(),
+				Default:       PublicSubnetVisibility.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return SubnetVisibilityFromString(str), nil
+			},
+		},
+		{
+			StructField: "NATGateway",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: NATGatewayStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return NATGatewayFromString(str), nil
+			},
+			DefaultField: "SubnetVisibility",
+			DefaultFieldFunc: func(val interface{}) interface{} {
+				if val.(SubnetVisibility) == PublicSubnetVisibility {
+					return NoneNATGateway.String()
+				}
+				return SingleNATGateway.String()
+			},
+		},
+		{
+			StructField: "APILoadBalancerScheme",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerSchemeStrings(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerSchemeFromString(str), nil
+			},
+		},
+		{
+			StructField: "OperatorLoadBalancerScheme",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerSchemeStrings(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerSchemeFromString(str), nil
+			},
 		},
 		{
 			StructField: "ImageOperator",
@@ -406,6 +476,10 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
+	if cc.SubnetVisibility == PrivateSubnetVisibility && cc.NATGateway == NoneNATGateway {
+		return ErrorNATRequiredWithPrivateSubnetVisibility()
+	}
+
 	bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
 	if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
 		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
@@ -414,6 +488,21 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	primaryInstanceType := *cc.InstanceType
 	if _, ok := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]; !ok {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, *cc.Region), InstanceTypeKey)
+	}
+
+	// Throw error if IOPS defined for other storage than io1
+	if cc.InstanceVolumeType != IO1VolumeType && cc.InstanceVolumeIOPS != nil {
+		return ErrorIOPSNotSupported(cc.InstanceVolumeType)
+	}
+
+	if cc.InstanceVolumeType == IO1VolumeType && cc.InstanceVolumeIOPS != nil {
+		if *cc.InstanceVolumeIOPS > cc.InstanceVolumeSize*50 {
+			return ErrorIOPSTooLarge(*cc.InstanceVolumeIOPS, cc.InstanceVolumeSize)
+		}
+	}
+
+	if aws.EBSMetadatas[*cc.Region][cc.InstanceVolumeType.String()].IOPSConfigurable && cc.InstanceVolumeIOPS == nil {
+		cc.InstanceVolumeIOPS = pointer.Int64(math.MinInt64(cc.InstanceVolumeSize*50, 3000))
 	}
 
 	if err := awsClient.VerifyInstanceQuota(primaryInstanceType); err != nil {
@@ -903,6 +992,8 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
 	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
 	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
+	items.Add(InstanceVolumeTypeUserKey, cc.InstanceVolumeType)
+	items.Add(InstanceVolumeIOPSUserKey, cc.InstanceVolumeIOPS)
 	items.Add(SpotUserKey, s.YesNo(*cc.Spot))
 
 	if cc.Spot != nil && *cc.Spot {
@@ -914,6 +1005,10 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
 	items.Add(LogGroupUserKey, cc.LogGroup)
+	items.Add(SubnetVisibilityUserKey, cc.SubnetVisibility)
+	items.Add(NATGatewayUserKey, cc.NATGateway)
+	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
+	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
