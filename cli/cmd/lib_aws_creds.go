@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
@@ -51,14 +52,19 @@ func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 	return awsClient, nil
 }
 
-func promptIfNotAdmin(awsClient *aws.Client) {
+func promptIfNotAdmin(awsClient *aws.Client, disallowPrompt bool) {
 	accessKeyMsg := ""
 	if accessKey := awsClient.AccessKeyID(); accessKey != nil {
 		accessKeyMsg = fmt.Sprintf(" (with access key %s)", *accessKey)
 	}
 
 	if !awsClient.IsAdmin() {
-		prompt.YesOrExit(fmt.Sprintf("warning: your IAM user%s does not have administrator access. This will likely prevent Cortex from installing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user (or to a group that your IAM user belongs to) via the AWS IAM console. If you'd like, you may provide separate credentials for your cluster to use after it's running (see https://cortex.dev/cluster-management/security for instructions).\n\nare you sure you want to continue without administrator access?", accessKeyMsg), "", "")
+		warningStr := fmt.Sprintf("warning: your IAM user%s does not have administrator access. This will likely prevent Cortex from installing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user (or to a group that your IAM user belongs to) via the AWS IAM console. If you'd like, you may provide separate credentials for your cluster to use after it's running (see https://cortex.dev/cluster-management/security for instructions).\n\n", accessKeyMsg)
+		if disallowPrompt {
+			fmt.Print(warningStr)
+		} else {
+			prompt.YesOrExit(warningStr+"are you sure you want to continue without administrator access?", "", "")
+		}
 	}
 }
 
@@ -138,7 +144,7 @@ func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
 }
 
 // awsCreds is what was read from the cluster config YAML
-func setInstallAWSCredentials(awsCreds *AWSCredentials, envName string) error {
+func setInstallAWSCredentials(awsCreds *AWSCredentials, envName string, disallowPrompt bool) error {
 	// First check env vars
 	if os.Getenv("AWS_SESSION_TOKEN") != "" {
 		fmt.Println("warning: credentials requiring aws session tokens are not supported")
@@ -184,6 +190,9 @@ func setInstallAWSCredentials(awsCreds *AWSCredentials, envName string) error {
 	}
 
 	// Prompt
+	if disallowPrompt {
+		exit.Error(ErrorAWSCredentialsRequired())
+	}
 	err = cr.ReadPrompt(awsCreds, _awsCredentialsPromptValidation)
 	if err != nil {
 		return err
@@ -224,14 +233,14 @@ func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
 	return nil
 }
 
-func getAWSCredentials(userClusterConfigPath string, envName string) (AWSCredentials, error) {
+func getAWSCredentials(userClusterConfigPath string, envName string, disallowPrompt bool) (AWSCredentials, error) {
 	awsCreds := AWSCredentials{}
 
 	if userClusterConfigPath != "" {
 		readAWSCredsFromConfigFile(&awsCreds, userClusterConfigPath)
 	}
 
-	err := setInstallAWSCredentials(&awsCreds, envName)
+	err := setInstallAWSCredentials(&awsCreds, envName, disallowPrompt)
 	if err != nil {
 		return AWSCredentials{}, err
 	}
