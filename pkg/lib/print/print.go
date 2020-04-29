@@ -54,3 +54,8 @@ func BoldFirstBlock(msg string) {
 		fmt.Println("\n" + strings.Join(msgParts[1:], "\n\n"))
 	}
 }
+
+func Dot() error {
+	fmt.Print(".")
+	return nil
+}
