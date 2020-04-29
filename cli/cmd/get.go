@@ -146,7 +146,7 @@ func getAPIsInAllEnvironments() (string, error) {
 		return "", err
 	}
 
-	errorStrs := []string{}
+	errorEnvNames := []string{}
 	allAPIs := []spec.API{}
 	allAPIStatuses := []status.Status{}
 	allMetrics := []metrics.Metrics{}
@@ -156,46 +156,50 @@ func getAPIsInAllEnvironments() (string, error) {
 		var err error
 		if env.Provider == types.AWSProviderType {
 			apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
-			if err != nil {
-				return "", err
-			}
 		} else {
 			apisRes, err = local.GetAPIs()
-			if err != nil {
-				return "", err
+		}
+
+		if err == nil {
+			for range apisRes.APIs {
+				allEnvs = append(allEnvs, env.Name)
 			}
-		}
 
-		for range apisRes.APIs {
-			allEnvs = append(allEnvs, env.Name)
-		}
-
-		allAPIs = append(allAPIs, apisRes.APIs...)
-		allAPIStatuses = append(allAPIStatuses, apisRes.Statuses...)
-		allMetrics = append(allMetrics, apisRes.AllMetrics...)
-
-		if err != nil {
-			errorStrs = append(errorStrs, fmt.Sprintf("unable get api list from %s environment: %s", env.Name, err.Error()))
+			allAPIs = append(allAPIs, apisRes.APIs...)
+			allAPIStatuses = append(allAPIStatuses, apisRes.Statuses...)
+			allMetrics = append(allMetrics, apisRes.AllMetrics...)
+		} else {
+			errorEnvNames = append(errorEnvNames, env.Name)
 		}
 	}
 
-	table := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
+	t := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
 
 	if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
-		table.FindHeaderByTitle(_titleUpToDate).Hidden = true
-		table.FindHeaderByTitle(_titleStale).Hidden = true
-		table.FindHeaderByTitle(_titleRequested).Hidden = true
-		table.FindHeaderByTitle(_titleFailed).Hidden = true
+		hideReplicaCountColumns(&t)
 	}
 
-	out := table.MustFormat()
+	out := t.MustFormat()
 
-	out += strings.Join(errorStrs, "\n\n")
+	if len(errorEnvNames) == 1 {
+		out += "\n\n" + fmt.Sprintf("failed to fetch apis from %s environment; run `cortex get --env %s` to get the complete error message", s.UserStr(errorEnvNames[0]), errorEnvNames[0])
+	} else if len(errorEnvNames) > 1 {
+		out += "\n\n" + fmt.Sprintf("failed to fetch apis from %s environments; run `cortex get --env <ENV_NAME>` to get the complete error message", s.UserStrsAnd(errorEnvNames))
+	}
 
-	mismatchedAPIMessage, _ := getLocalVersionMismatchedAPIsMessage()
-	out += "\n\n" + mismatchedAPIMessage
+	mismatchedAPIMessage, err := getLocalVersionMismatchedAPIsMessage()
+	if err == nil {
+		out += "\n\n" + mismatchedAPIMessage
+	}
 
 	return out, nil
+}
+
+func hideReplicaCountColumns(t *table.Table) {
+	t.FindHeaderByTitle(_titleUpToDate).Hidden = true
+	t.FindHeaderByTitle(_titleStale).Hidden = true
+	t.FindHeaderByTitle(_titleRequested).Hidden = true
+	t.FindHeaderByTitle(_titleFailed).Hidden = true
 }
 
 func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
@@ -225,6 +229,10 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 
 	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, envNames)
 
+	if env.Name == types.LocalProviderType.String() {
+		hideReplicaCountColumns(&t)
+	}
+
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
 	out := t.MustFormat()
@@ -248,7 +256,10 @@ func getLocalVersionMismatchedAPIsMessage() (string, error) {
 		return "", nil
 	}
 
-	return fmt.Sprintf("the following apis (%s) were deployed in your local environment using a different version of the cortex cli; please update them using `cortex deploy` or delete them using `cortex delete <api_name>`", strings.Join(mismatchedAPINames, ", ")), nil
+	if len(mismatchedAPINames) == 1 {
+		return fmt.Sprintf("an api named %s was deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete %s` and then redeploy them", s.UserStr(mismatchedAPINames[0]), mismatchedAPINames[0]), nil
+	}
+	return fmt.Sprintf("apis named %s were deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete <api_name>` and then redeploy them", s.UserStrsAnd(mismatchedAPINames)), nil
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
