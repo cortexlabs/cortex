@@ -50,10 +50,6 @@ $ curl http://***.amazonaws.com/my-api \
     -d '{"key": "value"}'
 ```
 
-## Debugging
-
-You can log information about each request by adding the `?debug=true` parameter to your requests. This will print the payload and the value after running your `predict()` function in the API logs.
-
 ## `cortex delete`
 
 Use the `cortex delete` command to delete your API:

@@ -68,7 +68,6 @@ Usage:
 
 Flags:
   -e, --env string   environment to use (default "local")
-      --debug        predict with debug mode
   -h, --help         help for predict
 ```
 

@@ -242,7 +242,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	}
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
-	out += fmt.Sprintf("\n%s curl %s?debug=true -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
 
 	if api.Predictor.Type == userconfig.TensorFlowPredictorType || api.Predictor.Type == userconfig.ONNXPredictorType {
 		out += "\n" + describeModelInput(&apiRes.Status, apiEndpoint)
