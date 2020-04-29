@@ -104,7 +104,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 		if api.Endpoint != nil || api.Autoscaling != nil || api.Tracker != nil || api.UpdateStrategy != nil {
 			if !didPrintWarning {
-				fmt.Println(fmt.Sprintf("note: your apis are running in local environment, some keys such as %s, %s, %s, and %s are not supported and will be ignored\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
+				fmt.Println(fmt.Sprintf("note: your apis are running in local environment, so some keys such as  %s, %s, %s, and %s won't apply\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
 			}
 			didPrintWarning = true
 		}
@@ -126,7 +126,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		}
 
 		if _, ok := infoResponse.Runtimes["nvidia"]; !ok {
-			fmt.Println(fmt.Sprintf("warning: %s will be run without GPU access because nvidia runtime is either not setup or not properly configured in your docker (`docker info | grep -i runtime` to list runtimes in your docker); see https://github.com/NVIDIA/nvidia-container-runtime#installation for instructions\n", s.StrsAnd(apisRequiringGPU.Slice())))
+			fmt.Println(fmt.Sprintf("warning: %s will run without GPU access because your machine doesn't have GPUs or the nvidia runtime is not properly configured (use `docker info | grep -i runtime` to list docker runtimes, see https://github.com/NVIDIA/nvidia-container-runtime#installation for instructions)\n", s.StrsAnd(apisRequiringGPU.Slice())))
 			for i := range apis {
 				api := &apis[i]
 				if apisRequiringGPU.Has(api.Name) {
