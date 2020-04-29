@@ -104,7 +104,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 		if api.Endpoint != nil || api.Autoscaling != nil || api.Tracker != nil || api.UpdateStrategy != nil {
 			if !didPrintWarning {
-				fmt.Println(fmt.Sprintf("note: your apis are running in local environment, some keys such as  %s, %s, %s, and %s are not supported and will be ignored\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
+				fmt.Println(fmt.Sprintf("note: your apis are running in local environment, some keys such as %s, %s, %s, and %s are not supported and will be ignored\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
 			}
 			didPrintWarning = true
 		}
