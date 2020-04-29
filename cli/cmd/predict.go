@@ -35,14 +35,12 @@ import (
 )
 
 var (
-	_flagPredictEnv   string
-	_flagPredictDebug bool
+	_flagPredictEnv string
 )
 
 func predictInit() {
 	_predictCmd.Flags().SortFlags = false
 	_predictCmd.Flags().StringVarP(&_flagPredictEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
-	_predictCmd.Flags().BoolVar(&_flagPredictDebug, "debug", false, "predict with debug mode")
 }
 
 var _predictCmd = &cobra.Command{
@@ -85,10 +83,6 @@ var _predictCmd = &cobra.Command{
 		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
 		if totalReady == 0 {
 			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))
-		}
-
-		if _flagPredictDebug {
-			apiEndpoint += "?debug=true"
 		}
 
 		predictResponse, err := makePredictRequest(apiEndpoint, jsonPath)

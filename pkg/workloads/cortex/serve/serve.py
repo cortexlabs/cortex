@@ -34,7 +34,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API
-from cortex.lib.log import cx_logger, debug_obj
+from cortex.lib.log import cx_logger
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
 
@@ -153,24 +153,21 @@ async def register_request(request: Request, call_next):
     return response
 
 
-def predict(request: Any = Body(..., media_type="application/json"), debug=False):
+def predict(request: Any = Body(..., media_type="application/json")):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
 
-    debug_obj("payload", request, debug)
     prediction = predictor_impl.predict(request)
 
     if isinstance(prediction, bytes):
         response = Response(content=prediction, media_type="application/octet-stream")
     elif isinstance(prediction, str):
         response = Response(content=prediction, media_type="text/plain")
-        debug_obj("prediction", prediction, debug)
     elif isinstance(prediction, Response):
         response = prediction
     else:
         try:
             json_string = json.dumps(prediction)
-            debug_obj("prediction", prediction, debug)
         except Exception as e:
             raise UserRuntimeException(
                 str(e),
