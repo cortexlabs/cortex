@@ -36,10 +36,6 @@ var _deploymentID = "local"
 func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
 	if err != nil {
-		if errors.GetKind(err) == ErrCortexVersionMismatch {
-			DeleteAPI(apiConfig.Name, false)
-		}
-
 		if errors.GetKind(err) != ErrAPINotDeployed {
 			return nil, "", err
 		}
