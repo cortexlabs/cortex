@@ -329,7 +329,7 @@ func (tracker *Tracker) UserStr() string {
 func (compute *Compute) UserStr() string {
 	var sb strings.Builder
 	if compute.CPU == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", CPUKey))
+		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", CPUKey))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
 	}
@@ -337,7 +337,7 @@ func (compute *Compute) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
 	if compute.Mem == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", MemKey))
+		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", MemKey))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
