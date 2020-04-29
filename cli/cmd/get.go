@@ -146,11 +146,11 @@ func getAPIsInAllEnvironments() (string, error) {
 		return "", err
 	}
 
-	errorEnvNames := []string{}
-	allAPIs := []spec.API{}
-	allAPIStatuses := []status.Status{}
-	allMetrics := []metrics.Metrics{}
-	allEnvs := []string{}
+	var errorEnvNames []string
+	var allAPIs []spec.API
+	var allAPIStatuses []status.Status
+	var allMetrics []metrics.Metrics
+	var allEnvs []string
 	for _, env := range cliConfig.Environments {
 		var apisRes schema.GetAPIsResponse
 		var err error
@@ -182,14 +182,14 @@ func getAPIsInAllEnvironments() (string, error) {
 	out := t.MustFormat()
 
 	if len(errorEnvNames) == 1 {
-		out += "\n\n" + fmt.Sprintf("failed to fetch apis from %s environment; run `cortex get --env %s` to get the complete error message", s.UserStr(errorEnvNames[0]), errorEnvNames[0])
+		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environment; run `cortex get --env %s` to get the complete error message\n", s.UserStr(errorEnvNames[0]), errorEnvNames[0])
 	} else if len(errorEnvNames) > 1 {
-		out += "\n\n" + fmt.Sprintf("failed to fetch apis from %s environments; run `cortex get --env <ENV_NAME>` to get the complete error message", s.UserStrsAnd(errorEnvNames))
+		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environments; run `cortex get --env ENV_NAME` to get the complete error message\n", s.UserStrsAnd(errorEnvNames))
 	}
 
 	mismatchedAPIMessage, err := getLocalVersionMismatchedAPIsMessage()
 	if err == nil {
-		out += "\n\n" + mismatchedAPIMessage
+		out += "\n" + mismatchedAPIMessage
 	}
 
 	return out, nil
@@ -229,15 +229,12 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 
 	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, envNames)
 
-	if env.Name == types.LocalProviderType.String() {
-		hideReplicaCountColumns(&t)
-	}
-
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
 	out := t.MustFormat()
 
 	if env.Provider == types.LocalProviderType {
+		hideReplicaCountColumns(&t)
 		mismatchedVersionAPIsErrorMessage, _ := getLocalVersionMismatchedAPIsMessage()
 		if len(mismatchedVersionAPIsErrorMessage) > 0 {
 			out += "\n" + mismatchedVersionAPIsErrorMessage
@@ -257,9 +254,9 @@ func getLocalVersionMismatchedAPIsMessage() (string, error) {
 	}
 
 	if len(mismatchedAPINames) == 1 {
-		return fmt.Sprintf("an api named %s was deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete %s` and then redeploy them", s.UserStr(mismatchedAPINames[0]), mismatchedAPINames[0]), nil
+		return fmt.Sprintf("an api named %s was deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete %s` and then redeploy them\n", s.UserStr(mismatchedAPINames[0]), mismatchedAPINames[0]), nil
 	}
-	return fmt.Sprintf("apis named %s were deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete <api_name>` and then redeploy them", s.UserStrsAnd(mismatchedAPINames)), nil
+	return fmt.Sprintf("apis named %s were deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete API_NAME` and then redeploy them\n", s.UserStrsAnd(mismatchedAPINames)), nil
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
