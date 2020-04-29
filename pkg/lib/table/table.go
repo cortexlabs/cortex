@@ -41,6 +41,16 @@ type Header struct {
 	Hidden   bool
 }
 
+func (t *Table) FindHeaderByTitle(title string) *Header {
+	for i, header := range t.Headers {
+		if header.Title == title {
+			return &t.Headers[i]
+		}
+	}
+
+	return nil
+}
+
 type Opts struct {
 	Sort *bool // default is true
 }
