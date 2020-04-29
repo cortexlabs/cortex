@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -131,6 +132,16 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 				api := &apis[i]
 				if apisRequiringGPU.Has(api.Name) {
 					api.Compute.GPU = 0
+				}
+				switch api.Predictor.Image {
+				case consts.DefaultImageONNXPredictorGPU:
+					api.Predictor.Image = consts.DefaultImageONNXPredictorCPU
+				case consts.DefaultImagePythonPredictorGPU:
+					api.Predictor.Image = consts.DefaultImagePythonPredictorCPU
+				}
+
+				if api.Predictor.Type == userconfig.TensorFlowPredictorType && api.Predictor.TensorFlowServingImage == consts.DefaultImageTensorFlowServingGPU {
+					api.Predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
 				}
 			}
 		}
