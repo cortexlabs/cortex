@@ -36,6 +36,10 @@ var _deploymentID = "local"
 func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
 	if err != nil {
+		if errors.GetKind(err) == ErrCortexVersionMismatch {
+			DeleteAPI(apiConfig.Name, false)
+		}
+
 		if errors.GetKind(err) != ErrAPINotDeployed {
 			return nil, "", err
 		}
@@ -142,7 +146,8 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	}
 
 	apiSpec, err := FindAPISpec(apiName)
-	if err == nil || errors.GetKind(err) == ErrCortexVersionMismatch {
+
+	if err == nil {
 		if apiSpec.LocalModelCache != nil {
 			modelsToDelete.Add(apiSpec.LocalModelCache.ID)
 		}
@@ -150,7 +155,11 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		if err != nil {
 			errList = append(errList, errors.Wrap(ErrorFailedToDeleteAPISpec(filepath.Join(_localWorkspaceDir, "apis", apiName)), err.Error()))
 		}
-
+	} else if errors.GetKind(err) == ErrCortexVersionMismatch {
+		_, err := files.DeleteDirIfPresent(filepath.Join(_localWorkspaceDir, "apis", apiName))
+		if err != nil {
+			errList = append(errList, errors.Wrap(ErrorFailedToDeleteAPISpec(filepath.Join(_localWorkspaceDir, "apis", apiName)), err.Error()))
+		}
 	} else {
 		// only add error if it isn't ErrCortexVersionMismatch
 		errList = append(errList, err)
