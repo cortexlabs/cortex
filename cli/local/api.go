@@ -41,6 +41,11 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 		}
 	}
 
+	prevAPIContainers, err := GetContainersByAPI(apiConfig.Name)
+	if err != nil {
+		return nil, "", err
+	}
+
 	apiSpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
 	if apiConfig.Predictor.Model != nil {
 		localModelCache, err := CacheModel(*apiConfig.Predictor.Model, awsClient)
@@ -49,7 +54,10 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 		}
 		apiSpec.LocalModelCache = localModelCache
 	}
+
 	apiSpec.LocalProjectDir = filepath.Dir(cortexYAMLPath)
+
+	keepCache := false
 	if prevAPISpec != nil {
 		prevModelID := ""
 		if prevAPISpec.LocalModelCache != nil {
@@ -64,38 +72,51 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 		if prevAPISpec.ID == apiSpec.ID && newModelID == prevModelID && prevAPISpec.Compute.Equals(apiSpec.Compute) {
 			return apiSpec, fmt.Sprintf("%s is up to date", apiSpec.Name), nil
 		}
+		keepCache = newModelID == prevModelID
+	}
 
-		keepCache := newModelID == prevModelID
+	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
 		err = DeleteAPI(apiSpec.Name, keepCache)
 		if err != nil {
 			return nil, "", err
 		}
 	}
 
-	apiBytes, err := msgpack.Marshal(apiSpec)
+	err = writeAPISpec(apiSpec)
 	if err != nil {
-		return nil, "", err
-	}
-
-	err = files.CreateDir(files.ParentDir(filepath.Join(_localWorkspaceDir, apiSpec.Key)))
-	if err != nil {
-		return nil, "", err
-	}
-
-	err = files.WriteFile(apiBytes, filepath.Join(_localWorkspaceDir, apiSpec.Key))
-	if err != nil {
+		DeleteAPI(apiSpec.Name, false)
 		return nil, "", err
 	}
 
 	if err := DeployContainers(apiSpec, awsClient); err != nil {
+		DeleteAPI(apiSpec.Name, false)
 		return nil, "", err
 	}
 
-	if prevAPISpec == nil {
+	if prevAPISpec == nil && len(prevAPIContainers) == 0 {
 		return apiSpec, fmt.Sprintf("creating %s", apiSpec.Name), nil
 	}
 
 	return apiSpec, fmt.Sprintf("updating %s", apiSpec.Name), nil
+}
+
+func writeAPISpec(apiSpec *spec.API) error {
+	apiBytes, err := msgpack.Marshal(apiSpec)
+	if err != nil {
+		return err
+	}
+
+	err = files.CreateDir(files.ParentDir(filepath.Join(_localWorkspaceDir, apiSpec.Key)))
+	if err != nil {
+		return err
+	}
+
+	err = files.WriteFile(apiBytes, filepath.Join(_localWorkspaceDir, apiSpec.Key))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
