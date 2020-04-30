@@ -1,7 +1,5 @@
 # Deploy machine learning models in production
 
-Cortex is an open source platform for deploying machine learning models as production web services.
-
 <br>
 
 <!-- Delete on release branches -->
@@ -10,6 +8,10 @@ Cortex is an open source platform for deploying machine learning models as produ
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13_2.gif)
+
+<br>
+
+Cortex is an open source platform for deploying machine learning models as production web services.
 
 <br>
 
@@ -109,6 +111,16 @@ $ cortex deploy
 creating sentiment-classifier
 ```
 
+### Serve predictions at scale
+
+```bash
+$ curl http://***.amazonaws.com/sentiment-classifier \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"text": "serving models at scale is cooler!"}'
+
+positive
+```
+
 ### Monitor your deployment
 
 ```bash
@@ -120,16 +132,6 @@ live     1            1           8s            24ms          12
 class     count
 positive  8
 negative  4
-```
-
-### Serve predictions at scale
-
-```bash
-$ curl http://***.amazonaws.com/sentiment-classifier \
-    -X POST -H "Content-Type: application/json" \
-    -d '{"text": "serving models at scale is cooler!"}'
-
-positive
 ```
 
 ### How it works
