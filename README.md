@@ -63,7 +63,7 @@ creating sentiment-classifier
 ### Serve predictions
 
 ```bash
-$ curl http://localhost:8888 \
+$ curl http://localhost:12345 \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "serving models locally is cool!"}'
 
@@ -76,7 +76,7 @@ positive
 
 ### Spin up a cluster
 
-Cortex is designed to be self-hosted on any AWS account (GCP is coming soon).
+Cortex clusters are designed to be self-hosted on any AWS account (GCP support is coming soon):
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
