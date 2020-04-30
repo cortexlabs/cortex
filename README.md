@@ -63,7 +63,7 @@ creating sentiment-classifier
 ### Serve predictions
 
 ```bash
-$ curl http://localhost:8888/sentiment-classifier \
+$ curl http://localhost:8888 \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "serving models locally is cool!"}'
 
@@ -112,7 +112,7 @@ creating sentiment-classifier
 ```bash
 $ curl http://***.amazonaws.com/sentiment-classifier \
     -X POST -H "Content-Type: application/json" \
-    -d '{"text": "serving models at scale is cooler!"}'
+    -d '{"text": "serving models at scale is really cool!"}'
 
 positive
 ```
