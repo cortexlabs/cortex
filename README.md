@@ -6,7 +6,7 @@ Cortex is an open source platform for deploying machine learning models as produ
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
-[install](https://cortex.dev/install) • [tutorial](https://cortex.dev/iris-classifier) • [docs](https://cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.15/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
+[install](https://cortex.dev/install) • [docs](https://cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.15/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13_2.gif)
@@ -78,7 +78,7 @@ positive
 
 ### Spin up a cluster
 
-Cortex is designed to be self-hosted on any AWS account (GCP is coming soon). You can spin up a cluster with a single command:
+Cortex is designed to be self-hosted on any AWS account (GCP is coming soon).
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
@@ -132,7 +132,7 @@ $ curl http://***.amazonaws.com/sentiment-classifier \
 positive
 ```
 
-## How it works
+### How it works
 
 The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
 
