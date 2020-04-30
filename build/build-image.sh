@@ -21,6 +21,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 CORTEX_VERSION=master
 
+slim="false"
+if [ "$1" == "--include-slim" ]; then
+    slim="true"
+    shift
+fi
+
 dir=$1
 image=$2
 
@@ -29,8 +35,10 @@ docker build "$ROOT" \
     -t cortexlabs/${image} \
     -t cortexlabs/${image}:${CORTEX_VERSION}
 
-docker build "$ROOT" \
-    -f $dir/Dockerfile \
-    --build-arg SLIM=true \
-    -t cortexlabs/${image}-slim \
-    -t cortexlabs/${image}-slim:${CORTEX_VERSION}
+if [ "$slim" == "true"]; then
+    docker build "$ROOT" \
+        -f $dir/Dockerfile \
+        --build-arg SLIM=true \
+        -t cortexlabs/${image}-slim \
+        -t cortexlabs/${image}-slim:${CORTEX_VERSION}
+fi
