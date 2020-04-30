@@ -1,0 +1,16 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+- name: license-plate-reader
+  predictor:
+    type: python
+    path: predictor_lite.py
+    config:
+      yolov3: s3://cortex-examples/tensorflow/license-plate-reader/yolov3
+      yolov3_model_config: config.json
+  compute:
+    cpu: 4
+    gpu: 1
+    mem: 8G
+  autoscaling:
+    workers_per_replica: 4
+    threads_per_worker: 2
