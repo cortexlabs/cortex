@@ -25,6 +25,13 @@
 
 ## Deploying a model
 
+### Install the CLI
+
+<!-- CORTEX_VERSION_README_MINOR -->
+```bash
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.15/get-cli.sh)"
+```
+
 ### Implement your predictor
 
 ```python
@@ -76,13 +83,9 @@ positive
 
 ### Spin up a cluster
 
-Cortex clusters are designed to be self-hosted on any AWS account (GCP support is coming soon):
+Cortex clusters are designed to be self-hosted on any AWS account (and GCP support is coming soon):
 
-<!-- CORTEX_VERSION_README_MINOR -->
 ```bash
-# install the CLI on your machine
-$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.15/get-cli.sh)"
-
 # provision infrastructure on AWS and spin up a cluster
 $ cortex cluster up
 
@@ -102,7 +105,7 @@ your cluster is ready!
 ### Deploy to your cluster with the same code and configuration
 
 ```bash
-$ cortex deploy
+$ cortex deploy --env aws
 
 creating sentiment-classifier
 ```
