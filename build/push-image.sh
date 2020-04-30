@@ -23,4 +23,5 @@ image=$1
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-docker push cortexlabs/$image:$CORTEX_VERSION
+docker push cortexlabs/${image}:${CORTEX_VERSION}
+docker push cortexlabs/${image}-slim:${CORTEX_VERSION}

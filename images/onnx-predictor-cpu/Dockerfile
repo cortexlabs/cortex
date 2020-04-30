@@ -2,20 +2,11 @@ FROM ubuntu:18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
-        curl \
-        libfreetype6-dev \
-        libpng-dev \
-        libzmq3-dev \
         pkg-config \
-        rsync \
         software-properties-common \
+        curl \
         unzip \
         zlib1g-dev \
-        git \
-        libsm6 \
-        libxext6 \
-        libxrender-dev \
-        libsndfile1 \
         locales \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
@@ -42,11 +33,27 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip 
 
 ENV BASH_ENV=~/.env
 
-COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-COPY pkg/workloads/cortex/serve/onnx-cpu.requirements.txt /src/cortex/serve/requirements.txt
+COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
 
+# use /bin/bash to run in conda environment
 RUN /bin/bash -c \
-    "pip install --no-cache-dir -r /src/cortex/lib/requirements.txt -r /src/cortex/serve/requirements.txt"
+    "pip install --no-cache-dir \
+        -r /src/cortex/serve/requirements.txt \
+        onnxruntime==1.2.0"
+
+ARG SLIM="false"
+RUN test "${SLIM}" != "true" && \
+        # libsm6, libxext6, and libxrender-dev are required for opencv
+        # libpng-dev is required for some image processing libaries
+        # libsndfile1 is required for some audio processing libaries
+        apt-get update -qq && apt-get install -y -q \
+            libsm6 \
+            libxext6 \
+            libxrender-dev \
+            libpng-dev \
+            libsndfile1 \
+        && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
+    || true
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib

@@ -1,8 +1,0 @@
-tensorflow-cpu==2.1.0
-
-opencv-python==4.2.0.32
-tensorflow-hub==0.7.0
-
-tensorflow-serving-api==2.1.0
-uvicorn==0.11.3
-fastapi==0.53.0

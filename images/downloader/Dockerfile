@@ -12,8 +12,8 @@ RUN apt-get update -qq && apt-get install -y -q \
     pip install --upgrade pip && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-RUN pip install -r /src/cortex/lib/requirements.txt && \
+COPY pkg/workloads/cortex/downloader/requirements.txt /src/cortex/downloader/requirements.txt
+RUN pip install -r /src/cortex/downloader/requirements.txt && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/cortex/consts.py /src/cortex/
