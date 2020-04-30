@@ -12,7 +12,7 @@ from utils.bbox import (
 from utils.preprocess import (
     get_url_image,
     reorder_recognized_words,
-    image_to_png_bytes,
+    image_to_jpeg_bytes,
 )
 
 
@@ -28,7 +28,7 @@ class PythonPredictor:
         self.yolov3_model = load_model(model_name)
 
         # get configuration for yolov3 model
-        with open(config["model_config"]) as json_file:
+        with open(config["yolov3_model_config"]) as json_file:
             data = json.load(json_file)
         for key in data:
             setattr(self, key, data[key])
@@ -46,13 +46,14 @@ class PythonPredictor:
         # detect the bounding boxes
         boxes = get_yolo_boxes(
             self.yolov3_model,
-            [image],
+            image,
             self.net_h,
             self.net_w,
             self.anchors,
             self.obj_thresh,
             self.nms_thresh,
             len(self.labels),
+            tensorflow_model=False,
         )
 
         # purge bounding boxes with a low confidence score
@@ -78,7 +79,7 @@ class PythonPredictor:
 
             # run batch inference
             try:
-                prediction_groups = self.recognition_model_pipeline.recognize(images)
+                prediction_groups = self.recognition_model_pipeline.recognize(lps)
             except ValueError:
                 # exception can occur when the images are too small
                 prediction_groups = []
@@ -110,7 +111,7 @@ class PythonPredictor:
         )
 
         # image represented in bytes
-        byte_im = image_to_png_bytes(pred)
+        byte_im = image_to_jpeg_bytes(draw_image)
 
         # encode image
         image_enc = base64.b64encode(byte_im).decode("utf-8")
