@@ -22,10 +22,20 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX_VERSION=master
 
 slim="false"
-if [ "$1" == "--include-slim" ]; then
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    --include-slim)
     slim="true"
     shift
-fi
+    ;;
+    *)
+    positional_args+=("$1")
+    shift
+    ;;
+  esac
+done
+set -- "${positional_args[@]}"
 
 dir=$1
 image=$2
