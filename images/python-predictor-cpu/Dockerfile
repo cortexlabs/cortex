@@ -1,22 +1,22 @@
 FROM ubuntu:18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
-    build-essential \
-    curl \
-    libfreetype6-dev \
-    libpng-dev \
-    libzmq3-dev \
-    pkg-config \
-    rsync \
-    software-properties-common \
-    unzip \
-    zlib1g-dev \
-    git \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libsndfile1 \
-    locales \
+        build-essential \
+        curl \
+        libfreetype6-dev \
+        libpng-dev \
+        libzmq3-dev \
+        pkg-config \
+        rsync \
+        software-properties-common \
+        unzip \
+        zlib1g-dev \
+        git \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
+        libsndfile1 \
+        locales \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 RUN locale-gen en_US.UTF-8
