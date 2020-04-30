@@ -28,7 +28,7 @@ class TensorFlowPredictor:
         # detect the bounding boxes
         boxes = get_yolo_boxes(
             self.client,
-            [image],
+            image,
             self.net_h,
             self.net_w,
             self.anchors,

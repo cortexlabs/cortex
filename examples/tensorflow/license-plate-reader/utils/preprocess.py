@@ -1,4 +1,6 @@
-import numpy, cv2, requests
+import numpy as np
+import cv2, requests
+from statistics import mean
 
 
 def get_url_image(url_image):
@@ -9,23 +11,6 @@ def get_url_image(url_image):
     image = np.asarray(bytearray(resp.read()), dtype="uint8")
     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
     return image
-
-
-def image_to_png_nparray(image):
-    """
-    Convert numpy image to png numpy vector.
-    """
-    is_success, im_buf_arr = cv2.imencode(".png", image)
-    return im_buf_arr
-
-
-def image_to_png_bytes(image):
-    """
-    Convert numpy image to bytes-encoded png image.
-    """
-    buf = image_to_png_nparray(image)
-    byte_im = buf.tobytes()
-    return byte_im
 
 
 def image_to_jpeg_nparray(image, quality=[int(cv2.IMWRITE_JPEG_QUALITY), 95]):
