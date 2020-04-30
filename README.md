@@ -11,10 +11,6 @@
 
 <br>
 
-Cortex is an open source platform for deploying machine learning models as production web services.
-
-<br>
-
 ## Key features
 
 * **Multi framework:** deploy TensorFlow, PyTorch, scikit-learn, and other models.
