@@ -173,13 +173,19 @@ func getAPIsInAllEnvironments() (string, error) {
 		}
 	}
 
-	t := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
+	out := ""
 
-	if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
-		hideReplicaCountColumns(&t)
+	if len(allAPIs) == 0 {
+		out += console.Bold("no apis are deployed") + "\n"
+	} else {
+		t := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
+
+		if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
+			hideReplicaCountColumns(&t)
+		}
+
+		out += t.MustFormat()
 	}
-
-	out := t.MustFormat()
 
 	if len(errorEnvNames) == 1 {
 		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environment; run `cortex get --env %s` to get the complete error message\n", s.UserStr(errorEnvNames[0]), errorEnvNames[0])
