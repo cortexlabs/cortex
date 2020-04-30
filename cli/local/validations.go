@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -104,7 +104,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 		if api.Endpoint != nil || api.Autoscaling != nil || api.Tracker != nil || api.UpdateStrategy != nil {
 			if !didPrintWarning {
-				fmt.Println(fmt.Sprintf("note: %s, %s, %s, and %s keys will be ignored because they are not supported in local environment\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
+				fmt.Println(fmt.Sprintf("note: your apis are running in local environment, so some keys such as  %s, %s, %s, and %s won't apply\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
 			}
 			didPrintWarning = true
 		}
@@ -126,11 +126,21 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		}
 
 		if _, ok := infoResponse.Runtimes["nvidia"]; !ok {
-			fmt.Println(fmt.Sprintf("warning: unable to find nvidia runtime on your docker (confirm with `docker info | grep -i runtime`); see https://github.com/NVIDIA/nvidia-container-runtime#installation to register nvidia runtime on your docker; in the meantime, the following api(s) will be run without GPU access: %s\n", strings.Join(apisRequiringGPU.Slice(), ", ")))
+			fmt.Println(fmt.Sprintf("warning: %s will run without GPU access because your machine doesn't have GPUs or the nvidia runtime is not properly configured (use `docker info | grep -i runtime` to list docker runtimes, see https://github.com/NVIDIA/nvidia-container-runtime#installation for instructions)\n", s.StrsAnd(apisRequiringGPU.Slice())))
 			for i := range apis {
 				api := &apis[i]
 				if apisRequiringGPU.Has(api.Name) {
 					api.Compute.GPU = 0
+				}
+				switch api.Predictor.Image {
+				case consts.DefaultImageONNXPredictorGPU:
+					api.Predictor.Image = consts.DefaultImageONNXPredictorCPU
+				case consts.DefaultImagePythonPredictorGPU:
+					api.Predictor.Image = consts.DefaultImagePythonPredictorCPU
+				}
+
+				if api.Predictor.Type == userconfig.TensorFlowPredictorType && api.Predictor.TensorFlowServingImage == consts.DefaultImageTensorFlowServingGPU {
+					api.Predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
 				}
 			}
 		}
@@ -159,7 +169,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 			}
 		}
 
-		err = docker.PullImage(image, dockerAuth)
+		err = docker.PullImage(image, dockerAuth, docker.PrintDots)
 		if err != nil {
 			return errors.Wrap(err, "failed to pull image", image)
 		}

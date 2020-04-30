@@ -27,14 +27,14 @@ type Cron struct {
 	cronCancel chan struct{}
 }
 
-func Run(f func() error, errHandler func(error), interval time.Duration) Cron {
+func Run(f func() error, errHandler func(error), delay time.Duration) Cron {
 	cronRun := make(chan struct{}, 1)
 	cronCancel := make(chan struct{}, 1)
 
 	runCron := func() {
 		defer recoverer(errHandler)
 		err := f()
-		if err != nil {
+		if err != nil && errHandler != nil {
 			errHandler(err)
 		}
 	}
@@ -51,7 +51,7 @@ func Run(f func() error, errHandler func(error), interval time.Duration) Cron {
 			case <-timer.C:
 				runCron()
 			}
-			timer.Reset(interval)
+			timer.Reset(delay)
 		}
 	}()
 
@@ -73,6 +73,8 @@ func recoverer(errHandler func(error)) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface)
 		errors.PrintStacktrace(err)
-		errHandler(err)
+		if errHandler != nil {
+			errHandler(err)
+		}
 	}
 }

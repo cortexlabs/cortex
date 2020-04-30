@@ -477,7 +477,11 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 		return "", err
 	}
 
-	parsedURL.Scheme = "https"
+	if strings.HasPrefix(parsedURL.Host, "localhost") {
+		parsedURL.Scheme = "http"
+	} else {
+		parsedURL.Scheme = "https"
+	}
 
 	url = parsedURL.String()
 

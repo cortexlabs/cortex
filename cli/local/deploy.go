@@ -82,9 +82,6 @@ func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileLis
 		} else {
 			results[i].API = *api
 		}
-		if err != nil {
-			DeleteAPI(apiConfig.Name, false)
-		}
 	}
 
 	return schema.DeployResponse{

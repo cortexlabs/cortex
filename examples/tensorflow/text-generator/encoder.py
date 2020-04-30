@@ -102,17 +102,16 @@ class Encoder:
         return text
 
 
-def get_encoder():
-    s3 = boto3.client("s3")
+def get_encoder(s3_client):
     encoder = json.load(
-        s3.get_object(Bucket="cortex-examples", Key="tensorflow/text-generator/gpt-2/encoder.json")[
-            "Body"
-        ]
+        s3_client.get_object(
+            Bucket="cortex-examples", Key="tensorflow/text-generator/gpt-2/encoder.json"
+        )["Body"]
     )
     bpe_data = (
-        s3.get_object(Bucket="cortex-examples", Key="tensorflow/text-generator/gpt-2/vocab.bpe")[
-            "Body"
-        ]
+        s3_client.get_object(
+            Bucket="cortex-examples", Key="tensorflow/text-generator/gpt-2/vocab.bpe"
+        )["Body"]
         .read()
         .decode("utf-8")
     )

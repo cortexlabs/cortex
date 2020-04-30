@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -46,6 +47,21 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
+)
+
+const (
+	_titleEnvironment = "environment"
+	_titleAPI         = "api"
+	_titleStatus      = "status"
+	_titleUpToDate    = "up-to-date"
+	_titleStale       = "stale"
+	_titleRequested   = "requested"
+	_titleFailed      = "failed"
+	_titleLastupdated = "last update"
+	_titleAvgRequest  = "avg request"
+	_title2XX         = "2XX"
+	_title4XX         = "4XX"
+	_title5XX         = "5XX"
 )
 
 var (
@@ -113,42 +129,83 @@ var _getCmd = &cobra.Command{
 				return out + apiTable, nil
 			}
 
-			cliConfig, err := readCLIConfig()
+			out, err := getAPIsInAllEnvironments()
+
 			if err != nil {
 				return "", err
-			}
-
-			defaultEnvName := getDefaultEnv(_generalCommandType)
-			defaultEnv, err := readEnv(defaultEnvName)
-			if err != nil {
-				return "", err
-			}
-
-			out := fmt.Sprintf("%s environment (default):\n", defaultEnv.Name)
-			envOutput, err := getAPIs(*defaultEnv, true)
-			if err != nil {
-				out += err.Error()
-			} else {
-				out += envOutput
-			}
-
-			for _, env := range cliConfig.Environments {
-				if env.Name == defaultEnv.Name {
-					continue
-				}
-				envOutput, err := getAPIs(*env, true)
-				out += fmt.Sprintf("\n\n%s environment:\n", env.Name)
-
-				if err != nil {
-					out += err.Error()
-				} else {
-					out += envOutput
-				}
 			}
 
 			return out, nil
 		})
 	},
+}
+
+func getAPIsInAllEnvironments() (string, error) {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return "", err
+	}
+
+	var errorEnvNames []string
+	var allAPIs []spec.API
+	var allAPIStatuses []status.Status
+	var allMetrics []metrics.Metrics
+	var allEnvs []string
+	for _, env := range cliConfig.Environments {
+		var apisRes schema.GetAPIsResponse
+		var err error
+		if env.Provider == types.AWSProviderType {
+			apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
+		} else {
+			apisRes, err = local.GetAPIs()
+		}
+
+		if err == nil {
+			for range apisRes.APIs {
+				allEnvs = append(allEnvs, env.Name)
+			}
+
+			allAPIs = append(allAPIs, apisRes.APIs...)
+			allAPIStatuses = append(allAPIStatuses, apisRes.Statuses...)
+			allMetrics = append(allMetrics, apisRes.AllMetrics...)
+		} else {
+			errorEnvNames = append(errorEnvNames, env.Name)
+		}
+	}
+
+	out := ""
+
+	if len(allAPIs) == 0 {
+		out += console.Bold("no apis are deployed") + "\n"
+	} else {
+		t := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
+
+		if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
+			hideReplicaCountColumns(&t)
+		}
+
+		out += t.MustFormat()
+	}
+
+	if len(errorEnvNames) == 1 {
+		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environment; run `cortex get --env %s` to get the complete error message\n", s.UserStr(errorEnvNames[0]), errorEnvNames[0])
+	} else if len(errorEnvNames) > 1 {
+		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environments; run `cortex get --env ENV_NAME` to get the complete error message\n", s.UserStrsAnd(errorEnvNames))
+	}
+
+	mismatchedAPIMessage, err := getLocalVersionMismatchedAPIsMessage()
+	if err == nil {
+		out += "\n" + mismatchedAPIMessage
+	}
+
+	return out, nil
+}
+
+func hideReplicaCountColumns(t *table.Table) {
+	t.FindHeaderByTitle(_titleUpToDate).Hidden = true
+	t.FindHeaderByTitle(_titleStale).Hidden = true
+	t.FindHeaderByTitle(_titleRequested).Hidden = true
+	t.FindHeaderByTitle(_titleFailed).Hidden = true
 }
 
 func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
@@ -171,11 +228,19 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 		return console.Bold("no apis are deployed"), nil
 	}
 
-	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, true)
+	envNames := []string{}
+	for range apisRes.APIs {
+		envNames = append(envNames, env.Name)
+	}
+
+	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, envNames)
+
+	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
 	out := t.MustFormat()
 
 	if env.Provider == types.LocalProviderType {
+		hideReplicaCountColumns(&t)
 		mismatchedVersionAPIsErrorMessage, _ := getLocalVersionMismatchedAPIsMessage()
 		if len(mismatchedVersionAPIsErrorMessage) > 0 {
 			out += "\n" + mismatchedVersionAPIsErrorMessage
@@ -194,7 +259,10 @@ func getLocalVersionMismatchedAPIsMessage() (string, error) {
 		return "", nil
 	}
 
-	return fmt.Sprintf("the following apis (%s) were deployed in your local environment using a different version of the cortex cli; please update them using `cortex deploy` or delete them using `cortex delete <api_name>`", strings.Join(mismatchedAPINames, ", ")), nil
+	if len(mismatchedAPINames) == 1 {
+		return fmt.Sprintf("an api named %s was deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete %s` and then redeploy them\n", s.UserStr(mismatchedAPINames[0]), mismatchedAPINames[0]), nil
+	}
+	return fmt.Sprintf("apis named %s were deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete API_NAME` and then redeploy them\n", s.UserStrsAnd(mismatchedAPINames)), nil
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
@@ -222,7 +290,10 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 	var out string
 
-	t := apiTable([]spec.API{apiRes.API}, []status.Status{apiRes.Status}, []metrics.Metrics{apiRes.Metrics}, false)
+	t := apiTable([]spec.API{apiRes.API}, []status.Status{apiRes.Status}, []metrics.Metrics{apiRes.Metrics}, []string{env.Name})
+	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+	t.FindHeaderByTitle(_titleAPI).Hidden = true
+
 	out += t.MustFormat()
 
 	api := apiRes.API
@@ -253,7 +324,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	return out, nil
 }
 
-func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics, includeAPIName bool) table.Table {
+func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(apis))
 
 	var totalFailed int32
@@ -266,6 +337,7 @@ func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Me
 		status := statuses[i]
 		lastUpdated := time.Unix(api.LastUpdated, 0)
 		rows = append(rows, []interface{}{
+			envNames[i],
 			api.Name,
 			status.Message(),
 			status.Updated.Ready,
@@ -290,17 +362,18 @@ func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Me
 
 	return table.Table{
 		Headers: []table.Header{
-			{Title: "api", Hidden: !includeAPIName},
-			{Title: "status"},
-			{Title: "up-to-date"},
-			{Title: "stale", Hidden: totalStale == 0},
-			{Title: "requested"},
-			{Title: "failed", Hidden: totalFailed == 0},
-			{Title: "last update"},
-			{Title: "avg request"},
-			{Title: "2XX"},
-			{Title: "4XX", Hidden: total4XX == 0},
-			{Title: "5XX", Hidden: total5XX == 0},
+			{Title: _titleEnvironment},
+			{Title: _titleAPI},
+			{Title: _titleStatus},
+			{Title: _titleUpToDate},
+			{Title: _titleStale, Hidden: totalStale == 0},
+			{Title: _titleRequested},
+			{Title: _titleFailed, Hidden: totalFailed == 0},
+			{Title: _titleLastupdated},
+			{Title: _titleAvgRequest},
+			{Title: _title2XX},
+			{Title: _title4XX, Hidden: total4XX == 0},
+			{Title: _title5XX, Hidden: total5XX == 0},
 		},
 		Rows: rows,
 	}

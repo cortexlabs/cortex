@@ -22,13 +22,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -122,26 +126,34 @@ func WrapDockerError(err error) error {
 	return errors.WithStack(err)
 }
 
-func PullImage(managerImage, encodedAuthConfig string) error {
+type PullVerbosity int
+
+const (
+	NoPrint PullVerbosity = iota
+	PrintDots
+	PrintProgressBars
+)
+
+func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosity) error {
 	docker, err := GetDockerClient()
 	if err != nil {
 		return err
 	}
 
-	images, err := docker.ImageList(context.Background(), dockertypes.ImageListOptions{})
+	existingImages, err := docker.ImageList(context.Background(), dockertypes.ImageListOptions{})
 	if err != nil {
 		return WrapDockerError(err)
 	}
 
-	for _, image := range images {
-		for _, tag := range image.RepoTags {
-			if tag == managerImage {
+	for _, existingImage := range existingImages {
+		for _, tag := range existingImage.RepoTags {
+			if tag == image {
 				return nil
 			}
 		}
 	}
 
-	pullOutput, err := docker.ImagePull(context.Background(), managerImage, dockertypes.ImagePullOptions{
+	pullOutput, err := docker.ImagePull(context.Background(), image, dockertypes.ImagePullOptions{
 		RegistryAuth: encodedAuthConfig,
 	})
 	if err != nil {
@@ -149,9 +161,26 @@ func PullImage(managerImage, encodedAuthConfig string) error {
 	}
 	defer pullOutput.Close()
 
-	termFd, isTerm := term.GetFdInfo(os.Stderr)
-	jsonmessage.DisplayJSONMessagesStream(pullOutput, os.Stderr, termFd, isTerm, nil)
-	fmt.Println()
+	switch pullVerbosity {
+	case PrintProgressBars:
+		termFd, isTerm := term.GetFdInfo(os.Stderr)
+		jsonmessage.DisplayJSONMessagesStream(pullOutput, os.Stderr, termFd, isTerm, nil)
+		fmt.Println()
+	case PrintDots:
+		fmt.Printf("downloading docker image %s ", image)
+		defer fmt.Print("\n\n")
+		dotCron := cron.Run(print.Dot, nil, 2*time.Second)
+		defer dotCron.Cancel()
+		// wait until the pull has completed
+		if _, err := ioutil.ReadAll(pullOutput); err != nil {
+			return err
+		}
+	default:
+		// wait until the pull has completed
+		if _, err := ioutil.ReadAll(pullOutput); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
