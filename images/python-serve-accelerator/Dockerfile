@@ -56,8 +56,10 @@ ENV BASH_ENV=~/.env
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
 COPY pkg/workloads/cortex/serve/python-accelerator.requirements.txt /src/cortex/serve/requirements.txt
 
-RUN /bin/bash -c \
-    "pip install --no-cache-dir --extra-index-url https://pip.repos.neuron.amazonaws.com -r /src/cortex/lib/requirements.txt -r /src/cortex/serve/requirements.txt"
+RUN grep -v -e --no-deps /src/cortex/serve/requirements.txt > /src/cortex/serve/requirements_with_deps.txt && \
+    grep -e --no-deps /src/cortex/serve/requirements.txt > /src/cortex/serve/requirements_without_deps.txt && \
+    /bin/bash -c "pip install --no-cache-dir c -r /src/cortex/lib/requirements_with_deps.txt" && \
+    /bin/bash -c "pip install --no-cache-dir --extra-index-url https://pip.repos.neuron.amazonaws.com -r /src/cortex/lib/requirements_without_deps.txt --no-deps"
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
