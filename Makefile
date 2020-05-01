@@ -122,6 +122,7 @@ ci-build-images:
 	@./build/build-image.sh images/python-serve-accelerator python-serve-accelerator
 	@./build/build-image.sh images/python-serve-gpu python-serve-gpu
 	@./build/build-image.sh images/tf-serve tf-serve
+	@./build/build-image.sh images/tf-serve-accelerator tf-serve-accelerator
 	@./build/build-image.sh images/tf-serve-gpu tf-serve-gpu
 	@./build/build-image.sh images/tf-api tf-api
 	@./build/build-image.sh images/onnx-serve onnx-serve
@@ -146,6 +147,7 @@ ci-push-images:
 	@./build/push-image.sh python-serve-accelerator
 	@./build/push-image.sh python-serve-gpu
 	@./build/push-image.sh tf-serve
+	@./build/push-image.sh tf-serve-accelerator
 	@./build/push-image.sh tf-serve-gpu
 	@./build/push-image.sh tf-api
 	@./build/push-image.sh onnx-serve

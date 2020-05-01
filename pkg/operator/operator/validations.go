@@ -692,7 +692,7 @@ func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 	if compute.Accelerator > maxAccelerator {
 		return ErrorNoAvailableNodeComputeLimit("Accelerator", fmt.Sprintf("%d", compute.Accelerator), fmt.Sprintf("%d", maxAccelerator))
 	}
-	// TODO remove accelerator limitation for ONNX predictors
+
 	if compute.Accelerator > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.AcceleratorKey, api.Predictor.Type)
 	}
