@@ -78,7 +78,7 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 				return nil, err
 			}
 		} else {
-			fmt.Println(fmt.Sprintf("caching model %s...", modelPath))
+			fmt.Println(fmt.Sprintf("caching model %s ...", modelPath))
 			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(modelDir, "/"))
 			if err != nil {
 				return nil, err
@@ -137,7 +137,7 @@ func downloadModel(modelPath string, modelDir string, awsClient *aws.Client) err
 }
 
 func unzipAndValidate(originalModelPath string, zipFile string, destPath string) error {
-	fmt.Println(fmt.Sprintf("unzipping model %s...", originalModelPath))
+	fmt.Println(fmt.Sprintf("unzipping model %s ...", originalModelPath))
 	tmpDir := filepath.Join(filepath.Dir(destPath), filepath.Base(destPath)+"-tmp")
 	err := files.CreateDir(tmpDir)
 	if err != nil {
