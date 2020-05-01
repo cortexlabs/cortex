@@ -56,9 +56,9 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 
 	// See https://github.com/weaveworks/eksctl/blob/master/pkg/eks/api.go
 	if awsClient.Region == "us-east-1" {
-		zones.Shrink(2)
+		zones.ShrinkSorted(2)
 	} else {
-		zones.Shrink(3)
+		zones.ShrinkSorted(3)
 	}
 
 	cc.AvailabilityZones = zones.SliceSorted()
