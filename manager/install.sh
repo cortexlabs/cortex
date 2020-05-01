@@ -215,6 +215,7 @@ function setup_configmap() {
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
+    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
