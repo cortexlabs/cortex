@@ -204,6 +204,52 @@ func TestSubtract(t *testing.T) {
 	require.Equal(t, set, strset.New("c"))
 }
 
+func TestShrink(t *testing.T) {
+	set := strset.New("a", "b", "c", "d")
+	set.Shrink(2)
+	require.Len(t, set, 2)
+
+	set = strset.New("g", "f", "e", "d", "c", "b", "a")
+	set.ShrinkSorted(3)
+	require.Len(t, set, 3)
+
+	set = strset.New("a", "b")
+	set.Shrink(2)
+	require.Equal(t, set, strset.New("a", "b"))
+
+	set = strset.New("a")
+	set.Shrink(2)
+	require.Equal(t, set, strset.New("a"))
+
+	set = strset.New()
+	set.Shrink(2)
+	require.Len(t, set, 0)
+}
+
+func TestShrinkSorted(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		set := strset.New("g", "f", "e", "d", "c", "b", "a")
+		set.ShrinkSorted(2)
+		require.Equal(t, set, strset.New("a", "b"))
+
+		set = strset.New("g", "f", "e", "d", "c", "b", "a")
+		set.ShrinkSorted(3)
+		require.Equal(t, set, strset.New("a", "b", "c"))
+	}
+
+	set := strset.New("a", "b")
+	set.ShrinkSorted(2)
+	require.Equal(t, set, strset.New("a", "b"))
+
+	set = strset.New("a")
+	set.ShrinkSorted(2)
+	require.Equal(t, set, strset.New("a"))
+
+	set = strset.New()
+	set.ShrinkSorted(2)
+	require.Len(t, set, 0)
+}
+
 func TestUnion(t *testing.T) {
 	require.Equal(t, len(strset.Union(strset.New(), strset.New())), 0)
 	require.Equal(t, strset.Union(strset.New("a", "b"), strset.New()), strset.New("a", "b"))

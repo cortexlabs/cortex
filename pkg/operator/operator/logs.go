@@ -133,7 +133,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 			}
 
 			if !didShowFetchingMessage {
-				writeString(socket, "fetching logs...")
+				writeString(socket, "fetching logs ...")
 				didShowFetchingMessage = true
 			}
 
