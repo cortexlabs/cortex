@@ -1,4 +1,0 @@
-onnxruntime-gpu==1.2.0
-
-uvicorn==0.11.3
-fastapi==0.53.0
