@@ -40,6 +40,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/python-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tf-serve-accelerator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve-gpu --region=$REGISTRY_REGION || true
@@ -147,6 +148,7 @@ elif [ "$cmd" = "update-manager-local" ]; then
 elif [ "$cmd" = "update" ]; then
   if [ "$env" != "dev" ]; then
     build_and_push $ROOT/images/tf-serve tf-serve latest
+    build_and_push $ROOT/images/tf-serve-accelerator tf-serve-accelerator latest
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
 
     cache_builder $ROOT/images/operator operator
