@@ -10,4 +10,4 @@
   compute:
     cpu: 1
     gpu: 1
-    mem: 8G
+    mem: 4G
