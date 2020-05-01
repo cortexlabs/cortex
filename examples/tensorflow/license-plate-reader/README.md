@@ -26,7 +26,7 @@ The other two models, *CRAFT* and *CRNN*, can be found in [keras-ocr](https://gi
 
 ## Deployment - Lite Version
 
-A lite version of the deployment is available with `cortex_lite.yaml`. With this lite version, the user provides an image to the API and a prediction is then returned. A single GPU is required for this deployment (i.e. `g4dn.xlarge`).
+A lite version of the deployment is available with `cortex_lite.yaml`. The lite version accepts an image as input and returns an image with the recognized license plates overlayed on top. A single GPU is required for this deployment (i.e. `g4dn.xlarge`).
 
 Once the cortex cluster is created, run
 ```bash
