@@ -50,9 +50,13 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		return "", nil, err
 	}
 
-	err = docker.PullImage(containerConfig.Image, docker.NoAuth, docker.PrintDots)
+	pulledImage, err := docker.PullImage(containerConfig.Image, docker.NoAuth, docker.PrintDots)
 	if err != nil {
 		return "", nil, err
+	}
+
+	if pulledImage {
+		fmt.Println()
 	}
 
 	hostConfig := &container.HostConfig{

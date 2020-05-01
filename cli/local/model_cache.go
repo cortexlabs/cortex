@@ -64,7 +64,7 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 	}
 
 	if strings.HasPrefix(modelPath, "s3://") {
-		fmt.Println(fmt.Sprintf("downloading model %s...", modelPath))
+		fmt.Println(fmt.Sprintf("downloading model %s ...", modelPath))
 		bucket, prefix, err := aws.SplitS3Path(modelPath)
 		if err != nil {
 			return nil, err
