@@ -26,7 +26,7 @@ Then run the following piped commands
 ```bash
 curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d '{"url":"'${IMAGE_URL}'"}' |
 sed 's/"//g' |
-base64 -d >> prediction.png
+base64 -d > prediction.png
 ```
 
 Once this has run, we'll see a `prediction.png` file saved to the disk. This is the result.

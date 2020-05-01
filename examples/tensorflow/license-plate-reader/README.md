@@ -76,7 +76,7 @@ base64 -d > prediction.jpg
 ```
 
 The resulting image is the same as the one in [Verifying the Deployed APIs](#verifying-the-deployed-apis).
- 
+
 For another prediction, let's use a generic image from the web. Export [this image's URL link](https://i.imgur.com/mYuvMOs.jpg) and re-run the prediction. This is what we get.
 
 ![annotated sample image](https://i.imgur.com/tg1PE1E.jpg)
