@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -32,7 +33,9 @@ const (
 	ErrFoundContainersWithoutAPISpec = "local.found_containers_without_api_spec"
 	ErrInvalidTensorFlowZip          = "local.invalid_tensorflow_zip"
 	ErrFailedToDeleteAPISpec         = "local.failed_to_delete_api_spec"
-	ErrDuplicateLocalPort            = "local.err_duplicate_local_port"
+	ErrDuplicateLocalPort            = "local.duplicate_local_port"
+	ErrPortAlreadyInUse              = "local.port_already_in_use"
+	ErrUnableToFindAvailablePorts    = "local.unable_to_find_available_ports"
 )
 
 func ErrorNotAbsolutePath(path string) error {
@@ -106,5 +109,19 @@ func ErrorDuplicateLocalPort(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateLocalPort,
 		Message: fmt.Sprintf("port has already been assigned to api %s", apiName),
+	})
+}
+
+func ErrorPortAlreadyInUse(port int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrPortAlreadyInUse,
+		Message: fmt.Sprintf("%d is being used by a non-cortex process; please specify a different %s or make the port available", port, userconfig.LocalPortKey),
+	})
+}
+
+func ErrorUnableToFindAvailablePorts() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnableToFindAvailablePorts,
+		Message: fmt.Sprintf("unable to find available ports"),
 	})
 }

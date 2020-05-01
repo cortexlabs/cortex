@@ -379,6 +379,21 @@ func GetContainersByAPI(apiName string) ([]dockertypes.Container, error) {
 	return containers, nil
 }
 
+func GetAllContainers() ([]dockertypes.Container, error) {
+	dargs := filters.NewArgs()
+	dargs.Add("label", "cortex=true")
+
+	containers, err := docker.MustDockerClient().ContainerList(context.Background(), types.ContainerListOptions{
+		All:     true,
+		Filters: dargs,
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return containers, nil
+}
+
 func DeleteContainers(apiName string) error {
 	containers, err := GetContainersByAPI(apiName)
 	if err != nil {
