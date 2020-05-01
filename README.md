@@ -79,7 +79,7 @@ positive
 
 <br>
 
-## Running Cortex in production
+## Deploying models at scale
 
 Cortex can also automatically provision and manage a Kubernetes cluster for inference workloads, typically for production use cases. Cortex manages its own Kubernetes cluster so that end-to-end functionality like request-based autoscaling, GPU support, and spot instance management can work out of the box without any additional DevOps work.
 
