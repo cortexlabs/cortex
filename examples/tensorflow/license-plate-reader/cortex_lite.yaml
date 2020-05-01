@@ -8,6 +8,6 @@
       yolov3: s3://cortex-examples/tensorflow/license-plate-reader/yolov3_keras
       yolov3_model_config: config.json
   compute:
-    cpu: 3000m
+    cpu: 1
     gpu: 1
     mem: 8G
