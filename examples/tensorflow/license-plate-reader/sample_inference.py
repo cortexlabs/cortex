@@ -2,14 +2,9 @@
 
 import click, cv2, requests, pickle, base64, json
 import numpy as np
-from utils.preprocess import (
-    image_to_jpeg_bytes,
-    image_to_jpeg_nparray,
-    get_url_image,
-    reorder_recognized_words,
-)
 import utils.bbox as bbox_utils
 import utils.preprocess as preprocess_utils
+
 
 @click.command(
     help=(

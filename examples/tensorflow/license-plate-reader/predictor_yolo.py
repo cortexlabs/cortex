@@ -5,8 +5,7 @@ import base64
 import numpy as np
 import cv2
 import pickle
-from utils.utils import get_yolo_boxes
-from utils.bbox import BoundBox
+import utils.utils as utils
 
 
 class TensorFlowPredictor:
@@ -26,7 +25,7 @@ class TensorFlowPredictor:
         image = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
 
         # detect the bounding boxes
-        boxes = get_yolo_boxes(
+        boxes = utils.get_yolo_boxes(
             self.client,
             image,
             self.net_h,

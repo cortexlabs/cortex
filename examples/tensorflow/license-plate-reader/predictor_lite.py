@@ -6,16 +6,9 @@ import keras_ocr
 from botocore import UNSIGNED
 from botocore.client import Config
 from tensorflow.keras.models import load_model
-from utils.utils import get_yolo_boxes
-from utils.bbox import (
-    BoundBox,
-    draw_boxes,
-)
-from utils.preprocess import (
-    get_url_image,
-    reorder_recognized_words,
-    image_to_jpeg_bytes,
-)
+import utils.utils as utils
+import utils.bbox as bbox_utils
+import utils.preprocess as preprocess_utils
 
 
 class PythonPredictor:
@@ -43,10 +36,10 @@ class PythonPredictor:
     def predict(self, payload):
         # download image
         img_url = payload["url"]
-        image = get_url_image(img_url)
+        image = preprocess_utils.get_url_image(img_url)
 
         # detect the bounding boxes
-        boxes = get_yolo_boxes(
+        boxes = utils.get_yolo_boxes(
             self.yolov3_model,
             image,
             self.net_h,
@@ -95,7 +88,7 @@ class PythonPredictor:
                 image_list.append(boxes_per_image)
 
             # reorder text within detected LPs based on horizontal position
-            dec_lps = reorder_recognized_words(image_list)
+            dec_lps = preprocess_utils.reorder_recognized_words(image_list)
             for dec_lp in dec_lps:
                 dec_words.append([word[0] for word in dec_lp])
 
@@ -104,7 +97,7 @@ class PythonPredictor:
             dec_words = [[] for i in range(len(boxes))]
 
         # draw predictions as overlays on the source image
-        draw_image = draw_boxes(
+        draw_image = bbox_utils.draw_boxes(
             image,
             boxes,
             overlay_text=dec_words,
@@ -113,7 +106,7 @@ class PythonPredictor:
         )
 
         # image represented in bytes
-        byte_im = image_to_jpeg_bytes(draw_image)
+        byte_im = preprocess_utils.image_to_jpeg_bytes(draw_image)
 
         # encode image
         image_enc = base64.b64encode(byte_im).decode("utf-8")
