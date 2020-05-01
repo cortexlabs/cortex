@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -140,7 +142,12 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		}
 
 		if _, ok := infoResponse.Runtimes["nvidia"]; !ok {
-			fmt.Println(fmt.Sprintf("warning: %s will run without GPU access because your machine doesn't have GPUs or the nvidia runtime is not properly configured (use `docker info | grep -i runtime` to list docker runtimes, see https://github.com/NVIDIA/nvidia-container-runtime#installation for instructions)\n", s.StrsAnd(apisRequiringGPU.Slice())))
+			if !strings.HasPrefix(strings.ToLower(runtime.GOOS), "linux") {
+				fmt.Printf("warning: %s will run without gpu access because the nvidia container runtime is not supported on your operating system; see https://cortex.dev/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.Slice()))
+			} else {
+				fmt.Printf("warning: %s will run without gpu access because your local machine doesn't have a gpu or the nvidia container runtime is not configured properly; see https://cortex.dev/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.Slice()))
+			}
+
 			for i := range apis {
 				api := &apis[i]
 				if apisRequiringGPU.Has(api.Name) {
