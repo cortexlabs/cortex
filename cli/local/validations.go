@@ -296,7 +296,7 @@ func checkPortAvailability(port int) (bool, error) {
 }
 
 func findTheNextAvailablePort(blackListedPorts []int) (int, error) {
-	for _startingPort < 65535 {
+	for _startingPort <= 65535 {
 		isBlackListed := false
 		for _, port := range blackListedPorts {
 			if port == _startingPort {
