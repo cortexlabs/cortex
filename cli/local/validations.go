@@ -86,9 +86,9 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		return spec.ErrorNoAPIs()
 	}
 
-	didPrintWarning := false
 	apiPortMap := map[int]string{}
 	apisRequiringGPU := strset.New()
+	nonLocalConfigs := strset.New()
 	for i := range apis {
 		api := &apis[i]
 		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
@@ -102,16 +102,30 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 			apiPortMap[*api.LocalPort] = api.Name
 		}
 
-		if api.Endpoint != nil || api.Autoscaling != nil || api.Tracker != nil || api.UpdateStrategy != nil {
-			if !didPrintWarning {
-				fmt.Println(fmt.Sprintf("note: your apis are running in local environment, so some keys such as %s, %s, %s, and %s won't apply\n", userconfig.EndpointKey, userconfig.AutoscalingKey, userconfig.TrackerKey, userconfig.UpdateStrategyKey))
-			}
-			didPrintWarning = true
+		if api.Endpoint != nil {
+			nonLocalConfigs.Add(userconfig.EndpointKey)
+		}
+		if api.Autoscaling != nil {
+			nonLocalConfigs.Add(userconfig.AutoscalingKey)
+		}
+		if api.Tracker != nil {
+			nonLocalConfigs.Add(userconfig.TrackerKey)
+		}
+		if api.UpdateStrategy != nil {
+			nonLocalConfigs.Add(userconfig.UpdateStrategyKey)
 		}
 
 		if api.Compute.GPU > 0 {
 			apisRequiringGPU.Add(api.Name)
 		}
+	}
+
+	if len(nonLocalConfigs) > 0 {
+		configurationStr := "configuration"
+		if len(nonLocalConfigs) > 1 {
+			configurationStr = "configurations"
+		}
+		fmt.Println(fmt.Sprintf("note: you're deploying locally, so the %s %s won't apply\n", s.StrsAnd(nonLocalConfigs.SliceSorted()), configurationStr))
 	}
 
 	if len(apisRequiringGPU) > 0 {
