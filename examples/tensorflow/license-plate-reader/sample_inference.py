@@ -2,17 +2,14 @@
 
 import click, cv2, requests, pickle, base64, json
 import numpy as np
-from utils.bbox import (
-    BoundBox,
-    draw_boxes,
-)
 from utils.preprocess import (
     image_to_jpeg_bytes,
     image_to_jpeg_nparray,
     get_url_image,
     reorder_recognized_words,
 )
-
+import utils.bbox as bbox_utils
+import utils.preprocess as preprocess_utils
 
 @click.command(
     help=(
@@ -35,8 +32,8 @@ from utils.preprocess import (
 def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
 
     # get the image in bytes representation
-    image = get_url_image(img_url_src)
-    image_bytes = image_to_jpeg_bytes(image)
+    image = preprocess_utils.get_url_image(img_url_src)
+    image_bytes = preprocess_utils.image_to_jpeg_bytes(image)
 
     # encode image
     image_enc = base64.b64encode(image_bytes).decode("utf-8")
@@ -51,7 +48,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
     boxes_raw = resp.json()["boxes"]
     boxes = []
     for b in boxes_raw:
-        box = BoundBox(*b)
+        box = bbox_utils.BoundBox(*b)
         boxes.append(box)
 
     # purge bounding boxes with a low confidence score
@@ -73,7 +70,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
         lps = []
         for b in boxes:
             lp = image[b.ymin : b.ymax, b.xmin : b.xmax]
-            jpeg = image_to_jpeg_nparray(lp)
+            jpeg = preprocess_utils.image_to_jpeg_nparray(lp)
             lps.append(jpeg)
 
         # encode the cropped license plates
@@ -88,7 +85,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
 
         # parse the response
         dec_lps = resp.json()["license-plates"]
-        dec_lps = reorder_recognized_words(dec_lps)
+        dec_lps = preprocess_utils.reorder_recognized_words(dec_lps)
         for dec_lp in dec_lps:
             dec_words.append([word[0] for word in dec_lp])
 
@@ -96,7 +93,7 @@ def main(img_url_src, yolov3_endpoint, crnn_endpoint, output):
         dec_words = [[] for i in range(len(boxes))]
 
     # draw predictions as overlays on the source image
-    draw_image = draw_boxes(
+    draw_image = bbox_utils.draw_boxes(
         image, boxes, overlay_text=dec_words, labels=["LP"], obj_thresh=confidence_score
     )
 
