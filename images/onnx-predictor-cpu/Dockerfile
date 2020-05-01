@@ -42,7 +42,7 @@ RUN /bin/bash -c \
         onnxruntime==1.2.0"
 
 ARG SLIM="false"
-RUN test "${SLIM}" != "true" && \
+RUN test "${SLIM}" = "true" || ( \
         # libsm6, libxext6, and libxrender-dev are required for opencv
         # libpng-dev is required for some image processing libaries
         # libsndfile1 is required for some audio processing libaries
@@ -53,7 +53,7 @@ RUN test "${SLIM}" != "true" && \
             libpng-dev \
             libsndfile1 \
         && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
-    || true
+    )
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib

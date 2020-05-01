@@ -41,7 +41,7 @@ RUN /bin/bash -c \
         -r /src/cortex/serve/requirements.txt"
 
 ARG SLIM="false"
-RUN test "${SLIM}" != "true" && \
+RUN test "${SLIM}" = "true" || ( \
         # libsm6, libxext6, and libxrender-dev are required for opencv
         # libpng-dev is required for some image processing libaries
         # libsndfile1 is required for some audio processing libaries
@@ -74,7 +74,7 @@ RUN test "${SLIM}" != "true" && \
                 torch==1.4.0 \
                 torchvision==0.5.0 \
                 xgboost==1.0.2" \
-    || true
+    )
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib

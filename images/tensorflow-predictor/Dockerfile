@@ -43,7 +43,7 @@ RUN /bin/bash -c \
         tensorflow-serving-api==2.1.0"
 
 ARG SLIM="false"
-RUN test "${SLIM}" != "true" && \
+RUN test "${SLIM}" = "true" || ( \
         # libsm6, libxext6, and libxrender-dev are required for opencv
         # libpng-dev is required for some image processing libaries
         # libsndfile1 is required for some audio processing libaries
@@ -58,7 +58,7 @@ RUN test "${SLIM}" != "true" && \
             "pip install --no-cache-dir \
                 opencv-python==4.2.0.32 \
                 tensorflow-hub==0.7.0" \
-    || true
+    )
 
 COPY pkg/workloads/cortex/consts.py /src/cortex/
 COPY pkg/workloads/cortex/lib /src/cortex/lib
