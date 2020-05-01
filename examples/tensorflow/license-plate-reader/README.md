@@ -24,11 +24,9 @@ Out of these three models (*YOLOv3*, *CRAFT* and *CRNN*) only *YOLOv3* has been 
 
 The other two models, *CRAFT* and *CRNN*, can be found in [keras-ocr](https://github.com/faustomorales/keras-ocr).
 
-## Deploying
+## Deployment - Lite Version
 
-### Lite Version
-
-A non-real-time version of this project can be deployed with `cortex_lite.yaml`. For this kind of deployment, only x1 GPU is required. This only works for frames served as URL links. This way, cost-effective experimentation is made possible for those who want to get the example up and running quickly.
+A lite version of the deployment is available with `cortex_lite.yaml`. A single GPU is required for this deployment (i.e. `g4dn.xlarge`).
 
 Once the cortex cluster is created, run
 ```bash
@@ -39,26 +37,6 @@ And monitor the API with
 ```bash
 cortex get --watch
 ```
-
-### Full Version
-
-The recommended number of instances to run this smoothly on a video stream is about 12 GPU instances (2 GPU instances for *YOLOv3* and 10 for *CRNN* + *CRAFT*). `cortex_full.yaml` is already set up to use these 12 instances. Note: this is the optimal number of instances when using the `g4dn.xlarge` instance type. For the client to work smoothly, the number of workers per replica can be adjusted, especially for `p3` or `g4` instances, where the GPU has a lot of compute capacity.
-
-If you don't have access to this many GPU-equipped instances, you could just lower the number and expect dropped frames. It will still prove the point, albeit at a much lower framerate and with higher latency. More on that [here](https://github.com/RobertLucian/cortex-license-plate-reader-client).
-
-Then after the cortex cluster is created, run
-
-```bash
-cortex deploy cortex_full.yamll
-```
-
-And monitor the APIs with
-
-```bash
-cortex get --watch
-```
-
-## Launching the Client - Lite Version
 
 To run an inference on the lite version, the only 3 tools you need are `curl`, `sed` and `base64`. This API expects an URL pointing to an image onto which the inferencing is done. This includes the detection of license plates with *YOLOv3* and the recognition part with *CRAFT* + *CRNN* models.
 
@@ -83,9 +61,23 @@ For another prediction, let's use a generic image from the web. Export [this ima
 
 *The above prediction has the bounding boxes colored differently to distinguish them from the cars' red bodies*
 
-## Launching the Client - Full Version
+## Deployment - Full Version
 
-### Verifying the Deployed APIs
+The recommended number of instances to run this smoothly on a video stream is about 12 GPU instances (2 GPU instances for *YOLOv3* and 10 for *CRNN* + *CRAFT*). `cortex_full.yaml` is already set up to use these 12 instances. Note: this is the optimal number of instances when using the `g4dn.xlarge` instance type. For the client to work smoothly, the number of workers per replica can be adjusted, especially for `p3` or `g4` instances, where the GPU has a lot of compute capacity.
+
+If you don't have access to this many GPU-equipped instances, you could just lower the number and expect dropped frames. It will still prove the point, albeit at a much lower framerate and with higher latency. More on that [here](https://github.com/RobertLucian/cortex-license-plate-reader-client).
+
+Then after the cortex cluster is created, run
+
+```bash
+cortex deploy cortex_full.yaml
+```
+
+And monitor the APIs with
+
+```bash
+cortex get --watch
+```
 
 We can run the inference on a sample image to verify that both APIs are working as expected before we move on to running the client. Here is an example image:
 
