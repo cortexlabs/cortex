@@ -17,7 +17,6 @@ limitations under the License.
 package local
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -29,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -92,10 +92,16 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		return spec.ErrorNoAPIs()
 	}
 
+	dockerClient, err := docker.GetDockerClient()
+	if err != nil {
+		return err
+	}
+
 	apisRequiringGPU := strset.New()
 	nonLocalConfigs := strset.New()
 	for i := range apis {
 		api := &apis[i]
+
 		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
 			return err
 		}
@@ -113,6 +119,11 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 			nonLocalConfigs.Add(userconfig.UpdateStrategyKey)
 		}
 
+		if api.Compute.CPU != nil && (api.Compute.CPU.MilliValue() > int64(dockerClient.Info.NCPU)*1000) {
+			qty := k8s.NewQuantity(int64(dockerClient.Info.NCPU))
+			api.Compute.CPU = &qty
+		}
+
 		if api.Compute.GPU > 0 {
 			apisRequiringGPU.Add(api.Name)
 		}
@@ -127,21 +138,11 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	}
 
 	if len(apisRequiringGPU) > 0 {
-		dockerClient, err := docker.GetDockerClient()
-		if err != nil {
-			return err
-		}
-
-		infoResponse, err := dockerClient.Info(context.Background())
-		if err != nil {
-			return err
-		}
-
-		if _, ok := infoResponse.Runtimes["nvidia"]; !ok {
+		if _, ok := dockerClient.Info.Runtimes["nvidia"]; !ok {
 			if !strings.HasPrefix(strings.ToLower(runtime.GOOS), "linux") {
-				fmt.Printf("warning: %s will run without gpu access because the nvidia container runtime is not supported on your operating system; see https://cortex.dev/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.Slice()))
+				fmt.Printf("warning: %s will run without gpu access because the nvidia container runtime is not supported on your operating system; see https://cortex.dev/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.SliceSorted()))
 			} else {
-				fmt.Printf("warning: %s will run without gpu access because your local machine doesn't have a gpu or the nvidia container runtime is not configured properly; see https://cortex.dev/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.Slice()))
+				fmt.Printf("warning: %s will run without gpu access because your local machine doesn't have a gpu or the nvidia container runtime is not configured properly; see https://cortex.dev/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.SliceSorted()))
 			}
 
 			for i := range apis {
@@ -322,7 +323,7 @@ func findTheNextAvailablePort(blackListedPorts []int) (int, error) {
 }
 
 func getPortToAPIMap() (map[int]string, error) {
-	allContainers, err := GetAllContainers()
+	allContainers, err := GetAllRunningContainers()
 	if err != nil {
 		return nil, err
 	}
