@@ -115,7 +115,7 @@ func ErrorDuplicateLocalPort(apiName string) error {
 func ErrorPortAlreadyInUse(port int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrPortAlreadyInUse,
-		Message: fmt.Sprintf("%d is being used by a non-cortex process; please specify a different %s or make the port available", port, userconfig.LocalPortKey),
+		Message: fmt.Sprintf("port %d is being used by a non-cortex process; please specify a different %s or make port %d available", port, userconfig.LocalPortKey, port),
 	})
 }
 
