@@ -36,6 +36,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
+var _startingPort = 8888
+
 type ProjectFiles struct {
 	projectFileList []string // make sure it is absolute paths
 	configFilePath  string
@@ -258,7 +260,8 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		}
 	}
 
-	for _, api := range apis {
+	for i := range apis {
+		api := &apis[i]
 		if api.LocalPort == nil {
 			availablePort, err := findTheNextAvailablePort(usedPorts)
 			if err != nil {
@@ -283,8 +286,6 @@ func checkPortAvailability(port int) (bool, error) {
 
 	return true, nil
 }
-
-var _startingPort = 8888
 
 func findTheNextAvailablePort(blackListedPorts []int) (int, error) {
 	for _startingPort < 65535 {
