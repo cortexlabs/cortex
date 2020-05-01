@@ -81,6 +81,8 @@ positive
 
 ## Running Cortex in production
 
+Cortex can also automatically provision and manage a Kubernetes cluster for inference workloads, typically for production use cases. Cortex manages its own Kubernetes cluster so that end-to-end functionality like request-based autoscaling, GPU support, and spot instance management can work out of the box without any additional DevOps work.
+
 ### Spin up a cluster
 
 Cortex clusters are designed to be self-hosted on any AWS account (and GCP support is coming soon):
@@ -136,8 +138,6 @@ negative  4
 ### How it works
 
 The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
-
-Cortex manages its own Kubernetes cluster so that end-to-end functionality like request-based autoscaling, GPU support, and spot instance management can work out of the box without any additional DevOps work.
 
 <br>
 
