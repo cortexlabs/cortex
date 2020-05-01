@@ -134,21 +134,21 @@ const (
 	PrintProgressBars
 )
 
-func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosity) error {
+func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosity) (bool, error) {
 	docker, err := GetDockerClient()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	existingImages, err := docker.ImageList(context.Background(), dockertypes.ImageListOptions{})
 	if err != nil {
-		return WrapDockerError(err)
+		return false, WrapDockerError(err)
 	}
 
 	for _, existingImage := range existingImages {
 		for _, tag := range existingImage.RepoTags {
 			if tag == image {
-				return nil
+				return false, nil
 			}
 		}
 	}
@@ -157,7 +157,7 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		RegistryAuth: encodedAuthConfig,
 	})
 	if err != nil {
-		return WrapDockerError(err)
+		return false, WrapDockerError(err)
 	}
 	defer pullOutput.Close()
 
@@ -168,21 +168,21 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		fmt.Println()
 	case PrintDots:
 		fmt.Printf("downloading docker image %s ", image)
-		defer fmt.Print("\n\n")
+		defer fmt.Print("\n")
 		dotCron := cron.Run(print.Dot, nil, 2*time.Second)
 		defer dotCron.Cancel()
 		// wait until the pull has completed
 		if _, err := ioutil.ReadAll(pullOutput); err != nil {
-			return err
+			return false, err
 		}
 	default:
 		// wait until the pull has completed
 		if _, err := ioutil.ReadAll(pullOutput); err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 func StreamDockerLogs(containerID string, containerIDs ...string) error {
