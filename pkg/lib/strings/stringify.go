@@ -425,7 +425,7 @@ func Indent(str string, indent string) string {
 }
 
 func TruncateEllipses(str string, maxLength int) string {
-	ellipses := "..."
+	ellipses := " ..."
 	if len(str) > maxLength {
 		str = str[:maxLength-len(ellipses)]
 		str += ellipses
