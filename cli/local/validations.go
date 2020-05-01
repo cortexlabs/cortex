@@ -143,7 +143,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 		if _, ok := infoResponse.Runtimes["nvidia"]; !ok {
 			if !strings.HasPrefix(strings.ToLower(runtime.GOOS), "linux") {
-				fmt.Printf("warning: %s will run without gpu access because nvidia container runtime is not supported on your operating system see https://cortex.dev/v/%s/troubleshooting/nvidia-container-runtime-not-found for more information", s.StrsAnd(apisRequiringGPU.Slice()), consts.CortexVersionMinor)
+				fmt.Printf("warning: %s will run without gpu access because nvidia container runtime is not supported on your operating system see https://cortex.dev/v/%s/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.Slice()), consts.CortexVersionMinor)
 			} else {
 				fmt.Printf("warning: %s will run without gpu access because your local machine doesn't have a gpu or the nvidia container runtime is not configured properly, see https://cortex.dev/v/%s/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.Slice()), consts.CortexVersionMinor)
 			}
