@@ -1,0 +1,10 @@
+- name: image-classifier-resnet50-accelerator
+  predictor:
+    type: python
+    path: predictor_accelerator.py
+    config:
+      model: s3://cortex-cluster-robertlucian-us-east-1/pytorch/image-classifier-resnet50/accelerator
+  compute:
+    cpu: 7
+    mem: 15g
+    accelerator: 1

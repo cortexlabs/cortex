@@ -1,6 +1,6 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- name: image-classifier
+- name: image-classifier-alexnet
   predictor:
     type: python
     path: predictor.py

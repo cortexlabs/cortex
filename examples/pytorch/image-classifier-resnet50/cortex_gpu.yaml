@@ -1,0 +1,7 @@
+- name: image-classifier-resnet50-accelerator
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    cpu: 7
+    gpu: 1
