@@ -159,6 +159,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		}
 	}
 
+	pulledImage := false
 	for image := range imageSet {
 		var err error
 		dockerAuth := docker.NoAuth
@@ -169,10 +170,19 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 			}
 		}
 
-		err = docker.PullImage(image, dockerAuth, docker.PrintDots)
+		pulledThisImage, err := docker.PullImage(image, dockerAuth, docker.PrintDots)
 		if err != nil {
 			return errors.Wrap(err, "failed to pull image", image)
 		}
+
+		if pulledThisImage {
+			pulledImage = true
+		}
 	}
+
+	if pulledImage {
+		fmt.Println()
+	}
+
 	return nil
 }
