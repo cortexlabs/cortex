@@ -34,11 +34,24 @@ cluster-up:
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
+cluster-up-y:
+	@$(MAKE) registry-all
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster up --yes
+	@$(MAKE) kubectl
+
 cluster-down:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster down
+
+cluster-down-y:
+	@$(MAKE) manager-local
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster down --yes
 
 cluster-info:
 	@$(MAKE) manager-local
@@ -50,6 +63,12 @@ cluster-update:
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster update
+
+cluster-update-y:
+	@$(MAKE) registry-all
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster update --yes
 
 operator-stop:
 	@$(MAKE) kubectl
