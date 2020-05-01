@@ -17,7 +17,6 @@ import shutil
 import json
 import collections
 import zipfile
-import msgpack
 import pathlib
 import inspect
 from inspect import Parameter
@@ -34,11 +33,6 @@ def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
 
     if delete_zip_file:
         rm_file(zip_path)
-
-
-def read_msgpack(msgpack_path):
-    with open(msgpack_path, "rb") as msgpack_file:
-        return msgpack.load(msgpack_file, raw=False)
 
 
 def mkdir_p(dir_path):

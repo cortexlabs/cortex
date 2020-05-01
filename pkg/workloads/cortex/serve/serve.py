@@ -17,6 +17,7 @@ import os
 import argparse
 import time
 import json
+import msgpack
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import math
@@ -203,12 +204,17 @@ def get_summary():
 
 def get_spec(provider, storage, cache_dir, spec_path):
     if provider == "local":
-        return util.read_msgpack(spec_path)
+        return read_msgpack(spec_path)
 
     local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
     _, key = S3.deconstruct_s3_path(spec_path)
     storage.download_file(key, local_spec_path)
-    return util.read_msgpack(local_spec_path)
+    return read_msgpack(local_spec_path)
+
+
+def read_msgpack(msgpack_path):
+    with open(msgpack_path, "rb") as msgpack_file:
+        return msgpack.load(msgpack_file, raw=False)
 
 
 def start():
