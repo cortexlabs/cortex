@@ -130,6 +130,8 @@ pilot:
   image: $CORTEX_IMAGE_ISTIO_PILOT
   enabled: true
   sidecar: false
+  autoscaleMin: 1
+  autoscaleMax: 2
   resources:
     requests:
       cpu: 200m

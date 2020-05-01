@@ -471,7 +471,7 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 }
 
 func (cc *Config) Validate(awsClient *aws.Client) error {
-	fmt.Print("verifying your configuration...\n\n")
+	fmt.Print("verifying your configuration ...\n\n")
 
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)

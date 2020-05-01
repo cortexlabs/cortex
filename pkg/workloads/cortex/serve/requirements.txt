@@ -1,8 +1,9 @@
 boto3==1.12.31
+datadog==0.35.0
 dill==0.3.1.1
+fastapi==0.53.0
 msgpack==1.0.0
 numpy==1.18.2
 pyyaml==5.3.1
 requests==2.23.0
-
-datadog==0.35.0
+uvicorn==0.11.3

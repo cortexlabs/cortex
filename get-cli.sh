@@ -49,14 +49,14 @@ function main() {
   fi
 
   rm -rf $cortex_sh_tmp_dir
-  echo "✓ Installed CLI"
+  echo "✓ installed cli"
 
   update_bash_profile
 }
 
 function ask_sudo() {
   if ! sudo -n true 2>/dev/null; then
-    echo -e "Please enter your sudo password\n"
+    echo -e "please enter your sudo password\n"
   fi
 }
 
