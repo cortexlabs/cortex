@@ -22,6 +22,7 @@
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
 * [API statuses](deployments/statuses.md)
+* [Environments](deployments/environments.md)
 
 ## Cluster management
 

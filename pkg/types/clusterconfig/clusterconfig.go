@@ -146,6 +146,7 @@ var UserValidation = &cr.StructValidation{
 			Int64PtrValidation: &cr.Int64PtrValidation{
 				GreaterThanOrEqualTo: pointer.Int64(100),
 				LessThanOrEqualTo:    pointer.Int64(64000),
+				AllowExplicitNull:    true,
 			},
 		},
 		{
