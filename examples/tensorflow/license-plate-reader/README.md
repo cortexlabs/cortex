@@ -140,7 +140,7 @@ And then upload it to your bucket (also make sure [cortex_lite.yaml](cortex_lite
 
 ```bash
 BUCKET=my-bucket
-YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3
+YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3_keras
 aws s3 cp license_plate.h5 "s3://$BUCKET/$YOLO3_PATH/model.h5"
 ```
 
@@ -162,7 +162,7 @@ And then upload it to your bucket (also make sure [cortex_full.yaml](cortex_full
 
 ```bash
 BUCKET=my-bucket
-YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3
+YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3_tf
 aws s3 cp yolov3/ "s3://$BUCKET/$YOLO3_PATH" --recursive
 ```
 

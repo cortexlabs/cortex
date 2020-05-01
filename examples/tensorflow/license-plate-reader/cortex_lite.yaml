@@ -5,7 +5,7 @@
     type: python
     path: predictor_lite.py
     config:
-      yolov3: s3://cortex-examples/tensorflow/license-plate-reader/yolov3
+      yolov3: s3://cortex-examples/tensorflow/license-plate-reader/yolov3_keras
       yolov3_model_config: config.json
   compute:
     cpu: 3000m
