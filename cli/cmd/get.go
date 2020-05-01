@@ -50,7 +50,7 @@ import (
 )
 
 const (
-	_titleEnvironment = "environment"
+	_titleEnvironment = "env"
 	_titleAPI         = "api"
 	_titleStatus      = "status"
 	_titleUpToDate    = "up-to-date"
