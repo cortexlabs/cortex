@@ -122,9 +122,9 @@ Once the APIs are up and running, launch the streaming client by following the i
 
 ## Customization/Optimization
 
-### Uploading the SavedModel to S3
+### Uploading the Model to S3
 
-The only model that is uploaded to an S3 bucket (for Cortex to deploy) is the *YOLOv3* model. The other two models are downloaded automatically upon deploying the service.
+The only model to upload to an S3 bucket (for Cortex to deploy) is the *YOLOv3* model. The other two models are downloaded automatically upon deploying the service.
 
 If you would like to host the model from your own bucket, or if you want to fine tune the model for your needs, here's what you can do.
 
