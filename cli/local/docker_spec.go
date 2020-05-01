@@ -379,12 +379,11 @@ func GetContainersByAPI(apiName string) ([]dockertypes.Container, error) {
 	return containers, nil
 }
 
-func GetAllContainers() ([]dockertypes.Container, error) {
+func GetAllRunningContainers() ([]dockertypes.Container, error) {
 	dargs := filters.NewArgs()
 	dargs.Add("label", "cortex=true")
 
 	containers, err := docker.MustDockerClient().ContainerList(context.Background(), types.ContainerListOptions{
-		All:     true,
 		Filters: dargs,
 	})
 	if err != nil {
