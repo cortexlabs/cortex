@@ -22,6 +22,30 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/dev/config/build.sh
 source $ROOT/dev/util.sh
 
+flag_include_slim="false"
+flag_skip_push="false"
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    --include-slim)
+    flag_include_slim="true"
+    shift
+    ;;
+    --skip-push)
+    flag_skip_push="true"
+    shift
+    ;;
+    *)
+    positional_args+=("$1")
+    shift
+    ;;
+  esac
+done
+set -- "${positional_args[@]}"
+
+cmd=${1:-""}
+sub_cmd=${2:-""}
+
 ecr_logged_in=false
 
 function ecr_login() {
@@ -36,12 +60,17 @@ function ecr_login() {
 
 function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/python-predictor-cpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-predictor-cpu-slim --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/python-predictor-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-predictor-gpu-slim --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-cpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tensorflow-predictor --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tensorflow-predictor-slim --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-cpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-cpu-slim --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-gpu --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-gpu-slim --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/downloader --region=$REGISTRY_REGION || true
@@ -60,18 +89,18 @@ function create_registry() {
 ### HELPERS ###
 
 function build() {
-  dir=$1
-  image=$2
-  tag=$3
+  local dir=$1
+  local image=$2
+  local tag=$3
 
   blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $REGISTRY_URL/cortexlabs/$image:$tag
+  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $REGISTRY_URL/cortexlabs/$image:$tag "${@:4}"
   green_echo "Built $image:$tag\n"
 }
 
 function build_base() {
-  dir=$1
-  image=$2
+  local dir=$1
+  local image=$2
 
   blue_echo "Building $image..."
   docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:latest
@@ -79,8 +108,8 @@ function build_base() {
 }
 
 function cache_builder() {
-  dir=$1
-  image=$2
+  local dir=$1
+  local image=$2
 
   blue_echo "Building $image-builder..."
   docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:latest --target builder
@@ -88,10 +117,14 @@ function cache_builder() {
 }
 
 function push() {
+  if [ "$flag_skip_push" == "true" ]; then
+    return
+  fi
+
   ecr_login
 
-  image=$1
-  tag=$2
+  local image=$1
+  local tag=$2
 
   blue_echo "Pushing $image:$tag..."
   docker push $REGISTRY_URL/cortexlabs/$image:$tag
@@ -99,12 +132,26 @@ function push() {
 }
 
 function build_and_push() {
-  dir=$1
-  image=$2
-  tag=$3
+  local dir=$1
+  local image=$2
+  local tag=$3
 
   build $dir $image $tag
   push $image $tag
+}
+
+function build_and_push_slim() {
+  local dir=$1
+  local image=$2
+  local tag=$3
+
+  build $dir $image $tag
+  push $image $tag
+
+  if [ "$flag_include_slim" == "true" ]; then
+    build $dir "${image}-slim" $tag --build-arg SLIM=true
+    push ${image}-slim $tag
+  fi
 }
 
 function cleanup_local() {
@@ -129,9 +176,6 @@ function cleanup_ecr() {
   done
 }
 
-cmd=${1:-""}
-env=${2:-""}
-
 if [ "$cmd" = "clean" ]; then
   cleanup_local
   cleanup_ecr
@@ -142,8 +186,9 @@ elif [ "$cmd" = "create" ]; then
 elif [ "$cmd" = "update-manager-local" ]; then
   build $ROOT/images/manager manager latest
 
+# usage: registry.sh update all|dev|api [--include-slim] [--skip-push]
 elif [ "$cmd" = "update" ]; then
-  if [ "$env" != "dev" ]; then
+  if [ "$sub_cmd" == "all" ]; then
     build_and_push $ROOT/images/tensorflow-serving-cpu tensorflow-serving-cpu latest
     build_and_push $ROOT/images/tensorflow-serving-gpu tensorflow-serving-gpu latest
 
@@ -161,16 +206,18 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/istio-galley istio-galley latest
   fi
 
-  cache_builder $ROOT/images/request-monitor request-monitor
-  build_and_push $ROOT/images/request-monitor request-monitor latest
+  if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
+    cache_builder $ROOT/images/request-monitor request-monitor
+    build_and_push $ROOT/images/request-monitor request-monitor latest
+    build_and_push $ROOT/images/manager manager latest
+    build_and_push $ROOT/images/downloader downloader latest
+  fi
 
-  build_and_push $ROOT/images/manager manager latest
-  build_and_push $ROOT/images/python-predictor-cpu python-predictor-cpu latest
-  build_and_push $ROOT/images/python-predictor-gpu python-predictor-gpu latest
-  build_and_push $ROOT/images/tensorflow-predictor tensorflow-predictor latest
-  build_and_push $ROOT/images/onnx-predictor-cpu onnx-predictor-cpu latest
-  build_and_push $ROOT/images/onnx-predictor-gpu onnx-predictor-gpu latest
-  build_and_push $ROOT/images/downloader downloader latest
+  build_and_push_slim $ROOT/images/python-predictor-cpu python-predictor-cpu latest
+  build_and_push_slim $ROOT/images/python-predictor-gpu python-predictor-gpu latest
+  build_and_push_slim $ROOT/images/tensorflow-predictor tensorflow-predictor latest
+  build_and_push_slim $ROOT/images/onnx-predictor-cpu onnx-predictor-cpu latest
+  build_and_push_slim $ROOT/images/onnx-predictor-gpu onnx-predictor-gpu latest
 
   cleanup_local
 fi

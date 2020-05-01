@@ -58,10 +58,37 @@ operator-stop:
 # Docker images
 
 registry-all:
-	@./dev/registry.sh update
+	@./dev/registry.sh update all
+registry-all-local:
+	@./dev/registry.sh update all --skip-push
+registry-all-slim:
+	@./dev/registry.sh update all --include-slim
+registry-all-slim-local:
+	@./dev/registry.sh update all --include-slim --skip-push
+registry-all-local-slim:
+	@./dev/registry.sh update all --include-slim --skip-push
 
 registry-dev:
 	@./dev/registry.sh update dev
+registry-dev-local:
+	@./dev/registry.sh update dev --skip-push
+registry-dev-slim:
+	@./dev/registry.sh update dev --include-slim
+registry-dev-slim-local:
+	@./dev/registry.sh update dev --include-slim --skip-push
+registry-dev-local-slim:
+	@./dev/registry.sh update dev --include-slim --skip-push
+
+registry-api:
+	@./dev/registry.sh update api
+registry-api-local:
+	@./dev/registry.sh update api --skip-push
+registry-api-slim:
+	@./dev/registry.sh update api --include-slim
+registry-api-slim-local:
+	@./dev/registry.sh update api --include-slim --skip-push
+registry-api-local-slim:
+	@./dev/registry.sh update api --include-slim --skip-push
 
 registry-create:
 	@./dev/registry.sh create
