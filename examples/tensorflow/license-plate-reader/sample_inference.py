@@ -12,7 +12,6 @@ from utils.preprocess import (
     get_url_image,
     reorder_recognized_words,
 )
-from statistics import mean
 
 
 @click.command(
