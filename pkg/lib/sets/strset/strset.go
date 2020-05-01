@@ -205,6 +205,17 @@ func (s Set) Shrink(targetLen int) {
 	}
 }
 
+// remove items alphabetically until len(s) <= targetLen
+func (s Set) ShrinkSorted(targetLen int) {
+	if len(s) <= targetLen {
+		return
+	}
+
+	sorted := s.SliceSorted()
+	extras := sorted[targetLen:]
+	s.Remove(extras...)
+}
+
 // Union is the merger of multiple sets. It returns a new set with all the
 // elements present in all the sets that are passed.
 func Union(sets ...Set) Set {
