@@ -21,10 +21,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/print"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -64,34 +67,9 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 	}
 
 	if strings.HasPrefix(modelPath, "s3://") {
-		fmt.Println(fmt.Sprintf("downloading model %s ...", modelPath))
-		bucket, prefix, err := aws.SplitS3Path(modelPath)
+		err := downloadModel(modelPath, modelDir, awsClient)
 		if err != nil {
 			return nil, err
-		}
-		if strings.HasSuffix(modelPath, ".zip") || strings.HasSuffix(modelPath, ".onnx") {
-			localPath := filepath.Join(modelDir, filepath.Base(modelPath))
-			err := awsClient.DownloadFileFromS3(bucket, prefix, localPath)
-			if err != nil {
-				return nil, err
-			}
-			if strings.HasSuffix(modelPath, ".zip") {
-				err := unzipAndValidate(modelPath, localPath, modelDir)
-				if err != nil {
-					return nil, err
-				}
-				err = os.Remove(localPath)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-		} else {
-			tfModelVersion := filepath.Base(prefix)
-			err := awsClient.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, tfModelVersion), true, nil)
-			if err != nil {
-				return nil, err
-			}
 		}
 	} else {
 		if strings.HasSuffix(modelPath, ".zip") {
@@ -118,6 +96,44 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 	localModelCache.HostPath = modelDir
 
 	return &localModelCache, nil
+}
+
+func downloadModel(modelPath string, modelDir string, awsClient *aws.Client) error {
+	fmt.Printf("downloading model %s ..", modelPath)
+	defer fmt.Print("\n")
+	dotCron := cron.Run(print.Dot, nil, 2*time.Second)
+	defer dotCron.Cancel()
+
+	bucket, prefix, err := aws.SplitS3Path(modelPath)
+	if err != nil {
+		return err
+	}
+
+	if strings.HasSuffix(modelPath, ".zip") || strings.HasSuffix(modelPath, ".onnx") {
+		localPath := filepath.Join(modelDir, filepath.Base(modelPath))
+		err := awsClient.DownloadFileFromS3(bucket, prefix, localPath)
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(modelPath, ".zip") {
+			err := unzipAndValidate(modelPath, localPath, modelDir)
+			if err != nil {
+				return err
+			}
+			err = os.Remove(localPath)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		tfModelVersion := filepath.Base(prefix)
+		err := awsClient.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, tfModelVersion), true, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func unzipAndValidate(originalModelPath string, zipFile string, destPath string) error {
