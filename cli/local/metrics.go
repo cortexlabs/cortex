@@ -17,10 +17,12 @@ limitations under the License.
 package local
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -141,6 +143,17 @@ func GetAPIStatus(api *spec.API) (status.Status, error) {
 
 	for _, container := range containers {
 		if container.State != "running" {
+			dockerClient := docker.MustDockerClient()
+			dockerInfo, err := dockerClient.ContainerInspect(context.Background(), container.ID)
+			if err != nil {
+				return status.Status{}, errors.Wrap(err, api.Identify())
+			}
+			if dockerInfo.State.OOMKilled || dockerInfo.State.ExitCode == 137 {
+				apiStatus.ReplicaCounts.Updated.Failed = 1
+				apiStatus.Code = status.OOM
+				return apiStatus, nil
+			}
+
 			apiStatus.ReplicaCounts.Updated.Failed = 1
 			apiStatus.Code = status.Error
 			return apiStatus, nil
