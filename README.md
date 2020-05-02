@@ -144,7 +144,7 @@ Cortex is an open source alternative to serving models with SageMaker or buildin
 
 <br>
 
-## Examples of Cortex deployments
+## Examples
 
 <!-- CORTEX_VERSION_README_MINOR x3 -->
 * [Image classification](https://github.com/cortexlabs/cortex/tree/0.15/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
