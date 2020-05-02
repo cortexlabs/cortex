@@ -242,15 +242,14 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 			// port is being used by another API
 			if apiName, ok := portToRunningAPIsMap[*api.LocalPort]; ok {
 				return errors.Wrap(ErrorDuplicateLocalPort(apiName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.LocalPort))
-			} else {
-				isPortAvailable, err := checkPortAvailability(*api.LocalPort)
-				if err != nil {
-					return err
-				}
+			}
+			isPortAvailable, err := checkPortAvailability(*api.LocalPort)
+			if err != nil {
+				return err
+			}
 
-				if !isPortAvailable {
-					return errors.Wrap(ErrorPortAlreadyInUse(*api.LocalPort), api.Identify(), userconfig.LocalPortKey)
-				}
+			if !isPortAvailable {
+				return errors.Wrap(ErrorPortAlreadyInUse(*api.LocalPort), api.Identify(), userconfig.LocalPortKey)
 			}
 		} else {
 			// get previous api deployment port
@@ -294,7 +293,7 @@ func checkPortAvailability(port int) (bool, error) {
 }
 
 func findTheNextAvailablePort(blackListedPorts []int) (int, error) {
-	defer func() { _startingPort += 1 }()
+	defer func() { _startingPort++ }()
 	blackListedSet := map[int]struct{}{}
 	for _, port := range blackListedPorts {
 		blackListedSet[port] = struct{}{}
