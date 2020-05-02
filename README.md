@@ -1,4 +1,4 @@
-# Cortex: machine learning model serving infrastructure
+# Machine learning model serving infrastructure
 
 <br>
 
