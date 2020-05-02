@@ -202,7 +202,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		fmt.Println()
 	}
 
-	portToRunningAPIsMap, err := getPortToAPIMap()
+	portToRunningAPIsMap, err := getPortToRunningAPIsMap()
 	if err != nil {
 		return err
 	}
@@ -215,25 +215,24 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		usedPorts = append(usedPorts, port)
 	}
 
-	portToAPIMap := map[int]string{}
-	apiToPortMap := map[string]*int{}
+	portToUpdatingAPIMap := map[int]string{}
+	updatingAPIToPortMap := map[string]*int{}
 
 	for i := range apis {
 		api := &apis[i]
 
-		apiToPortMap[api.Name] = api.LocalPort
+		updatingAPIToPortMap[api.Name] = api.LocalPort
 		if api.LocalPort != nil {
-			if collidingAPIName, ok := portToAPIMap[*api.LocalPort]; ok {
+			if collidingAPIName, ok := portToUpdatingAPIMap[*api.LocalPort]; ok {
 				return errors.Wrap(ErrorDuplicateLocalPort(collidingAPIName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.LocalPort))
 			}
 			usedPorts = append(usedPorts, *api.LocalPort)
-			portToAPIMap[*api.LocalPort] = api.Name
+			portToUpdatingAPIMap[*api.LocalPort] = api.Name
 		}
 	}
 
 	for i := range apis {
 		api := &apis[i]
-
 		if api.LocalPort != nil {
 			// same port as previous deployment of this API
 			if *api.LocalPort == runningAPIsToPortMap[api.Name] {
@@ -242,10 +241,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 			// port is being used by another API
 			if apiName, ok := portToRunningAPIsMap[*api.LocalPort]; ok {
-				// other API is not being updated
-				if _, ok := apiToPortMap[apiName]; !ok {
-					return errors.Wrap(ErrorDuplicateLocalPort(apiName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.LocalPort))
-				}
+				return errors.Wrap(ErrorDuplicateLocalPort(apiName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.LocalPort))
 			} else {
 				isPortAvailable, err := checkPortAvailability(*api.LocalPort)
 				if err != nil {
@@ -253,7 +249,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 				}
 
 				if !isPortAvailable {
-					errors.Wrap(ErrorPortAlreadyInUse(*api.LocalPort), api.Identify())
+					return errors.Wrap(ErrorPortAlreadyInUse(*api.LocalPort), api.Identify(), userconfig.LocalPortKey)
 				}
 			}
 		} else {
@@ -261,7 +257,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 			if port, ok := runningAPIsToPortMap[api.Name]; ok {
 
 				// check that the previous api deployment port has not been claimed in new deployment
-				if _, ok := portToAPIMap[port]; !ok {
+				if _, ok := portToUpdatingAPIMap[port]; !ok {
 					api.LocalPort = pointer.Int(port)
 				}
 			}
@@ -275,6 +271,8 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 			if err != nil {
 				errors.Wrap(err, api.Identify())
 			}
+
+			fmt.Println(availablePort)
 			api.LocalPort = pointer.Int(availablePort)
 		}
 	}
@@ -285,7 +283,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 func checkPortAvailability(port int) (bool, error) {
 	ln, err := net.Listen("tcp", ":"+s.Int(port))
 	if err != nil {
-		return false, errors.WithStack(err)
+		return false, nil
 	}
 	err = ln.Close()
 	if err != nil {
@@ -296,24 +294,25 @@ func checkPortAvailability(port int) (bool, error) {
 }
 
 func findTheNextAvailablePort(blackListedPorts []int) (int, error) {
+	defer func() { _startingPort += 1 }()
+	blackListedSet := map[int]struct{}{}
+	for _, port := range blackListedPorts {
+		blackListedSet[port] = struct{}{}
+	}
+
 	for _startingPort <= 65535 {
-		isBlackListed := false
-		for _, port := range blackListedPorts {
-			if port == _startingPort {
-				isBlackListed = true
-				break
-			}
+		if _, ok := blackListedSet[_startingPort]; ok {
+			_startingPort++
+			continue
 		}
 
-		if !isBlackListed {
-			isAvailable, err := checkPortAvailability(_startingPort)
-			if err != nil {
-				return 0, err
-			}
+		isAvailable, err := checkPortAvailability(_startingPort)
+		if err != nil {
+			return 0, err
+		}
 
-			if isAvailable {
-				return _startingPort, nil
-			}
+		if isAvailable {
+			return _startingPort, nil
 		}
 
 		_startingPort++
@@ -322,7 +321,7 @@ func findTheNextAvailablePort(blackListedPorts []int) (int, error) {
 	return 0, ErrorUnableToFindAvailablePorts()
 }
 
-func getPortToAPIMap() (map[int]string, error) {
+func getPortToRunningAPIsMap() (map[int]string, error) {
 	allContainers, err := GetAllRunningContainers()
 	if err != nil {
 		return nil, err

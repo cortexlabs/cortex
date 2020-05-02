@@ -21,7 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -108,14 +107,14 @@ func ErrorFailedToDeleteAPISpec(path string) error {
 func ErrorDuplicateLocalPort(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateLocalPort,
-		Message: fmt.Sprintf("port has already been assigned to api %s", apiName),
+		Message: fmt.Sprintf("port has already been assigned to api %s, please delete the api with `cortex delete %s` or use another port", apiName, apiName),
 	})
 }
 
 func ErrorPortAlreadyInUse(port int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrPortAlreadyInUse,
-		Message: fmt.Sprintf("port %d is being used by a non-cortex process; please specify a different %s or make port %d available", port, userconfig.LocalPortKey, port),
+		Message: fmt.Sprintf("port %d is being used by a non-cortex process; please specify a different port or make port %d available", port, port),
 	})
 }
 
