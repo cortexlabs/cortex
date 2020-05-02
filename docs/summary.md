@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Machine learning model serving platform](../README.md)
+* [Machine learning model serving infrastructure](../README.md)
 * [Install](cluster-management/install.md)
 * [Tutorial](../examples/sklearn/iris-classifier/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
