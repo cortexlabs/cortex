@@ -85,7 +85,7 @@ Cortex can also automatically provision and manage a Kubernetes cluster for infe
 
 ### Spin up a cluster
 
-Cortex clusters are designed to be self-hosted on any AWS account (and GCP support is coming soon):
+Cortex clusters are designed to be self-hosted on any AWS account (GCP support is coming soon):
 
 ```bash
 # provision infrastructure on AWS and spin up a cluster
