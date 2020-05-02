@@ -144,11 +144,11 @@ func GetAPIStatus(api *spec.API) (status.Status, error) {
 	for _, container := range containers {
 		if container.State != "running" {
 			dockerClient := docker.MustDockerClient()
-			dockerInfo, err := dockerClient.ContainerInspect(context.Background(), container.ID)
+			containerInfo, err := dockerClient.ContainerInspect(context.Background(), container.ID)
 			if err != nil {
 				return status.Status{}, errors.Wrap(err, api.Identify())
 			}
-			if dockerInfo.State.OOMKilled || dockerInfo.State.ExitCode == 137 {
+			if containerInfo.State.OOMKilled || containerInfo.State.ExitCode == 137 {
 				apiStatus.ReplicaCounts.Updated.Failed = 1
 				apiStatus.Code = status.OOM
 				return apiStatus, nil

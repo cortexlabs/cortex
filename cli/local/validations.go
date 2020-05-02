@@ -18,6 +18,7 @@ package local
 
 import (
 	"fmt"
+	"net"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -28,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -35,6 +37,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
+
+var _startingPort = 8888
 
 type ProjectFiles struct {
 	projectFileList []string // make sure it is absolute paths
@@ -93,7 +97,6 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		return err
 	}
 
-	apiPortMap := map[int]string{}
 	apisRequiringGPU := strset.New()
 	nonLocalConfigs := strset.New()
 	for i := range apis {
@@ -101,13 +104,6 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
 			return err
-		}
-
-		if api.LocalPort != nil {
-			if collidingAPIName, ok := apiPortMap[*api.LocalPort]; ok {
-				return errors.Wrap(ErrorDuplicateLocalPort(collidingAPIName), api.Identify(), userconfig.LocalPortKey, s.Int(*apis[i].LocalPort))
-			}
-			apiPortMap[*api.LocalPort] = api.Name
 		}
 
 		if api.Endpoint != nil {
@@ -206,5 +202,140 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		fmt.Println()
 	}
 
+	portToRunningAPIsMap, err := getPortToRunningAPIsMap()
+	if err != nil {
+		return err
+	}
+
+	var usedPorts []int
+
+	runningAPIsToPortMap := map[string]int{}
+	for port, apiName := range portToRunningAPIsMap {
+		runningAPIsToPortMap[apiName] = port
+		usedPorts = append(usedPorts, port)
+	}
+
+	portToUpdatingAPIMap := map[int]string{}
+	updatingAPIToPortMap := map[string]*int{}
+
+	for i := range apis {
+		api := &apis[i]
+
+		updatingAPIToPortMap[api.Name] = api.LocalPort
+		if api.LocalPort != nil {
+			if collidingAPIName, ok := portToUpdatingAPIMap[*api.LocalPort]; ok {
+				return errors.Wrap(ErrorDuplicateLocalPort(collidingAPIName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.LocalPort))
+			}
+			usedPorts = append(usedPorts, *api.LocalPort)
+			portToUpdatingAPIMap[*api.LocalPort] = api.Name
+		}
+	}
+
+	for i := range apis {
+		api := &apis[i]
+		if api.LocalPort != nil {
+			// same port as previous deployment of this API
+			if *api.LocalPort == runningAPIsToPortMap[api.Name] {
+				continue
+			}
+
+			// port is being used by another API
+			if apiName, ok := portToRunningAPIsMap[*api.LocalPort]; ok {
+				return errors.Wrap(ErrorDuplicateLocalPort(apiName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.LocalPort))
+			}
+			isPortAvailable, err := checkPortAvailability(*api.LocalPort)
+			if err != nil {
+				return err
+			}
+
+			if !isPortAvailable {
+				return errors.Wrap(ErrorPortAlreadyInUse(*api.LocalPort), api.Identify(), userconfig.LocalPortKey)
+			}
+		} else {
+			// get previous api deployment port
+			if port, ok := runningAPIsToPortMap[api.Name]; ok {
+
+				// check that the previous api deployment port has not been claimed in new deployment
+				if _, ok := portToUpdatingAPIMap[port]; !ok {
+					api.LocalPort = pointer.Int(port)
+				}
+			}
+		}
+	}
+
+	for i := range apis {
+		api := &apis[i]
+		if api.LocalPort == nil {
+			availablePort, err := findTheNextAvailablePort(usedPorts)
+			if err != nil {
+				errors.Wrap(err, api.Identify())
+			}
+
+			api.LocalPort = pointer.Int(availablePort)
+		}
+	}
+
 	return nil
+}
+
+func checkPortAvailability(port int) (bool, error) {
+	ln, err := net.Listen("tcp", ":"+s.Int(port))
+	if err != nil {
+		return false, nil
+	}
+	err = ln.Close()
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	return true, nil
+}
+
+func findTheNextAvailablePort(blackListedPorts []int) (int, error) {
+	defer func() { _startingPort++ }()
+	blackListedSet := map[int]struct{}{}
+	for _, port := range blackListedPorts {
+		blackListedSet[port] = struct{}{}
+	}
+
+	for _startingPort <= 65535 {
+		if _, ok := blackListedSet[_startingPort]; ok {
+			_startingPort++
+			continue
+		}
+
+		isAvailable, err := checkPortAvailability(_startingPort)
+		if err != nil {
+			return 0, err
+		}
+
+		if isAvailable {
+			return _startingPort, nil
+		}
+
+		_startingPort++
+	}
+
+	return 0, ErrorUnableToFindAvailablePorts()
+}
+
+func getPortToRunningAPIsMap() (map[int]string, error) {
+	allContainers, err := GetAllRunningContainers()
+	if err != nil {
+		return nil, err
+	}
+
+	portMap := map[int]string{}
+
+	for _, container := range allContainers {
+		if container.Labels["type"] == _apiContainerName {
+			for _, port := range container.Ports {
+				if port.PrivatePort == 8888 {
+					portMap[int(port.PublicPort)] = container.Labels["apiName"]
+				}
+			}
+		}
+	}
+
+	return portMap, nil
 }
