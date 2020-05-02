@@ -271,7 +271,6 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 				errors.Wrap(err, api.Identify())
 			}
 
-			fmt.Println(availablePort)
 			api.LocalPort = pointer.Int(availablePort)
 		}
 	}
