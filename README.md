@@ -1,4 +1,4 @@
-# Machine learning model serving platform
+# Cortex: machine learning model serving infrastructure
 
 <br>
 
@@ -86,7 +86,6 @@ positive
 Cortex clusters are designed to be self-hosted on any AWS account (GCP support is coming soon):
 
 ```bash
-# provision infrastructure on AWS and spin up a cluster
 $ cortex cluster up
 
 aws region: us-west-2
