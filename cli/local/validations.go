@@ -98,25 +98,11 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	}
 
 	apisRequiringGPU := strset.New()
-	nonLocalConfigs := strset.New()
 	for i := range apis {
 		api := &apis[i]
 
 		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
 			return err
-		}
-
-		if api.Endpoint != nil {
-			nonLocalConfigs.Add(userconfig.EndpointKey)
-		}
-		if api.Autoscaling != nil {
-			nonLocalConfigs.Add(userconfig.AutoscalingKey)
-		}
-		if api.Tracker != nil {
-			nonLocalConfigs.Add(userconfig.TrackerKey)
-		}
-		if api.UpdateStrategy != nil {
-			nonLocalConfigs.Add(userconfig.UpdateStrategyKey)
 		}
 
 		if api.Compute.CPU != nil && (api.Compute.CPU.MilliValue() > int64(dockerClient.Info.NCPU)*1000) {
@@ -127,14 +113,6 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		if api.Compute.GPU > 0 {
 			apisRequiringGPU.Add(api.Name)
 		}
-	}
-
-	if len(nonLocalConfigs) > 0 {
-		configurationStr := "configuration"
-		if len(nonLocalConfigs) > 1 {
-			configurationStr = "configurations"
-		}
-		fmt.Println(fmt.Sprintf("note: you're deploying locally, so the %s %s won't apply\n", s.StrsAnd(nonLocalConfigs.SliceSorted()), configurationStr))
 	}
 
 	if len(apisRequiringGPU) > 0 {
