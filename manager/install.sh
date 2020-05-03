@@ -202,7 +202,11 @@ function main() {
   python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENV_NAME" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
   echo "✓"
 
-  echo -e "\ncortex is ready!"
+  if [ "$arg1" != "--update" ] && [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing, but you may now set up VPC Peering)"
+  else
+    echo -e "\ncortex is ready!"
+  fi
 }
 
 function setup_configmap() {
@@ -269,6 +273,8 @@ function setup_istio() {
 function validate_cortex() {
   set +e
 
+  validation_start_time="$(date +%s)"
+
   echo -n "￮ waiting for load balancers "
 
   operator_load_balancer="waiting"
@@ -278,6 +284,13 @@ function validate_cortex() {
   operator_endpoint=""
 
   while true; do
+    # 30 minute timeout
+    now="$(date +%s)"
+    if [ "$now" -ge "$(($validation_start_time+1800))" ]; then
+      echo -e "\n\ntimeout has occurred when validating your cortex cluster"
+      exit 1
+    fi
+
     echo -n "."
     sleep 3
 
@@ -315,7 +328,7 @@ function validate_cortex() {
 
     if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
       if [ "$operator_endpoint_reachable" != "ready" ]; then
-        if ! curl $operator_endpoint >/dev/null 2>&1; then
+        if ! curl --max-time 3 $operator_endpoint >/dev/null 2>&1; then
           continue
         fi
         operator_endpoint_reachable="ready"
