@@ -203,7 +203,7 @@ function main() {
   echo "✓"
 
   if [ "$arg1" != "--update" ] && [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
-    echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing)"
+    echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing, but you may now set up VPC Peering)"
   else
     echo -e "\ncortex is ready!"
   fi
