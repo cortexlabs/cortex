@@ -275,6 +275,8 @@ function setup_istio() {
 function validate_cortex() {
   set +e
 
+  validation_start_time="$(date +%s)"
+
   echo -n "￮ waiting for load balancers "
 
   operator_load_balancer="waiting"
@@ -284,6 +286,13 @@ function validate_cortex() {
   operator_endpoint=""
 
   while true; do
+    # 30 minute timeout
+    now="$(date +%s)"
+    if [ "$now" -ge "$(($validation_start_time+1800))" ]; then
+      echo -e "\n\ntimeout has occurred when validating your cortex cluster"
+      exit 1
+    fi
+
     echo -n "."
     sleep 3
 
