@@ -77,6 +77,11 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 			if err != nil {
 				return nil, err
 			}
+		} else if strings.HasSuffix(modelPath, ".onnx") {
+			err := files.CopyFileOverwrite(modelPath, filepath.Join(modelDir, filepath.Base(modelPath)))
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			fmt.Println(fmt.Sprintf("caching model %s ...", modelPath))
 			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(modelDir, "/"))
