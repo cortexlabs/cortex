@@ -207,8 +207,6 @@ function main() {
   else
     echo -e "\ncortex is ready!"
   fi
-
-  echo -e "\ncortex is ready!"
 }
 
 function setup_configmap() {
