@@ -22,19 +22,22 @@
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
 * [API statuses](deployments/statuses.md)
-* [Environments](deployments/environments.md)
 
 ## Cluster management
 
-* [CLI commands](cluster-management/cli.md)
 * [Cluster configuration](cluster-management/config.md)
 * [AWS credentials](cluster-management/aws-credentials.md)
-* [Security](cluster-management/security.md)
 * [EC2 instances](cluster-management/ec2-instances.md)
 * [Spot instances](cluster-management/spot-instances.md)
 * [Update](cluster-management/update.md)
 * [Uninstall](cluster-management/uninstall.md)
-* [Telemetry](cluster-management/telemetry.md)
+
+## Miscellaneous
+
+* [CLI commands](miscellaneous/cli.md)
+* [Environments](miscellaneous/environments.md)
+* [Security](miscellaneous/security.md)
+* [Telemetry](miscellaneous/telemetry.md)
 
 ## Troubleshooting
 
