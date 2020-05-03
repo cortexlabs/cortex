@@ -49,7 +49,7 @@ const (
 	ErrEnvironmentNotFound                  = "cli.environment_not_found"
 	ErrOperatorEndpointInLocalEnvironment   = "cli.operator_endpoint_in_local_environment"
 	ErrOperatorConfigFromLocalEnvironment   = "cli.operater_config_from_local_environment"
-	ErrFieldNotFoundInEnvironment           = "cli.err_field_not_found_in_environment"
+	ErrFieldNotFoundInEnvironment           = "cli.field_not_found_in_environment"
 	ErrInvalidOperatorEndpoint              = "cli.invalid_operator_endpoint"
 	ErrCortexYAMLNotFound                   = "cli.cortex_yaml_not_found"
 	ErrConnectToDockerDaemon                = "cli.connect_to_docker_daemon"
