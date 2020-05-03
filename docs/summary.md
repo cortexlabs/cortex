@@ -44,7 +44,6 @@
 * [API is stuck updating](troubleshooting/stuck-updating.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 
-
 ## Guides
 
 * [Set up AWS API gateway](guides/api-gateway.md)
