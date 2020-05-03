@@ -741,7 +741,6 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client, disallowPrompt 
 	}
 
 	remainingPrompts := &cr.PromptValidation{
-		SkipNonNilFields:   true,
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{

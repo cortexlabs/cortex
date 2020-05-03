@@ -27,7 +27,7 @@ const (
 	ErrNotAbsolutePath               = "local.not_absolute_path"
 	ErrAPINotDeployed                = "local.api_not_deployed"
 	ErrAPISpecNotFound               = "local.api_specification_not_found"
-	ErrCortexVersionMismatch         = "local.err_cortex_version_mismatch"
+	ErrCortexVersionMismatch         = "local.cortex_version_mismatch"
 	ErrAPIContainersNotFound         = "local.api_containers_not_found"
 	ErrFoundContainersWithoutAPISpec = "local.found_containers_without_api_spec"
 	ErrInvalidTensorFlowZip          = "local.invalid_tensorflow_zip"

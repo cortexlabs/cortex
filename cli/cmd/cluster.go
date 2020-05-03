@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -159,7 +160,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		fmt.Printf("\nyour cli environment named \"%s\" has been configured to connect to this cluster; append --env=%s in cortex commands to reference it, or set it as your default via `cortex env default %s`\n", _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
+		fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured for this cluster; append `--env=%s` to cortex commands to reference it, or set it as your default with `cortex env default %s`\n"), _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
 	},
 }
 
