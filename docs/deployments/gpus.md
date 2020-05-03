@@ -9,7 +9,7 @@ To use GPUs:
 3. Set instance type to an AWS GPU instance (e.g. g4dn.xlarge) when installing Cortex.
 4. Set the `gpu` field in the `compute` configuration for your API. One unit of GPU corresponds to one virtual GPU. Fractional requests are not allowed.
 
-## Pitfalls
+## Tips
 
 ### If using `workers_per_replica` > 1, TensorFlow-based models, and Python Predictor
 
