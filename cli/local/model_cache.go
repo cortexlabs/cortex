@@ -99,8 +99,8 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 }
 
 func downloadModel(modelPath string, modelDir string, awsClient *aws.Client) error {
-	fmt.Printf("downloading model %s ", modelPath)
-	defer fmt.Print("\n")
+	fmt.Printf("￮ downloading model %s ", modelPath)
+	defer fmt.Print("✓\n")
 	dotCron := cron.Run(print.Dot, nil, 2*time.Second)
 	defer dotCron.Cancel()
 
