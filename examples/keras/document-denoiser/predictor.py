@@ -39,10 +39,9 @@ class PythonPredictor:
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
         s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
-        model_name = "model.h5"
 
         model_path = os.path.join("/tmp/model.h5")
-        s3.download_file(bucket, os.path.join(key, model_name), model_path)
+        s3.download_file(bucket, key, model_path)
 
         # load the model
         self.model = load_model(model_path)

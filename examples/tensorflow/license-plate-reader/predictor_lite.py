@@ -17,7 +17,7 @@ class PythonPredictor:
         bucket, key = re.match("s3://(.+?)/(.+)", config["yolov3"]).groups()
         s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
         model_path = "/tmp/model.h5"
-        s3.download_file(bucket, os.path.join(key, "model.h5"), model_path)
+        s3.download_file(bucket, key, model_path)
 
         # load yolov3 model
         self.yolov3_model = load_model(model_path)
