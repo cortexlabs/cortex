@@ -39,7 +39,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 )
 
-func runManager(containerConfig *container.Config) (string, *int, error) {
+func runManager(containerConfig *container.Config, addNewLineAfterPull bool) (string, *int, error) {
 	containerConfig.Env = append(containerConfig.Env, "CORTEX_CLI_VERSION="+consts.CortexVersion)
 
 	// Add a slight delay before running the command to ensure logs don't start until after the container is attached
@@ -50,9 +50,13 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		return "", nil, err
 	}
 
-	_, err = docker.PullImage(containerConfig.Image, docker.NoAuth, docker.PrintDots)
+	pulledImage, err := docker.PullImage(containerConfig.Image, docker.NoAuth, docker.PrintDots)
 	if err != nil {
 		return "", nil, err
+	}
+
+	if pulledImage && addNewLineAfterPull {
+		fmt.Println()
 	}
 
 	hostConfig := &container.HostConfig{
@@ -176,7 +180,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 		},
 	}
 
-	output, exitCode, err := runManager(containerConfig)
+	output, exitCode, err := runManager(containerConfig, false)
 	if err != nil {
 		return "", nil, err
 	}
@@ -203,7 +207,7 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		},
 	}
 
-	output, exitCode, err := runManager(containerConfig)
+	output, exitCode, err := runManager(containerConfig, true)
 	if err != nil {
 		return "", nil, err
 	}
