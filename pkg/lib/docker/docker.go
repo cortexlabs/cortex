@@ -169,8 +169,8 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		jsonmessage.DisplayJSONMessagesStream(pullOutput, os.Stderr, termFd, isTerm, nil)
 		fmt.Println()
 	case PrintDots:
-		fmt.Printf("downloading docker image %s ", image)
-		defer fmt.Print("\n")
+		fmt.Printf("￮ downloading docker image %s ", image)
+		defer fmt.Print("✓\n")
 		dotCron := cron.Run(print.Dot, nil, 2*time.Second)
 		defer dotCron.Cancel()
 		// wait until the pull has completed
