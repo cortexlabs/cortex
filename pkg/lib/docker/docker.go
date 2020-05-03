@@ -41,41 +41,43 @@ import (
 
 var NoAuth string
 
-var _cachedDockerClient *dockerclient.Client
+var _cachedClient *Client
+
+type Client struct {
+	*dockerclient.Client
+	Info dockertypes.Info
+}
 
 func init() {
 	NoAuth, _ = EncodeAuthConfig(dockertypes.AuthConfig{})
 }
 
-func createDockerClient() (*dockerclient.Client, error) {
-	if _cachedDockerClient != nil {
-		return _cachedDockerClient, nil
+func GetDockerClient() (*Client, error) {
+	if _cachedClient != nil {
+		return _cachedClient, nil
 	}
 
-	var err error
-	_cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	baseClient, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {
 		return nil, WrapDockerError(err)
 	}
 
-	_cachedDockerClient.NegotiateAPIVersion(context.Background())
-	return _cachedDockerClient, nil
-}
+	baseClient.NegotiateAPIVersion(context.Background())
 
-func GetDockerClient() (*dockerclient.Client, error) {
-	dockerClient, err := createDockerClient()
+	info, err := baseClient.Info(context.Background())
 	if err != nil {
-		return nil, err
-	}
-
-	if _, err := dockerClient.Info(context.Background()); err != nil {
 		return nil, WrapDockerError(err)
 	}
 
-	return dockerClient, nil
+	_cachedClient = &Client{
+		Client: baseClient,
+		Info:   info,
+	}
+
+	return _cachedClient, nil
 }
 
-func MustDockerClient() *dockerclient.Client {
+func MustDockerClient() *Client {
 	dockerClient, err := GetDockerClient()
 	if err != nil {
 		exit.Error(err)
@@ -134,30 +136,30 @@ const (
 	PrintProgressBars
 )
 
-func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosity) error {
-	docker, err := GetDockerClient()
+func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosity) (bool, error) {
+	dockerClient, err := GetDockerClient()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	existingImages, err := docker.ImageList(context.Background(), dockertypes.ImageListOptions{})
+	existingImages, err := dockerClient.ImageList(context.Background(), dockertypes.ImageListOptions{})
 	if err != nil {
-		return WrapDockerError(err)
+		return false, WrapDockerError(err)
 	}
 
 	for _, existingImage := range existingImages {
 		for _, tag := range existingImage.RepoTags {
 			if tag == image {
-				return nil
+				return false, nil
 			}
 		}
 	}
 
-	pullOutput, err := docker.ImagePull(context.Background(), image, dockertypes.ImagePullOptions{
+	pullOutput, err := dockerClient.ImagePull(context.Background(), image, dockertypes.ImagePullOptions{
 		RegistryAuth: encodedAuthConfig,
 	})
 	if err != nil {
-		return WrapDockerError(err)
+		return false, WrapDockerError(err)
 	}
 	defer pullOutput.Close()
 
@@ -168,34 +170,34 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		fmt.Println()
 	case PrintDots:
 		fmt.Printf("downloading docker image %s ", image)
-		defer fmt.Print("\n\n")
+		defer fmt.Print("\n")
 		dotCron := cron.Run(print.Dot, nil, 2*time.Second)
 		defer dotCron.Cancel()
 		// wait until the pull has completed
 		if _, err := ioutil.ReadAll(pullOutput); err != nil {
-			return err
+			return false, err
 		}
 	default:
 		// wait until the pull has completed
 		if _, err := ioutil.ReadAll(pullOutput); err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 func StreamDockerLogs(containerID string, containerIDs ...string) error {
 	containerIDs = append([]string{containerID}, containerIDs...)
 
-	docker, err := GetDockerClient()
+	dockerClient, err := GetDockerClient()
 	if err != nil {
 		return err
 	}
 
 	fns := make([]func() error, len(containerIDs))
 	for i, containerID := range containerIDs {
-		fns[i] = StreamDockerLogsFn(containerID, docker)
+		fns[i] = StreamDockerLogsFn(containerID, dockerClient)
 	}
 
 	err = parallel.RunFirstErr(fns[0], fns[1:]...)
@@ -207,10 +209,10 @@ func StreamDockerLogs(containerID string, containerIDs ...string) error {
 	return nil
 }
 
-func StreamDockerLogsFn(containerID string, docker *dockerclient.Client) func() error {
+func StreamDockerLogsFn(containerID string, dockerClient *Client) func() error {
 	return func() error {
 		// Use ContainerLogs() so lines are only printed once they end in \n
-		logsOutput, err := docker.ContainerLogs(context.Background(), containerID, dockertypes.ContainerLogsOptions{
+		logsOutput, err := dockerClient.ContainerLogs(context.Background(), containerID, dockertypes.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
@@ -237,8 +239,8 @@ func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 	return registryAuth, nil
 }
 
-func CheckImageAccessible(c *dockerclient.Client, dockerImage, authConfig string) error {
-	if _, err := c.DistributionInspect(context.Background(), dockerImage, authConfig); err != nil {
+func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string) error {
+	if _, err := dockerClient.DistributionInspect(context.Background(), dockerImage, authConfig); err != nil {
 		return ErrorImageInaccessible(dockerImage, err)
 	}
 	return nil

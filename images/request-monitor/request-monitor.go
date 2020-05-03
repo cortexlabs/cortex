@@ -82,7 +82,7 @@ func main() {
 		if _, err := os.Stat("/mnt/workspace/api_readiness.txt"); err == nil {
 			break
 		} else if os.IsNotExist(err) {
-			fmt.Println("waiting for replica to be ready...")
+			fmt.Println("waiting for replica to be ready ...")
 			time.Sleep(_tickInterval)
 		} else {
 			log.Printf("error encountered while looking for /mnt/workspace/api_readiness.txt") // unexpected

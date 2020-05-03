@@ -109,7 +109,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## ONNX runtime
 
-1. Update the version in `onnx-cpu.requirements.txt` and `onnx-gpu.requirements.txt` ([releases](https://github.com/microsoft/onnxruntime/releases))
+1. Update the version in `images/onnx-predictor-cpu/Dockerfile` and `images/onnx-predictor-gpu/Dockerfile` ([releases](https://github.com/microsoft/onnxruntime/releases))
 1. Update the version listed for `onnxruntime` in "Pre-installed Packages" in `onnx.md`
 1. Search the codebase for the previous ONNX runtime version
 
@@ -130,7 +130,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## Python packages
 
-1. Update versions in `pkg/workloads/*/requirements.txt`
+1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor-*/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
 1. Update the versions listed in "Pre-installed packages" in `python.md`, `onnx.md`, and `tensorflow.md`
 1. Rerun all examples and check their logs
 
@@ -180,7 +180,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 1. Update the version in `images/statsd/Dockerfile`
 1. In this [GitHub Repo](https://github.com/aws-samples/amazon-cloudwatch-container-insights), set the tree to `master` and open [k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml](https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml) and [k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml](https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml)
 1. Update `statsd.yaml` as necessary (this wasn't copy-pasted, so you may need to check the diff intelligently)
-1. Update the datadog client version in `lib/requirements.txt`
+1. Update the datadog client version in `serve/requirements.txt`
 
 ## aws-iam-authenticator
 

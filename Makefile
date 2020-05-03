@@ -34,11 +34,24 @@ cluster-up:
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
+cluster-up-y:
+	@$(MAKE) registry-all
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster up --yes
+	@$(MAKE) kubectl
+
 cluster-down:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster down
+
+cluster-down-y:
+	@$(MAKE) manager-local
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster down --yes
 
 cluster-info:
 	@$(MAKE) manager-local
@@ -51,6 +64,12 @@ cluster-update:
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster update
 
+cluster-update-y:
+	@$(MAKE) registry-all
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster update --yes
+
 operator-stop:
 	@$(MAKE) kubectl
 	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
@@ -58,10 +77,37 @@ operator-stop:
 # Docker images
 
 registry-all:
-	@./dev/registry.sh update
+	@./dev/registry.sh update all
+registry-all-local:
+	@./dev/registry.sh update all --skip-push
+registry-all-slim:
+	@./dev/registry.sh update all --include-slim
+registry-all-slim-local:
+	@./dev/registry.sh update all --include-slim --skip-push
+registry-all-local-slim:
+	@./dev/registry.sh update all --include-slim --skip-push
 
 registry-dev:
 	@./dev/registry.sh update dev
+registry-dev-local:
+	@./dev/registry.sh update dev --skip-push
+registry-dev-slim:
+	@./dev/registry.sh update dev --include-slim
+registry-dev-slim-local:
+	@./dev/registry.sh update dev --include-slim --skip-push
+registry-dev-local-slim:
+	@./dev/registry.sh update dev --include-slim --skip-push
+
+registry-api:
+	@./dev/registry.sh update api
+registry-api-local:
+	@./dev/registry.sh update api --skip-push
+registry-api-slim:
+	@./dev/registry.sh update api --include-slim
+registry-api-slim-local:
+	@./dev/registry.sh update api --include-slim --skip-push
+registry-api-local-slim:
+	@./dev/registry.sh update api --include-slim --skip-push
 
 registry-create:
 	@./dev/registry.sh create
@@ -118,13 +164,13 @@ test-examples:
 ###############
 
 ci-build-images:
-	@./build/build-image.sh images/python-predictor-cpu python-predictor-cpu
-	@./build/build-image.sh images/python-predictor-gpu python-predictor-gpu
+	@./build/build-image.sh images/python-predictor-cpu python-predictor-cpu --include-slim
+	@./build/build-image.sh images/python-predictor-gpu python-predictor-gpu --include-slim
 	@./build/build-image.sh images/tensorflow-serving-cpu tensorflow-serving-cpu
 	@./build/build-image.sh images/tensorflow-serving-gpu tensorflow-serving-gpu
-	@./build/build-image.sh images/tensorflow-predictor tensorflow-predictor
-	@./build/build-image.sh images/onnx-predictor-cpu onnx-predictor-cpu
-	@./build/build-image.sh images/onnx-predictor-gpu onnx-predictor-gpu
+	@./build/build-image.sh images/tensorflow-predictor tensorflow-predictor --include-slim
+	@./build/build-image.sh images/onnx-predictor-cpu onnx-predictor-cpu --include-slim
+	@./build/build-image.sh images/onnx-predictor-gpu onnx-predictor-gpu --include-slim
 	@./build/build-image.sh images/operator operator
 	@./build/build-image.sh images/manager manager
 	@./build/build-image.sh images/downloader downloader
@@ -140,13 +186,13 @@ ci-build-images:
 	@./build/build-image.sh images/istio-galley istio-galley
 
 ci-push-images:
-	@./build/push-image.sh python-predictor-cpu
-	@./build/push-image.sh python-predictor-gpu
+	@./build/push-image.sh python-predictor-cpu --include-slim
+	@./build/push-image.sh python-predictor-gpu --include-slim
 	@./build/push-image.sh tensorflow-serving-cpu
 	@./build/push-image.sh tensorflow-serving-gpu
-	@./build/push-image.sh tensorflow-predictor
-	@./build/push-image.sh onnx-predictor-cpu
-	@./build/push-image.sh onnx-predictor-gpu
+	@./build/push-image.sh tensorflow-predictor --include-slim
+	@./build/push-image.sh onnx-predictor-cpu --include-slim
+	@./build/push-image.sh onnx-predictor-gpu --include-slim
 	@./build/push-image.sh operator
 	@./build/push-image.sh manager
 	@./build/push-image.sh downloader
