@@ -330,7 +330,7 @@ function validate_cortex() {
 
     if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
       if [ "$operator_endpoint_reachable" != "ready" ]; then
-        if ! curl $operator_endpoint >/dev/null 2>&1; then
+        if ! curl --max-time 3 $operator_endpoint >/dev/null 2>&1; then
           continue
         fi
         operator_endpoint_reachable="ready"
