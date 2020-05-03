@@ -153,7 +153,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := "\nDebugging tips (may not apply to this error):"
+			helpStr := "\nDebugging tips (may or may not apply to this error):"
 			helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again: https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", *clusterConfig.Region, clusterConfig.ClusterName)
 			fmt.Println(helpStr)
@@ -219,7 +219,7 @@ var _updateCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := "\nDebugging tips (may not apply to this error):"
+			helpStr := "\nDebugging tips (may or may not apply to this error):"
 			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterUpdate(out + helpStr))
