@@ -113,7 +113,7 @@ function ensure_eks() {
     if [[ -n $asg_spot_name ]]; then
       aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --min-size=$CORTEX_MIN_INSTANCES
     fi
-    echo "✓"
+    echo " ✓"
   fi
 
   if [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
@@ -124,7 +124,7 @@ function ensure_eks() {
     if [[ -n $asg_spot_name ]]; then
       aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --max-size=$CORTEX_MAX_INSTANCES
     fi
-    echo "✓"
+    echo " ✓"
   fi
 }
 
@@ -147,38 +147,38 @@ function main() {
   echo -n "￮ updating cluster configuration "
   setup_configmap
   setup_secrets
-  echo "✓"
+  echo " ✓"
 
   echo -n "￮ configuring networking "
   setup_istio
   envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  echo " ✓"
 
   echo -n "￮ configuring autoscaling "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml
   kubectl apply -f $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml >/dev/null
-  echo "✓"
+  echo " ✓"
 
   echo -n "￮ configuring logging "
   envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  echo " ✓"
 
   echo -n "￮ configuring metrics "
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  echo " ✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
     envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
+    echo " ✓"
   fi
 
   echo -n "￮ starting operator "
   kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
   until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
   envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  echo " ✓"
 
   validate_cortex
 
@@ -192,12 +192,12 @@ function main() {
       sleep 3
     done
     kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
-    echo "✓"
+    echo " ✓"
   fi
 
   echo -n "￮ configuring cli "
   python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENV_NAME" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
-  echo "✓"
+  echo " ✓"
 
   echo -e "\ncortex is ready!"
 }
@@ -336,7 +336,7 @@ function validate_cortex() {
     break
   done
 
-  echo "✓"
+  echo " ✓"
 }
 
 main
