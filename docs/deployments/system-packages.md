@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Bash script
 
-Cortex looks inside the root directory of the project for a file named `dependencies.sh`. (i.e. the directory which contains `cortex.yaml`).
+Cortex looks for a file named `dependencies.sh` in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`). For example:
 
 ```text
 ./iris-classifier/
@@ -14,9 +14,10 @@ Cortex looks inside the root directory of the project for a file named `dependen
 └── dependencies.sh
 ```
 
-This `dependencies.sh` gets executed during the initialization of each replica. Typical use cases include installing required system packages to be used in Predictor, building python packages from source, etc.
+`dependencies.sh` is executed during the initialization of each replica (before installing Python packages in `requirements.txt` or `conda-packages.txt`). Typical use cases include installing required system packages to be used in your Predictor, building Python packages from source, etc.
 
-Sample `dependencies.sh` installing `tree` utility:
+Here is an example `dependencies.sh`, which installs the `tree` utility:
+
 ```bash
 #!/bin/bash
 apt-get update && apt-get install -y tree
@@ -36,6 +37,8 @@ class PythonPredictor:
 
 ## Custom Docker image
 
+You can also build a custom Docker image for use in your APIs, e.g. to avoid installing dependencies during replica initialization.
+
 ### Create a Dockerfile
 
 Create a Dockerfile to build your custom image:
@@ -44,14 +47,16 @@ Create a Dockerfile to build your custom image:
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
-The default Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image:
+Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
-* Python Predictor (CPU): `cortexlabs/python-predictor-cpu:master`
-* Python Predictor (GPU): `cortexlabs/python-predictor-gpu:master`
-* TensorFlow Predictor (CPU and GPU): `cortexlabs/tensorflow-predictor:master`
-* ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu:master`
-* ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu:master`
+* Python Predictor (CPU): `cortexlabs/python-predictor-cpu-slim:master`
+* Python Predictor (GPU): `cortexlabs/python-predictor-gpu-slim:master`
+* TensorFlow Predictor (CPU and GPU): `cortexlabs/tensorflow-predictor-slim:master`
+* ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu-slim:master`
+* ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu-slim:master`
+
+Note: the images listed above use the `-slim` suffix; Cortex's default API images are not `-slim`, since they have additional dependencies installed to cover common use cases. If you are building your own Docker image, starting with a `-slim` Predictor image will result in a smaller image size.
 
 The sample Dockerfile below inherits from Cortex's Python CPU serving image and installs the `tree` system package.
 
@@ -59,7 +64,7 @@ The sample Dockerfile below inherits from Cortex's Python CPU serving image and 
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-predictor-cpu:master
+FROM cortexlabs/python-predictor-cpu-slim:master
 
 RUN apt-get update \
     && apt-get install -y tree \
