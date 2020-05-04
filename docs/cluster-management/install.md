@@ -34,6 +34,7 @@ $ cortex cluster up
 
 ## Deploy an example
 
+<!-- CORTEX_VERSION_MINOR -->
 ```bash
 # clone the Cortex repository
 git clone -b master https://github.com/cortexlabs/cortex.git
