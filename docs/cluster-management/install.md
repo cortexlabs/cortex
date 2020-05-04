@@ -1,7 +1,5 @@
 # Install
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Running on your machine or a single instance
 
 [Docker](https://docs.docker.com/install) is required to run Cortex locally. In addition, your machine (or your Docker Desktop for Mac users) should have at least 8GB of memory if you plan to deploy large deep learning models.

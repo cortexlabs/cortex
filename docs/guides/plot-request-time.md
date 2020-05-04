@@ -1,7 +1,5 @@
 # Plot API request time
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 The `avg request` metric shown in `cortex get` corresponds to how long the average inference takes (not including time spent in the queue), and is averaged over the lifetime of the latest version of your API (with a cap of 2 weeks). You plot these values in CloudWatch Metrics by following these steps:
 
 ## Step 1

@@ -1,7 +1,5 @@
 # Plot response code counts
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 This plot shows the number of requests that result in 2XX, 4XX, and 5XX response codes over time.
 
 ## Step 1

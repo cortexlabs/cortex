@@ -1,7 +1,5 @@
 # Autoscaling
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Cortex autoscales your web services on a per-API basis based on your configuration.
 
 ## Replica Parallelism
