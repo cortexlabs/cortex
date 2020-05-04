@@ -33,4 +33,4 @@ cortex version
 cortex cluster up
 ```
 
-In production environments, you can upgrade your cluster without downtime if you have a service in front of your Cortex cluster (for example, you can [configure API Gateway as a proxy service](../guides/api-gateway.md)): first spin up the new cluster, then update your client-facing service to route traffic to your new cluster, and then spin down your old cluster.
+In production environments, you can upgrade your cluster without downtime if you have a service in front of your Cortex cluster (for example, you can [configure API Gateway as a proxy service](../guides/api-gateway.md)): first spin up your new cluster, then update your client-facing service to route traffic to your new cluster, and then spin down your old cluster.
