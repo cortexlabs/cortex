@@ -1,10 +1,17 @@
 - name: image-classifier-resnet50-accelerator
   predictor:
     type: python
-    path: predictor_accelerator.py
+    path: predictor.py
     config:
-      model: s3://cortex-cluster-robertlucian-us-east-1/pytorch/image-classifier-resnet50/accelerator
+      model_path: s3://cortex-cluster-robertlucian-us-east-1/pytorch/image-classifier-resnet50
+      model_name: resnet50_neuron.pt
+      device: accelerator
+      classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+      input_shape: [224, 224]
   compute:
-    cpu: 7
-    mem: 15g
+    cpu: 3
+    mem: 6G
     accelerator: 1
+  autoscaling:
+    workers_per_replica: 2
+    threads_per_worker: 4
