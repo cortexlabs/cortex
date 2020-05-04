@@ -1,4 +1,4 @@
-- name: image-classifier-resnet50-accelerator
+- name: image-classifier-resnet50
   predictor:
     type: python
     path: predictor.py
