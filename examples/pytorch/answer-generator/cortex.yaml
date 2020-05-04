@@ -7,4 +7,4 @@
   compute:
     cpu: 1
     gpu: 1
-    mem: 4G
+    mem: 5G
