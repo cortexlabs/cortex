@@ -517,7 +517,6 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 	}
 
 	model := *predictor.Model
-
 	if strings.HasPrefix(model, "s3://") {
 		model, err := cr.S3PathValidator(model)
 		if err != nil {
@@ -543,7 +542,16 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 		}
 
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
-		model := files.RelToAbsPath(*predictor.Model, configFileDir)
+
+		var err error
+		if strings.HasPrefix(*predictor.Model, "~/") {
+			model, err = files.EscapeTilde(model)
+			if err != nil {
+				return err
+			}
+		} else {
+			model = files.RelToAbsPath(*predictor.Model, configFileDir)
+		}
 		if strings.HasSuffix(model, ".zip") {
 			if err := files.CheckFile(model); err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
@@ -571,7 +579,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	}
 
 	model := *predictor.Model
-
+	var err error
 	if !strings.HasSuffix(model, ".onnx") {
 		return errors.Wrap(ErrorInvalidONNXModelPath(), userconfig.ModelKey, model)
 	}
@@ -591,7 +599,14 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		}
 
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
-		model := files.RelToAbsPath(*predictor.Model, configFileDir)
+		if strings.HasPrefix(*predictor.Model, "~/") {
+			model, err = files.EscapeTilde(model)
+			if err != nil {
+				return err
+			}
+		} else {
+			model = files.RelToAbsPath(*predictor.Model, configFileDir)
+		}
 		if err := files.CheckFile(model); err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}

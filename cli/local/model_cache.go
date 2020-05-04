@@ -85,7 +85,8 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 			}
 		} else {
 			fmt.Println(fmt.Sprintf("caching model %s ...", modelPath))
-			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(modelDir, "/"))
+			tfModelVersion := filepath.Base(modelPath)
+			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(filepath.Join(modelDir, tfModelVersion), "/"))
 			if err != nil {
 				return nil, err
 			}
