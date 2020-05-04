@@ -20,7 +20,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
-    model_type: <string>  # model type, must be "classification" or "regression" (required)
+    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
@@ -64,7 +64,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
-    model_type: <string>  # model type, must be "classification" or "regression" (required)
+    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
@@ -106,7 +106,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     env: <string: string>  # dictionary of environment variables
   tracker:
     key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
-    model_type: <string>  # model type, must be "classification" or "regression" (required)
+    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
