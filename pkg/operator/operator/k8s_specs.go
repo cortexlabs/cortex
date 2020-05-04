@@ -264,6 +264,8 @@ func tfDownloadArgs(api *spec.API) string {
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
+	volumes := _defaultVolumes
+	volumeMounts := _defaultVolumeMounts
 
 	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
 	userPodCPURequest.Sub(_requestMonitorCPURequest)
@@ -286,6 +288,22 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		resourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
 		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.DecimalSI)
 		resourceLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
+
+		fileType := kcore.HostPathSocket
+		volumes = append(volumes, kcore.Volume{
+			Name: "sock",
+			VolumeSource: kcore.VolumeSource{
+				HostPath: &kcore.HostPathVolumeSource{
+					Path: "/run/neuron.sock",
+					Type: &fileType,
+				},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, kcore.VolumeMount{
+			Name:      "sock",
+			MountPath: "/sock/neuron.sock",
+		})
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -330,7 +348,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						ImagePullPolicy: kcore.PullAlways,
 						Env:             getEnvVars(api),
 						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    _defaultVolumeMounts,
+						VolumeMounts:    volumeMounts,
 						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
 						LivenessProbe:   _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
@@ -350,7 +368,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 					"workload": "true",
 				},
 				Tolerations:        _tolerations,
-				Volumes:            _defaultVolumes,
+				Volumes:            volumes,
 				ServiceAccountName: "default",
 			},
 		},
@@ -605,10 +623,16 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 	}
 
 	if api.Compute.Accelerator > 0 {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "NEURONCORE_GROUP_SIZES",
-			Value: s.Int64(api.Compute.Accelerator * consts.CoresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica)),
-		})
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "NEURONCORE_GROUP_SIZES",
+				Value: s.Int64(api.Compute.Accelerator * consts.CoresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica)),
+			},
+			kcore.EnvVar{
+				Name:  "NEURON_RTD_ADDRESS",
+				Value: "unix:/sock/neuron.sock",
+			},
+		)
 
 		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
 			envVars = append(envVars, kcore.EnvVar{

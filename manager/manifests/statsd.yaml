@@ -106,6 +106,9 @@ spec:
             name: cwagentstatsdconfig
       terminationGracePeriodSeconds: 60
       tolerations:
+      - key: aws.amazon.com/infa
+        operator: Exists
+        effect: NoSchedule
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule

@@ -721,7 +721,7 @@ func validateAutoscaling(api *userconfig.API) error {
 	if api.Compute.Accelerator > 0 {
 		numAcceleratorCores := api.Compute.Accelerator * consts.CoresPerAccelerator
 		workersPerReplica := int64(api.Autoscaling.WorkersPerReplica)
-		if m.CheckDivisibleByInt64(numAcceleratorCores, workersPerReplica) {
+		if !m.CheckDivisibleByInt64(numAcceleratorCores, workersPerReplica) {
 			workerSuggestions := m.FindDivisibleNumbersOfInt64(numAcceleratorCores)
 			return ErrorInvalidNumberOfAcceleratorWorkers(workersPerReplica, numAcceleratorCores, workerSuggestions)
 		}

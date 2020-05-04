@@ -282,7 +282,7 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 
 func ErrorInvalidNumberOfAcceleratorWorkers(requestedWorkers int64, numAcceleratorCores int64, acceptableWorkers []int64) error {
 	msgAcceptableWorkers := strings.Join(s.ListInt64(acceptableWorkers), ",")
-	message := fmt.Sprintf("cannot evenly distribute %d accelerator cores over %d workers; acceptable numbers of workers are %s", requestedWorkers, numAcceleratorCores, msgAcceptableWorkers)
+	message := fmt.Sprintf("cannot evenly distribute %d accelerator cores over %d worker(s); acceptable numbers of workers are %s", numAcceleratorCores, requestedWorkers, msgAcceptableWorkers)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfAcceleratorWorkers,
 		Message: message,
