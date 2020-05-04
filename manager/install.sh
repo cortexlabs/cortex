@@ -16,13 +16,12 @@
 
 set -e
 
-export CORTEX_VERSION=master
+export CORTEX_VERSION=0.16.0
 EKSCTL_TIMEOUT=45m
 
 arg1="$1"
 
 function ensure_eks() {
-  # Cluster statuses: https://github.com/aws/aws-sdk-go/blob/master/service/eks/api.go#L2785
   set +e
   cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json 2> /dev/null)
   cluster_info_exit_code=$?
