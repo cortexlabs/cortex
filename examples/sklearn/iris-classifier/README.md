@@ -1,4 +1,4 @@
-# Deploy a model as a web service
+# Deploy models as a web APIs
 
 _WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`_
 
@@ -119,9 +119,9 @@ Create a `cortex.yaml` file and add the configuration below and replace `cortex-
 
 <br>
 
-## Deploy to AWS
+## Deploy your model locally
 
-`cortex deploy` takes the configuration from `cortex.yaml` and creates it on your cluster:
+`cortex deploy` takes your model along with the configuration from `cortex.yaml` and creates a web API:
 
 ```bash
 $ cortex deploy
@@ -129,7 +129,7 @@ $ cortex deploy
 creating iris-classifier
 ```
 
-Track the status of your api using `cortex get`:
+Monitor the status of your API using `cortex get`:
 
 ```bash
 $ cortex get iris-classifier --watch
@@ -137,7 +137,7 @@ $ cortex get iris-classifier --watch
 status   up-to-date   requested   last update   avg request   2XX
 live     1            1           1m            -             -
 
-endpoint: http://***.amazonaws.com/iris-classifier
+endpoint: http://localhost:8888
 ```
 
 The output above indicates that one replica of your API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and spin down replicas if there is unused capacity.
@@ -148,11 +148,37 @@ You can also stream logs from your API:
 $ cortex logs iris-classifier
 ```
 
+You can use `curl` to test your API:
+
+```bash
+$ curl http://localhost:8888 \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3}'
+
+"setosa"
+```
+
 <br>
 
-## Serve real-time predictions
+## Deploy your model to AWS
 
-You can use `curl` to test your prediction service:
+Cortex can automatically provision infrastructure on your AWS account and deploy your models as production-ready web services:
+
+```bash
+$ cortex cluster up
+```
+
+You can deploy the model using the same code and configuration to your cluster:
+
+```bash
+$ cortex deploy --env aws
+
+creating iris-classifier
+```
+
+<br>
+
+## Serve predictions in production
 
 ```bash
 $ curl http://***.amazonaws.com/iris-classifier \
@@ -185,7 +211,7 @@ Add a `tracker` to your `cortex.yaml` and specify that this is a classification 
 Run `cortex deploy` again to perform a rolling update to your API with the new configuration:
 
 ```bash
-$ cortex deploy
+$ cortex deploy --env aws
 
 updating iris-classifier
 ```
@@ -193,7 +219,7 @@ updating iris-classifier
 After making more predictions, your `cortex get` command will show information about your API's past predictions:
 
 ```bash
-$ cortex get iris-classifier --watch
+$ cortex get --env aws iris-classifier --watch
 
 status   up-to-date   requested   last update   avg request   2XX
 live     1            1           1m            1.1 ms        14
@@ -230,7 +256,7 @@ This model is fairly small but larger models may require more compute resources.
 You could also configure GPU compute here if your cluster supports it. Adding compute resources may help reduce your inference latency. Run `cortex deploy` again to update your API with this configuration:
 
 ```bash
-$ cortex deploy
+$ cortex deploy --env aws
 
 updating iris-classifier
 ```
@@ -238,7 +264,7 @@ updating iris-classifier
 Run `cortex get` again:
 
 ```bash
-$ cortex get iris-classifier --watch
+$ cortex get --env aws iris-classifier --watch
 
 status   up-to-date   requested   last update   avg request   2XX
 live     1            1           1m            1.1 ms        14
@@ -288,7 +314,7 @@ If you trained another model and want to A/B test it with your previous model, s
 Run `cortex deploy` to create the new API:
 
 ```bash
-$ cortex deploy
+$ cortex deploy --env aws
 
 iris-classifier is up to date
 creating another-iris-classifier
@@ -297,7 +323,7 @@ creating another-iris-classifier
 `cortex deploy` is declarative so the `iris-classifier` API is unchanged while `another-iris-classifier` is created:
 
 ```bash
-$ cortex get --watch
+$ cortex get --env aws --watch
 
 api                       status   up-to-date   requested   last update
 iris-classifier           live     1            1           5m
@@ -388,7 +414,7 @@ Next, add the `api` to `cortex.yaml`:
 Run `cortex deploy` to create your batch API:
 
 ```bash
-$ cortex deploy
+$ cortex deploy --env aws
 
 updating iris-classifier
 updating another-iris-classifier
@@ -400,7 +426,7 @@ Since a new file was added to the directory, and all files in the directory cont
 `cortex get` should show all 3 APIs now:
 
 ```bash
-$ cortex get --watch
+$ cortex get --env aws --watch
 
 api                       status   up-to-date   requested   last update
 iris-classifier           live     1            1           1m
@@ -446,15 +472,19 @@ $ curl http://***.amazonaws.com/batch-iris-classifier \
 Run `cortex delete` to delete each API:
 
 ```bash
-$ cortex delete iris-classifier
+$ cortex delete --env local iris-classifier
 
 deleting iris-classifier
 
-$ cortex delete another-iris-classifier
+$ cortex delete --env aws iris-classifier
+
+deleting iris-classifier
+
+$ cortex delete --env aws another-iris-classifier
 
 deleting another-iris-classifier
 
-$ cortex delete batch-iris-classifier
+$ cortex delete --env aws batch-iris-classifier
 
 deleting batch-iris-classifier
 ```
