@@ -72,6 +72,24 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 	}
 }
 
+func NewQuantity(value int64) Quantity {
+	k8sQuantity := kresource.NewQuantity(value, kresource.DecimalSI)
+
+	return Quantity{
+		Quantity:   *k8sQuantity,
+		UserString: s.Int64(value),
+	}
+}
+
+func NewMilliQuantity(milliValue int64) Quantity {
+	k8sQuantity := kresource.NewMilliQuantity(milliValue, kresource.DecimalSI)
+
+	return Quantity{
+		Quantity:   *k8sQuantity,
+		UserString: s.Int64(milliValue) + "m",
+	}
+}
+
 func (quantity *Quantity) ToFloat32() float32 {
 	return float32(quantity.Quantity.MilliValue()) / float32(1000)
 }

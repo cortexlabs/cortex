@@ -117,24 +117,27 @@ def preprocess_input(image, net_h, net_w):
     return new_image
 
 
-def get_yolo_boxes(model, images, net_h, net_w, anchors, obj_thresh, nms_thresh, classes):
-    image_h, image_w, _ = images[0].shape
-    nb_images = len(images)
-    batch_input = np.zeros((nb_images, net_h, net_w, 3))
-
+def get_yolo_boxes(
+    model, image, net_h, net_w, anchors, obj_thresh, nms_thresh, classes, tensorflow_model=True
+):
     # preprocess the input
-    for i in range(nb_images):
-        batch_input[i] = preprocess_input(images[i], net_h, net_w)
+    image_h, image_w, _ = image.shape
+    batch_input = np.zeros((1, net_h, net_w, 3))
+    batch_input[0] = preprocess_input(image, net_h, net_w)
 
     # run the prediction
-    output = model.predict({"input_1": batch_input})
-    yolos = [output["conv_81"], output["conv_93"], output["conv_105"]]
-
-    filters = 3 * (5 + classes)
-    for i in range(len(yolos)):
-        length = len(yolos[i])
-        box_size = int(math.sqrt(length / filters))
-        yolos[i] = np.array(yolos[i]).reshape((box_size, box_size, filters))
+    if tensorflow_model:
+        output = model.predict({"input_1": batch_input})
+        yolos = [output["conv_81"], output["conv_93"], output["conv_105"]]
+        filters = 3 * (5 + classes)
+        for i in range(len(yolos)):
+            length = len(yolos[i])
+            box_size = int(math.sqrt(length / filters))
+            yolos[i] = np.array(yolos[i]).reshape((box_size, box_size, filters))
+    else:
+        output = model.predict_on_batch(batch_input)
+        output = [output[0][0], output[1][0], output[2][0]]
+        yolos = list(map(lambda out: out.numpy(), output))
 
     boxes = []
     # decode the output of the network

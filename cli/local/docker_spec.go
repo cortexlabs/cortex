@@ -152,12 +152,12 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	return nil
@@ -226,12 +226,12 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	return nil
@@ -289,17 +289,17 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 
 	containerCreateRequest, err := docker.MustDockerClient().ContainerCreate(context.Background(), serveContainerConfig, serveHostConfig, nil, "")
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	containerInfo, err := docker.MustDockerClient().ContainerInspect(context.Background(), containerCreateRequest.ID)
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	tfContainerHost := containerInfo.NetworkSettings.Networks["bridge"].IPAddress
@@ -352,12 +352,12 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerCreateRequest, err = docker.MustDockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return errors.Wrap(err, "api", api.Identify())
+		return errors.Wrap(err, api.Identify())
 	}
 
 	return nil
@@ -374,6 +374,20 @@ func GetContainersByAPI(apiName string) ([]dockertypes.Container, error) {
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "api", apiName)
+	}
+
+	return containers, nil
+}
+
+func GetAllRunningContainers() ([]dockertypes.Container, error) {
+	dargs := filters.NewArgs()
+	dargs.Add("label", "cortex=true")
+
+	containers, err := docker.MustDockerClient().ContainerList(context.Background(), types.ContainerListOptions{
+		Filters: dargs,
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
 
 	return containers, nil

@@ -45,7 +45,7 @@ docker build "$ROOT" \
     -t cortexlabs/${image} \
     -t cortexlabs/${image}:${CORTEX_VERSION}
 
-if [ "$slim" == "true"]; then
+if [ "$slim" == "true" ]; then
     docker build "$ROOT" \
         -f $dir/Dockerfile \
         --build-arg SLIM=true \

@@ -27,12 +27,14 @@ const (
 	ErrNotAbsolutePath               = "local.not_absolute_path"
 	ErrAPINotDeployed                = "local.api_not_deployed"
 	ErrAPISpecNotFound               = "local.api_specification_not_found"
-	ErrCortexVersionMismatch         = "local.err_cortex_version_mismatch"
+	ErrCortexVersionMismatch         = "local.cortex_version_mismatch"
 	ErrAPIContainersNotFound         = "local.api_containers_not_found"
 	ErrFoundContainersWithoutAPISpec = "local.found_containers_without_api_spec"
 	ErrInvalidTensorFlowZip          = "local.invalid_tensorflow_zip"
 	ErrFailedToDeleteAPISpec         = "local.failed_to_delete_api_spec"
-	ErrDuplicateLocalPort            = "local.err_duplicate_local_port"
+	ErrDuplicateLocalPort            = "local.duplicate_local_port"
+	ErrPortAlreadyInUse              = "local.port_already_in_use"
+	ErrUnableToFindAvailablePorts    = "local.unable_to_find_available_ports"
 )
 
 func ErrorNotAbsolutePath(path string) error {
@@ -105,6 +107,20 @@ func ErrorFailedToDeleteAPISpec(path string) error {
 func ErrorDuplicateLocalPort(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateLocalPort,
-		Message: fmt.Sprintf("port has already been assigned to api %s", apiName),
+		Message: fmt.Sprintf("port has already been assigned to api %s, please delete the api with `cortex delete %s --env=local` or use another port", apiName, apiName),
+	})
+}
+
+func ErrorPortAlreadyInUse(port int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrPortAlreadyInUse,
+		Message: fmt.Sprintf("port %d is being used by a non-cortex process; please specify a different port or make port %d available", port, port),
+	})
+}
+
+func ErrorUnableToFindAvailablePorts() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnableToFindAvailablePorts,
+		Message: fmt.Sprintf("unable to find available ports"),
 	})
 }

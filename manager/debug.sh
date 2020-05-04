@@ -48,4 +48,4 @@ echo -n "."
 (cd /.cortex && tar -czf cortex-debug.tgz cortex-debug)
 rm -rf /.cortex/cortex-debug
 
-echo "✓"
+echo " ✓"

@@ -41,6 +41,6 @@ echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
 docker push cortexlabs/${image}:${CORTEX_VERSION}
 
-if [ "$slim" == "true"]; then
+if [ "$slim" == "true" ]; then
   docker push cortexlabs/${image}-slim:${CORTEX_VERSION}
 fi
