@@ -85,6 +85,8 @@ class PythonPredictor:
         return labels[label_id]
 ```
 
+Here are the complete [Predictor docs](../../../docs/deployments/predictors).
+
 <br>
 
 ## Specify your Python dependencies
@@ -116,6 +118,8 @@ Create a `cortex.yaml` file and add the configuration below and replace `cortex-
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
 ```
+
+Here are the complete [API configuration docs](../../../docs/deployments/api-configuration).
 
 <br>
 
