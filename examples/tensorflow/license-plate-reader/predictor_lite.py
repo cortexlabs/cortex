@@ -16,11 +16,11 @@ class PythonPredictor:
         # download yolov3 model
         bucket, key = re.match("s3://(.+?)/(.+)", config["yolov3"]).groups()
         s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
-        model_name = "model.h5"
-        s3.download_file(bucket, os.path.join(key, model_name), model_name)
+        model_path = "/tmp/model.h5"
+        s3.download_file(bucket, key, model_path)
 
         # load yolov3 model
-        self.yolov3_model = load_model(model_name)
+        self.yolov3_model = load_model(model_path)
 
         # get configuration for yolov3 model
         with open(config["yolov3_model_config"]) as json_file:
