@@ -148,6 +148,11 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		err = CreateDashboard(awsClient, clusterConfig.Dashboard)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
@@ -576,6 +581,34 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 		fmt.Println(" ✓")
 	} else {
 		fmt.Println("￮ using existing cloudwatch log group:", logGroup, "✓")
+	}
+
+	return nil
+}
+
+//CreateDashboard creates new dashboard if dashboard specified to true. If dashboard already exists delete
+func CreateDashboard(awsClient *aws.Client, dashboardName string) error {
+	dashboardFound, err := awsClient.DoesDashboardExist(dashboardName)
+	if err != nil {
+		return err
+	}
+	if !dashboardFound {
+		fmt.Print("￮ creating a new cloudwatch dashboard: ", dashboardName)
+		err = awsClient.CreateDashboard(dashboardName)
+		if err != nil {
+			return err
+		}
+		fmt.Println(" ✓")
+	} else {
+		fmt.Println("￮ old cloudwatch detected recreating: ", dashboardName)
+		err = awsClient.DeleteDashboard(dashboardName)
+		if err != nil {
+			return err
+		}
+		err = awsClient.CreateDashboard(dashboardName)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

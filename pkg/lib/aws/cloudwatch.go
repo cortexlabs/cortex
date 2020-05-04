@@ -18,6 +18,7 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -45,4 +46,41 @@ func (c *Client) CreateLogGroup(logGroup string) error {
 	}
 
 	return nil
+}
+
+// UpdateDashboard updates existing dashboard by adding new widgets for new API
+func (c *Client) UpdateDashboard(apiName string) error {
+
+	return nil
+}
+
+// UpdateDashboard updates existing dashboard by adding new widgets for new API
+func (c *Client) CreateDashboard() error {
+	return nil
+}
+
+// DeleteDashboard deletes dashboard
+func (c *Client) DeleteDashboard(dashboardName string) error {
+
+	var toDelete []*string
+	toDelete = append(&dashboardName, 0)
+	_, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
+		DashboardNames: toDelete,
+	})
+	return nil
+}
+
+// DoesDashboardExist will check if dashboard with same name as cluster already exists
+func (c *Client) DoesDashboardExist(dashboardName string) error {
+	_, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
+		DashboardName: aws.String(dashboardName),
+	})
+	if err != nil {
+		if CheckErrCode(err, "ResourceNotFound") {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "dashboard "+dashboardName)
+	}
+
+	return true, nil
 }
