@@ -70,7 +70,7 @@ creating sentiment-classifier
 ### Serve predictions
 
 ```bash
-$ curl http://localhost:12345 \
+$ curl http://localhost:8888 \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "serving models locally is cool!"}'
 
@@ -135,6 +135,8 @@ negative  4
 ### How it works
 
 The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using a Network Load Balancer (NLB) and FastAPI / TensorFlow Serving / ONNX Runtime (depending on the model type). The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
+
+Cortex manages its own Kubernetes cluster so that end-to-end functionality like request-based autoscaling, GPU support, and spot instance management can work out of the box without any additional DevOps work.
 
 <br>
 
