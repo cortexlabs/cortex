@@ -44,7 +44,7 @@ Adding tags is optional. You can add tags to your node to improve seachability a
 
 ### Step 6
 
-Configure your security group to expose the `local_port` number you specified in your cortex.yaml (default if not specified is 8888). Exposing this port allows you to make requests to your API but it also exposes it to the world so be careful not to do this in production. Then click on "Next: Review and Launch".
+Configure your security group to allow inbound traffic to `local_port` number you specified in your cortex.yaml (default if not specified is 8888) from any source. Exposing this port allows you to make requests to your API but it also exposes it to the world so be careful not to do this in production. Then click on "Next: Review and Launch".
 
 ![step 6](https://user-images.githubusercontent.com/4365343/81065102-e2445380-8ea8-11ea-96e0-65676a0bafa8.png)
 
