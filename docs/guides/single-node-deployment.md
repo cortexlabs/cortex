@@ -64,7 +64,6 @@ You will be prompted to select a key. This key is used to connect to your instan
 
 Once your instance is spun up, follow the [relevant instructions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AccessingInstances.html) to connect to your instance.
 
-
 If you are using a Mac or a Linux based OS then these instructions can help you ssh into your instance:
 ```
 # make sure you have .ssh folder
@@ -84,19 +83,15 @@ $ ssh -i "cortex-node.pem" ubuntu@ec2-3-235-100-162.compute-1.amazonaws.com
 
 ### Step 10
 
-Docker Dngine needs to be installed on your instance before you can use cortex.
-
-Skip to Step 11 if you are using "Deep Learning AMI (Ubuntu 18.04) Version 28.1" because Docker Engine is already installed and configured.
-
-Follow these [instructions](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
+Docker Engine needs to be installed on your instance before you can use cortex. Skip to Step 11 if you are using "Deep Learning AMI (Ubuntu 18.04) Version 28.1" because Docker Engine is already installed and configured. Otherwise, follow these [instructions](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
 ) to install Docker Engine using the Docker repository.
 
-Enable using Docker without sudo:
+Once Docker Engine is installed enable the use Docker commands without sudo:
 ```
 $ sudo groupadd docker; sudo gpasswd -a $USER docker
 ```
 
-Reconnect to your instance to allow the permission changes to be effective.
+_Note: you should reconnect to your instance to allow the permission changes to be effective._
 
 If you have setup Docker correctly, you should be able to run docker commands such as `docker run hello-world` without running into permission issues and needing sudo.
 
