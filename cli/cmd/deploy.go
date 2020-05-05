@@ -97,7 +97,7 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		}
-		message := deployMessage(deployResponse.Results)
+		message := deployMessage(deployResponse.Results, env.Name)
 		print.BoldFirstBlock(message)
 	},
 }
@@ -203,14 +203,14 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 	return uploadBytes, nil
 }
 
-func deployMessage(results []schema.DeployResult) string {
+func deployMessage(results []schema.DeployResult, envName string) string {
 	statusMessage := mergeResultMessages(results)
 
 	if didAllResultsError(results) {
 		return statusMessage
 	}
 
-	apiCommandsMessage := getAPICommandsMessage(results)
+	apiCommandsMessage := getAPICommandsMessage(results, envName)
 
 	return statusMessage + "\n\n" + apiCommandsMessage
 }
@@ -241,16 +241,22 @@ func didAllResultsError(results []schema.DeployResult) bool {
 	return true
 }
 
-func getAPICommandsMessage(results []schema.DeployResult) string {
+func getAPICommandsMessage(results []schema.DeployResult, envName string) string {
 	apiName := "<api_name>"
 	if len(results) == 1 {
 		apiName = results[0].API.Name
 	}
 
+	defaultEnv := getDefaultEnv(_generalCommandType)
+	var envArg string
+	if envName != defaultEnv {
+		envArg = " --env=" + envName
+	}
+
 	var items table.KeyValuePairs
-	items.Add("cortex get", "(show api statuses)")
-	items.Add(fmt.Sprintf("cortex get %s", apiName), "(show api info)")
-	items.Add(fmt.Sprintf("cortex logs %s", apiName), "(stream api logs)")
+	items.Add("cortex get"+envArg, "(show api statuses)")
+	items.Add(fmt.Sprintf("cortex get %s%s", apiName, envArg), "(show api info)")
+	items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
 
 	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
 		Delimiter: pointer.String(""),
