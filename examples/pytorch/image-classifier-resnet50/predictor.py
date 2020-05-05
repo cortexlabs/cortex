@@ -1,5 +1,6 @@
 import os
 import torch
+import torch_neuron
 import cv2
 import numpy as np
 import requests
