@@ -50,35 +50,25 @@ Click "Create Peering Connection", navigate back to the Peering Connections dash
 
 ## Step 4
 
-Select the peering connection, and click "Actions" > "Edit DNS Settings":
-
-![step 4a](https://user-images.githubusercontent.com/808475/80132405-7b41a900-8550-11ea-8367-ec6c8070ed8e.png)
-
-Select both check boxes to allow DNS Resolution, and click "Save":
-
-![step 4b](https://user-images.githubusercontent.com/808475/80132688-e55a4e00-8550-11ea-8705-eba7a4726f25.png)
-
-## Step 5
-
 Navigate to the VPC Route Tables page. Select the route table for the VPC from which you'd like to connect to the Cortex cluster (in my case, I just have one route table for this VPC). Select the "Routes" tab, and click "Edit routes":
 
-![step 5a](https://user-images.githubusercontent.com/808475/80135180-b940cc00-8554-11ea-8162-c7409090897b.png)
+![step 4a](https://user-images.githubusercontent.com/808475/80135180-b940cc00-8554-11ea-8162-c7409090897b.png)
 
 Add a route where the "Destination" is the CIDR block for Cortex's VPC (identified in Step 1), and the "Target" is the newly-created Peering Connection:
 
-![step 5b](https://user-images.githubusercontent.com/808475/80137033-78968200-8557-11ea-9d84-9221b772f0fc.png)
+![step 4b](https://user-images.githubusercontent.com/808475/80137033-78968200-8557-11ea-9d84-9221b772f0fc.png)
 
 Do not create new route tables or change subnet associations.
 
-## Step 6
+## Step 5
 
 Navigate back to the VPC Route Tables page. There will be a route table for each of the subnets associated with the Cortex operator load balancer (identified in Step 1):
 
-![step 6a](https://user-images.githubusercontent.com/808475/80138244-5dc50d00-8559-11ea-9248-fc201d011530.png)
+![step 5a](https://user-images.githubusercontent.com/808475/80138244-5dc50d00-8559-11ea-9248-fc201d011530.png)
 
 For each of these route tables, click "Edit routes" and add a new route where the "Destination" is the CIDR block for the VPC from which you will be connecting to the Cortex cluster (identified in Step 2), and the "Target" is the newly-created Peering Connection:
 
-![step 6b](https://user-images.githubusercontent.com/808475/80138653-f78cba00-8559-11ea-8444-406e218c3bab.png)
+![step 5b](https://user-images.githubusercontent.com/808475/80138653-f78cba00-8559-11ea-8444-406e218c3bab.png)
 
 Repeat adding this route for each route table associated with the Cortex operator's subnets; in my case there were three. Do not create new route tables or change subnet associations.
 
