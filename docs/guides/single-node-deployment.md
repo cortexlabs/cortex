@@ -1,5 +1,7 @@
 # Single node deployment
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 You can use Cortex to deploy models on a single node. Deploying to a single node can be cheaper than spinning up a Cortex cluster with 1 worker node. It is useful to for testing on a GPU if you don't have access to one locally but you won't get the the advantages of deploying to a cluster such as autoscaling or rolling updates.
 
 ## AWS
