@@ -1,7 +1,5 @@
 # Single node deployment
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can use Cortex to deploy models on a single node. Deploying to a single node can be cheaper than spinning up a Cortex cluster with 1 worker node. It also may be useful for testing your model on a GPU if you don't have access to one locally.
 
 Deploying on a single node entails `ssh`ing into that instance and running Cortex locally. When using this approach, you won't get the the advantages of deploying to a cluster such as autoscaling, rolling updates, etc.
@@ -109,7 +107,7 @@ Install the Cortex CLI.
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
-$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.16/get-cli.sh)"
 ```
 
 ### Step 13
