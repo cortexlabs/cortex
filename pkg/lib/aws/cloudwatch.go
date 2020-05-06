@@ -51,8 +51,53 @@ func (c *Client) CreateLogGroup(logGroup string) error {
 }
 
 // UpdateDashboard updates existing dashboard by adding new widgets for new API
-func (c *Client) UpdateDashboard(apiName string) error {
+func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, nameAPI string, apiID string) error {
 
+	inFlightMetric, err := json.Marshal(inFlightMetric(dashboardName, nameAPI))
+	if err != nil {
+		return errors.Wrap(err)
+	}
+	inFlightWidget := createMetricWidget(1, 2, 11, 6, string(inFlightMetric), "In flight requests", "Sum", dashboardRegion)
+
+	latencyMetric, err := json.Marshal(latencyMetric(dashboardName, nameAPI, apiID))
+	if err != nil {
+		return errors.Wrap(err)
+	}
+	latencyWidget := createMetricWidget(1, 2, 11, 6, string(latencyMetric), "p99 of request response time", "p99", dashboardRegion)
+
+	statCodeMetric, err := json.Marshal(statCodeMetric(dashboardName, nameAPI, apiID))
+	if err != nil {
+		return errors.Wrap(err)
+	}
+	statCodeWidget := createMetricWidget(1, 8, 11, 6, string(statCodeMetric), "p99 of request response time", "p99", dashboardRegion)
+
+	// get current dashboard
+	currDashboardOutput, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
+		DashboardName: aws.String(dashboardName),
+	})
+	if err != nil {
+		return errors.Wrap(err)
+	}
+	// get body string from GetDashboard return object
+	currDashboardString := *currDashboardOutput.DashboardBody
+
+	//define interface to unmarshal received body string
+	var currDashboardHolder interface{}
+	err = json.Unmarshal([]byte(currDashboardString), &currDashboardHolder)
+	if err != nil {
+		return errors.Wrap(err)
+	}
+
+	currDashboard, _ := currDashboardHolder.(map[string]interface{})
+	widgetSlice := currDashboard["widgets"].([]interface{})
+	widgetSlice = append(widgetSlice, []interface{}{inFlightWidget}, []interface{}{latencyWidget}, []interface{}{statCodeWidget})
+	currDashboard["widgets"] = widgetSlice
+	currDashboardJSON, _ := json.Marshal(currDashboard)
+
+	_, err = c.CloudWatch().PutDashboard(&cloudwatch.PutDashboardInput{
+		DashboardName: aws.String(dashboardName),
+		DashboardBody: aws.String(string(currDashboardJSON)),
+	})
 	return nil
 }
 
@@ -130,5 +175,109 @@ func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 func createTextWidget(x int, y int, width int, height int, markdown string) map[string]interface{} {
 
 	return map[string]interface{}{"type": "text", "x": x, "y": y, "width": width, "height": height, "properties": map[string]string{"markdown": markdown}}
+
+}
+
+// createMetricWidget create new text widget with properties as parameter
+// Example:
+// metric_widget={
+// 	"type":"metric",
+// 	"x":0,
+// 	"y":0,
+// 	"width":12,
+// 	"height":6,
+// 	"properties":{
+// 	   "metrics":[
+// 		  [
+// 			 "AWS/EC2",
+// 			 "CPUUtilization",
+// 			 "InstanceId",
+// 			 "i-012345"
+// 		  ]
+// 	   ],
+// 	   "period":300,
+// 	   "stat":"Average",
+// 	   "region":"us-east-1",
+// 	   "title":"EC2 Instance CPU"
+// 		}
+//  }
+func createMetricWidget(x int,
+	y int,
+	width int,
+	height int,
+	metric string,
+	title string,
+	stat string,
+	region string) map[string]interface{} {
+
+	return map[string]interface{}{
+		"type":   "metric",
+		"x":      x,
+		"y":      y,
+		"width":  width,
+		"height": height,
+		"properties": map[string]interface{}{
+			"metrics": metric,
+			"period":  60,
+			"title":   title,
+			"stat":    stat,
+			"region":  region,
+			"view":    "timeSeries",
+		}}
+
+}
+
+func inFlightMetric(dashboardName string, nameAPI string) []interface{} {
+	var metric []interface{}
+	metric = append(metric, dashboardName)
+	metric = append(metric, "in-flight")
+	metric = append(metric, "APIName")
+	metric = append(metric, nameAPI)
+	return []interface{}{metric}
+
+}
+
+func latencyMetric(dashboardName string, nameAPI string, apiID string) []interface{} {
+	var metric []interface{}
+	metric = append(metric, dashboardName)
+	metric = append(metric, "Latency")
+	metric = append(metric, "APIName")
+	metric = append(metric, nameAPI)
+	metric = append(metric, "metric_type")
+	metric = append(metric, "histogram")
+	metric = append(metric, "APIID")
+	metric = append(metric, apiID)
+	metric = append(metric, map[string]string{"id": "m1"})
+	return []interface{}{metric}
+
+}
+
+func statCodeMetric(dashboardName string, nameAPI string, apiID string) []interface{} {
+
+	var metric4 []interface{}
+	metric4 = append(metric4, dashboardName)
+	metric4 = append(metric4, "StatusCode")
+	metric4 = append(metric4, "APIName")
+	metric4 = append(metric4, nameAPI)
+	metric4 = append(metric4, "metric_type")
+	metric4 = append(metric4, "counter")
+	metric4 = append(metric4, "APIID")
+	metric4 = append(metric4, apiID)
+	metric4 = append(metric4, "Code")
+	metric4 = append(metric4, "4XX")
+
+	var metric3 []interface{}
+	metric3 = append(metric3, "...")
+	metric3 = append(metric3, "3XX")
+
+	var metric2 []interface{}
+	metric2 = append(metric2, "...")
+	metric2 = append(metric2, "2XX")
+
+	var metric5 []interface{}
+	metric5 = append(metric5, "...")
+	metric5 = append(metric5, "5XX")
+
+	return []interface{}{metric4, metric3, metric2, metric5}
 
 }
