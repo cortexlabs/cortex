@@ -92,6 +92,8 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
+	tfVolumeMounts := _defaultVolumeMounts
+	volumes := _defaultVolumes
 
 	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
 	userPodCPURequest.Sub(_requestMonitorCPURequest)
@@ -118,6 +120,22 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		tfServingResourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
 		tfServingLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.DecimalSI)
 		tfServingLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
+
+		fileType := kcore.HostPathSocket
+		volumes = append(volumes, kcore.Volume{
+			Name: "sock",
+			VolumeSource: kcore.VolumeSource{
+				HostPath: &kcore.HostPathVolumeSource{
+					Path: "/run/neuron.sock",
+					Type: &fileType,
+				},
+			},
+		})
+
+		tfVolumeMounts = append(tfVolumeMounts, kcore.VolumeMount{
+			Name:      "sock",
+			MountPath: "/sock/neuron.sock",
+		})
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -196,7 +214,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						},
 						Env:          getEnvVars(api),
 						EnvFrom:      _baseEnvVars,
-						VolumeMounts: _defaultVolumeMounts,
+						VolumeMounts: tfVolumeMounts,
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,
@@ -226,7 +244,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 					"workload": "true",
 				},
 				Tolerations:        _tolerations,
-				Volumes:            _defaultVolumes,
+				Volumes:            volumes,
 				ServiceAccountName: "default",
 			},
 		},
@@ -264,8 +282,8 @@ func tfDownloadArgs(api *spec.API) string {
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	volumes := _defaultVolumes
 	volumeMounts := _defaultVolumeMounts
+	volumes := _defaultVolumes
 
 	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
 	userPodCPURequest.Sub(_requestMonitorCPURequest)

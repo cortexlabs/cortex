@@ -16,6 +16,5 @@
 
 
 for i in {1..${TF_WORKERS}}; do
-    tensorflow_model_server_neuron --model_name=resnet50_inf1 \
-        --model_base_path=$CORTEX_MODEL_DIR --port=$CORTEX_TF_SERVING_PORT
+    tensorflow_model_server_neuron "$@"
 done
