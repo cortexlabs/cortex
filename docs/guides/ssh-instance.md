@@ -1,4 +1,4 @@
-# SSH into AWS instance
+# SSH into worker instance
 
 There are some cases when SSH-ing into an AWS Cortex instance may be necessary.
 
