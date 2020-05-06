@@ -250,7 +250,7 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) string
 	defaultEnv := getDefaultEnv(_generalCommandType)
 	var envArg string
 	if envName != defaultEnv {
-		envArg = " --env=" + envName
+		envArg = " --env " + envName
 	}
 
 	var items table.KeyValuePairs
