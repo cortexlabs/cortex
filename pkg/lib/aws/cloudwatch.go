@@ -17,6 +17,8 @@ limitations under the License.
 package aws
 
 import (
+	"encoding/json"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -54,8 +56,35 @@ func (c *Client) UpdateDashboard(apiName string) error {
 	return nil
 }
 
-// UpdateDashboard updates existing dashboard by adding new widgets for new API
-func (c *Client) CreateDashboard() error {
+// CreateDashboard updates existing dashboard by adding new widgets for new API
+func (c *Client) CreateDashboard(dashboardName string) error {
+
+	// delete Dashboard if already existing exists
+	exists, err := c.DoesDashboardExist(dashboardName)
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = c.DeleteDashboard(dashboardName)
+		if err != nil {
+			return err
+		}
+	}
+
+	//create cloudwatch base body with title
+	cloudwatchBaseBody := map[string]interface{}{"start": "-PT1H", "periodOverride": "inherit", "widgets": []interface{}{createTextWidget(8, 1, 8, 1, "# CORTEX MONITORING DASHBOARD")}}
+	cloudwatchBaseBodyJSON, err := json.Marshal(cloudwatchBaseBody)
+	if err != nil {
+		return errors.Wrap(err, "Failed to encode CLoudwatch Base Body into json")
+	}
+	_, err = c.CloudWatch().PutDashboard(&cloudwatch.PutDashboardInput{
+		DashboardName: aws.String(dashboardName),
+		DashboardBody: aws.String(string(cloudwatchBaseBodyJSON)),
+	})
+	if err != nil {
+		return errors.Wrap(err, "Failed to create Dashboard: "+dashboardName)
+	}
+
 	return nil
 }
 
@@ -63,15 +92,18 @@ func (c *Client) CreateDashboard() error {
 func (c *Client) DeleteDashboard(dashboardName string) error {
 
 	var toDelete []*string
-	toDelete = append(&dashboardName, 0)
-	_, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
+	toDelete = append(toDelete, &dashboardName)
+	_, err := c.CloudWatch().DeleteDashboards(&cloudwatch.DeleteDashboardsInput{
 		DashboardNames: toDelete,
 	})
+	if err != nil {
+		return errors.Wrap(err, "Failed to delete dashboard: "+dashboardName)
+	}
 	return nil
 }
 
 // DoesDashboardExist will check if dashboard with same name as cluster already exists
-func (c *Client) DoesDashboardExist(dashboardName string) error {
+func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 	_, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
 		DashboardName: aws.String(dashboardName),
 	})
@@ -79,8 +111,24 @@ func (c *Client) DoesDashboardExist(dashboardName string) error {
 		if CheckErrCode(err, "ResourceNotFound") {
 			return false, nil
 		}
-		return false, errors.Wrap(err, "dashboard "+dashboardName)
+		return false, errors.Wrap(err, "dashboard: "+dashboardName)
 	}
 
 	return true, nil
+}
+
+//createTextWidget create new text widget with properties as parameter
+// Example:
+// title_widget = {
+//     "type": "text",
+//     "x": x,
+//     "y": y,
+//     "width": wewidthi,
+//     "height": height,
+//     "properties": {"markdown": markdown},
+// }
+func createTextWidget(x int, y int, width int, height int, markdown string) map[string]interface{} {
+
+	return map[string]interface{}{"type": "text", "x": x, "y": y, "width": width, "height": height, "properties": map[string]string{"markdown": markdown}}
+
 }

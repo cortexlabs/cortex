@@ -148,9 +148,12 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = CreateDashboard(awsClient, clusterConfig.Dashboard)
-		if err != nil {
-			exit.Error(err)
+		// create Dashboard if specificied in configfile
+		if clusterConfig.Cloudwatch {
+			err = CreateDashboard(awsClient, clusterConfig.ClusterName)
+			if err != nil {
+				exit.Error(err)
+			}
 		}
 
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
