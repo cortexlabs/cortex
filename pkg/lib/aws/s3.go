@@ -698,3 +698,28 @@ func (c *Client) S3BatchIterator(bucket string, prefix string, includeDirObjects
 
 	return nil
 }
+
+func (c *Client) TagBucket(bucket string, tagMap map[string]string) error {
+	var tagSet []*s3.Tag
+	for key, value := range tagMap {
+		tagSet = append(tagSet, &s3.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
+	}
+
+	_, err := c.S3().PutBucketTagging(
+		&s3.PutBucketTaggingInput{
+			Bucket: aws.String(bucket),
+			Tagging: &s3.Tagging{
+				TagSet: tagSet,
+			},
+		},
+	)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to add tags to bucket", bucket)
+	}
+
+	return nil
+}

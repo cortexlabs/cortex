@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"reflect"
 	"regexp"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -228,6 +229,10 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
 		}
 		userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
+
+		if !reflect.DeepEqual(userClusterConfig.Tags, cachedClusterConfig.Tags) {
+			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.TagsKey, s.ObjFlat(*&cachedClusterConfig.Tags))
+		}
 
 		if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
 			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
@@ -486,6 +491,7 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
 	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
 	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
+	items.Add(clusterconfig.TagsKey, s.ObjFlatNoQuotes(clusterConfig.Tags))
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
 		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)
 	}

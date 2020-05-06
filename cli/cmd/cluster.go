@@ -142,8 +142,16 @@ var _upCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+		err = awsClient.TagBucket(clusterConfig.Bucket, clusterConfig.Tags)
+		if err != nil {
+			exit.Error(err)
+		}
 
 		err = CreateLogGroupIfNotFound(awsClient, clusterConfig.LogGroup)
+		if err != nil {
+			exit.Error(err)
+		}
+		err = awsClient.TagLogGroup(clusterConfig.LogGroup, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
