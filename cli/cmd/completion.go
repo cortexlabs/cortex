@@ -89,6 +89,7 @@ Note: this will also add the "cx" alias for cortex for convenience
 			// https://github.com/corneliusweig/rakkess/blob/master/cmd/completion.go
 			// https://github.com/GoogleContainerTools/skaffold/blob/master/cmd/skaffold/app/cmd/completion.go
 			// https://github.com/spf13/cobra/issues/881
+			// https://github.com/asdf-vm/asdf/issues/266
 			fmt.Println("if compquote '' 2>/dev/null; then _cortex; else compdef _cortex cortex; fi")
 		}
 	},
