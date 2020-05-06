@@ -107,7 +107,7 @@ func ErrorFailedToDeleteAPISpec(path string) error {
 func ErrorDuplicateLocalPort(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateLocalPort,
-		Message: fmt.Sprintf("port has already been assigned to api %s, please delete the api with `cortex delete %s --env=local` or use another port", apiName, apiName),
+		Message: fmt.Sprintf("port has already been assigned to api %s, please delete the api with `cortex delete %s --env local` or use another port", apiName, apiName),
 	})
 }
 
