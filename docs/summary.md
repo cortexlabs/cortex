@@ -52,7 +52,7 @@
 * [Plot in-flight requests](guides/plot-in-flight-requests.md)
 * [Set up VPC peering](guides/vpc-peering.md)
 * [Add a batch runner API](guides/batch-runner.md)
-* [SSH into Worker instance](guides/ssh-instance.md)
+* [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
 
 ## Contributing
