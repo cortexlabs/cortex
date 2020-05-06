@@ -24,8 +24,8 @@ REGIONS = [
     "us-west-2",  # Oregon
     "ca-central-1",  # Montreal
     "sa-east-1",  # Sao Paulo
-    "eu-west-1",  # Ireland
     "eu-central-1",  # Frankfurt
+    "eu-west-1",  # Ireland
     "eu-west-2",  # London
     "eu-west-3",  # Paris
     "eu-north-1",  # Stockholm

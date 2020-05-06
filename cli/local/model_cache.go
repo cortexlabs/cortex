@@ -77,9 +77,16 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 			if err != nil {
 				return nil, err
 			}
+		} else if strings.HasSuffix(modelPath, ".onnx") {
+			fmt.Println(fmt.Sprintf("caching model %s ...", modelPath))
+			err := files.CopyFileOverwrite(modelPath, filepath.Join(modelDir, filepath.Base(modelPath)))
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			fmt.Println(fmt.Sprintf("caching model %s ...", modelPath))
-			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(modelDir, "/"))
+			tfModelVersion := filepath.Base(modelPath)
+			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(filepath.Join(modelDir, tfModelVersion), "/"))
 			if err != nil {
 				return nil, err
 			}
@@ -99,8 +106,8 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 }
 
 func downloadModel(modelPath string, modelDir string, awsClient *aws.Client) error {
-	fmt.Printf("downloading model %s ", modelPath)
-	defer fmt.Print("\n")
+	fmt.Printf("￮ downloading model %s ", modelPath)
+	defer fmt.Print(" ✓\n")
 	dotCron := cron.Run(print.Dot, nil, 2*time.Second)
 	defer dotCron.Cancel()
 

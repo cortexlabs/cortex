@@ -1,12 +1,10 @@
-# Deploy machine learning models in production
-
-Cortex is an open source platform for deploying machine learning models as production web services.
+# Machine learning model serving infrastructure
 
 <br>
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
-[install](https://cortex.dev/install) • [tutorial](https://cortex.dev/iris-classifier) • [docs](https://cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.15/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [email us](mailto:hello@cortex.dev) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
+[install](https://cortex.dev/install) • [docs](https://cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.16/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)<br><br>
 
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13_2.gif)
@@ -25,42 +23,14 @@ Cortex is an open source platform for deploying machine learning models as produ
 
 <br>
 
-## Spinning up a cluster
+## Deploying a model
 
-Cortex is designed to be self-hosted on any AWS account. You can spin up a cluster with a single command:
+### Install the CLI
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
-# install the CLI on your machine
-$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.15/get-cli.sh)"
-
-# provision infrastructure on AWS and spin up a cluster
-$ cortex cluster up
-
-aws region: us-west-2
-aws instance type: g4dn.xlarge
-spot instances: yes
-min instances: 0
-max instances: 5
-
-aws resource                                cost per hour
-1 eks cluster                               $0.10
-0 - 5 g4dn.xlarge instances for your apis   $0.1578 - $0.526 each (varies based on spot price)
-0 - 5 50gb ebs volumes for your apis        $0.007 each
-1 t3.medium instance for the operator       $0.0416
-1 20gb ebs volume for the operator          $0.003
-2 network load balancers                    $0.0225 each
-
-your cluster will cost $0.19 - $2.85 per hour based on cluster size and spot instance pricing/availability
-
-￮ spinning up your cluster ...
-
-your cluster is ready!
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.16/get-cli.sh)"
 ```
-
-<br>
-
-## Deploying a model
 
 ### Implement your predictor
 
@@ -84,14 +54,12 @@ class PythonPredictor:
   predictor:
     type: python
     path: predictor.py
-  tracker:
-    model_type: classification
   compute:
     gpu: 1
     mem: 4G
 ```
 
-### Deploy to AWS
+### Deploy your model
 
 ```bash
 $ cortex deploy
@@ -99,12 +67,54 @@ $ cortex deploy
 creating sentiment-classifier
 ```
 
-### Serve real-time predictions
+### Serve predictions
+
+```bash
+$ curl http://localhost:8888 \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"text": "serving models locally is cool!"}'
+
+positive
+```
+
+<br>
+
+## Deploying models at scale
+
+### Spin up a cluster
+
+Cortex clusters are designed to be self-hosted on any AWS account (GCP support is coming soon):
+
+```bash
+$ cortex cluster up
+
+aws region: us-west-2
+aws instance type: g4dn.xlarge
+spot instances: yes
+min instances: 0
+max instances: 5
+
+your cluster will cost $0.19 - $2.85 per hour based on cluster size and spot instance pricing/availability
+
+￮ spinning up your cluster ...
+
+your cluster is ready!
+```
+
+### Deploy to your cluster with the same code and configuration
+
+```bash
+$ cortex deploy --env aws
+
+creating sentiment-classifier
+```
+
+### Serve predictions at scale
 
 ```bash
 $ curl http://***.amazonaws.com/sentiment-classifier \
     -X POST -H "Content-Type: application/json" \
-    -d '{"text": "the movie was amazing!"}'
+    -d '{"text": "serving models at scale is really cool!"}'
 
 positive
 ```
@@ -112,7 +122,7 @@ positive
 ### Monitor your deployment
 
 ```bash
-$ cortex get sentiment-classifier --watch
+$ cortex get sentiment-classifier
 
 status   up-to-date   requested   last update   avg request   2XX
 live     1            1           8s            24ms          12
@@ -122,27 +132,23 @@ positive  8
 negative  4
 ```
 
-<br>
+### How it works
 
-## What is Cortex similar to?
-
-Cortex is an open source alternative to serving models with SageMaker or building your own model deployment platform on top of AWS services like Elastic Kubernetes Service (EKS), Elastic Container Service (ECS), Lambda, Fargate, and Elastic Compute Cloud (EC2) and open source projects like Docker, Kubernetes, and TensorFlow Serving.
-
-<br>
-
-## How does Cortex work?
-
-The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using Elastic Load Balancing (ELB), TensorFlow Serving, and ONNX Runtime. The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
+The CLI sends configuration and code to the cluster every time you run `cortex deploy`. Each model is loaded into a Docker container, along with any Python packages and request handling code. The model is exposed as a web service using a Network Load Balancer (NLB) and FastAPI / TensorFlow Serving / ONNX Runtime (depending on the model type). The containers are orchestrated on Elastic Kubernetes Service (EKS) while logs and metrics are streamed to CloudWatch.
 
 Cortex manages its own Kubernetes cluster so that end-to-end functionality like request-based autoscaling, GPU support, and spot instance management can work out of the box without any additional DevOps work.
 
 <br>
 
-## Examples of Cortex deployments
+## What is Cortex similar to?
 
-<!-- CORTEX_VERSION_README_MINOR x5 -->
-* [Sentiment analysis](https://github.com/cortexlabs/cortex/tree/0.15/examples/tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
-* [Image classification](https://github.com/cortexlabs/cortex/tree/0.15/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
-* [Search completion](https://github.com/cortexlabs/cortex/tree/0.15/examples/pytorch/search-completer): deploy Facebook's RoBERTa model to complete search terms.
-* [Text generation](https://github.com/cortexlabs/cortex/tree/0.15/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
-* [Iris classification](https://github.com/cortexlabs/cortex/tree/0.15/examples/sklearn/iris-classifier): deploy a scikit-learn model to classify iris flowers.
+Cortex is an open source alternative to serving models with SageMaker or building your own model deployment platform on top of AWS services like Elastic Kubernetes Service (EKS), Lambda, or Fargate and open source projects like Docker, Kubernetes, TensorFlow Serving, and TorchServe.
+
+<br>
+
+## Examples
+
+<!-- CORTEX_VERSION_README_MINOR x3 -->
+* [Image classification](https://github.com/cortexlabs/cortex/tree/0.16/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
+* [Search completion](https://github.com/cortexlabs/cortex/tree/0.16/examples/pytorch/search-completer): deploy Facebook's RoBERTa model to complete search terms.
+* [Text generation](https://github.com/cortexlabs/cortex/tree/0.16/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.

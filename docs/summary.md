@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Deploy machine learning models in production](../README.md)
+* [Machine learning model serving infrastructure](../README.md)
 * [Install](cluster-management/install.md)
 * [Tutorial](../examples/sklearn/iris-classifier/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
@@ -22,25 +22,27 @@
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
 * [API statuses](deployments/statuses.md)
-* [Environments](deployments/environments.md)
 
 ## Cluster management
 
-* [CLI commands](cluster-management/cli.md)
 * [Cluster configuration](cluster-management/config.md)
 * [AWS credentials](cluster-management/aws-credentials.md)
-* [Security](cluster-management/security.md)
 * [EC2 instances](cluster-management/ec2-instances.md)
 * [Spot instances](cluster-management/spot-instances.md)
 * [Update](cluster-management/update.md)
 * [Uninstall](cluster-management/uninstall.md)
-* [Telemetry](cluster-management/telemetry.md)
+
+## Miscellaneous
+
+* [CLI commands](miscellaneous/cli.md)
+* [Environments](miscellaneous/environments.md)
+* [Security](miscellaneous/security.md)
+* [Telemetry](miscellaneous/telemetry.md)
 
 ## Troubleshooting
 
 * [API is stuck updating](troubleshooting/stuck-updating.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
-
 
 ## Guides
 
@@ -50,7 +52,8 @@
 * [Plot in-flight requests](guides/plot-in-flight-requests.md)
 * [Set up VPC peering](guides/vpc-peering.md)
 * [Add a batch runner API](guides/batch-runner.md)
-* [SSH into AWS instance](guides/ssh-instance.md)
+* [SSH into worker instance](guides/ssh-instance.md)
+* [Single node deployment](guides/single-node-deployment.md)
 
 ## Contributing
 

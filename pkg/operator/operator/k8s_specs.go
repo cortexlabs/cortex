@@ -46,7 +46,7 @@ const (
 	_apiContainerName                      = "api"
 	_tfServingContainerName                = "serve"
 	_downloaderInitContainerName           = "downloader"
-	_downloaderLastLog                     = "pulling the %s serving image"
+	_downloaderLastLog                     = "downloading the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 	_tfServingHost                         = "localhost"
