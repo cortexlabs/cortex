@@ -1,0 +1,15 @@
+- name: image-classifier-resnet50
+  predictor:
+    type: tensorflow
+    path: predictor.py
+    model: s3://cortex-cluster-robertlucian-us-east-1/tensorflow/resnet50_neuron
+    config:
+      classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+      input_shape: [224, 224]
+  compute:
+    cpu: 3
+    mem: 6G
+    accelerator: 4
+  autoscaling:
+    workers_per_replica: 2
+    threads_per_worker: 4
