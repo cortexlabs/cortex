@@ -27,23 +27,7 @@ func completionInit() {
 	_completionCmd.Flags().SortFlags = false
 }
 
-var _completionCmd = &cobra.Command{
-	Use:   "completion",
-	Short: "generate bash completion scripts",
-	Long: `generate bash completion scripts
-
-add this to your bashrc or bash profile:
-  source <(cortex completion)
-or run:
-  echo 'source <(cortex completion)' >> ~/.bash_profile  # mac
-  echo 'source <(cortex completion)' >> ~/.bashrc  # linux
-
-this will also add the "cx" alias (note: cli completion requires the bash_completion package to be installed on your system)
-`,
-	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		_rootCmd.GenBashCompletion(os.Stdout)
-		aliasText := `
+var _bashAliasText = `
 # alias
 
 alias cx='cortex'
@@ -53,6 +37,59 @@ else
     complete -o default -o nospace -F __start_cortex cx
 fi
 `
-		fmt.Print(aliasText)
+
+var _completionCmd = &cobra.Command{
+	Use:   "completion SHELL",
+	Short: "generate shell completion scripts",
+	Long: `generate shell completion scripts
+
+to enable cortex shell completion:
+    bash:
+        add this to ~/.bash_profile (mac) or ~/.bashrc (linux):
+            source <(cortex completion bash)
+
+        note: bash-completion must be installed on your system; example installation instructions:
+            mac:
+                1) install bash completion:
+                   brew install bash-completion
+                2) add this to your ~/.bash_profile:
+                   source $(brew --prefix)/etc/bash_completion
+                3) log out and back in, or close your terminal window and reopen it
+            ubuntu:
+                1) install bash completion:
+                   apt update && apt install -y bash-completion  # you may need sudo
+                2) open ~/.bashrc and uncomment the bash completion section, or add this:
+                   if [ -f /etc/bash_completion ] && ! shopt -oq posix; then . /etc/bash_completion; fi
+                3) log out and back in, or close your terminal window and reopen it
+
+    zsh:
+        option 1:
+            add this to ~/.zshrc:
+                source <(cortex completion zsh)
+            if that failed, you can try adding this to ~/.zshrc above the source command:
+                autoload -Uz compinit && compinit
+        option 2:
+            create a _cortex file in your fpath, for example:
+                cortex completion zsh > /usr/local/share/zsh/site-functions/_cortex
+
+Note: this will also add the "cx" alias for cortex for convenience
+`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		switch args[0] {
+		case "bash":
+			_rootCmd.GenBashCompletion(os.Stdout)
+			fmt.Print(_bashAliasText)
+
+		case "zsh":
+			_rootCmd.GenZshCompletion(os.Stdout)
+			fmt.Print("alias cx='cortex'\n\n")
+
+			// https://github.com/spf13/cobra/pull/887
+			// https://github.com/corneliusweig/rakkess/blob/master/cmd/completion.go
+			// https://github.com/GoogleContainerTools/skaffold/blob/master/cmd/skaffold/app/cmd/completion.go
+			// https://github.com/spf13/cobra/issues/881
+			fmt.Println("if compquote '' 2>/dev/null; then _cortex; else compdef _cortex cortex; fi")
+		}
 	},
 }

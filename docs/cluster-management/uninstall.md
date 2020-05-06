@@ -20,7 +20,7 @@ sudo rm /usr/local/bin/cortex
 rm -rf ~/.cortex
 ```
 
-If you modified your bash profile, you may wish to remove `source <(cortex completion)`.
+If you modified your bash profile, you may wish to remove `source <(cortex completion bash)` from it (or remove `source <(cortex completion zsh)` for `zsh`).
 
 ## Cleaning up AWS
 
