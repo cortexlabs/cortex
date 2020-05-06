@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.29.34
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/containerd/containerd v1.3.3 // indirect
+	github.com/cortexlabs/go-input v0.0.0-20200503032952-8b67a7a7b28d
 	github.com/cortexlabs/yaml v0.0.0-20200328171508-f1e621e4f2a3
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -33,12 +34,11 @@ require (
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.5.1
-	github.com/tcnksm/go-input v0.0.0-20180404061846-548a7d7a8ee8
 	github.com/ugorji/go/codec v1.1.7
 	github.com/xlab/treeprint v1.0.0
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
-	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59 // indirect
-	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
+	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79 // indirect
+	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3 // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gotest.tools v2.2.0+incompatible // indirect
