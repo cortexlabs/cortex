@@ -35,10 +35,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
+const ClusterNameTag = "cortex.dev/cluster-name"
+
 var (
 	_spotInstanceDistributionLength = 2
 	_maxInstancePools               = 20
-	_tagName                        = "cortex.dev/cluster-name"
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
@@ -522,8 +523,8 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if _, ok := cc.Tags[_tagName]; !ok {
-		cc.Tags[_tagName] = cc.ClusterName
+	if _, ok := cc.Tags[ClusterNameTag]; !ok {
+		cc.Tags[ClusterNameTag] = cc.ClusterName
 	}
 
 	if err := cc.validateAvailabilityZones(awsClient); err != nil {
