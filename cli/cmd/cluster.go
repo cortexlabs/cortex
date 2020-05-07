@@ -217,7 +217,7 @@ var _configureCmd = &cobra.Command{
 
 		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, _flagClusterDisallowPrompt)
 
-		clusterConfig, err := getClusterConfigureConfig(cachedClusterConfig, awsCreds, _flagClusterDisallowPrompt)
+		clusterConfig, err := getConfigureClusterConfig(cachedClusterConfig, awsCreds, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}

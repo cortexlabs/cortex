@@ -180,7 +180,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string, disallowPr
 	return clusterConfig, nil
 }
 
-func getClusterConfigureConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) (*clusterconfig.Config, error) {
 	userClusterConfig := &clusterconfig.Config{}
 	var awsClient *aws.Client
 
