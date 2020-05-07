@@ -14,7 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+
+echo "building cli..."
+make --no-print-directory -C $ROOT cli
+echo
 
 # Clear default environments
 cli_config_backup_path=$HOME/.cortex/cli-bak-$RANDOM.yaml

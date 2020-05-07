@@ -215,18 +215,41 @@ Flags:
 ## completion
 
 ```text
-generate bash completion scripts
+generate shell completion scripts
 
-add this to your bashrc or bash profile:
-  source <(cortex completion)
-or run:
-  echo 'source <(cortex completion)' >> ~/.bash_profile  # mac
-  echo 'source <(cortex completion)' >> ~/.bashrc  # linux
+to enable cortex shell completion:
+    bash:
+        add this to ~/.bash_profile (mac) or ~/.bashrc (linux):
+            source <(cortex completion bash)
 
-this will also add the "cx" alias (note: cli completion requires the bash_completion package to be installed on your system)
+        note: bash-completion must be installed on your system; example installation instructions:
+            mac:
+                1) install bash completion:
+                   brew install bash-completion
+                2) add this to your ~/.bash_profile:
+                   source $(brew --prefix)/etc/bash_completion
+                3) log out and back in, or close your terminal window and reopen it
+            ubuntu:
+                1) install bash completion:
+                   apt update && apt install -y bash-completion  # you may need sudo
+                2) open ~/.bashrc and uncomment the bash completion section, or add this:
+                   if [ -f /etc/bash_completion ] && ! shopt -oq posix; then . /etc/bash_completion; fi
+                3) log out and back in, or close your terminal window and reopen it
+
+    zsh:
+        option 1:
+            add this to ~/.zshrc:
+                source <(cortex completion zsh)
+            if that failed, you can try adding this line (above the source command you just added):
+                autoload -Uz compinit && compinit
+        option 2:
+            create a _cortex file in your fpath, for example:
+                cortex completion zsh > /usr/local/share/zsh/site-functions/_cortex
+
+Note: this will also add the "cx" alias for cortex for convenience
 
 Usage:
-  cortex completion [flags]
+  cortex completion SHELL [flags]
 
 Flags:
   -h, --help   help for completion
