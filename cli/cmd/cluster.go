@@ -165,11 +165,11 @@ var _upCmd = &cobra.Command{
 }
 
 var _updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "update a cluster",
+	Use:   "update-configuration",
+	Short: "update the configuration of the cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.update")
+		telemetry.Event("cli.cluster.update_configuration")
 
 		if _flagClusterEnv == "local" {
 			exit.Error(ErrorNotSupportedInLocalEnvironment())
