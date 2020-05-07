@@ -45,12 +45,19 @@ const (
 func ErrorFailedToConnectOperator(originalError error, envName string, operatorURL string) error {
 	originalErrMsg := ""
 	if originalError != nil {
-		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n"
+		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
 	}
+
+	msg := fmt.Sprintf("%sunable to connect to the operator in the %s environment (operator endpoint: %s)\n\n", originalErrMsg, envName, operatorURL)
+	msg += "if you don't have a cluster running:\n"
+	msg += fmt.Sprintf("    → if you'd like to create a cluster, run `cortex cluster up --env %s`\n", envName)
+	msg += fmt.Sprintf("    → otherwise you can ignore this message, and prevent it in the future with `cortex env delete %s`\n", envName)
+	msg += "\nif you have a cluster running:\n"
+	msg += fmt.Sprintf("    → run `cortex cluster info --env %s` to update your configuration (include `--config <cluster.yaml>` if you have a cluster configuration file)\n", envName)
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToConnectOperator,
-		Message: fmt.Sprintf("%sfailed to connect to the operator in the %s environment (operator endpoint: %s); run `cortex env configure %s` if you need to update the operator endpoint, `cortex cluster info` to show your operator endpoint, or `cortex cluster up` to create a new cluster", originalErrMsg, envName, operatorURL, envName),
+		Message: msg,
 	})
 }
 
