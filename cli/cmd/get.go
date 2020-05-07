@@ -188,9 +188,9 @@ func getAPIsInAllEnvironments() (string, error) {
 	}
 
 	if len(errorEnvNames) == 1 {
-		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environment; run `cortex get --env %s` to get the complete error message\n", s.UserStr(errorEnvNames[0]), errorEnvNames[0])
+		out += "\n" + fmt.Sprintf("unable to detect apis from the %s environment; run `cortex get --env %s` if this is unexpected\n", errorEnvNames[0], errorEnvNames[0])
 	} else if len(errorEnvNames) > 1 {
-		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environments; run `cortex get --env ENV_NAME` to get the complete error message\n", s.UserStrsAnd(errorEnvNames))
+		out += "\n" + fmt.Sprintf("unable to detect apis from the %s environments; run `cortex get --env ENV_NAME` if this is unexpected\n", s.StrsAnd(errorEnvNames))
 	}
 
 	mismatchedAPIMessage, err := getLocalVersionMismatchedAPIsMessage()
