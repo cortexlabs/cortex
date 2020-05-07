@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -103,13 +102,12 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	//only if clouwatch true in clusterconfig
 	if config.Cluster.Config.Cloudwatch {
 		//for every api in config update dashboard
-		for _, conifg := range apiConfigs {
-			fmt.Println(conifg.Name)
-			fmt.Println(conifg.Tracker)
-			fmt.Println(conifg.Endpoint)
-			fmt.Println(conifg.Index)
-			fmt.Println(conifg.Predictor)
-			aws.UpdateDashboard(config.Cluster.Config.ClusterName, *config.Cluster.Config.Region, conifg.Name, conifg.Index)
+		for _, apiConifg := range apiConfigs {
+			fmt.Println(apiConifg.Name)
+			fmt.Println(apiConifg.Tracker)
+			fmt.Println(apiConifg.Endpoint)
+			fmt.Println(apiConifg.Index)
+			config.AWS.UpdateDashboard(config.Cluster.Config.ClusterName, *config.Cluster.Config.Region, apiConifg.Name, *apiConifg.Endpoint)
 		}
 	}
 
