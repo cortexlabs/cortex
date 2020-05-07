@@ -75,6 +75,7 @@ const (
 	ErrAWSCredentialsRequired               = "cli.aws_credentials_required"
 	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
 	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
+	ErrShellCompletionNotSupported          = "cli.shell_completion_not_supported"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -310,5 +311,12 @@ func ErrorClusterAccessConfigOrPromptsRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAccessConfigOrPromptsRequired,
 		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. `--config=cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+	})
+}
+
+func ErrorShellCompletionNotSupported(shell string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrShellCompletionNotSupported,
+		Message: fmt.Sprintf("shell completion for %s is not supported", shell),
 	})
 }

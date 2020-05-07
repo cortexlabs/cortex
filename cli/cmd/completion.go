@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/spf13/cobra"
 )
 
@@ -66,7 +67,7 @@ to enable cortex shell completion:
         option 1:
             add this to ~/.zshrc:
                 source <(cortex completion zsh)
-            if that failed, you can try adding this to ~/.zshrc above the source command:
+            if that failed, you can try adding this line (above the source command you just added):
                 autoload -Uz compinit && compinit
         option 2:
             create a _cortex file in your fpath, for example:
@@ -91,6 +92,10 @@ Note: this will also add the "cx" alias for cortex for convenience
 			// https://github.com/spf13/cobra/issues/881
 			// https://github.com/asdf-vm/asdf/issues/266
 			fmt.Println("if compquote '' 2>/dev/null; then _cortex; else compdef _cortex cortex; fi")
+
+		default:
+			fmt.Println()
+			exit.Error(ErrorShellCompletionNotSupported(args[0]))
 		}
 	},
 }
