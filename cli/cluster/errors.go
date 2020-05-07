@@ -53,7 +53,7 @@ func ErrorFailedToConnectOperator(originalError error, envName string, operatorU
 	msg += fmt.Sprintf("    → if you'd like to create a cluster, run `cortex cluster up --env %s`\n", envName)
 	msg += fmt.Sprintf("    → otherwise you can ignore this message, and prevent it in the future with `cortex env delete %s`\n", envName)
 	msg += "\nif you have a cluster running:\n"
-	msg += fmt.Sprintf("    → run `cortex cluster info --env %s` to update your configuration (include `--config <cluster.yaml>` if you have a cluster configuration file)\n", envName)
+	msg += fmt.Sprintf("    → run `cortex cluster info --env %s` to update your environment (include `--config <cluster.yaml>` if you have a cluster configuration file)\n", envName)
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToConnectOperator,
