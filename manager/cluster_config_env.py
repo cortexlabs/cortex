@@ -17,7 +17,6 @@ import yaml
 
 
 def export(base_key, value):
-    # don't convert user tags to environment variables because the tag names and values can be values that are not safe to made into environment variables
     if base_key.lower().startswith("cortex_tags"):
         inlined_tags = ",".join([f"{k}={v}" for k, v in value.items()])
         print(f"export CORTEX_TAGS={inlined_tags}")

@@ -65,8 +65,8 @@ operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "
 # CloudWatch log group for cortex (default: <cluster_name>)
 log_group: cortex
 
-# tags are assigned to aws resources for labelling and cost allocation
-tags: # cortex.dev/cluster-name: <cluster_name>
+# additional tags to assign to aws resources for labelling and cost allocation (by default, all resources will be tagged with cortex.dev/cluster-name=<cluster_name>)
+tags:  # <string>: <string> map of key/value pairs
 
 # whether to use spot instances in the cluster (default: false)
 # see https://cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration

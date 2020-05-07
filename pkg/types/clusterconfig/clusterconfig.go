@@ -527,7 +527,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if len(cc.Tags) == 0 {
+	if _, ok := cc.Tags[_tagName]; !ok {
 		cc.Tags[_tagName] = cc.ClusterName
 	}
 
