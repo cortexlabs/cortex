@@ -303,14 +303,14 @@ func ErrorAWSCredentialsRequired() error {
 func ErrorClusterConfigOrPromptsRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterConfigOrPromptsRequired,
-		Message: "this command requires either a cluster configuration file (e.g. `--config=cluster.yaml`) or prompts to be enabled (i.e. omit the `--yes` flag)",
+		Message: "this command requires either a cluster configuration file (e.g. `--config cluster.yaml`) or prompts to be enabled (i.e. omit the `--yes` flag)",
 	})
 }
 
 func ErrorClusterAccessConfigOrPromptsRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAccessConfigOrPromptsRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. `--config=cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
 	})
 }
 
