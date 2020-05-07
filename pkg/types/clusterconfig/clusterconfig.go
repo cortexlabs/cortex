@@ -38,7 +38,7 @@ import (
 var (
 	_spotInstanceDistributionLength = 2
 	_maxInstancePools               = 20
-
+	_tagName                        = "cortex.dev/cluster-name"
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
@@ -50,6 +50,7 @@ type Config struct {
 	InstanceVolumeSize         int64              `json:"instance_volume_size" yaml:"instance_volume_size"`
 	InstanceVolumeType         VolumeType         `json:"instance_volume_type" yaml:"instance_volume_type"`
 	InstanceVolumeIOPS         *int64             `json:"instance_volume_iops" yaml:"instance_volume_iops"`
+	Tags                       map[string]string  `json:"tags" yaml:"tags"`
 	Spot                       *bool              `json:"spot" yaml:"spot"`
 	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
 	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
@@ -139,6 +140,14 @@ var UserValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return VolumeTypeFromString(str), nil
+			},
+		},
+		{
+			StructField: "Tags",
+			StringMapValidation: &cr.StringMapValidation{
+				AllowExplicitNull: true,
+				AllowEmpty:        true,
+				ConvertNilToEmpty: true,
 			},
 		},
 		{
@@ -511,6 +520,10 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
 			return errors.Wrap(err, InstanceTypeKey)
 		}
+	}
+
+	if _, ok := cc.Tags[_tagName]; !ok {
+		cc.Tags[_tagName] = cc.ClusterName
 	}
 
 	if err := cc.validateAvailabilityZones(awsClient); err != nil {
@@ -991,6 +1004,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(InstanceTypeUserKey, *cc.InstanceType)
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
 	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
+	items.Add(TagsUserKey, s.ObjFlat(cc.Tags))
 	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
 	items.Add(InstanceVolumeTypeUserKey, cc.InstanceVolumeType)
 	items.Add(InstanceVolumeIOPSUserKey, cc.InstanceVolumeIOPS)

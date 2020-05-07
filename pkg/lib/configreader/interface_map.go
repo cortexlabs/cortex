@@ -27,6 +27,7 @@ type InterfaceMapValidation struct {
 	Default                map[string]interface{}
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	ConvertNilToEmpty      bool
 	ScalarsOnly            bool
 	StringLeavesOnly       bool
 	StringKeysOnly         bool
@@ -144,5 +145,10 @@ func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 	if v.Validator != nil {
 		return v.Validator(val)
 	}
+
+	if val == nil && v.ConvertNilToEmpty {
+		val = make(map[string]interface{})
+	}
+
 	return val, nil
 }

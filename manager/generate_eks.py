@@ -153,6 +153,7 @@ def generate_eks(cluster_config_path):
             "name": cluster_config["cluster_name"],
             "region": cluster_config["region"],
             "version": "1.15",
+            "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
         "availabilityZones": cluster_config["availability_zones"],
