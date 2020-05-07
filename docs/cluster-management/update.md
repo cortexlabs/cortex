@@ -12,7 +12,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 See [cluster configuration](config.md) to learn how you can customize your cluster.
 
 ```bash
-cortex cluster update
+cortex cluster configure
 ```
 
 ## Upgrading to a newer version of Cortex

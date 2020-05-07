@@ -60,7 +60,7 @@ const (
 	ErrOneAWSEnvVarSet                      = "cli.one_aws_env_var_set"
 	ErrOneAWSConfigFieldSet                 = "cli.one_aws_config_field_set"
 	ErrClusterUp                            = "cli.cluster_up"
-	ErrClusterUpdate                        = "cli.cluster_update"
+	ErrClusterConfigure                     = "cli.cluster_configure"
 	ErrClusterInfo                          = "cli.cluster_info"
 	ErrClusterDebug                         = "cli.cluster_debug"
 	ErrClusterRefresh                       = "cli.cluster_refresh"
@@ -75,6 +75,7 @@ const (
 	ErrAWSCredentialsRequired               = "cli.aws_credentials_required"
 	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
 	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
+	ErrShellCompletionNotSupported          = "cli.shell_completion_not_supported"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -210,9 +211,9 @@ func ErrorClusterUp(out string) error {
 	})
 }
 
-func ErrorClusterUpdate(out string) error {
+func ErrorClusterConfigure(out string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterUpdate,
+		Kind:    ErrClusterConfigure,
 		Message: out,
 		NoPrint: true,
 	})
@@ -302,13 +303,20 @@ func ErrorAWSCredentialsRequired() error {
 func ErrorClusterConfigOrPromptsRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterConfigOrPromptsRequired,
-		Message: "this command requires either a cluster configuration file (e.g. `--config=cluster.yaml`) or prompts to be enabled (i.e. omit the `--yes` flag)",
+		Message: "this command requires either a cluster configuration file (e.g. `--config cluster.yaml`) or prompts to be enabled (i.e. omit the `--yes` flag)",
 	})
 }
 
 func ErrorClusterAccessConfigOrPromptsRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAccessConfigOrPromptsRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. `--config=cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+	})
+}
+
+func ErrorShellCompletionNotSupported(shell string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrShellCompletionNotSupported,
+		Message: fmt.Sprintf("shell completion for %s is not supported", shell),
 	})
 }

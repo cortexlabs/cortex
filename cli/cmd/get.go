@@ -151,7 +151,8 @@ func getAPIsInAllEnvironments() (string, error) {
 	var allAPIStatuses []status.Status
 	var allMetrics []metrics.Metrics
 	var allEnvs []string
-	for _, env := range cliConfig.Environments {
+	allErrs := make([]error, len(cliConfig.Environments))
+	for i, env := range cliConfig.Environments {
 		var apisRes schema.GetAPIsResponse
 		var err error
 		if env.Provider == types.AWSProviderType {
@@ -159,6 +160,7 @@ func getAPIsInAllEnvironments() (string, error) {
 		} else {
 			apisRes, err = local.GetAPIs()
 		}
+		allErrs[i] = err
 
 		if err == nil {
 			for range apisRes.APIs {
@@ -176,7 +178,14 @@ func getAPIsInAllEnvironments() (string, error) {
 	out := ""
 
 	if len(allAPIs) == 0 {
-		out += console.Bold("no apis are deployed") + "\n"
+		if len(cliConfig.Environments) == 1 && allErrs[0] != nil {
+			// Print the error if there is just one env
+			exit.Error(allErrs[0])
+		}
+		// if all envs errored, "no apis are deployed" is misleading, so skip it
+		if !errors.AreAllErrors(allErrs) {
+			out += console.Bold("no apis are deployed") + "\n"
+		}
 	} else {
 		t := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
 
@@ -188,14 +197,17 @@ func getAPIsInAllEnvironments() (string, error) {
 	}
 
 	if len(errorEnvNames) == 1 {
-		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environment; run `cortex get --env %s` to get the complete error message\n", s.UserStr(errorEnvNames[0]), errorEnvNames[0])
+		out = s.EnsureBlankLineIfNotEmpty(out)
+		out += fmt.Sprintf("unable to detect apis from the %s environment; run `cortex get --env %s` if this is unexpected\n", errorEnvNames[0], errorEnvNames[0])
 	} else if len(errorEnvNames) > 1 {
-		out += "\n" + fmt.Sprintf("failed to fetch apis from %s environments; run `cortex get --env ENV_NAME` to get the complete error message\n", s.UserStrsAnd(errorEnvNames))
+		out = s.EnsureBlankLineIfNotEmpty(out)
+		out += fmt.Sprintf("unable to detect apis from the %s environments; run `cortex get --env ENV_NAME` if this is unexpected\n", s.StrsAnd(errorEnvNames))
 	}
 
 	mismatchedAPIMessage, err := getLocalVersionMismatchedAPIsMessage()
 	if err == nil {
-		out += "\n" + mismatchedAPIMessage
+		out = s.EnsureBlankLineIfNotEmpty(out)
+		out += mismatchedAPIMessage
 	}
 
 	return out, nil

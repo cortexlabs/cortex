@@ -1,4 +1,4 @@
-# SSH into AWS instance
+# SSH into worker instance
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 

@@ -24,7 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	input "github.com/tcnksm/go-input"
+	input "github.com/cortexlabs/go-input"
 )
 
 var _ui = &input.UI{
@@ -33,13 +33,14 @@ var _ui = &input.UI{
 }
 
 type Options struct {
-	Prompt        string
-	DefaultStr    string
-	HideDefault   bool
-	MaskDefault   bool
-	HideTyping    bool
-	MaskTyping    bool
-	TypingMaskVal string
+	Prompt              string
+	DefaultStr          string
+	HideDefault         bool
+	MaskDefault         bool
+	HideTyping          bool
+	MaskTyping          bool
+	TypingMaskVal       string
+	SkipTrailingNewline bool
 }
 
 func Prompt(opts *Options) string {
@@ -62,6 +63,7 @@ func Prompt(opts *Options) string {
 		HideDefault: true,
 		HideOrder:   true,
 		Loop:        false,
+		SkipNewline: opts.SkipTrailingNewline,
 	})
 
 	if err != nil {

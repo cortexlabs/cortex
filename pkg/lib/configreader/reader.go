@@ -574,14 +574,16 @@ type PromptItemValidation struct {
 }
 
 type PromptValidation struct {
-	PromptItemValidations []*PromptItemValidation
-	SkipNonEmptyFields    bool // skips fields that are not zero-valued
-	SkipNonNilFields      bool // skips pointer fields that are not nil
+	PromptItemValidations  []*PromptItemValidation
+	SkipNonEmptyFields     bool // skips fields that are not zero-valued
+	SkipNonNilFields       bool // skips pointer fields that are not nil
+	PrintNewLineIfPrompted bool // prints an extra new line at the end if any questions were asked
 }
 
 func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 	var val interface{}
 	var err error
+	shouldPrintTrailingNewLine := false
 
 	for _, promptItemValidation := range promptValidation.PromptItemValidations {
 		if promptValidation.SkipNonEmptyFields {
@@ -594,6 +596,10 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			if v.Kind() == reflect.Ptr && !v.IsNil() {
 				continue
 			}
+		}
+
+		if promptValidation.PrintNewLineIfPrompted {
+			shouldPrintTrailingNewLine = true
 		}
 
 		for {
@@ -651,7 +657,12 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			if err == nil {
 				break
 			}
-			fmt.Printf("error: %s\n\n", errors.Message(err))
+
+			if promptItemValidation.PromptOpts.SkipTrailingNewline {
+				fmt.Printf("error: %s\n", errors.Message(err))
+			} else {
+				fmt.Printf("error: %s\n\n", errors.Message(err))
+			}
 		}
 
 		if val == nil {
@@ -663,6 +674,10 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if shouldPrintTrailingNewLine {
+		fmt.Println()
 	}
 
 	return nil
