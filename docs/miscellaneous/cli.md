@@ -240,7 +240,7 @@ to enable cortex shell completion:
         option 1:
             add this to ~/.zshrc:
                 source <(cortex completion zsh)
-            if that failed, you can try adding this to ~/.zshrc above the source command:
+            if that failed, you can try adding this line (above the source command you just added):
                 autoload -Uz compinit && compinit
         option 2:
             create a _cortex file in your fpath, for example:
