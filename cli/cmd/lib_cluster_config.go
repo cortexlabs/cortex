@@ -215,107 +215,10 @@ func getClusterConfigureConfig(cachedClusterConfig clusterconfig.Config, awsCred
 		}
 		promptIfNotAdmin(awsClient, disallowPrompt)
 
-		if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
+		err = setConfigFieldsFromCached(userClusterConfig, &cachedClusterConfig, awsClient)
+		if err != nil {
+			return nil, err
 		}
-		userClusterConfig.Bucket = cachedClusterConfig.Bucket
-
-		if userClusterConfig.LogGroup != "" && userClusterConfig.LogGroup != cachedClusterConfig.LogGroup {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.LogGroupKey, cachedClusterConfig.LogGroup)
-		}
-		userClusterConfig.LogGroup = cachedClusterConfig.LogGroup
-
-		if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
-		}
-		userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
-
-		if !reflect.DeepEqual(userClusterConfig.Tags, cachedClusterConfig.Tags) {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.TagsKey, s.ObjFlat(*&cachedClusterConfig.Tags))
-		}
-
-		if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
-		}
-		userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
-
-		if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
-		}
-		userClusterConfig.InstanceVolumeSize = cachedClusterConfig.InstanceVolumeSize
-
-		if userClusterConfig.InstanceVolumeType != cachedClusterConfig.InstanceVolumeType {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeTypeKey, cachedClusterConfig.InstanceVolumeType)
-		}
-		userClusterConfig.InstanceVolumeType = cachedClusterConfig.InstanceVolumeType
-
-		if userClusterConfig.InstanceVolumeIOPS != cachedClusterConfig.InstanceVolumeIOPS {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeIOPSKey, cachedClusterConfig.InstanceVolumeIOPS)
-		}
-		userClusterConfig.InstanceVolumeIOPS = cachedClusterConfig.InstanceVolumeIOPS
-
-		if userClusterConfig.SubnetVisibility != cachedClusterConfig.SubnetVisibility {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetVisibilityKey, cachedClusterConfig.SubnetVisibility)
-		}
-		userClusterConfig.SubnetVisibility = cachedClusterConfig.SubnetVisibility
-
-		if userClusterConfig.NATGateway != cachedClusterConfig.NATGateway {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.NATGatewayKey, cachedClusterConfig.NATGateway)
-		}
-		userClusterConfig.NATGateway = cachedClusterConfig.NATGateway
-
-		if userClusterConfig.APILoadBalancerScheme != cachedClusterConfig.APILoadBalancerScheme {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.APILoadBalancerSchemeKey, cachedClusterConfig.APILoadBalancerScheme)
-		}
-		userClusterConfig.APILoadBalancerScheme = cachedClusterConfig.APILoadBalancerScheme
-
-		if userClusterConfig.OperatorLoadBalancerScheme != cachedClusterConfig.OperatorLoadBalancerScheme {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OperatorLoadBalancerSchemeKey, cachedClusterConfig.OperatorLoadBalancerScheme)
-		}
-		userClusterConfig.OperatorLoadBalancerScheme = cachedClusterConfig.OperatorLoadBalancerScheme
-
-		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
-			return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
-		}
-		userClusterConfig.Spot = cachedClusterConfig.Spot
-
-		if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-			err = userClusterConfig.FillEmptySpotFields(awsClient)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if userClusterConfig.SpotConfig != nil && s.Obj(userClusterConfig.SpotConfig) != s.Obj(cachedClusterConfig.SpotConfig) {
-			if cachedClusterConfig.SpotConfig == nil {
-				return nil, clusterconfig.ErrorConfiguredWhenSpotIsNotEnabled(clusterconfig.SpotConfigKey)
-			}
-
-			if !strset.New(userClusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(cachedClusterConfig.SpotConfig.InstanceDistribution...)) {
-				return nil, errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceDistributionKey, cachedClusterConfig.SpotConfig.InstanceDistribution), clusterconfig.SpotConfigKey)
-			}
-
-			if userClusterConfig.SpotConfig.OnDemandBaseCapacity != nil && *userClusterConfig.SpotConfig.OnDemandBaseCapacity != *cachedClusterConfig.SpotConfig.OnDemandBaseCapacity {
-				return nil, errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBaseCapacityKey, *cachedClusterConfig.SpotConfig.OnDemandBaseCapacity), clusterconfig.SpotConfigKey)
-			}
-
-			if userClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil && *userClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *cachedClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity {
-				return nil, errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandPercentageAboveBaseCapacityKey, *cachedClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity), clusterconfig.SpotConfigKey)
-			}
-
-			if userClusterConfig.SpotConfig.MaxPrice != nil && *userClusterConfig.SpotConfig.MaxPrice != *cachedClusterConfig.SpotConfig.MaxPrice {
-				return nil, errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.MaxPriceKey, *cachedClusterConfig.SpotConfig.MaxPrice), clusterconfig.SpotConfigKey)
-			}
-
-			if userClusterConfig.SpotConfig.InstancePools != nil && *userClusterConfig.SpotConfig.InstancePools != *cachedClusterConfig.SpotConfig.InstancePools {
-				return nil, errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstancePoolsKey, *cachedClusterConfig.SpotConfig.InstancePools), clusterconfig.SpotConfigKey)
-			}
-
-			if userClusterConfig.SpotConfig.OnDemandBackup != cachedClusterConfig.SpotConfig.OnDemandBackup {
-				return nil, errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBackupKey, cachedClusterConfig.SpotConfig.OnDemandBackup), clusterconfig.SpotConfigKey)
-			}
-		}
-		userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
 		err = clusterconfig.ConfigurePrompt(userClusterConfig, &cachedClusterConfig, true, disallowPrompt)
 		if err != nil {
@@ -340,6 +243,116 @@ func getClusterConfigureConfig(cachedClusterConfig clusterconfig.Config, awsCred
 	confirmConfigureClusterConfig(*userClusterConfig, awsCreds, awsClient, disallowPrompt)
 
 	return userClusterConfig, nil
+}
+
+func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedClusterConfig *clusterconfig.Config, awsClient *aws.Client) error {
+	if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
+	}
+	userClusterConfig.Bucket = cachedClusterConfig.Bucket
+
+	if userClusterConfig.LogGroup != "" && userClusterConfig.LogGroup != cachedClusterConfig.LogGroup {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.LogGroupKey, cachedClusterConfig.LogGroup)
+	}
+	userClusterConfig.LogGroup = cachedClusterConfig.LogGroup
+
+	if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
+	}
+	userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
+
+	if _, ok := userClusterConfig.Tags[clusterconfig.ClusterNameTag]; !ok {
+		userClusterConfig.Tags[clusterconfig.ClusterNameTag] = userClusterConfig.ClusterName
+	}
+	if !reflect.DeepEqual(userClusterConfig.Tags, cachedClusterConfig.Tags) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.TagsKey, s.ObjFlat(cachedClusterConfig.Tags))
+	}
+
+	if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
+	}
+	userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
+
+	if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
+	}
+	userClusterConfig.InstanceVolumeSize = cachedClusterConfig.InstanceVolumeSize
+
+	if userClusterConfig.InstanceVolumeType != cachedClusterConfig.InstanceVolumeType {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeTypeKey, cachedClusterConfig.InstanceVolumeType)
+	}
+	userClusterConfig.InstanceVolumeType = cachedClusterConfig.InstanceVolumeType
+
+	if userClusterConfig.InstanceVolumeIOPS != cachedClusterConfig.InstanceVolumeIOPS {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeIOPSKey, cachedClusterConfig.InstanceVolumeIOPS)
+	}
+	userClusterConfig.InstanceVolumeIOPS = cachedClusterConfig.InstanceVolumeIOPS
+
+	if userClusterConfig.SubnetVisibility != cachedClusterConfig.SubnetVisibility {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetVisibilityKey, cachedClusterConfig.SubnetVisibility)
+	}
+	userClusterConfig.SubnetVisibility = cachedClusterConfig.SubnetVisibility
+
+	if userClusterConfig.NATGateway != cachedClusterConfig.NATGateway {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.NATGatewayKey, cachedClusterConfig.NATGateway)
+	}
+	userClusterConfig.NATGateway = cachedClusterConfig.NATGateway
+
+	if userClusterConfig.APILoadBalancerScheme != cachedClusterConfig.APILoadBalancerScheme {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.APILoadBalancerSchemeKey, cachedClusterConfig.APILoadBalancerScheme)
+	}
+	userClusterConfig.APILoadBalancerScheme = cachedClusterConfig.APILoadBalancerScheme
+
+	if userClusterConfig.OperatorLoadBalancerScheme != cachedClusterConfig.OperatorLoadBalancerScheme {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OperatorLoadBalancerSchemeKey, cachedClusterConfig.OperatorLoadBalancerScheme)
+	}
+	userClusterConfig.OperatorLoadBalancerScheme = cachedClusterConfig.OperatorLoadBalancerScheme
+
+	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
+	}
+	userClusterConfig.Spot = cachedClusterConfig.Spot
+
+	if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
+		err := userClusterConfig.FillEmptySpotFields(awsClient)
+		if err != nil {
+			return err
+		}
+	}
+
+	if userClusterConfig.SpotConfig != nil && s.Obj(userClusterConfig.SpotConfig) != s.Obj(cachedClusterConfig.SpotConfig) {
+		if cachedClusterConfig.SpotConfig == nil {
+			return clusterconfig.ErrorConfiguredWhenSpotIsNotEnabled(clusterconfig.SpotConfigKey)
+		}
+
+		if !strset.New(userClusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(cachedClusterConfig.SpotConfig.InstanceDistribution...)) {
+			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceDistributionKey, cachedClusterConfig.SpotConfig.InstanceDistribution), clusterconfig.SpotConfigKey)
+		}
+
+		if userClusterConfig.SpotConfig.OnDemandBaseCapacity != nil && *userClusterConfig.SpotConfig.OnDemandBaseCapacity != *cachedClusterConfig.SpotConfig.OnDemandBaseCapacity {
+			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBaseCapacityKey, *cachedClusterConfig.SpotConfig.OnDemandBaseCapacity), clusterconfig.SpotConfigKey)
+		}
+
+		if userClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil && *userClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *cachedClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity {
+			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandPercentageAboveBaseCapacityKey, *cachedClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity), clusterconfig.SpotConfigKey)
+		}
+
+		if userClusterConfig.SpotConfig.MaxPrice != nil && *userClusterConfig.SpotConfig.MaxPrice != *cachedClusterConfig.SpotConfig.MaxPrice {
+			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.MaxPriceKey, *cachedClusterConfig.SpotConfig.MaxPrice), clusterconfig.SpotConfigKey)
+		}
+
+		if userClusterConfig.SpotConfig.InstancePools != nil && *userClusterConfig.SpotConfig.InstancePools != *cachedClusterConfig.SpotConfig.InstancePools {
+			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstancePoolsKey, *cachedClusterConfig.SpotConfig.InstancePools), clusterconfig.SpotConfigKey)
+		}
+
+		if userClusterConfig.SpotConfig.OnDemandBackup != cachedClusterConfig.SpotConfig.OnDemandBackup {
+			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBackupKey, cachedClusterConfig.SpotConfig.OnDemandBackup), clusterconfig.SpotConfigKey)
+		}
+	}
+
+	userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
+
+	return nil
 }
 
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, envName string, disallowPrompt bool) {
