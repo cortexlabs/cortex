@@ -38,6 +38,19 @@ func EnsureSuffix(str string, suffix string) string {
 	return str
 }
 
+func EnsureBlankLineIfNotEmpty(str string) string {
+	if str == "" {
+		return str
+	}
+	if strings.HasSuffix(str, "\n\n") {
+		return str
+	}
+	if strings.HasSuffix(str, "\n") {
+		return str + "\n"
+	}
+	return str + "\n\n"
+}
+
 func RemoveTrailingNewLines(str string) string {
 	return strings.TrimRight(str, "\n")
 }
