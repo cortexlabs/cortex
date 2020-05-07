@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 import (
+	"math"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -273,8 +274,9 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 				{
 					StructField: "MaxReplicaConcurrency",
 					Int64Validation: &cr.Int64Validation{
-						Default:     1024,
-						GreaterThan: pointer.Int64(0),
+						Default:           1024,
+						GreaterThan:       pointer.Int64(0),
+						LessThanOrEqualTo: pointer.Int64(math.MaxUint16),
 					},
 				},
 				{
