@@ -147,12 +147,7 @@ var UserValidation = &cr.StructValidation{
 			StringMapValidation: &cr.StringMapValidation{
 				AllowExplicitNull: true,
 				AllowEmpty:        true,
-				Validator: func(val map[string]string) (map[string]string, error) {
-					if val == nil {
-						return map[string]string{}, nil
-					}
-					return val, nil
-				},
+				ConvertNilToEmpty: true,
 			},
 		},
 		{
