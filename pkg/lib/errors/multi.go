@@ -56,6 +56,15 @@ func HasError(errs []error) bool {
 	return false
 }
 
+func AreAllErrors(errs []error) bool {
+	for _, err := range errs {
+		if err == nil {
+			return false
+		}
+	}
+	return true
+}
+
 func FirstError(errs ...error) error {
 	for _, err := range errs {
 		if err != nil {
