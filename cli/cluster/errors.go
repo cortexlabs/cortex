@@ -48,7 +48,7 @@ func ErrorFailedToConnectOperator(originalError error, envName string, operatorU
 		originalErrMsg = urls.TrimQueryParamsStr(errors.Message(originalError)) + "\n\n"
 	}
 
-	msg := fmt.Sprintf("%sunable to connect to the operator in the %s environment (operator endpoint: %s)\n\n", originalErrMsg, envName, operatorURL)
+	msg := fmt.Sprintf("%sunable to connect to your cluster in the %s environment (operator endpoint: %s)\n\n", originalErrMsg, envName, operatorURL)
 	msg += "if you don't have a cluster running:\n"
 	msg += fmt.Sprintf("    → if you'd like to create a cluster, run `cortex cluster up --env %s`\n", envName)
 	msg += fmt.Sprintf("    → otherwise you can ignore this message, and prevent it in the future with `cortex env delete %s`\n", envName)
