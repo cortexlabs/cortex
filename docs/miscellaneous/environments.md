@@ -50,8 +50,8 @@ cortex delete my-api    # uses aws env; same as `cortex delete my-api --env aws`
 ## Example: multiple clusters
 
 ```bash
-cortex cluster up --config=cluster1.yaml --env cluster1  # configures the cluster1 env
-cortex cluster up --config=cluster2.yaml --env cluster2  # configures the cluster2 env
+cortex cluster up --config cluster1.yaml --env cluster1  # configures the cluster1 env
+cortex cluster up --config cluster2.yaml --env cluster2  # configures the cluster2 env
 
 cortex deploy --env cluster1
 cortex logs my-api --env cluster1
@@ -65,8 +65,8 @@ cortex delete my-api --env cluster2
 ## Example: multiple clusters, if you omitted the `--env` on `cortex cluster up`
 
 ```bash
-cortex cluster info --config=cluster1.yaml --env cluster1  # configures the cluster1 env
-cortex cluster info --config=cluster2.yaml --env cluster2  # configures the cluster2 env
+cortex cluster info --config cluster1.yaml --env cluster1  # configures the cluster1 env
+cortex cluster info --config cluster2.yaml --env cluster2  # configures the cluster2 env
 
 cortex deploy --env cluster1
 cortex logs my-api --env cluster1

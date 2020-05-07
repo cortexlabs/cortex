@@ -799,7 +799,7 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client, disallowPrompt 
 	return nil
 }
 
-func UpdatePrompt(userClusterConfig *Config, cachedClusterConfig *Config, skipPopulatedFields bool, disallowPrompt bool) error {
+func ConfigurePrompt(userClusterConfig *Config, cachedClusterConfig *Config, skipPopulatedFields bool, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*cachedClusterConfig)
 
 	if disallowPrompt {

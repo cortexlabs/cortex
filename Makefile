@@ -58,17 +58,17 @@ cluster-info:
 	@$(MAKE) cli
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster info
 
-cluster-update:
+cluster-configure:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster update
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure
 
-cluster-update-y:
+cluster-configure-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster update --yes
+	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure --yes
 
 operator-stop:
 	@$(MAKE) kubectl

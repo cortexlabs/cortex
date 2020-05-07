@@ -67,11 +67,11 @@ func clusterInit() {
 	_infoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_infoCmd)
 
-	_updateCmd.Flags().SortFlags = false
-	addClusterConfigFlag(_updateCmd)
-	_updateCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
-	_updateCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterCmd.AddCommand(_updateCmd)
+	_configureCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_configureCmd)
+	_configureCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	_configureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_configureCmd)
 
 	_downCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_downCmd)
@@ -164,12 +164,12 @@ var _upCmd = &cobra.Command{
 	},
 }
 
-var _updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "update a cluster",
+var _configureCmd = &cobra.Command{
+	Use:   "configure",
+	Short: "update a cluster's configuration",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.update")
+		telemetry.Event("cli.cluster.configure")
 
 		if _flagClusterEnv == "local" {
 			exit.Error(ErrorNotSupportedInLocalEnvironment())
@@ -209,7 +209,7 @@ var _updateCmd = &cobra.Command{
 
 		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, _flagClusterDisallowPrompt)
 
-		clusterConfig, err := getClusterUpdateConfig(cachedClusterConfig, awsCreds, _flagClusterDisallowPrompt)
+		clusterConfig, err := getClusterConfigureConfig(cachedClusterConfig, awsCreds, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -222,7 +222,7 @@ var _updateCmd = &cobra.Command{
 			helpStr := "\nDebugging tips (may or may not apply to this error):"
 			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			fmt.Println(helpStr)
-			exit.Error(ErrorClusterUpdate(out + helpStr))
+			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
 	},
 }
