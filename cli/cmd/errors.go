@@ -60,7 +60,7 @@ const (
 	ErrOneAWSEnvVarSet                      = "cli.one_aws_env_var_set"
 	ErrOneAWSConfigFieldSet                 = "cli.one_aws_config_field_set"
 	ErrClusterUp                            = "cli.cluster_up"
-	ErrClusterUpdate                        = "cli.cluster_update"
+	ErrClusterConfigure                     = "cli.cluster_configure"
 	ErrClusterInfo                          = "cli.cluster_info"
 	ErrClusterDebug                         = "cli.cluster_debug"
 	ErrClusterRefresh                       = "cli.cluster_refresh"
@@ -211,9 +211,9 @@ func ErrorClusterUp(out string) error {
 	})
 }
 
-func ErrorClusterUpdate(out string) error {
+func ErrorClusterConfigure(out string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterUpdate,
+		Kind:    ErrClusterConfigure,
 		Message: out,
 		NoPrint: true,
 	})

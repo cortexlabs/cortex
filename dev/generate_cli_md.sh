@@ -35,7 +35,7 @@ commands=(
   "delete"
   "cluster up"
   "cluster info"
-  "cluster update"
+  "cluster configure"
   "cluster down"
   "env configure"
   "env list"
