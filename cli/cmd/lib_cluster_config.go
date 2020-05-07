@@ -180,7 +180,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string, disallowPr
 	return clusterConfig, nil
 }
 
-func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getClusterConfigureConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) (*clusterconfig.Config, error) {
 	userClusterConfig := &clusterconfig.Config{}
 	var awsClient *aws.Client
 
@@ -190,7 +190,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		}
 
 		userClusterConfig = &cachedClusterConfig
-		err := clusterconfig.UpdatePrompt(userClusterConfig, &cachedClusterConfig, false, disallowPrompt)
+		err := clusterconfig.ConfigurePrompt(userClusterConfig, &cachedClusterConfig, false, disallowPrompt)
 		if err != nil {
 			return nil, err
 		}
@@ -317,7 +317,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		}
 		userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
-		err = clusterconfig.UpdatePrompt(userClusterConfig, &cachedClusterConfig, true, disallowPrompt)
+		err = clusterconfig.ConfigurePrompt(userClusterConfig, &cachedClusterConfig, true, disallowPrompt)
 		if err != nil {
 			return nil, err
 		}
@@ -337,7 +337,7 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		return nil, err
 	}
 
-	confirmUpdateClusterConfig(*userClusterConfig, awsCreds, awsClient, disallowPrompt)
+	confirmConfigureClusterConfig(*userClusterConfig, awsCreds, awsClient, disallowPrompt)
 
 	return userClusterConfig, nil
 }
@@ -460,7 +460,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 }
 
-func confirmUpdateClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, disallowPrompt bool) {
+func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, disallowPrompt bool) {
 	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds, awsClient))
 
 	if !disallowPrompt {

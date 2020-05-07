@@ -105,12 +105,12 @@ function update_bash_profile() {
   maybe_bash_completion_installed=$(guess_if_bash_completion_installed)
 
   if [ "$bash_profile_path" != "" ]; then
-    if ! grep -Fxq "source <(cortex completion)" "$bash_profile_path"; then
+    if ! grep -Fxq "source <(cortex completion bash)" "$bash_profile_path"; then
       echo
       read -p "Would you like to modify your bash profile ($bash_profile_path) to enable cortex command completion and the cx alias? [y/n] " -r
       echo
       if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ] || [ "$REPLY" = "yes" ] || [ "$REPLY" = "Yes" ] || [ "$REPLY" = "YES" ]; then
-        echo -e "\nsource <(cortex completion)" >> $bash_profile_path
+        echo -e "\nsource <(cortex completion bash)" >> $bash_profile_path
         echo -e "✓ Your bash profile has been updated"
         echo -e "\nCommand to update your current terminal session:"
         echo "  source $bash_profile_path"
@@ -119,7 +119,7 @@ function update_bash_profile() {
         fi
       else
         echo -e "Your bash profile has not been modified. If you would like to modify it manually, add this line to your bash profile:"
-        echo "  source <(cortex completion)"
+        echo "  source <(cortex completion bash)"
         if [ ! "$maybe_bash_completion_installed" = "true" ]; then
           echo "Note: \`bash-completion\` must be installed on your system for cortex command completion to function properly"
         fi
@@ -127,7 +127,7 @@ function update_bash_profile() {
     fi
   else
     echo -e "\nIf your would like to enable cortex command completion and the cx alias, add this line to your bash profile:"
-    echo "  source <(cortex completion)"
+    echo "  source <(cortex completion bash)"
     if [ ! "$maybe_bash_completion_installed" = "true" ]; then
       echo "Note: \`bash-completion\` must be installed on your system for cortex command completion to function properly"
     fi

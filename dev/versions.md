@@ -74,6 +74,7 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 1. `go get k8s.io/client-go@kubernetes-1.15.11 && go get k8s.io/apimachinery@kubernetes-1.15.11 && go get k8s.io/api@kubernetes-1.15.11`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.6.0`
 1. `go get github.com/cortexlabs/yaml@f1e621e4f2a32e1b2a5597da123e7c1da2d603c4`
+1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
 1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.8' >> go.mod`
 1. `go get -u github.com/docker/distribution`
 1. `go mod tidy`

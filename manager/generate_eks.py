@@ -157,7 +157,6 @@ def generate_eks(cluster_config_path):
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
         "availabilityZones": cluster_config["availability_zones"],
-        "cloudWatch": {"clusterLogging": {"enableTypes": ["*"]}},
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
 

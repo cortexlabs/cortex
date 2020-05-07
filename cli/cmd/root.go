@@ -207,7 +207,7 @@ func envStringIfNotSpecified(envName string) (string, error) {
 }
 
 func printLeadingNewLine() {
-	if len(os.Args) == 2 && os.Args[1] == "completion" {
+	if len(os.Args) == 3 && os.Args[1] == "completion" {
 		return
 	}
 	fmt.Println("")

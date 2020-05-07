@@ -243,7 +243,7 @@ If you're making changes in the operator and want faster iterations, you can run
 If you want to switch back to the in-cluster operator:
 
 1. `<ctrl+c>` to stop your off-cluster operator
-2. `make cluster-update` to install the operator in your cluster
+2. `make cluster-configure` to install the operator in your cluster
 
 ## Dev workflow
 
