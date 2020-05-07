@@ -117,13 +117,13 @@ Flags:
   -h, --help            help for info
 ```
 
-## cluster update
+## cluster configure
 
 ```text
-update a cluster
+update a cluster's configuration
 
 Usage:
-  cortex cluster update [flags]
+  cortex cluster configure [flags]
 
 Flags:
   -c, --config string   path to a cluster configuration file
