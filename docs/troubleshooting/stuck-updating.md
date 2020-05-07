@@ -12,9 +12,9 @@ If no logs appear (e.g. it just says "fetching logs..."), continue down this lis
 
 When you created your Cortex cluster, you configured `max_instances` (either from the command prompts or via a cluster configuration file, e.g. `cluster.yaml`). If your cluster already has `min_instances` running instances, additional instances cannot be created and APIs may not be able to deploy, scale, or update.
 
-You can check the current value of `max_instances` by running `cortex cluster info` (or `cortex cluster info --config=cluster.yaml` if you have a cluster configuration file).
+You can check the current value of `max_instances` by running `cortex cluster info` (or `cortex cluster info --config cluster.yaml` if you have a cluster configuration file).
 
-You can update `max_instances` by running `cortex cluster configure` (or by modifying `max_instances` in your cluster configuration file and running `cortex cluster configure --config=cluster.yaml`).
+You can update `max_instances` by running `cortex cluster configure` (or by modifying `max_instances` in your cluster configuration file and running `cortex cluster configure --config cluster.yaml`).
 
 ## Check your AWS auto scaling group activity history
 
