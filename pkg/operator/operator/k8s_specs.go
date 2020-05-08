@@ -285,7 +285,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	userPodResourceLimitsList := kcore.ResourceList{}
 	userPodvolumeMounts := _defaultVolumeMounts
 	volumes := _defaultVolumes
-	neuronContainer := kcore.Container{}
+	containers := []kcore.Container{}
 
 	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
 	userPodCPURequest.Sub(_requestMonitorCPURequest)
@@ -315,14 +315,38 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			MountPath: "/sock",
 		}
 		userPodvolumeMounts = append(userPodvolumeMounts, sockVolumeMount)
-		neuronContainer = *neuronRuntimeDaemonContainer(api, sockVolumeMount)
+		neuronContainer := *neuronRuntimeDaemonContainer(api, sockVolumeMount)
 
 		if api.Compute.Mem != nil {
 			neuronRTD, userPodMemRequest := k8s.SplitInTwo(userPodMemRequest)
 			userPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
 			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *neuronRTD
 		}
+
+		containers = append(containers, neuronContainer)
 	}
+
+	containers = append(containers, kcore.Container{
+		Name:            _apiContainerName,
+		Image:           api.Predictor.Image,
+		ImagePullPolicy: kcore.PullAlways,
+		Env:             getEnvVars(api),
+		EnvFrom:         _baseEnvVars,
+		VolumeMounts:    userPodvolumeMounts,
+		ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
+		LivenessProbe:   _apiReadinessProbe,
+		Resources: kcore.ResourceRequirements{
+			Requests: userPodResourceList,
+			Limits:   userPodResourceLimitsList,
+		},
+		Ports: []kcore.ContainerPort{
+			{ContainerPort: _defaultPortInt32},
+		},
+		SecurityContext: &kcore.SecurityContext{
+			Privileged: pointer.Bool(true),
+		}},
+		*requestMonitorContainer(api),
+	)
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
@@ -359,30 +383,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						VolumeMounts:    _defaultVolumeMounts,
 					},
 				},
-				Containers: []kcore.Container{
-					{
-						Name:            _apiContainerName,
-						Image:           api.Predictor.Image,
-						ImagePullPolicy: kcore.PullAlways,
-						Env:             getEnvVars(api),
-						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    userPodvolumeMounts,
-						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:   _apiReadinessProbe,
-						Resources: kcore.ResourceRequirements{
-							Requests: userPodResourceList,
-							Limits:   userPodResourceLimitsList,
-						},
-						Ports: []kcore.ContainerPort{
-							{ContainerPort: _defaultPortInt32},
-						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
-					},
-					*requestMonitorContainer(api),
-					neuronContainer,
-				},
+				Containers: containers,
 				NodeSelector: map[string]string{
 					"workload": "true",
 				},
