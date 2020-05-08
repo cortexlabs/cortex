@@ -48,9 +48,15 @@ var (
 		DefaultImageONNXServeGPU,
 	)
 
+	// TODO to place the neuron-rtd image in clusteconfig
+	DefaultImageNeuronRTD = defaultDockerImage("neuron-rtd")
+
 	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
-	HugePagesPerAccelerator     = int64(256)
-	CoresPerAccelerator         = int64(4)
+
+	// TODO move these to k8s_specs.go
+	HugePagesPerAccelerator            = int64(256)
+	MinimumRuntimeMemoryPerAccelerator = int64(256)
+	CoresPerAccelerator                = int64(4)
 )
 
 func defaultDockerImage(imageName string) string {

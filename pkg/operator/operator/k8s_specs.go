@@ -46,6 +46,7 @@ const (
 	_apiContainerName                      = "api"
 	_tfServingContainerName                = "serve"
 	_downloaderInitContainerName           = "downloader"
+	_neuronRTDContainerName                = "neuron-rtd"
 	_downloaderLastLog                     = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
@@ -280,48 +281,47 @@ func tfDownloadArgs(api *spec.API) string {
 }
 
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	resourceList := kcore.ResourceList{}
-	resourceLimitsList := kcore.ResourceList{}
-	volumeMounts := _defaultVolumeMounts
+	userPodResourceList := kcore.ResourceList{}
+	userPodResourceLimitsList := kcore.ResourceList{}
+	userPodvolumeMounts := _defaultVolumeMounts
 	volumes := _defaultVolumes
+	neuronContainer := kcore.Container{}
 
 	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
 	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	userPodResourceList[kcore.ResourceCPU] = *userPodCPURequest
 
+	var userPodMemRequest *kresource.Quantity
 	if api.Compute.Mem != nil {
-		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest = api.Compute.Mem.Quantity.Copy()
 		userPodMemRequest.Sub(_requestMonitorMemRequest)
-		resourceList[kcore.ResourceMemory] = *userPodMemRequest
+		userPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
 	if api.Compute.GPU > 0 {
-		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		userPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		userPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
 	if api.Compute.Accelerator > 0 {
-		totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
-		resourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI)
-		resourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI)
-		resourceLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-
-		fileType := kcore.HostPathSocket
 		volumes = append(volumes, kcore.Volume{
 			Name: "sock",
 			VolumeSource: kcore.VolumeSource{
-				HostPath: &kcore.HostPathVolumeSource{
-					Path: "/run/neuron.sock",
-					Type: &fileType,
-				},
+				EmptyDir: &kcore.EmptyDirVolumeSource{},
 			},
 		})
-
-		volumeMounts = append(volumeMounts, kcore.VolumeMount{
+		sockVolumeMount := kcore.VolumeMount{
 			Name:      "sock",
-			MountPath: "/sock/neuron.sock",
-		})
+			MountPath: "/sock",
+		}
+		userPodvolumeMounts = append(userPodvolumeMounts, sockVolumeMount)
+		neuronContainer = *neuronRuntimeDaemonContainer(api, sockVolumeMount)
+
+		if api.Compute.Mem != nil {
+			neuronRTD, userPodMemRequest := k8s.SplitInTwo(userPodMemRequest)
+			userPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
+			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *neuronRTD
+		}
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -366,12 +366,12 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						ImagePullPolicy: kcore.PullAlways,
 						Env:             getEnvVars(api),
 						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    volumeMounts,
+						VolumeMounts:    userPodvolumeMounts,
 						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
 						LivenessProbe:   _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
-							Requests: resourceList,
-							Limits:   resourceLimitsList,
+							Requests: userPodResourceList,
+							Limits:   userPodResourceLimitsList,
 						},
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
@@ -381,6 +381,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						},
 					},
 					*requestMonitorContainer(api),
+					neuronContainer,
 				},
 				NodeSelector: map[string]string{
 					"workload": "true",
@@ -661,6 +662,34 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 	}
 
 	return envVars
+}
+
+func neuronRuntimeDaemonContainer(api *spec.API, sockVolumeMount kcore.VolumeMount) *kcore.Container {
+	totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
+	return &kcore.Container{
+		Name:            _neuronRTDContainerName,
+		Image:           consts.DefaultImageNeuronRTD,
+		ImagePullPolicy: kcore.PullAlways,
+		SecurityContext: &kcore.SecurityContext{
+			Capabilities: &kcore.Capabilities{
+				Add: []kcore.Capability{
+					"SYS_ADMIN",
+					"IPC_LOCK",
+				},
+			},
+		},
+		VolumeMounts: []kcore.VolumeMount{sockVolumeMount},
+		Resources: kcore.ResourceRequirements{
+			Limits: kcore.ResourceList{
+				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI),
+				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI),
+			},
+			Requests: kcore.ResourceList{
+				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI),
+				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI),
+			},
+		},
+	}
 }
 
 func requestMonitorContainer(api *spec.API) *kcore.Container {

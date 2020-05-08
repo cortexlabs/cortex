@@ -54,6 +54,7 @@ const (
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
 	ErrRegistryAccountIDMismatch          = "operator.registry_account_id_mismatch"
 	ErrComputeResourceConflict            = "operator.compute_resource_conflict"
+	ErrInsufficientAcceleratorMemory      = "operator.insufficient_accelerator_memory"
 	ErrInvalidNumberOfAcceleratorWorkers  = "operator.invalid_number_of_accelerator_workers"
 )
 
@@ -277,6 +278,14 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrComputeResourceConflict,
 		Message: fmt.Sprintf("resources %s and %s cannot be mixed together", resourceA, resourceB),
+	})
+}
+
+func ErrorInsufficientAcceleratorMemory(requestedMem, minimumMem, numAccelerators, perAcceleratorMem string) error {
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInsufficientAcceleratorMemory,
+		Message: fmt.Sprintf("requested %s memory, but to cover the accelerator requirements, a minimum of %s = 2 * %s accelerator(s) * %s per accelerator is required",
+			requestedMem, minimumMem, numAccelerators, perAcceleratorMem),
 	})
 }
 

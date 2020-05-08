@@ -50,6 +50,7 @@ function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/inferentia --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/neuron-rtd --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/nvidia --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/fluentd --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/statsd --region=$REGISTRY_REGION || true
@@ -157,6 +158,7 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
     build_and_push $ROOT/images/metrics-server metrics-server latest
     build_and_push $ROOT/images/inferentia inferentia latest
+    build_and_push $ROOT/images/neuron-rtd neuron-rtd latest
     build_and_push $ROOT/images/nvidia nvidia latest
     build_and_push $ROOT/images/fluentd fluentd latest
     build_and_push $ROOT/images/statsd statsd latest
