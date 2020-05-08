@@ -116,9 +116,9 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 
 	if api.Compute.Accelerator > 0 {
 		totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
-		tfServingResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*math.Pow(1024, 2), kresource.BinarySI)
+		tfServingResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI)
 		tfServingResourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-		tfServingLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*math.Pow(1024, 2), kresource.BinarySI)
+		tfServingLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI)
 		tfServingLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
 
 		fileType := kcore.HostPathSocket
@@ -302,9 +302,9 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 
 	if api.Compute.Accelerator > 0 {
 		totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
-		resourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*math.Pow(1024, 2), kresource.BinarySI)
+		resourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI)
 		resourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*math.Pow(1024, 2), kresource.BinarySI)
+		resourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI)
 		resourceLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
 
 		fileType := kcore.HostPathSocket

@@ -119,7 +119,7 @@ def apply_accelerator_settings(nodegroup):
         # track https://github.com/aws/containers-roadmap/issues/619 ticket
         # such that when an EKS-optimized AMI for inf instances is released,
         # this ami override can be removed and reverted back to auto
-        "ami": "ami-0d5a224787b16da0b",
+        "ami": "ami-07a7b48058cfe1a73",
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/infa=true",
@@ -169,8 +169,11 @@ def generate_eks(configmap_yaml_path):
         "metadata": {
             "name": cluster_configmap["cluster_name"],
             "region": cluster_configmap["region"],
-            "version": "1.15",
+            "version": "1.16",
         },
+        "vpc": {"nat": {"gateway": "Disable"}},
+        "availabilityZones": cluster_configmap["availability_zones"],
+        "cloudWatch": {"clusterLogging": {"enableTypes": ["*"]}},
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
 

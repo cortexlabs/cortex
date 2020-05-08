@@ -156,7 +156,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
    1. Update the link at the top of the file to the URL you copied from
    1. Check that your diff is reasonable
-1. You can confirm the metric server is running by showing the logs of the metrics-server pod, or via `kubectl get deployment metrics-server -n kube-system` and `kubectl get apiservice v1beta1.metrics.k8s.io -o yaml`
+1. You can confirm the metric server is running by showing the logs of the metrics-server pod, or via `kubectl get deployment metrics-server -n kube-system` and `kubectl get apiservice v1.metrics.k8s.io -o yaml`
 
 Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
 
