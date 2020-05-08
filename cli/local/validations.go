@@ -18,6 +18,7 @@ package local
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"path/filepath"
 	"runtime"
@@ -276,7 +277,7 @@ func findTheNextAvailablePort(blackListedPorts []int) (int, error) {
 		blackListedSet[port] = struct{}{}
 	}
 
-	for _startingPort <= 65535 {
+	for _startingPort <= math.MaxUint16 {
 		if _, ok := blackListedSet[_startingPort]; ok {
 			_startingPort++
 			continue
