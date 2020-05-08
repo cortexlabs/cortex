@@ -36,6 +36,7 @@
 
 * [CLI commands](miscellaneous/cli.md)
 * [Environments](miscellaneous/environments.md)
+* [Architecture diagram](miscellaneous/architecture.md)
 * [Security](miscellaneous/security.md)
 * [Telemetry](miscellaneous/telemetry.md)
 
