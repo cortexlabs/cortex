@@ -67,7 +67,7 @@ func apiValidation(provider types.ProviderType) *cr.StructValidation {
 				StructField: "LocalPort",
 				IntPtrValidation: &cr.IntPtrValidation{
 					GreaterThan:       pointer.Int(0),
-					LessThanOrEqualTo: pointer.Int(65535),
+					LessThanOrEqualTo: pointer.Int(math.MaxUint16),
 				},
 			},
 			predictorValidation(),
