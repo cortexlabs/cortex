@@ -55,7 +55,7 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		buf.WriteString(s.Obj(*apiConfig.LocalPort))
 	}
 	buf.WriteString(s.Obj(apiConfig.Predictor))
-	buf.WriteString(s.Obj(apiConfig.Tracker))
+	buf.WriteString(s.Obj(apiConfig.Monitoring))
 	buf.WriteString(deploymentID)
 	buf.WriteString(projectID)
 	id := hash.Bytes(buf.Bytes())

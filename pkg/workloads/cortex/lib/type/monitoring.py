@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-class Tracker:
+class Monitoring:
     def __init__(self, **kwargs):
         self.key = kwargs.get("key")
         self.model_type = kwargs["model_type"]
@@ -22,13 +22,15 @@ class Tracker:
         if self.key is not None:
             if type(prediction) != dict:
                 raise ValueError(
-                    "failed to track key '{}': expected prediction to be of type dict but found '{}'".format(
+                    "failed to extract key '{}' for monitoring: expected prediction response to be of type dict but found '{}'".format(
                         self.key, type(prediction)
                     )
                 )
             if prediction.get(self.key) is None:
                 raise ValueError(
-                    "failed to track key '{}': not found in prediction".format(self.key)
+                    "failed to extract key '{}' for monitoring: key '{}' not found in prediction response".format(
+                        self.key, self.key
+                    )
                 )
             predicted_value = prediction[self.key]
         else:
@@ -37,7 +39,7 @@ class Tracker:
         if self.model_type == "classification":
             if type(predicted_value) != str and type(predicted_value) != int:
                 raise ValueError(
-                    "failed to track classification prediction: expected type 'str' or 'int' but encountered '{}'".format(
+                    "failed to parse classification prediction for monitoring: expected type 'str' or 'int' but encountered '{}'".format(
                         type(predicted_value)
                     )
                 )
@@ -45,7 +47,7 @@ class Tracker:
         else:
             if type(predicted_value) != float and type(predicted_value) != int:
                 raise ValueError(
-                    "failed to track regression prediction: expected type 'float' or 'int' but encountered '{}'".format(
+                    "failed to parse regression prediction for monitoring: expected type 'float' or 'int' but encountered '{}'".format(
                         type(predicted_value)
                     )
                 )

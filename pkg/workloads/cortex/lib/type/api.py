@@ -23,7 +23,7 @@ import datadog
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
 from cortex.lib.type.predictor import Predictor
-from cortex.lib.type.tracker import Tracker
+from cortex.lib.type.monitoring import Monitoring
 
 
 class API:
@@ -35,9 +35,9 @@ class API:
         self.name = kwargs["name"]
         self.endpoint = kwargs["endpoint"]
         self.predictor = Predictor(provider, cache_dir, **kwargs["predictor"])
-        self.tracker = None
-        if kwargs.get("tracker") is not None:
-            self.tracker = Tracker(**kwargs["tracker"])
+        self.monitoring = None
+        if kwargs.get("monitoring") is not None:
+            self.monitoring = Monitoring(**kwargs["monitoring"])
 
         self.cache_dir = cache_dir
         self.storage = storage
@@ -76,7 +76,7 @@ class API:
             metrics = [self.status_code_metric(status_code), self.latency_metric(total_time_ms)]
             self.post_metrics(metrics)
 
-    def post_tracker_metrics(self, prediction_value=None):
+    def post_monitoring_metrics(self, prediction_value=None):
         if prediction_value is not None:
             metrics = [self.prediction_metrics(prediction_value)]
             self.post_metrics(metrics)
@@ -133,7 +133,7 @@ class API:
         }
 
     def prediction_metrics(self, prediction_value):
-        if self.tracker.model_type == "classification":
+        if self.monitoring.model_type == "classification":
             dimensions_with_class = self.metric_dimensions() + [
                 {"Name": "Class", "Value": str(prediction_value)}
             ]

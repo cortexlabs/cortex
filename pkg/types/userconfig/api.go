@@ -34,7 +34,7 @@ type API struct {
 	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
 	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
-	Tracker        *Tracker        `json:"tracker" yaml:"tracker"`
+	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Compute        *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
@@ -55,7 +55,7 @@ type Predictor struct {
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 }
 
-type Tracker struct {
+type Monitoring struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
@@ -269,9 +269,9 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	}
 
 	if provider != types.LocalProviderType {
-		if api.Tracker != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
-			sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
+		if api.Monitoring != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
+			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
 		}
 
 		if api.Autoscaling != nil {
@@ -317,11 +317,11 @@ func (predictor *Predictor) UserStr() string {
 	return sb.String()
 }
 
-func (tracker *Tracker) UserStr() string {
+func (monitoring *Monitoring) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, tracker.ModelType.String()))
-	if tracker.Key != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *tracker.Key))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, monitoring.ModelType.String()))
+	if monitoring.Key != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *monitoring.Key))
 	}
 	return sb.String()
 }
