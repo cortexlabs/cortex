@@ -828,6 +828,8 @@ func removeEnvFromCLIConfig(envName string) error {
 		return err
 	}
 
+	prevDefault := getDefaultEnv(_generalCommandType)
+
 	var updatedEnvs []*cliconfig.Environment
 	deleted := false
 	for _, env := range cliConfig.Environments {
@@ -838,11 +840,18 @@ func removeEnvFromCLIConfig(envName string) error {
 		updatedEnvs = append(updatedEnvs, env)
 	}
 
-	if deleted == false && envName != types.LocalProviderType.String() {
+	if !deleted {
+		if envName == types.LocalProviderType.String() {
+			return nil
+		}
 		return cliconfig.ErrorEnvironmentNotConfigured(envName)
 	}
 
 	cliConfig.Environments = updatedEnvs
+
+	if envName == prevDefault {
+		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
+	}
 
 	if err := writeCLIConfig(cliConfig); err != nil {
 		return err
