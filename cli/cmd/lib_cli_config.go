@@ -230,7 +230,7 @@ func promptExistingEnvName(promptMsg string) string {
 		exit.Error(err)
 	}
 
-	fmt.Printf("currently configured environments: %s\n\n", strings.Join(configuredEnvNames, ", "))
+	fmt.Printf("your currently configured environments are: %s\n\n", strings.Join(configuredEnvNames, ", "))
 
 	envNameContainer := &struct {
 		EnvironmentName string
@@ -266,7 +266,7 @@ func promptAWSEnvName() string {
 	envNamesSet := strset.New(configuredEnvNames...)
 	envNamesSet.Remove("local")
 	if len(envNamesSet) > 0 {
-		fmt.Printf("currently configured AWS environments: %s\n\n", strings.Join(envNamesSet.Slice(), ", "))
+		fmt.Printf("your currently configured AWS environments are: %s\n\n", strings.Join(envNamesSet.Slice(), ", "))
 	}
 
 	envNameContainer := &struct {
@@ -294,6 +294,16 @@ func promptAWSEnvName() string {
 }
 
 func promptProvider(env *cliconfig.Environment) error {
+	if env.Name != "" {
+		if env.Name == types.LocalProviderType.String() {
+			env.Provider = types.LocalProviderType
+		} else {
+			env.Provider = types.AWSProviderType
+		}
+		fmt.Printf("provider: %s\n\n", env.Provider)
+		return nil
+	}
+
 	return cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
