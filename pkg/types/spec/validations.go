@@ -71,7 +71,7 @@ func apiValidation(provider types.ProviderType) *cr.StructValidation {
 				},
 			},
 			predictorValidation(),
-			trackerValidation(),
+			monitoringValidation(),
 			computeValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
@@ -154,9 +154,9 @@ func predictorValidation() *cr.StructFieldValidation {
 	}
 }
 
-func trackerValidation() *cr.StructFieldValidation {
+func monitoringValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
-		StructField: "Tracker",
+		StructField: "Monitoring",
 		StructValidation: &cr.StructValidation{
 			DefaultNil: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
