@@ -33,6 +33,7 @@ const (
 	ErrDuplicateEndpoint                    = "spec.duplicate_endpoint"
 	ErrSpecifyAllOrNone                     = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined         = "spec.one_of_prerequisites_not_defined"
+	ErrConfigGreaterThanOtherConfig         = "spec.config_greater_than_other_config"
 	ErrMinReplicasGreaterThanMax            = "spec.min_replicas_greater_than_max"
 	ErrInitReplicasGreaterThanMax           = "spec.init_replicas_greater_than_max"
 	ErrInitReplicasLessThanMin              = "spec.init_replicas_less_than_min"
@@ -120,6 +121,13 @@ func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisite string, prer
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOneOfPrerequisitesNotDefined,
 		Message: message,
+	})
+}
+
+func ErrorConfigGreaterThanOtherConfig(tooBigKey string, tooBigVal interface{}, tooSmallKey string, tooSmallVal interface{}) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConfigGreaterThanOtherConfig,
+		Message: fmt.Sprintf("%s (%s) cannot be greater than %s (%s)", tooBigKey, s.UserStr(tooBigVal), tooSmallKey, s.UserStr(tooSmallVal)),
 	})
 }
 
