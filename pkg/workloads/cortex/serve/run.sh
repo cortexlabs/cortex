@@ -48,11 +48,10 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
     conda install --file /mnt/project/conda-packages.txt
     NEWPYVERSION=$(eval $PYVERSION)
 
-    echo "old: ${OLDPYVERSION}"
-    echo "new: ${NEWPYVERSION}"
-
     # reinstall core packages if new version of python is used
     if [ $OLDPYVERSION != $NEWPYVERSION ]; then
+        echo "user has updated the Python version from $OLDPYVERSION to $NEWPYVERSION; this may break the web server"
+        echo "reinstalling core packages ..."
         pip --no-cache-dir install -r /src/cortex/serve/requirements.txt
         # no longer required
         rm -rf $CONDA_PREFIX/lib/python${OLDPYVERSION}
