@@ -19,9 +19,9 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/python-predictor-cpu or cortexlabs/python-predictor-gpu based on compute)
     env: <string: string>  # dictionary of environment variables
-  tracker:  # (aws only)
-    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
+  monitoring:  # (aws only)
     model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
+    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
@@ -64,9 +64,9 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
     tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tensorflow-serving-gpu or cortexlabs/tensorflow-serving-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
-  tracker:  # (aws only)
-    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
+  monitoring:  # (aws only)
     model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
+    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
@@ -107,9 +107,9 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-gpu or cortexlabs/onnx-predictor-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
-  tracker:  # (aws only)
-    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
+  monitoring:  # (aws only)
     model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
+    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
