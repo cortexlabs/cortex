@@ -48,7 +48,7 @@ var (
 		DefaultImageONNXServeGPU,
 	)
 
-	// TODO to place the neuron-rtd image in clusteconfig
+	// TODO to place the neuron-rtd image in clusterconfig
 	DefaultImageNeuronRTD = defaultDockerImage("neuron-rtd")
 
 	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats

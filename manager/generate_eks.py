@@ -123,6 +123,8 @@ def apply_accelerator_settings(nodegroup):
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/infa=true",
+            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/infa": "4",
+            "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": "1024Mi",
         },
         "labels": {"aws.amazon.com/infa": "true"},
         "taints": {"aws.amazon.com/infa": "true:NoSchedule"},
