@@ -176,12 +176,12 @@ def predict(request: Any = Body(..., media_type="application/json")):
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
-    if local_cache["provider"] != "local" and api.tracker is not None:
+    if local_cache["provider"] != "local" and api.monitoring is not None:
         try:
-            predicted_value = api.tracker.extract_predicted_value(prediction)
-            api.post_tracker_metrics(predicted_value)
+            predicted_value = api.monitoring.extract_predicted_value(prediction)
+            api.post_monitoring_metrics(predicted_value)
             if (
-                api.tracker.model_type == "classification"
+                api.monitoring.model_type == "classification"
                 and predicted_value not in local_cache["class_set"]
             ):
                 tasks = BackgroundTasks()
@@ -252,8 +252,8 @@ def start():
         sys.exit(1)
     if (
         provider != "local"
-        and api.tracker is not None
-        and api.tracker.model_type == "classification"
+        and api.monitoring is not None
+        and api.monitoring.model_type == "classification"
     ):
         try:
             local_cache["class_set"] = api.get_cached_classes()

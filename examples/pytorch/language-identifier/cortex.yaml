@@ -4,5 +4,5 @@
   predictor:
     type: python
     path: predictor.py
-  tracker:
+  monitoring:
     model_type: classification
