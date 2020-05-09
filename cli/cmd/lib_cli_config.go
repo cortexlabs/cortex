@@ -840,10 +840,7 @@ func removeEnvFromCLIConfig(envName string) error {
 		updatedEnvs = append(updatedEnvs, env)
 	}
 
-	if !deleted {
-		if envName == types.LocalProviderType.String() {
-			return nil
-		}
+	if !deleted && envName != types.LocalProviderType.String() {
 		return cliconfig.ErrorEnvironmentNotConfigured(envName)
 	}
 
