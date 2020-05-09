@@ -5,5 +5,5 @@
     type: onnx
     path: predictor.py
     model: s3://cortex-examples/xgboost/iris-classifier/gbtree.onnx
-  tracker:
+  monitoring:
     model_type: classification

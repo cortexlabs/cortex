@@ -310,8 +310,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 	api := apiRes.API
 
-	if env.Provider != types.LocalProviderType && api.Tracker != nil {
-		switch api.Tracker.ModelType {
+	if env.Provider != types.LocalProviderType && api.Monitoring != nil {
+		switch api.Monitoring.ModelType {
 		case userconfig.ClassificationModelType:
 			out += "\n" + classificationMetricsStr(&apiRes.Metrics)
 		case userconfig.RegressionModelType:
@@ -485,8 +485,8 @@ func classificationMetricsStr(metrics *metrics.Metrics) string {
 
 	out := t.MustFormat()
 
-	if len(classList) == consts.MaxClassesPerTrackerRequest {
-		out += fmt.Sprintf("\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard\n", consts.MaxClassesPerTrackerRequest)
+	if len(classList) == consts.MaxClassesPerMonitoringRequest {
+		out += fmt.Sprintf("\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard\n", consts.MaxClassesPerMonitoringRequest)
 	}
 	return out
 }

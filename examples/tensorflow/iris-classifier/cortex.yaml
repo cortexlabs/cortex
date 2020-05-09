@@ -5,5 +5,5 @@
     type: tensorflow
     path: predictor.py
     model: s3://cortex-examples/tensorflow/iris-classifier/nn
-  tracker:
+  monitoring:
     model_type: classification
