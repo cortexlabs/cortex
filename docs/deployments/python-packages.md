@@ -78,4 +78,6 @@ conda-forge::pygpu
 
 In situations where both `requirements.txt` and `conda-packages.txt` are provided, Cortex installs Conda packages in `conda-packages.txt` followed by PyPI packages in `requirements.txt`. Conda and Pip package managers install packages and dependencies independently. You may run into situations where Conda and pip package managers install different versions of the same package because they install and resolve dependencies independently from one another. To resolve package version conflicts, it may be in your best interest to specify their exact versions in `conda-packages.txt`.
 
+The current version of Python is `3.6.9`. Updating Python to a different version is possible with Conda, but there are no guarantees the web server will continue functioning correctly. If there's a change in Python's version, the necessary core packages for the web server will get reinstalled.
+
 Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environment/) on using `pip` inside `conda`.
