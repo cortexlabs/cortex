@@ -14,4 +14,4 @@
 
 from cortex.lib.type.api import API
 from cortex.lib.type.predictor import Predictor
-from cortex.lib.type.tracker import Tracker
+from cortex.lib.type.monitoring import Monitoring

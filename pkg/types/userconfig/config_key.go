@@ -22,7 +22,7 @@ const (
 	EndpointKey       = "endpoint"
 	LocalPortKey      = "local_port"
 	PredictorKey      = "predictor"
-	TrackerKey        = "tracker"
+	MonitoringKey     = "monitoring"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"
 	UpdateStrategyKey = "update_strategy"
@@ -38,7 +38,7 @@ const (
 	EnvKey                    = "env"
 	SignatureKeyKey           = "signature_key"
 
-	// Tracker
+	// Monitoring
 	KeyKey       = "key"
 	ModelTypeKey = "model_type"
 

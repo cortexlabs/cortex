@@ -6,3 +6,5 @@
     path: predictor.py
     config:
       model: s3://cortex-examples/sklearn/mpg-estimator/linreg
+  monitoring:
+    model_type: regression
