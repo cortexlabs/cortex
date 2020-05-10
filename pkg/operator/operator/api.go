@@ -157,6 +157,18 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		return err
 	}
 
+	// delete api from cloudwatch
+	if config.Cluster.Config.Cloudwatch {
+		statuses, err := GetAllStatuses()
+		if err != nil {
+			return errors.Wrap(err, "Failed get API Statuses")
+		}
+		err = config.AWS.DeleteAPICloudwatch(statuses, config.Cluster.ClusterName, apiName)
+		if err != nil {
+			return errors.Wrap(err, "Failed deleting Cloudwatch API")
+		}
+	}
+
 	return nil
 }
 

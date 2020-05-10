@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 )
 
 func (c *Client) DoesLogGroupExist(logGroup string) (bool, error) {
@@ -63,14 +64,14 @@ func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, n
 	}
 	// get body string from GetDashboard return object
 	currDashboardString := *currDashboardOutput.DashboardBody
-
-	apiTitleWidget := createTextWidget(1, getHighestYDashboard(currDashboardString)+1, 22, 1, "## API: "+nameAPI)
-
-	inFlightWidget := createMetricWidget(1, getHighestYDashboard(currDashboardString)+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", dashboardRegion)
-
-	latencyWidget := createMetricWidget(12, getHighestYDashboard(currDashboardString)+2, 11, 6, latencyMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
-
-	statCodeWidget := createMetricWidget(1, getHighestYDashboard(currDashboardString)+8, 11, 6, statCodeMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
+	highestY, err := getHighestYDashboard(currDashboardString)
+	if err != nil {
+		return errors.Wrap(err)
+	}
+	apiTitleWidget := createTextWidget(1, highestY+1, 22, 1, "## API: "+nameAPI)
+	inFlightWidget := createMetricWidget(1, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", dashboardRegion)
+	latencyWidget := createMetricWidget(12, highestY+2, 11, 6, latencyMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
+	statCodeWidget := createMetricWidget(1, highestY+8, 11, 6, statCodeMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
 
 	//define interface to unmarshal received body string
 	var currDashboardHolder interface{}
@@ -281,13 +282,13 @@ func statCodeMetric(dashboardName string, nameAPI string, apiID string) []interf
 }
 
 //getHighestYDashboard takes dashboard string as input an gives back highest Y coordinate
-func getHighestYDashboard(dash string) int {
+func getHighestYDashboard(dash string) (int, error) {
 	highestY := 0
 
 	var currDash interface{}
 	err := json.Unmarshal([]byte(dash), &currDash)
 	if err != nil {
-		return -1
+		return -1, err
 	}
 	currDashInter := currDash.(map[string]interface{})
 	widgets := currDashInter["widgets"].([]interface{})
@@ -300,5 +301,30 @@ func getHighestYDashboard(dash string) int {
 		}
 
 	}
-	return highestY
+
+	return highestY, nil
+}
+
+// deleteAPI deletes api and reformart cloudwatch
+func (c *Client) DeleteAPICloudwatch(statuses []status.Status, clusterName, apiName string) error {
+
+	//delete old dashboard by creating a new base dashboard
+	err := c.CreateDashboard(clusterName)
+	if err != nil {
+		return errors.Wrap(err, "Failed getting API statuses while deleting API")
+	}
+
+	// update dashboard for with all api execpt one to delete
+	for _, stat := range statuses {
+		if stat.APIName != apiName {
+			c.UpdateDashboard(clusterName, c.Region, stat.APIName, stat.APIID)
+		}
+
+	}
+
+	if err != nil {
+		return errors.Wrap(err, "Failed to encode CLoudwatch Base Body into json")
+	}
+
+	return nil
 }
