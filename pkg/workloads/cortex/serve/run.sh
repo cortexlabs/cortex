@@ -42,19 +42,18 @@ fi
 
 # install from conda-packages.txt
 if [ -f "/mnt/project/conda-packages.txt" ]; then
-    PYVERSION='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
-    OLDPYVERSION=$(eval $PYVERSION)
+    py_version_cmd='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
+    old_py_version=$(eval $py_version_cmd)
 
     conda install --file /mnt/project/conda-packages.txt
-    NEWPYVERSION=$(eval $PYVERSION)
+    new_py_version=$(eval $py_version_cmd)
 
-    # reinstall core packages if new version of python is used
-    if [ $OLDPYVERSION != $NEWPYVERSION ]; then
-        echo "user has updated the Python version from $OLDPYVERSION to $NEWPYVERSION; this may break the web server"
+    # reinstall core packages if Python version has changed
+    if [ $old_py_version != $new_py_version ]; then
+        echo "warning: you have changed the Python version from $old_py_version to $new_py_version; this may break Cortex's web server"
         echo "reinstalling core packages ..."
         pip --no-cache-dir install -r /src/cortex/serve/requirements.txt
-        # no longer required
-        rm -rf $CONDA_PREFIX/lib/python${OLDPYVERSION}
+        rm -rf $CONDA_PREFIX/lib/python${old_py_version}  # previous python is no longer needed
     fi
 fi
 
