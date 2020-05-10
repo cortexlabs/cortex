@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// cx cluster up/down
-
 package cmd
 
 import (
@@ -438,8 +436,6 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 }
 
 func printInfoResponse(clusterConfig clusterconfig.Config, operatorEndpoint string, awsCreds AWSCredentials) error {
-	// operatorEndpoint := "http://localhost:8888"
-
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:          isTelemetryEnabled(),
 		EnvName:            _flagClusterEnv,
