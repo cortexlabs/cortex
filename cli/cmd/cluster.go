@@ -378,22 +378,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 		exit.Error(err)
 	}
 
-	clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
-	if err != nil {
-		if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-			fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually in your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
-		}
-		exit.Error(err)
-	}
-
-	fmt.Println(clusterState.TableString())
-	if clusterState.Status == clusterstate.StatusCreateFailed || clusterState.Status == clusterstate.StatusDeleteFailed {
-		fmt.Println(fmt.Sprintf("More information can be found in your AWS console %s", getCloudFormationURLWithAccessConfig(accessConfig)))
-		fmt.Println()
-	}
-
-	err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
-	if err != nil {
+	if err := printInfoClusterState(awsClient, accessConfig); err != nil {
 		exit.Error(err)
 	}
 
@@ -418,6 +403,41 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 		}
 	}
 
+	if err := printInfoResponse(clusterConfig, operatorEndpoint, awsCreds); err != nil {
+		exit.Error(err)
+	}
+
+	if err := updateInfoEnvironment(operatorEndpoint, awsCreds, disallowPrompt); err != nil {
+		exit.Error(err)
+	}
+}
+
+func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) error {
+	clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+	if err != nil {
+		if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
+			fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually in your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+		}
+		return err
+	}
+
+	fmt.Println(clusterState.TableString())
+	if clusterState.Status == clusterstate.StatusCreateFailed || clusterState.Status == clusterstate.StatusDeleteFailed {
+		fmt.Println(fmt.Sprintf("More information can be found in your AWS console %s", getCloudFormationURLWithAccessConfig(accessConfig)))
+		fmt.Println()
+	}
+
+	err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func printInfoResponse(clusterConfig clusterconfig.Config, operatorEndpoint string, awsCreds AWSCredentials) error {
+	// operatorEndpoint := "http://localhost:8888"
+
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:          isTelemetryEnabled(),
 		EnvName:            _flagClusterEnv,
@@ -429,7 +449,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 
 	infoResponse, err := cluster.Info(operatorConfig)
 	if err != nil {
-		exit.Error(err)
+		return err
 	}
 
 	infoResponse.ClusterConfig.Config = clusterConfig
@@ -439,10 +459,13 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	items.AddAll(infoResponse.ClusterConfig.UserTable())
 
 	items.Print()
+	return nil
+}
 
+func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
 	prevEnv, err := readEnv(_flagClusterEnv)
 	if err != nil {
-		exit.Error(err)
+		return err
 	}
 
 	newEnvironment := cliconfig.Environment{
@@ -456,7 +479,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	shouldWriteEnv := false
 	if prevEnv == nil {
 		shouldWriteEnv = true
-	} else if *prevEnv.OperatorEndpoint != operatorConfig.OperatorEndpoint || *prevEnv.AWSAccessKeyID != operatorConfig.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != operatorConfig.AWSSecretAccessKey {
+	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || *prevEnv.AWSAccessKeyID != awsCreds.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != awsCreds.AWSSecretAccessKey {
 		fmt.Println()
 		fmt.Println(newEnvironment.String(false))
 		if disallowPrompt {
@@ -470,11 +493,13 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	if shouldWriteEnv {
 		err := addEnvToCLIConfig(newEnvironment)
 		if err != nil {
-			exit.Error(err)
+			return err
 		}
 
 		print.BoldFirstLine(fmt.Sprintf("configured %s environment", _flagClusterEnv))
 	}
+
+	return nil
 }
 
 func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
