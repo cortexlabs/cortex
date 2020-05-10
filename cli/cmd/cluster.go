@@ -453,6 +453,7 @@ func printInfoResponse(clusterConfig clusterconfig.Config, operatorEndpoint stri
 
 	printInfoClusterConfig(infoResponse)
 	printInfoPricing(infoResponse, clusterConfig)
+	printInfoNodes(infoResponse)
 
 	return nil
 }
@@ -511,11 +512,56 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 		rows = append(rows, []interface{}{fmt.Sprintf("%d nat gateways", numNATs), s.DollarsMaxPrecision(natUnitPrice*float64(numNATs)) + " total"})
 	}
 
-	items := table.Table{
+	t := table.Table{
 		Headers: headers,
 		Rows:    rows,
 	}
-	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
+	fmt.Println(t.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
+}
+
+func printInfoNodes(infoResponse *schema.InfoResponse) {
+	numAPIInstances := len(infoResponse.NodeInfos)
+
+	var totalAPIInstancePrice float64
+	var totalReplicas int
+	for _, nodeInfo := range infoResponse.NodeInfos {
+		totalAPIInstancePrice += nodeInfo.Price
+		totalReplicas += nodeInfo.NumReplicas
+	}
+
+	var pendingReplicaStr string
+	if infoResponse.NumPendingReplicas > 0 {
+		pendingReplicaStr = fmt.Sprintf(", and %d unscheduled %s", infoResponse.NumPendingReplicas, s.PluralS("replica", infoResponse.NumPendingReplicas))
+	}
+
+	fmt.Printf("your cluster has %d API %s running in %d %s%s:\n", totalReplicas, s.PluralS("replica", totalReplicas), numAPIInstances, s.PluralS("instance", numAPIInstances), pendingReplicaStr)
+
+	headers := []table.Header{
+		{Title: "instance type"},
+		{Title: "lifecycle"},
+		{Title: "replicas"},
+		{Title: "CPU (avail / capacity)"},
+		{Title: "memory (avail / capacity)"},
+		{Title: "GPU (avail / capacity)"},
+	}
+
+	rows := [][]interface{}{}
+	for _, nodeInfo := range infoResponse.NodeInfos {
+		lifecycle := "on-demand"
+		if nodeInfo.IsSpot {
+			lifecycle = "spot"
+		}
+		cpuStr := nodeInfo.ComputeAvailable.CPU.String() + " / " + nodeInfo.ComputeCapacity.CPU.String()
+		memStr := nodeInfo.ComputeAvailable.Mem.String() + " / " + nodeInfo.ComputeCapacity.Mem.String()
+		gpuStr := s.Int64(nodeInfo.ComputeAvailable.GPU) + " / " + s.Int64(nodeInfo.ComputeCapacity.GPU)
+		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, cpuStr, memStr, gpuStr})
+	}
+
+	t := table.Table{
+		Headers: headers,
+		Rows:    rows,
+	}
+	fmt.Println(t.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
 }
 
 func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {

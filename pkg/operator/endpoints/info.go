@@ -19,6 +19,7 @@ package endpoints
 import (
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -31,7 +32,7 @@ import (
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
-	nodeInfos, err := getNodeInfos()
+	nodeInfos, numPendingReplicas, err := getNodeInfos()
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -41,19 +42,20 @@ func Info(w http.ResponseWriter, r *http.Request) {
 		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
 		ClusterConfig:        *config.Cluster,
 		NodeInfos:            nodeInfos,
+		NumPendingReplicas:   numPendingReplicas,
 	}
 	respond(w, response)
 }
 
-func getNodeInfos() ([]schema.NodeInfo, error) {
+func getNodeInfos() ([]schema.NodeInfo, int, error) {
 	pods, err := config.K8sAllNamspaces.ListPods(nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	nodes, err := config.K8sAllNamspaces.ListNodesByLabel("workload", "true")
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	nodeInfoMap := make(map[string]*schema.NodeInfo, len(nodes)) // node name -> info
@@ -79,6 +81,7 @@ func getNodeInfos() ([]schema.NodeInfo, error) {
 		}
 
 		nodeInfoMap[node.Name] = &schema.NodeInfo{
+			Name:             node.Name,
 			InstanceType:     instanceType,
 			IsSpot:           isSpot,
 			Price:            price,
@@ -88,7 +91,14 @@ func getNodeInfos() ([]schema.NodeInfo, error) {
 		}
 	}
 
+	var numPendingReplicas int
+
 	for _, pod := range pods {
+		if pod.Spec.NodeName == "" {
+			numPendingReplicas++ // TODO test this
+			continue
+		}
+
 		node, ok := nodeInfoMap[pod.Spec.NodeName]
 		if !ok {
 			continue
@@ -113,12 +123,19 @@ func getNodeInfos() ([]schema.NodeInfo, error) {
 		}
 	}
 
-	nodeInfos := make([]schema.NodeInfo, 0, len(nodeInfoMap))
-	for _, nodeInfo := range nodeInfoMap {
-		nodeInfos = append(nodeInfos, *nodeInfo)
+	nodeNames := make([]string, 0, len(nodeInfoMap))
+	for nodeName := range nodeInfoMap {
+		nodeNames = append(nodeNames, nodeName)
 	}
 
-	return nodeInfos, nil
+	sort.Strings(nodeNames)
+
+	nodeInfos := make([]schema.NodeInfo, len(nodeNames))
+	for i, nodeName := range nodeNames {
+		nodeInfos[i] = *nodeInfoMap[nodeName]
+	}
+
+	return nodeInfos, numPendingReplicas, nil
 }
 
 func nodeComputeAllocatable(node *kcore.Node) userconfig.Compute {

@@ -28,9 +28,11 @@ type InfoResponse struct {
 	MaskedAWSAccessKeyID string                       `json:"masked_aws_access_key_id"`
 	ClusterConfig        clusterconfig.InternalConfig `json:"cluster_config"`
 	NodeInfos            []NodeInfo                   `json:"node_infos"`
+	NumPendingReplicas   int                          `json:"num_pending_replicas"`
 }
 
 type NodeInfo struct {
+	Name             string             `json:"name"`
 	InstanceType     string             `json:"instance_type"`
 	IsSpot           bool               `json:"is_spot"`
 	Price            float64            `json:"price"`
