@@ -74,8 +74,7 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 
 func WrapQuantity(k8sQuantity kresource.Quantity) *Quantity {
 	return &Quantity{
-		Quantity:   k8sQuantity,
-		UserString: k8sQuantity.String(),
+		Quantity: k8sQuantity,
 	}
 }
 
@@ -83,8 +82,7 @@ func NewQuantity(value int64) *Quantity {
 	k8sQuantity := kresource.NewQuantity(value, kresource.DecimalSI)
 
 	return &Quantity{
-		Quantity:   *k8sQuantity,
-		UserString: k8sQuantity.String(),
+		Quantity: *k8sQuantity,
 	}
 }
 
@@ -122,22 +120,22 @@ func SplitInTwo(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Q
 
 func (quantity *Quantity) Sub(q2 kresource.Quantity) {
 	quantity.Quantity.Sub(q2)
-	quantity.UserString = quantity.Quantity.String()
+	quantity.UserString = ""
 }
 
 func (quantity *Quantity) SubQty(q2 Quantity) {
 	quantity.Quantity.Sub(q2.Quantity)
-	quantity.UserString = quantity.Quantity.String()
+	quantity.UserString = ""
 }
 
 func (quantity *Quantity) Add(q2 kresource.Quantity) {
 	quantity.Quantity.Add(q2)
-	quantity.UserString = quantity.Quantity.String()
+	quantity.UserString = ""
 }
 
 func (quantity *Quantity) AddQty(q2 Quantity) {
 	quantity.Quantity.Add(q2.Quantity)
-	quantity.UserString = quantity.Quantity.String()
+	quantity.UserString = ""
 }
 
 func (quantity *Quantity) String() string {
