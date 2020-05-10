@@ -18,6 +18,7 @@ package aws
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -53,24 +54,6 @@ func (c *Client) CreateLogGroup(logGroup string) error {
 // UpdateDashboard updates existing dashboard by adding new widgets for new API
 func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, nameAPI string, apiID string) error {
 
-	inFlightMetric, err := json.Marshal(inFlightMetric(dashboardName, nameAPI))
-	if err != nil {
-		return errors.Wrap(err)
-	}
-	inFlightWidget := createMetricWidget(1, 2, 11, 6, string(inFlightMetric), "In flight requests", "Sum", dashboardRegion)
-
-	latencyMetric, err := json.Marshal(latencyMetric(dashboardName, nameAPI, apiID))
-	if err != nil {
-		return errors.Wrap(err)
-	}
-	latencyWidget := createMetricWidget(1, 2, 11, 6, string(latencyMetric), "p99 of request response time", "p99", dashboardRegion)
-
-	statCodeMetric, err := json.Marshal(statCodeMetric(dashboardName, nameAPI, apiID))
-	if err != nil {
-		return errors.Wrap(err)
-	}
-	statCodeWidget := createMetricWidget(1, 8, 11, 6, string(statCodeMetric), "p99 of request response time", "p99", dashboardRegion)
-
 	// get current dashboard
 	currDashboardOutput, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
 		DashboardName: aws.String(dashboardName),
@@ -81,6 +64,14 @@ func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, n
 	// get body string from GetDashboard return object
 	currDashboardString := *currDashboardOutput.DashboardBody
 
+	apiTitleWidget := createTextWidget(1, getHighestYDashboard(currDashboardString)+1, 22, 1, "## API: "+nameAPI)
+
+	inFlightWidget := createMetricWidget(1, getHighestYDashboard(currDashboardString)+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", dashboardRegion)
+
+	latencyWidget := createMetricWidget(12, getHighestYDashboard(currDashboardString)+2, 11, 6, latencyMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
+
+	statCodeWidget := createMetricWidget(1, getHighestYDashboard(currDashboardString)+8, 11, 6, statCodeMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
+
 	//define interface to unmarshal received body string
 	var currDashboardHolder interface{}
 	err = json.Unmarshal([]byte(currDashboardString), &currDashboardHolder)
@@ -88,16 +79,23 @@ func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, n
 		return errors.Wrap(err)
 	}
 
-	currDashboard, _ := currDashboardHolder.(map[string]interface{})
+	currDashboard := currDashboardHolder.(map[string]interface{})
 	widgetSlice := currDashboard["widgets"].([]interface{})
-	widgetSlice = append(widgetSlice, []interface{}{inFlightWidget}, []interface{}{latencyWidget}, []interface{}{statCodeWidget})
-	currDashboard["widgets"] = widgetSlice
-	currDashboardJSON, _ := json.Marshal(currDashboard)
+	fmt.Println([]interface{}{inFlightWidget, latencyWidget, statCodeWidget})
+	widgetSlice = append(widgetSlice, inFlightWidget, latencyWidget, statCodeWidget, apiTitleWidget)
 
+	currDashboard["widgets"] = widgetSlice
+	currDashboardJSON, err := json.Marshal(currDashboard)
+	if err != nil {
+		return errors.Wrap(err)
+	}
 	_, err = c.CloudWatch().PutDashboard(&cloudwatch.PutDashboardInput{
 		DashboardName: aws.String(dashboardName),
 		DashboardBody: aws.String(string(currDashboardJSON)),
 	})
+	if err != nil {
+		return errors.Wrap(err)
+	}
 	return nil
 }
 
@@ -117,7 +115,7 @@ func (c *Client) CreateDashboard(dashboardName string) error {
 	}
 
 	//create cloudwatch base body with title
-	cloudwatchBaseBody := map[string]interface{}{"start": "-PT1H", "periodOverride": "inherit", "widgets": []interface{}{createTextWidget(8, 1, 8, 1, "# CORTEX MONITORING DASHBOARD")}}
+	cloudwatchBaseBody := map[string]interface{}{"start": "-PT1H", "periodOverride": "inherit", "widgets": []interface{}{createTextWidget(7, 0, 10, 1, "# CORTEX MONITORING DASHBOARD")}}
 	cloudwatchBaseBodyJSON, err := json.Marshal(cloudwatchBaseBody)
 	if err != nil {
 		return errors.Wrap(err, "Failed to encode CLoudwatch Base Body into json")
@@ -205,7 +203,7 @@ func createMetricWidget(x int,
 	y int,
 	width int,
 	height int,
-	metric string,
+	metric []interface{},
 	title string,
 	stat string,
 	region string) map[string]interface{} {
@@ -280,4 +278,27 @@ func statCodeMetric(dashboardName string, nameAPI string, apiID string) []interf
 
 	return []interface{}{metric4, metric3, metric2, metric5}
 
+}
+
+//getHighestYDashboard takes dashboard string as input an gives back highest Y coordinate
+func getHighestYDashboard(dash string) int {
+	highestY := 0
+
+	var currDash interface{}
+	err := json.Unmarshal([]byte(dash), &currDash)
+	if err != nil {
+		return -1
+	}
+	currDashInter := currDash.(map[string]interface{})
+	widgets := currDashInter["widgets"].([]interface{})
+
+	for _, wid := range widgets {
+		widInter := wid.(map[string]interface{})
+		y := int(widInter["y"].(float64))
+		if highestY < y {
+			highestY = y
+		}
+
+	}
+	return highestY
 }

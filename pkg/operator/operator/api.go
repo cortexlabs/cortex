@@ -58,6 +58,14 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
+		// add api to cloudwatch if config is enabled
+		if config.Cluster.Config.Cloudwatch {
+			err = config.AWS.UpdateDashboard(config.Cluster.Config.ClusterName, *config.Cluster.Config.Region, apiConfig.Name, api.ID)
+			if err != nil {
+				return nil, "", errors.Wrap(err, "Failed updating Cloudwatch")
+			}
+		}
+
 		return api, fmt.Sprintf("creating %s", api.Name), nil
 	}
 

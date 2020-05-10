@@ -17,7 +17,6 @@ limitations under the License.
 package endpoints
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -93,21 +92,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
 			respondError(w, r, err)
 			return
-		}
-	}
-
-	fmt.Println(config.Cluster.Config.Cloudwatch)
-	fmt.Println(config.Cluster.Config.ClusterName)
-	fmt.Println(*config.Cluster.Config.Region)
-	//only if clouwatch true in clusterconfig
-	if config.Cluster.Config.Cloudwatch {
-		//for every api in config update dashboard
-		for _, apiConifg := range apiConfigs {
-			fmt.Println(apiConifg.Name)
-			fmt.Println(apiConifg.Tracker)
-			fmt.Println(apiConifg.Endpoint)
-			fmt.Println(apiConifg.Index)
-			config.AWS.UpdateDashboard(config.Cluster.Config.ClusterName, *config.Cluster.Config.Region, apiConifg.Name, *apiConifg.Endpoint)
 		}
 	}
 

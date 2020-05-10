@@ -314,6 +314,15 @@ var _downCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
 
+		// delete Cloudwatch Dashboard
+		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, _flagClusterDisallowPrompt)
+		if cachedClusterConfig.Cloudwatch {
+			err = awsClient.DeleteDashboard(cachedClusterConfig.ClusterName)
+			if err != nil {
+				exit.Error(err)
+			}
+		}
+
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
