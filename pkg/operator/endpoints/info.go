@@ -94,7 +94,9 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 	var numPendingReplicas int
 
 	for _, pod := range pods {
-		if pod.Spec.NodeName == "" {
+		_, isAPIPod := pod.Labels["apiName"]
+
+		if pod.Spec.NodeName == "" && isAPIPod {
 			numPendingReplicas++
 			continue
 		}
@@ -103,8 +105,6 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		if !ok {
 			continue
 		}
-
-		_, isAPIPod := pod.Labels["apiName"]
 
 		if isAPIPod {
 			node.NumReplicas++

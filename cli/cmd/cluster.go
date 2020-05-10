@@ -467,6 +467,7 @@ func printInfoClusterConfig(infoResponse *schema.InfoResponse) {
 
 func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterconfig.Config) {
 	numAPIInstances := len(infoResponse.NodeInfos)
+
 	var totalAPIInstancePrice float64
 	for _, nodeInfo := range infoResponse.NodeInfos {
 		totalAPIInstancePrice += nodeInfo.Price
@@ -522,19 +523,17 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 func printInfoNodes(infoResponse *schema.InfoResponse) {
 	numAPIInstances := len(infoResponse.NodeInfos)
 
-	var totalAPIInstancePrice float64
 	var totalReplicas int
 	for _, nodeInfo := range infoResponse.NodeInfos {
-		totalAPIInstancePrice += nodeInfo.Price
 		totalReplicas += nodeInfo.NumReplicas
 	}
 
-	var pendingReplicaStr string
+	var pendingReplicasStr string
 	if infoResponse.NumPendingReplicas > 0 {
-		pendingReplicaStr = fmt.Sprintf(", and %d unscheduled %s", infoResponse.NumPendingReplicas, s.PluralS("replica", infoResponse.NumPendingReplicas))
+		pendingReplicasStr = fmt.Sprintf(", and %d unscheduled %s", infoResponse.NumPendingReplicas, s.PluralS("replica", infoResponse.NumPendingReplicas))
 	}
 
-	fmt.Printf("your cluster has %d API %s running in %d %s%s:\n", totalReplicas, s.PluralS("replica", totalReplicas), numAPIInstances, s.PluralS("instance", numAPIInstances), pendingReplicaStr)
+	fmt.Printf("your cluster has %d API %s running in %d %s%s:\n", totalReplicas, s.PluralS("replica", totalReplicas), numAPIInstances, s.PluralS("instance", numAPIInstances), pendingReplicasStr)
 
 	headers := []table.Header{
 		{Title: "instance type"},
