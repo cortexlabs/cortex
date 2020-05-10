@@ -19,16 +19,93 @@ package endpoints
 import (
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	kcore "k8s.io/api/core/v1"
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
+	nodeInfos, err := getNodeInfos()
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
 	response := schema.InfoResponse{
 		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
 		ClusterConfig:        *config.Cluster,
+		NodeInfos:            nodeInfos,
 	}
 	respond(w, response)
+}
+
+func getNodeInfos() ([]schema.NodeInfo, error) {
+	pods, err := config.K8sAllNamspaces.ListPods(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	nodes, err := config.K8sAllNamspaces.ListNodesByLabel("workload", "true")
+	if err != nil {
+		return nil, err
+	}
+
+	nodeInfoMap := make(map[string]*schema.NodeInfo, len(nodes)) // node name -> info
+
+	for _, node := range nodes {
+		nodeInfoMap[node.Name] = &schema.NodeInfo{
+			InstanceType:     node.Labels["beta.kubernetes.io/instance-type"],
+			IsSpot:           strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot"),
+			NumReplicas:      0,                             // will be added to below
+			ComputeCapacity:  nodeComputeAllocatable(&node), // will be subtracted from below
+			ComputeAvailable: nodeComputeAllocatable(&node), // will be subtracted from below
+		}
+	}
+
+	for _, pod := range pods {
+		node, ok := nodeInfoMap[pod.Spec.NodeName]
+		if !ok {
+			continue
+		}
+
+		_, isAPIPod := pod.Labels["apiName"]
+
+		if isAPIPod {
+			node.NumReplicas++
+		}
+
+		cpu, mem, gpu := k8s.TotalPodCompute(&pod.Spec)
+
+		node.ComputeAvailable.CPU.SubQty(cpu)
+		node.ComputeAvailable.Mem.SubQty(mem)
+		node.ComputeAvailable.GPU -= gpu
+
+		if !isAPIPod {
+			node.ComputeCapacity.CPU.SubQty(cpu)
+			node.ComputeCapacity.Mem.SubQty(mem)
+			node.ComputeCapacity.GPU -= gpu
+		}
+	}
+
+	nodeInfos := make([]schema.NodeInfo, 0, len(nodeInfoMap))
+	for _, nodeInfo := range nodeInfoMap {
+		nodeInfos = append(nodeInfos, *nodeInfo)
+	}
+
+	return nodeInfos, nil
+}
+
+func nodeComputeAllocatable(node *kcore.Node) userconfig.Compute {
+	gpuQty := node.Status.Allocatable["nvidia.com/gpu"]
+
+	return userconfig.Compute{
+		CPU: k8s.WrapQuantity(*node.Status.Allocatable.Cpu()),
+		Mem: k8s.WrapQuantity(*node.Status.Allocatable.Memory()),
+		GPU: (&gpuQty).Value(),
+	}
 }

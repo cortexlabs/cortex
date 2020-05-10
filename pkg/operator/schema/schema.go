@@ -21,11 +21,21 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type InfoResponse struct {
 	MaskedAWSAccessKeyID string                       `json:"masked_aws_access_key_id"`
 	ClusterConfig        clusterconfig.InternalConfig `json:"cluster_config"`
+	NodeInfos            []NodeInfo                   `json:"node_infos"`
+}
+
+type NodeInfo struct {
+	InstanceType     string             `json:"instance_type"`
+	NumReplicas      int                `json:"num_replicas"`
+	IsSpot           bool               `json:"is_spot"`
+	ComputeCapacity  userconfig.Compute `json:"compute_capacity"`  // the total resources available to the user on a node
+	ComputeAvailable userconfig.Compute `json:"compute_available"` // unused resources on a node
 }
 
 type DeployResponse struct {

@@ -349,10 +349,7 @@ func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
 		totalCPU.Add(requests[kcore.ResourceCPU])
 		totalMem.Add(requests[kcore.ResourceMemory])
 		if gpu, ok := requests["nvidia.com/gpu"]; ok {
-			gpuVal, ok := gpu.AsInt64()
-			if ok {
-				totalGPU += gpuVal
-			}
+			totalGPU += gpu.Value()
 		}
 	}
 

@@ -34,10 +34,11 @@ import (
 const _clusterConfigPath = "/configs/cluster/cluster.yaml"
 
 var (
-	Cluster  *clusterconfig.InternalConfig
-	AWS      *aws.Client
-	K8s      *k8s.Client
-	K8sIstio *k8s.Client
+	Cluster         *clusterconfig.InternalConfig
+	AWS             *aws.Client
+	K8s             *k8s.Client
+	K8sIstio        *k8s.Client
+	K8sAllNamspaces *k8s.Client
 )
 
 func Init() error {
@@ -92,6 +93,10 @@ func Init() error {
 	}
 
 	if K8sIstio, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
+		return err
+	}
+
+	if K8sAllNamspaces, err = k8s.New("", Cluster.OperatorInCluster); err != nil {
 		return err
 	}
 
