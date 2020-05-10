@@ -36,8 +36,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
@@ -451,15 +453,73 @@ func printInfoResponse(clusterConfig clusterconfig.Config, operatorEndpoint stri
 	if err != nil {
 		return err
 	}
-
 	infoResponse.ClusterConfig.Config = clusterConfig
 
+	printInfoClusterConfig(infoResponse)
+	printInfoPricing(infoResponse, clusterConfig)
+
+	return nil
+}
+
+func printInfoClusterConfig(infoResponse *schema.InfoResponse) {
 	var items table.KeyValuePairs
 	items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
 	items.AddAll(infoResponse.ClusterConfig.UserTable())
-
 	items.Print()
-	return nil
+}
+
+func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterconfig.Config) {
+	numAPIInstances := len(infoResponse.NodeInfos)
+	var totalAPIInstancePrice float64
+	for _, nodeInfo := range infoResponse.NodeInfos {
+		totalAPIInstancePrice += nodeInfo.Price
+	}
+
+	eksPrice := aws.EKSPrices[*clusterConfig.Region]
+	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
+	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
+	nlbPrice := aws.NLBMetadatas[*clusterConfig.Region].Price
+	natUnitPrice := aws.NATMetadatas[*clusterConfig.Region].Price
+	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
+	if clusterConfig.InstanceVolumeType.String() == "io1" && clusterConfig.InstanceVolumeIOPS != nil {
+		apiEBSPrice += aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS * float64(*clusterConfig.InstanceVolumeIOPS) / 30 / 24
+	}
+
+	var natTotalPrice float64
+	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
+		natTotalPrice = natUnitPrice
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
+	}
+
+	totalPrice := eksPrice + totalAPIInstancePrice + apiEBSPrice*float64(numAPIInstances) + operatorInstancePrice + operatorEBSPrice + nlbPrice*2 + natTotalPrice
+	fmt.Printf("your cluster costs %s per hour:", s.DollarsAndTenthsOfCents(totalPrice))
+
+	headers := []table.Header{
+		{Title: "aws resource"},
+		{Title: "cost per hour"},
+	}
+
+	rows := [][]interface{}{}
+	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
+	rows = append(rows, []interface{}{fmt.Sprintf("%d %s for your apis", numAPIInstances, s.PluralS("instance", numAPIInstances)), s.DollarsAndTenthsOfCents(totalAPIInstancePrice) + " total"})
+	rows = append(rows, []interface{}{fmt.Sprintf("%d %dgb ebs %s for your apis", numAPIInstances, clusterConfig.InstanceVolumeSize, s.PluralS("volume", numAPIInstances)), s.DollarsAndTenthsOfCents(apiEBSPrice*float64(numAPIInstances)) + " total"})
+	rows = append(rows, []interface{}{"1 t3.medium instance for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
+	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
+	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
+
+	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
+		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natUnitPrice)})
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+		numNATs := len(clusterConfig.AvailabilityZones)
+		rows = append(rows, []interface{}{fmt.Sprintf("%d nat gateways", numNATs), s.DollarsMaxPrecision(natUnitPrice*float64(numNATs)) + " total"})
+	}
+
+	items := table.Table{
+		Headers: headers,
+		Rows:    rows,
+	}
+	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
 }
 
 func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
