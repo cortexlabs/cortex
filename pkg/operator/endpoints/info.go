@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -56,11 +57,31 @@ func getNodeInfos() ([]schema.NodeInfo, error) {
 	}
 
 	nodeInfoMap := make(map[string]*schema.NodeInfo, len(nodes)) // node name -> info
+	spotPriceCache := make(map[string]float64)                   // instance type -> spot price
 
 	for _, node := range nodes {
+		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
+
+		price := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
+		if isSpot {
+			if spotPrice, ok := spotPriceCache[instanceType]; ok {
+				price = spotPrice
+			} else {
+				spotPrice, err := config.AWS.SpotInstancePrice(*config.Cluster.Region, instanceType)
+				if err == nil && spotPrice != 0 {
+					price = spotPrice
+					spotPriceCache[instanceType] = spotPrice
+				} else {
+					spotPriceCache[instanceType] = price // the request failed, so no need to try again in the future
+				}
+			}
+		}
+
 		nodeInfoMap[node.Name] = &schema.NodeInfo{
-			InstanceType:     node.Labels["beta.kubernetes.io/instance-type"],
-			IsSpot:           strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot"),
+			InstanceType:     instanceType,
+			IsSpot:           isSpot,
+			Price:            price,
 			NumReplicas:      0,                             // will be added to below
 			ComputeCapacity:  nodeComputeAllocatable(&node), // will be subtracted from below
 			ComputeAvailable: nodeComputeAllocatable(&node), // will be subtracted from below

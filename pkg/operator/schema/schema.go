@@ -32,8 +32,9 @@ type InfoResponse struct {
 
 type NodeInfo struct {
 	InstanceType     string             `json:"instance_type"`
-	NumReplicas      int                `json:"num_replicas"`
 	IsSpot           bool               `json:"is_spot"`
+	Price            float64            `json:"price"`
+	NumReplicas      int                `json:"num_replicas"`
 	ComputeCapacity  userconfig.Compute `json:"compute_capacity"`  // the total resources available to the user on a node
 	ComputeAvailable userconfig.Compute `json:"compute_available"` // unused resources on a node
 }
