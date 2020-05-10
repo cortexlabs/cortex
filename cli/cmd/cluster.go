@@ -403,7 +403,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 		}
 	}
 
-	if err := printInfoResponse(clusterConfig, operatorEndpoint, awsCreds); err != nil {
+	if err := printInfoOperatorResponse(clusterConfig, operatorEndpoint, awsCreds); err != nil {
 		exit.Error(err)
 	}
 
@@ -435,7 +435,7 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 	return nil
 }
 
-func printInfoResponse(clusterConfig clusterconfig.Config, operatorEndpoint string, awsCreds AWSCredentials) error {
+func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string, awsCreds AWSCredentials) error {
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:          isTelemetryEnabled(),
 		EnvName:            _flagClusterEnv,
