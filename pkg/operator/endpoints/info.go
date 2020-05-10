@@ -95,7 +95,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 
 	for _, pod := range pods {
 		if pod.Spec.NodeName == "" {
-			numPendingReplicas++ // TODO test this
+			numPendingReplicas++
 			continue
 		}
 
