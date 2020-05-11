@@ -56,6 +56,7 @@ const (
 	ErrComputeResourceConflict            = "operator.compute_resource_conflict"
 	ErrInsufficientAcceleratorMemory      = "operator.insufficient_accelerator_memory"
 	ErrInvalidNumberOfAcceleratorWorkers  = "operator.invalid_number_of_accelerator_workers"
+	ErrInvalidNumberOfAccelerators        = "operator.invalid_number_of_accelerators"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -291,9 +292,17 @@ func ErrorInsufficientAcceleratorMemory(requestedMem, minimumMem, numAccelerator
 
 func ErrorInvalidNumberOfAcceleratorWorkers(requestedWorkers int64, numAcceleratorCores int64, acceptableWorkers []int64) error {
 	msgAcceptableWorkers := strings.Join(s.ListInt64(acceptableWorkers), ",")
-	message := fmt.Sprintf("cannot evenly distribute %d accelerator cores over %d worker(s); acceptable numbers of workers are %s", numAcceleratorCores, requestedWorkers, msgAcceptableWorkers)
+	message := fmt.Sprintf("cannot evenly distribute %d accelerator cores over %d worker(s) - acceptable numbers of workers are %s", numAcceleratorCores, requestedWorkers, msgAcceptableWorkers)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfAcceleratorWorkers,
 		Message: message,
+	})
+}
+
+func ErrorInvalidNumberOfAccelerators(requestedAccelerators int64, acceptableNumAccelerators []int64, instanceType string) error {
+	msgAcceptableAccelerators := strings.Join(s.ListInt64(acceptableNumAccelerators), ",")
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidNumberOfAccelerators,
+		Message: fmt.Sprintf("cannot request %d accelerators for an API - acceptable numbers of accelerators for %s instance type are %s", requestedAccelerators, instanceType, msgAcceptableAccelerators),
 	})
 }
