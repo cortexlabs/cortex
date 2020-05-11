@@ -304,18 +304,32 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	}
 
 	if api.Compute.Accelerator > 0 {
-		volumes = append(volumes, kcore.Volume{
-			Name: "sock",
-			VolumeSource: kcore.VolumeSource{
-				EmptyDir: &kcore.EmptyDirVolumeSource{},
+		volumes = append(volumes, []kcore.Volume{
+			{
+				Name: "sock",
+				VolumeSource: kcore.VolumeSource{
+					EmptyDir: &kcore.EmptyDirVolumeSource{},
+				},
 			},
-		})
-		sockVolumeMount := kcore.VolumeMount{
-			Name:      "sock",
-			MountPath: "/sock",
+			{
+				Name: "run",
+				VolumeSource: kcore.VolumeSource{
+					EmptyDir: &kcore.EmptyDirVolumeSource{},
+				},
+			},
+		}...)
+		volumeMounts := []kcore.VolumeMount{
+			{
+				Name:      "sock",
+				MountPath: "/sock",
+			},
+			{
+				Name:      "run",
+				MountPath: "/run",
+			},
 		}
-		userPodvolumeMounts = append(userPodvolumeMounts, sockVolumeMount)
-		neuronContainer := *neuronRuntimeDaemonContainer(api, sockVolumeMount)
+		userPodvolumeMounts = append(userPodvolumeMounts, volumeMounts...)
+		neuronContainer := *neuronRuntimeDaemonContainer(api, volumeMounts)
 
 		if api.Compute.Mem != nil {
 			neuronRTD, userPodMemRequest := k8s.SplitInTwo(userPodMemRequest)
@@ -665,7 +679,7 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 	return envVars
 }
 
-func neuronRuntimeDaemonContainer(api *spec.API, sockVolumeMount kcore.VolumeMount) *kcore.Container {
+func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMount) *kcore.Container {
 	totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
 	return &kcore.Container{
 		Name:            _neuronRTDContainerName,
@@ -679,7 +693,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, sockVolumeMount kcore.VolumeMou
 				},
 			},
 		},
-		VolumeMounts: []kcore.VolumeMount{sockVolumeMount},
+		VolumeMounts: volumeMounts,
 		Resources: kcore.ResourceRequirements{
 			Limits: kcore.ResourceList{
 				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI),

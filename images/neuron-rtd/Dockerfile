@@ -13,7 +13,4 @@ RUN yum install -y tar gzip
 
 ENV PATH="/opt/aws/neuron/bin:${PATH}"
 
-# to make neuron-cli accessible
-RUN ln -s /sock/neuron.sock /run/neuron.sock
-
 CMD neuron-rtd -g unix:/sock/neuron.sock -x

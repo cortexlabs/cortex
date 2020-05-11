@@ -14,4 +14,7 @@ ENV PATH=/opt/aws/neuron/bin/:$PATH
 
 COPY images/tf-serve-accelerator/run.sh /src/
 
+# to make neuron-cli accessible
+RUN ln -s /sock/neuron.sock /run/neuron.sock
+
 CMD ["/src/run.sh"]
