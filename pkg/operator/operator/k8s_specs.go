@@ -94,50 +94,115 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
 	tfVolumeMounts := _defaultVolumeMounts
+	volumeMounts := _defaultVolumeMounts
 	volumes := _defaultVolumes
+	containers := []kcore.Container{}
 
 	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
 	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	q1, q2 := k8s.SplitInTwo(userPodCPURequest)
-	apiResourceList[kcore.ResourceCPU] = *q1
-	tfServingResourceList[kcore.ResourceCPU] = *q2
+	userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+	userPodMemRequest.Sub(_requestMonitorMemRequest)
 
-	if api.Compute.Mem != nil {
-		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
-		userPodMemRequest.Sub(_requestMonitorMemRequest)
-		q1, q2 := k8s.SplitInTwo(userPodMemRequest)
-		apiResourceList[kcore.ResourceMemory] = *q1
-		tfServingResourceList[kcore.ResourceMemory] = *q2
-	}
+	if api.Compute.Accelerator == 0 {
+		q1, q2 := k8s.SplitInTwo(userPodCPURequest)
+		apiResourceList[kcore.ResourceCPU] = *q1
+		tfServingResourceList[kcore.ResourceCPU] = *q2
 
-	if api.Compute.GPU > 0 {
-		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-	}
+		if api.Compute.Mem != nil {
+			q1, q2 := k8s.SplitInTwo(userPodMemRequest)
+			apiResourceList[kcore.ResourceMemory] = *q1
+			tfServingResourceList[kcore.ResourceMemory] = *q2
+		}
 
-	if api.Compute.Accelerator > 0 {
-		totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
-		tfServingResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI)
-		tfServingResourceList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-		tfServingLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI)
-		tfServingLimitsList["aws.amazon.com/infa"] = *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI)
-
-		fileType := kcore.HostPathSocket
-		volumes = append(volumes, kcore.Volume{
-			Name: "sock",
-			VolumeSource: kcore.VolumeSource{
-				HostPath: &kcore.HostPathVolumeSource{
-					Path: "/run/neuron.sock",
-					Type: &fileType,
+		if api.Compute.GPU > 0 {
+			tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+			tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		}
+	} else {
+		volumes = append(volumes, []kcore.Volume{
+			{
+				Name: "sock",
+				VolumeSource: kcore.VolumeSource{
+					EmptyDir: &kcore.EmptyDirVolumeSource{},
 				},
 			},
-		})
-
+			{
+				Name: "run",
+				VolumeSource: kcore.VolumeSource{
+					EmptyDir: &kcore.EmptyDirVolumeSource{},
+				},
+			},
+		}...)
 		tfVolumeMounts = append(tfVolumeMounts, kcore.VolumeMount{
 			Name:      "sock",
-			MountPath: "/sock/neuron.sock",
+			MountPath: "/sock",
 		})
+		volumeMounts = append(volumeMounts, []kcore.VolumeMount{
+			{
+				Name:      "sock",
+				MountPath: "/sock",
+			},
+			{
+				Name:      "run",
+				MountPath: "/run",
+			},
+		}...)
+
+		neuronContainer := *neuronRuntimeDaemonContainer(api, volumeMounts)
+
+		q1, q2, q3 := k8s.SplitInThree(userPodCPURequest)
+		apiResourceList[kcore.ResourceCPU] = *q1
+		tfServingResourceList[kcore.ResourceCPU] = *q2
+		neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q3
+
+		if api.Compute.Mem != nil {
+			q1, q2, q3 := k8s.SplitInThree(userPodMemRequest)
+			apiResourceList[kcore.ResourceMemory] = *q1
+			tfServingResourceList[kcore.ResourceMemory] = *q2
+			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *q3
+		}
+
+		containers = append(containers, neuronContainer)
 	}
+
+	containers = append(containers, kcore.Container{
+		Name:            _apiContainerName,
+		Image:           api.Predictor.Image,
+		ImagePullPolicy: kcore.PullAlways,
+		Env: append(
+			getEnvVars(api),
+			kcore.EnvVar{
+				Name:  "CORTEX_MODEL_DIR",
+				Value: path.Join(_emptyDirMountPath, "model"),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_TF_SERVING_PORT",
+				Value: _tfServingPortStr,
+			},
+		),
+		EnvFrom:        _baseEnvVars,
+		VolumeMounts:   volumeMounts,
+		ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+		LivenessProbe:  _apiReadinessProbe,
+		Resources: kcore.ResourceRequirements{
+			Requests: apiResourceList,
+		},
+		Ports: []kcore.ContainerPort{
+			{ContainerPort: _defaultPortInt32},
+		},
+		SecurityContext: &kcore.SecurityContext{
+			Privileged: pointer.Bool(true),
+		}},
+		*tensorflowServingContainer(
+			api,
+			tfVolumeMounts,
+			kcore.ResourceRequirements{
+				Limits:   tfServingLimitsList,
+				Requests: tfServingResourceList,
+			},
+		),
+		*requestMonitorContainer(api),
+	)
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
@@ -174,73 +239,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						VolumeMounts:    _defaultVolumeMounts,
 					},
 				},
-				Containers: []kcore.Container{
-					{
-						Name:            _apiContainerName,
-						Image:           api.Predictor.Image,
-						ImagePullPolicy: kcore.PullAlways,
-						Env: append(
-							getEnvVars(api),
-							kcore.EnvVar{
-								Name:  "CORTEX_MODEL_DIR",
-								Value: path.Join(_emptyDirMountPath, "model"),
-							},
-							kcore.EnvVar{
-								Name:  "CORTEX_TF_SERVING_PORT",
-								Value: _tfServingPortStr,
-							},
-						),
-						EnvFrom:        _baseEnvVars,
-						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:  _apiReadinessProbe,
-						Resources: kcore.ResourceRequirements{
-							Requests: apiResourceList,
-						},
-						Ports: []kcore.ContainerPort{
-							{ContainerPort: _defaultPortInt32},
-						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
-					},
-					*requestMonitorContainer(api),
-					{
-						Name:            _tfServingContainerName,
-						Image:           api.Predictor.TFServeImage,
-						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _tfServingPortStr,
-							"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
-						},
-						Env:          getEnvVars(api),
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: tfVolumeMounts,
-						ReadinessProbe: &kcore.Probe{
-							InitialDelaySeconds: 5,
-							TimeoutSeconds:      5,
-							PeriodSeconds:       5,
-							SuccessThreshold:    1,
-							FailureThreshold:    2,
-							Handler: kcore.Handler{
-								TCPSocket: &kcore.TCPSocketAction{
-									Port: intstr.IntOrString{
-										IntVal: _tfServingPortInt32,
-									},
-								},
-							},
-						},
-						Resources: kcore.ResourceRequirements{
-							Requests: tfServingResourceList,
-							Limits:   tfServingLimitsList,
-						},
-						Ports: []kcore.ContainerPort{
-							{
-								ContainerPort: _tfServingPortInt32,
-							},
-						},
-					},
-				},
+				Containers: containers,
 				NodeSelector: map[string]string{
 					"workload": "true",
 				},
@@ -284,26 +283,30 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	userPodResourceList := kcore.ResourceList{}
 	userPodResourceLimitsList := kcore.ResourceList{}
 	userPodvolumeMounts := _defaultVolumeMounts
+
 	volumes := _defaultVolumes
 	containers := []kcore.Container{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	userPodResourceList[kcore.ResourceCPU] = *userPodCPURequest
+	podCPURequest := api.Compute.CPU.Quantity.Copy()
+	podMemRequest := api.Compute.Mem.Quantity.Copy()
 
-	var userPodMemRequest *kresource.Quantity
-	if api.Compute.Mem != nil {
-		userPodMemRequest = api.Compute.Mem.Quantity.Copy()
-		userPodMemRequest.Sub(_requestMonitorMemRequest)
-		userPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
-	}
+	podCPURequest.Sub(_requestMonitorCPURequest)
 
-	if api.Compute.GPU > 0 {
-		userPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-		userPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-	}
+	if api.Compute.Accelerator == 0 {
+		userPodResourceList[kcore.ResourceCPU] = *podCPURequest
 
-	if api.Compute.Accelerator > 0 {
+		if api.Compute.Mem != nil {
+			userPodMemRequest := podMemRequest
+			userPodMemRequest.Sub(_requestMonitorMemRequest)
+			userPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
+		}
+
+		if api.Compute.GPU > 0 {
+			userPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+			userPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		}
+
+	} else {
 		volumes = append(volumes, []kcore.Volume{
 			{
 				Name: "sock",
@@ -331,10 +334,15 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		userPodvolumeMounts = append(userPodvolumeMounts, volumeMounts...)
 		neuronContainer := *neuronRuntimeDaemonContainer(api, volumeMounts)
 
+		q1, q2 := k8s.SplitInTwo(podCPURequest)
+		userPodResourceList[kcore.ResourceCPU] = *q1
+		neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q2
+
 		if api.Compute.Mem != nil {
-			neuronRTD, userPodMemRequest := k8s.SplitInTwo(userPodMemRequest)
-			userPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
-			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *neuronRTD
+			podMemRequest.Sub(_requestMonitorMemRequest)
+			q1, q2 := k8s.SplitInTwo(podMemRequest)
+			userPodResourceList[kcore.ResourceMemory] = *q1
+			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *q2
 		}
 
 		containers = append(containers, neuronContainer)
@@ -677,6 +685,41 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 	}
 
 	return envVars
+}
+
+func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
+	return &kcore.Container{
+		Name:            _tfServingContainerName,
+		Image:           api.Predictor.TFServeImage,
+		ImagePullPolicy: kcore.PullAlways,
+		Args: []string{
+			"--port=" + _tfServingPortStr,
+			"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
+		},
+		Env:          getEnvVars(api),
+		EnvFrom:      _baseEnvVars,
+		VolumeMounts: volumeMounts,
+		ReadinessProbe: &kcore.Probe{
+			InitialDelaySeconds: 5,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    2,
+			Handler: kcore.Handler{
+				TCPSocket: &kcore.TCPSocketAction{
+					Port: intstr.IntOrString{
+						IntVal: _tfServingPortInt32,
+					},
+				},
+			},
+		},
+		Resources: resources,
+		Ports: []kcore.ContainerPort{
+			{
+				ContainerPort: _tfServingPortInt32,
+			},
+		},
+	}
 }
 
 func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMount) *kcore.Container {

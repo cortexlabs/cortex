@@ -95,6 +95,15 @@ func SplitInTwo(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Q
 	return q1, q2
 }
 
+func SplitInThree(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Quantity, *kresource.Quantity) {
+	milliValue := quantity.MilliValue()
+	halfMilliValue := milliValue / 3
+	q1 := kresource.NewMilliQuantity(milliValue-2*halfMilliValue, kresource.DecimalSI)
+	q2 := kresource.NewMilliQuantity(halfMilliValue, kresource.DecimalSI)
+	q3 := kresource.NewMilliQuantity(halfMilliValue, kresource.DecimalSI)
+	return q1, q2, q3
+}
+
 func (quantity *Quantity) String() string {
 	if quantity.UserString != "" {
 		return quantity.UserString
