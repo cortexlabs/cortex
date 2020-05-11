@@ -18,7 +18,6 @@ package aws
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -71,10 +70,10 @@ func (c *Client) TagLogGroup(logGroup string, tagMap map[string]string) error {
 	return nil
 }
 
-// UpdateDashboard updates existing dashboard by adding new widgets for new API
+// UpdateDashboard updates existing dashboard by adding API name title, In flight request time, latency and request status metric
 func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, nameAPI string, apiID string) error {
 
-	// get current dashboard
+	// get current dashboard form cloudwatch
 	currDashboardOutput, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
 		DashboardName: aws.String(dashboardName),
 	})
@@ -83,14 +82,17 @@ func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, n
 	}
 	// get body string from GetDashboard return object
 	currDashboardString := *currDashboardOutput.DashboardBody
+	// get lowest element of cloudwatch. Needed to place metrics below all existing metrics
 	highestY, err := getHighestYDashboard(currDashboardString)
 	if err != nil {
 		return errors.Wrap(err)
 	}
+
+	// create widgets for title and metrics
 	apiTitleWidget := createTextWidget(1, highestY+1, 22, 1, "## API: "+nameAPI)
 	inFlightWidget := createMetricWidget(1, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", dashboardRegion)
 	latencyWidget := createMetricWidget(12, highestY+2, 11, 6, latencyMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
-	statCodeWidget := createMetricWidget(1, highestY+8, 11, 6, statCodeMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
+	statCodeWidget := createMetricWidget(1, highestY+8, 11, 6, statCodeMetric(dashboardName, nameAPI, apiID), "Statuscode stats", "Sum", dashboardRegion)
 
 	//define interface to unmarshal received body string
 	var currDashboardHolder interface{}
@@ -101,7 +103,7 @@ func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, n
 
 	currDashboard := currDashboardHolder.(map[string]interface{})
 	widgetSlice := currDashboard["widgets"].([]interface{})
-	fmt.Println([]interface{}{inFlightWidget, latencyWidget, statCodeWidget})
+	// append new API metrics widgets to existing widgets
 	widgetSlice = append(widgetSlice, inFlightWidget, latencyWidget, statCodeWidget, apiTitleWidget)
 
 	currDashboard["widgets"] = widgetSlice
@@ -109,6 +111,7 @@ func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, n
 	if err != nil {
 		return errors.Wrap(err)
 	}
+	// upload updated dashboard to cloudwatch
 	_, err = c.CloudWatch().PutDashboard(&cloudwatch.PutDashboardInput{
 		DashboardName: aws.String(dashboardName),
 		DashboardBody: aws.String(string(currDashboardJSON)),
@@ -180,7 +183,31 @@ func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 	return true, nil
 }
 
-//createTextWidget create new text widget with properties as parameter
+// DeleteAPICloudwatch deletes api and reformats cloudwatch
+func (c *Client) DeleteAPICloudwatch(statuses []status.Status, clusterName, apiName string) error {
+
+	//delete old dashboard by creating a new base dashboard
+	err := c.CreateDashboard(clusterName)
+	if err != nil {
+		return errors.Wrap(err, "Failed getting API statuses while deleting API")
+	}
+
+	// update dashboard for with all api execpt one to delete
+	for _, stat := range statuses {
+		if stat.APIName != apiName {
+			c.UpdateDashboard(clusterName, c.Region, stat.APIName, stat.APIID)
+		}
+
+	}
+
+	if err != nil {
+		return errors.Wrap(err, "Failed to encode CLoudwatch Base Body into json")
+	}
+
+	return nil
+}
+
+// createTextWidget create new text widget with properties as parameter
 // Example:
 // title_widget = {
 //     "type": "text",
@@ -245,11 +272,12 @@ func createMetricWidget(x int,
 
 }
 
+// inFlightMetric c
 func inFlightMetric(dashboardName string, nameAPI string) []interface{} {
 	var metric []interface{}
 	metric = append(metric, dashboardName)
 	metric = append(metric, "in-flight")
-	metric = append(metric, "APIName")
+	metric = append(metric, "apiName")
 	metric = append(metric, nameAPI)
 	return []interface{}{metric}
 
@@ -272,35 +300,35 @@ func latencyMetric(dashboardName string, nameAPI string, apiID string) []interfa
 
 func statCodeMetric(dashboardName string, nameAPI string, apiID string) []interface{} {
 
-	var metric4 []interface{}
-	metric4 = append(metric4, dashboardName)
-	metric4 = append(metric4, "StatusCode")
-	metric4 = append(metric4, "APIName")
-	metric4 = append(metric4, nameAPI)
-	metric4 = append(metric4, "metric_type")
-	metric4 = append(metric4, "counter")
-	metric4 = append(metric4, "APIID")
-	metric4 = append(metric4, apiID)
-	metric4 = append(metric4, "Code")
-	metric4 = append(metric4, "4XX")
+	var metric2XX []interface{}
+	metric2XX = append(metric2XX, "...")
+	metric2XX = append(metric2XX, "2XX")
 
-	var metric3 []interface{}
-	metric3 = append(metric3, "...")
-	metric3 = append(metric3, "3XX")
+	var metric3XX []interface{}
+	metric3XX = append(metric3XX, "...")
+	metric3XX = append(metric3XX, "3XX")
 
-	var metric2 []interface{}
-	metric2 = append(metric2, "...")
-	metric2 = append(metric2, "2XX")
+	var metric4XX []interface{}
+	metric4XX = append(metric4XX, dashboardName)
+	metric4XX = append(metric4XX, "StatusCode")
+	metric4XX = append(metric4XX, "APIName")
+	metric4XX = append(metric4XX, nameAPI)
+	metric4XX = append(metric4XX, "metric_type")
+	metric4XX = append(metric4XX, "counter")
+	metric4XX = append(metric4XX, "APIID")
+	metric4XX = append(metric4XX, apiID)
+	metric4XX = append(metric4XX, "Code")
+	metric4XX = append(metric4XX, "4XX")
 
-	var metric5 []interface{}
-	metric5 = append(metric5, "...")
-	metric5 = append(metric5, "5XX")
+	var metric5XX []interface{}
+	metric5XX = append(metric5XX, "...")
+	metric5XX = append(metric5XX, "5XX")
 
-	return []interface{}{metric4, metric3, metric2, metric5}
+	return []interface{}{metric4XX, metric3XX, metric2XX, metric5XX}
 
 }
 
-//getHighestYDashboard takes dashboard string as input an gives back highest Y coordinate
+// getHighestYDashboard takes dashboard string as input an gives back highest Y coordinate of a cloudwatch widget
 func getHighestYDashboard(dash string) (int, error) {
 	highestY := 0
 
@@ -322,28 +350,4 @@ func getHighestYDashboard(dash string) (int, error) {
 	}
 
 	return highestY, nil
-}
-
-// deleteAPI deletes api and reformart cloudwatch
-func (c *Client) DeleteAPICloudwatch(statuses []status.Status, clusterName, apiName string) error {
-
-	//delete old dashboard by creating a new base dashboard
-	err := c.CreateDashboard(clusterName)
-	if err != nil {
-		return errors.Wrap(err, "Failed getting API statuses while deleting API")
-	}
-
-	// update dashboard for with all api execpt one to delete
-	for _, stat := range statuses {
-		if stat.APIName != apiName {
-			c.UpdateDashboard(clusterName, c.Region, stat.APIName, stat.APIID)
-		}
-
-	}
-
-	if err != nil {
-		return errors.Wrap(err, "Failed to encode CLoudwatch Base Body into json")
-	}
-
-	return nil
 }

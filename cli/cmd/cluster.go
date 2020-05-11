@@ -158,7 +158,7 @@ var _upCmd = &cobra.Command{
 
 		// create Dashboard if specificied in configfile
 		if clusterConfig.Cloudwatch {
-			err = CreateDashboard(awsClient, clusterConfig.ClusterName)
+			err = CreateCloudWatchDashboard(awsClient, clusterConfig.ClusterName)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -606,8 +606,9 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 	return nil
 }
 
-//CreateDashboard creates new dashboard if dashboard specified to true. If dashboard already exists delete
-func CreateDashboard(awsClient *aws.Client, dashboardName string) error {
+// CreateCloudWatchDashboard creates new dashboard if dashboard specified to true.
+// If dashboard already exists delete old one and create a new one
+func CreateCloudWatchDashboard(awsClient *aws.Client, dashboardName string) error {
 	dashboardFound, err := awsClient.DoesDashboardExist(dashboardName)
 	if err != nil {
 		return err
