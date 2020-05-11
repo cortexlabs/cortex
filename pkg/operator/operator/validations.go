@@ -444,7 +444,7 @@ func validateAPI(
 
 	api.ApplyDefaultDockerPaths()
 
-	if err := validatePredictor(api.Predictor, projectFileMap); err != nil {
+	if err := validatePredictor(api, projectFileMap); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
@@ -467,14 +467,16 @@ func validateAPI(
 	return nil
 }
 
-func validatePredictor(predictor *userconfig.Predictor, projectFileMap map[string][]byte) error {
+func validatePredictor(api *userconfig.API, projectFileMap map[string][]byte) error {
+	predictor := api.Predictor
+
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
 		if err := validatePythonPredictor(predictor); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(predictor); err != nil {
+		if err := validateTensorFlowPredictor(api); err != nil {
 			return err
 		}
 		if err := validateDockerImagePath(predictor.TFServeImage); err != nil {
@@ -525,7 +527,9 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	return nil
 }
 
-func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
+func validateTensorFlowPredictor(api *userconfig.API) error {
+	predictor := api.Predictor
+
 	if predictor.Model == nil {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
 	}
@@ -542,7 +546,11 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor) error {
 			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 		}
 	} else {
-		path, err := getTFServingExportFromS3Path(model, awsClient)
+		neuronExport := false
+		if api.Compute.Accelerator > 0 {
+			neuronExport = true
+		}
+		path, err := getTFServingExportFromS3Path(model, neuronExport, awsClient)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		} else if path == "" {
@@ -581,7 +589,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 	return nil
 }
 
-func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, error) {
+func getTFServingExportFromS3Path(path string, neuronExport bool, awsClient *aws.Client) (string, error) {
 	if isValidTensorFlowS3Directory(path, awsClient) {
 		return path, nil
 	}
@@ -613,16 +621,36 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		}
 
 		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
-		if version >= highestVersion && isValidTensorFlowS3Directory(possiblePath, awsClient) {
-			highestVersion = version
-			highestPath = possiblePath
+		if version >= highestVersion {
+			if neuronExport && isValidNeuronTensorflowS3Directory(possiblePath, awsClient) {
+				highestVersion = version
+				highestPath = possiblePath
+			}
+			if !neuronExport && isValidTensorFlowS3Directory(possiblePath, awsClient) {
+				highestVersion = version
+				highestPath = possiblePath
+			}
 		}
 	}
 
 	return highestPath, nil
 }
 
-// IsValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
+// isValidNeuronTensorflowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
+// Must contain the following structure:
+// - 1523423423/ (version prefix, usually a timestamp)
+// 		- saved_model.pb
+func isValidNeuronTensorflowS3Directory(path string, awsClient *aws.Client) bool {
+	if valid, err := awsClient.IsS3PathFile(
+		aws.JoinS3Path(path, "saved_model.pb"),
+	); err != nil || !valid {
+		return false
+	}
+
+	return true
+}
+
+// isValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
 // Must contain the following structure:
 // - 1523423423/ (version prefix, usually a timestamp)
 // 		- saved_model.pb
