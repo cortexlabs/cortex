@@ -299,10 +299,9 @@ func ErrorInvalidNumberOfAcceleratorWorkers(requestedWorkers int64, numAccelerat
 	})
 }
 
-func ErrorInvalidNumberOfAccelerators(requestedAccelerators int64, acceptableNumAccelerators []int64, instanceType string) error {
-	msgAcceptableAccelerators := strings.Join(s.ListInt64(acceptableNumAccelerators), ",")
+func ErrorInvalidNumberOfAccelerators(requestedAccelerators int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfAccelerators,
-		Message: fmt.Sprintf("cannot request %d accelerators for an API - acceptable numbers of accelerators for %s instance type are %s", requestedAccelerators, instanceType, msgAcceptableAccelerators),
+		Message: fmt.Sprintf("cannot request %d accelerators for the API - can only have 1 accelerator per API replica", requestedAccelerators),
 	})
 }

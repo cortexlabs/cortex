@@ -673,7 +673,6 @@ func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 	}
 
 	maxAccelerator := config.Cluster.InstanceMetadata.Accelerator
-	instanceType := config.Cluster.InstanceMetadata.Type
 
 	compute := api.Compute
 	if compute.GPU > 0 && compute.Accelerator > 0 {
@@ -694,12 +693,9 @@ func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 		return ErrorNoAvailableNodeComputeLimit("Accelerator", fmt.Sprintf("%d", compute.Accelerator), fmt.Sprintf("%d", maxAccelerator))
 	}
 
-	if compute.Accelerator > 0 && compute.Accelerator != maxAccelerator {
-		acceptableAccelerators := []int64{1}
-		if maxAccelerator != 1 {
-			acceptableAccelerators = append(acceptableAccelerators, maxAccelerator)
-		}
-		return ErrorInvalidNumberOfAccelerators(compute.Accelerator, acceptableAccelerators, instanceType)
+	// TODO use any number of accelerators once https://github.com/aws/aws-neuron-sdk/issues/110 is fixed
+	if compute.Accelerator > 0 && compute.Accelerator != 1 {
+		return ErrorInvalidNumberOfAccelerators(compute.Accelerator)
 	}
 
 	if compute.Accelerator > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
