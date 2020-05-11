@@ -129,7 +129,7 @@ Flags:
   -c, --config string   path to a cluster configuration file
   -e, --env string      environment to configure (default "aws")
   -y, --yes             skip prompts
-  -h, --help            help for update
+  -h, --help            help for configure
 ```
 
 ## cluster down
