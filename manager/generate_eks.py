@@ -114,6 +114,7 @@ def is_gpu(instance_type):
 
 
 def apply_accelerator_settings(nodegroup):
+    no_chips, hugepages_mem = get_accelerator_resources(nodegroup["instanceType"])
     accelerator_settings = {
         # custom eks-optimized AMI for inf instances
         # track https://github.com/aws/containers-roadmap/issues/619 ticket
@@ -123,8 +124,8 @@ def apply_accelerator_settings(nodegroup):
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/infa=true",
-            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/infa": "4",
-            "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": "1024Mi",
+            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/infa": str(no_chips),
+            "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": hugepages_mem,
         },
         "labels": {"aws.amazon.com/infa": "true"},
         "taints": {"aws.amazon.com/infa": "true:NoSchedule"},
@@ -134,6 +135,21 @@ def apply_accelerator_settings(nodegroup):
 
 def is_accelerator(instance_type):
     return instance_type.startswith("inf")
+
+
+def get_accelerator_resources(instance_type):
+    no_hugepages_2Mi = 128
+    hugepages_mem = lambda no_chips: f"{no_hugepages_2Mi * no_chips}Mi"
+
+    no_chips = 0
+    if instance_type in ["inf1.xlarge", "inf1.2xlarge"]:
+        no_chips = 1
+    elif instance_type == "inf1.6xlarge":
+        no_chips = 4
+    elif instance_type == "inf1.24xlarge":
+        no_chips = 16
+
+    return no_chips, hugepages_mem(no_chips)
 
 
 def generate_eks(configmap_yaml_path):
