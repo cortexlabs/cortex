@@ -103,27 +103,48 @@ function ensure_eks() {
     exit 1
   fi
 
-  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
-    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
-    # only update min if on demand nodegroup exists and on demand nodegroup is not a backup
-    if [[ -n $asg_on_demand_name ]] && [[ "$CORTEX_SPOT_CONFIG_ON_DEMAND_BACKUP" != "True" ]]; then
-      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --min-size=$CORTEX_MIN_INSTANCES
-    fi
+  asg_on_demand_resize_flags=""
+  asg_spot_resize_flags=""
 
-    if [[ -n $asg_spot_name ]]; then
-      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --min-size=$CORTEX_MIN_INSTANCES
+  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
+    # only update min for on-demand nodegroup if it's not a backup
+    if [[ -n $asg_on_demand_name ]] && [[ "$CORTEX_SPOT_CONFIG_ON_DEMAND_BACKUP" != "True" ]]; then
+      asg_on_demand_resize_flags+=" --min-size=$CORTEX_MIN_INSTANCES"
     fi
-    echo "✓"
+    if [[ -n $asg_spot_name ]]; then
+      asg_spot_resize_flags+=" --min-size=$CORTEX_MIN_INSTANCES"
+    fi
   fi
 
   if [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
-    echo -n "￮ updating max instances to $CORTEX_MAX_INSTANCES "
     if [[ -n $asg_on_demand_name ]]; then
-      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --max-size=$CORTEX_MAX_INSTANCES
+      asg_on_demand_resize_flags+=" --max-size=$CORTEX_MAX_INSTANCES"
     fi
     if [[ -n $asg_spot_name ]]; then
-      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --max-size=$CORTEX_MAX_INSTANCES
+      asg_spot_resize_flags+=" --max-size=$CORTEX_MAX_INSTANCES"
     fi
+  fi
+
+  is_resizing="false"
+  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ] && [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
+    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES and max instances to $CORTEX_MAX_INSTANCES "
+    is_resizing="true"
+  elif [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
+    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
+    is_resizing="true"
+  elif [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
+    echo -n "￮ updating max instances to $CORTEX_MAX_INSTANCES "
+    is_resizing="true"
+  fi
+
+  if [ "$asg_on_demand_resize_flags" != "" ]; then
+    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name $asg_on_demand_resize_flags
+  fi
+  if [ "$asg_spot_resize_flags" != "" ]; then
+    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name $asg_spot_resize_flags
+  fi
+
+  if [ "$is_resizing" == "true" ]; then
     echo "✓"
   fi
 }
