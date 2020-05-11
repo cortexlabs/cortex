@@ -16,11 +16,11 @@
 
 ## AWS CNI
 
-1. Check which version of the CNI eksctl uses
+1. Check which version of the CNI is used by default
 1. Update the go module version (see `Go > Non-versioned modules` section below)
 1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
 
-### AWS CNI (depreciated since now eksctl determines the version of AWS CNI)
+### AWS CNI (depreciated since we stopped setting it manually)
 
 1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
 1. Update the version in `install.sh`
@@ -69,12 +69,21 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 1. `git push origin v2`
 1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `cortexlabs/yaml`
 
+### cortexlabs/go-input
+
+1. Check [tcnksm/go-input](https://github.com/tcnksm/go-input) to see if there were new releases since [cortexlabs/go-input](https://github.com/cortexlabs/go-input)
+1. `git clone git@github.com:cortexlabs/go-input.git && cd go-input`
+1. `git remote add upstream https://github.com/tcnksm/go-input && git fetch upstream`
+1. `git merge upstream/master`
+1. `git push origin master`
+1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `cortexlabs/go-input`
+
 ### Non-versioned modules
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
 1. `go get k8s.io/client-go@kubernetes-1.16.9 && go get k8s.io/apimachinery@kubernetes-1.16.9 && go get k8s.io/api@kubernetes-1.16.9`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.6.0`
-1. `go get github.com/cortexlabs/yaml@f1e621e4f2a32e1b2a5597da123e7c1da2d603c4`
+1. `go get github.com/cortexlabs/yaml@581aea36a2e4db10f8696587e48cac5248d64f4d`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
 1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.8' >> go.mod`
 1. `go get -u github.com/docker/distribution`
@@ -96,7 +105,7 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 
 The same Python version should be used throughout Cortex (e.g. search for `3.6` and update all accordingly).
 
-It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile)). In theory, it should be safe to use the lowest of the maximum supported python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/project/tensorflow), [Keras](https://pypi.org/project/Keras), [numpy](https://pypi.org/project/numpy), [pandas](https://pypi.org/project/pandas), [scikit-learn](https://pypi.org/project/scikit-learn), [scipy](https://pypi.org/project/scipy), [torch](https://pypi.org/project/torch), [xgboost](https://pypi.org/project/xgboost))
+It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile)), or what you get by default in Google CoLab. In theory, it should be safe to use the lowest of the maximum supported python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/project/tensorflow), [Keras](https://pypi.org/project/Keras), [numpy](https://pypi.org/project/numpy), [pandas](https://pypi.org/project/pandas), [scikit-learn](https://pypi.org/project/scikit-learn), [scipy](https://pypi.org/project/scipy), [torch](https://pypi.org/project/torch), [xgboost](https://pypi.org/project/xgboost))
 
 ## TensorFlow / TensorFlow Serving
 
