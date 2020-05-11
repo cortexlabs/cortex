@@ -465,6 +465,9 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImageInferentia != defaultConfig.ImageInferentia {
 		items.Add(clusterconfig.ImageInferentiaUserKey, clusterConfig.ImageInferentia)
 	}
+	if clusterConfig.ImageNeuronRuntime != defaultConfig.ImageNeuronRuntime {
+		items.Add(clusterconfig.ImageNeuronRuntimeUserKey, clusterConfig.ImageNeuronRuntime)
+	}
 	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
 		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)
 	}

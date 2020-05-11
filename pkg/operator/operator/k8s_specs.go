@@ -23,7 +23,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -47,6 +46,8 @@ const (
 	_tfServingContainerName                = "serve"
 	_downloaderInitContainerName           = "downloader"
 	_neuronRTDContainerName                = "neuron-rtd"
+	_hugePagesMemPerAccelerator            = int64(2 * 128)
+	_coresPerAccelerator                   = int64(4)
 	_downloaderLastLog                     = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
@@ -668,7 +669,7 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		envVars = append(envVars,
 			kcore.EnvVar{
 				Name:  "NEURONCORE_GROUP_SIZES",
-				Value: s.Int64(api.Compute.Accelerator * consts.CoresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica)),
+				Value: s.Int64(api.Compute.Accelerator * _coresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica)),
 			},
 			kcore.EnvVar{
 				Name:  "NEURON_RTD_ADDRESS",
@@ -723,10 +724,10 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 }
 
 func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMount) *kcore.Container {
-	totalHugePages := api.Compute.Accelerator * consts.HugePagesPerAccelerator
+	totalHugePages := api.Compute.Accelerator * _hugePagesMemPerAccelerator
 	return &kcore.Container{
 		Name:            _neuronRTDContainerName,
-		Image:           consts.DefaultImageNeuronRTD,
+		Image:           config.Cluster.ImageNeuronRuntime,
 		ImagePullPolicy: kcore.PullAlways,
 		SecurityContext: &kcore.SecurityContext{
 			Capabilities: &kcore.Capabilities{

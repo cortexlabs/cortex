@@ -62,6 +62,7 @@ type Config struct {
 	ImageClusterAutoscaler string      `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer     string      `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageInferentia        string      `json:"image_inferentia" yaml:"image_inferentia"`
+	ImageNeuronRuntime     string      `json:"image_neuron_runtime" yaml:"image_neuron_runtime"`
 	ImageNvidia            string      `json:"image_nvidia" yaml:"image_nvidia"`
 	ImageFluentd           string      `json:"image_fluentd" yaml:"image_fluentd"`
 	ImageStatsd            string      `json:"image_statsd" yaml:"image_statsd"`
@@ -269,6 +270,13 @@ var UserValidation = &cr.StructValidation{
 			StructField: "ImageInferentia",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/inferentia:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImageNeuronRuntime",
+			StringValidation: &cr.StringValidation{
+				Default:   "cortexlabs/neuron-runtime" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -881,6 +889,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
 	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
 	items.Add(ImageInferentiaUserKey, cc.ImageInferentia)
+	items.Add(ImageNeuronRuntimeUserKey, cc.ImageNeuronRuntime)
 	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
 	items.Add(ImageFluentdUserKey, cc.ImageFluentd)
 	items.Add(ImageStatsdUserKey, cc.ImageStatsd)
