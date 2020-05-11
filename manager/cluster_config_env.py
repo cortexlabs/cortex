@@ -17,6 +17,11 @@ import yaml
 
 
 def export(base_key, value):
+    if base_key.lower().startswith("cortex_tags"):
+        inlined_tags = ",".join([f"{k}={v}" for k, v in value.items()])
+        print(f"export CORTEX_TAGS={inlined_tags}")
+        return
+
     if value is None:
         return
     elif type(value) is list:

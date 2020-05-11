@@ -19,7 +19,7 @@
 * **Spot instances:** save money with spot instances.
 * **Rolling updates:** update deployed APIs with no downtime.
 * **Log streaming:** stream logs from deployed models to your CLI.
-* **Prediction monitoring:** monitor API performance and track predictions.
+* **Prediction monitoring:** monitor API performance and prediction results.
 
 <br>
 

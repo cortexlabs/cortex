@@ -194,9 +194,9 @@ $ curl http://***.amazonaws.com/iris-classifier \
 
 <br>
 
-## Configure prediction tracking
+## Configure prediction monitoring
 
-Add a `tracker` to your `cortex.yaml` and specify that this is a classification model:
+Add `monitoring` to your `cortex.yaml` and specify that this is a classification model:
 
 ```yaml
 # cortex.yaml
@@ -208,7 +208,7 @@ Add a `tracker` to your `cortex.yaml` and specify that this is a classification 
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
-  tracker:
+  monitoring:
     model_type: classification
 ```
 
@@ -250,7 +250,7 @@ This model is fairly small but larger models may require more compute resources.
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
-  tracker:
+  monitoring:
     model_type: classification
   compute:
     cpu: 0.2
@@ -295,7 +295,7 @@ If you trained another model and want to A/B test it with your previous model, s
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
-  tracker:
+  monitoring:
     model_type: classification
   compute:
     cpu: 0.2
@@ -308,7 +308,7 @@ If you trained another model and want to A/B test it with your previous model, s
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/another-model.pkl
-  tracker:
+  monitoring:
     model_type: classification
   compute:
     cpu: 0.2
@@ -384,7 +384,7 @@ Next, add the `api` to `cortex.yaml`:
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
-  tracker:
+  monitoring:
     model_type: classification
   compute:
     cpu: 0.2
@@ -397,7 +397,7 @@ Next, add the `api` to `cortex.yaml`:
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/another-model.pkl
-  tracker:
+  monitoring:
     model_type: classification
   compute:
     cpu: 0.2

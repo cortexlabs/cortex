@@ -230,7 +230,7 @@ func promptExistingEnvName(promptMsg string) string {
 		exit.Error(err)
 	}
 
-	fmt.Printf("currently configured environments: %s\n\n", strings.Join(configuredEnvNames, ", "))
+	fmt.Printf("your currently configured environments are: %s\n\n", strings.Join(configuredEnvNames, ", "))
 
 	envNameContainer := &struct {
 		EnvironmentName string
@@ -266,7 +266,7 @@ func promptAWSEnvName() string {
 	envNamesSet := strset.New(configuredEnvNames...)
 	envNamesSet.Remove("local")
 	if len(envNamesSet) > 0 {
-		fmt.Printf("currently configured AWS environments: %s\n\n", strings.Join(envNamesSet.Slice(), ", "))
+		fmt.Printf("your currently configured AWS environments are: %s\n\n", strings.Join(envNamesSet.Slice(), ", "))
 	}
 
 	envNameContainer := &struct {
@@ -294,6 +294,16 @@ func promptAWSEnvName() string {
 }
 
 func promptProvider(env *cliconfig.Environment) error {
+	if env.Name != "" {
+		if env.Name == types.LocalProviderType.String() {
+			env.Provider = types.LocalProviderType
+		} else {
+			env.Provider = types.AWSProviderType
+		}
+		fmt.Printf("provider: %s\n\n", env.Provider)
+		return nil
+	}
+
 	return cr.ReadPrompt(env, &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
@@ -641,6 +651,25 @@ func getEnvConfigDefaults(envName string) cliconfig.Environment {
 	if defaults.AWSRegion == nil && os.Getenv("AWS_REGION") != "" {
 		defaults.AWSRegion = pointer.String(os.Getenv("AWS_REGION"))
 	}
+
+	if defaults.AWSAccessKeyID == nil && defaults.AWSSecretAccessKey == nil {
+		// search other envs for credentials (favoring the env named "aws", or the last entry in the list)
+		regionWasNil := defaults.AWSRegion == nil
+		cliConfig, _ := readCLIConfig()
+		for _, env := range cliConfig.Environments {
+			if env.AWSAccessKeyID != nil && env.AWSSecretAccessKey != nil {
+				defaults.AWSAccessKeyID = env.AWSAccessKeyID
+				defaults.AWSSecretAccessKey = env.AWSSecretAccessKey
+			}
+			if regionWasNil && env.AWSRegion != nil {
+				defaults.AWSRegion = env.AWSRegion
+			}
+			if env.Name == "aws" {
+				break // favor the env named "aws"
+			}
+		}
+	}
+
 	if defaults.AWSRegion == nil {
 		defaults.AWSRegion = pointer.String("us-east-1")
 	}
@@ -685,6 +714,7 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 	}
 
 	defaults := getEnvConfigDefaults(env.Name)
+
 	switch env.Provider {
 	case types.LocalProviderType:
 		err := promptLocalEnv(&env, defaults)
@@ -828,6 +858,8 @@ func removeEnvFromCLIConfig(envName string) error {
 		return err
 	}
 
+	prevDefault := getDefaultEnv(_generalCommandType)
+
 	var updatedEnvs []*cliconfig.Environment
 	deleted := false
 	for _, env := range cliConfig.Environments {
@@ -838,11 +870,15 @@ func removeEnvFromCLIConfig(envName string) error {
 		updatedEnvs = append(updatedEnvs, env)
 	}
 
-	if deleted == false && envName != types.LocalProviderType.String() {
+	if !deleted && envName != types.LocalProviderType.String() {
 		return cliconfig.ErrorEnvironmentNotConfigured(envName)
 	}
 
 	cliConfig.Environments = updatedEnvs
+
+	if envName == prevDefault {
+		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
+	}
 
 	if err := writeCLIConfig(cliConfig); err != nil {
 		return err

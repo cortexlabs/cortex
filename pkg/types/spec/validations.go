@@ -67,11 +67,11 @@ func apiValidation(provider types.ProviderType) *cr.StructValidation {
 				StructField: "LocalPort",
 				IntPtrValidation: &cr.IntPtrValidation{
 					GreaterThan:       pointer.Int(0),
-					LessThanOrEqualTo: pointer.Int(65535),
+					LessThanOrEqualTo: pointer.Int(math.MaxUint16),
 				},
 			},
 			predictorValidation(),
-			trackerValidation(),
+			monitoringValidation(),
 			computeValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
@@ -154,9 +154,9 @@ func predictorValidation() *cr.StructFieldValidation {
 	}
 }
 
-func trackerValidation() *cr.StructFieldValidation {
+func monitoringValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
-		StructField: "Tracker",
+		StructField: "Monitoring",
 		StructValidation: &cr.StructValidation{
 			DefaultNil: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
@@ -763,6 +763,10 @@ func validatePythonPath(pythonPath string, projectFiles ProjectFiles) error {
 func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
 	if autoscaling.TargetReplicaConcurrency == nil {
 		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(autoscaling.WorkersPerReplica * autoscaling.ThreadsPerWorker))
+	}
+
+	if *autoscaling.TargetReplicaConcurrency > float64(autoscaling.MaxReplicaConcurrency) {
+		return ErrorConfigGreaterThanOtherConfig(userconfig.TargetReplicaConcurrencyKey, *autoscaling.TargetReplicaConcurrency, userconfig.MaxReplicaConcurrencyKey, autoscaling.MaxReplicaConcurrency)
 	}
 
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {
