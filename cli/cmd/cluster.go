@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -436,7 +435,7 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 }
 
 func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string, awsCreds AWSCredentials) error {
-	fmt.Print("fetching cluster info ...\n\n")
+	fmt.Print("fetching cluster status ...\n\n")
 
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:          isTelemetryEnabled(),
@@ -519,7 +518,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 		Headers: headers,
 		Rows:    rows,
 	}
-	fmt.Println(t.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
+	t.MustPrint(&table.Opts{Sort: pointer.Bool(false)})
 }
 
 func printInfoNodes(infoResponse *schema.InfoResponse) {
@@ -539,7 +538,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		pendingReplicasStr = fmt.Sprintf(", and %d unscheduled %s", infoResponse.NumPendingReplicas, s.PluralS("replica", infoResponse.NumPendingReplicas))
 	}
 
-	fmt.Printf(console.Bold("your cluster has %d API %s running in %d %s%s\n\n"), totalReplicas, s.PluralS("replica", totalReplicas), numAPIInstances, s.PluralS("instance", numAPIInstances), pendingReplicasStr)
+	fmt.Printf(console.Bold("\nyour cluster has %d API %s running across %d %s%s\n"), totalReplicas, s.PluralS("replica", totalReplicas), numAPIInstances, s.PluralS("instance", numAPIInstances), pendingReplicasStr)
 
 	if len(infoResponse.NodeInfos) == 0 {
 		return
@@ -549,9 +548,9 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "instance type"},
 		{Title: "lifecycle"},
 		{Title: "replicas"},
-		{Title: "CPU (avail / capacity)"},
-		{Title: "memory (avail / capacity)"},
-		{Title: "GPU (avail / capacity)", Hidden: !doesClusterHaveGPUs},
+		{Title: "CPU (free / total)"},
+		{Title: "memory (free / total)"},
+		{Title: "GPU (free / total)", Hidden: !doesClusterHaveGPUs},
 	}
 
 	rows := [][]interface{}{}
@@ -570,6 +569,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		Headers: headers,
 		Rows:    rows,
 	}
+	fmt.Println()
 	t.MustPrint(&table.Opts{Sort: pointer.Bool(false)})
 }
 
@@ -590,13 +590,13 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 	shouldWriteEnv := false
 	if prevEnv == nil {
 		shouldWriteEnv = true
-	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || *prevEnv.AWSAccessKeyID != awsCreds.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != awsCreds.AWSSecretAccessKey {
 		fmt.Println()
+	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || *prevEnv.AWSAccessKeyID != awsCreds.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != awsCreds.AWSSecretAccessKey {
 		if disallowPrompt {
-			fmt.Print(fmt.Sprintf("found an existing environment named \"%s\"; overwriting it to connect to this cluster\n\n", _flagClusterEnv))
+			fmt.Print(fmt.Sprintf("\nfound an existing environment named \"%s\"; overwriting it to connect to this cluster\n", _flagClusterEnv))
 			shouldWriteEnv = true
 		} else {
-			shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster?", _flagClusterEnv), "", "")
+			shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("\nfound an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster?", _flagClusterEnv), "", "")
 		}
 	}
 
@@ -606,7 +606,7 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 			return err
 		}
 
-		print.BoldFirstLine(fmt.Sprintf("configured %s environment", _flagClusterEnv))
+		fmt.Printf(console.Bold("configured %s environment\n"), _flagClusterEnv)
 	}
 
 	return nil
@@ -646,7 +646,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, disallowPrompt bool) cl
 
 	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
-	fmt.Println("fetching cluster configuration ..." + "\n")
+	fmt.Println("syncing cluster configuration ..." + "\n")
 	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)
