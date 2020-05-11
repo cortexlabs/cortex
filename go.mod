@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
+	github.com/Azure/go-autorest v11.1.2+incompatible // indirect
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/aws/amazon-vpc-cni-k8s v1.6.0
 	github.com/aws/aws-sdk-go v1.29.34
@@ -42,9 +43,9 @@ require (
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/api v0.15.11
-	k8s.io/apimachinery v0.15.12-beta.0
-	k8s.io/client-go v0.15.11
+	k8s.io/api v0.16.9
+	k8s.io/apimachinery v0.16.10-beta.0
+	k8s.io/client-go v0.16.9
 )
 
 replace github.com/docker/docker => github.com/docker/engine v1.4.2-0.20200309214505-aa6a9891b09c

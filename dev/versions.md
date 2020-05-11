@@ -11,7 +11,8 @@
 ## Kubernetes
 
 1. Find the latest version of Kubernetes supported by eksctl ([source code](https://github.com/weaveworks/eksctl/blob/master/pkg/apis/eksctl.io/v1alpha5/types.go))
-1. Update the version in `eks.yaml`
+1. Update the version in `generate_eks.py`
+1. See instructions for upgrading the Kubernetes client below
 
 ## AWS CNI
 
@@ -51,7 +52,7 @@
 
 Note: check their [install.md](https://github.com/kubernetes/client-go/blob/master/INSTALL.md) for the latest instructions. These apply for k8s versions before v1.17.0:
 
-1. Find the latest patch release for the minor kubernetes version that EKS uses by default (here are [their versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html))
+1. Find the latest patch release for the minor kubernetes version that EKS uses by default, e.g. `kubernetes-1.16.9` (here are [their versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html))
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
 
 ### docker/engine/client
@@ -71,7 +72,7 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 ### Non-versioned modules
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
-1. `go get k8s.io/client-go@kubernetes-1.15.11 && go get k8s.io/apimachinery@kubernetes-1.15.11 && go get k8s.io/api@kubernetes-1.15.11`
+1. `go get k8s.io/client-go@kubernetes-1.16.9 && go get k8s.io/apimachinery@kubernetes-1.16.9 && go get k8s.io/api@kubernetes-1.16.9`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.6.0`
 1. `go get github.com/cortexlabs/yaml@f1e621e4f2a32e1b2a5597da123e7c1da2d603c4`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
