@@ -436,7 +436,7 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 }
 
 func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string, awsCreds AWSCredentials) error {
-	fmt.Print("fetching cluster info ...\n\n") // TODO merge this with the other fetching?
+	fmt.Print("fetching cluster info ...\n\n")
 
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:          isTelemetryEnabled(),
