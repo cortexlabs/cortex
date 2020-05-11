@@ -54,25 +54,25 @@ RUN test "${SLIM}" = "true" || ( \
         && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
         && /bin/bash -c \
             "pip install --no-cache-dir \
-                cloudpickle==1.3.0 \
-                Cython==0.29.16 \
+                cloudpickle==1.4.1 \
+                Cython==0.29.17 \
                 joblib==0.14.1 \
                 Keras==2.3.1 \
-                nltk==3.4.5 \
+                nltk==3.5 \
                 np-utils==0.5.12.1 \
-                opencv-python==4.2.0.32 \
+                opencv-python==4.2.0.34 \
                 pandas==1.0.3 \
-                Pillow==7.0.0 \
-                scikit-image==0.16.2 \
+                Pillow==7.1.2 \
+                scikit-image==0.17.1 \
                 scikit-learn==0.22.2.post1 \
                 scipy==1.4.1 \
                 six==1.14.0 \
                 statsmodels==0.11.1 \
                 sympy==1.5.1 \
                 tensorflow-cpu==2.1.0 \
-                tensorflow-hub==0.7.0 \
-                torch==1.4.0 \
-                torchvision==0.5.0 \
+                tensorflow-hub==0.8.0 \
+                torch==1.5.0 \
+                torchvision==0.6.0 \
                 xgboost==1.0.2" \
     )
 
