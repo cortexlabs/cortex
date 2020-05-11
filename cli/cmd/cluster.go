@@ -436,6 +436,8 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 }
 
 func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string, awsCreds AWSCredentials) error {
+	fmt.Print("fetching cluster info ...\n\n") // TODO merge this with the other fetching?
+
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:          isTelemetryEnabled(),
 		EnvName:            _flagClusterEnv,
@@ -491,7 +493,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	}
 
 	totalPrice := eksPrice + totalAPIInstancePrice + apiEBSPrice*float64(numAPIInstances) + operatorInstancePrice + operatorEBSPrice + nlbPrice*2 + natTotalPrice
-	fmt.Printf("your cluster costs %s per hour:", s.DollarsAndTenthsOfCents(totalPrice))
+	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -524,8 +526,12 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	numAPIInstances := len(infoResponse.NodeInfos)
 
 	var totalReplicas int
+	var doesClusterHaveGPUs bool
 	for _, nodeInfo := range infoResponse.NodeInfos {
 		totalReplicas += nodeInfo.NumReplicas
+		if nodeInfo.ComputeCapacity.GPU > 0 {
+			doesClusterHaveGPUs = true
+		}
 	}
 
 	var pendingReplicasStr string
@@ -533,7 +539,11 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		pendingReplicasStr = fmt.Sprintf(", and %d unscheduled %s", infoResponse.NumPendingReplicas, s.PluralS("replica", infoResponse.NumPendingReplicas))
 	}
 
-	fmt.Printf("your cluster has %d API %s running in %d %s%s:\n", totalReplicas, s.PluralS("replica", totalReplicas), numAPIInstances, s.PluralS("instance", numAPIInstances), pendingReplicasStr)
+	fmt.Printf(console.Bold("your cluster has %d API %s running in %d %s%s\n\n"), totalReplicas, s.PluralS("replica", totalReplicas), numAPIInstances, s.PluralS("instance", numAPIInstances), pendingReplicasStr)
+
+	if len(infoResponse.NodeInfos) == 0 {
+		return
+	}
 
 	headers := []table.Header{
 		{Title: "instance type"},
@@ -541,7 +551,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "replicas"},
 		{Title: "CPU (avail / capacity)"},
 		{Title: "memory (avail / capacity)"},
-		{Title: "GPU (avail / capacity)"},
+		{Title: "GPU (avail / capacity)", Hidden: !doesClusterHaveGPUs},
 	}
 
 	rows := [][]interface{}{}
@@ -560,7 +570,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		Headers: headers,
 		Rows:    rows,
 	}
-	fmt.Println(t.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
+	t.MustPrint(&table.Opts{Sort: pointer.Bool(false)})
 }
 
 func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
@@ -582,12 +592,11 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 		shouldWriteEnv = true
 	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || *prevEnv.AWSAccessKeyID != awsCreds.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != awsCreds.AWSSecretAccessKey {
 		fmt.Println()
-		fmt.Println(newEnvironment.String(false))
 		if disallowPrompt {
-			fmt.Print(fmt.Sprintf("found an existing environment named \"%s\"; overwriting it with the configuration above\n\n", _flagClusterEnv))
+			fmt.Print(fmt.Sprintf("found an existing environment named \"%s\"; overwriting it to connect to this cluster\n\n", _flagClusterEnv))
 			shouldWriteEnv = true
 		} else {
-			shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it with the configuration above?", _flagClusterEnv), "", "")
+			shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster?", _flagClusterEnv), "", "")
 		}
 	}
 
