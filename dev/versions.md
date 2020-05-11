@@ -120,14 +120,8 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update the version in `images/nvidia/Dockerfile` ([releases](https://github.com/NVIDIA/k8s-device-plugin/releases), [Dockerhub](https://hub.docker.com/r/nvidia/k8s-device-plugin))
 1. In the [GitHub Repo](https://github.com/NVIDIA/k8s-device-plugin), find the latest release and go to this file (replacing the version number): <https://github.com/NVIDIA/k8s-device-plugin/blob/1.0.0-beta/nvidia-device-plugin.yml>
 1. Copy the contents to `manager/manifests/nvidia.yaml`
-   1. Update this line of config:
-
-       ```yaml
-       - image: $CORTEX_IMAGE_NVIDIA
-       ```
-
    1. Update the link at the top of the file to the URL you copied from
-   1. Check that your diff is reasonable
+   1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update strategy, resource requests, tolerations, node selector, priority class, etc)
 1. Confirm GPUs work for PyTorch, TensorFlow, and ONNX models
 
 ## Python packages
