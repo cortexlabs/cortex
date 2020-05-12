@@ -73,8 +73,8 @@ RUN test "${SLIM}" = "true" || ( \
                 sympy==1.5.1 \
                 tensorflow-gpu==2.1.0 \
                 tensorflow-hub==0.8.0 \
-                torch==1.5.0 \
-                torchvision==0.6.0 \
+                https://download.pytorch.org/whl/cu101/torch-1.5.0%2Bcu101-cp36-cp36m-linux_x86_64.whl \
+                https://download.pytorch.org/whl/cu101/torchvision-0.6.0%2Bcu101-cp36-cp36m-linux_x86_64.whl \
                 xgboost==1.0.2" \
     )
 
