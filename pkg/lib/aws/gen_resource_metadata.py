@@ -144,10 +144,7 @@ def get_ebs_metadata(pricing):
         ]
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
-        metadata = {
-            "type": product["attributes"].get("volumeApiName"),
-            "price_gb": float(price),
-        }
+        metadata = {"type": product["attributes"].get("volumeApiName"), "price_gb": float(price)}
 
         # io1 has per IOPS pricing --> add pricing to metadata
         # if storagedevice does not price per IOPS will set value to 0
