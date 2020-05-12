@@ -727,7 +727,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 	totalHugePages := api.Compute.Accelerator * _hugePagesMemPerAccelerator
 	return &kcore.Container{
 		Name:            _neuronRTDContainerName,
-		Image:           config.Cluster.ImageNeuronRuntime,
+		Image:           config.Cluster.ImageNeuronRTD,
 		ImagePullPolicy: kcore.PullAlways,
 		SecurityContext: &kcore.SecurityContext{
 			Capabilities: &kcore.Capabilities{
