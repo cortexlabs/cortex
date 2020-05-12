@@ -16,8 +16,14 @@
 
 set -e
 
-# for i in {1..${TF_WORKERS}}; do
-#     /usr/local/bin/tensorflow_model_server_neuron "$@"
-# done
+export base_port=${1#*=}
+export model_path=${2#*=}
+export model_name=${3#*=}
 
-tensorflow_model_server_neuron "$@"
+for i in $(seq 1 $TF_WORKERS); do
+    echo -e "\n\n" >> /tmp/supervisord.conf
+    worker=$i port=$((base_port+i-1)) envsubst < /tmp/template.conf >> /tmp/supervisord.conf
+done
+
+cp /tmp/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
