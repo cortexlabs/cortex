@@ -47,6 +47,7 @@ const (
 	ErrS3DirNotFoundOrEmpty               = "operator.s3_dir_not_found_or_empty"
 	ErrONNXDoesntSupportZip               = "operator.onnx_doesnt_support_zip"
 	ErrInvalidTensorFlowDir               = "operator.invalid_tensorflow_dir"
+	ErrInvalidNeuronTensorFlowDir         = "operator.invalid_neuron_tensorflow_dir"
 	ErrFieldMustBeDefinedForPredictorType = "operator.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType   = "operator.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
@@ -225,6 +226,19 @@ func ErrorInvalidTensorFlowDir(path string) error {
 	message += _tfExpectedStructMessage
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowDir,
+		Message: message,
+	})
+}
+
+var _neuronTfExpectedStructMessage = `For TensorFlow models, the path must contain a directory with the following structure:
+1523423423/ (Version prefix, usually a timestamp)
+└── saved_model.pb`
+
+func ErrorInvalidNeuronTensorFlowDir(path string) error {
+	message := "invalid Neuron TensorFlow export directory.\n"
+	message += _neuronTfExpectedStructMessage
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidNeuronTensorFlowDir,
 		Message: message,
 	})
 }

@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-for i in {1..${TF_WORKERS}}; do
-    tensorflow_model_server_neuron "$@"
-done
+set -e
+
+# for i in {1..${TF_WORKERS}}; do
+#     /usr/local/bin/tensorflow_model_server_neuron "$@"
+# done
+
+tensorflow_model_server_neuron "$@"

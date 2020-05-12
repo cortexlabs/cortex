@@ -13,5 +13,6 @@ RUN apt-get update -qq && apt-get install -y -q \
 ENV PATH=/opt/aws/neuron/bin/:$PATH
 
 COPY images/tf-serve-accelerator/run.sh /src/
+RUN chmod +x /src/run.sh
 
-CMD ["/src/run.sh"]
+ENTRYPOINT ["/src/run.sh"]

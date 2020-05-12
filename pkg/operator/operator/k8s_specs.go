@@ -44,6 +44,7 @@ const (
 	_emptyDirVolumeName                    = "mnt"
 	_apiContainerName                      = "api"
 	_tfServingContainerName                = "serve"
+	_tfServingModelName                    = "model"
 	_downloaderInitContainerName           = "downloader"
 	_neuronRTDContainerName                = "neuron-rtd"
 	_hugePagesMemPerAccelerator            = int64(2 * 128)
@@ -662,6 +663,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		Args: []string{
 			"--port=" + _tfServingPortStr,
 			"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
+			"--model_name=" + _tfServingModelName,
 		},
 		Env:          getEnvVars(api),
 		EnvFrom:      _baseEnvVars,
