@@ -10,6 +10,7 @@ class PythonPredictor:
         roberta = torch.hub.load("pytorch/fairseq", "roberta.large")
         roberta.eval()
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"using device: {device}")
         roberta.to(device)
 
         self.model = roberta

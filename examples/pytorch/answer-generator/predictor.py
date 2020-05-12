@@ -22,6 +22,7 @@ class PythonPredictor:
         model.load_state_dict(weights)
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"using device: {device}")
         model.to(device)
         model.eval()
 
