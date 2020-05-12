@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 for i in {1..${TF_WORKERS}}; do
     tensorflow_model_server_neuron "$@"
 done

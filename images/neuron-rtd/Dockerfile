@@ -13,4 +13,4 @@ RUN yum install -y tar gzip
 
 ENV PATH="/opt/aws/neuron/bin:${PATH}"
 
-CMD neuron-rtd -g unix:/sock/neuron.sock -x
+CMD neuron-rtd -g unix:/run/neuron.sock -x

@@ -66,7 +66,4 @@ COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/serve /src/cortex/serve
 
-# to make neuron-cli accessible
-RUN ln -s /sock/neuron.sock /run/neuron.sock
-
 ENTRYPOINT ["/src/cortex/serve/run.sh"]

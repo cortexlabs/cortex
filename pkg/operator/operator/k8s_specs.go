@@ -94,7 +94,6 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
-	tfVolumeMounts := _defaultVolumeMounts
 	volumeMounts := _defaultVolumeMounts
 	volumes := _defaultVolumes
 	containers := []kcore.Container{}
@@ -120,36 +119,18 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 			tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		}
 	} else {
-		volumes = append(volumes, []kcore.Volume{
-			{
-				Name: "sock",
-				VolumeSource: kcore.VolumeSource{
-					EmptyDir: &kcore.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: "run",
-				VolumeSource: kcore.VolumeSource{
-					EmptyDir: &kcore.EmptyDirVolumeSource{},
-				},
-			},
-		}...)
-		tfVolumeMounts = append(tfVolumeMounts, kcore.VolumeMount{
-			Name:      "sock",
-			MountPath: "/sock",
+		volumes = append(volumes, kcore.Volume{
+			Name: "run",
 		})
-		volumeMounts = append(volumeMounts, []kcore.VolumeMount{
-			{
-				Name:      "sock",
-				MountPath: "/sock",
-			},
+		rtdVolumeMounts := []kcore.VolumeMount{
 			{
 				Name:      "run",
 				MountPath: "/run",
 			},
-		}...)
+		}
+		volumeMounts = append(volumeMounts, rtdVolumeMounts...)
 
-		neuronContainer := *neuronRuntimeDaemonContainer(api, volumeMounts)
+		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
 
 		q1, q2, q3 := k8s.SplitInThree(userPodCPURequest)
 		apiResourceList[kcore.ResourceCPU] = *q1
@@ -196,7 +177,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		}},
 		*tensorflowServingContainer(
 			api,
-			tfVolumeMounts,
+			volumeMounts,
 			kcore.ResourceRequirements{
 				Limits:   tfServingLimitsList,
 				Requests: tfServingResourceList,
@@ -308,32 +289,17 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		}
 
 	} else {
-		volumes = append(volumes, []kcore.Volume{
-			{
-				Name: "sock",
-				VolumeSource: kcore.VolumeSource{
-					EmptyDir: &kcore.EmptyDirVolumeSource{},
-				},
-			},
-			{
-				Name: "run",
-				VolumeSource: kcore.VolumeSource{
-					EmptyDir: &kcore.EmptyDirVolumeSource{},
-				},
-			},
-		}...)
-		volumeMounts := []kcore.VolumeMount{
-			{
-				Name:      "sock",
-				MountPath: "/sock",
-			},
+		volumes = append(volumes, kcore.Volume{
+			Name: "run",
+		})
+		rtdVolumeMounts := []kcore.VolumeMount{
 			{
 				Name:      "run",
 				MountPath: "/run",
 			},
 		}
-		userPodvolumeMounts = append(userPodvolumeMounts, volumeMounts...)
-		neuronContainer := *neuronRuntimeDaemonContainer(api, volumeMounts)
+		userPodvolumeMounts = append(userPodvolumeMounts, rtdVolumeMounts...)
+		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
 
 		q1, q2 := k8s.SplitInTwo(podCPURequest)
 		userPodResourceList[kcore.ResourceCPU] = *q1
@@ -673,7 +639,7 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			},
 			kcore.EnvVar{
 				Name:  "NEURON_RTD_ADDRESS",
-				Value: "unix:/sock/neuron.sock",
+				Value: "unix:/run/neuron.sock",
 			},
 		)
 
