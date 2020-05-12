@@ -106,7 +106,7 @@ func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 		return nil, err
 	}
 
-	minMem := memFromConfig.Copy()
+	minMem := k8s.QuantityPtr(memFromConfig.DeepCopy())
 
 	if memFromNodes != nil && minMem.Cmp(*memFromNodes) > 0 {
 		minMem = memFromNodes

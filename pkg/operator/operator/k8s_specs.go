@@ -95,7 +95,7 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 	tfServingLimitsList := kcore.ResourceList{}
 
 	if api.Compute.CPU != nil {
-		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
 		userPodCPURequest.Sub(_requestMonitorCPURequest)
 		q1, q2 := k8s.SplitInTwo(userPodCPURequest)
 		apiResourceList[kcore.ResourceCPU] = *q1
@@ -103,7 +103,7 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 	}
 
 	if api.Compute.Mem != nil {
-		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
 		userPodMemRequest.Sub(_requestMonitorMemRequest)
 		q1, q2 := k8s.SplitInTwo(userPodMemRequest)
 		apiResourceList[kcore.ResourceMemory] = *q1
@@ -265,13 +265,13 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	resourceLimitsList := kcore.ResourceList{}
 
 	if api.Compute.CPU != nil {
-		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
 		userPodCPURequest.Sub(_requestMonitorCPURequest)
 		resourceList[kcore.ResourceCPU] = *userPodCPURequest
 	}
 
 	if api.Compute.Mem != nil {
-		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
 		userPodMemRequest.Sub(_requestMonitorMemRequest)
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
@@ -374,13 +374,13 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	resourceLimitsList := kcore.ResourceList{}
 
 	if api.Compute.CPU != nil {
-		userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
 		userPodCPURequest.Sub(_requestMonitorCPURequest)
 		resourceList[kcore.ResourceCPU] = *userPodCPURequest
 	}
 
 	if api.Compute.Mem != nil {
-		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
 		userPodMemRequest.Sub(_requestMonitorMemRequest)
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
