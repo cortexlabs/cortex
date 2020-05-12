@@ -17,10 +17,10 @@ Unless your internet connection is very fast or you will only be working on the 
 To install Go on linux, run:
 
 ```bash
-wget https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz && \
-sudo tar -xvf go1.14.1.linux-amd64.tar.gz && \
+wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz && \
+sudo tar -xvf go1.14.2.linux-amd64.tar.gz && \
 sudo mv go /usr/local && \
-rm go1.14.1.linux-amd64.tar.gz
+rm go1.14.2.linux-amd64.tar.gz
 ```
 
 ### Docker

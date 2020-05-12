@@ -6,20 +6,21 @@
 1. Update the version in `manager/Dockerfile`
 1. Update eks configuration file as necessary (make sure to maintain all Cortex environment variables)
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
-1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.16.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.19.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
 
 ## Kubernetes
 
 1. Find the latest version of Kubernetes supported by eksctl ([source code](https://github.com/weaveworks/eksctl/blob/master/pkg/apis/eksctl.io/v1alpha5/types.go))
-1. Update the version in `eks.yaml`
+1. Update the version in `generate_eks.py`
+1. See instructions for upgrading the Kubernetes client below
 
 ## AWS CNI
 
-1. Check which version of the CNI eksctl uses
+1. Check which version of the CNI is used by default
 1. Update the go module version (see `Go > Non-versioned modules` section below)
 1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
 
-### AWS CNI (depreciated since now eksctl determines the version of AWS CNI)
+### AWS CNI (depreciated since we stopped setting it manually)
 
 1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
 1. Update the version in `install.sh`
@@ -29,14 +30,14 @@
 ## Go
 
 1. Find the latest release on Golang's [release page](https://golang.org/doc/devel/release.html) (or [downloads page](https://golang.org/dl/)) and check the changelog
-1. Search the codebase for the current minor version (e.g. `1.12`), update versions as appropriate
+1. Search the codebase for the current minor version (e.g. `1.14`), update versions as appropriate
 1. Update your local version and alert developers:
    * Linux:
-     1. `wget https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz`
-     1. `tar -xvf go1.14.1.linux-amd64.tar.gz`
+     1. `wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz`
+     1. `tar -xvf go1.14.2.linux-amd64.tar.gz`
      1. `sudo rm -rf /usr/local/go`
      1. `sudo mv -f go /usr/local`
-     1. `rm go1.14.1.linux-amd64.tar.gz`
+     1. `rm go1.14.2.linux-amd64.tar.gz`
      1. refresh shell
      1. `go version`
    * Mac:
@@ -51,7 +52,7 @@
 
 Note: check their [install.md](https://github.com/kubernetes/client-go/blob/master/INSTALL.md) for the latest instructions. These apply for k8s versions before v1.17.0:
 
-1. Find the latest patch release for the minor kubernetes version that EKS uses by default (here are [their versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html))
+1. Find the latest patch release for the minor kubernetes version that EKS uses by default, e.g. `kubernetes-1.16.9` (here are [their versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html))
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
 
 ### docker/engine/client
@@ -68,12 +69,21 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 1. `git push origin v2`
 1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `cortexlabs/yaml`
 
+### cortexlabs/go-input
+
+1. Check [tcnksm/go-input](https://github.com/tcnksm/go-input) to see if there were new releases since [cortexlabs/go-input](https://github.com/cortexlabs/go-input)
+1. `git clone git@github.com:cortexlabs/go-input.git && cd go-input`
+1. `git remote add upstream https://github.com/tcnksm/go-input && git fetch upstream`
+1. `git merge upstream/master`
+1. `git push origin master`
+1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `cortexlabs/go-input`
+
 ### Non-versioned modules
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
-1. `go get k8s.io/client-go@kubernetes-1.15.11 && go get k8s.io/apimachinery@kubernetes-1.15.11 && go get k8s.io/api@kubernetes-1.15.11`
+1. `go get k8s.io/client-go@kubernetes-1.16.9 && go get k8s.io/apimachinery@kubernetes-1.16.9 && go get k8s.io/api@kubernetes-1.16.9`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.6.0`
-1. `go get github.com/cortexlabs/yaml@f1e621e4f2a32e1b2a5597da123e7c1da2d603c4`
+1. `go get github.com/cortexlabs/yaml@581aea36a2e4db10f8696587e48cac5248d64f4d`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
 1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.8' >> go.mod`
 1. `go get -u github.com/docker/distribution`
@@ -95,7 +105,7 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 
 The same Python version should be used throughout Cortex (e.g. search for `3.6` and update all accordingly).
 
-It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile)). In theory, it should be safe to use the lowest of the maximum supported python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/project/tensorflow), [Keras](https://pypi.org/project/Keras), [numpy](https://pypi.org/project/numpy), [pandas](https://pypi.org/project/pandas), [scikit-learn](https://pypi.org/project/scikit-learn), [scipy](https://pypi.org/project/scipy), [torch](https://pypi.org/project/torch), [xgboost](https://pypi.org/project/xgboost))
+It's probably safest to use the minor version of Python that you get when you run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile)), or what you get by default in Google CoLab. In theory, it should be safe to use the lowest of the maximum supported python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/project/tensorflow), [Keras](https://pypi.org/project/Keras), [numpy](https://pypi.org/project/numpy), [pandas](https://pypi.org/project/pandas), [scikit-learn](https://pypi.org/project/scikit-learn), [scipy](https://pypi.org/project/scipy), [torch](https://pypi.org/project/torch), [xgboost](https://pypi.org/project/xgboost))
 
 ## TensorFlow / TensorFlow Serving
 
@@ -119,20 +129,15 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update the version in `images/nvidia/Dockerfile` ([releases](https://github.com/NVIDIA/k8s-device-plugin/releases), [Dockerhub](https://hub.docker.com/r/nvidia/k8s-device-plugin))
 1. In the [GitHub Repo](https://github.com/NVIDIA/k8s-device-plugin), find the latest release and go to this file (replacing the version number): <https://github.com/NVIDIA/k8s-device-plugin/blob/1.0.0-beta/nvidia-device-plugin.yml>
 1. Copy the contents to `manager/manifests/nvidia.yaml`
-   1. Update this line of config:
-
-       ```yaml
-       - image: $CORTEX_IMAGE_NVIDIA
-       ```
-
    1. Update the link at the top of the file to the URL you copied from
-   1. Check that your diff is reasonable
+   1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update strategy, resource requests, tolerations, node selector, priority class, etc)
 1. Confirm GPUs work for PyTorch, TensorFlow, and ONNX models
 
 ## Python packages
 
-1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor-*/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
-1. Update the versions listed in "Pre-installed packages" in `python.md`, `onnx.md`, and `tensorflow.md`
+1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
+1. Update versions in `pkg/workloads/cortex/serve/requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
+1. Update the versions listed in "Pre-installed packages" in `python.md`, `onnx.md`, and `tensorflow.md` (look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`)
 1. Rerun all examples and check their logs
 
 ## Istio
@@ -163,10 +168,10 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 ## Cluster autoscaler
 
-1. Find the latest patch release for our current version of k8s (e.g. k8s v1.14 -> cluster-autocluster v1.14.7) on [GitHub](https://github.com/kubernetes/autoscaler/releases) and check the changelog
-1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws), set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml` (e.g. <https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.14.7/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml>)
+1. Find the latest patch release for our current version of k8s (e.g. k8s v1.16 -> cluster-autocluster v1.16.5) on [GitHub](https://github.com/kubernetes/autoscaler/releases) and check the changelog
+1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws), set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml` (e.g. <https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.16.5/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml>)
 1. Resolve merge conflicts with the template in `manager/manifests/cluster-autoscaler.yaml.j2`
-1. Update the version of the base image in `images/cluster-autoscaler/Dockerfile` to the tag of the chosen release
+1. Update the base image in `images/cluster-autoscaler/Dockerfile` to the repository URL shown in the GitHub release
 
 ## Fluentd
 
@@ -181,7 +186,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 1. Update the version in `images/statsd/Dockerfile`
 1. In this [GitHub Repo](https://github.com/aws-samples/amazon-cloudwatch-container-insights), set the tree to `master` and open [k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml](https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml) and [k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml](https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml)
 1. Update `statsd.yaml` as necessary (this wasn't copy-pasted, so you may need to check the diff intelligently)
-1. Update the datadog client version in `serve/requirements.txt`
+1. Update the datadog client version in `pkg/workloads/cortex/serve/requirements.txt`
 
 ## aws-iam-authenticator
 

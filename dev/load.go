@@ -93,7 +93,7 @@ func makeRequestLoop(url string, jsonBytes []byte) {
 			continue
 		}
 
-		// fmt.Print(".")
+		fmt.Print(".")
 
 		if _requestDelay != 0 {
 			time.Sleep(_requestDelay)

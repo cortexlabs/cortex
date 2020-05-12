@@ -11,6 +11,8 @@ from io import BytesIO
 class PythonPredictor:
     def __init__(self, config):
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"using device: {device}")
+
         model = torchvision.models.alexnet(pretrained=True).to(device)
         model.eval()
         # https://github.com/pytorch/examples/blob/447974f6337543d4de6b888e244a964d3c9b71f6/imagenet/main.py#L198-L199
