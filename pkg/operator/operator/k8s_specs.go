@@ -120,12 +120,12 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		}
 	} else {
 		volumes = append(volumes, kcore.Volume{
-			Name: "run",
+			Name: "neuron-sock",
 		})
 		rtdVolumeMounts := []kcore.VolumeMount{
 			{
-				Name:      "run",
-				MountPath: "/run",
+				Name:      "neuron-sock",
+				MountPath: "/sock",
 			},
 		}
 		volumeMounts = append(volumeMounts, rtdVolumeMounts...)
@@ -290,12 +290,12 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 
 	} else {
 		volumes = append(volumes, kcore.Volume{
-			Name: "run",
+			Name: "neuron-sock",
 		})
 		rtdVolumeMounts := []kcore.VolumeMount{
 			{
-				Name:      "run",
-				MountPath: "/run",
+				Name:      "neuron-sock",
+				MountPath: "/sock",
 			},
 		}
 		userPodvolumeMounts = append(userPodvolumeMounts, rtdVolumeMounts...)
@@ -639,7 +639,7 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			},
 			kcore.EnvVar{
 				Name:  "NEURON_RTD_ADDRESS",
-				Value: "unix:/run/neuron.sock",
+				Value: "unix:/sock/neuron.sock",
 			},
 		)
 
