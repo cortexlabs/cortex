@@ -113,8 +113,8 @@ def is_gpu(instance_type):
     return instance_type.startswith("g") or instance_type.startswith("p")
 
 
-def apply_accelerator_settings(nodegroup):
-    no_chips, hugepages_mem = get_accelerator_resources(nodegroup["instanceType"])
+def apply_accelerator_settings(nodegroup, instance_type):
+    no_chips, hugepages_mem = get_accelerator_resources(instance_type)
     accelerator_settings = {
         # custom eks-optimized AMI for inf instances
         # track https://github.com/aws/containers-roadmap/issues/619 ticket
@@ -179,7 +179,9 @@ def generate_eks(configmap_yaml_path):
         apply_gpu_settings(worker_nodegroup)
 
     if is_accelerator(cluster_configmap["instance_type"]):
-        apply_accelerator_settings(worker_nodegroup)
+        apply_accelerator_settings(
+            worker_nodegroup, instance_type=cluster_configmap["instance_type"]
+        )
 
     eks = {
         "apiVersion": "eksctl.io/v1alpha5",
@@ -204,7 +206,7 @@ def generate_eks(configmap_yaml_path):
         if is_gpu(cluster_configmap["instance_type"]):
             apply_gpu_settings(backup_nodegroup)
         if is_accelerator(cluster_configmap["instance_type"]):
-            apply_accelerator_settings(backup_nodegroup)
+            apply_accelerator_settings(backup_nodegroup, cluster_configmap["instance_type"])
 
         backup_nodegroup["minSize"] = 0
         backup_nodegroup["desiredCapacity"] = 0
