@@ -64,7 +64,6 @@ type Config struct {
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
-	Cloudwatch                 bool               `json:"cloudwatch" yaml:"cloudwatch"`
 	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
 	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader            string             `json:"image_downloader" yaml:"image_downloader"`
@@ -257,12 +256,6 @@ var UserValidation = &cr.StructValidation{
 				MaxLength: 63,
 			},
 			DefaultField: "ClusterName",
-		},
-		{
-			StructField: "Cloudwatch",
-			BoolValidation: &cr.BoolValidation{
-				Default: true,
-			},
 		},
 		{
 			StructField: "SubnetVisibility",

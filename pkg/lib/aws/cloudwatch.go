@@ -91,8 +91,9 @@ func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, n
 	// create widgets for title and metrics
 	apiTitleWidget := createTextWidget(1, highestY+1, 22, 1, "## API: "+nameAPI)
 	inFlightWidget := createMetricWidget(1, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", dashboardRegion)
-	latencyWidget := createMetricWidget(12, highestY+2, 11, 6, latencyMetric(dashboardName, nameAPI, apiID), "p99 of request response time", "p99", dashboardRegion)
-	statCodeWidget := createMetricWidget(1, highestY+8, 11, 6, statCodeMetric(dashboardName, nameAPI, apiID), "Statuscode stats", "Sum", dashboardRegion)
+	latencyWidgetp99 := createMetricWidget(12, highestY+2, 11, 6, latencyMetric(dashboardName, nameAPI, apiID), "p99 of request response time (60s)", "p99", dashboardRegion)
+	latencyWidgetp50 := createMetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI, apiID), "median request response time (60s)", "p50", dashboardRegion)
+	statCodeWidget := createMetricWidget(1, highestY+8, 11, 6, statCodeMetric(dashboardName, nameAPI, apiID), "Status Code", "Sum", dashboardRegion)
 
 	//define interface to unmarshal received body string
 	var currDashboardHolder interface{}
@@ -104,7 +105,7 @@ func (c *Client) UpdateDashboard(dashboardName string, dashboardRegion string, n
 	currDashboard := currDashboardHolder.(map[string]interface{})
 	widgetSlice := currDashboard["widgets"].([]interface{})
 	// append new API metrics widgets to existing widgets
-	widgetSlice = append(widgetSlice, inFlightWidget, latencyWidget, statCodeWidget, apiTitleWidget)
+	widgetSlice = append(widgetSlice, inFlightWidget, latencyWidgetp99, statCodeWidget, apiTitleWidget, latencyWidgetp50)
 
 	currDashboard["widgets"] = widgetSlice
 	currDashboardJSON, err := json.Marshal(currDashboard)

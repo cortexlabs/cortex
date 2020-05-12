@@ -156,12 +156,10 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		// create Dashboard if specificied in configfile
-		if clusterConfig.Cloudwatch {
-			err = CreateCloudWatchDashboard(awsClient, clusterConfig.ClusterName)
-			if err != nil {
-				exit.Error(err)
-			}
+		// create Cloudwatch Dashboard
+		err = CreateCloudWatchDashboard(awsClient, clusterConfig.ClusterName)
+		if err != nil {
+			exit.Error(err)
 		}
 
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
@@ -324,11 +322,9 @@ var _downCmd = &cobra.Command{
 
 		// delete Cloudwatch Dashboard
 		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, _flagClusterDisallowPrompt)
-		if cachedClusterConfig.Cloudwatch {
-			err = awsClient.DeleteDashboard(cachedClusterConfig.ClusterName)
-			if err != nil {
-				exit.Error(err)
-			}
+		err = awsClient.DeleteDashboard(cachedClusterConfig.ClusterName)
+		if err != nil {
+			exit.Error(err)
 		}
 
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)

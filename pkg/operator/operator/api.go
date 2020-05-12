@@ -58,12 +58,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		// add api to cloudwatch if config is enabled
-		if config.Cluster.Config.Cloudwatch {
-			err = config.AWS.UpdateDashboard(config.Cluster.Config.ClusterName, *config.Cluster.Config.Region, apiConfig.Name, api.ID)
-			if err != nil {
-				return nil, "", errors.Wrap(err, "Failed updating Cloudwatch")
-			}
+		// add api to cloudwatch
+		err = config.AWS.UpdateDashboard(config.Cluster.Config.ClusterName, *config.Cluster.Config.Region, apiConfig.Name, api.ID)
+		if err != nil {
+			return nil, "", errors.Wrap(err, "Failed updating Cloudwatch")
 		}
 
 		return api, fmt.Sprintf("creating %s", api.Name), nil
@@ -158,15 +156,13 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	}
 
 	// delete api from cloudwatch
-	if config.Cluster.Config.Cloudwatch {
-		statuses, err := GetAllStatuses()
-		if err != nil {
-			return errors.Wrap(err, "Failed get API Statuses")
-		}
-		err = config.AWS.DeleteAPICloudwatch(statuses, config.Cluster.ClusterName, apiName)
-		if err != nil {
-			return errors.Wrap(err, "Failed deleting Cloudwatch API")
-		}
+	statuses, err := GetAllStatuses()
+	if err != nil {
+		return errors.Wrap(err, "Failed get API Statuses")
+	}
+	err = config.AWS.DeleteAPICloudwatch(statuses, config.Cluster.ClusterName, apiName)
+	if err != nil {
+		return errors.Wrap(err, "Failed deleting Cloudwatch API")
 	}
 
 	return nil
