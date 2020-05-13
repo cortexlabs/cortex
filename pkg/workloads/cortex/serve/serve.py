@@ -35,7 +35,7 @@ from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API
 from cortex.lib.log import cx_logger, debug_obj
-from cortex.lib.storage import S3
+from cortex.lib.storage import S3, FileLock
 from cortex.lib.exceptions import UserRuntimeException
 
 if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
@@ -209,8 +209,23 @@ def start():
     spec = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     model_dir = os.getenv("CORTEX_MODEL_DIR", None)
-    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", None)
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+
+    uses_accelerator = os.getenv("NEURONCORE_GROUP_SIZES", None)
+    if uses_accelerator:
+        with FileLock("/run/used_ports.json.lock"):
+            with open("/run/used_ports.json", "r+") as f:
+                used_ports = json.load(f)
+                for port in used_ports.keys():
+                    if not used_ports[port]:
+                        tf_serving_port = port
+                        used_ports[port] = True
+                        break
+                f.seek(0)
+                json.dump(used_ports, f)
+                f.truncate()
+    else:
+        tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", None)
 
     try:
         raw_api_spec = get_spec(storage, cache_dir, spec)

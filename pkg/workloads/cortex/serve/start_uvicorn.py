@@ -15,10 +15,21 @@
 import uvicorn
 import yaml
 import os
+import json
 
 if __name__ == "__main__":
     with open("/src/cortex/serve/log_config.yaml", "r") as f:
         log_config = yaml.load(f, yaml.FullLoader)
+
+    uses_accelerator = os.getenv("NEURONCORE_GROUP_SIZES", None)
+    if uses_accelerator:
+        base_serving_port = int(os.environ["CORTEX_TF_BASE_SERVING_PORT"])
+        workers = int(os.environ["CORTEX_WORKERS_PER_REPLICA"])
+        used_ports = {}
+        for w in range(int(workers)):
+            used_ports[str(base_serving_port + w)] = False
+        with open("/run/used_ports.json", "w+") as f:
+            json.dump(used_ports, f)
 
     # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
     uvicorn.run(

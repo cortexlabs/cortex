@@ -39,23 +39,23 @@ import (
 )
 
 const (
-	_specCacheDir                          = "/mnt/spec"
-	_emptyDirMountPath                     = "/mnt"
-	_emptyDirVolumeName                    = "mnt"
-	_apiContainerName                      = "api"
-	_tfServingContainerName                = "serve"
-	_tfServingModelName                    = "model"
-	_downloaderInitContainerName           = "downloader"
-	_neuronRTDContainerName                = "neuron-rtd"
-	_hugePagesMemPerAccelerator            = int64(2 * 128)
-	_coresPerAccelerator                   = int64(4)
-	_downloaderLastLog                     = "pulling the %s serving image"
-	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
-	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
-	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
-	_apiReadinessFile                      = "/mnt/api_readiness.txt"
-	_apiLivenessFile                       = "/mnt/api_liveness.txt"
-	_apiLivenessStalePeriod                = 7 // seconds (there is a 2-second buffer to be safe)
+	_specCacheDir                                  = "/mnt/spec"
+	_emptyDirMountPath                             = "/mnt"
+	_emptyDirVolumeName                            = "mnt"
+	_apiContainerName                              = "api"
+	_tfServingContainerName                        = "serve"
+	_tfServingModelName                            = "model"
+	_downloaderInitContainerName                   = "downloader"
+	_neuronRTDContainerName                        = "neuron-rtd"
+	_hugePagesMemPerAccelerator                    = int64(2 * 128)
+	_coresPerAccelerator                           = int64(4)
+	_downloaderLastLog                             = "pulling the %s serving image"
+	_defaultPortInt32, _defaultPortStr             = int32(8888), "8888"
+	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
+	_requestMonitorReadinessFile                   = "/request_monitor_ready.txt"
+	_apiReadinessFile                              = "/mnt/api_readiness.txt"
+	_apiLivenessFile                               = "/mnt/api_liveness.txt"
+	_apiLivenessStalePeriod                        = 7 // seconds (there is a 2-second buffer to be safe)
 )
 
 var (
@@ -159,8 +159,8 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 				Value: path.Join(_emptyDirMountPath, "model"),
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_TF_SERVING_PORT",
-				Value: _tfServingPortStr,
+				Name:  "CORTEX_TF_BASE_SERVING_PORT",
+				Value: _tfBaseServingPortStr,
 			},
 		),
 		EnvFrom:        _baseEnvVars,
@@ -656,18 +656,28 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 }
 
 func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
+	ports := []kcore.ContainerPort{}
+	if api.Compute.Accelerator > 0 {
+		numPorts := int32(api.Compute.Accelerator * _coresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica))
+		for i := int32(0); i < numPorts; i++ {
+			ports = append(ports, kcore.ContainerPort{
+				ContainerPort: _tfBaseServingPortInt32 + i,
+			})
+		}
+	}
 	return &kcore.Container{
 		Name:            _tfServingContainerName,
 		Image:           api.Predictor.TFServeImage,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
-			"--port=" + _tfServingPortStr,
+			"--port=" + _tfBaseServingPortStr,
 			"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
 			"--model_name=" + _tfServingModelName,
 		},
 		Env:          getEnvVars(api),
 		EnvFrom:      _baseEnvVars,
 		VolumeMounts: volumeMounts,
+		// TODO add readiness probe to all ports
 		ReadinessProbe: &kcore.Probe{
 			InitialDelaySeconds: 5,
 			TimeoutSeconds:      5,
@@ -677,17 +687,13 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			Handler: kcore.Handler{
 				TCPSocket: &kcore.TCPSocketAction{
 					Port: intstr.IntOrString{
-						IntVal: _tfServingPortInt32,
+						IntVal: _tfBaseServingPortInt32,
 					},
 				},
 			},
 		},
 		Resources: resources,
-		Ports: []kcore.ContainerPort{
-			{
-				ContainerPort: _tfServingPortInt32,
-			},
-		},
+		Ports:     ports,
 	}
 }
 
