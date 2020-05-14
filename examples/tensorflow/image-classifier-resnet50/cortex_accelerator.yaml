@@ -12,4 +12,5 @@
     accelerator: 1
   autoscaling:
     workers_per_replica: 4
-    threads_per_worker: 16
+    threads_per_worker: 64
+    max_replica_concurrency: 8192

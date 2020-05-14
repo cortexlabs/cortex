@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import requests
 import json
+import base64
 
 
 def get_url_image(url_image):
@@ -14,6 +15,23 @@ def get_url_image(url_image):
     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image
+
+
+def decode_images(images, input_shape):
+    """
+    Decodes the images from the payload
+    and prepares them for the client. 
+    """
+    output = []
+    for image in images:
+        img = base64.b64decode(image)
+        jpg_as_np = np.frombuffer(img, dtype=np.uint8)
+        img = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
+        img = cv2.resize(img, input_shape, interpolation=cv2.INTER_NEAREST)
+        img = {"input": img[np.newaxis, ...]}
+        output.append(img)
+
+    return output
 
 
 class TensorFlowPredictor:
@@ -28,17 +46,20 @@ class TensorFlowPredictor:
 
     def predict(self, payload):
         # preprocess image
-        image = get_url_image(payload["url"])
-        image = cv2.resize(image, self.input_shape, interpolation=cv2.INTER_NEAREST)
-        image = {"input": image[np.newaxis, ...]}
+        imgs = payload["imgs"]
+        decoded = decode_images(imgs, self.input_shape)
 
-        # predict
-        results = self.client.predict(image)["output"]
-        results = np.argsort(results)
+        # batch sized images
+        top5_list_imgs = []
+        for img in decoded:
+            # predict
+            results = self.client.predict(img)["output"]
+            results = np.argsort(results)
 
-        # Lookup and print the top 5 labels
-        top5_idx = results[-5:]
-        top5_labels = [self.idx2label[idx] for idx in top5_idx]
-        top5_labels = top5_labels[::-1]
+            # Lookup and print the top 5 labels
+            top5_idx = results[-5:]
+            top5_labels = [self.idx2label[idx] for idx in top5_idx]
+            top5_labels = top5_labels[::-1]
+            top5_list_imgs.append(top5_labels)
 
-        return top5_labels
+        return top5_list_imgs
