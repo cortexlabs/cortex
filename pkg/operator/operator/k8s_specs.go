@@ -152,21 +152,11 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 		Name:            _apiContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env: append(
-			getEnvVars(api),
-			kcore.EnvVar{
-				Name:  "CORTEX_MODEL_DIR",
-				Value: path.Join(_emptyDirMountPath, "model"),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_TF_BASE_SERVING_PORT",
-				Value: _tfBaseServingPortStr,
-			},
-		),
-		EnvFrom:        _baseEnvVars,
-		VolumeMounts:   volumeMounts,
-		ReadinessProbe: fileExistsProbe(_apiReadinessFile),
-		LivenessProbe:  _apiReadinessProbe,
+		Env:             getEnvVars(api, _apiContainerName),
+		EnvFrom:         _baseEnvVars,
+		VolumeMounts:    volumeMounts,
+		ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
+		LivenessProbe:   _apiReadinessProbe,
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
 		},
@@ -320,7 +310,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		Name:            _apiContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             getEnvVars(api),
+		Env:             getEnvVars(api, _apiContainerName),
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    userPodvolumeMounts,
 		ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
@@ -462,17 +452,11 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						Name:            _apiContainerName,
 						Image:           api.Predictor.Image,
 						ImagePullPolicy: kcore.PullAlways,
-						Env: append(
-							getEnvVars(api),
-							kcore.EnvVar{
-								Name:  "CORTEX_MODEL_DIR",
-								Value: path.Join(_emptyDirMountPath, "model"),
-							},
-						),
-						EnvFrom:        _baseEnvVars,
-						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:  _apiReadinessProbe,
+						Env:             getEnvVars(api, _apiContainerName),
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
+						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:   _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -567,7 +551,7 @@ func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deploym
 	return requestedReplicas
 }
 
-func getEnvVars(api *spec.API) []kcore.EnvVar {
+func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	envVars := []kcore.EnvVar{}
 
 	for name, val := range api.Predictor.Env {
@@ -577,78 +561,130 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		})
 	}
 
-	envVars = append(envVars,
-		kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_WORKERS_PER_REPLICA",
-			Value: s.Int32(api.Autoscaling.WorkersPerReplica),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_THREADS_PER_WORKER",
-			Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-		},
-		kcore.EnvVar{
-			Name: "CORTEX_MAX_WORKER_CONCURRENCY",
-			// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
-			Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Autoscaling.WorkersPerReplica)))),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_SO_MAX_CONN",
-			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_SERVING_PORT",
-			Value: _defaultPortStr,
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_API_SPEC",
-			Value: aws.S3Path(config.Cluster.Bucket, api.Key),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_CACHE_DIR",
-			Value: _specCacheDir,
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_PROJECT_DIR",
-			Value: path.Join(_emptyDirMountPath, "project"),
-		},
-	)
-
-	if api.Predictor.PythonPath != nil {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "PYTHON_PATH",
-			Value: path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath),
-		})
-	}
-
-	if api.Compute.Accelerator > 0 {
+	if container == _apiContainerName {
 		envVars = append(envVars,
 			kcore.EnvVar{
-				Name:  "NEURONCORE_GROUP_SIZES",
-				Value: s.Int64(api.Compute.Accelerator * _coresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica)),
+				Name: "HOST_IP",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "status.hostIP",
+					},
+				},
 			},
 			kcore.EnvVar{
-				Name:  "NEURON_RTD_ADDRESS",
-				Value: "unix:/sock/neuron.sock",
+				Name:  "CORTEX_WORKERS_PER_REPLICA",
+				Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_THREADS_PER_WORKER",
+				Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
+				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
+			},
+			kcore.EnvVar{
+				Name: "CORTEX_MAX_WORKER_CONCURRENCY",
+				// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
+				Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Autoscaling.WorkersPerReplica)))),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_SO_MAX_CONN",
+				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_SERVING_PORT",
+				Value: _defaultPortStr,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_API_SPEC",
+				Value: aws.S3Path(config.Cluster.Bucket, api.Key),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_CACHE_DIR",
+				Value: _specCacheDir,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_PROJECT_DIR",
+				Value: path.Join(_emptyDirMountPath, "project"),
 			},
 		)
 
-		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
+		if api.Predictor.PythonPath != nil {
 			envVars = append(envVars, kcore.EnvVar{
-				Name:  "TF_WORKERS",
-				Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+				Name:  "PYTHON_PATH",
+				Value: path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath),
 			})
+		}
+
+		if api.Predictor.Type == userconfig.ONNXPredictorType {
+			envVars = append(envVars, kcore.EnvVar{
+				Name:  "CORTEX_MODEL_DIR",
+				Value: path.Join(_emptyDirMountPath, "model"),
+			})
+		}
+
+		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
+			envVars = append(envVars, []kcore.EnvVar{
+				{
+					Name:  "CORTEX_MODEL_DIR",
+					Value: path.Join(_emptyDirMountPath, "model"),
+				},
+				{
+					Name:  "CORTEX_TF_BASE_SERVING_PORT",
+					Value: _tfBaseServingPortStr,
+				},
+			}...)
+		}
+	}
+
+	if api.Compute.Accelerator > 0 {
+		if (container == _apiContainerName && api.Predictor.Type != userconfig.TensorFlowPredictorType) ||
+			(container == _tfServingContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType) {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "NEURONCORE_GROUP_SIZES",
+					Value: s.Int64(api.Compute.Accelerator * _coresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica)),
+				},
+				kcore.EnvVar{
+					Name:  "NEURON_RTD_ADDRESS",
+					Value: "unix:/sock/neuron.sock",
+				},
+			)
+		}
+
+		if container == _tfServingContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType {
+			envVars = append(envVars, []kcore.EnvVar{
+				{
+					Name:  "TF_WORKERS",
+					Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+				},
+				{
+					Name:  "TF_STARTING_PORT",
+					Value: _tfBaseServingPortStr,
+				},
+				{
+					Name:  "TF_MODEL_BASE_PATH",
+					Value: path.Join(_emptyDirMountPath, "model"),
+				},
+				{
+					Name:  "TF_MODEL_NAME",
+					Value: _tfServingModelName,
+				},
+			}...)
+		}
+
+		if container == _apiContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType {
+			envVars = append(envVars, []kcore.EnvVar{
+				{
+					Name:  "CORTEX_MULTIPLE_TF_SERVERS",
+					Value: "yes",
+				},
+				{
+					Name:  "CORTEX_ACTIVE_NEURON",
+					Value: "yes",
+				},
+			}...)
 		}
 	}
 
@@ -656,27 +692,35 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 }
 
 func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
-	ports := []kcore.ContainerPort{}
+	var args []string
+	ports := []kcore.ContainerPort{
+		{
+			ContainerPort: _tfBaseServingPortInt32,
+		},
+	}
+
 	if api.Compute.Accelerator > 0 {
-		numPorts := int32(api.Compute.Accelerator * _coresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica))
-		for i := int32(0); i < numPorts; i++ {
+		numPorts := api.Autoscaling.WorkersPerReplica
+		for i := int32(1); i < numPorts; i++ {
 			ports = append(ports, kcore.ContainerPort{
 				ContainerPort: _tfBaseServingPortInt32 + i,
 			})
+		}
+	} else {
+		args = []string{
+			"--port=" + _tfBaseServingPortStr,
+			"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
+			"--model_name=" + _tfServingModelName,
 		}
 	}
 	return &kcore.Container{
 		Name:            _tfServingContainerName,
 		Image:           api.Predictor.TFServeImage,
 		ImagePullPolicy: kcore.PullAlways,
-		Args: []string{
-			"--port=" + _tfBaseServingPortStr,
-			"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
-			"--model_name=" + _tfServingModelName,
-		},
-		Env:          getEnvVars(api),
-		EnvFrom:      _baseEnvVars,
-		VolumeMounts: volumeMounts,
+		Args:            args,
+		Env:             getEnvVars(api, _tfServingContainerName),
+		EnvFrom:         _baseEnvVars,
+		VolumeMounts:    volumeMounts,
 		// TODO add readiness probe to all ports
 		ReadinessProbe: &kcore.Probe{
 			InitialDelaySeconds: 5,

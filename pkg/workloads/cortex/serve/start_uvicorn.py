@@ -21,8 +21,9 @@ if __name__ == "__main__":
     with open("/src/cortex/serve/log_config.yaml", "r") as f:
         log_config = yaml.load(f, yaml.FullLoader)
 
-    uses_accelerator = os.getenv("NEURONCORE_GROUP_SIZES", None)
-    if uses_accelerator:
+    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS", None)
+    if has_multiple_servers:
+        print("2222")
         base_serving_port = int(os.environ["CORTEX_TF_BASE_SERVING_PORT"])
         workers = int(os.environ["CORTEX_WORKERS_PER_REPLICA"])
         used_ports = {}

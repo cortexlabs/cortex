@@ -180,7 +180,7 @@ def _validate_required_fn_args(impl, fn_name, args):
 
 
 def uses_neuron_savedmodel():
-    value = os.getenv("NEURON_RTD_ADDRESS")
+    value = os.getenv("CORTEX_ACTIVE_NEURON")
     return value != None
 
 
