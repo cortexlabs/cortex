@@ -1,4 +1,4 @@
-FROM golang:1.14.1 as builder
+FROM golang:1.14.2 as builder
 
 COPY images/request-monitor/go.mod images/request-monitor/go.sum /go/src/github.com/cortexlabs/cortex/images/request-monitor/
 WORKDIR /go/src/github.com/cortexlabs/cortex/images/request-monitor

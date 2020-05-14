@@ -22,6 +22,11 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var _nodeTypeMeta = kmeta.TypeMeta{
+	APIVersion: "v1",
+	Kind:       "Node",
+}
+
 func (c *Client) ListNodes(opts *kmeta.ListOptions) ([]kcore.Node, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
@@ -30,5 +35,26 @@ func (c *Client) ListNodes(opts *kmeta.ListOptions) ([]kcore.Node, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	for i := range nodeList.Items {
+		nodeList.Items[i].TypeMeta = _nodeTypeMeta
+	}
 	return nodeList.Items, nil
+}
+
+func (c *Client) ListNodesByLabels(labels map[string]string) ([]kcore.Node, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelSelector(labels),
+	}
+	return c.ListNodes(opts)
+}
+
+func (c *Client) ListNodesByLabel(labelKey string, labelValue string) ([]kcore.Node, error) {
+	return c.ListNodesByLabels(map[string]string{labelKey: labelValue})
+}
+
+func (c *Client) ListNodesWithLabelKeys(labelKeys ...string) ([]kcore.Node, error) {
+	opts := &kmeta.ListOptions{
+		LabelSelector: LabelExistsSelector(labelKeys...),
+	}
+	return c.ListNodes(opts)
 }

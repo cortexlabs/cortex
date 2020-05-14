@@ -32,10 +32,10 @@ CPU Reservations:
 FluentD 200
 StatsD 100
 KubeProxy 100
+AWS cni 10
 Reserved (150 + 150) see eks.yaml for details
-Buffer (100)
 */
-var _cortexCPUReserve = kresource.MustParse("800m")
+var _cortexCPUReserve = kresource.MustParse("710m")
 
 /*
 Memory Reservations:
@@ -43,9 +43,8 @@ Memory Reservations:
 FluentD 200
 StatsD 100
 Reserved (300 + 300 + 200) see eks.yaml for details
-Buffer (100)
 */
-var _cortexMemReserve = kresource.MustParse("1200Mi")
+var _cortexMemReserve = kresource.MustParse("1100Mi")
 
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")
@@ -107,7 +106,7 @@ func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 		return nil, err
 	}
 
-	minMem := memFromConfig.Copy()
+	minMem := k8s.QuantityPtr(memFromConfig.DeepCopy())
 
 	if memFromNodes != nil && minMem.Cmp(*memFromNodes) > 0 {
 		minMem = memFromNodes

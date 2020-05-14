@@ -17,10 +17,10 @@ Unless your internet connection is very fast or you will only be working on the 
 To install Go on linux, run:
 
 ```bash
-wget https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz && \
-sudo tar -xvf go1.14.1.linux-amd64.tar.gz && \
+wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz && \
+sudo tar -xvf go1.14.2.linux-amd64.tar.gz && \
 sudo mv go /usr/local && \
-rm go1.14.1.linux-amd64.tar.gz
+rm go1.14.2.linux-amd64.tar.gz
 ```
 
 ### Docker
@@ -161,7 +161,9 @@ image_istio_galley: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-ga
 Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`):
 
 ```bash
-export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs"  # this will set the default image for APIs
+export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs"  # set the default image for APIs
+export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"  # redirect analytics to our dev environment
+export CORTEX_TELEMETRY_SEGMENT_WRITE_KEY="0WvoJyCey9z1W2EW7rYTPJUMRYat46dl"  # redirect error reporting to our dev environment
 alias cortex-dev='<path/to/cortex>/bin/cortex'  # replace <path/to/cortex> with the path to the cortex repo that you cloned
 ```
 

@@ -72,19 +72,24 @@ func QuantityParser(v *QuantityValidation) func(string) (interface{}, error) {
 	}
 }
 
-func NewQuantity(value int64) Quantity {
-	k8sQuantity := kresource.NewQuantity(value, kresource.DecimalSI)
-
-	return Quantity{
-		Quantity:   *k8sQuantity,
-		UserString: s.Int64(value),
+func WrapQuantity(k8sQuantity kresource.Quantity) *Quantity {
+	return &Quantity{
+		Quantity: k8sQuantity,
 	}
 }
 
-func NewMilliQuantity(milliValue int64) Quantity {
+func NewQuantity(value int64) *Quantity {
+	k8sQuantity := kresource.NewQuantity(value, kresource.DecimalSI)
+
+	return &Quantity{
+		Quantity: *k8sQuantity,
+	}
+}
+
+func NewMilliQuantity(milliValue int64) *Quantity {
 	k8sQuantity := kresource.NewMilliQuantity(milliValue, kresource.DecimalSI)
 
-	return Quantity{
+	return &Quantity{
 		Quantity:   *k8sQuantity,
 		UserString: s.Int64(milliValue) + "m",
 	}
@@ -111,6 +116,26 @@ func SplitInTwo(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Q
 	q1 := kresource.NewMilliQuantity(milliValue-halfMilliValue, kresource.DecimalSI)
 	q2 := kresource.NewMilliQuantity(halfMilliValue, kresource.DecimalSI)
 	return q1, q2
+}
+
+func (quantity *Quantity) Sub(q2 kresource.Quantity) {
+	quantity.Quantity.Sub(q2)
+	quantity.UserString = ""
+}
+
+func (quantity *Quantity) SubQty(q2 Quantity) {
+	quantity.Quantity.Sub(q2.Quantity)
+	quantity.UserString = ""
+}
+
+func (quantity *Quantity) Add(q2 kresource.Quantity) {
+	quantity.Quantity.Add(q2)
+	quantity.UserString = ""
+}
+
+func (quantity *Quantity) AddQty(q2 Quantity) {
+	quantity.Quantity.Add(q2.Quantity)
+	quantity.UserString = ""
 }
 
 func (quantity *Quantity) String() string {

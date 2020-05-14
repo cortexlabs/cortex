@@ -107,8 +107,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		}
 
 		if api.Compute.CPU != nil && (api.Compute.CPU.MilliValue() > int64(dockerClient.Info.NCPU)*1000) {
-			qty := k8s.NewQuantity(int64(dockerClient.Info.NCPU))
-			api.Compute.CPU = &qty
+			api.Compute.CPU = k8s.NewQuantity(int64(dockerClient.Info.NCPU))
 		}
 
 		if api.Compute.GPU > 0 {

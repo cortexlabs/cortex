@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/1.0.0-beta4/nvidia-device-plugin.yml
+# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/1.0.0-beta5/nvidia-device-plugin.yml
 
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass

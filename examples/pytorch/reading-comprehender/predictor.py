@@ -7,6 +7,7 @@ from allennlp.predictors.predictor import Predictor as AllenNLPPredictor
 class PythonPredictor:
     def __init__(self, config):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"using device: {self.device}")
 
         cuda_device = -1
         if self.device == "cuda":
