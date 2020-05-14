@@ -57,10 +57,12 @@ class Predictor:
     def initialize_impl(self, project_dir, client=None):
         class_impl = self.class_impl(project_dir)
         try:
-            if self.type == "python":
-                return class_impl(self.config)
+            if self.type == "onnx":
+                return class_impl(onnx_client=client, config=self.config)
+            elif self.type == "tensorflow":
+                return class_impl(tensorflow_client=client, config=self.config)
             else:
-                return class_impl(client, self.config)
+                return class_impl(config=self.config)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
         finally:
@@ -128,55 +130,90 @@ class Predictor:
 
 PYTHON_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "args": ["self", "config"]},
-        {"name": "predict", "args": ["self", "payload"]},
+        {"name": "__init__", "required_args": ["self", "config"]},
+        {
+            "name": "predict",
+            "required_args": ["self"],
+            "optional_args": ["payload", "headers", "query_params"],
+        },
     ]
 }
 
 TENSORFLOW_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "args": ["self", "tensorflow_client", "config"]},
-        {"name": "predict", "args": ["self", "payload"]},
+        {"name": "__init__", "required_args": ["self", "tensorflow_client", "config"]},
+        {
+            "name": "predict",
+            "required_args": ["self"],
+            "optional_args": ["payload", "headers", "query_params"],
+        },
     ]
 }
 
 ONNX_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "args": ["self", "onnx_client", "config"]},
-        {"name": "predict", "args": ["self", "payload"]},
+        {"name": "__init__", "required_args": ["self", "onnx_client", "config"]},
+        {
+            "name": "predict",
+            "required_args": ["self"],
+            "optional_args": ["payload", "headers", "query_params"],
+        },
     ]
 }
 
 
 def _validate_impl(impl, impl_req):
-    for optional_func in impl_req.get("optional", []):
-        _validate_optional_fn_args(impl, optional_func["name"], optional_func["args"])
+    for optional_func_signature in impl_req.get("optional", []):
+        _validate_optional_fn_args(impl, optional_func_signature)
 
-    for required_func in impl_req.get("required", []):
-        _validate_required_fn_args(impl, required_func["name"], required_func["args"])
-
-
-def _validate_optional_fn_args(impl, fn_name, args):
-    if fn_name in vars(impl):
-        _validate_required_fn_args(impl, fn_name, args)
+    for required_func_signature in impl_req.get("required", []):
+        _validate_required_fn_args(impl, required_func_signature)
 
 
-def _validate_required_fn_args(impl, fn_name, args):
-    fn = getattr(impl, fn_name, None)
+def _validate_optional_fn_args(impl, func_signature):
+    if getattr(impl, func_signature["name"], None):
+        _validate_required_fn_args(impl, func_signature)
+
+
+def _validate_required_fn_args(impl, func_signature):
+    fn = getattr(impl, func_signature["name"], None)
     if not fn:
-        raise UserException('required function "{}" is not defined'.format(fn_name))
+        raise UserException(f'required function "{func_signature["name"]}" is not defined')
 
     if not callable(fn):
-        raise UserException('"{}" is defined, but is not a function'.format(fn_name))
+        raise UserException(f'"{func_signature["name"]}" is defined, but is not a function')
 
     argspec = inspect.getfullargspec(fn)
 
-    if argspec.args != args:
-        raise UserException(
-            'invalid signature for function "{}": expected arguments ({}) but found ({})'.format(
-                fn_name, ", ".join(args), ", ".join(argspec.args)
+    required_args = func_signature.get("required_args", [])
+    optional_args = func_signature.get("optional_args", [])
+    fn_str = f'{func_signature["name"]}({", ".join(argspec.args)})'
+
+    for arg_name in required_args:
+        if arg_name not in argspec.args:
+            raise UserException(
+                f'invalid signature for function "{fn_str}": "{arg_name}" is a required argument, but was not provided'
             )
-        )
+
+        if arg_name == "self":
+            if argspec.args[0] != "self":
+                raise UserException(
+                    f'invalid signature for function "{fn_str}": "self" must be the first argument'
+                )
+
+    seen_args = []
+    for arg_name in argspec.args:
+        if arg_name not in required_args and arg_name not in optional_args:
+            raise UserException(
+                f'invalid signature for function "{fn_str}": "{arg_name}" is not a supported argument'
+            )
+
+        if arg_name in seen_args:
+            raise UserException(
+                f'invalid signature for function "{fn_str}": "{arg_name}" is duplicated'
+            )
+
+        seen_args.append(arg_name)
 
 
 tf_expected_dir_structure = """tensorflow model directories must have the following structure:
