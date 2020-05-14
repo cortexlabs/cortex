@@ -23,7 +23,6 @@ if __name__ == "__main__":
 
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS", None)
     if has_multiple_servers:
-        print("2222")
         base_serving_port = int(os.environ["CORTEX_TF_BASE_SERVING_PORT"])
         workers = int(os.environ["CORTEX_WORKERS_PER_REPLICA"])
         used_ports = {}
