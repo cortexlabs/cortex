@@ -115,7 +115,7 @@ def task(data, endpoint, samples, time_based):
             except Exception as e:
                 print(e)
                 break
-            time.sleep(0.005)
+            time.sleep(0.1)
         return [samples]
     else:
         start = time.time()
@@ -131,7 +131,7 @@ def task(data, endpoint, samples, time_based):
             except Exception as e:
                 print(e)
                 break
-            time.sleep(0.005)
+            time.sleep(0.1)
             counter += 1
         return [counter]
 
