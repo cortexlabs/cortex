@@ -321,8 +321,7 @@ var _downCmd = &cobra.Command{
 		}
 
 		// delete Cloudwatch Dashboard
-		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, _flagClusterDisallowPrompt)
-		err = awsClient.DeleteDashboard(cachedClusterConfig.ClusterName)
+		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -602,31 +601,30 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 	return nil
 }
 
-// CreateCloudWatchDashboard creates new dashboard if dashboard specified to true.
-// If dashboard already exists delete old one and create a new one
+// CreateCloudWatchDashboard creates new dashboard
+// If dashboard already exists deletes old one and create a new one
 func CreateCloudWatchDashboard(awsClient *aws.Client, dashboardName string) error {
 	dashboardFound, err := awsClient.DoesDashboardExist(dashboardName)
 	if err != nil {
 		return err
 	}
-	if !dashboardFound {
-		fmt.Print("￮ creating a new cloudwatch dashboard: ", dashboardName)
-		err = awsClient.CreateDashboard(dashboardName)
-		if err != nil {
-			return err
-		}
-		fmt.Println(" ✓")
-	} else {
-		fmt.Println("￮ old cloudwatch detected recreating: ", dashboardName)
+
+	if dashboardFound {
+		fmt.Println("￮ updating cloudwatch dashboard:", dashboardName)
 		err = awsClient.DeleteDashboard(dashboardName)
 		if err != nil {
 			return err
 		}
-		err = awsClient.CreateDashboard(dashboardName)
-		if err != nil {
-			return err
-		}
+	} else {
+		fmt.Print("￮ creating cloudwatch dashboard: ", dashboardName)
 	}
+
+	err = awsClient.CreateDashboard(dashboardName)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(" ✓")
 
 	return nil
 }
