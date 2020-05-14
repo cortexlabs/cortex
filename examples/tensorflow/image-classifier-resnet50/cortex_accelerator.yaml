@@ -7,9 +7,9 @@
       classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
       input_shape: [224, 224]
   compute:
-    cpu: 3
-    mem: 6G
-    accelerator: 4
+    cpu: 3200m
+    mem: 4G
+    accelerator: 1
   autoscaling:
-    workers_per_replica: 2
-    threads_per_worker: 4
+    workers_per_replica: 4
+    threads_per_worker: 16
