@@ -4,6 +4,7 @@ RUN apt-get update -qq && apt-get install -y -q \
     gettext-base \
     supervisor \
     wget \
+    netcat \
     gnupg && \
     echo "deb https://apt.repos.neuron.amazonaws.com bionic main" >> /etc/apt/sources.list.d/neuron.list && \
     wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add - && \

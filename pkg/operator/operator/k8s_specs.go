@@ -35,7 +35,6 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -721,7 +720,6 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		Env:             getEnvVars(api, _tfServingContainerName),
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    volumeMounts,
-		// TODO add readiness probe to all ports
 		ReadinessProbe: &kcore.Probe{
 			InitialDelaySeconds: 5,
 			TimeoutSeconds:      5,
@@ -729,10 +727,8 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			SuccessThreshold:    1,
 			FailureThreshold:    2,
 			Handler: kcore.Handler{
-				TCPSocket: &kcore.TCPSocketAction{
-					Port: intstr.IntOrString{
-						IntVal: _tfBaseServingPortInt32,
-					},
+				Exec: &kcore.ExecAction{
+					Command: []string{"/bin/bash", "-c", `test $(nc -zv localhost ` + fmt.Sprintf("%d-%d", _tfBaseServingPortInt32, _tfBaseServingPortInt32+int32(len(ports))-1) + ` 2>&1 | wc -l) -eq ` + fmt.Sprintf("%d", len(ports))},
 				},
 			},
 		},
