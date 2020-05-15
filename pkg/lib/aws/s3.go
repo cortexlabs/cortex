@@ -122,6 +122,15 @@ func IsValidS3aPath(s3aPath string) bool {
 	return true
 }
 
+func GetBucketRegionFromS3Path(s3Path string) (string, error) {
+	bucket, _, err := SplitS3Path(s3Path)
+	if err != nil {
+		return "", err
+	}
+
+	return GetBucketRegion(bucket)
+}
+
 func GetBucketRegion(bucket string) (string, error) {
 	sess := session.Must(session.NewSession()) // credentials are not necessary for this request, and will not be used
 	region, err := s3manager.GetBucketRegion(aws.BackgroundContext(), sess, bucket, endpoints.UsWest2RegionID)

@@ -517,6 +517,12 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 	}
 
 	model := *predictor.Model
+
+	awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
+	if err != nil {
+		return errors.Wrap(err, userconfig.ModelKey)
+	}
+
 	if strings.HasPrefix(model, "s3://") {
 		model, err := cr.S3PathValidator(model)
 		if err != nil {
@@ -524,11 +530,11 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 		}
 
 		if strings.HasSuffix(model, ".zip") {
-			if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
+			if ok, err := awsClientForBucket.IsS3PathFile(model); err != nil || !ok {
 				return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 			}
 		} else {
-			path, err := getTFServingExportFromS3Path(model, awsClient)
+			path, err := getTFServingExportFromS3Path(model, awsClientForBucket)
 			if err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
 			} else if path == "" {
@@ -584,13 +590,18 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		return errors.Wrap(ErrorInvalidONNXModelPath(), userconfig.ModelKey, model)
 	}
 
+	awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
+	if err != nil {
+		return errors.Wrap(err, userconfig.ModelKey)
+	}
+
 	if strings.HasPrefix(model, "s3://") {
 		model, err := cr.S3PathValidator(model)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
 
-		if ok, err := awsClient.IsS3PathFile(model); err != nil || !ok {
+		if ok, err := awsClientForBucket.IsS3PathFile(model); err != nil || !ok {
 			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 		}
 	} else {
@@ -620,8 +631,8 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	return nil
 }
 
-func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, error) {
-	if isValidTensorFlowS3Directory(path, awsClient) {
+func getTFServingExportFromS3Path(path string, awsClientForBucket *aws.Client) (string, error) {
+	if isValidTensorFlowS3Directory(path, awsClientForBucket) {
 		return path, nil
 	}
 
@@ -630,7 +641,7 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		return "", err
 	}
 
-	objects, err := awsClient.ListS3PathDir(path, false, pointer.Int64(1000))
+	objects, err := awsClientForBucket.ListS3PathDir(path, false, pointer.Int64(1000))
 	if err != nil {
 		return "", err
 	} else if len(objects) == 0 {
@@ -652,7 +663,7 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 		}
 
 		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
-		if version >= highestVersion && isValidTensorFlowS3Directory(possiblePath, awsClient) {
+		if version >= highestVersion && isValidTensorFlowS3Directory(possiblePath, awsClientForBucket) {
 			highestVersion = version
 			highestPath = possiblePath
 		}
@@ -668,15 +679,15 @@ func getTFServingExportFromS3Path(path string, awsClient *aws.Client) (string, e
 //		- variables/
 //			- variables.index
 //			- variables.data-00000-of-00001 (there are a variable number of these files)
-func isValidTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
-	if valid, err := awsClient.IsS3PathFile(
+func isValidTensorFlowS3Directory(path string, awsClientForBucket *aws.Client) bool {
+	if valid, err := awsClientForBucket.IsS3PathFile(
 		aws.JoinS3Path(path, "saved_model.pb"),
 		aws.JoinS3Path(path, "variables/variables.index"),
 	); err != nil || !valid {
 		return false
 	}
 
-	if valid, err := awsClient.IsS3PathPrefix(
+	if valid, err := awsClientForBucket.IsS3PathPrefix(
 		aws.JoinS3Path(path, "variables/variables.data-00000-of"),
 	); err != nil || !valid {
 		return false
