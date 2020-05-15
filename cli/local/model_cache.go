@@ -31,17 +31,23 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache, error) {
 	localModelCache := spec.LocalModelCache{}
+
+	awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
+	if err != nil {
+		return nil, errors.Wrap(err, userconfig.ModelKey)
+	}
 
 	if strings.HasPrefix(modelPath, "s3://") {
 		bucket, prefix, err := aws.SplitS3Path(modelPath)
 		if err != nil {
 			return nil, err
 		}
-		hash, err := awsClient.HashS3Dir(bucket, prefix, nil)
+		hash, err := awsClientForBucket.HashS3Dir(bucket, prefix, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -61,13 +67,13 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 		return &localModelCache, nil
 	}
 
-	err := ResetModelCacheDir(modelDir)
+	err = ResetModelCacheDir(modelDir)
 	if err != nil {
 		return nil, err
 	}
 
 	if strings.HasPrefix(modelPath, "s3://") {
-		err := downloadModel(modelPath, modelDir, awsClient)
+		err := downloadModel(modelPath, modelDir, awsClientForBucket)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +111,7 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 	return &localModelCache, nil
 }
 
-func downloadModel(modelPath string, modelDir string, awsClient *aws.Client) error {
+func downloadModel(modelPath string, modelDir string, awsClientForBucket *aws.Client) error {
 	fmt.Printf("￮ downloading model %s ", modelPath)
 	defer fmt.Print(" ✓\n")
 	dotCron := cron.Run(print.Dot, nil, 2*time.Second)
@@ -118,7 +124,7 @@ func downloadModel(modelPath string, modelDir string, awsClient *aws.Client) err
 
 	if strings.HasSuffix(modelPath, ".zip") || strings.HasSuffix(modelPath, ".onnx") {
 		localPath := filepath.Join(modelDir, filepath.Base(modelPath))
-		err := awsClient.DownloadFileFromS3(bucket, prefix, localPath)
+		err := awsClientForBucket.DownloadFileFromS3(bucket, prefix, localPath)
 		if err != nil {
 			return err
 		}
@@ -134,7 +140,7 @@ func downloadModel(modelPath string, modelDir string, awsClient *aws.Client) err
 		}
 	} else {
 		tfModelVersion := filepath.Base(prefix)
-		err := awsClient.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, tfModelVersion), true, nil)
+		err := awsClientForBucket.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, tfModelVersion), true, nil)
 		if err != nil {
 			return err
 		}

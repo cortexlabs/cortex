@@ -43,6 +43,14 @@ func NewFromCreds(region string, accessKeyID string, secretAccessKey string) (*C
 	return New(region, creds)
 }
 
+func NewFromClientS3Path(s3Path string, awsClient *Client) (*Client, error) {
+	if !awsClient.IsAnonymous {
+		return NewFromCredsS3Path(s3Path, *awsClient.AccessKeyID(), *awsClient.SecretAccessKey())
+	}
+
+	return NewAnonymousClient()
+}
+
 func NewFromEnvS3Path(s3Path string) (*Client, error) {
 	bucket, _, err := SplitS3Path(s3Path)
 	if err != nil {
