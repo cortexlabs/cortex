@@ -46,10 +46,18 @@ func NewFromCreds(region string, accessKeyID string, secretAccessKey string) (*C
 
 func NewFromClientS3Path(s3Path string, awsClient *Client) (*Client, error) {
 	if !awsClient.IsAnonymous {
+		if awsClient.AccessKeyID() == nil || awsClient.SecretAccessKey() == nil {
+			return nil, ErrorUnexpectedMissingCredentials(awsClient.AccessKeyID(), awsClient.SecretAccessKey())
+		}
 		return NewFromCredsS3Path(s3Path, *awsClient.AccessKeyID(), *awsClient.SecretAccessKey())
 	}
 
-	return NewAnonymousClient()
+	region, err := GetBucketRegionFromS3Path(s3Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewAnonymousClientWithRegion(region)
 }
 
 func NewFromEnvS3Path(s3Path string) (*Client, error) {
