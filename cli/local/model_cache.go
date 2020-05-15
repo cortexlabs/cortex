@@ -31,7 +31,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache, error) {
@@ -39,7 +38,7 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 
 	awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
 	if err != nil {
-		return nil, errors.Wrap(err, userconfig.ModelKey)
+		return nil, err
 	}
 
 	if strings.HasPrefix(modelPath, "s3://") {
