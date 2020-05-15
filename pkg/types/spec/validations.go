@@ -17,7 +17,6 @@ limitations under the License.
 package spec
 
 import (
-	"fmt"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -605,7 +604,6 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		}
 
 		if ok, err := awsClientForBucket.IsS3PathFile(model); err != nil || !ok {
-			fmt.Println("hi")
 			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 		}
 	} else {
