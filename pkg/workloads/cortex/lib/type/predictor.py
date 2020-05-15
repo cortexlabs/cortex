@@ -134,7 +134,7 @@ PYTHON_CLASS_VALIDATION = {
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "headers", "query_params"],
+            "optional_args": ["payload", "query_params", "headers"],
         },
     ]
 }
@@ -145,7 +145,7 @@ TENSORFLOW_CLASS_VALIDATION = {
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "headers", "query_params"],
+            "optional_args": ["payload", "query_params", "headers"],
         },
     ]
 }
@@ -156,7 +156,7 @@ ONNX_CLASS_VALIDATION = {
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "headers", "query_params"],
+            "optional_args": ["payload", "query_params", "headers"],
         },
     ]
 }
