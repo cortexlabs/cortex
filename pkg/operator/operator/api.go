@@ -156,8 +156,12 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				errors.PrintError(err, "failed to get API Statuses")
 				return nil
 			}
-			// best effort deletion
-			err = config.AWS.DeleteAPICloudwatch(statuses, config.Cluster.ClusterName, apiName)
+			//extract all api names from statuses
+			var allAPINames []string
+			for _, stat := range statuses {
+				allAPINames = append(allAPINames, stat.APIName)
+			}
+			err = config.AWS.DeleteAPICloudwatch(allAPINames, config.Cluster.ClusterName, apiName)
 			if err != nil {
 				errors.PrintError(err, "failed to remove API from cloudwatch dashboard")
 				return nil

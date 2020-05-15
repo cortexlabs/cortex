@@ -18,16 +18,26 @@ package aws
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 )
 
-type CloudWatch struct {
+type CloudWatchDashboard struct {
+	Start          string             `json:"start"`
+	PeriodOverride string             `json:"periodOverride"`
+	Widgets        []CloudWatchWidget `json:"widgets"`
+}
+
+type CloudWatchWidget struct {
+	Type       string                 `json:"type"`
+	X          int                    `json:"x"`
+	Y          int                    `json:"y"`
+	Width      int                    `json:"width"`
+	Height     int                    `json:"height"`
+	Properties map[string]interface{} `json:"properties"`
 }
 
 func (c *Client) DoesLogGroupExist(logGroup string) (bool, error) {
@@ -87,14 +97,14 @@ func (c *Client) AddAPIToDashboard(dashboardName string, dashboardRegion string,
 	currDashboardString := *currDashboardOutput.DashboardBody
 
 	//define interface to unmarshal received body string
-	var currDashboardHolder interface{}
-	err = json.Unmarshal([]byte(currDashboardString), &currDashboardHolder)
+	var currDashboard CloudWatchDashboard
+	err = json.Unmarshal([]byte(currDashboardString), &currDashboard)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	// get lowest element of cloudwatch. Needed to place metrics below all existing metrics
-	highestY, err := getHighestYDashboard(currDashboardString)
+	highestY, err := getHighestYDashboard(currDashboard)
 	if err != nil {
 		return err
 	}
@@ -102,29 +112,16 @@ func (c *Client) AddAPIToDashboard(dashboardName string, dashboardRegion string,
 	// create widgets for title and metrics
 	apiTitleWidget := createTextWidget(1, highestY+1, 22, 1, "## API: "+nameAPI)
 	// top left widget
-	statCodeWidget := createMetricWidget(1, highestY+2, 11, 6, statCodeMetric(dashboardName, nameAPI), "Status Code", "Sum", dashboardRegion)
+	statCodeWidget := createMetricWidget(1, highestY+2, 11, 6, statCodeMetric(dashboardName, nameAPI), "Status Code", "Sum", 60, dashboardRegion)
 	// top right widget
-	inFlightWidget := createMetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", dashboardRegion)
+	inFlightWidget := createMetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", 10, dashboardRegion)
 	// bottem left widget
-	latencyWidgetp50 := createMetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "median request response time (60s)", "p50", dashboardRegion)
+	latencyWidgetp50 := createMetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "median request response time (60s)", "p50", 60, dashboardRegion)
 	// bottom right widget
-	latencyWidgetp99 := createMetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "p99 of request response time (60s)", "p99", dashboardRegion)
+	latencyWidgetp99 := createMetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "p99 of request response time (60s)", "p99", 60, dashboardRegion)
 
-	currDashboard := currDashboardHolder.(map[string]interface{})
-	widgetSlice := currDashboard["widgets"].([]interface{})
 	// append new API metrics widgets to existing widgets
-	widgetSlice = append(widgetSlice, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetp50, latencyWidgetp99)
-	fmt.Println(widgetSlice)
-	print("=======")
-	fmt.Println(statCodeWidget)
-	print("=======")
-	fmt.Println(inFlightWidget)
-	print("=======")
-	fmt.Println(latencyWidgetp50)
-	print("=======")
-	fmt.Println(latencyWidgetp99)
-	print("=======")
-	currDashboard["widgets"] = widgetSlice
+	currDashboard.Widgets = append(currDashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetp50, latencyWidgetp99)
 	currDashboardJSON, err := json.Marshal(currDashboard)
 	if err != nil {
 		return errors.WithStack(err)
@@ -144,7 +141,7 @@ func (c *Client) AddAPIToDashboard(dashboardName string, dashboardRegion string,
 func (c *Client) CreateDashboard(dashboardName string) error {
 
 	//create cloudwatch base body with title
-	cloudwatchBaseBody := map[string]interface{}{"start": "-PT1H", "periodOverride": "inherit", "widgets": []interface{}{createTextWidget(7, 0, 10, 1, "# CORTEX MONITORING DASHBOARD")}}
+	cloudwatchBaseBody := CloudWatchDashboard{Start: "-PT1H", PeriodOverride: "inherit", Widgets: []CloudWatchWidget{createTextWidget(7, 0, 10, 1, "# CORTEX MONITORING DASHBOARD")}}
 	cloudwatchBaseBodyJSON, err := json.Marshal(cloudwatchBaseBody)
 	if err != nil {
 		return errors.Wrap(err, "failed to encode cloudwatch base body into json")
@@ -188,7 +185,7 @@ func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 }
 
 // DeleteAPICloudwatch deletes api and reformats cloudwatch
-func (c *Client) DeleteAPICloudwatch(statuses []status.Status, clusterName, apiName string) error {
+func (c *Client) DeleteAPICloudwatch(allAPINames []string, clusterName, apiName string) error {
 
 	//delete old dashboard by creating a new base dashboard
 	err := c.CreateDashboard(clusterName)
@@ -197,9 +194,9 @@ func (c *Client) DeleteAPICloudwatch(statuses []status.Status, clusterName, apiN
 	}
 
 	// update dashboard for with all api execpt one to delete
-	for _, stat := range statuses {
-		if stat.APIName != apiName {
-			err = c.AddAPIToDashboard(clusterName, c.Region, stat.APIName)
+	for _, allAPIname := range allAPINames {
+		if allAPIname != apiName {
+			err = c.AddAPIToDashboard(clusterName, c.Region, allAPIname)
 		}
 		if err != nil {
 			return errors.Wrap(err, "failed to add API: ", apiName, " to cloudwatch dashboard")
@@ -220,9 +217,9 @@ func (c *Client) DeleteAPICloudwatch(statuses []status.Status, clusterName, apiN
 //     "height": height,
 //     "properties": {"markdown": markdown},
 // }
-func createTextWidget(x int, y int, width int, height int, markdown string) map[string]interface{} {
+func createTextWidget(x int, y int, width int, height int, markdown string) CloudWatchWidget {
 
-	return map[string]interface{}{"type": "text", "x": x, "y": y, "width": width, "height": height, "properties": map[string]string{"markdown": markdown}}
+	return CloudWatchWidget{Type: "text", X: x, Y: y, Width: width, Height: height, Properties: map[string]interface{}{"markdown": markdown}}
 }
 
 // createMetricWidget create new text widget with properties as parameter
@@ -255,23 +252,23 @@ func createMetricWidget(x int,
 	metric []interface{},
 	title string,
 	stat string,
-	region string) map[string]interface{} {
+	period int,
+	region string) CloudWatchWidget {
 
-	return map[string]interface{}{
-		"type":   "metric",
-		"x":      x,
-		"y":      y,
-		"width":  width,
-		"height": height,
-		"properties": map[string]interface{}{
+	return CloudWatchWidget{
+		Type:   "metric",
+		X:      x,
+		Y:      y,
+		Width:  width,
+		Height: height,
+		Properties: map[string]interface{}{
 			"metrics": metric,
-			"period":  60,
+			"period":  period,
 			"title":   title,
 			"stat":    stat,
 			"region":  region,
 			"view":    "timeSeries",
 		}}
-
 }
 
 func inFlightMetric(dashboardName string, nameAPI string) []interface{} {
@@ -320,24 +317,13 @@ func statCodeMetric(dashboardName string, nameAPI string) []interface{} {
 
 // getHighestYDashboard takes dashboard string as input an gives back highest Y coordinate of a cloudwatch widget
 // highest Y coordinate corresponds to lowest widget
-func getHighestYDashboard(dash string) (int, error) {
+func getHighestYDashboard(dash CloudWatchDashboard) (int, error) {
 	highestY := 0
 
-	var currDash interface{}
-	err := json.Unmarshal([]byte(dash), &currDash)
-	if err != nil {
-		return -1, err
-	}
-	currDashInter := currDash.(map[string]interface{})
-	widgets := currDashInter["widgets"].([]interface{})
-
-	for _, wid := range widgets {
-		widInter := wid.(map[string]interface{})
-		y := int(widInter["y"].(float64))
-		if highestY < y {
-			highestY = y
+	for _, wid := range dash.Widgets {
+		if highestY < wid.Y {
+			highestY = wid.Y
 		}
-
 	}
 
 	return highestY, nil
