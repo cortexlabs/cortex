@@ -4,7 +4,6 @@
   predictor:
     type: python
     path: predictor.py
-    config:
-      model: s3://cortex-examples/pytorch/sentiment-analyzer/export.pkl
   compute:
     cpu: 1
+    # gpu: 1  # This is optional, since the API will run on CPUs (albeit slower)
