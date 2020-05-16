@@ -23,9 +23,10 @@ cluster_name: cortex
 region: us-west-2
 
 # S3 bucket (default: <cluster_name>-<RANDOM_ID>)
+# note: your cortex cluster uses this bucket for metadata storage, and it should not be accessed directly (a separate bucket should be used for your models)
 bucket: # cortex-<RANDOM_ID>
 
-# List of availability zones for your region (default: 3 random availability zones from the specified region)
+# list of availability zones for your region (default: 3 random availability zones from the specified region)
 availability_zones: # e.g. [us-west-2a, us-west-2b, us-west-2c]
 
 # instance type
