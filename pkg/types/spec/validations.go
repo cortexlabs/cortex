@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 import (
+	"fmt"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -410,7 +411,8 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 		errs := cr.Struct(&api, data, apiValidation(provider))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
-			return nil, errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://www.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 		api.Index = i
 		api.FilePath = filePath
