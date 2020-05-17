@@ -483,7 +483,7 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 
 	if _, err := projectFiles.GetFile(predictor.Path); err != nil {
 		if errors.GetKind(err) == files.ErrFileDoesNotExist {
-			return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), userconfig.PathKey)
+			return errors.Wrap(files.ErrorFileDoesNotExist(predictor.Path), userconfig.PathKey)
 		}
 		return errors.Wrap(err, userconfig.PathKey)
 	}
@@ -766,7 +766,7 @@ func validatePythonPath(pythonPath string, projectFiles ProjectFiles) error {
 		}
 	}
 	if !validPythonPath {
-		return ErrorImplDoesNotExist(pythonPath)
+		return files.ErrorFileDoesNotExist(pythonPath)
 	}
 	return nil
 }
