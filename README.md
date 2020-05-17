@@ -88,7 +88,7 @@ Cortex clusters are designed to be self-hosted on any AWS account (GCP support i
 ```bash
 $ cortex cluster up
 
-aws region: us-west-2
+aws region: us-east-1
 aws instance type: g4dn.xlarge
 spot instances: yes
 min instances: 0

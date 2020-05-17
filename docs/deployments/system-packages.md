@@ -81,9 +81,9 @@ Create a repository to store your image:
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
 
-eval $(aws ecr get-login --no-include-email --region us-west-2)
+eval $(aws ecr get-login --no-include-email --region us-east-1)
 
-aws ecr create-repository --repository-name=org/my-api --region=us-west-2
+aws ecr create-repository --repository-name=org/my-api --region=us-east-1
 # take note of repository url
 ```
 

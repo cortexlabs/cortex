@@ -118,7 +118,7 @@ func getClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig, e
 			accessConfig.ClusterName = pointer.String("cortex")
 		}
 		if accessConfig.Region == nil {
-			accessConfig.Region = pointer.String("us-west-2")
+			accessConfig.Region = pointer.String("us-east-1")
 		}
 		return accessConfig, nil
 	}
