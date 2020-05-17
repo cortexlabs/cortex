@@ -20,14 +20,14 @@ cortex_aws_secret_access_key: ***
 cluster_name: cortex
 
 # AWS region
-region: us-west-2
+region: us-east-1
 
 # S3 bucket (default: <cluster_name>-<RANDOM_ID>)
 # note: your cortex cluster uses this bucket for metadata storage, and it should not be accessed directly (a separate bucket should be used for your models)
 bucket: # cortex-<RANDOM_ID>
 
 # list of availability zones for your region (default: 3 random availability zones from the specified region)
-availability_zones: # e.g. [us-west-2a, us-west-2b, us-west-2c]
+availability_zones: # e.g. [us-east-1a, us-east-1b, us-east-1c]
 
 # instance type
 instance_type: m5.large

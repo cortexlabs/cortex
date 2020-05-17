@@ -663,7 +663,7 @@ func (cc *Config) FillEmptySpotFields(awsClient *aws.Client) error {
 
 func applyPromptDefaults(defaults Config) *Config {
 	defaultConfig := &Config{
-		Region:       pointer.String("us-west-2"),
+		Region:       pointer.String("us-east-1"),
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
@@ -892,7 +892,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
 				Validator: RegionValidator,
-				Default:   pointer.String("us-west-2"),
+				Default:   pointer.String("us-east-1"),
 			},
 		},
 	},
