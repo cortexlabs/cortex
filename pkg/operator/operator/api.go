@@ -59,7 +59,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", err
 		}
 		// add api to cloudwatch
-		err = config.AWS.AddAPIToDashboard(config.Cluster.ClusterName, *config.Cluster.Region, apiConfig.Name)
+		err = config.AWS.AddAPIToDashboard(config.Cluster.ClusterName, apiConfig.Name)
 		if err != nil {
 			errors.PrintError(err, "failed to update cloudwatch dashboard")
 		}
