@@ -128,7 +128,7 @@ func (c *Client) ListRegions() (strset.Set, strset.Set, error) {
 	return allRegions, enabledRegions, nil
 }
 
-func (c *Client) ListAvailabilityZones() (strset.Set, error) {
+func (c *Client) ListAvailabilityZonesInRegion() (strset.Set, error) {
 	input := &ec2.DescribeAvailabilityZonesInput{
 		Filters: []*ec2.Filter{
 			{
