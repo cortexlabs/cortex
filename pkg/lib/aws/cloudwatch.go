@@ -18,6 +18,7 @@ package aws
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -84,7 +85,7 @@ func (c *Client) TagLogGroup(logGroup string, tagMap map[string]string) error {
 }
 
 // AddAPIToDashboard updates existing dashboard by adding API name title, In flight request time, latency and request status metric
-func (c *Client) AddAPIToDashboard(dashboardName string, dashboardRegion string, nameAPI string) error {
+func (c *Client) AddAPIToDashboard(dashboardName string, nameAPI string) error {
 
 	// get current dashboard form cloudwatch
 	currDashboardOutput, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
@@ -112,13 +113,13 @@ func (c *Client) AddAPIToDashboard(dashboardName string, dashboardRegion string,
 	// create widgets for title and metrics
 	apiTitleWidget := createTextWidget(1, highestY+1, 22, 1, "## API: "+nameAPI)
 	// top left widget
-	statCodeWidget := createMetricWidget(1, highestY+2, 11, 6, statCodeMetric(dashboardName, nameAPI), "Status Code", "Sum", 60, dashboardRegion)
+	statCodeWidget := createMetricWidget(1, highestY+2, 11, 6, statCodeMetric(dashboardName, nameAPI), "Status Code", "Sum", 60, c.Region)
 	// top right widget
-	inFlightWidget := createMetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", 10, dashboardRegion)
+	inFlightWidget := createMetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", 10, c.Region)
 	// bottem left widget
-	latencyWidgetp50 := createMetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "median request response time (60s)", "p50", 60, dashboardRegion)
+	latencyWidgetp50 := createMetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "median request response time (60s)", "p50", 60, c.Region)
 	// bottom right widget
-	latencyWidgetp99 := createMetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "p99 of request response time (60s)", "p99", 60, dashboardRegion)
+	latencyWidgetp99 := createMetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "p99 of request response time (60s)", "p99", 60, c.Region)
 
 	// append new API metrics widgets to existing widgets
 	currDashboard.Widgets = append(currDashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetp50, latencyWidgetp99)
@@ -132,7 +133,7 @@ func (c *Client) AddAPIToDashboard(dashboardName string, dashboardRegion string,
 		DashboardBody: aws.String(string(currDashboardJSON)),
 	})
 	if err != nil {
-		return errors.Wrap(err)
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -190,16 +191,16 @@ func (c *Client) DeleteAPICloudwatch(allAPINames []string, clusterName, apiName 
 	//delete old dashboard by creating a new base dashboard
 	err := c.CreateDashboard(clusterName)
 	if err != nil {
-		return errors.Wrap(err, "failed getting API statuses while deleting API")
+		return errors.WithStack(err)
 	}
 
-	// update dashboard for with all api execpt one to delete
+	// update dashboard by adding all APIs except the one to delete
 	for _, allAPIname := range allAPINames {
 		if allAPIname != apiName {
-			err = c.AddAPIToDashboard(clusterName, c.Region, allAPIname)
+			err = c.AddAPIToDashboard(clusterName, allAPIname)
 		}
 		if err != nil {
-			return errors.Wrap(err, "failed to add API: ", apiName, " to cloudwatch dashboard")
+			return errors.Wrap(err, fmt.Sprintf("failed to add API \"%s\" to cloudwatch dashboard", apiName))
 		}
 
 	}

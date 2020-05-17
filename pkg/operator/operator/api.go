@@ -157,9 +157,9 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				return nil
 			}
 			//extract all api names from statuses
-			var allAPINames []string
-			for _, stat := range statuses {
-				allAPINames = append(allAPINames, stat.APIName)
+			allAPINames := make([]string, len(statuses))
+			for i, stat := range statuses {
+				allAPINames[i] = stat.APIName
 			}
 			err = config.AWS.DeleteAPICloudwatch(allAPINames, config.Cluster.ClusterName, apiName)
 			if err != nil {
