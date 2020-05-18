@@ -18,7 +18,6 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -29,10 +28,8 @@ func (c *Client) DoesCertificateExist(sslCertificateARN string) (bool, error) {
 	})
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == "ResourceNotFoundException" {
-				return false, nil
-			}
+		if CheckErrCode(err, "ResourceNotFoundException") {
+			return false, nil
 		}
 		return false, errors.Wrap(err, sslCertificateARN)
 	}
