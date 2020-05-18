@@ -24,6 +24,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
   compute:
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
+    accelerator: <int> # Accelerator request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
   autoscaling:
     min_replicas: <int>  # minimum number of replicas (default: 1)
@@ -68,6 +69,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
   compute:
     cpu: <string | int | float>  # CPU request per replica (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
+    accelerator: <int> # Accelerator request per replica (default: 0)
     mem: <string>  # memory request per replica (default: Null)
   autoscaling:
     min_replicas: <int>  # minimum number of replicas (default: 1)

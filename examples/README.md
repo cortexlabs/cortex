@@ -8,7 +8,9 @@
 
 - [Sentiment analysis](tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
 
-- [Image classification](tensorflow/image-classifier): deploy an Inception model to classify images.
+- [Image classification](tensorflow/image-classifier-inception): deploy an Inception model to classify images.
+
+- [Image classification](tensorflow/image-classifier-resnet50): deploy a ResNet50 model to classify images.
 
 - [License plate reader](tensorflow/license-plate-reader): deploy a YOLOv3 model (and others) to identify license plates in real time.
 
@@ -34,7 +36,9 @@
 
 - [Language identification](pytorch/language-identifier): deploy a fastText model to identify languages.
 
-- [Image classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
+- [Image classification](pytorch/image-classifier-alexnet): deploy an AlexNet model from TorchVision to classify images.
+
+- [Image classification](pytorch/image-classifier-resnet50): deploy a ResNet50 model from TorchVision to classify images.
 
 - [Object detection](pytorch/object-detector): deploy a Faster R-CNN model from TorchVision to detect objects in images.
 

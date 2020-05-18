@@ -121,7 +121,9 @@ class PythonPredictor:
 
 ### Pre-installed packages
 
-The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
+The following Python packages are pre-installed in Python Predictors and can be used in your implementations.
+
+#### For CPU/GPU-equipped APIs
 
 ```text
 boto3==1.12.31
@@ -152,8 +154,32 @@ torchvision==0.5.0
 xgboost==1.0.2
 ```
 
+#### For Accelerator-equipped APIs
+
+```text
+cloudpickle==1.3.0
+Cython==0.29.16
+joblib==0.14.1
+neuron-cc==1.0.9410.0+6008239556
+nltk==3.4.5
+np-utils==0.5.12.1
+numpy==1.16.5
+opencv-python==4.2.0.32
+pandas==1.0.3
+Pillow==6.2.2
+scikit-image==0.16.2
+scikit-learn==0.22.2.post1
+scipy==1.3.2
+six==1.14.0
+statsmodels==0.11.1
+sympy==1.5.1
+tensorflow-neuron==1.15.0.1.0.1333.0
+torch-neuron==1.0.825.0
+torchvision==0.4.2
+```
+
 <!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/python-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU) or [images/python-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU).
+The pre-installed system packages are listed in [images/python-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU), [images/python-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU) or [images/python-serve-accelerator/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-accelerator/Dockerfile) (for Accelerator).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 

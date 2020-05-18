@@ -18,6 +18,7 @@
 * [Autoscaling](deployments/autoscaling.md)
 * [Compute](deployments/compute.md)
 * [Using GPUs](deployments/gpus.md)
+* [Using Accelerators](deployments/accelerators.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)

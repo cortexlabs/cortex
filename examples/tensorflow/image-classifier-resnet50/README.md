@@ -19,7 +19,7 @@ cortex deploy <cortex-deployment-yaml>
 
 To verify the API is working, check that the API is live by running `cortex get image-classifier-resnet50`. Then, export the endpoint of the API:
 ```
-export ENDPOINT=<api-endpoint>
+export ENDPOINT=<API endpoint>
 ```
 
 The image we use for classification is the following. This image is embedded in [sample.json](sample.json):
@@ -62,7 +62,7 @@ pip install requests click opencv-contrib-python numpy
 
 Before [throughput_test.py](throughput_test.py) is run, 2 environment variables have to be exported:
 ```bash
-export ENDPOINT=<api-endpoint> # which has already been exported in the previous step
+export ENDPOINT=<API endpoint> # which has already been exported in the previous step
 export IMG_URL=https://i.imgur.com/213xcvs.jpg # this is the cat image shown in the previous step
 ```
 
