@@ -4,13 +4,13 @@ This project implements an image recognition system using ResNet50. This system 
 
 ## Deploying
 
-There are 3 Cortex deployments available:
+There are 3 Cortex APIs available in this example:
 
 1. [cortex_accelerator.yaml](cortex_accelerator.yaml) - to be used with `inf1` instances.
 1. [cortex_cpu.yaml](cortex_cpu.yaml) - to be used with any instances that have CPUs.
 1. [cortex_gpu.yaml](cortex_gpu.yaml) - to be used with instances that come with GPU support.
 
-Any of the above 3 deployments can only be used one at a time within a given Cortex cluster. To deploy an API, just run:
+Any of the above 3 APIs can only be used one at a time within a given Cortex cluster. To deploy an API, just run:
 ```bash
 cortex deploy <cortex-deployment-yaml>
 ```

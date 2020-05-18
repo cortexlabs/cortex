@@ -4,13 +4,13 @@ This project implements an image recognition system using ResNet50. This system 
 
 ## Deploying
 
-There are 3 Cortex deployments available:
+There are 3 Cortex APIs available in this example:
 
 1. [cortex_accelerator.yaml](cortex_accelerator.yaml) - to be used with `inf1` instances.
 1. [cortex_cpu.yaml](cortex_cpu.yaml) - to be used with any instances that have CPUs.
 1. [cortex_gpu.yaml](cortex_gpu.yaml) - to be used with instances that come with GPU support.
 
-Any of the above 3 deployments can only be used one at a time within a given Cortex cluster. To deploy an API, just run:
+Any of the above 3 APIs can only be used one at a time within a given Cortex cluster. To deploy an API, just run:
 ```bash
 cortex deploy <cortex-deployment-yaml>
 ```
@@ -35,7 +35,7 @@ If a 5-element list is returned containing classifications of the image (cat, ti
 
 ## Throughput test
 
-[throughput_test.py](throughput_test.py) is a Python CLI that can be used to test the throughput of the API. The throughput will vary depending on the used Cortex configuration file, your local machine's resources (mostly CPU) and the internet connection on your machine.
+[throughput_test.py](throughput_test.py) is a Python CLI that can be used to test the throughput of the API. The throughput will vary depending on the used Cortex configuration file, your local machine's resources (mostly CPU) and the internet connection speed/latency on your machine.
 ```bash
 Usage: throughput_test.py [OPTIONS] IMG_URL ENDPOINT
 
@@ -48,7 +48,7 @@ Options:
   -t, --threads INTEGER     Number of threads per worker.  [default: 1]
   -s, --samples INTEGER     Number of samples to run per thread.  [default:
                             10]
-  -i, --time-based FLOAT    How long the thread makes prediction in seconds.
+  -i, --time-based FLOAT    How long the thread making predictions will run for in seconds.
                             If set, -s option won't be considered anymore.
   -b, --batch-size INTEGER  Number of images sent for inference in one
                             request.  [default: 1]
@@ -66,7 +66,7 @@ export ENDPOINT=<API endpoint> # which has already been exported in the previous
 export IMG_URL=https://i.imgur.com/213xcvs.jpg # this is the cat image shown in the previous step
 ```
 
-Then, deploy each API and check the results one after the another:
+Then, deploy each API one at a time and check the results:
 
 1. Running `python throughput_test.py -i 30 -w 4 -t 48` on an `inf1.2xlarge` instance using the [cortex_accelerator.yaml](cortex_accelerator.yaml) config will get **~525 inferences/sec** with an average latency of **87 ms**.
 1. Running `python throughput_test.py -i 30 -w 4 -t 1` on a `c5.xlarge` instance using the [cortex_cpu.yaml](cortex_cpu.yaml) config will get **~x inferences/sec** with an average latency of **y ms**.
@@ -79,9 +79,9 @@ Run the following command to install the dependencies for [Generating Resnet50 M
 pip install neuron-cc==1.0.9410.0+6008239556 tensorflow-neuron==1.15.0.1.0.1333.0 
 ```
 
-The [Generating Resnet50 Models](Generating%20Resnet50%20Models.ipynb) notebook will generate 2 SavedModels. One saved in the `resnet50` directory which can be run on GPU or on CPU and another in the `resnet50_neuron` which can only be run on `inf1` instances.
+The [Generating Resnet50 Models](Generating%20Resnet50%20Models.ipynb) notebook will generate 2 SavedModels. One will be saved in the `resnet50` directory which can be run on GPU or on CPU and another in the `resnet50_neuron` directory which can only be run on `inf1` instances.
 
-Next, run the following command to install the pip dependencies for [Generating GPU Resnet50 Model](Generating%20GPU%20Resnet50%20Model.ipynb) notebook:
+Next, run the following command in a new Python environment to install the pip dependencies for [Generating GPU Resnet50 Model](Generating%20GPU%20Resnet50%20Model.ipynb) notebook:
 ```bash
 pip install tensorflow==2.0.0
 ```

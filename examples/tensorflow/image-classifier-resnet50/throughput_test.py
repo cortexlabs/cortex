@@ -43,7 +43,7 @@ import base64
     "-i",
     type=float,
     default=0.0,
-    help="How long the thread makes prediction in seconds. If set, -s option won't be considered anymore.",
+    help="How long the thread making predictions will run for in seconds. If set, -s option won't be considered anymore.",
 )
 @click.option(
     "--batch-size",
