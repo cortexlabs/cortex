@@ -55,11 +55,13 @@ class PythonPredictor:
         """
         pass
 
-    def predict(self, payload):
+    def predict(self, payload, query_params, headers):
         """Called once per request. Preprocesses the request payload (if necessary), runs inference, and postprocesses the inference output (if necessary).
 
         Args:
-            payload: The parsed JSON request payload.
+            payload: The request payload (see below for the possible payload types) (optional).
+            query_params: A dictionary of the query parameters used in the request (optional).
+            headers: A dictionary of the headers sent in the request (optional).
 
         Returns:
             Prediction or a batch of predictions.
@@ -68,6 +70,8 @@ class PythonPredictor:
 ```
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
+
+The `payload` parameter is parsed according to the `Content-Type` header in the request. For `Content-Type: application/json`, `payload` will be the parsed JSON body. For `Content-Type: multipart/form` or `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). For all other `Content-Type` values, `payload` will the the raw `bytes` of the request body.
 
 ### Examples
 
@@ -173,11 +177,13 @@ class TensorFlowPredictor:
         self.client = tensorflow_client
         # Additional initialization may be done here
 
-    def predict(self, payload):
+    def predict(self, payload, query_params, headers):
         """Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
 
         Args:
-            payload: The parsed JSON request payload.
+            payload: The request payload (see below for the possible payload types) (optional).
+            query_params: A dictionary of the query parameters used in the request (optional).
+            headers: A dictionary of the headers sent in the request (optional).
 
         Returns:
             Prediction or a batch of predictions.
@@ -189,6 +195,8 @@ class TensorFlowPredictor:
 Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
+
+The `payload` parameter is parsed according to the `Content-Type` header in the request. For `Content-Type: application/json`, `payload` will be the parsed JSON body. For `Content-Type: multipart/form` or `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). For all other `Content-Type` values, `payload` will the the raw `bytes` of the request body.
 
 ### Examples
 
@@ -249,11 +257,13 @@ class ONNXPredictor:
         self.client = onnx_client
         # Additional initialization may be done here
 
-    def predict(self, payload):
+    def predict(self, payload, query_params, headers):
         """Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
 
         Args:
-            payload: The parsed JSON request payload.
+            payload: The request payload (see below for the possible payload types) (optional).
+            query_params: A dictionary of the query parameters used in the request (optional).
+            headers: A dictionary of the headers sent in the request (optional).
 
         Returns:
             Prediction or a batch of predictions.
@@ -265,6 +275,8 @@ class ONNXPredictor:
 Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
+
+The `payload` parameter is parsed according to the `Content-Type` header in the request. For `Content-Type: application/json`, `payload` will be the parsed JSON body. For `Content-Type: multipart/form` or `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). For all other `Content-Type` values, `payload` will the the raw `bytes` of the request body.
 
 ### Examples
 

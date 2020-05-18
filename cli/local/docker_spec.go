@@ -137,6 +137,7 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 
 	containerConfig := &container.Config{
 		Image: api.Predictor.Image,
+		Tty:   true,
 		Env: append(
 			getAPIEnv(api, awsClient),
 		),
@@ -210,6 +211,7 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 
 	containerConfig := &container.Config{
 		Image: api.Predictor.Image,
+		Tty:   true,
 		Env: append(
 			getAPIEnv(api, awsClient),
 		),
@@ -272,6 +274,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 
 	serveContainerConfig := &container.Config{
 		Image: api.Predictor.TensorFlowServingImage,
+		Tty:   true,
 		Cmd: strslice.StrSlice{
 			"--port=" + _tfServingPortStr, "--model_base_path=" + _modelDir,
 		},
@@ -334,6 +337,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 
 	apiContainerConfig := &container.Config{
 		Image: api.Predictor.Image,
+		Tty:   true,
 		Env: append(
 			getAPIEnv(api, awsClient),
 			"CORTEX_TF_SERVING_PORT="+_tfServingPortStr,
