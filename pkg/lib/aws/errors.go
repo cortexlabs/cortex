@@ -25,16 +25,17 @@ import (
 )
 
 const (
-	ErrInvalidAWSCredentials    = "aws.invalid_aws_credentials"
-	ErrInvalidS3aPath           = "aws.invalid_s3a_path"
-	ErrInvalidS3Path            = "aws.invalid_s3_path"
-	ErrAuth                     = "aws.auth"
-	ErrBucketInaccessible       = "aws.bucket_inaccessible"
-	ErrBucketNotFound           = "aws.bucket_not_found"
-	ErrInstanceTypeLimitIsZero  = "aws.instance_type_limit_is_zero"
-	ErrNoValidSpotPrices        = "aws.no_valid_spot_prices"
-	ErrReadCredentials          = "aws.read_credentials"
-	ErrECRExtractingCredentials = "aws.ecr_failed_credentials"
+	ErrInvalidAWSCredentials        = "aws.invalid_aws_credentials"
+	ErrInvalidS3aPath               = "aws.invalid_s3a_path"
+	ErrInvalidS3Path                = "aws.invalid_s3_path"
+	ErrUnexpectedMissingCredentials = "aws.unexpected_missing_credentials"
+	ErrAuth                         = "aws.auth"
+	ErrBucketInaccessible           = "aws.bucket_inaccessible"
+	ErrBucketNotFound               = "aws.bucket_not_found"
+	ErrInstanceTypeLimitIsZero      = "aws.instance_type_limit_is_zero"
+	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
+	ErrReadCredentials              = "aws.read_credentials"
+	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
 )
 
 func IsNotFoundErr(err error) bool {
@@ -88,6 +89,22 @@ func ErrorInvalidS3Path(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidS3Path,
 		Message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-classifier/tensorflow is a valid s3 path)", s.UserStr(provided)),
+	})
+}
+
+func ErrorUnexpectedMissingCredentials(awsAccessKeyID *string, awsSecretAccessKey *string) error {
+	var msg string
+	if awsAccessKeyID == nil && awsSecretAccessKey == nil {
+		msg = "aws access key id and aws secret access key are missing"
+	} else if awsAccessKeyID == nil {
+		msg = "aws access key id is missing"
+	} else if awsSecretAccessKey == nil {
+		msg = "aws secret access key is missing"
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnexpectedMissingCredentials,
+		Message: msg,
 	})
 }
 

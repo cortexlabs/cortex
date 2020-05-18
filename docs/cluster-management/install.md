@@ -13,6 +13,8 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 ```
 
+Continue to [deploy an example](#deploy-an-example) below.
+
 ## Running at scale on AWS
 
 [Docker](https://docs.docker.com/install) and valid [AWS credentials](aws-credentials.md) are required to run a Cortex cluster on AWS.

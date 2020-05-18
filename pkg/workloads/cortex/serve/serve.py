@@ -15,6 +15,7 @@
 import sys
 import os
 import argparse
+import inspect
 import time
 import json
 import msgpack
@@ -154,11 +155,31 @@ async def register_request(request: Request, call_next):
     return response
 
 
-def predict(request: Any = Body(..., media_type="application/json")):
+@app.middleware("http")
+async def parse_payload(request: Request, call_next):
+    if "payload" not in local_cache["predict_fn_args"]:
+        return await call_next(request)
+
+    content_type = request.headers.get("content-type", "").lower()
+
+    if content_type.startswith("multipart/form") or content_type.startswith(
+        "application/x-www-form-urlencoded"
+    ):
+        request.state.payload = await request.form()
+    elif content_type.startswith("application/json"):
+        request.state.payload = await request.json()
+    else:
+        request.state.payload = await request.body()
+
+    return await call_next(request)
+
+
+def predict(request: Request):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
+    args = build_predict_args(request)
 
-    prediction = predictor_impl.predict(request)
+    prediction = predictor_impl.predict(**args)
 
     if isinstance(prediction, bytes):
         response = Response(content=prediction, media_type="application/octet-stream")
@@ -192,6 +213,19 @@ def predict(request: Any = Body(..., media_type="application/json")):
             cx_logger().warn("unable to record prediction metric", exc_info=True)
 
     return response
+
+
+def build_predict_args(request: Request):
+    args = {}
+
+    if "payload" in local_cache["predict_fn_args"]:
+        args["payload"] = request.state.payload
+    if "headers" in local_cache["predict_fn_args"]:
+        args["headers"] = request.headers
+    if "query_params" in local_cache["predict_fn_args"]:
+        args["query_params"] = request.query_params
+
+    return args
 
 
 def get_summary():
@@ -230,6 +264,7 @@ def start():
         storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
     else:
         storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+
     try:
         raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
         api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
@@ -243,6 +278,7 @@ def start():
         local_cache["provider"] = provider
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
+        local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
         predict_route = "/"
         if provider != "local":
             predict_route = "/predict"
@@ -250,6 +286,7 @@ def start():
     except:
         cx_logger().exception("failed to start api")
         sys.exit(1)
+
     if (
         provider != "local"
         and api.monitoring is not None

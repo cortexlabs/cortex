@@ -24,6 +24,10 @@ If you modified your bash profile, you may wish to remove `source <(cortex compl
 
 ## Cleaning up AWS
 
+Since you may wish to have access to your data after spinning down your cluster, Cortex's bucket and log groups are not automatically deleted when running `cortex cluster down`.
+
+To delete them:
+
 ```bash
 # set AWS credentials
 export AWS_ACCESS_KEY_ID=***
