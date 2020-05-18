@@ -50,7 +50,7 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 	if apiConfig.Predictor.Model != nil {
 		localModelCache, err := CacheModel(*apiConfig.Predictor.Model, awsClient)
 		if err != nil {
-			return nil, "", errors.Wrap(err, userconfig.ModelKey, userconfig.PredictorKey, apiConfig.Identify())
+			return nil, "", errors.Wrap(err, apiConfig.Identify(), userconfig.PredictorKey, userconfig.ModelKey)
 		}
 		apiSpec.LocalModelCache = localModelCache
 	}

@@ -232,10 +232,6 @@ func getAPIDimensions(api *spec.API) []*cloudwatch.Dimension {
 			Name:  aws.String("APIName"),
 			Value: aws.String(api.Name),
 		},
-		{
-			Name:  aws.String("APIID"),
-			Value: aws.String(api.ID),
-		},
 	}
 }
 
@@ -364,7 +360,7 @@ func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQue
 }
 
 func getClassesMetricDef(api *spec.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
-	prefix := filepath.Join(api.MetadataRoot, api.ID, "classes") + "/"
+	prefix := filepath.Join(api.MetadataRoot, "classes") + "/"
 	classes, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, prefix, false, pointer.Int64(int64(consts.MaxClassesPerMonitoringRequest)))
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
 bert-tensorflow==1.0.1
-tensorflow_hub
+tensorflow-hub==0.7.0
 tensorflow==1.13.*
 numpy==1.16.*
