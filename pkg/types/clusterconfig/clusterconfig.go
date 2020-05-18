@@ -57,6 +57,7 @@ type Config struct {
 	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
 	Region                     *string            `json:"region" yaml:"region"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
+	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	LogGroup                   string             `json:"log_group" yaml:"log_group"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
@@ -149,6 +150,13 @@ var UserValidation = &cr.StructValidation{
 				AllowExplicitNull: true,
 				AllowEmpty:        true,
 				ConvertNilToEmpty: true,
+			},
+		},
+		{
+			StructField: "SSLCertificateARN",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowExplicitNull: true,
+				MinLength:         20,
 			},
 		},
 		{
@@ -499,6 +507,19 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	primaryInstanceType := *cc.InstanceType
 	if _, ok := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]; !ok {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, *cc.Region), InstanceTypeKey)
+	}
+
+	if cc.SSLCertificateARN != nil {
+		_, err := awsClient.VerifyCertificate(*cc.SSLCertificateARN)
+		if err != nil {
+			if aerr, ok := errors.CauseOrSelf(err).(awserr.Error); ok {
+				if aerr.Code() != "AccessDeniedException" {
+					return errors.Wrap(err, SSLCertificateARNKey)
+				}
+			} else if errors.GetKind(err) == aws.ErrSSLCertificateARNNotFound {
+				return errors.Wrap(err, SSLCertificateARNKey)
+			}
+		}
 	}
 
 	// Throw error if IOPS defined for other storage than io1
@@ -1006,6 +1027,9 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
 	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
 	items.Add(TagsUserKey, s.ObjFlat(cc.Tags))
+	if cc.SSLCertificateARN != nil {
+		items.Add(SSLCertificateARNUserKey, *cc.SSLCertificateARN)
+	}
 	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
 	items.Add(InstanceVolumeTypeUserKey, cc.InstanceVolumeType)
 	items.Add(InstanceVolumeIOPSUserKey, cc.InstanceVolumeIOPS)

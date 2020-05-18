@@ -36,6 +36,7 @@ const (
 	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
 	ErrReadCredentials              = "aws.read_credentials"
 	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
+	ErrSSLCertificateARNNotFound    = "aws.ssl_certificate_arn_not_found"
 )
 
 func IsNotFoundErr(err error) bool {
@@ -154,5 +155,12 @@ func ErrorECRExtractingCredentials() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrECRExtractingCredentials,
 		Message: "unable to extract ECR credentials",
+	})
+}
+
+func ErrorSSLCertificateARNNotFound(sslCertificateARN string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSSLCertificateARNNotFound,
+		Message: fmt.Sprintf("unable to find the specified ssl certificate in region %s: %s", region, sslCertificateARN),
 	})
 }

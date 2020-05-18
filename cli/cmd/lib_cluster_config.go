@@ -273,6 +273,11 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
 
+	if userClusterConfig.SSLCertificateARN != nil && cachedClusterConfig.SSLCertificateARN != nil && *userClusterConfig.SSLCertificateARN != *cachedClusterConfig.SSLCertificateARN {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SSLCertificateARNUserKey, cachedClusterConfig.SSLCertificateARN)
+	}
+	userClusterConfig.SSLCertificateARN = cachedClusterConfig.SSLCertificateARN
+
 	if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
 	}
@@ -505,6 +510,10 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
 	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
 	items.Add(clusterconfig.TagsKey, s.ObjFlatNoQuotes(clusterConfig.Tags))
+	if clusterConfig.SSLCertificateARN != nil {
+		items.Add(clusterconfig.SSLCertificateARNKey, *clusterConfig.SSLCertificateARN)
+	}
+
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
 		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)
 	}
