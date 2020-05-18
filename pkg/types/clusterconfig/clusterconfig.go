@@ -27,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
@@ -722,26 +721,10 @@ func RegionPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	return nil
 }
 
-func InstallPrompt(clusterConfig *Config, awsClient *aws.Client, disallowPrompt bool) error {
+func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
-	accountID, _, err := awsClient.GetCachedAccountID()
-	if err != nil {
-		return err
-	}
-	bucketID := hash.String(accountID + *clusterConfig.Region)[:10]
-
-	defaultBucket := clusterConfig.ClusterName + "-" + bucketID
-	if len(defaultBucket) > 63 {
-		defaultBucket = defaultBucket[:63]
-	}
-	if strings.HasSuffix(defaultBucket, "-") {
-		defaultBucket = defaultBucket[:len(defaultBucket)-1]
-	}
 
 	if disallowPrompt {
-		if clusterConfig.Bucket == "" {
-			clusterConfig.Bucket = defaultBucket
-		}
 		if clusterConfig.InstanceType == nil {
 			clusterConfig.InstanceType = defaults.InstanceType
 		}
@@ -757,18 +740,6 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client, disallowPrompt 
 	remainingPrompts := &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "Bucket",
-				PromptOpts: &prompt.Options{
-					Prompt: BucketUserKey,
-				},
-				StringValidation: &cr.StringValidation{
-					Default:   defaultBucket,
-					MinLength: 3,
-					MaxLength: 63,
-					Validator: validateBucketName,
-				},
-			},
 			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
@@ -805,7 +776,7 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client, disallowPrompt 
 		},
 	}
 
-	err = cr.ReadPrompt(clusterConfig, remainingPrompts)
+	err := cr.ReadPrompt(clusterConfig, remainingPrompts)
 	if err != nil {
 		return err
 	}

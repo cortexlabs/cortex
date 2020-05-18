@@ -838,6 +838,7 @@ func HashFile(path string, paths ...string) (string, error) {
 			return "", errors.Wrap(err, path)
 		}
 
+		io.WriteString(md5Hash, path)
 		f.Close()
 	}
 
@@ -877,6 +878,7 @@ func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
 			return errors.Wrap(err, path)
 		}
 
+		io.WriteString(md5Hash, path)
 		return nil
 	})
 
