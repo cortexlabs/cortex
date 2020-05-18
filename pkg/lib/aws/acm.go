@@ -23,7 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-func (c *Client) VerifyCertificate(sslCertificateARN string) (bool, error) {
+func (c *Client) DoesCertificateExist(sslCertificateARN string) (bool, error) {
 	_, err := c.ACM().DescribeCertificate(&acm.DescribeCertificateInput{
 		CertificateArn: aws.String(sslCertificateARN),
 	})
@@ -31,7 +31,7 @@ func (c *Client) VerifyCertificate(sslCertificateARN string) (bool, error) {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() == "ResourceNotFoundException" {
-				return false, ErrorSSLCertificateARNNotFound(sslCertificateARN, c.Region)
+				return false, nil
 			}
 		}
 		return false, errors.Wrap(err, sslCertificateARN)

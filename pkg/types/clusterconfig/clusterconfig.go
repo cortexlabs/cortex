@@ -510,15 +510,17 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	if cc.SSLCertificateARN != nil {
-		_, err := awsClient.VerifyCertificate(*cc.SSLCertificateARN)
+		exists, err := awsClient.DoesCertificateExist(*cc.SSLCertificateARN)
 		if err != nil {
 			if aerr, ok := errors.CauseOrSelf(err).(awserr.Error); ok {
 				if aerr.Code() != "AccessDeniedException" {
 					return errors.Wrap(err, SSLCertificateARNKey)
 				}
-			} else if errors.GetKind(err) == aws.ErrSSLCertificateARNNotFound {
-				return errors.Wrap(err, SSLCertificateARNKey)
 			}
+		}
+
+		if !exists {
+			return errors.Wrap(ErrorSSLCertificateARNNotFound(*cc.SSLCertificateARN, *cc.Region), SSLCertificateARNKey)
 		}
 	}
 
