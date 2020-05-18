@@ -6,7 +6,7 @@
 1. Update the version in `manager/Dockerfile`
 1. Update eks configuration file as necessary (make sure to maintain all Cortex environment variables)
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
-1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.16.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.19.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
 
 ## Kubernetes
 
@@ -128,6 +128,11 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
    1. Check that your diff is reasonable
 1. Confirm GPUs work for PyTorch, TensorFlow, and ONNX models
 
+## Neuron device plugin
+
+1. Check if [k8s-neuron-device-plugin](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) has been updated since the last time. If so, then update `manager/manifests/inferentia.yaml` with the latest and replace the container's image with `$CORTEX_IMAGE_INFERENTIA`.
+1. Check if newer versions of the device plugin have appeared. Last update we got was in https://github.com/aws/aws-neuron-sdk/issues/102. Currently, all device versions are residing at [robertlucian/cortexlabs-inferentia](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-inferentia). If there's a newer version, then pull the last one and push it to `robertlucian`'s Dockerhub repo. The reason for keeping it somewhere else is because AWS' repo is not to be trusted - the project is still in its infancy and things could change on a whim.
+
 ## Python packages
 
 1. Update versions in `pkg/workloads/*/requirements.txt`
@@ -159,6 +164,13 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. You can confirm the metric server is running by showing the logs of the metrics-server pod, or via `kubectl get deployment metrics-server -n kube-system` and `kubectl get apiservice v1.metrics.k8s.io -o yaml`
 
 Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
+
+## Neuron RTD
+
+1. Run a `cortexlabs/neuron-rtd` container and check if there are newer versions of `aws-neuron-tools` and `aws-neuron-runtime` with `yum info <package>` command.
+1. Add in the newer versions inside of `images/neuron-rtd/Dockerfile`.
+1. Rebuild the image.
+1. Test all examples that use Inferentia accelerators.
 
 ## Cluster autoscaler
 
