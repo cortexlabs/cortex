@@ -1,6 +1,5 @@
 import os
 import torch
-import torch_neuron
 import cv2
 import numpy as np
 import requests
@@ -46,6 +45,8 @@ class PythonPredictor:
             self.model.load_state_dict(torch.load(model_name))
             self.model.eval()
         elif config["device"] == "accelerator":
+            import torch_neuron
+
             self.model = torch.jit.load(model_name)
         else:
             raise RuntimeError("invalid predictor: config: device field value")
