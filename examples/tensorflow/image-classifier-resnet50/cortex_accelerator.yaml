@@ -6,11 +6,12 @@
     config:
       classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
       input_shape: [224, 224]
+      input_key: input
   compute:
-    cpu: 3200m
+    cpu: 4
     mem: 4G
     accelerator: 1
   autoscaling:
     workers_per_replica: 4
-    threads_per_worker: 64
-    max_replica_concurrency: 8192
+    threads_per_worker: 256
+    max_replica_concurrency: 16384

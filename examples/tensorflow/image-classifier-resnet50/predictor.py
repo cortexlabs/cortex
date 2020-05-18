@@ -17,18 +17,28 @@ def get_url_image(url_image):
     return image
 
 
-def decode_images(images, input_shape):
+def decode_images(images):
     """
-    Decodes the images from the payload
-    and prepares them for the client. 
+    Decodes the images from the payload.
     """
     output = []
     for image in images:
         img = base64.b64decode(image)
         jpg_as_np = np.frombuffer(img, dtype=np.uint8)
         img = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
-        img = cv2.resize(img, input_shape, interpolation=cv2.INTER_NEAREST)
-        img = {"input": img[np.newaxis, ...]}
+        output.append(img)
+
+    return output
+
+
+def prepare_images(images, input_shape, input_key):
+    """
+    Prepares images for the client. 
+    """
+    output = []
+    for image in images:
+        img = cv2.resize(image, input_shape, interpolation=cv2.INTER_NEAREST)
+        img = {input_key: img[np.newaxis, ...]}
         output.append(img)
 
     return output
@@ -43,15 +53,23 @@ class TensorFlowPredictor:
         self.idx2label = [classes[str(k)][1] for k in range(len(classes))]
 
         self.input_shape = tuple(config["input_shape"])
+        self.input_key = str(config["input_key"])
 
     def predict(self, payload):
         # preprocess image
-        imgs = payload["imgs"]
-        decoded = decode_images(imgs, self.input_shape)
+        payload_keys = payload.keys()
+        if "imgs" in payload_keys:
+            imgs = payload["imgs"]
+            imgs = decode_images(imgs)
+        elif "img_url" in payload_keys:
+            imgs = [get_url_image(payload["img_url"])]
+        else:
+            return None
+        prepared_imgs = prepare_images(imgs, self.input_shape, self.input_key)
 
         # batch sized images
         top5_list_imgs = []
-        for img in decoded:
+        for img in prepared_imgs:
             # predict
             results = self.client.predict(img)["output"]
             results = np.argsort(results)

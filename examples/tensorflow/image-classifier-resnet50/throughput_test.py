@@ -17,7 +17,7 @@ import base64
         "instances equipped with CPU, GPU or Accelerator devices."
     )
 )
-@click.argument("img_url_src", type=str, envvar="IMG_URL")
+@click.argument("img_url", type=str, envvar="IMG_URL")
 @click.argument("endpoint", type=str, envvar="ENDPOINT")
 @click.option(
     "--workers",
@@ -53,9 +53,9 @@ import base64
     show_default=True,
     help="Number of images sent for inference in one request.",
 )
-def main(img_url_src, endpoint, workers, threads, samples, time_based, batch_size):
+def main(img_url, endpoint, workers, threads, samples, time_based, batch_size):
     # get the image in bytes representation
-    image = get_url_image(img_url_src)
+    image = get_url_image(img_url)
     image_bytes = image_to_jpeg_bytes(image)
 
     # encode image
