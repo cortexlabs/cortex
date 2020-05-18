@@ -92,7 +92,7 @@ func (c *Client) AddAPIToDashboard(dashboardName string, nameAPI string) error {
 		DashboardName: aws.String(dashboardName),
 	})
 	if err != nil {
-		errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	// get body string from GetDashboard return object
 	currDashboardString := *currDashboardOutput.DashboardBody
@@ -152,7 +152,7 @@ func (c *Client) CreateDashboard(dashboardName string) error {
 		DashboardBody: aws.String(string(cloudwatchBaseBodyJSON)),
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to create dashboard: "+dashboardName)
+		return errors.Wrap(err, "failed to create dashboard", dashboardName)
 	}
 
 	return nil
@@ -165,7 +165,7 @@ func (c *Client) DeleteDashboard(dashboardName string) error {
 		DashboardNames: []*string{aws.String(dashboardName)},
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to delete dashboard: "+dashboardName)
+		return errors.Wrap(err, "failed to delete dashboard", dashboardName)
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 		if CheckErrCode(err, "ResourceNotFound") {
 			return false, nil
 		}
-		return false, errors.Wrap(err, "dashboard: "+dashboardName)
+		return false, errors.Wrap(err, "dashboard", dashboardName)
 	}
 
 	return true, nil
