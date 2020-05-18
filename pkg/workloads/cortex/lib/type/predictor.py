@@ -199,7 +199,7 @@ tf_expected_dir_structure = """tensorflow model directories must have the follow
       ├── variables.data-00001-of-00003
       └── variables.data-00002-of-...`"""
 
-neuron_tf_expected_dir_structure = """tensorflow model directories must have the following structure:
+neuron_tf_expected_dir_structure = """neuron tensorflow model directories must have the following structure:
   1523423423/ (version prefix, usually a timestamp)
   └── saved_model.pb`"""
 
