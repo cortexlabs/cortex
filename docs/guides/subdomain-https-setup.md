@@ -2,9 +2,9 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-The recommended way to setup HTTPS is by using setting up [API Gateway](../api-gateway.md) because it is easier, faster, and enables you to use API Gateway features such as rate limiting. This guide is only recommended if HTTPS is required but API Gateway doesn't support your use case due to limitations such as a 29 second request timeout.
+The recommended way to setup HTTPS is using [API Gateway](../api-gateway.md) because it is easier, faster, and enables you to use API Gateway features such as rate limiting. This guide is only recommended if HTTPS is required but API Gateway doesn't support your use case due to limitations such as the 29 second request timeout.
 
-This guide will demonstrate how to set up a dedicated subdomain in AWS Route 53 and SSL certificate using AWS Certificate Manager. By the end of this guide, you will have a Cortex cluster with APIs accessible via `https://<your-subdomain>`.
+This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use SSL certificate provisioned by AWS Certificate Manager (ACM) to support HTTPS traffic to Cortex APIs. By the end of this guide, you will have a Cortex cluster with APIs accessible via `https://<your-subdomain>/<api-endpoint>`.
 
 You must own a domain and be able to modify its DNS records.
 
@@ -16,7 +16,7 @@ This guide will use `cortexlabs.dev` as the example domain and `api.cortexlabs.d
 
 ### Step 2
 
-We will setup a hosted zone on Route 53 for the subdomain. Go to the [AWS Route 53 console](https://console.aws.amazon.com/route53/home) and click "Hosted Zones".
+We will setup a hosted zone on Route 53 to manage the DNS for the subdomain. Go to the [Route 53 console](https://console.aws.amazon.com/route53/home) and click "Hosted Zones".
 
 ![step 2](https://user-images.githubusercontent.com/4365343/82210754-a6b07d00-98dd-11ea-9cec-9f6b07282aa8.png)
 
@@ -34,9 +34,9 @@ Take note of the values in the NS record.
 
 ### Step 5
 
-Navigate to your DNS service provider (e.g. Google Domains, AWS Route 53, Go Daddy) to add the DNS records. Your DNS service provider is typically where you purchased your domain, or the institution that manages your Domain. The procedure for adding DNS records may vary based on your DNS service provider.
+Navigate to your DNS service provider (e.g. Google Domains, AWS Route 53, Go Daddy) to add the DNS records. Your DNS service provider is typically the institution that either sold your domain or is managing your domain. The procedure for adding DNS records may vary based on your DNS service provider.
 
-We are going to add an NS (name server) record that specifies that any traffic to your subdomain will use the name servers of your hosted zone in Route 53 for DNS resolution.
+We are going to add an NS (name server) record that specifies that any traffic to your subdomain will use the name servers of your hosted zone in Route 53 for DNS resolution instead of using the name servers of your DNS service provider.
 
 `cortexlabs.dev` is managed by Google Domains. The image below is a screenshot for adding a DNS record in Google Domains (your UI may differ based on your DNS service provider).
 
@@ -44,7 +44,7 @@ We are going to add an NS (name server) record that specifies that any traffic t
 
 ### Step 6
 
-We are now going to create an SSL certificate for your subdomain. Go to the [AWS Certificate Manager console](https://us-west-2.console.aws.amazon.com/acm/home) and click "Get Started" under the "Provision certificates" section.
+We are now going to create an SSL certificate for your subdomain. Go to the [ACM console](https://us-west-2.console.aws.amazon.com/acm/home) and click "Get Started" under the "Provision certificates" section.
 
 ![step 6](https://user-images.githubusercontent.com/4365343/82202340-c04ac800-98cf-11ea-9472-89dd6d67eb0d.png)
 
@@ -56,15 +56,13 @@ Select "Request a public certificate" and then "Request a certificate".
 
 ### Step 8
 
-Enter your subdomain. Then click "Next".
+Enter your subdomain and then click "Next".
 
 ![step 8](https://user-images.githubusercontent.com/4365343/82224652-1cbedf00-98f2-11ea-912b-466cee2f6e25.png)
 
 ### Step 9
 
-Select "DNS validation" then click "Next".
-
-We recommend "DNS validation" because AWS Certificate Manager will automatically renew certificates before expiry. "Email validation" will require an email verification every time before renewal. See [managed certificate renewal](https://docs.aws.amazon.com/acm/latest/userguide/troubleshooting-renewal.html) for more details.
+Select "DNS validation" and then click "Next".
 
 ![step 9](https://user-images.githubusercontent.com/4365343/82205311-66003600-98d4-11ea-90e3-da7e8b0b2b9c.png)
 
@@ -82,19 +80,19 @@ Click "Confirm and request".
 
 ### Step 12
 
-Click "Create record in Route 53" and the CNAME DNS record for certificate validation will automatically be added to your subdomain's hosted zone in Route 53. Click "Create" in the modal popup and then "Continue"
+Click "Create record in Route 53". A modal will will pop indicating that a Record is going to be added to Route 53. Click "Create" to automatically add the DNS record to your subdomain's hosted then. Then click "Continue".
 
 ![step 12](https://user-images.githubusercontent.com/4365343/82223539-c8ffc600-98f0-11ea-93a2-044aa0c9670d.png)
 
 ### Step 13
 
-The Certificate is pending validation. The DNS records you noted in the previous need to be registered with your DNS service provider.
+Wait for Certificate Status to be issued. This might take a few minutes.
 
 ![step 13](https://user-images.githubusercontent.com/4365343/82209663-a616e700-98db-11ea-95cb-c6efedadb942.png)
 
 ### Step 14
 
-Wait for Certificate Status to be issued and then take a note of its ARN. The certificate is be ineligible for renewal because it is currently not being used. It will be eligible for renewal after it is used with Cortex.
+Take a note of the certificate's ARN. The certificate is ineligible for renewal because it is currently not being used. It will be eligible for renewal after it is used with Cortex.
 
 ![step 14](https://user-images.githubusercontent.com/4365343/82222684-9e613d80-98ef-11ea-98c0-5a20b457f062.png)
 
@@ -103,6 +101,8 @@ Wait for Certificate Status to be issued and then take a note of its ARN. The ce
 Add the following field your cluster configuration yaml:
 
 ```yaml
+cluster_name: # cortex-test
+
 ssl_certificate_arn: <ARN of your certificate>
 ```
 
@@ -114,13 +114,15 @@ $ cortex cluster up --config <path>
 
 ### Step 16
 
-After your cluster has spun up. Navigate to [AWS's EC2 Load Balancer dashboard](https://us-west-2.console.aws.amazon.com/ec2/v2/home#LoadBalancers:sort=loadBalancerName) and locate the Cortex API load balancer. You can determine which is the API load balancer by inspecting the `kubernetes.io/service-name` tag. Take note of the load balancer's name.
+After your cluster has spun up. Navigate to [EC2 Load Balancer console](https://us-west-2.console.aws.amazon.com/ec2/v2/home#LoadBalancers:sort=loadBalancerName) and locate the Cortex API load balancer. You can determine which is the API load balancer by inspecting the `kubernetes.io/service-name` tag.
+
+Take note of the load balancer's name.
 
 ![step 16](https://user-images.githubusercontent.com/808475/80142777-961c1980-8560-11ea-9202-40964dbff5e9.png)
 
 ### Step 17
 
-Go to the Hosted Zone you created in [Route 53](https://console.aws.amazon.com/route53/home#hosted-zones:) and add an Alias record that routes traffic address from your subdomain to your Cortex cluster's API load balancer
+Go to the hosted zone you created in [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and add an Alias record that routes traffic address from your subdomain to your Cortex cluster's API load balancer
 
 ![step 17](https://user-images.githubusercontent.com/4365343/82228372-08311580-98f7-11ea-9faa-24050fc432d8.png)
 
