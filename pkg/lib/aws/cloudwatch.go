@@ -176,7 +176,7 @@ func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 		DashboardName: aws.String(dashboardName),
 	})
 	if err != nil {
-		if CheckErrCode(err, "ResourceNotFound") {
+		if IsErrCode(err, "ResourceNotFound") {
 			return false, nil
 		}
 		return false, errors.Wrap(err, "dashboard", dashboardName)
