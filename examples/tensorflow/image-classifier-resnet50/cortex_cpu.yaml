@@ -8,8 +8,8 @@
       input_shape: [224, 224]
       input_key: input
   compute:
-    cpu: 4
+    cpu: 3200m
     mem: 4G
   autoscaling:
     workers_per_replica: 4
-    threads_per_worker: 8
+    threads_per_worker: 16
