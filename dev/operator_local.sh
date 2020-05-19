@@ -19,7 +19,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-kill $(pgrep -f rerun) >/dev/null 2>&1 || true
+kill $(pgrep -f make) >/dev/null 2>&1 || true
 
 eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yaml")
 
@@ -34,7 +34,20 @@ fi
 export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 
-rerun -watch $ROOT/pkg $ROOT/cli $ROOT/dev/config -ignore $ROOT/vendor $ROOT/bin -run sh -c \
-"go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator"
+clear && echo "starting local operator..."
+
+mkdir -p ./bin && go build -o $ROOT/bin/cortex $ROOT/cli && go build -o $ROOT/bin/operator $ROOT/pkg/operator && ($ROOT/bin/operator &)
+
+trap ctrl_c INT
+function ctrl_c() {
+  kill $(pgrep -f /bin/operator) >/dev/null 2>&1
+}
+
+watchmedo shell-command \
+  --command='kill $(pgrep -f /bin/operator);'" clear && echo 'restarting local operator...' && go build -o $ROOT/bin/cortex $ROOT/cli && go build -o $ROOT/bin/operator $ROOT/pkg/operator && $ROOT/bin/operator &" \
+  --patterns '*.go;*.yaml' \
+  --recursive \
+  --drop \
+  $ROOT/pkg $ROOT/cli $ROOT/dev/config
 
 # go run -race $ROOT/pkg/operator/main.go  # Check for race conditions. Doesn't seem to catch them all?
