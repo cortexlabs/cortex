@@ -1,3 +1,4 @@
+<!-- Delete on release branches -->
 <img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
 
 # Machine learning model serving infrastructure
@@ -85,7 +86,7 @@ positive
 
 ### Spin up a cluster
 
-Cortex clusters are designed to be self-hosted on any AWS account (GCP support is coming soon):
+Cortex clusters are designed to be self-hosted on any AWS account:
 
 ```bash
 $ cortex cluster up
