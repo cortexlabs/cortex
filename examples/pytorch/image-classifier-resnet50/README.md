@@ -31,7 +31,7 @@ To run the inference, run the following command:
 curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
-If a 5-element list is returned containing classifications of the image (cat, tiger, tabby, etc), then it means the API is working.
+If a 5-element list is returned containing classifications of the image ("tabby", "Egyptian_cat", "tiger_cat", "tiger", "plastic_bag", with the first classification in the list being the most likely), then it means the API is working.
 
 ## Exporting SavedModels
 

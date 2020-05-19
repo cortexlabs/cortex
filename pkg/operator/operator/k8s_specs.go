@@ -55,6 +55,7 @@ const (
 	_apiReadinessFile                              = "/mnt/api_readiness.txt"
 	_apiLivenessFile                               = "/mnt/api_liveness.txt"
 	_apiLivenessStalePeriod                        = 7 // seconds (there is a 2-second buffer to be safe)
+	_neuronRTDSocketReadinessFile                  = "/sock/neuron.sock"
 )
 
 var (
@@ -647,7 +648,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				},
 				kcore.EnvVar{
 					Name:  "NEURON_RTD_ADDRESS",
-					Value: "unix:/sock/neuron.sock",
+					Value: fmt.Sprintf("unix:%s", _neuronRTDSocketReadinessFile),
 				},
 			)
 		}
@@ -751,7 +752,8 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 				},
 			},
 		},
-		VolumeMounts: volumeMounts,
+		VolumeMounts:   volumeMounts,
+		ReadinessProbe: socketExistsProbe(_neuronRTDSocketReadinessFile),
 		Resources: kcore.ResourceRequirements{
 			Limits: kcore.ResourceList{
 				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI),
@@ -800,19 +802,31 @@ var _apiReadinessProbe = &kcore.Probe{
 	},
 }
 
-func fileExistsProbe(fileName string) *kcore.Probe {
+func k8sProbe(handler kcore.Handler) *kcore.Probe {
 	return &kcore.Probe{
 		InitialDelaySeconds: 3,
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 		SuccessThreshold:    1,
 		FailureThreshold:    1,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
-			},
-		},
+		Handler:             handler,
 	}
+}
+
+func fileExistsProbe(fileName string) *kcore.Probe {
+	return k8sProbe(kcore.Handler{
+		Exec: &kcore.ExecAction{
+			Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
+		},
+	})
+}
+
+func socketExistsProbe(socketName string) *kcore.Probe {
+	return k8sProbe(kcore.Handler{
+		Exec: &kcore.ExecAction{
+			Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
+		},
+	})
 }
 
 var _tolerations = []kcore.Toleration{
