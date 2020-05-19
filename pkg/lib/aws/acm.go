@@ -28,7 +28,7 @@ func (c *Client) DoesCertificateExist(sslCertificateARN string) (bool, error) {
 	})
 
 	if err != nil {
-		if CheckErrCode(err, "ResourceNotFoundException") {
+		if IsErrCode(err, "ResourceNotFoundException") {
 			return false, nil
 		}
 		return false, errors.Wrap(err, sslCertificateARN)

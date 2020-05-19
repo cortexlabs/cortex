@@ -73,8 +73,8 @@ tags:  # <string>: <string> map of key/value pairs
 # see https://cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 
-# ARN of SSL certificate in AWS Certificate Manager (ACM) for HTTPS (default: null)
-ssl_certificate_arn: # if empty, APIs will only be accessible by HTTP
+# see https://cortex.dev/v/master/guides/subdomain-https-setup for instructions on how to set up HTTPS for APIs
+ssl_certificate_arn:  # if empty, APIs will still be accessible via HTTPS (in addition to HTTP), but will not use a trusted certificate
 ```
 
 The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [API configuration](../deployments/api-configuration.md).

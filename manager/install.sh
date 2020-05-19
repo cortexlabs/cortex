@@ -289,7 +289,7 @@ function setup_istio() {
   fi
 
   export CORTEX_SSL_CERTIFICATE_ANNOTATION=""
-  if [[ ! -z "$CORTEX_SSL_CERTIFICATE_ARN" ]]; then
+  if [[ -n "$CORTEX_SSL_CERTIFICATE_ARN" ]]; then
     export CORTEX_SSL_CERTIFICATE_ANNOTATION="service.beta.kubernetes.io/aws-load-balancer-ssl-cert: $CORTEX_SSL_CERTIFICATE_ARN"
   fi
 

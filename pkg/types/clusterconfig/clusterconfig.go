@@ -156,7 +156,6 @@ var UserValidation = &cr.StructValidation{
 			StructField: "SSLCertificateARN",
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowExplicitNull: true,
-				MinLength:         20,
 			},
 		},
 		{
@@ -512,11 +511,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	if cc.SSLCertificateARN != nil {
 		exists, err := awsClient.DoesCertificateExist(*cc.SSLCertificateARN)
 		if err != nil {
-			if aerr, ok := errors.CauseOrSelf(err).(awserr.Error); ok {
-				if aerr.Code() != "AccessDeniedException" {
-					return errors.Wrap(err, SSLCertificateARNKey)
-				}
-			}
+			return errors.Wrap(err, SSLCertificateARNKey)
 		}
 
 		if !exists {

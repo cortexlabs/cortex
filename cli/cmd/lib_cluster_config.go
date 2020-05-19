@@ -273,8 +273,8 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
 
-	if userClusterConfig.SSLCertificateARN != nil && cachedClusterConfig.SSLCertificateARN != nil && *userClusterConfig.SSLCertificateARN != *cachedClusterConfig.SSLCertificateARN {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SSLCertificateARNUserKey, cachedClusterConfig.SSLCertificateARN)
+	if s.Obj(cachedClusterConfig.SSLCertificateARN) != s.Obj(userClusterConfig.SSLCertificateARN) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SSLCertificateARNKey, cachedClusterConfig.SSLCertificateARN)
 	}
 	userClusterConfig.SSLCertificateARN = cachedClusterConfig.SSLCertificateARN
 
