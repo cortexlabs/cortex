@@ -60,10 +60,11 @@ type GetAPIsResponse struct {
 }
 
 type GetAPIResponse struct {
-	API     spec.API        `json:"api"`
-	Status  status.Status   `json:"status"`
-	Metrics metrics.Metrics `json:"metrics"`
-	BaseURL string          `json:"base_url"`
+	API           spec.API        `json:"api"`
+	Status        status.Status   `json:"status"`
+	Metrics       metrics.Metrics `json:"metrics"`
+	BaseURL       string          `json:"base_url"`
+	CloudWatchURL string          `json:"cloudwatch_url"`
 }
 
 type DeleteResponse struct {

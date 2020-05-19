@@ -323,6 +323,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	if env.Provider == types.AWSProviderType {
 		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "https://", "http://", 1)
 	}
+	out += apiRes.CloudWatchURL
+
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)

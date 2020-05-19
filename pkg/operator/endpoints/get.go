@@ -86,11 +86,14 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cloudWatchURL := operator.GetCloudwatchURL()
+
 	respond(w, schema.GetAPIResponse{
-		API:     *api,
-		Status:  *status,
-		Metrics: *metrics,
-		BaseURL: baseURL,
+		API:           *api,
+		Status:        *status,
+		Metrics:       *metrics,
+		BaseURL:       baseURL,
+		CloudWatchURL: cloudWatchURL,
 	})
 }
 
