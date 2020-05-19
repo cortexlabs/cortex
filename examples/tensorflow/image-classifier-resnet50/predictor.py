@@ -33,7 +33,7 @@ def decode_images(images):
 
 def prepare_images(images, input_shape, input_key):
     """
-    Prepares images for the client. 
+    Prepares images for the TFS client. 
     """
     output = []
     for image in images:
@@ -61,8 +61,8 @@ class TensorFlowPredictor:
         if "imgs" in payload_keys:
             imgs = payload["imgs"]
             imgs = decode_images(imgs)
-        elif "img_url" in payload_keys:
-            imgs = [get_url_image(payload["img_url"])]
+        elif "url" in payload_keys:
+            imgs = [get_url_image(payload["url"])]
         else:
             return None
         prepared_imgs = prepare_images(imgs, self.input_shape, self.input_key)

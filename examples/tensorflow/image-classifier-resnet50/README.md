@@ -31,7 +31,7 @@ To run the inference, run the following command:
 curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
-If a 5-element list is returned containing classifications of the image (cat, tiger, tabby, etc), then it means the API is working.
+If a 5-element list is returned containing classifications of the image ("tabby", "tiger_cat", "Egyptian_cat", "lynx", "tiger", with the first classification in the list being the most likely), then it means the API is working.
 
 ## Throughput test
 
@@ -68,7 +68,7 @@ export IMG_URL=https://i.imgur.com/213xcvs.jpg # this is the cat image shown in 
 
 Then, deploy each API one at a time and check the results:
 
-1. Running `python throughput_test.py -i 30 -w 4 -t 48` on an `inf1.2xlarge` instance using the [cortex_accelerator.yaml](cortex_accelerator.yaml) config will get **~525 inferences/sec** with an average latency of **87 ms**.
+1. Running `python throughput_test.py -i 30 -w 4 -t 48` on an `inf1.2xlarge` instance using the [cortex_accelerator.yaml](cortex_accelerator.yaml) config will get **~510 inferences/sec** with an average latency of **80 ms**.
 1. Running `python throughput_test.py -i 30 -w 4 -t 1` on a `c5.xlarge` instance using the [cortex_cpu.yaml](cortex_cpu.yaml) config will get **~x inferences/sec** with an average latency of **y ms**.
 1. Running `python throughput_test.py -i 30 -w 4 -t 24` on a `g4dn.xlarge` instance using the [cortex_gpu.yaml](cortex_gpu.yaml) config will get **~125 inferences/sec** with an average latency of **85 ms**. Optimizing the model with TensorRT to use FP16 on TF-serving only seems to achieve a 10% performance improvement - one thing to consider is that the TensorRT engines hadn't been built beforehand, so this might have affected the results negatively.
 
