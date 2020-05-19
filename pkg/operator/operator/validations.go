@@ -556,9 +556,8 @@ func validateTensorFlowPredictor(api *userconfig.API) error {
 		} else if path == "" {
 			if !neuronExport {
 				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
-			} else {
-				return errors.Wrap(ErrorInvalidNeuronTensorFlowDir(model), userconfig.ModelKey)
 			}
+			return errors.Wrap(ErrorInvalidNeuronTensorFlowDir(model), userconfig.ModelKey)
 		}
 		predictor.Model = pointer.String(path)
 	}

@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import os
 import cv2
 import numpy as np
@@ -33,7 +35,7 @@ def decode_images(images):
 
 def prepare_images(images, input_shape, input_key):
     """
-    Prepares images for the TFS client. 
+    Prepares images for the TFS client.
     """
     output = []
     for image in images:

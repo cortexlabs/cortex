@@ -1,3 +1,5 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
 import os
 import click
 import concurrent.futures
@@ -101,7 +103,7 @@ def executor_submitter(executor, workers, *args, **kwargs):
 
 
 def task(data, endpoint, samples, time_based):
-    timeout = 15
+    timeout = 60
 
     if time_based == 0.0:
         for i in range(samples):
