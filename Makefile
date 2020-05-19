@@ -20,10 +20,29 @@ SHELL := /bin/bash
 
 # Cortex
 
+# build cli, start local operator, and watch for changes
 devstart:
 	@$(MAKE) operator-stop || true
 	@./dev/operator_local.sh || true
 
+.PHONY: cli
+cli:
+	@mkdir -p ./bin
+	@go build -o ./bin/cortex ./cli
+
+# build cli and watch for changes
+cli-watch:
+	@clear && echo "building cli..."
+	@$(MAKE) cli
+	@clear && echo -e "\033[1;32mCLI built\033[0m"
+	@watchmedo shell-command --command='clear && echo "rebuilding cli..." && go build -o ./bin/cortex ./cli && clear && echo "\033[1;32mCLI built\033[0m"' --patterns '*.go;*.yaml' --recursive --drop ./pkg ./cli
+
+# start local operator and watch for changes
+operator-local:
+	@$(MAKE) operator-stop || true
+	@./dev/operator_local.sh --operator-only || true
+
+# configure kubectl to point to the cluster specified in dev/config/cluster.yaml
 kubectl:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
@@ -70,6 +89,7 @@ cluster-configure-y:
 	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure --yes
 
+# stop the in-cluster operator
 operator-stop:
 	@$(MAKE) kubectl
 	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
@@ -119,17 +139,6 @@ manager-local:
 	@./dev/registry.sh update-manager-local
 
 # Misc
-
-.PHONY: cli
-cli:
-	@mkdir -p ./bin
-	@go build -o ./bin/cortex ./cli
-
-cli-watch:
-	@clear && echo "building cli..."
-	@$(MAKE) cli
-	@clear && echo -e "\033[1;32mCLI built\033[0m"
-	@watchmedo shell-command --command='clear && echo "rebuilding cli..." && go build -o ./bin/cortex ./cli && clear && echo "\033[1;32mCLI built\033[0m"' --patterns '*.go;*.yaml' --recursive --drop ./pkg ./cli
 
 aws-clear-bucket:
 	@./dev/aws.sh clear-bucket
