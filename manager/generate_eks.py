@@ -117,9 +117,9 @@ def apply_accelerator_settings(nodegroup, instance_type):
     no_chips, hugepages_mem = get_accelerator_resources(instance_type)
     accelerator_settings = {
         # custom eks-optimized AMI for inf instances
-        # track https://github.com/aws/containers-roadmap/issues/619 ticket
+        # TODO track https://github.com/aws/containers-roadmap/issues/619 ticket
         # such that when an EKS-optimized AMI for inf instances is released,
-        # this ami override can be removed and reverted back to auto
+        # this AMI override can be removed and reverted back to auto
         "ami": "ami-07a7b48058cfe1a73",
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",

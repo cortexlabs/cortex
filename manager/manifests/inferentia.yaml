@@ -56,7 +56,7 @@ spec:
           volumeMounts:
             - name: device-plugin
               mountPath: /var/lib/kubelet/device-plugins
-          # set the right resource requests/limits once
+          # TODO set the right resource requests/limits once
           # https://github.com/aws/aws-neuron-sdk/issues/103 is resolved
           # resources:
           #   requests:
