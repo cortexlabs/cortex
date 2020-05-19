@@ -642,12 +642,12 @@ func getTFServingExportFromS3Path(path string, awsClientForBucket *aws.Client) (
 
 	bucket, _, err := aws.SplitS3Path(path)
 	if err != nil {
-		return "", errors.Wrap(err, path)
+		return "", err
 	}
 
 	objects, err := awsClientForBucket.ListS3PathDir(path, false, pointer.Int64(1000))
 	if err != nil {
-		return "", errors.Wrap(err, path)
+		return "", err
 	} else if len(objects) == 0 {
 		return "", errors.Wrap(ErrorInvalidTensorFlowModelPath(), path)
 	}
