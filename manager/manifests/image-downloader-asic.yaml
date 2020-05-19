@@ -39,7 +39,7 @@ spec:
         effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:
-      - name: python-serve-accelerator
-        image: $CORTEX_IMAGE_PYTHON_SERVE_ACCELERATOR
+      - name: python-serve-asic
+        image: $CORTEX_IMAGE_PYTHON_SERVE_ASIC
         command: [ "/bin/sh" ]
         args: [ "-c", "sleep 1000000" ]

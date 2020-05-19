@@ -36,11 +36,11 @@ function ecr_login() {
 
 function create_registry() {
   aws ecr create-repository --repository-name=cortexlabs/python-serve --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-serve-accelerator --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/python-serve-asic --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/python-serve-gpu --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-serve-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tf-serve-accelerator --region=$REGISTRY_REGION || true
+  aws ecr create-repository --repository-name=cortexlabs/tf-serve-asic --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/tf-api --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve --region=$REGISTRY_REGION || true
   aws ecr create-repository --repository-name=cortexlabs/onnx-serve-gpu --region=$REGISTRY_REGION || true
@@ -149,7 +149,7 @@ elif [ "$cmd" = "update-manager-local" ]; then
 elif [ "$cmd" = "update" ]; then
   if [ "$env" != "dev" ]; then
     build_and_push $ROOT/images/tf-serve tf-serve latest
-    build_and_push $ROOT/images/tf-serve-accelerator tf-serve-accelerator latest
+    build_and_push $ROOT/images/tf-serve-asic tf-serve-asic latest
     build_and_push $ROOT/images/tf-serve-gpu tf-serve-gpu latest
 
     cache_builder $ROOT/images/operator operator
@@ -173,7 +173,7 @@ elif [ "$cmd" = "update" ]; then
 
   build_and_push $ROOT/images/manager manager latest
   build_and_push $ROOT/images/python-serve python-serve latest
-  build_and_push $ROOT/images/python-serve-accelerator python-serve-accelerator latest
+  build_and_push $ROOT/images/python-serve-asic python-serve-asic latest
   build_and_push $ROOT/images/python-serve-gpu python-serve-gpu latest
   build_and_push $ROOT/images/tf-api tf-api latest
   build_and_push $ROOT/images/onnx-serve onnx-serve latest

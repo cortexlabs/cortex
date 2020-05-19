@@ -154,7 +154,7 @@ torchvision==0.5.0
 xgboost==1.0.2
 ```
 
-#### For Accelerator-equipped APIs
+#### For ASIC-equipped APIs
 
 ```text
 cloudpickle==1.3.0
@@ -179,7 +179,7 @@ torchvision==0.4.2
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/python-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU), [images/python-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU) or [images/python-serve-accelerator/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-accelerator/Dockerfile) (for Accelerator).
+The pre-installed system packages are listed in [images/python-serve/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve/Dockerfile) (for CPU), [images/python-serve-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-gpu/Dockerfile) (for GPU) or [images/python-serve-asic/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-serve-asic/Dockerfile) (for ASIC).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 

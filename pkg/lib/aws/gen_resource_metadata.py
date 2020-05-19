@@ -48,7 +48,7 @@ EKS_PRICING_ENDPOINT_TEMPLATE = (
     "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEKS/current/{}/index.json"
 )
 
-accelerators_per_instance_type = {
+asics_per_instance_type = {
     "inf1.xlarge": 1,
     "inf1.2xlarge": 1,
     "inf1.6xlarge": 4,
@@ -94,10 +94,10 @@ def get_instance_metadatas(pricing):
     return instance_mapping
 
 
-def get_accelerators_per_instance_type(instance_type):
-    if instance_type not in accelerators_per_instance_type.keys():
+def get_asics_per_instance_type(instance_type):
+    if instance_type not in asics_per_instance_type.keys():
         return 0
-    return accelerators_per_instance_type[instance_type]
+    return asics_per_instance_type[instance_type]
 
 
 def get_elb_metadata(pricing):
@@ -208,7 +208,7 @@ type InstanceMetadata struct {
 	Memory      kresource.Quantity `json:"memory"`
 	CPU         kresource.Quantity `json:"cpu"`
 	GPU         int64              `json:"gpu"`
-    Accelerator int64              `json:"accelerator"`
+    ASIC        int64              `json:"asic"`
 	Price       float64            `json:"price"`
 }
 
@@ -262,7 +262,7 @@ instance_region_map_template = Template(
 )
 
 instance_metadata_template = Template(
-    """"${type}": {Region: "${region}", Type: "${type}", Memory: kresource.MustParse("${memory}Mi"), CPU: kresource.MustParse("${cpu}"), GPU: ${gpu}, Accelerator: ${accelerator}, Price: ${price}},
+    """"${type}": {Region: "${region}", Type: "${type}", Memory: kresource.MustParse("${memory}Mi"), CPU: kresource.MustParse("${cpu}"), GPU: ${gpu}, ASIC: ${asic}, Price: ${price}},
 """
 )
 
@@ -317,7 +317,7 @@ def main():
                     "memory": metadata["mem"],
                     "cpu": metadata["cpu"],
                     "gpu": metadata["gpu"],
-                    "accelerator": get_accelerators_per_instance_type(instance_type),
+                    "asic": get_asics_per_instance_type(instance_type),
                     "price": metadata["price"],
                 }
             )

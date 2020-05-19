@@ -59,10 +59,10 @@ type Tracker struct {
 }
 
 type Compute struct {
-	CPU         k8s.Quantity  `json:"cpu" yaml:"cpu"`
-	Mem         *k8s.Quantity `json:"mem" yaml:"mem"`
-	GPU         int64         `json:"gpu" yaml:"gpu"`
-	Accelerator int64         `json:"accelerator" yaml:"accelerator"`
+	CPU  k8s.Quantity  `json:"cpu" yaml:"cpu"`
+	Mem  *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU  int64         `json:"gpu" yaml:"gpu"`
+	ASIC int64         `json:"asic" yaml:"asic"`
 }
 
 type Autoscaling struct {
@@ -93,12 +93,12 @@ func (api *API) Identify() string {
 
 func (api *API) ApplyDefaultDockerPaths() {
 	usesGPU := false
-	usesAccelerator := false
+	usesASIC := false
 	if api.Compute.GPU > 0 {
 		usesGPU = true
 	}
-	if api.Compute.Accelerator > 0 {
-		usesAccelerator = true
+	if api.Compute.ASIC > 0 {
+		usesASIC = true
 	}
 
 	predictor := api.Predictor
@@ -107,8 +107,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.Image == "" {
 			if usesGPU {
 				predictor.Image = consts.DefaultImagePythonServeGPU
-			} else if usesAccelerator {
-				predictor.Image = consts.DefaultImagePythonServeAccelerator
+			} else if usesASIC {
+				predictor.Image = consts.DefaultImagePythonServeASIC
 			} else {
 				predictor.Image = consts.DefaultImagePythonServe
 			}
@@ -120,8 +120,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.TFServeImage == "" {
 			if usesGPU {
 				predictor.TFServeImage = consts.DefaultImageTFServeGPU
-			} else if usesAccelerator {
-				predictor.TFServeImage = consts.DefaultImageTFServeAccelerator
+			} else if usesASIC {
+				predictor.TFServeImage = consts.DefaultImageTFServeASIC
 			} else {
 				predictor.TFServeImage = consts.DefaultImageTFServe
 			}
@@ -331,8 +331,8 @@ func (compute *Compute) UserStr() string {
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
-	if compute.Accelerator > 0 {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", AcceleratorKey, s.Int64(compute.Accelerator)))
+	if compute.ASIC > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ASICKey, s.Int64(compute.ASIC)))
 	}
 	if compute.Mem != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))

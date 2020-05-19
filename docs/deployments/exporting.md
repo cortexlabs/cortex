@@ -19,7 +19,7 @@ The recommended approach is export your PyTorch model with [torch.save()](https:
 torch.save(model.state_dict(), "weights.pth")
 ```
 
-For Accelerator-equipped (Inferentia) instances, check the [Accelerator instructions](accelerators.md#neuron).
+For ASIC-equipped (Inferentia) instances, check the [ASIC instructions](asics.md#neuron).
 
 ### ONNX
 
@@ -39,7 +39,7 @@ torch.onnx.export(
 
 ### `SavedModel`
 
-You may export your trained model into an export directory, or use a checkpoint directory containing the export directory (which is usually the case if you used `estimator.train_and_evaluate()`). The folder may be zipped if you desire. For Accelerator-equipped (Inferentia) instances, also check the [Accelerator instructions](accelerators.md#neuron).
+You may export your trained model into an export directory, or use a checkpoint directory containing the export directory (which is usually the case if you used `estimator.train_and_evaluate()`). The folder may be zipped if you desire. For ASIC-equipped (Inferentia) instances, also check the [ASIC instructions](asics.md#neuron).
 
 A TensorFlow `SavedModel` directory should have this structure:
 

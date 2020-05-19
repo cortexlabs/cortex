@@ -14,7 +14,7 @@ import base64
 @click.command(
     help=(
         "Program for testing the throughput of Resnet50 model on "
-        "instances equipped with CPU, GPU or Accelerator devices."
+        "instances equipped with CPU, GPU or ASIC devices."
     )
 )
 @click.argument("img_url", type=str, envvar="IMG_URL")

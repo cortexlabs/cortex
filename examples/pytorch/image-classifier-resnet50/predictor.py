@@ -44,7 +44,7 @@ class PythonPredictor:
             self.model = models.resnet50()
             self.model.load_state_dict(torch.load(model_name))
             self.model.eval()
-        elif config["device"] == "accelerator":
+        elif config["device"] == "asic":
             import torch_neuron
 
             self.model = torch.jit.load(model_name)

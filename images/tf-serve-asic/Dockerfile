@@ -15,9 +15,9 @@ RUN apt-get update -qq && apt-get install -y -q \
     apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 ENV PATH=/opt/aws/neuron/bin/:$PATH
 
-COPY images/tf-serve-accelerator/run.sh /src/
-COPY images/tf-serve-accelerator/supervisord.conf /tmp/supervisord.conf
-COPY images/tf-serve-accelerator/template.conf /tmp/template.conf
+COPY images/tf-serve-asic/run.sh /src/
+COPY images/tf-serve-asic/supervisord.conf /tmp/supervisord.conf
+COPY images/tf-serve-asic/template.conf /tmp/template.conf
 RUN chmod +x /src/run.sh
 
 ENTRYPOINT ["/src/run.sh"]

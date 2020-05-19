@@ -49,8 +49,8 @@ The default Docker images used to deploy your models are listed below. Based on 
 <!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
 * Python Predictor (CPU): `cortexlabs/python-serve:master`
 * Python Predictor (GPU): `cortexlabs/python-serve-gpu:master`
-* Python Predictor (Accelerator): `cortexlabs/python-serve-accelerator:master`
-* TensorFlow Predictor (CPU, GPU and Accelerator): `cortexlabs/tf-api:master`
+* Python Predictor (ASIC): `cortexlabs/python-serve-asic:master`
+* TensorFlow Predictor (CPU, GPU and ASIC): `cortexlabs/tf-api:master`
 * ONNX Predictor (CPU): `cortexlabs/onnx-serve:master`
 * ONNX Predictor (GPU): `cortexlabs/onnx-serve-gpu:master`
 

@@ -46,8 +46,8 @@ const (
 	_tfServingModelName                            = "model"
 	_downloaderInitContainerName                   = "downloader"
 	_neuronRTDContainerName                        = "neuron-rtd"
-	_hugePagesMemPerAccelerator                    = int64(2 * 128)
-	_coresPerAccelerator                           = int64(4)
+	_hugePagesMemPerASIC                           = int64(2 * 128)
+	_coresPerASIC                                  = int64(4)
 	_downloaderLastLog                             = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr             = int32(8888), "8888"
 	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
@@ -104,7 +104,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	userPodMemRequest := api.Compute.Mem.Quantity.Copy()
 	userPodMemRequest.Sub(_requestMonitorMemRequest)
 
-	if api.Compute.Accelerator == 0 {
+	if api.Compute.ASIC == 0 {
 		q1, q2 := k8s.SplitInTwo(userPodCPURequest)
 		apiResourceList[kcore.ResourceCPU] = *q1
 		tfServingResourceList[kcore.ResourceCPU] = *q2
@@ -265,7 +265,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 
 	podCPURequest.Sub(_requestMonitorCPURequest)
 
-	if api.Compute.Accelerator == 0 {
+	if api.Compute.ASIC == 0 {
 		userPodResourceList[kcore.ResourceCPU] = *podCPURequest
 
 		if api.Compute.Mem != nil {
@@ -638,13 +638,13 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 	}
 
-	if api.Compute.Accelerator > 0 {
+	if api.Compute.ASIC > 0 {
 		if (container == _apiContainerName && api.Predictor.Type != userconfig.TensorFlowPredictorType) ||
 			(container == _tfServingContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType) {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.Accelerator * _coresPerAccelerator / int64(api.Autoscaling.WorkersPerReplica)),
+					Value: s.Int64(api.Compute.ASIC * _coresPerASIC / int64(api.Autoscaling.WorkersPerReplica)),
 				},
 				kcore.EnvVar{
 					Name:  "NEURON_RTD_ADDRESS",
@@ -699,7 +699,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		},
 	}
 
-	if api.Compute.Accelerator > 0 {
+	if api.Compute.ASIC > 0 {
 		numPorts := api.Autoscaling.WorkersPerReplica
 		for i := int32(1); i < numPorts; i++ {
 			ports = append(ports, kcore.ContainerPort{
@@ -739,7 +739,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 }
 
 func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMount) *kcore.Container {
-	totalHugePages := api.Compute.Accelerator * _hugePagesMemPerAccelerator
+	totalHugePages := api.Compute.ASIC * _hugePagesMemPerASIC
 	return &kcore.Container{
 		Name:            _neuronRTDContainerName,
 		Image:           config.Cluster.ImageNeuronRTD,
@@ -757,11 +757,11 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		Resources: kcore.ResourceRequirements{
 			Limits: kcore.ResourceList{
 				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI),
+				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.ASIC, kresource.DecimalSI),
 			},
 			Requests: kcore.ResourceList{
 				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Accelerator, kresource.DecimalSI),
+				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.ASIC, kresource.DecimalSI),
 			},
 		},
 	}

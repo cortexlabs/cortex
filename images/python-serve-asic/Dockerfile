@@ -54,7 +54,7 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip 
 ENV BASH_ENV=~/.env
 
 COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-COPY pkg/workloads/cortex/serve/python-accelerator.requirements.txt /src/cortex/serve/requirements.txt
+COPY pkg/workloads/cortex/serve/python-asic.requirements.txt /src/cortex/serve/requirements.txt
 
 RUN /bin/bash -c "pip install --no-cache-dir -r /src/cortex/lib/requirements.txt" && \
     grep -v -e --no-deps /src/cortex/serve/requirements.txt > /src/cortex/serve/requirements_with_deps.txt && \

@@ -113,9 +113,9 @@ def is_gpu(instance_type):
     return instance_type.startswith("g") or instance_type.startswith("p")
 
 
-def apply_accelerator_settings(nodegroup, instance_type):
-    no_chips, hugepages_mem = get_accelerator_resources(instance_type)
-    accelerator_settings = {
+def apply_asic_settings(nodegroup, instance_type):
+    no_chips, hugepages_mem = get_asic_resources(instance_type)
+    asic_settings = {
         # custom eks-optimized AMI for inf instances
         # TODO track https://github.com/aws/containers-roadmap/issues/619 ticket
         # such that when an EKS-optimized AMI for inf instances is released,
@@ -130,14 +130,14 @@ def apply_accelerator_settings(nodegroup, instance_type):
         "labels": {"aws.amazon.com/infa": "true"},
         "taints": {"aws.amazon.com/infa": "true:NoSchedule"},
     }
-    return merge_override(nodegroup, accelerator_settings)
+    return merge_override(nodegroup, asic_settings)
 
 
-def is_accelerator(instance_type):
+def is_asic(instance_type):
     return instance_type.startswith("inf")
 
 
-def get_accelerator_resources(instance_type):
+def get_asic_resources(instance_type):
     no_hugepages_2Mi = 128
     hugepages_mem = lambda no_chips: f"{no_hugepages_2Mi * no_chips}Mi"
 
@@ -178,10 +178,8 @@ def generate_eks(configmap_yaml_path):
     if is_gpu(cluster_configmap["instance_type"]):
         apply_gpu_settings(worker_nodegroup)
 
-    if is_accelerator(cluster_configmap["instance_type"]):
-        apply_accelerator_settings(
-            worker_nodegroup, instance_type=cluster_configmap["instance_type"]
-        )
+    if is_asic(cluster_configmap["instance_type"]):
+        apply_asic_settings(worker_nodegroup, instance_type=cluster_configmap["instance_type"])
 
     eks = {
         "apiVersion": "eksctl.io/v1alpha5",
@@ -205,8 +203,8 @@ def generate_eks(configmap_yaml_path):
         apply_clusterconfig(backup_nodegroup, cluster_configmap)
         if is_gpu(cluster_configmap["instance_type"]):
             apply_gpu_settings(backup_nodegroup)
-        if is_accelerator(cluster_configmap["instance_type"]):
-            apply_accelerator_settings(backup_nodegroup, cluster_configmap["instance_type"])
+        if is_asic(cluster_configmap["instance_type"]):
+            apply_asic_settings(backup_nodegroup, cluster_configmap["instance_type"])
 
         backup_nodegroup["minSize"] = 0
         backup_nodegroup["desiredCapacity"] = 0

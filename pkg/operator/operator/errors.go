@@ -55,9 +55,9 @@ const (
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
 	ErrRegistryAccountIDMismatch          = "operator.registry_account_id_mismatch"
 	ErrComputeResourceConflict            = "operator.compute_resource_conflict"
-	ErrInsufficientAcceleratorMemory      = "operator.insufficient_accelerator_memory"
-	ErrInvalidNumberOfAcceleratorWorkers  = "operator.invalid_number_of_accelerator_workers"
-	ErrInvalidNumberOfAccelerators        = "operator.invalid_number_of_accelerators"
+	ErrInsufficientASICMemory             = "operator.insufficient_asic_memory"
+	ErrInvalidNumberOfASICWorkers         = "operator.invalid_number_of_asic_workers"
+	ErrInvalidNumberOfASICs               = "operator.invalid_number_of_asics"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -296,26 +296,26 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	})
 }
 
-func ErrorInsufficientAcceleratorMemory(requestedMem, minimumMem, numAccelerators, perAcceleratorMem string) error {
+func ErrorInsufficientASICMemory(requestedMem, minimumMem, numASICs, perASICMem string) error {
 	return errors.WithStack(&errors.Error{
-		Kind: ErrInsufficientAcceleratorMemory,
-		Message: fmt.Sprintf("requested %s memory, but to cover the accelerator requirements, a minimum of %s = 2 * %s accelerator(s) * %s per accelerator is required",
-			requestedMem, minimumMem, numAccelerators, perAcceleratorMem),
+		Kind: ErrInsufficientASICMemory,
+		Message: fmt.Sprintf("requested %s memory, but to cover the ASIC requirements, a minimum of %s = 2 * %s ASIC(s) * %s per ASIC is required",
+			requestedMem, minimumMem, numASICs, perASICMem),
 	})
 }
 
-func ErrorInvalidNumberOfAcceleratorWorkers(requestedWorkers int64, numAcceleratorCores int64, acceptableWorkers []int64) error {
+func ErrorInvalidNumberOfASICWorkers(requestedWorkers int64, numASICCores int64, acceptableWorkers []int64) error {
 	msgAcceptableWorkers := strings.Join(s.ListInt64(acceptableWorkers), ",")
-	message := fmt.Sprintf("cannot evenly distribute %d accelerator cores over %d worker(s) - acceptable numbers of workers are %s", numAcceleratorCores, requestedWorkers, msgAcceptableWorkers)
+	message := fmt.Sprintf("cannot evenly distribute %d ASIC cores over %d worker(s) - acceptable numbers of workers are %s", numASICCores, requestedWorkers, msgAcceptableWorkers)
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNumberOfAcceleratorWorkers,
+		Kind:    ErrInvalidNumberOfASICWorkers,
 		Message: message,
 	})
 }
 
-func ErrorInvalidNumberOfAccelerators(requestedAccelerators int64) error {
+func ErrorInvalidNumberOfASICs(requestedASICs int64) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNumberOfAccelerators,
-		Message: fmt.Sprintf("cannot request %d accelerators for the API - can only have 1 accelerator per API replica", requestedAccelerators),
+		Kind:    ErrInvalidNumberOfASICs,
+		Message: fmt.Sprintf("cannot request %d ASICs for the API - can only have 1 ASIC per API replica", requestedASICs),
 	})
 }

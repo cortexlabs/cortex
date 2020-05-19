@@ -15,7 +15,7 @@ For example:
     mem: 1G
 ```
 
-CPU, GPU, Accelerator, and memory requests in Cortex correspond to compute resource requests in Kubernetes. In the example above, the API will only be scheduled once 1 CPU, 1 GPU, and 1G of memory are available on any instance, and it will be guaranteed to have access to those resources throughout its execution. In some cases, resource requests can be (or may default to) `Null`.
+CPU, GPU, ASIC, and memory requests in Cortex correspond to compute resource requests in Kubernetes. In the example above, the API will only be scheduled once 1 CPU, 1 GPU, and 1G of memory are available on any instance, and it will be guaranteed to have access to those resources throughout its execution. In some cases, resource requests can be (or may default to) `Null`.
 
 ## CPU
 
@@ -32,6 +32,6 @@ See [GPU documentation](gpus.md) for more information.
 One unit of memory is one byte. Memory can be expressed as an integer or by using one of these suffixes: `K`, `M`, `G`, `T` (or their power-of two counterparts: `Ki`, `Mi`, `Gi`, `Ti`). For example, the following values represent roughly the same memory: `128974848`, `129e6`, `129M`, `123Mi`.
 
 
-## Accelerator
+## ASIC
 
-One unit of Accelerator corresponds to one virtual Accelerator. Fractional requests are not allowed.
+One unit of ASIC (Inferentia) corresponds to one virtual ASIC. Fractional requests are not allowed.
