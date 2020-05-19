@@ -22,14 +22,12 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -158,24 +156,6 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string, disallowPr
 		return nil, err
 	}
 	promptIfNotAdmin(awsClient, disallowPrompt)
-
-	accountID, _, err := awsClient.GetCachedAccountID()
-	if err != nil {
-		return nil, err
-	}
-	bucketID := hash.String(accountID + *clusterConfig.Region)[:10]
-
-	defaultBucket := clusterConfig.ClusterName + "-" + bucketID
-	if len(defaultBucket) > 63 {
-		defaultBucket = defaultBucket[:63]
-	}
-	if strings.HasSuffix(defaultBucket, "-") {
-		defaultBucket = defaultBucket[:len(defaultBucket)-1]
-	}
-
-	if clusterConfig.Bucket == "" {
-		clusterConfig.Bucket = defaultBucket
-	}
 
 	err = clusterconfig.InstallPrompt(clusterConfig, disallowPrompt)
 	if err != nil {

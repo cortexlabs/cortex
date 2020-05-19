@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
@@ -490,9 +491,28 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorNATRequiredWithPrivateSubnetVisibility()
 	}
 
-	bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
-	if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
-		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
+	if cc.Bucket == "" {
+		accountID, _, err := awsClient.GetCachedAccountID()
+		if err != nil {
+			return err
+		}
+
+		bucketID := hash.String(accountID + *cc.Region)[:10]
+
+		defaultBucket := cc.ClusterName + "-" + bucketID
+		if len(defaultBucket) > 63 {
+			defaultBucket = defaultBucket[:63]
+		}
+		if strings.HasSuffix(defaultBucket, "-") {
+			defaultBucket = defaultBucket[:len(defaultBucket)-1]
+		}
+
+		cc.Bucket = defaultBucket
+	} else {
+		bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
+		if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
+			return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
+		}
 	}
 
 	primaryInstanceType := *cc.InstanceType
