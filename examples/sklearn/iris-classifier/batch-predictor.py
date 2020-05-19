@@ -15,6 +15,7 @@ class PythonPredictor:
             s3 = boto3.client("s3")  # client will use your credentials if available
         else:
             s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))  # anonymous client
+
         s3.download_file(config["bucket"], config["key"], "/tmp/model.pkl")
         self.model = pickle.load(open("/tmp/model.pkl", "rb"))
 
