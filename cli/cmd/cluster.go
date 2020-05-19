@@ -127,7 +127,7 @@ var _upCmd = &cobra.Command{
 		clusterState, err := clusterstate.GetClusterState(awsClient, &accessConfig)
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually in your AWS console %s", clusterConfig.ClusterName, *clusterConfig.Region, getCloudFormationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
+				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the cloudformation stacks manually in your AWS console (%s)", clusterConfig.ClusterName, *clusterConfig.Region, getCloudFormationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
 			}
 			exit.Error(err)
 		}
@@ -210,7 +210,7 @@ var _configureCmd = &cobra.Command{
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually in your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the cloudformation stacks manually in your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
 			}
 			exit.Error(err)
 		}
@@ -303,7 +303,7 @@ var _downCmd = &cobra.Command{
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state, please delete the cloudformation stacks manually in your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please delete the cloudformation stacks manually in your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
 			}
 			exit.Error(err)
 		}
@@ -427,7 +427,7 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 	clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 	if err != nil {
 		if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-			fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state, please run `cortex cluster down` to delete the cluster or delete the cloudformation stacks manually in your AWS console %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+			fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the cloudformation stacks manually in your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
 		}
 		return err
 	}
