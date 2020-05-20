@@ -159,7 +159,8 @@ func monitoringValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Monitoring",
 		StructValidation: &cr.StructValidation{
-			DefaultNil: true,
+			DefaultNil:        true,
+			AllowExplicitNull: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField:         "Key",
