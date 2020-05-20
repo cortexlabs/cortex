@@ -5,6 +5,7 @@ RUN apt-get update -qq && apt-get install -y -q \
         pkg-config \
         software-properties-common \
         curl \
+        git \
         unzip \
         zlib1g-dev \
         locales \

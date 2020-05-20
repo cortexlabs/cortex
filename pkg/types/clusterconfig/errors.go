@@ -51,6 +51,7 @@ const (
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
 	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
+	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 )
 
 func ErrorInvalidRegion(region string) error {
@@ -223,5 +224,12 @@ func ErrorIOPSTooLarge(iops int64, volumeSize int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSTooLarge,
 		Message: fmt.Sprintf("%s (%d) cannot be more than 50 times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", InstanceVolumeIOPSKey, iops, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
+	})
+}
+
+func ErrorSSLCertificateARNNotFound(sslCertificateARN string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSSLCertificateARNNotFound,
+		Message: fmt.Sprintf("unable to find the specified ssl certificate in region %s: %s", region, sslCertificateARN),
 	})
 }

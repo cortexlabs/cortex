@@ -288,6 +288,11 @@ function setup_istio() {
     export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
   fi
 
+  export CORTEX_SSL_CERTIFICATE_ANNOTATION=""
+  if [[ -n "$CORTEX_SSL_CERTIFICATE_ARN" ]]; then
+    export CORTEX_SSL_CERTIFICATE_ANNOTATION="service.beta.kubernetes.io/aws-load-balancer-ssl-cert: $CORTEX_SSL_CERTIFICATE_ARN"
+  fi
+
   envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
 }
 

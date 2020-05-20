@@ -42,3 +42,7 @@ aws s3 rb --force s3://<bucket>
 # delete the log group (replace <log_group> with what was configured during installation, default: cortex)
 aws logs describe-log-groups --log-group-name-prefix=<log_group> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```
+
+If you've setup API gateway and want to delete it, please follow these [instructions](../guides/api-gateway.md#cleanup).
+
+If you've configured HTTPS by specifying an SSL Certificate for a subdomain in your cluster configuration, you may wish to remove the SSL Certificate and Hosted Zone for the domain by following these [instructions](../guides/subdomain-https-setup.md#cleanup).
