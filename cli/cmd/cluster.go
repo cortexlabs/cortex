@@ -745,7 +745,7 @@ func CreateCloudWatchDashboard(awsClient *aws.Client, dashboardName string) erro
 	}
 
 	if dashboardFound {
-		fmt.Println("￮ updating cloudwatch dashboard: ", dashboardName)
+		fmt.Print("￮ updating cloudwatch dashboard: ", dashboardName)
 		err = awsClient.DeleteDashboard(dashboardName)
 		if err != nil {
 			return err
@@ -754,7 +754,7 @@ func CreateCloudWatchDashboard(awsClient *aws.Client, dashboardName string) erro
 		fmt.Print("￮ creating cloudwatch dashboard: ", dashboardName)
 	}
 
-	err = awsClient.CreateDashboard(dashboardName)
+	err = awsClient.CreateDashboard(dashboardName, "CORTEX MONITORING DASHBOARD")
 	if err != nil {
 		return err
 	}
