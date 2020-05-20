@@ -19,7 +19,6 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -87,7 +86,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cloudWatchURL := aws.GetCloudwatchURL()
+	cloudWatchURL := operator.GetCloudwatchURL()
 
 	respond(w, schema.GetAPIResponse{
 		API:           *api,
