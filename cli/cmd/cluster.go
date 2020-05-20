@@ -155,7 +155,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		// create Cloudwatch Dashboard
+		// create CloudWatch Dashboard
 		err = CreateCloudWatchDashboard(awsClient, clusterConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
@@ -319,7 +319,7 @@ var _downCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
 
-		// delete Cloudwatch Dashboard
+		// delete CloudWatch Dashboard
 		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
@@ -754,7 +754,7 @@ func CreateCloudWatchDashboard(awsClient *aws.Client, dashboardName string) erro
 		fmt.Print("￮ creating cloudwatch dashboard: ", dashboardName)
 	}
 
-	err = awsClient.CreateDashboard(dashboardName, "CORTEX MONITORING DASHBOARD")
+	err = awsClient.CreateDashboard(dashboardName, "# cortex monitoring dashboard")
 	if err != nil {
 		return err
 	}

@@ -323,7 +323,10 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	if env.Provider == types.AWSProviderType {
 		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "https://", "http://", 1)
 	}
-	out += apiRes.CloudWatchURL
+
+	if apiRes.CloudWatchDashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + apiRes.CloudWatchDashboardURL + "\n"
+	}
 
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 

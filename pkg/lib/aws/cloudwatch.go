@@ -174,7 +174,8 @@ func TextWidget(x int, y int, width int, height int, markdown string) CloudWatch
 // 	   "title":"EC2 Instance CPU"
 // 		}
 //  }
-func MetricWidget(x int,
+func MetricWidget(
+	x int,
 	y int,
 	width int,
 	height int,
@@ -182,8 +183,8 @@ func MetricWidget(x int,
 	title string,
 	stat string,
 	period int,
-	region string) CloudWatchWidget {
-
+	region string,
+) CloudWatchWidget {
 	return CloudWatchWidget{
 		Type:   "metric",
 		X:      x,

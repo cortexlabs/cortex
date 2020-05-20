@@ -21,7 +21,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -55,15 +54,15 @@ func AddAPIToDashboard(dashboardName string, nameAPI string) error {
 	}
 
 	// create widgets for title and metrics
-	apiTitleWidget := aws.TextWidget(1, highestY+1, 22, 1, "## API: "+nameAPI)
+	apiTitleWidget := aws.TextWidget(1, highestY+1, 22, 1, "## "+nameAPI)
 	// top left widget
-	statCodeWidget := aws.MetricWidget(1, highestY+2, 11, 6, statusCodeMetric(dashboardName, nameAPI), "Status Code", "Sum", 60, config.AWS.Region)
+	statCodeWidget := aws.MetricWidget(1, highestY+2, 11, 6, statusCodeMetric(dashboardName, nameAPI), "responses per minute", "Sum", 60, config.AWS.Region)
 	// top right widget
-	inFlightWidget := aws.MetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "In flight requests", "Sum", 10, config.AWS.Region)
+	inFlightWidget := aws.MetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "total in-flight requests", "Sum", 10, config.AWS.Region)
 	// bottem left widget
-	latencyWidgetP50 := aws.MetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "median request response time (60s)", "p50", 60, config.AWS.Region)
+	latencyWidgetP50 := aws.MetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "median response time (ms)", "p50", 60, config.AWS.Region)
 	// bottom right widget
-	latencyWidgetP99 := aws.MetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "p99 of request response time (60s)", "p99", 60, config.AWS.Region)
+	latencyWidgetP99 := aws.MetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "p99 response time (ms)", "p99", 60, config.AWS.Region)
 
 	// append new API metrics widgets to existing widgets
 	currDashboard.Widgets = append(currDashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetP50, latencyWidgetP99)
@@ -87,7 +86,7 @@ func AddAPIToDashboard(dashboardName string, nameAPI string) error {
 // RemoveAPIFromDashboard deletes api and reformats cloudwatch
 func RemoveAPIFromDashboard(allAPINames []string, clusterName, apiName string) error {
 	//delete old dashboard by creating a new base dashboard
-	err := config.AWS.CreateDashboard(clusterName, "CORTEX MONITORING DASHBOARD")
+	err := config.AWS.CreateDashboard(clusterName, "# cortex monitoring dashboard")
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -149,8 +148,6 @@ func statusCodeMetric(dashboardName string, nameAPI string) []interface{} {
 	return []interface{}{metric2XX, metric4XX, metric5XX}
 }
 
-func GetCloudwatchURL() string {
-
-	return fmt.Sprintf("\n%s https://%s.console.aws.amazon.com/cloudwatch/home?region=%s#dashboards:name=%s\n", console.Bold("cloudwatch dashboard:"), *config.Cluster.Region, *config.Cluster.Region, config.Cluster.ClusterName)
-
+func CloudWatchDashboardURL() string {
+	return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:name=%s", *config.Cluster.Region, config.Cluster.ClusterName)
 }
