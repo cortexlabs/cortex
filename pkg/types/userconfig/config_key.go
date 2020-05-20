@@ -31,12 +31,18 @@ const (
 	TypeKey                   = "type"
 	PathKey                   = "path"
 	ModelKey                  = "model"
+	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
 	TensorFlowServingImageKey = "tensorflow_serving_image"
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
 	SignatureKeyKey           = "signature_key"
+
+	// ModelResource
+	ModelsNameKey         = "name"
+	ModelsModelKey        = "model"
+	ModelsSignatureKeyKey = "signature_key"
 
 	// Monitoring
 	KeyKey       = "key"

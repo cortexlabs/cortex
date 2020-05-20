@@ -150,6 +150,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					StructField:         "SignatureKey",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
+				multiModelValidation(),
 			},
 		},
 	}
@@ -365,6 +366,42 @@ func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValida
 						Default:   "25%",
 						CastInt:   true,
 						Validator: surgeOrUnavailableValidator,
+					},
+				},
+			},
+		},
+	}
+}
+
+func multiModelValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Models",
+		StructListValidation: &cr.StructListValidation{
+			Required:         false,
+			TreatNullAsEmpty: true,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Name",
+						StringValidation: &cr.StringValidation{
+							Required:   false,
+							AllowEmpty: false,
+						},
+					},
+					{
+						StructField: "Model",
+						StringValidation: &cr.StringValidation{
+							Required:   false,
+							AllowEmpty: false,
+							Prefix:     "s3://",
+						},
+					},
+					{
+						StructField: "SignatureKey",
+						StringValidation: &cr.StringValidation{
+							Required:   false,
+							AllowEmpty: false,
+						},
 					},
 				},
 			},
