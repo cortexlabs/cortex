@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -37,6 +38,7 @@ type clients struct {
 	sts            *sts.STS
 	ec2            *ec2.EC2
 	ecr            *ecr.ECR
+	acm            *acm.ACM
 	autoscaling    *autoscaling.AutoScaling
 	cloudWatchLogs *cloudwatchlogs.CloudWatchLogs
 	cloudWatch     *cloudwatch.CloudWatch
@@ -99,6 +101,13 @@ func (c *Client) Autoscaling() *autoscaling.AutoScaling {
 		c.clients.autoscaling = autoscaling.New(c.sess)
 	}
 	return c.clients.autoscaling
+}
+
+func (c *Client) ACM() *acm.ACM {
+	if c.clients.acm == nil {
+		c.clients.acm = acm.New(c.sess)
+	}
+	return c.clients.acm
 }
 
 func (c *Client) CloudWatchLogs() *cloudwatchlogs.CloudWatchLogs {

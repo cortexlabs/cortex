@@ -39,26 +39,26 @@ const (
 )
 
 func IsNotFoundErr(err error) bool {
-	return CheckErrCode(err, "NotFound")
+	return IsErrCode(err, "NotFound")
 }
 
 func IsNoSuchKeyErr(err error) bool {
-	return CheckErrCode(err, "NoSuchKey")
+	return IsErrCode(err, "NoSuchKey")
 }
 
 func IsNoSuchBucketErr(err error) bool {
-	return CheckErrCode(err, "NoSuchBucket")
+	return IsErrCode(err, "NoSuchBucket")
 }
 
 func IsForbiddenErr(err error) bool {
-	return CheckErrCode(err, "Forbidden")
+	return IsErrCode(err, "Forbidden")
 }
 
 func IsGenericNotFoundErr(err error) bool {
 	return IsNotFoundErr(err) || IsNoSuchKeyErr(err) || IsNoSuchBucketErr(err)
 }
 
-func CheckErrCode(err error, errorCode string) bool {
+func IsErrCode(err error, errorCode string) bool {
 	awsErr, ok := errors.CauseOrSelf(err).(awserr.Error)
 	if !ok {
 		return false
