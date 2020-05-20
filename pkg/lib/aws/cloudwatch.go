@@ -18,11 +18,14 @@ package aws
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 type CloudWatchDashboard struct {
@@ -212,4 +215,10 @@ func HighestY(dash CloudWatchDashboard) (int, error) {
 	}
 
 	return highestY, nil
+}
+
+func GetCloudwatchURL() string {
+
+	return fmt.Sprintf("\n%s https://%s.console.aws.amazon.com/cloudwatch/home?region=%s#dashboards:name=%s\n", console.Bold("cloudwatch dashboard:"), *config.Cluster.Region, *config.Cluster.Region, config.Cluster.ClusterName)
+
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -405,10 +404,4 @@ func getClassesMetricDef(api *spec.API, period int64) ([]*cloudwatch.MetricDataQ
 		})
 	}
 	return classMetricQueries, nil
-}
-
-func GetCloudwatchURL() string {
-
-	return fmt.Sprintf("\n%s https://%s.console.aws.amazon.com/cloudwatch/home?region=%s#dashboards:name=%s\n", console.Bold("cloudwatch dashboard:"), *config.Cluster.Region, *config.Cluster.Region, config.Cluster.ClusterName)
-
 }
