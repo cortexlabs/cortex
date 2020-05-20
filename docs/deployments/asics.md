@@ -24,7 +24,7 @@ Each Inferentia chip comes with 4 Neuron Cores and 8GB of cache memory. To bette
 
 ### NeuronCore Groups
 
-An NCG ([*NeuronCore Group*](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-NeuronCore-Group.md)) is a set of Neuron Cores that are used to load and run a compiled model. At any point in time, only one model will be running in an NCG. Models can also be shared within an NCG, but for that to happen, the device driver is going to have to dynamically context switch between each model - therefore the Cortex team has decided to only allow one model per NCG to improve performance. The compiled output models are saved in the same format as the source's.
+An NCG ([*NeuronCore Group*](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-NeuronCore-Group.md)) is a set of Neuron Cores that is used to load and run a compiled model. At any point in time, only one model will be running in an NCG. Models can also be shared within an NCG, but for that to happen, the device driver is going to have to dynamically context switch between each model - therefore the Cortex team has decided to only allow one model per NCG to improve performance. The compiled output models are saved in the same format as the source's.
 
 NCGs exist for the sole purpose of aggregating Neuron Cores to improve hardware performance. It is advised to set the NCGs' size to that of the compiled model's within your API. The NCGs' size is determined indirectly using the available number of ASIC chips to the API and the number of workers per replica. Check the [`workers_per_replica` description](autoscaling.md#replica-parallelism) to find out how the resources are partitioned.
 
