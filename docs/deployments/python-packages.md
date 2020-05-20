@@ -14,21 +14,42 @@ You can install your required PyPI packages and import them in your Python files
 └── requirements.txt
 ```
 
-If you want to use `conda` to install your python packages, see the [Conda section](#conda) below.
+If you want to use `conda` to install your python packages, see the [Conda section](#conda-packages) below.
 
 Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
 
-Additionally, if you want to install packages from a private PyPI index, an extra index URL has to be added. Create a `pip.conf` inside the same directory where `requirements.txt` is placed and add the following contents:
+## Private PyPI packages
+
+To install packages from a private PyPI index, create a `pip.conf` inside the same directory as `requirements.txt`, and add the following contents:
+
 ```text
 [global]
 extra-index-url = https://<username>:<password>@<my-private-index>.com/pip
 ```
-Still in same directory, create a [`dependencies.sh` script](system-packages.md#bash-script) and add the following contents:
+
+In same directory, create a [`dependencies.sh` script](system-packages.md#bash-script) and add the following contents:
+
 ```bash
 cp pip.conf /etc/pip.conf
 ```
 
-With these 2 files added, packages that are only found in the private index will get installed when they are added to `requirements.txt`.
+You may now add packages to `requirements.txt` which are only found in the private index.
+
+## GitHub packages
+
+You can also install public/private packages from git registries (such as GitHub) by adding them to `requirements.txt`. Here's an example for GitHub:
+
+```text
+# requirements.txt
+
+# public access
+git+https://github.com/<username>/<repo name>.git@<tag or branch name>#egg=<package name>
+
+# private access
+git+https://<personal access token>@github.com/<username>/<repo name>.git@<tag or branch name>#egg=<package name>
+```
+
+On GitHub, you can generate a personal access token by following [these steps](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
 
 ## Installing with Setup
 
@@ -52,23 +73,7 @@ In this case, `requirements.txt` will have this form:
 .
 ```
 
-## Installing from GitHub
-
-You can also install public/private packages from git registries (such as GitHub) by adding them to `requirements.txt`. Here's an example for GitHub:
-
-```text
-# requirements.txt
-
-# public access
-git+https://github.com/<username>/<repo name>.git@<tag or branch name>#egg=<package name>
-
-# private access
-git+https://<personal access token>@github.com/<username>/<repo name>.git@<tag or branch name>#egg=<package name>
-```
-
-On GitHub, you can generate a personal access token by following [these steps](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
-
-## Conda
+## Conda packages
 
 Cortex supports installing Conda packages. We recommend only using Conda when your required packages are not available in PyPI. Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
