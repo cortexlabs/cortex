@@ -20,14 +20,14 @@ cortex_aws_secret_access_key: ***
 cluster_name: cortex
 
 # AWS region
-region: us-west-2
+region: us-east-1
 
 # S3 bucket (default: <cluster_name>-<RANDOM_ID>)
 # note: your cortex cluster uses this bucket for metadata storage, and it should not be accessed directly (a separate bucket should be used for your models)
 bucket: # cortex-<RANDOM_ID>
 
 # list of availability zones for your region (default: 3 random availability zones from the specified region)
-availability_zones: # e.g. [us-west-2a, us-west-2b, us-west-2c]
+availability_zones: # e.g. [us-east-1a, us-east-1b, us-east-1c]
 
 # instance type
 instance_type: m5.large
@@ -72,6 +72,9 @@ tags:  # <string>: <string> map of key/value pairs
 # whether to use spot instances in the cluster (default: false)
 # see https://cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
 spot: false
+
+# see https://cortex.dev/v/master/guides/subdomain-https-setup for instructions on how to set up HTTPS for APIs
+ssl_certificate_arn:  # if empty, APIs will still be accessible via HTTPS (in addition to HTTP), but will not use a trusted certificate
 ```
 
 The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [API configuration](../deployments/api-configuration.md).

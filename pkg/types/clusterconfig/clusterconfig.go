@@ -57,6 +57,7 @@ type Config struct {
 	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
 	Region                     *string            `json:"region" yaml:"region"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
+	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	LogGroup                   string             `json:"log_group" yaml:"log_group"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
@@ -149,6 +150,12 @@ var UserValidation = &cr.StructValidation{
 				AllowExplicitNull: true,
 				AllowEmpty:        true,
 				ConvertNilToEmpty: true,
+			},
+		},
+		{
+			StructField: "SSLCertificateARN",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowExplicitNull: true,
 			},
 		},
 		{
@@ -520,6 +527,17 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, *cc.Region), InstanceTypeKey)
 	}
 
+	if cc.SSLCertificateARN != nil {
+		exists, err := awsClient.DoesCertificateExist(*cc.SSLCertificateARN)
+		if err != nil {
+			return errors.Wrap(err, SSLCertificateARNKey)
+		}
+
+		if !exists {
+			return errors.Wrap(ErrorSSLCertificateARNNotFound(*cc.SSLCertificateARN, *cc.Region), SSLCertificateARNKey)
+		}
+	}
+
 	// Throw error if IOPS defined for other storage than io1
 	if cc.InstanceVolumeType != IO1VolumeType && cc.InstanceVolumeIOPS != nil {
 		return ErrorIOPSNotSupported(cc.InstanceVolumeType)
@@ -682,7 +700,7 @@ func (cc *Config) FillEmptySpotFields(awsClient *aws.Client) error {
 
 func applyPromptDefaults(defaults Config) *Config {
 	defaultConfig := &Config{
-		Region:       pointer.String("us-west-2"),
+		Region:       pointer.String("us-east-1"),
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
@@ -883,7 +901,7 @@ var AccessPromptValidation = &cr.PromptValidation{
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
 				Validator: RegionValidator,
-				Default:   pointer.String("us-west-2"),
+				Default:   pointer.String("us-east-1"),
 			},
 		},
 	},
@@ -997,6 +1015,9 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
 	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
 	items.Add(TagsUserKey, s.ObjFlat(cc.Tags))
+	if cc.SSLCertificateARN != nil {
+		items.Add(SSLCertificateARNUserKey, *cc.SSLCertificateARN)
+	}
 	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
 	items.Add(InstanceVolumeTypeUserKey, cc.InstanceVolumeType)
 	items.Add(InstanceVolumeIOPSUserKey, cc.InstanceVolumeIOPS)

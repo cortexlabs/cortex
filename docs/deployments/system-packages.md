@@ -14,12 +14,11 @@ Cortex looks for a file named `dependencies.sh` in the top level Cortex project 
 └── dependencies.sh
 ```
 
-`dependencies.sh` is executed during the initialization of each replica (before installing Python packages in `requirements.txt` or `conda-packages.txt`). Typical use cases include installing required system packages to be used in your Predictor, building Python packages from source, etc.
+`dependencies.sh` is executed with `bash` shell during the initialization of each replica (before installing Python packages in `requirements.txt` or `conda-packages.txt`). Typical use cases include installing required system packages to be used in your Predictor, building Python packages from source, etc.
 
 Here is an example `dependencies.sh`, which installs the `tree` utility:
 
 ```bash
-#!/bin/bash
 apt-get update && apt-get install -y tree
 ```
 
@@ -81,9 +80,9 @@ Create a repository to store your image:
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
 
-eval $(aws ecr get-login --no-include-email --region us-west-2)
+eval $(aws ecr get-login --no-include-email --region us-east-1)
 
-aws ecr create-repository --repository-name=org/my-api --region=us-west-2
+aws ecr create-repository --repository-name=org/my-api --region=us-east-1
 # take note of repository url
 ```
 

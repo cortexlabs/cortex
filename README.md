@@ -1,3 +1,6 @@
+<!-- Delete on release branches -->
+<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='88'>
+
 # Machine learning model serving infrastructure
 
 <br>
@@ -15,7 +18,7 @@
 
 * **Multi framework:** deploy TensorFlow, PyTorch, scikit-learn, and other models.
 * **Autoscaling:** automatically scale APIs to handle production workloads.
-* **CPU / GPU support:** run inference on CPU or GPU instances.
+* **ML instances:** run inference on G4, P2, M5, C5 and other AWS instance types.
 * **Spot instances:** save money with spot instances.
 * **Rolling updates:** update deployed APIs with no downtime.
 * **Log streaming:** stream logs from deployed models to your CLI.
@@ -83,12 +86,12 @@ positive
 
 ### Spin up a cluster
 
-Cortex clusters are designed to be self-hosted on any AWS account (GCP support is coming soon):
+Cortex clusters are designed to be self-hosted on any AWS account:
 
 ```bash
 $ cortex cluster up
 
-aws region: us-west-2
+aws region: us-east-1
 aws instance type: g4dn.xlarge
 spot instances: yes
 min instances: 0
