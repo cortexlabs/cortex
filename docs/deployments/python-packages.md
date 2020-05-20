@@ -18,6 +18,18 @@ If you want to use `conda` to install your python packages, see the [Conda secti
 
 Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Predictor documentation](predictors.md)).
 
+Additionally, if you want to install packages from a private PyPI index, an extra index URL has to be added. Create a `pip.conf` inside the same directory where `requirements.txt` is placed and add the following contents:
+```text
+[global]
+extra-index-url = https://<username>:<password>@<my-private-index>.com/pip
+```
+Still in same directory, create a [`dependencies.sh` script](system-packages.md#bash-script) and add the following contents:
+```bash
+cp pip.conf /etc/pip.conf
+```
+
+With these 2 files added, packages that are only found in the private index will get installed when they are added to `requirements.txt`.
+
 ## Installing with Setup
 
 Python packages can also be installed by providing a `setup.py` that describes your project's modules. Here's an example directory structure:
