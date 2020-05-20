@@ -33,7 +33,7 @@ In same directory, create a [`dependencies.sh` script](system-packages.md#bash-s
 cp pip.conf /etc/pip.conf
 ```
 
-You may now add packages to `requirements.txt` which are only found in the private index.
+You may now add packages to `requirements.txt` which are found in the private index.
 
 ## GitHub packages
 
