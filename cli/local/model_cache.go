@@ -35,13 +35,14 @@ import (
 
 func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache, error) {
 	localModelCache := spec.LocalModelCache{}
-
-	awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
-	if err != nil {
-		return nil, err
-	}
+	var awsClientForBucket *aws.Client
+	var err error
 
 	if strings.HasPrefix(modelPath, "s3://") {
+		awsClientForBucket, err = aws.NewFromClientS3Path(modelPath, awsClient)
+		if err != nil {
+			return nil, err
+		}
 		bucket, prefix, err := aws.SplitS3Path(modelPath)
 		if err != nil {
 			return nil, err

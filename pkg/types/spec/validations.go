@@ -520,12 +520,12 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 
 	model := *predictor.Model
 
-	awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
-	if err != nil {
-		return errors.Wrap(err, userconfig.ModelKey)
-	}
-
 	if strings.HasPrefix(model, "s3://") {
+		awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelKey)
+		}
+
 		model, err := cr.S3PathValidator(model)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
@@ -592,12 +592,12 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		return errors.Wrap(ErrorInvalidONNXModelPath(), userconfig.ModelKey, model)
 	}
 
-	awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
-	if err != nil {
-		return errors.Wrap(err, userconfig.ModelKey)
-	}
-
 	if strings.HasPrefix(model, "s3://") {
+		awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelKey)
+		}
+
 		model, err := cr.S3PathValidator(model)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
