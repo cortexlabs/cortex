@@ -157,6 +157,9 @@ async def register_request(request: Request, call_next):
 
 @app.middleware("http")
 async def parse_payload(request: Request, call_next):
+    if not is_prediction_request(request):
+        return await call_next(request)
+
     if "payload" not in local_cache["predict_fn_args"]:
         return await call_next(request)
 
