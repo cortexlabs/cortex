@@ -87,10 +87,11 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, schema.GetAPIResponse{
-		API:     *api,
-		Status:  *status,
-		Metrics: *metrics,
-		BaseURL: baseURL,
+		API:          *api,
+		Status:       *status,
+		Metrics:      *metrics,
+		BaseURL:      baseURL,
+		DashboardURL: operator.DashboardURL(),
 	})
 }
 
