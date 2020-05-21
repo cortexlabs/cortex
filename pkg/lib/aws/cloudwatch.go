@@ -100,7 +100,7 @@ func (c *Client) GetDashboard(dashboardName string) (*CloudWatchDashboard, error
 		DashboardName: aws.String(dashboardName),
 	})
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "failed to get dashboard", dashboardName)
 	}
 
 	dashboardString := *dashboardOutput.DashboardBody
