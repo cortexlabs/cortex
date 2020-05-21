@@ -74,7 +74,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
 	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
+		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
 	}
 
 	return nil
@@ -89,7 +89,7 @@ func getClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig, e
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
-			return nil, errors.FirstError(errs...)
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
 		}
 	}
 
@@ -157,7 +157,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string, disallowPr
 	}
 	promptIfNotAdmin(awsClient, disallowPrompt)
 
-	err = clusterconfig.InstallPrompt(clusterConfig, awsClient, disallowPrompt)
+	err = clusterconfig.InstallPrompt(clusterConfig, disallowPrompt)
 	if err != nil {
 		return nil, err
 	}

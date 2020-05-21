@@ -12,7 +12,7 @@ spot: false
 
 spot_config:
   # additional instances with identical or better specs than the primary instance type (defaults to only the primary instance)
-  instance_distribution: [similar_instance_type_1, similar_instance_type_2]
+  instance_distribution: # [similar_instance_type_1, similar_instance_type_2]
 
   # minimum number of on demand instances (default: 0)
   on_demand_base_capacity: 0
@@ -22,7 +22,7 @@ spot_config:
   on_demand_percentage_above_base_capacity: 0
 
   # max price for spot instances (default: the on-demand price of the primary instance type)
-  max_price: <float>
+  max_price: # <float>
 
   # number of spot instance pools across which to allocate spot instances [1, 20] (default: number of instances in instance distribution)
   instance_pools: 3

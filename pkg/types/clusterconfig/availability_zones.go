@@ -42,7 +42,7 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 	zones, err := awsClient.ListSupportedAvailabilityZones(*cc.InstanceType, extraInstances...)
 	if err != nil {
 		// Try again without checking instance types
-		zones, err = awsClient.ListAvailabilityZones()
+		zones, err = awsClient.ListAvailabilityZonesInRegion()
 		if err != nil {
 			return nil // Let eksctl choose the availability zones
 		}
@@ -67,14 +67,14 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 }
 
 func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInstances ...string) error {
-	allZones, err := awsClient.ListAvailabilityZones()
+	allZones, err := awsClient.ListAvailabilityZonesInRegion()
 	if err != nil {
 		return nil // Skip validation
 	}
 
 	for _, userZone := range cc.AvailabilityZones {
 		if !allZones.Has(userZone) {
-			return ErrorInvalidAvailabilityZone(userZone, allZones)
+			return ErrorInvalidAvailabilityZone(userZone, allZones, awsClient.Region)
 		}
 	}
 

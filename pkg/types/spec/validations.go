@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 import (
+	"fmt"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -158,7 +159,8 @@ func monitoringValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Monitoring",
 		StructValidation: &cr.StructValidation{
-			DefaultNil: true,
+			DefaultNil:        true,
+			AllowExplicitNull: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField:         "Key",
@@ -410,7 +412,8 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 		errs := cr.Struct(&api, data, apiValidation(provider))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
-			return nil, errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://www.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 		api.Index = i
 		api.FilePath = filePath
@@ -483,7 +486,7 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 
 	if _, err := projectFiles.GetFile(predictor.Path); err != nil {
 		if errors.GetKind(err) == files.ErrFileDoesNotExist {
-			return errors.Wrap(ErrorImplDoesNotExist(predictor.Path), userconfig.PathKey)
+			return errors.Wrap(files.ErrorFileDoesNotExist(predictor.Path), userconfig.PathKey)
 		}
 		return errors.Wrap(err, userconfig.PathKey)
 	}
@@ -766,7 +769,7 @@ func validatePythonPath(pythonPath string, projectFiles ProjectFiles) error {
 		}
 	}
 	if !validPythonPath {
-		return ErrorImplDoesNotExist(pythonPath)
+		return files.ErrorFileDoesNotExist(pythonPath)
 	}
 	return nil
 }

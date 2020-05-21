@@ -553,7 +553,7 @@ func (c *Client) ListS3Prefix(bucket string, prefix string, includeDirObjects bo
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, S3Path(bucket, prefix))
 	}
 
 	return allObjects, nil
