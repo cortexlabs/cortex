@@ -155,8 +155,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		// create CloudWatch Dashboard
-		err = CreateCloudWatchDashboard(awsClient, clusterConfig.ClusterName)
+		err = CreateDashboard(awsClient, clusterConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -319,7 +318,6 @@ var _downCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
 
-		// delete CloudWatch Dashboard
 		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
@@ -736,20 +734,15 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 	return nil
 }
 
-// CreateCloudWatchDashboard creates new dashboard
-// If dashboard already exists deletes old one and create a new one
-func CreateCloudWatchDashboard(awsClient *aws.Client, dashboardName string) error {
+// CreateDashboard creates a new dashboard (or clears an existing one if it already exists)
+func CreateDashboard(awsClient *aws.Client, dashboardName string) error {
 	dashboardFound, err := awsClient.DoesDashboardExist(dashboardName)
 	if err != nil {
 		return err
 	}
 
 	if dashboardFound {
-		fmt.Print("￮ updating cloudwatch dashboard: ", dashboardName)
-		err = awsClient.DeleteDashboard(dashboardName)
-		if err != nil {
-			return err
-		}
+		fmt.Print("￮ using existing cloudwatch dashboard: ", dashboardName)
 	} else {
 		fmt.Print("￮ creating cloudwatch dashboard: ", dashboardName)
 	}

@@ -27,7 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-// AddAPIToDashboard updates existing dashboard by adding API name title, In flight request time, latency and request status metric
+// AddAPIToDashboard adds an API's plots to an existing dashboard
 func AddAPIToDashboard(dashboardName string, nameAPI string) error {
 	// get current dashboard from cloudwatch
 	currDashboardOutput, err := config.AWS.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
@@ -37,17 +37,15 @@ func AddAPIToDashboard(dashboardName string, nameAPI string) error {
 		return errors.WithStack(err)
 	}
 
-	// get body string from GetDashboard return object
 	currDashboardString := *currDashboardOutput.DashboardBody
 
-	//define interface to unmarshal received body string
 	var currDashboard aws.CloudWatchDashboard
 	err = json.Unmarshal([]byte(currDashboardString), &currDashboard)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	// get lowest element of cloudwatch. Needed to place metrics below all existing metrics
+	// get lowest element on the dashboard (need to place new widgets below all existing widgets)
 	highestY, err := aws.HighestY(currDashboard)
 	if err != nil {
 		return err
@@ -83,21 +81,21 @@ func AddAPIToDashboard(dashboardName string, nameAPI string) error {
 	return nil
 }
 
-// RemoveAPIFromDashboard deletes api and reformats cloudwatch
+// RemoveAPIFromDashboard removes an API's plots from an existing dashboard
 func RemoveAPIFromDashboard(allAPINames []string, clusterName, apiName string) error {
-	//delete old dashboard by creating a new base dashboard
+	// create a new base dashboard
 	err := config.AWS.CreateDashboard(clusterName, "# cortex monitoring dashboard")
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, fmt.Sprintf("failed to remove API \"%s\" from cloudwatch dashboard", apiName))
 	}
 
 	// update dashboard by adding all APIs except the one to delete
 	for _, allAPIname := range allAPINames {
 		if allAPIname != apiName {
 			err = AddAPIToDashboard(clusterName, allAPIname)
-		}
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to add API \"%s\" to cloudwatch dashboard", apiName))
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("failed to re-add API \"%s\" to cloudwatch dashboard", allAPIname))
+			}
 		}
 	}
 
@@ -148,6 +146,6 @@ func statusCodeMetric(dashboardName string, nameAPI string) []interface{} {
 	return []interface{}{metric2XX, metric4XX, metric5XX}
 }
 
-func CloudWatchDashboardURL() string {
+func DashboardURL() string {
 	return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:name=%s", *config.Cluster.Region, config.Cluster.ClusterName)
 }

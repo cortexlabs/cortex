@@ -324,8 +324,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "https://", "http://", 1)
 	}
 
-	if apiRes.CloudWatchDashboardURL != "" {
-		out += "\n" + console.Bold("metrics dashboard: ") + apiRes.CloudWatchDashboardURL + "\n"
+	if apiRes.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + apiRes.DashboardURL + "\n"
 	}
 
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint

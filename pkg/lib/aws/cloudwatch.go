@@ -85,7 +85,7 @@ func (c *Client) TagLogGroup(logGroup string, tagMap map[string]string) error {
 
 // CreateDashboard creates a new dashboard (or clears an existing one if it already exists)
 func (c *Client) CreateDashboard(dashboardName string, title string) error {
-	//create cloudwatch base body with title
+	// create cloudwatch base body with title
 	cloudwatchBaseBody := CloudWatchDashboard{
 		Start:          "-PT1H",
 		PeriodOverride: "inherit",
@@ -110,7 +110,7 @@ func (c *Client) CreateDashboard(dashboardName string, title string) error {
 	return nil
 }
 
-// DeleteDashboard deletes dashboard
+// DeleteDashboard deletes a dashboard
 func (c *Client) DeleteDashboard(dashboardName string) error {
 	_, err := c.CloudWatch().DeleteDashboards(&cloudwatch.DeleteDashboardsInput{
 		DashboardNames: []*string{aws.String(dashboardName)},
@@ -122,7 +122,7 @@ func (c *Client) DeleteDashboard(dashboardName string) error {
 	return nil
 }
 
-// DoesDashboardExist will check if dashboard with same name as cluster already exists
+// DoesDashboardExist checks if a dashboard exists
 func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 	_, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
 		DashboardName: aws.String(dashboardName),
@@ -137,7 +137,7 @@ func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 	return true, nil
 }
 
-// TextWidget creates new text widget with properties as parameter
+// TextWidget creates new text widget
 // Example:
 // title_widget = {
 //     "type": "text",
@@ -151,7 +151,7 @@ func TextWidget(x int, y int, width int, height int, markdown string) CloudWatch
 	return CloudWatchWidget{Type: "text", X: x, Y: y, Width: width, Height: height, Properties: map[string]interface{}{"markdown": markdown}}
 }
 
-// MetricWidget creates new text widget with properties as parameter
+// MetricWidget creates new metrics widget
 // Example:
 // metric_widget={
 // 	"type":"metric",
@@ -201,8 +201,7 @@ func MetricWidget(
 		}}
 }
 
-// HighestY takes dashboard string as input an gives back highest Y coordinate of a cloudwatch widget
-// highest Y coordinate corresponds to lowest widget
+// HighestY returns the largest Y coordinate of a widget on the dashboard (i.e. the lowest widget)
 func HighestY(dash CloudWatchDashboard) (int, error) {
 	highestY := 0
 
