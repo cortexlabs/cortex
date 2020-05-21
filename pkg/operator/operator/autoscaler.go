@@ -225,7 +225,7 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 		},
 	}
 
-	output, err := config.AWS.CloudWatchMetrics().GetMetricData(&metricsDataQuery)
+	output, err := config.AWS.CloudWatch().GetMetricData(&metricsDataQuery)
 	if err != nil {
 		return nil, err
 	}

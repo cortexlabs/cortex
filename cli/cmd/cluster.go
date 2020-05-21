@@ -24,6 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -151,6 +152,11 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		err = awsClient.TagLogGroup(clusterConfig.LogGroup, clusterConfig.Tags)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = createDashboard(awsClient, clusterConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -311,6 +317,11 @@ var _downCmd = &cobra.Command{
 
 		if !_flagClusterDisallowPrompt {
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
+		}
+
+		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
+		if err != nil {
+			exit.Error(err)
 		}
 
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
@@ -720,6 +731,29 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 	} else {
 		fmt.Println("￮ using existing cloudwatch log group:", logGroup, "✓")
 	}
+
+	return nil
+}
+
+// createDashboard creates a new dashboard (or clears an existing one if it already exists)
+func createDashboard(awsClient *aws.Client, dashboardName string) error {
+	dashboardFound, err := awsClient.DoesDashboardExist(dashboardName)
+	if err != nil {
+		return err
+	}
+
+	if dashboardFound {
+		fmt.Print("￮ using existing cloudwatch dashboard: ", dashboardName)
+	} else {
+		fmt.Print("￮ creating cloudwatch dashboard: ", dashboardName)
+	}
+
+	err = awsClient.CreateDashboard(dashboardName, consts.DashboardTitle)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(" ✓")
 
 	return nil
 }

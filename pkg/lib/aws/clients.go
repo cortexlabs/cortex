@@ -32,19 +32,19 @@ import (
 )
 
 type clients struct {
-	s3                *s3.S3
-	s3Uploader        *s3manager.Uploader
-	s3Downloader      *s3manager.Downloader
-	sts               *sts.STS
-	ec2               *ec2.EC2
-	ecr               *ecr.ECR
-	acm               *acm.ACM
-	autoscaling       *autoscaling.AutoScaling
-	cloudWatchLogs    *cloudwatchlogs.CloudWatchLogs
-	cloudWatchMetrics *cloudwatch.CloudWatch
-	serviceQuotas     *servicequotas.ServiceQuotas
-	cloudFormation    *cloudformation.CloudFormation
-	iam               *iam.IAM
+	s3             *s3.S3
+	s3Uploader     *s3manager.Uploader
+	s3Downloader   *s3manager.Downloader
+	sts            *sts.STS
+	ec2            *ec2.EC2
+	ecr            *ecr.ECR
+	acm            *acm.ACM
+	autoscaling    *autoscaling.AutoScaling
+	cloudWatchLogs *cloudwatchlogs.CloudWatchLogs
+	cloudWatch     *cloudwatch.CloudWatch
+	serviceQuotas  *servicequotas.ServiceQuotas
+	cloudFormation *cloudformation.CloudFormation
+	iam            *iam.IAM
 }
 
 func (c *Client) S3() *s3.S3 {
@@ -117,11 +117,11 @@ func (c *Client) CloudWatchLogs() *cloudwatchlogs.CloudWatchLogs {
 	return c.clients.cloudWatchLogs
 }
 
-func (c *Client) CloudWatchMetrics() *cloudwatch.CloudWatch {
-	if c.clients.cloudWatchMetrics == nil {
-		c.clients.cloudWatchMetrics = cloudwatch.New(c.sess)
+func (c *Client) CloudWatch() *cloudwatch.CloudWatch {
+	if c.clients.cloudWatch == nil {
+		c.clients.cloudWatch = cloudwatch.New(c.sess)
 	}
-	return c.clients.cloudWatchMetrics
+	return c.clients.cloudWatch
 }
 
 func (c *Client) ServiceQuotas() *servicequotas.ServiceQuotas {

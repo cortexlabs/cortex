@@ -58,6 +58,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
+		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
+		if err != nil {
+			errors.PrintError(err)
+		}
 		return api, fmt.Sprintf("creating %s", api.Name), nil
 	}
 
@@ -138,9 +142,27 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			if keepCache {
 				return nil
 			}
-
 			// best effort deletion
 			deleteS3Resources(apiName)
+			return nil
+		},
+		// delete api from cloudwatch
+		func() error {
+			statuses, err := GetAllStatuses()
+			if err != nil {
+				errors.PrintError(err, "failed to get API Statuses")
+				return nil
+			}
+			//extract all api names from statuses
+			allAPINames := make([]string, len(statuses))
+			for i, stat := range statuses {
+				allAPINames[i] = stat.APIName
+			}
+			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
+			if err != nil {
+				errors.PrintError(err)
+				return nil
+			}
 			return nil
 		},
 	)

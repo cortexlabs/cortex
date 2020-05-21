@@ -47,11 +47,9 @@
 
 ## Guides
 
+* [View API metrics](guides/metrics.md)
 * [Set up AWS API gateway](guides/api-gateway.md)
 * [Set up HTTPS on a subdomain](guides/subdomain-https-setup.md)
-* [Plot response code counts](guides/plot-response-code-counts.md)
-* [Plot API request time](guides/plot-request-time.md)
-* [Plot in-flight requests](guides/plot-in-flight-requests.md)
 * [Set up VPC peering](guides/vpc-peering.md)
 * [Add a batch runner API](guides/batch-runner.md)
 * [SSH into worker instance](guides/ssh-instance.md)
