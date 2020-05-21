@@ -156,7 +156,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = CreateDashboard(awsClient, clusterConfig.ClusterName)
+		err = createDashboard(awsClient, clusterConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -735,8 +735,8 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 	return nil
 }
 
-// CreateDashboard creates a new dashboard (or clears an existing one if it already exists)
-func CreateDashboard(awsClient *aws.Client, dashboardName string) error {
+// createDashboard creates a new dashboard (or clears an existing one if it already exists)
+func createDashboard(awsClient *aws.Client, dashboardName string) error {
 	dashboardFound, err := awsClient.DoesDashboardExist(dashboardName)
 	if err != nil {
 		return err
