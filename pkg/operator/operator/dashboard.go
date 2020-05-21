@@ -27,8 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-// AddAPIToDashboard adds an API's plots to an existing dashboard
-func AddAPIToDashboard(dashboardName string, nameAPI string) error {
+func addAPIToDashboard(dashboardName string, nameAPI string) error {
 	// get current dashboard from cloudwatch
 	currDashboardOutput, err := config.AWS.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
 		DashboardName: pointer.String(dashboardName),
@@ -81,8 +80,7 @@ func AddAPIToDashboard(dashboardName string, nameAPI string) error {
 	return nil
 }
 
-// RemoveAPIFromDashboard removes an API's plots from an existing dashboard
-func RemoveAPIFromDashboard(allAPINames []string, clusterName, apiName string) error {
+func removeAPIFromDashboard(allAPINames []string, clusterName, apiName string) error {
 	// create a new base dashboard
 	err := config.AWS.CreateDashboard(clusterName, "# cortex monitoring dashboard")
 	if err != nil {
@@ -92,7 +90,7 @@ func RemoveAPIFromDashboard(allAPINames []string, clusterName, apiName string) e
 	// update dashboard by adding all APIs except the one to delete
 	for _, allAPIname := range allAPINames {
 		if allAPIname != apiName {
-			err = AddAPIToDashboard(clusterName, allAPIname)
+			err = addAPIToDashboard(clusterName, allAPIname)
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to re-add API \"%s\" to cloudwatch dashboard", allAPIname))
 			}

@@ -58,7 +58,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = AddAPIToDashboard(config.Cluster.ClusterName, api.Name)
+		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
 		if err != nil {
 			errors.PrintError(err, "failed to update cloudwatch dashboard")
 		}
@@ -158,7 +158,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			for i, stat := range statuses {
 				allAPINames[i] = stat.APIName
 			}
-			err = RemoveAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
+			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
 			if err != nil {
 				errors.PrintError(err)
 				return nil
