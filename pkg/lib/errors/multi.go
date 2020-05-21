@@ -102,7 +102,7 @@ func FirstKeyInErrorMap(errs map[string]error) string {
 }
 
 func NonNilErrorMapKeys(errs map[string]error) []string {
-	keys := make([]string, 0, len(errs))
+	var keys []string
 	for k, err := range errs {
 		if err != nil {
 			keys = append(keys, k)
