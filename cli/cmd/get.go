@@ -182,7 +182,6 @@ func getAPIsInAllEnvironments() (string, error) {
 
 	if len(allAPIs) == 0 {
 		if len(errorEnvNames) == 1 {
-			// Print the error if there is just one env
 			exit.Error(errorEnvNamesMap[errorEnvNames[0]])
 		}
 		// if all envs errored, "no apis are deployed" is misleading, so skip it
