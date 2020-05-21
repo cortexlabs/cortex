@@ -147,6 +147,7 @@ func getAPIsInAllEnvironments() (string, error) {
 	}
 
 	var errorEnvNames []string
+	errorEnvNamesMap := map[string]error{}
 	var allAPIs []spec.API
 	var allAPIStatuses []status.Status
 	var allMetrics []metrics.Metrics
@@ -160,6 +161,7 @@ func getAPIsInAllEnvironments() (string, error) {
 		} else {
 			apisRes, err = local.GetAPIs()
 		}
+
 		allErrs[i] = err
 
 		if err == nil {
@@ -172,15 +174,16 @@ func getAPIsInAllEnvironments() (string, error) {
 			allMetrics = append(allMetrics, apisRes.AllMetrics...)
 		} else {
 			errorEnvNames = append(errorEnvNames, env.Name)
+			errorEnvNamesMap[env.Name] = err
 		}
 	}
 
 	out := ""
 
 	if len(allAPIs) == 0 {
-		if len(cliConfig.Environments) == 1 && allErrs[0] != nil {
+		if len(errorEnvNames) == 1 {
 			// Print the error if there is just one env
-			exit.Error(allErrs[0])
+			exit.Error(errorEnvNamesMap[errorEnvNames[0]])
 		}
 		// if all envs errored, "no apis are deployed" is misleading, so skip it
 		if !errors.AreAllErrors(allErrs) {
