@@ -822,10 +822,23 @@ func HashFile(path string, paths ...string) (string, error) {
 			return "", err
 		}
 
+		// Skip directories
+		fileInfo, err := f.Stat()
+		if err != nil {
+			f.Close()
+			return "", errors.WithStack(err)
+		}
+		if fileInfo.IsDir() {
+			f.Close()
+			continue
+		}
+
 		if _, err := io.Copy(md5Hash, f); err != nil {
 			f.Close()
 			return "", errors.Wrap(err, path)
 		}
+
+		io.WriteString(md5Hash, path)
 		f.Close()
 	}
 
@@ -865,6 +878,7 @@ func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
 			return errors.Wrap(err, path)
 		}
 
+		io.WriteString(md5Hash, path)
 		return nil
 	})
 

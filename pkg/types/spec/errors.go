@@ -39,7 +39,6 @@ const (
 	ErrInitReplicasLessThanMin              = "spec.init_replicas_less_than_min"
 	ErrInvalidSurgeOrUnavailable            = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero          = "spec.surge_and_unavailable_both_zero"
-	ErrImplDoesNotExist                     = "spec.impl_does_not_exist"
 	ErrFileNotFound                         = "spec.file_not_found"
 	ErrDirIsEmpty                           = "spec.dir_is_empty"
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
@@ -163,13 +162,6 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSurgeAndUnavailableBothZero,
 		Message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
-	})
-}
-
-func ErrorImplDoesNotExist(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrImplDoesNotExist,
-		Message: fmt.Sprintf("%s: implementation file does not exist", path),
 	})
 }
 
