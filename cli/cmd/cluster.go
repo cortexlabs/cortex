@@ -24,6 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -747,7 +748,7 @@ func CreateDashboard(awsClient *aws.Client, dashboardName string) error {
 		fmt.Print("￮ creating cloudwatch dashboard: ", dashboardName)
 	}
 
-	err = awsClient.CreateDashboard(dashboardName, "# cortex monitoring dashboard")
+	err = awsClient.CreateDashboard(dashboardName, consts.DashboardTitle)
 	if err != nil {
 		return err
 	}

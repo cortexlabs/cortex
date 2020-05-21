@@ -19,115 +19,107 @@ package operator
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func addAPIToDashboard(dashboardName string, nameAPI string) error {
-	// get current dashboard from cloudwatch
-	currDashboardOutput, err := config.AWS.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
-		DashboardName: pointer.String(dashboardName),
-	})
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	currDashboardString := *currDashboardOutput.DashboardBody
-
-	var currDashboard aws.CloudWatchDashboard
-	err = json.Unmarshal([]byte(currDashboardString), &currDashboard)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	// get lowest element on the dashboard (need to place new widgets below all existing widgets)
-	highestY, err := aws.HighestY(currDashboard)
+func addAPIToDashboard(dashboardName string, apiName string) error {
+	// get current dashboard from cloudwatch (or a new dashboard if it was deleted)
+	dashboard, err := config.AWS.GetDashboardOrEmpty(dashboardName, consts.DashboardTitle)
 	if err != nil {
 		return err
 	}
 
-	// create widgets for title and metrics
-	apiTitleWidget := aws.TextWidget(1, highestY+1, 22, 1, "## "+nameAPI)
-	// top left widget
-	statCodeWidget := aws.MetricWidget(1, highestY+2, 11, 6, statusCodeMetric(dashboardName, nameAPI), "responses per minute", "Sum", 60, config.AWS.Region)
-	// top right widget
-	inFlightWidget := aws.MetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, nameAPI), "total in-flight requests", "Sum", 10, config.AWS.Region)
-	// bottem left widget
-	latencyWidgetP50 := aws.MetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "median response time (ms)", "p50", 60, config.AWS.Region)
-	// bottom right widget
-	latencyWidgetP99 := aws.MetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, nameAPI), "p99 response time (ms)", "p99", 60, config.AWS.Region)
-
-	// append new API metrics widgets to existing widgets
-	currDashboard.Widgets = append(currDashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetP50, latencyWidgetP99)
-	currDashboardJSON, err := json.Marshal(currDashboard)
+	err = addAPIToDashboardObject(dashboard, dashboardName, apiName)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
-	// upload updated dashboard to cloudwatch
-	_, err = config.AWS.CloudWatch().PutDashboard(&cloudwatch.PutDashboardInput{
-		DashboardName: pointer.String(dashboardName),
-		DashboardBody: pointer.String(string(currDashboardJSON)),
-	})
+	err = config.AWS.PutDashboard(dashboard, dashboardName)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	return nil
 }
 
-func removeAPIFromDashboard(allAPINames []string, clusterName, apiName string) error {
+func removeAPIFromDashboard(allAPINames []string, dashboardName string, apiToRemove string) error {
 	// create a new base dashboard
-	err := config.AWS.CreateDashboard(clusterName, "# cortex monitoring dashboard")
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to remove API \"%s\" from cloudwatch dashboard", apiName))
-	}
+	dashboard := config.AWS.NewDashboard(consts.DashboardTitle)
 
 	// update dashboard by adding all APIs except the one to delete
-	for _, allAPIname := range allAPINames {
-		if allAPIname != apiName {
-			err = addAPIToDashboard(clusterName, allAPIname)
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to re-add API \"%s\" to cloudwatch dashboard", allAPIname))
-			}
+	for _, apiName := range allAPINames {
+		if apiName == apiToRemove {
+			continue
+		}
+		err := addAPIToDashboardObject(dashboard, dashboardName, apiName)
+		if err != nil {
+			return err
 		}
 	}
 
+	err := config.AWS.PutDashboard(dashboard, dashboardName)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func inFlightMetric(dashboardName string, nameAPI string) []interface{} {
+func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName string, apiName string) error {
+	// get lowest element on the dashboard (need to place new widgets below all existing widgets)
+	highestY, err := aws.HighestY(*dashboard)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to add API \"%s\" to cloudwatch dashboard", apiName))
+	}
+
+	// create widgets for title and metrics
+	apiTitleWidget := aws.TextWidget(1, highestY+1, 22, 1, "## "+apiName)
+	// top left widget
+	statCodeWidget := aws.MetricWidget(1, highestY+2, 11, 6, statusCodeMetric(dashboardName, apiName), "responses per minute", "Sum", 60, config.AWS.Region)
+	// top right widget
+	inFlightWidget := aws.MetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, apiName), "total in-flight requests", "Sum", 10, config.AWS.Region)
+	// bottem left widget
+	latencyWidgetP50 := aws.MetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, apiName), "median response time (ms)", "p50", 60, config.AWS.Region)
+	// bottom right widget
+	latencyWidgetP99 := aws.MetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, apiName), "p99 response time (ms)", "p99", 60, config.AWS.Region)
+
+	// append new API metrics widgets to existing widgets
+	dashboard.Widgets = append(dashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetP50, latencyWidgetP99)
+
+	return nil
+}
+
+func inFlightMetric(dashboardName string, apiName string) []interface{} {
 	var metric []interface{}
 	metric = append(metric, dashboardName)
 	metric = append(metric, "in-flight")
 	metric = append(metric, "apiName")
-	metric = append(metric, nameAPI)
+	metric = append(metric, apiName)
 
 	return []interface{}{metric}
 }
 
-func latencyMetric(dashboardName string, nameAPI string) []interface{} {
+func latencyMetric(dashboardName string, apiName string) []interface{} {
 	var metric []interface{}
 	metric = append(metric, dashboardName)
 	metric = append(metric, "Latency")
 	metric = append(metric, "APIName")
-	metric = append(metric, nameAPI)
+	metric = append(metric, apiName)
 	metric = append(metric, "metric_type")
 	metric = append(metric, "histogram")
 
 	return []interface{}{metric}
 }
 
-func statusCodeMetric(dashboardName string, nameAPI string) []interface{} {
+func statusCodeMetric(dashboardName string, apiName string) []interface{} {
 	var metric2XX []interface{}
 	metric2XX = append(metric2XX, dashboardName)
 	metric2XX = append(metric2XX, "StatusCode")
 	metric2XX = append(metric2XX, "APIName")
-	metric2XX = append(metric2XX, nameAPI)
+	metric2XX = append(metric2XX, apiName)
 	metric2XX = append(metric2XX, "metric_type")
 	metric2XX = append(metric2XX, "counter")
 	metric2XX = append(metric2XX, "Code")

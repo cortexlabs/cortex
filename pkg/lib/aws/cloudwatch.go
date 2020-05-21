@@ -83,28 +83,76 @@ func (c *Client) TagLogGroup(logGroup string, tagMap map[string]string) error {
 	return nil
 }
 
-// CreateDashboard creates a new dashboard (or clears an existing one if it already exists)
-func (c *Client) CreateDashboard(dashboardName string, title string) error {
-	// create cloudwatch base body with title
-	cloudwatchBaseBody := CloudWatchDashboard{
+// NewDashboard creates a new dashboard object with title
+func (c *Client) NewDashboard(title string) *CloudWatchDashboard {
+	return &CloudWatchDashboard{
 		Start:          "-PT1H",
 		PeriodOverride: "inherit",
 		Widgets: []CloudWatchWidget{
 			TextWidget(7, 0, 10, 1, title),
 		},
 	}
+}
 
-	cloudwatchBaseBodyJSON, err := json.Marshal(cloudwatchBaseBody)
+// GetDashboard gets a dashboard from cloudwatch
+func (c *Client) GetDashboard(dashboardName string) (*CloudWatchDashboard, error) {
+	dashboardOutput, err := c.CloudWatch().GetDashboard(&cloudwatch.GetDashboardInput{
+		DashboardName: aws.String(dashboardName),
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	dashboardString := *dashboardOutput.DashboardBody
+
+	var dashboard CloudWatchDashboard
+	err = json.Unmarshal([]byte(dashboardString), &dashboard)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return &dashboard, nil
+}
+
+// GetDashboardOrEmpty gets a dashboard if it exists, or initializes an empty one if not
+func (c *Client) GetDashboardOrEmpty(dashboardName string, title string) (*CloudWatchDashboard, error) {
+	dashboard, err := c.GetDashboard(dashboardName)
+	if err != nil {
+		if IsErrCode(err, "ResourceNotFound") {
+			dashboard = c.NewDashboard(title)
+		} else {
+			return nil, err
+		}
+	}
+
+	return dashboard, nil
+}
+
+// CreateDashboard creates a new dashboard (or clears an existing one if it already exists)
+func (c *Client) CreateDashboard(dashboardName string, title string) error {
+	dashboard := c.NewDashboard(title)
+
+	err := c.PutDashboard(dashboard, dashboardName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// PutDashboard updates a dashboard (or creates it if it doesn't exit)
+func (c *Client) PutDashboard(dashboard *CloudWatchDashboard, dashboardName string) error {
+	dashboardJSON, err := json.Marshal(dashboard)
 	if err != nil {
 		return errors.Wrap(err, "failed to encode cloudwatch base body into json")
 	}
 
 	_, err = c.CloudWatch().PutDashboard(&cloudwatch.PutDashboardInput{
 		DashboardName: aws.String(dashboardName),
-		DashboardBody: aws.String(string(cloudwatchBaseBodyJSON)),
+		DashboardBody: aws.String(string(dashboardJSON)),
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to create dashboard", dashboardName)
+		return errors.Wrap(err, "failed to put dashboard", dashboardName)
 	}
 
 	return nil
