@@ -108,7 +108,7 @@ func (c *Client) GetDashboard(dashboardName string) (*CloudWatchDashboard, error
 	var dashboard CloudWatchDashboard
 	err = json.Unmarshal([]byte(dashboardString), &dashboard)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "failed to decode cloudwatch body json")
 	}
 
 	return &dashboard, nil
@@ -144,7 +144,7 @@ func (c *Client) CreateDashboard(dashboardName string, title string) error {
 func (c *Client) PutDashboard(dashboard *CloudWatchDashboard, dashboardName string) error {
 	dashboardJSON, err := json.Marshal(dashboard)
 	if err != nil {
-		return errors.Wrap(err, "failed to encode cloudwatch base body into json")
+		return errors.Wrap(err, "failed to encode cloudwatch body into json")
 	}
 
 	_, err = c.CloudWatch().PutDashboard(&cloudwatch.PutDashboardInput{
