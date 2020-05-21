@@ -70,7 +70,7 @@ func removeAPIFromDashboard(allAPINames []string, dashboardName string, apiToRem
 
 func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName string, apiName string) error {
 	// get lowest element on the dashboard (need to place new widgets below all existing widgets)
-	highestY, err := aws.HighestY(*dashboard)
+	highestY, err := aws.HighestY(dashboard)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to add API \"%s\" to cloudwatch dashboard", apiName))
 	}

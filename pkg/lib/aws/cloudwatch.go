@@ -250,10 +250,10 @@ func MetricWidget(
 }
 
 // HighestY returns the largest Y coordinate of a widget on the dashboard (i.e. the lowest widget)
-func HighestY(dash CloudWatchDashboard) (int, error) {
+func HighestY(dashboard *CloudWatchDashboard) (int, error) {
 	highestY := 0
 
-	for _, wid := range dash.Widgets {
+	for _, wid := range dashboard.Widgets {
 		if highestY < wid.Y {
 			highestY = wid.Y
 		}

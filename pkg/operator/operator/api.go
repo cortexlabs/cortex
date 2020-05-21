@@ -60,7 +60,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
 		if err != nil {
-			errors.PrintError(err, "failed to update cloudwatch dashboard")
+			errors.PrintError(err)
 		}
 		return api, fmt.Sprintf("creating %s", api.Name), nil
 	}
