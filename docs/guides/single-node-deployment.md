@@ -107,7 +107,7 @@ Install the Cortex CLI.
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
-$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.17/get-cli.sh)"
 ```
 
 ### Step 13

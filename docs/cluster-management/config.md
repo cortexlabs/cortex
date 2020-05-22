@@ -2,7 +2,7 @@
 
 The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster configure` via the `--config` flag (e.g. `cortex cluster up --config cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown (unless otherwise specified):
 
-<!-- CORTEX_VERSION_MINOR -->
+<!-- CORTEX_VERSION_MINOR x2 -->
 ```yaml
 # cluster.yaml
 
@@ -68,31 +68,31 @@ log_group: cortex
 tags:  # <string>: <string> map of key/value pairs
 
 # whether to use spot instances in the cluster (default: false)
-# see https://cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
+# see https://cortex.dev/v/0.17/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 
-# see https://cortex.dev/v/master/guides/subdomain-https-setup for instructions on how to set up HTTPS for APIs
+# see https://cortex.dev/v/0.17/guides/subdomain-https-setup for instructions on how to set up HTTPS for APIs
 ssl_certificate_arn:  # if empty, APIs will still be accessible via HTTPS (in addition to HTTP), but will not use a trusted certificate
 ```
 
 The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [API configuration](../deployments/api-configuration.md).
 
-The docker images used by the Cortex cluster can also be overriden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
+The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 # docker image paths
-image_operator: cortexlabs/operator:master
-image_manager: cortexlabs/manager:master
-image_downloader: cortexlabs/downloader:master
-image_request_monitor: cortexlabs/request-monitor:master
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
-image_metrics_server: cortexlabs/metrics-server:master
-image_nvidia: cortexlabs/nvidia:master
-image_fluentd: cortexlabs/fluentd:master
-image_statsd: cortexlabs/statsd:master
-image_istio_proxy: cortexlabs/istio-proxy:master
-image_istio_pilot: cortexlabs/istio-pilot:master
-image_istio_citadel: cortexlabs/istio-citadel:master
-image_istio_galley: cortexlabs/istio-galley:master
+image_operator: cortexlabs/operator:0.17.0
+image_manager: cortexlabs/manager:0.17.0
+image_downloader: cortexlabs/downloader:0.17.0
+image_request_monitor: cortexlabs/request-monitor:0.17.0
+image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.17.0
+image_metrics_server: cortexlabs/metrics-server:0.17.0
+image_nvidia: cortexlabs/nvidia:0.17.0
+image_fluentd: cortexlabs/fluentd:0.17.0
+image_statsd: cortexlabs/statsd:0.17.0
+image_istio_proxy: cortexlabs/istio-proxy:0.17.0
+image_istio_pilot: cortexlabs/istio-pilot:0.17.0
+image_istio_citadel: cortexlabs/istio-citadel:0.17.0
+image_istio_galley: cortexlabs/istio-galley:0.17.0
 ```
