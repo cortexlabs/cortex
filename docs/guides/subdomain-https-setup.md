@@ -1,7 +1,5 @@
 # Set up HTTPS on a subdomain
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 The recommended way to set up HTTPS with trusted certificates is by using [API Gateway](../api-gateway.md) because it's simpler and enables you to use API Gateway features such as rate limiting (it also supports custom domains). This guide is only recommended if HTTPS is required and you don't wish to use API Gateway (e.g. it doesn't support your use case due to limitations such as the 29 second request timeout).
 
 This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager (ACM) to support HTTPS traffic to Cortex APIs. By the end of this guide, you will have a Cortex cluster with APIs accessible via `https://<your-subdomain>/<api-endpoint>`.

@@ -1,7 +1,5 @@
 # Environments
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 The `cortex` CLI can be used to deploy models locally and/or to any number of clusters. Environments are used to select which cluster to use for a `cortex` command. An environment contains the information required to connect to a cluster (e.g. AWS credentials and Cortex operator URL).
 
 By default, the CLI ships with a single environment named `local`. This is the default environment for all Cortex commands (other than `cortex cluster` commands), which means that APIs will be deployed locally by default.

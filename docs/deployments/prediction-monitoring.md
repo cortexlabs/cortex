@@ -1,7 +1,5 @@
 # Prediction monitoring
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can configure your API to collect prediction metrics and display real-time stats in `cortex get <api_name>`. Cortex looks for scalar values in the response payload. If the response payload is a JSON object, `key` must be used to extract the desired scalar value.
 
 ```yaml

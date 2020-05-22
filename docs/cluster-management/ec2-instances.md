@@ -1,7 +1,5 @@
 # EC2 instances
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 There are a variety of instance types to choose from when creating a Cortex cluster. If you are unsure about which instance to pick, review these options as a starting point.
 
 This is not a comprehensive guide so please refer to the [AWS's documentation](https://aws.amazon.com/ec2/instance-types/) for more information.
