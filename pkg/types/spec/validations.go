@@ -384,16 +384,15 @@ func multiModelValidation() *cr.StructFieldValidation {
 					{
 						StructField: "Name",
 						StringValidation: &cr.StringValidation{
-							Required:   false,
+							Required:   true,
 							AllowEmpty: false,
 						},
 					},
 					{
 						StructField: "Model",
 						StringValidation: &cr.StringValidation{
-							Required:   false,
+							Required:   true,
 							AllowEmpty: false,
-							Prefix:     "s3://",
 						},
 					},
 					{
@@ -511,6 +510,8 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 		}
 	}
 
+	return &errors.Error{}
+
 	if err := validateDockerImagePath(predictor.Image, awsClient); err != nil {
 		return errors.Wrap(err, userconfig.ImageKey)
 	}
@@ -554,67 +555,94 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 }
 
 func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	if predictor.Model == nil {
-		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
+	modelKey := userconfig.ModelsModelKey
+	singleModelCase := true
+	if predictor.Model == nil && len(predictor.Models) == 0 {
+		return ErrorMissingTensorFlowModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
+	} else if predictor.Model != nil && len(predictor.Models) > 0 {
+		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
+	} else if predictor.Model != nil {
+		modelKey = userconfig.ModelKey
+		singleModelCase = false
+		predictor.Models = append(predictor.Models, &userconfig.ModelResource{
+			Name:         "default",
+			Model:        *predictor.Model,
+			SignatureKey: *predictor.SignatureKey,
+		})
 	}
 
-	model := *predictor.Model
+	for i := range predictor.Models {
+		if err := validateTensorFlowModels(predictor.Models[i], modelKey, providerType, projectFiles, awsClient); err != nil {
+			if !singleModelCase {
+				return errors.Wrap(err, userconfig.ModelsKey)
+			}
+			return err
+		}
+	}
+
+	fmt.Println(predictor.Models)
+
+	return nil
+}
+
+func validateTensorFlowModels(modelResource *userconfig.ModelResource, modelKey string, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	model := modelResource.Model
 
 	if strings.HasPrefix(model, "s3://") {
-		awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
+		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.Model, awsClient)
 		if err != nil {
-			return errors.Wrap(err, userconfig.ModelKey)
+			return errors.Wrap(err, modelKey)
 		}
 
 		model, err := cr.S3PathValidator(model)
 		if err != nil {
-			return errors.Wrap(err, userconfig.ModelKey)
+			return errors.Wrap(err, modelKey)
 		}
 
 		if strings.HasSuffix(model, ".zip") {
 			if ok, err := awsClientForBucket.IsS3PathFile(model); err != nil || !ok {
-				return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
+				return errors.Wrap(ErrorS3FileNotFound(model), modelKey)
 			}
 		} else {
 			path, err := getTFServingExportFromS3Path(model, awsClientForBucket)
 			if err != nil {
-				return errors.Wrap(err, userconfig.ModelKey)
+				return errors.Wrap(err, modelKey)
 			} else if path == "" {
-				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
+				return errors.Wrap(ErrorInvalidTensorFlowDir(model), modelKey)
 			}
-			predictor.Model = pointer.String(path)
+			modelResource.Model = path
 		}
 	} else {
 		if providerType == types.AWSProviderType {
-			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
+			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), modelResource.Model, modelKey)
 		}
 
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
 
 		var err error
-		if strings.HasPrefix(*predictor.Model, "~/") {
+		if strings.HasPrefix(modelResource.Model, "~/") {
 			model, err = files.EscapeTilde(model)
 			if err != nil {
 				return err
 			}
 		} else {
-			model = files.RelToAbsPath(*predictor.Model, configFileDir)
+			model = files.RelToAbsPath(modelResource.Model, configFileDir)
 		}
 		if strings.HasSuffix(model, ".zip") {
 			if err := files.CheckFile(model); err != nil {
-				return errors.Wrap(err, userconfig.ModelKey)
+				return errors.Wrap(err, modelKey)
 			}
-			predictor.Model = pointer.String(model)
+			modelResource.Model = model
 		} else if files.IsDir(model) {
 			path, err := GetTFServingExportFromLocalPath(model)
 			if err != nil {
-				return errors.Wrap(err, userconfig.ModelKey)
+				return errors.Wrap(err, modelKey)
 			} else if path == "" {
-				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
+				return errors.Wrap(ErrorInvalidTensorFlowDir(model), modelKey)
 			}
-			predictor.Model = pointer.String(path)
+			modelResource.Model = path
 		} else {
-			return errors.Wrap(ErrorInvalidTensorFlowModelPath(), userconfig.ModelKey, model)
+			return errors.Wrap(ErrorInvalidTensorFlowModelPath(), modelKey, model)
 		}
 	}
 

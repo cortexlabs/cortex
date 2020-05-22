@@ -44,9 +44,11 @@ const (
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
 	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
 	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
+	ErrMissingTensorFlowModel               = "spec.missing_tensorflow_model"
 	ErrInvalidONNXModelPath                 = "spec.invalid_onnx_model_path"
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
+	ErrConflictingFields                    = "spec.conflicting_fields"
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
@@ -211,6 +213,13 @@ func ErrorInvalidTensorFlowModelPath() error {
 	})
 }
 
+func ErrorMissingTensorFlowModel(singleModelField string, multiModelField string, predictorType userconfig.PredictorType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMissingTensorFlowModel,
+		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s or %s to add model(s)", singleModelField, multiModelField, multiModelField),
+	})
+}
+
 func ErrorInvalidONNXModelPath() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidONNXModelPath,
@@ -229,6 +238,13 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
 		Message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
+	})
+}
+
+func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConflictingFields,
+		Message: fmt.Sprintf("cannot define fields %s and %s at the same time", fieldKeyA, fieldKeyB),
 	})
 }
 
