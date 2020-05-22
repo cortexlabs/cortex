@@ -216,7 +216,7 @@ func ErrorInvalidTensorFlowModelPath() error {
 func ErrorMissingTensorFlowModel(singleModelField string, multiModelField string, predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingTensorFlowModel,
-		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s or %s to add model(s)", singleModelField, multiModelField, multiModelField),
+		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, singleModelField, userconfig.PredictorKey, multiModelField),
 	})
 }
 
@@ -241,10 +241,10 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 	})
 }
 
-func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
+func ErrorConflictingFields(baseKey, fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("cannot define fields %s and %s at the same time", fieldKeyA, fieldKeyB),
+		Message: fmt.Sprintf("cannot define fields %s:%s and %s:%s at the same time", baseKey, fieldKeyA, baseKey, fieldKeyB),
 	})
 }
 

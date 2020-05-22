@@ -397,7 +397,7 @@ func multiModelValidation() *cr.StructFieldValidation {
 					},
 					{
 						StructField: "SignatureKey",
-						StringValidation: &cr.StringValidation{
+						StringPtrValidation: &cr.StringPtrValidation{
 							Required:   false,
 							AllowEmpty: false,
 						},
@@ -560,14 +560,14 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 	if predictor.Model == nil && len(predictor.Models) == 0 {
 		return ErrorMissingTensorFlowModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
-		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
+		return ErrorConflictingFields(userconfig.PredictorKey, userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
 		modelKey = userconfig.ModelKey
 		singleModelCase = false
 		predictor.Models = append(predictor.Models, &userconfig.ModelResource{
 			Name:         "default",
 			Model:        *predictor.Model,
-			SignatureKey: *predictor.SignatureKey,
+			SignatureKey: predictor.SignatureKey,
 		})
 	}
 
@@ -579,8 +579,6 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 			return err
 		}
 	}
-
-	fmt.Println(predictor.Models)
 
 	return nil
 }
