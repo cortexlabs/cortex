@@ -130,7 +130,7 @@ Go to the hosted zone you created in the [Route 53 console](https://console.aws.
 
 ### Using your new endpoint
 
-You may now use your subdomain in place of your API load balancer endpoint in your client. For example, this curl request:
+Wait a few minutes to allow the DNS changes to propagate. You may now use your subdomain in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
 curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
@@ -139,8 +139,24 @@ curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amaz
 Would become:
 
 ```bash
+# replace loadbalancer url with your subdomain
 curl https://api.cortexlabs.dev/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 ```
+
+### Debugging connectivity issues
+
+You may encounter connectivity issues due to cached DNS records that haven't expired yet. It could take anywhere from a few minutes to 48 hours for DNS cache to completely refresh.
+
+You could run into connectivity issues if you make a request to your API without waiting long enough after step 17.
+
+To test connectivity try the following steps:
+1. Deploy any api (e.g. iris-classifier).
+1. Make an HTTPS GET request to the your api e.g. `curl https://api.cortexlabs.dev/iris-classifier` or enter the url in your browser.
+1. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the HTTPS Get request from another device that hasn't made a request to that url in a while. A successful request looks like this:
+```
+{"message":"make a prediction by sending a post request to this endpoint with a json payload",...}
+```
+
 
 ### Cleanup
 
