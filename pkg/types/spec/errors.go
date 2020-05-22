@@ -46,6 +46,7 @@ const (
 	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
 	ErrMissingTensorFlowModel               = "spec.missing_tensorflow_model"
 	ErrInvalidONNXModelPath                 = "spec.invalid_onnx_model_path"
+	ErrDuplicateModels                      = "spec.duplicate_models"
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
 	ErrConflictingFields                    = "spec.conflicting_fields"
@@ -224,6 +225,13 @@ func ErrorInvalidONNXModelPath() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidONNXModelPath,
 		Message: "onnx model path must be an onnx exported file ending in `.onnx`",
+	})
+}
+
+func ErrorDuplicateModels(duplicateModel string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDuplicateModels,
+		Message: fmt.Sprintf("cannot have duplicate model %s", duplicateModel),
 	})
 }
 

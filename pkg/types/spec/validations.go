@@ -36,6 +36,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -584,6 +585,12 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 		}
 	}
 
+	if !singleModelCase {
+		if err := checkDuplicateModelNames(predictor.Models); err != nil {
+			return errors.Wrap(err, userconfig.ModelsKey)
+		}
+	}
+
 	return nil
 }
 
@@ -685,6 +692,12 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 				return errors.Wrap(err, userconfig.ModelsKey)
 			}
 			return err
+		}
+	}
+
+	if !singleModelCase {
+		if err := checkDuplicateModelNames(predictor.Models); err != nil {
+			return errors.Wrap(err, userconfig.ModelsKey)
 		}
 	}
 
@@ -915,6 +928,19 @@ func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 		if len(names[name]) > 1 {
 			return names[name]
 		}
+	}
+
+	return nil
+}
+
+func checkDuplicateModelNames(modelResources []*userconfig.ModelResource) error {
+	var names []string
+
+	for _, modelResource := range modelResources {
+		if slices.HasString(names, modelResource.Name) {
+			return ErrorDuplicateModels(modelResource.Name)
+		}
+		names = append(names, modelResource.Name)
 	}
 
 	return nil
