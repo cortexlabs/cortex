@@ -241,10 +241,10 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 	})
 }
 
-func ErrorConflictingFields(baseKey, fieldKeyA, fieldKeyB string) error {
+func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("cannot define fields %s:%s and %s:%s at the same time", baseKey, fieldKeyA, baseKey, fieldKeyB),
+		Message: fmt.Sprintf("cannot define fields %s and %s at the same time", fieldKeyA, fieldKeyB),
 	})
 }
 

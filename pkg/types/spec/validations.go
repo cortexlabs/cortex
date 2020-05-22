@@ -547,6 +547,10 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelKey, userconfig.PythonPredictorType)
 	}
 
+	if len(predictor.Models) > 0 {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, userconfig.PythonPredictorType)
+	}
+
 	if predictor.TensorFlowServingImage != "" {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
 	}
@@ -556,14 +560,14 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 
 func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	modelKey := userconfig.ModelsModelKey
-	singleModelCase := true
+	singleModelCase := false
 	if predictor.Model == nil && len(predictor.Models) == 0 {
 		return ErrorMissingTensorFlowModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
-		return ErrorConflictingFields(userconfig.PredictorKey, userconfig.ModelKey, userconfig.ModelsKey)
+		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
 		modelKey = userconfig.ModelKey
-		singleModelCase = false
+		singleModelCase = true
 		predictor.Models = append(predictor.Models, &userconfig.ModelResource{
 			Name:         "default",
 			Model:        *predictor.Model,
@@ -648,11 +652,47 @@ func validateTensorFlowModels(modelResource *userconfig.ModelResource, modelKey 
 }
 
 func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	if predictor.Model == nil {
-		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.ONNXPredictorType)
+	modelKey := userconfig.ModelsModelKey
+	signatureKey := userconfig.ModelsSignatureKeyKey
+	singleModelCase := false
+	if predictor.Model == nil && predictor.SignatureKey != nil {
+		return ErrorFieldNotSupportedByPredictorType(signatureKey, predictor.Type)
+	}
+	if predictor.Model == nil && len(predictor.Models) == 0 {
+		return ErrorMissingTensorFlowModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
+	} else if predictor.Model != nil && len(predictor.Models) > 0 {
+		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
+	} else if predictor.Model != nil {
+		modelKey = userconfig.ModelKey
+		signatureKey = userconfig.SignatureKeyKey
+		singleModelCase = true
+		predictor.Models = append(predictor.Models, &userconfig.ModelResource{
+			Name:         "default",
+			Model:        *predictor.Model,
+			SignatureKey: predictor.SignatureKey,
+		})
 	}
 
-	model := *predictor.Model
+	for i := range predictor.Models {
+		if predictor.Models[i].SignatureKey != nil {
+			if !singleModelCase {
+				return errors.Wrap(ErrorFieldNotSupportedByPredictorType(signatureKey, predictor.Type), userconfig.ModelsKey)
+			}
+			return ErrorFieldNotSupportedByPredictorType(signatureKey, predictor.Type)
+		}
+		if err := validateONNXModels(predictor.Models[i], modelKey, providerType, projectFiles, awsClient); err != nil {
+			if !singleModelCase {
+				return errors.Wrap(err, userconfig.ModelsKey)
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateONNXModels(modelResource *userconfig.ModelResource, modelKey string, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	model := modelResource.Model
 	var err error
 	if !strings.HasSuffix(model, ".onnx") {
 		return errors.Wrap(ErrorInvalidONNXModelPath(), userconfig.ModelKey, model)
@@ -678,24 +718,19 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		}
 
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
-		if strings.HasPrefix(*predictor.Model, "~/") {
+		if strings.HasPrefix(modelResource.Model, "~/") {
 			model, err = files.EscapeTilde(model)
 			if err != nil {
 				return err
 			}
 		} else {
-			model = files.RelToAbsPath(*predictor.Model, configFileDir)
+			model = files.RelToAbsPath(modelResource.Model, configFileDir)
 		}
 		if err := files.CheckFile(model); err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
-		predictor.Model = pointer.String(model)
+		modelResource.Model = model
 	}
-
-	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.ONNXPredictorType)
-	}
-
 	return nil
 }
 
