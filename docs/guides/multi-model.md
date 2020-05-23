@@ -81,7 +81,7 @@ $ cd multi-model
 $ cortex deploy
 ```
 
-Wait for you API to be ready (you can track its progress with `cortex get --watch`).
+Wait for your API to be ready (you can track its progress with `cortex get --watch`).
 
 ## Step 3: make prediction requests
 
