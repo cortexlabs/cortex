@@ -560,32 +560,25 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 }
 
 func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	modelKey := userconfig.ModelsModelKey
-	singleModelCase := false
 	if predictor.Model == nil && len(predictor.Models) == 0 {
 		return ErrorMissingTensorFlowModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
 		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
-		modelKey = userconfig.ModelKey
-		singleModelCase = true
-		predictor.Models = append(predictor.Models, &userconfig.ModelResource{
-			Name:         "default",
+		modelResource := &userconfig.ModelResource{
 			Model:        *predictor.Model,
 			SignatureKey: predictor.SignatureKey,
-		})
-	}
-
-	for i := range predictor.Models {
-		if err := validateTensorFlowModels(predictor.Models[i], modelKey, providerType, projectFiles, awsClient); err != nil {
-			if !singleModelCase {
-				return errors.Wrap(err, userconfig.ModelsKey)
-			}
+		}
+		if err := validateTensorFlowModel(modelResource, userconfig.ModelKey, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
-	}
-
-	if !singleModelCase {
+		predictor.Model = &modelResource.Model
+	} else {
+		for i := range predictor.Models {
+			if err := validateTensorFlowModel(predictor.Models[i], userconfig.ModelsModelKey, providerType, projectFiles, awsClient); err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey)
+			}
+		}
 		if err := checkDuplicateModelNames(predictor.Models); err != nil {
 			return errors.Wrap(err, userconfig.ModelsKey)
 		}
@@ -594,7 +587,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 	return nil
 }
 
-func validateTensorFlowModels(modelResource *userconfig.ModelResource, modelKey string, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateTensorFlowModel(modelResource *userconfig.ModelResource, modelKey string, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	model := modelResource.Model
 
 	if strings.HasPrefix(model, "s3://") {
