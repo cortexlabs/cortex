@@ -652,43 +652,32 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, modelKey s
 }
 
 func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	modelKey := userconfig.ModelsModelKey
-	signatureKey := userconfig.ModelsSignatureKeyKey
-	singleModelCase := false
 	if predictor.Model == nil && predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(signatureKey, predictor.Type)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
 	if predictor.Model == nil && len(predictor.Models) == 0 {
 		return ErrorMissingTensorFlowModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
 		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
-		modelKey = userconfig.ModelKey
-		signatureKey = userconfig.SignatureKeyKey
-		singleModelCase = true
-		predictor.Models = append(predictor.Models, &userconfig.ModelResource{
-			Name:         "default",
-			Model:        *predictor.Model,
-			SignatureKey: predictor.SignatureKey,
-		})
-	}
-
-	for i := range predictor.Models {
-		if predictor.Models[i].SignatureKey != nil {
-			if !singleModelCase {
-				return errors.Wrap(ErrorFieldNotSupportedByPredictorType(signatureKey, predictor.Type), userconfig.ModelsKey)
-			}
-			return ErrorFieldNotSupportedByPredictorType(signatureKey, predictor.Type)
+		if predictor.SignatureKey != nil {
+			return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 		}
-		if err := validateONNXModels(predictor.Models[i], modelKey, providerType, projectFiles, awsClient); err != nil {
-			if !singleModelCase {
-				return errors.Wrap(err, userconfig.ModelsKey)
-			}
+		modelResource := &userconfig.ModelResource{
+			Model: *predictor.Model,
+		}
+		if err := validateONNXModel(modelResource, userconfig.ModelKey, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
-	}
-
-	if !singleModelCase {
+	} else {
+		for i := range predictor.Models {
+			if predictor.Models[i].SignatureKey != nil {
+				return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.ModelsKey)
+			}
+			if err := validateONNXModel(predictor.Models[i], userconfig.ModelsModelKey, providerType, projectFiles, awsClient); err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey)
+			}
+		}
 		if err := checkDuplicateModelNames(predictor.Models); err != nil {
 			return errors.Wrap(err, userconfig.ModelsKey)
 		}
@@ -697,7 +686,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	return nil
 }
 
-func validateONNXModels(modelResource *userconfig.ModelResource, modelKey string, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateONNXModel(modelResource *userconfig.ModelResource, modelKey string, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	model := modelResource.Model
 	var err error
 	if !strings.HasSuffix(model, ".onnx") {
