@@ -78,7 +78,7 @@ func HTTPPostObjAsJSON(operatorConfig OperatorConfig, endpoint string, requestDa
 
 func HTTPPostJSON(operatorConfig OperatorConfig, endpoint string, jsonRequestData []byte, qParams ...map[string]string) ([]byte, error) {
 	payload := bytes.NewBuffer(jsonRequestData)
-	req, err := operatorRequest(operatorConfig, "POST", endpoint, payload, qParams)
+	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, payload, qParams)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func HTTPPostJSON(operatorConfig OperatorConfig, endpoint string, jsonRequestDat
 }
 
 func HTTPPostNoBody(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
-	req, err := operatorRequest(operatorConfig, "POST", endpoint, nil, qParams)
+	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, nil, qParams)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func HTTPPostNoBody(operatorConfig OperatorConfig, endpoint string, qParams ...m
 }
 
 func HTTPDelete(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
-	req, err := operatorRequest(operatorConfig, "DELETE", endpoint, nil, qParams)
+	req, err := operatorRequest(operatorConfig, http.MethodDelete, endpoint, nil, qParams)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func HTTPUpload(operatorConfig OperatorConfig, endpoint string, input *HTTPUploa
 		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
 
-	req, err := operatorRequest(operatorConfig, "POST", endpoint, body, qParams)
+	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, body, qParams)
 	if err != nil {
 		return nil, err
 	}
