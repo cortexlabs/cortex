@@ -99,7 +99,7 @@ func ErrorInvalidYAML(err error) error {
 func ErrorTooLong(provided string, maxLen int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrTooLong,
-		Message: fmt.Sprintf("%s must be no more than %d characters", s.UserStr(provided), maxLen),
+		Message: fmt.Sprintf("%s must be fewer than %d characters", s.UserStr(provided), maxLen+1),
 	})
 }
 
