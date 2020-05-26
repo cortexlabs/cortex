@@ -37,6 +37,7 @@ transformers==2.9.*
 ```python
 import torch
 from transformers import pipeline
+from starlette.responses import JSONResponse
 
 
 class PythonPredictor:
@@ -48,13 +49,15 @@ class PythonPredictor:
         self.summarizer = pipeline(task="summarization", device=device)
 
     def predict(self, query_params, payload):
-        if query_params.get("model") == "sentiment":
+        model_name = query_params.get("model")
+
+        if model_name == "sentiment":
             return self.analyzer(payload["text"])[0]
-        elif query_params.get("model") == "summarizer":
+        elif model_name == "summarizer":
             summary = self.summarizer(payload["text"])
             return summary[0]["summary_text"]
         else:
-            return {"error": f"unknown model: {query_params.get('model')}"}
+            return JSONResponse({"error": f"unknown model: {model_name}"}, status_code=400)
 ```
 
 ### sample-sentiment.json
