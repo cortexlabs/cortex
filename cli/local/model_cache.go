@@ -59,7 +59,7 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCa
 		if !usesModelField {
 			localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
 			if apiSpec.Predictor.Type == userconfig.ONNXPredictorType {
-				localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name + ".onnx"
+				localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
 			}
 		}
 	}

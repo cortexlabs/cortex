@@ -511,8 +511,6 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 		}
 	}
 
-	return &errors.Error{}
-
 	if err := validateDockerImagePath(predictor.Image, awsClient); err != nil {
 		return errors.Wrap(err, userconfig.ImageKey)
 	}
