@@ -301,7 +301,7 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.Model != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
 	}
-	if len(predictor.Models) > 0 {
+	if predictor.Model == nil && len(predictor.Models) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
 		for _, model := range predictor.Models {
 			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
@@ -334,7 +334,9 @@ func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
 	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsModelKey, model.Model))
-	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsSignatureKeyKey, *model.SignatureKey))
+	if model.SignatureKey != nil {
+		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsSignatureKeyKey, *model.SignatureKey))
+	}
 	return sb.String()
 }
 

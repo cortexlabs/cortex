@@ -36,14 +36,8 @@ import (
 
 func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCache, error) {
 	modelPaths := make([]string, 0)
-	usesModelField := true
-	if apiSpec.Predictor.Model != nil {
-		modelPaths = append(modelPaths, *apiSpec.Predictor.Model)
-	} else if len(apiSpec.Predictor.Models) > 0 {
-		usesModelField = false
-		for _, modelResource := range apiSpec.Predictor.Models {
-			modelPaths = append(modelPaths, modelResource.Model)
-		}
+	for _, modelResource := range apiSpec.Predictor.Models {
+		modelPaths = append(modelPaths, modelResource.Model)
 	}
 
 	localModelCaches := make([]*spec.LocalModelCache, len(modelPaths))
@@ -51,16 +45,14 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCa
 	for idx, modelPath := range modelPaths {
 		localModelCaches[idx], err = CacheModel(modelPath, awsClient)
 		if err != nil {
-			if usesModelField {
+			if apiSpec.Predictor.Model != nil {
 				return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelKey)
 			}
 			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsModelKey)
 		}
-		if !usesModelField {
+		localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
+		if apiSpec.Predictor.Type == userconfig.ONNXPredictorType {
 			localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
-			if apiSpec.Predictor.Type == userconfig.ONNXPredictorType {
-				localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
-			}
 		}
 	}
 

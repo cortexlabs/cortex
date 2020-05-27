@@ -564,22 +564,22 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
 		modelResource := &userconfig.ModelResource{
+			Name:         "default",
 			Model:        *predictor.Model,
 			SignatureKey: predictor.SignatureKey,
 		}
-		if err := validateTensorFlowModel(modelResource, userconfig.ModelKey, providerType, projectFiles, awsClient); err != nil {
-			return err
-		}
-		predictor.Model = &modelResource.Model
-	} else {
-		for i := range predictor.Models {
-			if err := validateTensorFlowModel(predictor.Models[i], userconfig.ModelsModelKey, providerType, projectFiles, awsClient); err != nil {
-				return errors.Wrap(err, userconfig.ModelsKey)
-			}
-		}
-		if err := checkDuplicateModelNames(predictor.Models); err != nil {
+		// place the predictor.Model into predictor.Models for ease of use
+		predictor.Models = []*userconfig.ModelResource{modelResource}
+	}
+
+	for i := range predictor.Models {
+		if err := validateTensorFlowModel(predictor.Models[i], userconfig.ModelsModelKey, providerType, projectFiles, awsClient); err != nil {
 			return errors.Wrap(err, userconfig.ModelsKey)
 		}
+	}
+
+	if err := checkDuplicateModelNames(predictor.Models); err != nil {
+		return errors.Wrap(err, userconfig.ModelsKey)
 	}
 
 	return nil
@@ -662,23 +662,23 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 			return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 		}
 		modelResource := &userconfig.ModelResource{
+			Name:  "default",
 			Model: *predictor.Model,
 		}
-		if err := validateONNXModel(modelResource, userconfig.ModelKey, providerType, projectFiles, awsClient); err != nil {
-			return err
+		// place the predictor.Model into predictor.Models for ease of use
+		predictor.Models = []*userconfig.ModelResource{modelResource}
+	}
+
+	for i := range predictor.Models {
+		if predictor.Models[i].SignatureKey != nil {
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.ModelsKey)
 		}
-	} else {
-		for i := range predictor.Models {
-			if predictor.Models[i].SignatureKey != nil {
-				return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.ModelsKey)
-			}
-			if err := validateONNXModel(predictor.Models[i], userconfig.ModelsModelKey, providerType, projectFiles, awsClient); err != nil {
-				return errors.Wrap(err, userconfig.ModelsKey)
-			}
-		}
-		if err := checkDuplicateModelNames(predictor.Models); err != nil {
+		if err := validateONNXModel(predictor.Models[i], userconfig.ModelsModelKey, providerType, projectFiles, awsClient); err != nil {
 			return errors.Wrap(err, userconfig.ModelsKey)
 		}
+	}
+	if err := checkDuplicateModelNames(predictor.Models); err != nil {
+		return errors.Wrap(err, userconfig.ModelsKey)
 	}
 
 	return nil
