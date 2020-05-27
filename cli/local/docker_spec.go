@@ -84,6 +84,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_PROVIDER="+"local",
 		"CORTEX_CACHE_DIR="+_cacheDir,
 		"CORTEX_MODEL_DIR="+_modelDir,
+		"CORTEX_MODELS="+strings.Join(api.ModelNames().Slice(), ","),
 		"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", filepath.Base(api.Key)),
 		"CORTEX_PROJECT_DIR="+_projectDir,
 		"CORTEX_WORKERS_PER_REPLICA=1",

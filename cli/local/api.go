@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -148,8 +149,7 @@ func DeleteAPI(apiName string, prevAPISpec *spec.API, newAPISpec *spec.API) erro
 		newModelIDs := newAPISpec.ModelIDs()
 
 		if !prevModelIDs.IsEqual(newModelIDs) {
-			toDeleteModels := prevModelIDs.Copy()
-			toDeleteModels.Subtract(newModelIDs)
+			toDeleteModels := strset.Difference(prevModelIDs, newModelIDs)
 
 			for modelID := range toDeleteModels {
 				err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))

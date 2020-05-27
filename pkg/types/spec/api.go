@@ -85,6 +85,17 @@ func (api *API) ModelIDs() strset.Set {
 	return models
 }
 
+func (api *API) ModelNames() strset.Set {
+	names := strset.Set{}
+	if api != nil && len(api.Predictor.Models) > 0 {
+		for _, model := range api.Predictor.Models {
+			names.Add(model.Name)
+		}
+	}
+
+	return names
+}
+
 func (api *API) EqualAPI(a2 *API) bool {
 	if api != nil && a2 != nil {
 		return api.ModelIDs().IsEqual(a2.ModelIDs()) && api.ID == a2.ID && api.Compute.Equals(a2.Compute)
