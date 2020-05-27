@@ -26,7 +26,7 @@ type StringMapValidation struct {
 	Default                map[string]string
 	AllowExplicitNull      bool
 	AllowEmpty             bool
-	ConvertNilToEmpty      bool
+	ConvertNullToEmpty     bool
 	AllowCortexResources   bool
 	RequireCortexResources bool
 	Validator              func(map[string]string) (map[string]string, error)
@@ -91,7 +91,7 @@ func validateStringMap(val map[string]string, v *StringMapValidation) (map[strin
 		return v.Validator(val)
 	}
 
-	if val == nil && v.ConvertNilToEmpty {
+	if val == nil && v.ConvertNullToEmpty {
 		val = make(map[string]string)
 	}
 

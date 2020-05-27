@@ -134,9 +134,11 @@ func predictorValidation() *cr.StructFieldValidation {
 				{
 					StructField: "Config",
 					InterfaceMapValidation: &cr.InterfaceMapValidation{
-						StringKeysOnly: true,
-						AllowEmpty:     true,
-						Default:        map[string]interface{}{},
+						StringKeysOnly:     true,
+						AllowEmpty:         true,
+						AllowExplicitNull:  true,
+						ConvertNullToEmpty: true,
+						Default:            map[string]interface{}{},
 					},
 				},
 				{
