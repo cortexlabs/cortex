@@ -18,10 +18,12 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+
 	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 var _hpaTypeMeta = kmeta.TypeMeta{
@@ -108,7 +110,6 @@ func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, err
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	hpa.TypeMeta = _hpaTypeMeta
 	return hpa, nil
 }
 
@@ -131,15 +132,12 @@ func (c *Client) ListHPAs(opts *kmeta.ListOptions) ([]kautoscaling.HorizontalPod
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	for i := range hpaList.Items {
-		hpaList.Items[i].TypeMeta = _hpaTypeMeta
-	}
 	return hpaList.Items, nil
 }
 
-func (c *Client) ListHPAsByLabels(labels map[string]string) ([]kautoscaling.HorizontalPodAutoscaler, error) {
+func (c *Client) ListHPAsByLabels(labelSelector map[string]string) ([]kautoscaling.HorizontalPodAutoscaler, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
 	}
 	return c.ListHPAs(opts)
 }

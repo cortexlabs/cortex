@@ -20,11 +20,13 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var _deploymentTypeMeta = kmeta.TypeMeta{
@@ -132,7 +134,6 @@ func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	deployment.TypeMeta = _deploymentTypeMeta
 	return deployment, nil
 }
 
@@ -155,15 +156,12 @@ func (c *Client) ListDeployments(opts *kmeta.ListOptions) ([]kapps.Deployment, e
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	for i := range deploymentList.Items {
-		deploymentList.Items[i].TypeMeta = _deploymentTypeMeta
-	}
 	return deploymentList.Items, nil
 }
 
-func (c *Client) ListDeploymentsByLabels(labels map[string]string) ([]kapps.Deployment, error) {
+func (c *Client) ListDeploymentsByLabels(labelSelector map[string]string) ([]kapps.Deployment, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
 	}
 	return c.ListDeployments(opts)
 }

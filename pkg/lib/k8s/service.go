@@ -18,10 +18,12 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var _serviceTypeMeta = kmeta.TypeMeta{
@@ -103,7 +105,6 @@ func (c *Client) GetService(name string) (*kcore.Service, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	service.TypeMeta = _serviceTypeMeta
 	return service, nil
 }
 
@@ -126,15 +127,12 @@ func (c *Client) ListServices(opts *kmeta.ListOptions) ([]kcore.Service, error) 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	for i := range serviceList.Items {
-		serviceList.Items[i].TypeMeta = _serviceTypeMeta
-	}
 	return serviceList.Items, nil
 }
 
-func (c *Client) ListServicesByLabels(labels map[string]string) ([]kcore.Service, error) {
+func (c *Client) ListServicesByLabels(labelSelector map[string]string) ([]kcore.Service, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
 	}
 	return c.ListServices(opts)
 }

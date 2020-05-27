@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
+
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientdynamic "k8s.io/client-go/dynamic"
@@ -137,19 +138,6 @@ func CPU(cpu string) kresource.Quantity {
 
 func Mem(mem string) kresource.Quantity {
 	return kresource.MustParse(mem)
-}
-
-func LabelSelector(labels map[string]string) string {
-	if len(labels) == 0 {
-		return ""
-	}
-
-	terms := make([]string, 0, len(labels))
-	for key, value := range labels {
-		terms = append(terms, key+"="+value)
-	}
-
-	return strings.Join(terms, ",")
 }
 
 func LabelExistsSelector(labelKeys ...string) string {
