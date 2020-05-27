@@ -58,7 +58,7 @@ class PythonPredictor:
             return JSONResponse({"error": f"unknown model: {model_name}"}, status_code=400)
 ```
 
-### sample-sentiment.json
+### `sample-sentiment.json`
 
 ```json
 {
@@ -66,7 +66,7 @@ class PythonPredictor:
 }
 ```
 
-### sample-summarizer.json
+### `sample-summarizer.json`
 
 ```json
 {
