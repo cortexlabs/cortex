@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -47,36 +46,23 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 	}
 
 	apiSpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
-	if apiConfig.Predictor.Model != nil {
-		localModelCache, err := CacheModel(*apiConfig.Predictor.Model, awsClient)
+
+	if apiConfig.Predictor.Model != nil || len(apiConfig.Predictor.Models) > 0 {
+		localModelCaches, err := CacheModels(apiSpec, awsClient)
 		if err != nil {
-			return nil, "", errors.Wrap(err, apiConfig.Identify(), userconfig.PredictorKey, userconfig.ModelKey)
+			return nil, "", err
 		}
-		apiSpec.LocalModelCache = localModelCache
+		apiSpec.LocalModelCaches = localModelCaches
 	}
 
 	apiSpec.LocalProjectDir = filepath.Dir(cortexYAMLPath)
 
-	keepCache := false
-	if prevAPISpec != nil {
-		prevModelID := ""
-		if prevAPISpec.LocalModelCache != nil {
-			prevModelID = prevAPISpec.LocalModelCache.ID
-		}
-
-		newModelID := ""
-		if apiSpec.LocalModelCache != nil {
-			newModelID = apiSpec.LocalModelCache.ID
-		}
-
-		if prevAPISpec.ID == apiSpec.ID && newModelID == prevModelID && prevAPISpec.Compute.Equals(apiSpec.Compute) {
-			return apiSpec, fmt.Sprintf("%s is up to date", apiSpec.Name), nil
-		}
-		keepCache = newModelID == prevModelID
+	if apiSpec.EqualAPI(prevAPISpec) {
+		return apiSpec, fmt.Sprintf("%s is up to date", apiSpec.Name), nil
 	}
 
 	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
-		err = DeleteAPI(apiSpec.Name, keepCache)
+		err = DeleteAPI(apiSpec.Name, prevAPISpec, apiSpec)
 		if err != nil {
 			return nil, "", err
 		}
@@ -84,12 +70,12 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 
 	err = writeAPISpec(apiSpec)
 	if err != nil {
-		DeleteAPI(apiSpec.Name, false)
+		DeleteAPI(apiSpec.Name, nil, nil)
 		return nil, "", err
 	}
 
 	if err := DeployContainers(apiSpec, awsClient); err != nil {
-		DeleteAPI(apiSpec.Name, false)
+		DeleteAPI(apiSpec.Name, nil, nil)
 		return nil, "", err
 	}
 
@@ -119,18 +105,17 @@ func writeAPISpec(apiSpec *spec.API) error {
 	return nil
 }
 
-func DeleteAPI(apiName string, keepCache bool) error {
+// DeleteAPI deletes a locally-deployed API by removing its containers, its workspace and its models.
+// apiName is the name of the API within Cortex, prevAPISpec is the current existing API and newAPISpec
+// is the new API that'll be deployed soon after removing the existing API.
+// If prevAPISpec is nil & newAPISpec is nil, no models are removed.
+// If prevAPISpec is !nil & newAPISpec is nil, all models belonging to prevAPISpec are removed.
+// If prevAPISPec is !nil & newAPISpec is !nil, all models belonging to prevAPISpec that are not found in newAPISpec are removed.
+func DeleteAPI(apiName string, prevAPISpec *spec.API, newAPISpec *spec.API) error {
 	errList := []error{}
-	modelsToDelete := strset.New()
 
 	containers, err := GetContainersByAPI(apiName)
 	if err == nil {
-		for _, container := range containers {
-			if _, ok := container.Labels["modelID"]; ok {
-				modelsToDelete.Add(container.Labels["modelID"])
-			}
-		}
-
 		if len(containers) > 0 {
 			err = DeleteContainers(apiName)
 			if err != nil {
@@ -141,12 +126,8 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		errList = append(errList, err)
 	}
 
-	apiSpec, err := FindAPISpec(apiName)
-
+	_, err = FindAPISpec(apiName)
 	if err == nil {
-		if apiSpec.LocalModelCache != nil {
-			modelsToDelete.Add(apiSpec.LocalModelCache.ID)
-		}
 		_, err := files.DeleteDirIfPresent(filepath.Join(_localWorkspaceDir, "apis", apiName))
 		if err != nil {
 			errList = append(errList, errors.Wrap(ErrorFailedToDeleteAPISpec(filepath.Join(_localWorkspaceDir, "apis", apiName)), err.Error()))
@@ -161,22 +142,19 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		errList = append(errList, err)
 	}
 
-	if !keepCache && len(modelsToDelete) > 0 {
-		modelsInUse := strset.New()
-		apiSpecList, err := ListAPISpecs()
-		errList = append(errList, err)
+	if prevAPISpec != nil {
+		prevModelIDs := prevAPISpec.ModelIDs()
+		newModelIDs := newAPISpec.ModelIDs()
 
-		for _, apiSpec := range apiSpecList {
-			if apiSpec.LocalModelCache != nil && apiSpec.Name != apiName {
-				modelsInUse.Add(apiSpec.LocalModelCache.ID)
-			}
-		}
+		if !prevModelIDs.IsEqual(newModelIDs) {
+			toDeleteModels := prevModelIDs.Copy()
+			toDeleteModels.Subtract(newModelIDs)
 
-		modelsToDelete.Subtract(modelsInUse)
-		for modelID := range modelsToDelete {
-			err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
-			if err != nil {
-				errList = append(errList, err)
+			for modelID := range toDeleteModels {
+				err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
+				if err != nil {
+					errList = append(errList, err)
+				}
 			}
 		}
 	}

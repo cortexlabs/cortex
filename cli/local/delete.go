@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 func Delete(apiName string, keepCache bool) (schema.DeleteResponse, error) {
@@ -29,7 +30,13 @@ func Delete(apiName string, keepCache bool) (schema.DeleteResponse, error) {
 		return schema.DeleteResponse{}, err
 	}
 
-	err = DeleteAPI(apiName, keepCache)
+	var apiSpec *spec.API = nil
+	if !keepCache {
+		if apiSpec, err = FindAPISpec(apiName); err != nil {
+			return schema.DeleteResponse{}, err
+		}
+	}
+	err = DeleteAPI(apiName, apiSpec, nil)
 	if err != nil {
 		return schema.DeleteResponse{}, err
 	}

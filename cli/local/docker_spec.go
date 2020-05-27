@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -47,6 +48,17 @@ const (
 	_modelDir               = "/mnt/model"
 	_workspaceDir           = "/mnt/workspace"
 )
+
+type LocalModelCacheSlice []*spec.LocalModelCache
+
+func (modelCaches LocalModelCacheSlice) String() string {
+	IDs := make([]string, 0)
+	for _, modelCache := range modelCaches {
+		IDs = append(IDs, modelCache.ID)
+	}
+
+	return strings.Join(IDs, ", ")
+}
 
 func DeployContainers(api *spec.API, awsClient *aws.Client) error {
 	switch api.Predictor.Type {
@@ -184,29 +196,33 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 		}
 	}
 
+	mounts := []mount.Mount{
+		{
+			Type:   mount.TypeBind,
+			Source: api.LocalProjectDir,
+			Target: _projectDir,
+		},
+		{
+			Type:   mount.TypeBind,
+			Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
+			Target: "/mnt/workspace",
+		},
+	}
+	for _, modelCache := range api.LocalModelCaches {
+		mounts = append(mounts, mount.Mount{
+			Type:   mount.TypeBind,
+			Source: modelCache.HostPath,
+			Target: filepath.Join(_modelDir, modelCache.TargetPath),
+		})
+	}
+
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
 		Runtime:   runtime,
 		Resources: resources,
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: api.LocalProjectDir,
-				Target: _projectDir,
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-				Target: "/mnt/workspace",
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: api.LocalModelCache.HostPath,
-				Target: _modelDir,
-			},
-		},
+		Mounts:    mounts,
 	}
 
 	containerConfig := &container.Config{
@@ -219,11 +235,11 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":  "true",
-			"type":    _apiContainerName,
-			"apiID":   api.ID,
-			"apiName": api.Name,
-			"modelID": api.LocalModelCache.ID,
+			"cortex":   "true",
+			"type":     _apiContainerName,
+			"apiID":    api.ID,
+			"apiName":  api.Name,
+			"modelIDs": LocalModelCacheSlice(api.LocalModelCaches).String(),
 		},
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
@@ -260,16 +276,19 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		}
 	}
 
+	mounts := []mount.Mount{}
+	for _, modelCache := range api.LocalModelCaches {
+		mounts = append(mounts, mount.Mount{
+			Type:   mount.TypeBind,
+			Source: modelCache.HostPath,
+			Target: filepath.Join(_modelDir, modelCache.TargetPath),
+		})
+	}
+
 	serveHostConfig := &container.HostConfig{
 		Runtime:   serveRuntime,
 		Resources: serveResources,
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: api.LocalModelCache.HostPath,
-				Target: _modelDir,
-			},
-		},
+		Mounts:    mounts,
 	}
 
 	serveContainerConfig := &container.Config{
@@ -282,11 +301,11 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			_tfServingPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":  "true",
-			"type":    _tfServingContainerName,
-			"apiID":   api.ID,
-			"apiName": api.Name,
-			"modelID": api.LocalModelCache.ID,
+			"cortex":   "true",
+			"type":     _tfServingContainerName,
+			"apiID":    api.ID,
+			"apiName":  api.Name,
+			"modelIDs": LocalModelCacheSlice(api.LocalModelCaches).String(),
 		},
 	}
 
@@ -316,7 +335,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
 		Resources: apiResources,
-		Mounts: []mount.Mount{
+		Mounts: append([]mount.Mount{
 			{
 				Type:   mount.TypeBind,
 				Source: _cwd,
@@ -324,15 +343,10 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			},
 			{
 				Type:   mount.TypeBind,
-				Source: api.LocalModelCache.HostPath,
-				Target: _modelDir,
-			},
-			{
-				Type:   mount.TypeBind,
 				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
 				Target: "/mnt/workspace",
 			},
-		},
+		}, mounts...),
 	}
 
 	apiContainerConfig := &container.Config{
@@ -347,11 +361,11 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":  "true",
-			"type":    _apiContainerName,
-			"apiID":   api.ID,
-			"apiName": api.Name,
-			"modelID": api.LocalModelCache.ID,
+			"cortex":   "true",
+			"type":     _apiContainerName,
+			"apiID":    api.ID,
+			"apiName":  api.Name,
+			"modelIDs": LocalModelCacheSlice(api.LocalModelCaches).String(),
 		},
 	}
 	containerCreateRequest, err = docker.MustDockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")

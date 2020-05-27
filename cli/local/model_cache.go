@@ -31,7 +31,41 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
+
+func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCache, error) {
+	modelPaths := make([]string, 0)
+	usesModelField := true
+	if apiSpec.Predictor.Model != nil {
+		modelPaths = append(modelPaths, *apiSpec.Predictor.Model)
+	} else if len(apiSpec.Predictor.Models) > 0 {
+		usesModelField = false
+		for _, modelResource := range apiSpec.Predictor.Models {
+			modelPaths = append(modelPaths, modelResource.Model)
+		}
+	}
+
+	localModelCaches := make([]*spec.LocalModelCache, len(modelPaths))
+	var err error
+	for idx, modelPath := range modelPaths {
+		localModelCaches[idx], err = CacheModel(modelPath, awsClient)
+		if err != nil {
+			if usesModelField {
+				return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelKey)
+			}
+			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsModelKey)
+		}
+		if !usesModelField {
+			localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
+			if apiSpec.Predictor.Type == userconfig.ONNXPredictorType {
+				localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name + ".onnx"
+			}
+		}
+	}
+
+	return localModelCaches, nil
+}
 
 func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache, error) {
 	localModelCache := spec.LocalModelCache{}
@@ -84,13 +118,13 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 				return nil, err
 			}
 		} else if strings.HasSuffix(modelPath, ".onnx") {
-			fmt.Println(fmt.Sprintf("caching model %s ...", modelPath))
+			fmt.Println(fmt.Sprintf("￮ caching model %s ...", modelPath))
 			err := files.CopyFileOverwrite(modelPath, filepath.Join(modelDir, filepath.Base(modelPath)))
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			fmt.Println(fmt.Sprintf("caching model %s ...", modelPath))
+			fmt.Println(fmt.Sprintf("￮ caching model %s ...", modelPath))
 			tfModelVersion := filepath.Base(modelPath)
 			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(filepath.Join(modelDir, tfModelVersion), "/"))
 			if err != nil {
@@ -150,7 +184,7 @@ func downloadModel(modelPath string, modelDir string, awsClientForBucket *aws.Cl
 }
 
 func unzipAndValidate(originalModelPath string, zipFile string, destPath string) error {
-	fmt.Println(fmt.Sprintf("unzipping model %s ...", originalModelPath))
+	fmt.Println(fmt.Sprintf("￮ unzipping model %s ...", originalModelPath))
 	tmpDir := filepath.Join(filepath.Dir(destPath), filepath.Base(destPath)+"-tmp")
 	err := files.CreateDir(tmpDir)
 	if err != nil {

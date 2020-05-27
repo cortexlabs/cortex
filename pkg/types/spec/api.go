@@ -23,26 +23,28 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type API struct {
 	*userconfig.API
-	ID              string           `json:"id"`
-	Key             string           `json:"key"`
-	DeploymentID    string           `json:"deployment_id"`
-	LastUpdated     int64            `json:"last_updated"`
-	MetadataRoot    string           `json:"metadata_root"`
-	ProjectID       string           `json:"project_id"`
-	ProjectKey      string           `json:"project_key"`
-	LocalModelCache *LocalModelCache `json:"local_model_cache"` // local only
-	LocalProjectDir string           `json:"local_project_dir"`
+	ID               string             `json:"id"`
+	Key              string             `json:"key"`
+	DeploymentID     string             `json:"deployment_id"`
+	LastUpdated      int64              `json:"last_updated"`
+	MetadataRoot     string             `json:"metadata_root"`
+	ProjectID        string             `json:"project_id"`
+	ProjectKey       string             `json:"project_key"`
+	LocalModelCaches []*LocalModelCache `json:"local_model_cache"` // local only
+	LocalProjectDir  string             `json:"local_project_dir"`
 }
 
 type LocalModelCache struct {
-	ID       string `json:"id"`
-	HostPath string `json:"host_path"`
+	ID         string `json:"id"`
+	HostPath   string `json:"host_path"`
+	TargetPath string `json:"target_path"`
 }
 
 func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
@@ -70,6 +72,31 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		ProjectID:    projectID,
 		ProjectKey:   ProjectKey(projectID),
 	}
+}
+
+func (api *API) ModelIDs() strset.Set {
+	models := strset.Set{}
+	if api != nil && len(api.LocalModelCaches) > 0 {
+		for _, localModelCache := range api.LocalModelCaches {
+			models.Add(localModelCache.ID)
+		}
+	}
+
+	return models
+}
+
+func (api *API) EqualAPI(a2 *API) bool {
+	if api != nil && a2 != nil {
+		return api.ModelIDs().IsEqual(a2.ModelIDs()) && api.ID == a2.ID && api.Compute.Equals(a2.Compute)
+	} else if api == nil && a2 == nil {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (api *API) Identify() string {
+	return userconfig.IdentifyAPI(api.FilePath, api.Name, api.Index)
 }
 
 func Key(apiName string, apiID string) string {
