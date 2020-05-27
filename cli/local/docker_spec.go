@@ -39,14 +39,15 @@ import (
 )
 
 const (
-	_apiContainerName       = "api"
-	_tfServingContainerName = "serve"
-	_defaultPortStr         = "8888"
-	_tfServingPortStr       = "9000"
-	_projectDir             = "/mnt/project"
-	_cacheDir               = "/mnt/cache"
-	_modelDir               = "/mnt/model"
-	_workspaceDir           = "/mnt/workspace"
+	_apiContainerName          = "api"
+	_tfServingContainerName    = "serve"
+	_defaultPortStr            = "8888"
+	_tfServingPortStr          = "9000"
+	_tfServingEmptyModelConfig = "/etc/tfs/model_config_server.conf"
+	_projectDir                = "/mnt/project"
+	_cacheDir                  = "/mnt/cache"
+	_modelDir                  = "/mnt/model"
+	_workspaceDir              = "/mnt/workspace"
 )
 
 type LocalModelCacheSlice []*spec.LocalModelCache
@@ -296,7 +297,8 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Image: api.Predictor.TensorFlowServingImage,
 		Tty:   true,
 		Cmd: strslice.StrSlice{
-			"--port=" + _tfServingPortStr, "--model_base_path=" + _modelDir,
+			"--port=" + _tfServingPortStr,
+			"--model_config_file=" + _tfServingEmptyModelConfig,
 		},
 		ExposedPorts: nat.PortSet{
 			_tfServingPortStr + "/tcp": struct{}{},
