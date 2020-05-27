@@ -226,10 +226,12 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 
 func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidation {
 	defaultNil := provider == types.LocalProviderType
+	allowExplicitNull := provider == types.LocalProviderType
 	return &cr.StructFieldValidation{
 		StructField: "Autoscaling",
 		StructValidation: &cr.StructValidation{
-			DefaultNil: defaultNil,
+			DefaultNil:        defaultNil,
+			AllowExplicitNull: allowExplicitNull,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "MinReplicas",
@@ -346,10 +348,12 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 
 func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValidation {
 	defaultNil := provider == types.LocalProviderType
+	allowExplicitNull := provider == types.LocalProviderType
 	return &cr.StructFieldValidation{
 		StructField: "UpdateStrategy",
 		StructValidation: &cr.StructValidation{
-			DefaultNil: defaultNil,
+			DefaultNil:        defaultNil,
+			AllowExplicitNull: allowExplicitNull,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "MaxSurge",
