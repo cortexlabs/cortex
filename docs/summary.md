@@ -47,6 +47,7 @@
 
 ## Guides
 
+* [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
 * [Set up AWS API gateway](guides/api-gateway.md)
 * [Set up HTTPS on a subdomain](guides/subdomain-https-setup.md)

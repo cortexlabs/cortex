@@ -13,6 +13,7 @@
 * **Autoscaling:** automatically scale APIs to handle production workloads.
 * **ML instances:** run inference on G4, P2, M5, C5 and other AWS instance types.
 * **Spot instances:** save money with spot instances.
+* **Multi-model endpoints:** deploy multiple models in a single API.
 * **Rolling updates:** update deployed APIs with no downtime.
 * **Log streaming:** stream logs from deployed models to your CLI.
 * **Prediction monitoring:** monitor API performance and prediction results.
