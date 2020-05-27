@@ -162,6 +162,10 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 								Value: path.Join(_emptyDirMountPath, "model"),
 							},
 							kcore.EnvVar{
+								Name:  "CORTEX_MODELS",
+								Value: strings.Join(api.ModelNames(), ","),
+							},
+							kcore.EnvVar{
 								Name:  "CORTEX_TF_SERVING_PORT",
 								Value: _tfServingPortStr,
 							},
@@ -434,6 +438,10 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 							kcore.EnvVar{
 								Name:  "CORTEX_MODEL_DIR",
 								Value: path.Join(_emptyDirMountPath, "model"),
+							},
+							kcore.EnvVar{
+								Name:  "CORTEX_MODELS",
+								Value: strings.Join(api.ModelNames(), ","),
 							},
 						),
 						EnvFrom:        _baseEnvVars,

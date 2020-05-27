@@ -99,6 +99,17 @@ func (api *API) Identify() string {
 	return IdentifyAPI(api.FilePath, api.Name, api.Index)
 }
 
+func (api *API) ModelNames() []string {
+	names := []string{}
+	if api != nil && len(api.Predictor.Models) > 0 {
+		for _, model := range api.Predictor.Models {
+			names = append(names, model.Name)
+		}
+	}
+
+	return names
+}
+
 func (api *API) ApplyDefaultDockerPaths() {
 	usesGPU := false
 	if api.Compute.GPU > 0 {

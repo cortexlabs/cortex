@@ -145,8 +145,8 @@ func DeleteAPI(apiName string, prevAPISpec *spec.API, newAPISpec *spec.API) erro
 	}
 
 	if prevAPISpec != nil {
-		prevModelIDs := prevAPISpec.ModelIDs()
-		newModelIDs := newAPISpec.ModelIDs()
+		prevModelIDs := strset.FromSlice(prevAPISpec.ModelIDs())
+		newModelIDs := strset.FromSlice(newAPISpec.ModelIDs())
 
 		if !prevModelIDs.IsEqual(newModelIDs) {
 			toDeleteModels := strset.Difference(prevModelIDs, newModelIDs)

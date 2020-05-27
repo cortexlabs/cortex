@@ -74,22 +74,22 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	}
 }
 
-func (api *API) ModelIDs() strset.Set {
-	models := strset.Set{}
+func (api *API) ModelIDs() []string {
+	models := []string{}
 	if api != nil && len(api.LocalModelCaches) > 0 {
 		for _, localModelCache := range api.LocalModelCaches {
-			models.Add(localModelCache.ID)
+			models = append(models, localModelCache.ID)
 		}
 	}
 
 	return models
 }
 
-func (api *API) ModelNames() strset.Set {
-	names := strset.Set{}
+func (api *API) ModelNames() []string {
+	names := []string{}
 	if api != nil && len(api.Predictor.Models) > 0 {
 		for _, model := range api.Predictor.Models {
-			names.Add(model.Name)
+			names = append(names, model.Name)
 		}
 	}
 
@@ -98,7 +98,7 @@ func (api *API) ModelNames() strset.Set {
 
 func (api *API) EqualAPI(a2 *API) bool {
 	if api != nil && a2 != nil {
-		return api.ModelIDs().IsEqual(a2.ModelIDs()) && api.ID == a2.ID && api.Compute.Equals(a2.Compute)
+		return strset.FromSlice(api.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) && api.ID == a2.ID && api.Compute.Equals(a2.Compute)
 	} else if api == nil && a2 == nil {
 		return true
 	} else {
