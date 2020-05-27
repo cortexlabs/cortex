@@ -43,7 +43,7 @@ func Int(inter interface{}, v *IntValidation) (int, error) {
 		if v.TreatNullAsZero {
 			return ValidateInt(0, v)
 		}
-		return 0, ErrorCannotBeNull()
+		return 0, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := cast.InterfaceToInt(inter)
 	if !castOk {

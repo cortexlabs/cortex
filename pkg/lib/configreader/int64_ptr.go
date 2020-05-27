@@ -172,7 +172,7 @@ func ValidateInt64PtrMissing(v *Int64PtrValidation) (*int64, error) {
 
 func ValidateInt64PtrProvided(val *int64, v *Int64PtrValidation) (*int64, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInt64Ptr(val, v)
 }

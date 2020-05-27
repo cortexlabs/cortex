@@ -65,7 +65,7 @@ func ValidateInt64ListMissing(v *Int64ListValidation) ([]int64, error) {
 
 func ValidateInt64ListProvided(val []int64, v *Int64ListValidation) ([]int64, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInt64List(val, v)
 }

@@ -70,7 +70,7 @@ func ValidateInterfaceMapMissing(v *InterfaceMapValidation) (map[string]interfac
 
 func ValidateInterfaceMapProvided(val map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInterfaceMap(val, v)
 }

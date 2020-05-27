@@ -65,7 +65,7 @@ func ValidateStringMapMissing(v *StringMapValidation) (map[string]string, error)
 
 func ValidateStringMapProvided(val map[string]string, v *StringMapValidation) (map[string]string, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateStringMap(val, v)
 }

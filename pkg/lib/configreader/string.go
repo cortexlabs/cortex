@@ -63,7 +63,7 @@ func String(inter interface{}, v *StringValidation) (string, error) {
 		if v.TreatNullAsEmpty {
 			return ValidateString("", v)
 		}
-		return "", ErrorCannotBeNull()
+		return "", ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := inter.(string)
 	if !castOk {

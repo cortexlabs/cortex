@@ -43,7 +43,7 @@ func Int64(inter interface{}, v *Int64Validation) (int64, error) {
 		if v.TreatNullAsZero {
 			return ValidateInt64(0, v)
 		}
-		return 0, ErrorCannotBeNull()
+		return 0, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := cast.InterfaceToInt64(inter)
 	if !castOk {
