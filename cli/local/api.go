@@ -47,7 +47,8 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 
 	apiSpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
 
-	if apiConfig.Predictor.Model != nil || len(apiConfig.Predictor.Models) > 0 {
+	// apiConfig.Predictor.Model gets added to apiConfig.Predictor.Models for ease of use
+	if len(apiConfig.Predictor.Models) > 0 {
 		localModelCaches, err := CacheModels(apiSpec, awsClient)
 		if err != nil {
 			return nil, "", err
@@ -70,12 +71,12 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 
 	err = writeAPISpec(apiSpec)
 	if err != nil {
-		DeleteAPI(apiSpec.Name, nil, nil)
+		DeleteAPI(apiSpec.Name, apiSpec, nil)
 		return nil, "", err
 	}
 
 	if err := DeployContainers(apiSpec, awsClient); err != nil {
-		DeleteAPI(apiSpec.Name, nil, nil)
+		DeleteAPI(apiSpec.Name, apiSpec, nil)
 		return nil, "", err
 	}
 

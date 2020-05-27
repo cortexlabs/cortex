@@ -51,9 +51,6 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCa
 			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsModelKey)
 		}
 		localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
-		if apiSpec.Predictor.Type == userconfig.ONNXPredictorType {
-			localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
-		}
 	}
 
 	return localModelCaches, nil
