@@ -163,6 +163,11 @@ function main() {
     else
       envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi
+
+    # this could be moved to go or python
+    if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+      # TODO: create VPC link
+    fi
   fi
 
   echo -n "￮ updating cluster configuration "
@@ -217,6 +222,15 @@ function main() {
     done
     kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
     if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
+  fi
+
+  # this for sure could be moved to go or python
+  if [ "$arg1" != "--update" ]; then
+    # TODO create API gateway
+
+    if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+      # TODO create VPC link integration in API
+    fi
   fi
 
   echo -n "￮ configuring cli "
