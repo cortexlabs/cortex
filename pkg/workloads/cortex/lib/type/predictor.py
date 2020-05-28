@@ -20,6 +20,7 @@ import dill
 
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex.lib.type.model import Model, get_signature_keys, get_name_signature_pairs
 
 
 class Predictor:
@@ -27,15 +28,36 @@ class Predictor:
         self.provider = provider
         self.type = kwargs["type"]
         self.path = kwargs["path"]
-        self.model = kwargs.get("model")
         self.python_path = kwargs.get("python_path")
         self.config = kwargs.get("config", {})
         self.env = kwargs.get("env")
-        self.signature_key = kwargs.get("signature_key")
+
+        self.models = []
+        if kwargs.get("model"):
+            self.models += [
+                Model(
+                    name="default",
+                    source=kwargs.get("model"),
+                    signature_key=kwargs.get("signature_key"),
+                )
+            ]
+        elif kwargs.get("models"):
+            for model in kwargs.get("models"):
+                self.models += [
+                    Model(
+                        name=model.get("name"),
+                        source=model.get("model"),
+                        signature_key=model.get("signature_key"),
+                    )
+                ]
 
         self.cache_dir = cache_dir
 
     def initialize_client(self, model_dir=None, tf_serving_host=None, tf_serving_port=None):
+        if len(self.models) > 0:
+            for model in self.models:
+                model.base_path = os.path.join(model_dir, model.name)
+
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
@@ -46,10 +68,19 @@ class Predictor:
         elif self.type == "tensorflow":
             from cortex.lib.client.tensorflow import TensorFlowClient
 
+            for model in self.models:
+                validate_model_dir(model.base_path)
+
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
-            validate_model_dir(model_dir)
-            client = TensorFlowClient(tf_serving_address, self.signature_key)
-            cx_logger().info("TensorFlow model signature: {}".format(client.input_signature))
+            client = TensorFlowClient(tf_serving_address, self.models)
+            if self.models[0].name == "default":
+                cx_logger().info(
+                    "TensorFlow model signature: {}".format(self.models[0].signature_key)
+                )
+            else:
+                cx_logger().info(
+                    "TensorFlow model signatures: {}".format(get_name_signature_pairs(self.models))
+                )
             return client
 
         return None

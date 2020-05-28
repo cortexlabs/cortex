@@ -15,3 +15,10 @@
 from cortex.lib.type.api import API, get_spec
 from cortex.lib.type.predictor import Predictor
 from cortex.lib.type.monitoring import Monitoring
+from cortex.lib.type.model import (
+    Model,
+    get_signature_keys,
+    get_name_signature_pairs,
+    get_index_model,
+    get_model_names,
+)

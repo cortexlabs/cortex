@@ -256,7 +256,7 @@ def start():
         raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
         api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
         client = api.predictor.initialize_client(
-            model_dir, tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+            model_dir=model_dir, tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port,
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
