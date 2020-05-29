@@ -65,7 +65,7 @@ func ValidateFloat32ListMissing(v *Float32ListValidation) ([]float32, error) {
 
 func ValidateFloat32ListProvided(val []float32, v *Float32ListValidation) ([]float32, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateFloat32List(val, v)
 }

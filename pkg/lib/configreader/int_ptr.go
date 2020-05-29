@@ -172,7 +172,7 @@ func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 
 func ValidateIntPtrProvided(val *int, v *IntPtrValidation) (*int, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateIntPtr(val, v)
 }

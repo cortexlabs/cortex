@@ -68,7 +68,7 @@ func ErrorAuthAPIError() error {
 func ErrorAuthInvalid() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthInvalid,
-		Message: "invalid AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as the operator",
+		Message: "invalid AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
 	})
 }
 

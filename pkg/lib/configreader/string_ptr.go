@@ -203,7 +203,7 @@ func ValidateStringPtrMissing(v *StringPtrValidation) (*string, error) {
 
 func ValidateStringPtrProvided(val *string, v *StringPtrValidation) (*string, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateStringPtr(val, v)
 }
