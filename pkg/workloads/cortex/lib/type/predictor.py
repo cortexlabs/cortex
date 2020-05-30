@@ -57,13 +57,21 @@ class Predictor:
         if len(self.models) > 0:
             for model in self.models:
                 model.base_path = os.path.join(model_dir, model.name)
+                if self.type == "onnx":
+                    model.base_path = os.path.join(model.base_path, os.path.basename(model.source))
 
+        signature_message = None
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
-            model_path = os.path.join(model_dir, os.path.basename(self.model))
-            client = ONNXClient(model_path)
-            cx_logger().info("ONNX model signature: {}".format(client.input_signature))
+            client = ONNXClient(self.models)
+            # TODO to use client.input_signature as it should be done
+            if self.models[0].name == "default":
+                signature_message = "ONNX model signature: {}".format(self.models[0].signature_key)
+            else:
+                signature_message = "ONNX model signatures: {}".format(
+                    get_name_signature_pairs(self.models)
+                )
             return client
         elif self.type == "tensorflow":
             from cortex.lib.client.tensorflow import TensorFlowClient
@@ -74,14 +82,17 @@ class Predictor:
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
             client = TensorFlowClient(tf_serving_address, self.models)
             if self.models[0].name == "default":
-                cx_logger().info(
-                    "TensorFlow model signature: {}".format(self.models[0].signature_key)
+                signature_message = "TensorFlow model signature: {}".format(
+                    self.models[0].signature_key
                 )
             else:
-                cx_logger().info(
-                    "TensorFlow model signatures: {}".format(get_name_signature_pairs(self.models))
+                signature_message = "TensorFlow model signatures: {}".format(
+                    get_name_signature_pairs(self.models)
                 )
             return client
+
+        if signature_message:
+            cx_logger().info(signature_message)
 
         return None
 

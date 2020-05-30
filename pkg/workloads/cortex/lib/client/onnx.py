@@ -17,40 +17,54 @@ import numpy as np
 
 from cortex.lib.log import cx_logger
 from cortex.lib import util
-from cortex.lib.exceptions import CortexException, UserException
+from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException
+from cortex.lib.type.model import Model, get_model_names
 
 
 class ONNXClient:
-    def __init__(self, model_path):
+    # def __init__(self, model_path):
+    def __init__(self, models):
         """Setup ONNX runtime session.
 
         Args:
-            model_path (string): Path to model in local file system.
+            models ([Model]): List of models deployed with TF serving container.
         """
-        self._model_path = model_path
-        session = rt.InferenceSession(model_path)
+        self._model = models
+        self._model_names = get_model_names(models)
 
-        self._session = session
-        self._signature = session.get_inputs()
-        metadata = {}
-        for meta in self._signature:
-            numpy_type = ONNX_TO_NP_TYPE.get(meta.type, meta.type)
-            metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
+        self._sessions = {}
+        self._signatures = {}
+        self._input_signatures = {}
+        for model in models:
+            self._sessions[model.name] = rt.InferenceSession(model.base_path)
+            self._signatures[model.name] = self._sessions[model.name].get_inputs()
 
-        self._input_signature = metadata
+            metadata = {}
+            for meta in self._signatures[model.name]:
+                numpy_type = ONNX_TO_NP_TYPE.get(meta.type, meta.type)
+                metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
+            self._input_signatures[model.name] = metadata
 
-    def predict(self, model_input):
+    def predict(self, model_input, model="default"):
         """Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
 
         Args:
             model_input: Input to the model.
+            model: Model to use when multiple models are deployed per each API.
 
         Returns:
             numpy.ndarray: The prediction returned from the model.
         """
-        input_dict = convert_to_onnx_input(model_input, self._signature)
-        model_output = self._session.run([], input_dict)
-        return model_output
+        if model in self._model_names:
+            input_dict = convert_to_onnx_input(model_input, self._signatures[model], model)
+            model_output = self._sessions[model].run([], input_dict)
+            return model_output
+        else:
+            raise UserRuntimeException(
+                "{} model wasn't found in the list of available models {}".format(
+                    model, self._model_names
+                )
+            )
 
     @property
     def session(self):
@@ -79,7 +93,7 @@ ONNX_TO_NP_TYPE = {
 }
 
 
-def transform_to_numpy(input_pyobj, input_metadata):
+def transform_to_numpy(input_pyobj, input_metadata, model_name):
     target_dtype = ONNX_TO_NP_TYPE[input_metadata.type]
     target_shape = input_metadata.shape
 
@@ -95,49 +109,59 @@ def transform_to_numpy(input_pyobj, input_metadata):
                     np_arr = np_arr.astype(target_dtype)
             else:
                 raise ValueError(
-                    "expected dtype '{}' but found '{}'".format(target_dtype, np_arr.dtype)
+                    "expected dtype '{}' but found '{}' for model '{}'".format(
+                        target_dtype, np_arr.dtype, model_name
+                    )
                 )
         else:
             np_arr = np.array(input_pyobj, dtype=target_dtype)
         np_arr = np_arr.reshape(target_shape)
         return np_arr
     except Exception as e:
-        raise UserException("failed to convert to numpy array", str(e)) from e
+        raise UserException(
+            "failed to convert to numpy array for model '{}'".format(model_name), str(e)
+        ) from e
 
 
-def convert_to_onnx_input(model_input, input_metadata_list):
+def convert_to_onnx_input(model_input, input_metadata_list, model_name):
     input_dict = {}
     if len(input_metadata_list) == 1:
         input_metadata = input_metadata_list[0]
         if util.is_dict(model_input):
             if model_input.get(input_metadata.name) is None:
-                raise UserException('missing key "{}"'.format(input_metadata.name))
+                raise UserException(
+                    "missing key \"{}\" for model '{}'".format(input_metadata.name, model_name)
+                )
             input_dict[input_metadata.name] = transform_to_numpy(
-                model_input[input_metadata.name], input_metadata
+                model_input[input_metadata.name], input_metadata, model_name
             )
         else:
             try:
-                input_dict[input_metadata.name] = transform_to_numpy(model_input, input_metadata)
+                input_dict[input_metadata.name] = transform_to_numpy(
+                    model_input, input_metadata, model_name
+                )
             except CortexException as e:
-                e.wrap('key "{}"'.format(input_metadata.name))
+                e.wrap("key \"{}\" for model '{}'".format(input_metadata.name, model_name))
                 raise
     else:
         for input_metadata in input_metadata_list:
             if not util.is_dict(model_input):
                 expected_keys = [metadata.name for metadata in input_metadata_list]
                 raise UserException(
-                    "expected model_input to be a dictionary with keys {}".format(
-                        ", ".join('"' + key + '"' for key in expected_keys)
+                    "expected model_input to be a dictionary with keys {} for model '{}'".format(
+                        ", ".join('"' + key + '"' for key in expected_keys), model_name
                     )
                 )
 
             if model_input.get(input_metadata.name) is None:
-                raise UserException('missing key "{}"'.format(input_metadata.name))
+                raise UserException(
+                    "missing key \"{}\" for model '{}'".format(input_metadata.name, model_name)
+                )
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(
-                    model_input[input_metadata.name], input_metadata
+                    model_input[input_metadata.name], input_metadata, model_name
                 )
             except CortexException as e:
-                e.wrap('key "{}"'.format(input_metadata.name))
+                e.wrap("key \"{}\" for model '{}'".format(input_metadata.name, model_name))
                 raise
     return input_dict
