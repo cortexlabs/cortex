@@ -77,7 +77,7 @@ class TensorFlowClient:
         else:
             raise UserRuntimeException(
                 "{} model wasn't found in the list of available models {}".format(
-                    model, get_model_names(self._models)
+                    model, self._model_names
                 )
             )
 
