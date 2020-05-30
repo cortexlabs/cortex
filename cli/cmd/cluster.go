@@ -220,7 +220,7 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, _flagClusterDisallowPrompt)
+		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, _flagClusterDisallowPrompt)
 
 		clusterConfig, err := getConfigureClusterConfig(cachedClusterConfig, awsCreds, _flagClusterDisallowPrompt)
 		if err != nil {
@@ -392,7 +392,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 		exit.Error(err)
 	}
 
-	clusterConfig := refreshCachedClusterConfig(awsCreds, disallowPrompt)
+	clusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, disallowPrompt)
 
 	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
@@ -643,12 +643,7 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 	return
 }
 
-func refreshCachedClusterConfig(awsCreds AWSCredentials, disallowPrompt bool) clusterconfig.Config {
-	accessConfig, err := getClusterAccessConfig(disallowPrompt)
-	if err != nil {
-		exit.Error(err)
-	}
-
+func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
 	cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 	if !files.IsFile(cachedConfigPath) {

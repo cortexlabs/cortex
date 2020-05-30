@@ -289,10 +289,16 @@ func ErrorCannotSetStructField() error {
 	})
 }
 
-func ErrorCannotBeNull() error {
+func ErrorCannotBeNull(isRequired bool) error {
+	msg := "cannot be null"
+
+	if !isRequired {
+		msg = "cannot be null (specify a value, or remove the key to use the default value)"
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotBeNull,
-		Message: "cannot be null",
+		Message: msg,
 	})
 }
 

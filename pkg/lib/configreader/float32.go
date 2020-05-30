@@ -43,7 +43,7 @@ func Float32(inter interface{}, v *Float32Validation) (float32, error) {
 		if v.TreatNullAsZero {
 			return ValidateFloat32(0, v)
 		}
-		return 0, ErrorCannotBeNull()
+		return 0, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := cast.InterfaceToFloat32(inter)
 	if !castOk {

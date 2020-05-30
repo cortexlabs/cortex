@@ -38,7 +38,7 @@ func Bool(inter interface{}, v *BoolValidation) (bool, error) {
 		if v.TreatNullAsFalse {
 			return ValidateBool(false, v)
 		}
-		return false, ErrorCannotBeNull()
+		return false, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := inter.(bool)
 	if !castOk {

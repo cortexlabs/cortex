@@ -43,7 +43,7 @@ func Float64(inter interface{}, v *Float64Validation) (float64, error) {
 		if v.TreatNullAsZero {
 			return ValidateFloat64(0, v)
 		}
-		return 0, ErrorCannotBeNull()
+		return 0, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := cast.InterfaceToFloat64(inter)
 	if !castOk {
