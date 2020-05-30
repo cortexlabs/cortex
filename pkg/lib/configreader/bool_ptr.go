@@ -173,7 +173,7 @@ func ValidateBoolPtrMissing(v *BoolPtrValidation) (*bool, error) {
 
 func ValidateBoolPtrProvided(val *bool, v *BoolPtrValidation) (*bool, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return val, nil
 }

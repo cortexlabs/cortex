@@ -65,7 +65,7 @@ func ValidateInt32ListMissing(v *Int32ListValidation) ([]int32, error) {
 
 func ValidateInt32ListProvided(val []int32, v *Int32ListValidation) ([]int32, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInt32List(val, v)
 }

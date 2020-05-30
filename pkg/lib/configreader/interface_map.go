@@ -27,7 +27,7 @@ type InterfaceMapValidation struct {
 	Default                map[string]interface{}
 	AllowExplicitNull      bool
 	AllowEmpty             bool
-	ConvertNilToEmpty      bool
+	ConvertNullToEmpty     bool
 	ScalarsOnly            bool
 	StringLeavesOnly       bool
 	StringKeysOnly         bool
@@ -70,7 +70,7 @@ func ValidateInterfaceMapMissing(v *InterfaceMapValidation) (map[string]interfac
 
 func ValidateInterfaceMapProvided(val map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInterfaceMap(val, v)
 }
@@ -146,7 +146,7 @@ func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 		return v.Validator(val)
 	}
 
-	if val == nil && v.ConvertNilToEmpty {
+	if val == nil && v.ConvertNullToEmpty {
 		val = make(map[string]interface{})
 	}
 

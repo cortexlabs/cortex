@@ -67,7 +67,7 @@ func ValidateInterfaceMapListMissing(v *InterfaceMapListValidation) ([]map[strin
 
 func ValidateInterfaceMapListProvided(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInterfaceMapList(val, v)
 }
