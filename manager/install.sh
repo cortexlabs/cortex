@@ -164,9 +164,16 @@ function main() {
       envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi
 
-    # this could be moved to go or python
+    # create VPC Links for API Gateway 
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-      # TODO: create VPC link
+      vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"') 
+      #filter all private subnets belonging to cortex cluster
+      private_subnets=$(aws ec2  describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s  '.[].Subnets[].SubnetId' | tr -d '"')     
+      #get default security group for cortex VPC
+      default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
+      #create VPC LINK 
+      vpc_link_id=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME  --subnet-ids $private_subnets --security-group-ids $default_security_group | jq .VpcLinkId | tr -d '"')
+      export VPC_LINK_ID=vpc_link_id
     fi
   fi
 
@@ -224,12 +231,11 @@ function main() {
     if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
   fi
 
-  # this for sure could be moved to go or python
   if [ "$arg1" != "--update" ]; then
-    # TODO create API gateway
-
+    api_id=$(aws apigatewayv2 create-api  --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP |jq .ApiId )
+    export API_ID=api_id
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-      # TODO create VPC link integration in API
+      python create_gateway_integration.py $API_ID $VPC_LINK_ID
     fi
   fi
 
