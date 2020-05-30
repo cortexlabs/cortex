@@ -33,10 +33,10 @@ def get_name_signature_pairs(models):
     return pairs
 
 
-def get_index_model(models):
+def get_model_indexes(models):
     dct = {}
     for idx, model in enumerate(models):
-        dct[model] = idx
+        dct[model.name] = idx
     return dct
 
 

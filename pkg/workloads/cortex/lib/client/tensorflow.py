@@ -24,7 +24,7 @@ from google.protobuf import json_format
 
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.log import cx_logger
-from cortex.lib.type.model import Model, get_signature_keys, get_index_model, get_model_names
+from cortex.lib.type.model import Model, get_signature_keys, get_model_indexes, get_model_names
 
 
 class TensorFlowClient:
@@ -37,7 +37,8 @@ class TensorFlowClient:
         """
         self._tf_serving_url = tf_serving_url
         self._models = models
-        self._model_indexes = get_index_model(models)
+        self._model_names = get_model_names(models)
+        self._model_indexes = get_model_indexes(models)
 
         channel = grpc.insecure_channel(tf_serving_url)
         self._stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
@@ -45,7 +46,7 @@ class TensorFlowClient:
         # in the same order as self._models
         self._signatures = get_signature_defs(self._stub, models)
         parsed_signature_keys, parsed_signatures = extract_signatures(
-            self._signatures, get_signature_keys(models), get_model_names(models),
+            self._signatures, get_signature_keys(models), self._model_names,
         )
         self._signature_keys = parsed_signature_keys
         self._input_signatures = parsed_signatures
