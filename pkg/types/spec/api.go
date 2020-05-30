@@ -23,7 +23,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -94,16 +93,6 @@ func (api *API) ModelNames() []string {
 	}
 
 	return names
-}
-
-func (api *API) EqualAPI(a2 *API) bool {
-	if api != nil && a2 != nil {
-		return strset.FromSlice(api.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) && api.ID == a2.ID && api.Compute.Equals(a2.Compute)
-	} else if api == nil && a2 == nil {
-		return true
-	} else {
-		return false
-	}
 }
 
 func (api *API) Identify() string {

@@ -59,7 +59,7 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 
 	apiSpec.LocalProjectDir = filepath.Dir(cortexYAMLPath)
 
-	if apiSpec.EqualAPI(prevAPISpec) {
+	if areAPIsEqual(apiSpec, prevAPISpec) {
 		return apiSpec, fmt.Sprintf("%s is up to date", apiSpec.Name), nil
 	}
 
@@ -105,6 +105,16 @@ func writeAPISpec(apiSpec *spec.API) error {
 	}
 
 	return nil
+}
+
+func areAPIsEqual(a1, a2 *spec.API) bool {
+	if a1 != nil && a2 != nil {
+		return strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) && a1.ID == a2.ID && a1.Compute.Equals(a2.Compute)
+	} else if a1 == nil && a2 == nil {
+		return true
+	} else {
+		return false
+	}
 }
 
 // DeleteAPI deletes a locally-deployed API by removing its containers, its workspace and its models.
