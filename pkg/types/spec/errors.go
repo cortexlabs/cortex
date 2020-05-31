@@ -102,7 +102,7 @@ func ErrorDuplicateEndpoint(apiName string) error {
 }
 
 func ErrorSpecifyAllOrNone(val string, vals ...string) error {
-	allVals := append(vals, val)
+	allVals := append([]string{val}, vals...)
 	message := fmt.Sprintf("please specify all or none of %s", s.UserStrsAnd(allVals))
 	if len(allVals) == 2 {
 		message = fmt.Sprintf("please specify both %s and %s or neither of them", s.UserStr(allVals[0]), s.UserStr(allVals[1]))
@@ -115,7 +115,7 @@ func ErrorSpecifyAllOrNone(val string, vals ...string) error {
 }
 
 func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisite string, prerequisites ...string) error {
-	allPrerequisites := append(prerequisites, prerequisite)
+	allPrerequisites := append([]string{prerequisite}, prerequisites...)
 	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(allPrerequisites))
 
 	return errors.WithStack(&errors.Error{
