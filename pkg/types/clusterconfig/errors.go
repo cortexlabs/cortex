@@ -51,6 +51,7 @@ const (
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
 	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
+	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 )
 
@@ -224,6 +225,13 @@ func ErrorIOPSTooLarge(iops int64, volumeSize int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSTooLarge,
 		Message: fmt.Sprintf("%s (%d) cannot be more than 50 times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", InstanceVolumeIOPSKey, iops, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
+	})
+}
+
+func ErrorCantOverrideDefaultTag() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCantOverrideDefaultTag,
+		Message: fmt.Sprintf("the \"%s\" tag cannot be overridden (it is set by default, and it must always be equal to your cluster name)", ClusterNameTag),
 	})
 }
 
