@@ -19,6 +19,7 @@ package spec
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -58,14 +59,14 @@ const (
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://cortex.dev for documentation)"),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://cortex.dev for documentation)"),
+		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
 	})
 }
 
