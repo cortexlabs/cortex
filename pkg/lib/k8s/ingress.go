@@ -18,11 +18,10 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-
 	kextensions "k8s.io/api/extensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -116,6 +115,7 @@ func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	ingress.TypeMeta = _ingressTypeMeta
 	return ingress, nil
 }
 
@@ -138,12 +138,15 @@ func (c *Client) ListIngresses(opts *kmeta.ListOptions) ([]kextensions.Ingress, 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	for i := range ingressList.Items {
+		ingressList.Items[i].TypeMeta = _ingressTypeMeta
+	}
 	return ingressList.Items, nil
 }
 
-func (c *Client) ListIngressesByLabels(labelSelector map[string]string) ([]kextensions.Ingress, error) {
+func (c *Client) ListIngressesByLabels(labels map[string]string) ([]kextensions.Ingress, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListIngresses(opts)
 }

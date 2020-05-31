@@ -18,10 +18,9 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 var _nodeTypeMeta = kmeta.TypeMeta{
@@ -37,12 +36,15 @@ func (c *Client) ListNodes(opts *kmeta.ListOptions) ([]kcore.Node, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	for i := range nodeList.Items {
+		nodeList.Items[i].TypeMeta = _nodeTypeMeta
+	}
 	return nodeList.Items, nil
 }
 
-func (c *Client) ListNodesByLabels(labelSelector map[string]string) ([]kcore.Node, error) {
+func (c *Client) ListNodesByLabels(labels map[string]string) ([]kcore.Node, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListNodes(opts)
 }

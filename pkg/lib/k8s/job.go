@@ -18,12 +18,11 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 var _jobTypeMeta = kmeta.TypeMeta{
@@ -107,6 +106,7 @@ func (c *Client) GetJob(name string) (*kbatch.Job, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	job.TypeMeta = _jobTypeMeta
 	return job, nil
 }
 
@@ -129,12 +129,15 @@ func (c *Client) ListJobs(opts *kmeta.ListOptions) ([]kbatch.Job, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	for i := range jobList.Items {
+		jobList.Items[i].TypeMeta = _jobTypeMeta
+	}
 	return jobList.Items, nil
 }
 
-func (c *Client) ListJobsByLabels(labelSelector map[string]string) ([]kbatch.Job, error) {
+func (c *Client) ListJobsByLabels(labels map[string]string) ([]kbatch.Job, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListJobs(opts)
 }

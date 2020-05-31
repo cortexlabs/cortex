@@ -20,11 +20,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	kschema "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -187,9 +186,9 @@ func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]kunstructured.U
 	return vsList.Items, nil
 }
 
-func (c *Client) ListVirtualServicesByLabels(labelSelector map[string]string) ([]kunstructured.Unstructured, error) {
+func (c *Client) ListVirtualServicesByLabels(labels map[string]string) ([]kunstructured.Unstructured, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListVirtualServices(opts)
 }

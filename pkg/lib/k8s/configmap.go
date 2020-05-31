@@ -18,11 +18,10 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 var _configMapTypeMeta = kmeta.TypeMeta{
@@ -87,6 +86,7 @@ func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	configMap.TypeMeta = _configMapTypeMeta
 	return configMap, nil
 }
 
@@ -120,12 +120,15 @@ func (c *Client) ListConfigMaps(opts *kmeta.ListOptions) ([]kcore.ConfigMap, err
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	for i := range configMapList.Items {
+		configMapList.Items[i].TypeMeta = _configMapTypeMeta
+	}
 	return configMapList.Items, nil
 }
 
-func (c *Client) ListConfigMapsByLabels(labelSelector map[string]string) ([]kcore.ConfigMap, error) {
+func (c *Client) ListConfigMapsByLabels(labels map[string]string) ([]kcore.ConfigMap, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListConfigMaps(opts)
 }

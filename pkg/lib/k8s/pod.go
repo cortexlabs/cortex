@@ -23,11 +23,10 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	kscheme "k8s.io/client-go/kubernetes/scheme"
 	kremotecommand "k8s.io/client-go/tools/remotecommand"
 )
@@ -273,6 +272,7 @@ func (c *Client) GetPod(name string) (*kcore.Pod, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	pod.TypeMeta = _podTypeMeta
 	return pod, nil
 }
 
@@ -295,12 +295,15 @@ func (c *Client) ListPods(opts *kmeta.ListOptions) ([]kcore.Pod, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	for i := range podList.Items {
+		podList.Items[i].TypeMeta = _podTypeMeta
+	}
 	return podList.Items, nil
 }
 
-func (c *Client) ListPodsByLabels(labelSelector map[string]string) ([]kcore.Pod, error) {
+func (c *Client) ListPodsByLabels(labels map[string]string) ([]kcore.Pod, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelSelector).String(),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListPods(opts)
 }
