@@ -177,7 +177,9 @@ Cortex can automatically provision infrastructure on your AWS account and deploy
 $ cortex cluster up
 ```
 
-You can deploy the model using the same code and configuration to your cluster:
+This creates a Cortex cluster in your AWS account, and will take approximately 15 minutes. Additional information about your cluster is shown on the command line.
+
+After your cluster is created, you can deploy your model to your cluster by using the same code and configuration as before:
 
 ```bash
 $ cortex deploy --env aws
@@ -185,9 +187,17 @@ $ cortex deploy --env aws
 creating iris-classifier
 ```
 
-<br>
+You can then get your API's endpoint (along with other useful information about your API) with the `cortex get` command:
 
-## Serve predictions in production
+```bash
+$ cortex get iris-classifier --env aws
+
+...
+endpoint: http://***.amazonaws.com/iris-classifier
+...
+```
+
+Then, to serve predictions from AWS:
 
 ```bash
 $ curl http://***.amazonaws.com/iris-classifier \
