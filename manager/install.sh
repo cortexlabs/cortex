@@ -235,7 +235,7 @@ function main() {
     api_id=$(aws apigatewayv2 create-api --tags $CORTEX_TAGS --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP |jq .ApiId | tr -d '"')
     # create default stage, redirection because of possible bug in create-api. create-api should create default stage but doesn't
     # so it needs to be created manually, if fixed sometime this will ConflictException so redirection
-    aws apigatewayv2 create-stage --region $CORTEX_REGION --api-id $api_id  --auto-deploy --stage-name \$default > /dev/null
+    aws apigatewayv2 create-stage --region $CORTEX_REGION  --tags $CORTEX_TAGS --api-id $api_id  --auto-deploy --stage-name \$default > /dev/null
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
       # add integration to api gateway if internal facing loadbalancer
       python create_gateway_integration.py $api_id $vpc_link_id $CORTEX_REGION
