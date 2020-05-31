@@ -28,14 +28,6 @@ operator_endpoint=$(get_operator_endpoint)
 
 echo -e "deleting API Gateway ...\n"
 
-#api_id is set during creating of API
-aws apigatewayv2 delete-api --region $CORTEX_REGION --api-id $API_ID
-if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-      aws apigatewayv2 delete-vpc-link  --region $CORTEX_REGION --vpc-link-id $VPC_LINK_ID
-fi
-
-
-
 echo -e "spinning down the cluster ...\n"
 
 eksctl delete cluster --wait --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT

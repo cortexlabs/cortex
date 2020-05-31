@@ -18,6 +18,7 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/service/acm"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -42,6 +43,7 @@ type clients struct {
 	autoscaling    *autoscaling.AutoScaling
 	cloudWatchLogs *cloudwatchlogs.CloudWatchLogs
 	cloudWatch     *cloudwatch.CloudWatch
+	apiGatewayv2   *apigatewayv2.ApiGatewayV2
 	serviceQuotas  *servicequotas.ServiceQuotas
 	cloudFormation *cloudformation.CloudFormation
 	iam            *iam.IAM
@@ -122,6 +124,13 @@ func (c *Client) CloudWatch() *cloudwatch.CloudWatch {
 		c.clients.cloudWatch = cloudwatch.New(c.sess)
 	}
 	return c.clients.cloudWatch
+}
+
+func (c *Client) APIGatewayv2() *apigatewayv2.ApiGatewayV2 {
+	if c.clients.apiGatewayv2 == nil {
+		c.clients.apiGatewayv2 = apigatewayv2.New(c.sess)
+	}
+	return c.clients.apiGatewayv2
 }
 
 func (c *Client) ServiceQuotas() *servicequotas.ServiceQuotas {

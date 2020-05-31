@@ -172,8 +172,7 @@ function main() {
       #get default security group for cortex VPC
       default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
       #create VPC LINK 
-      vpc_link_id=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME  --subnet-ids $private_subnets --security-group-ids $default_security_group | jq .VpcLinkId | tr -d '"')
-      export VPC_LINK_ID=vpc_link_id
+      vpc_link_id=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags $CORTEX_TAGS --name $CORTEX_CLUSTER_NAME  --subnet-ids $private_subnets --security-group-ids $default_security_group | jq .VpcLinkId | tr -d '"')
     fi
   fi
 
@@ -232,10 +231,9 @@ function main() {
   fi
 
   if [ "$arg1" != "--update" ]; then
-    api_id=$(aws apigatewayv2 create-api  --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP |jq .ApiId )
-    export API_ID=api_id
+    api_id=$(aws apigatewayv2 create-api --tags $CORTEX_TAGS --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP |jq .ApiId | tr -d '"')
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-      python create_gateway_integration.py $API_ID $VPC_LINK_ID
+      python create_gateway_integration.py $api_id $vpc_link_id $CORTEX_REGION
     fi
   fi
 
