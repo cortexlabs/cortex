@@ -302,6 +302,18 @@ var _downCmd = &cobra.Command{
 		}
 		warnIfNotAdmin(awsClient)
 
+		// delete API gateway if exists
+		err = awsClient.DelteAPIGateway(*accessConfig.ClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		// delete VPC Link if exists
+		err = awsClient.DeleteVPCLink(*accessConfig.ClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {

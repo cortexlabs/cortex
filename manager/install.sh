@@ -231,10 +231,11 @@ function main() {
   fi
 
   if [ "$arg1" != "--update" ]; then
+    # create new API Gateway
     api_id=$(aws apigatewayv2 create-api --tags $CORTEX_TAGS --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP |jq .ApiId | tr -d '"')
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+      # add integration to api gateway if internal facing loadbalancer
       python create_gateway_integration.py $api_id $vpc_link_id $CORTEX_REGION
-    fi
   fi
 
   echo -n "￮ configuring cli "
