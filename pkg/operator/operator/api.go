@@ -62,6 +62,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err != nil {
 			errors.PrintError(err)
 		}
+		addAPItoAPIGateway(config.Cluster.APILoadBalancerScheme, api.Networking.APIGateway, api.Name)
+		if err != nil {
+			errors.PrintError(err)
+		}
+
 		return api, fmt.Sprintf("creating %s", api.Name), nil
 	}
 

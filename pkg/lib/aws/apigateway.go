@@ -63,6 +63,52 @@ func (c *Client) GetAPIGatewayID(clusterName string) (string, error) {
 
 }
 
+// GetIntegrationID gets the ID of the created integration for the internal ELB
+func (c *Client) GetIntegrationID(apiID string) (string, error) {
+
+	integrations, err := c.APIGatewayv2().GetIntegrations(&apigatewayv2.GetIntegrationsInput{
+		ApiId: &apiID,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get integrations")
+	}
+	// check that there is at least one integration. There should only be one
+	if len(integrations.Items) > 0 {
+		integrationID := *integrations.Items[0].IntegrationId
+
+		return integrationID, nil
+	}
+
+	return "", fmt.Errorf("no integration found for API with ID: %v", apiID)
+
+}
+
+// CreateRouteWithIntegration creates a new route and attaches the route to the integration
+func (c *Client) CreateRouteWithIntegration(apiName string, clusterName string) error {
+
+	apiID, err := c.GetAPIGatewayID(clusterName)
+	if err != nil {
+		return err
+	}
+
+	integrationID, err := c.GetIntegrationID(apiID)
+	if err != nil {
+		return err
+	}
+
+	route := "ANY /" + apiName
+	target := "integrations/" + integrationID
+	_, err = c.APIGatewayv2().CreateRoute(&apigatewayv2.CreateRouteInput{
+		ApiId:    &apiID,
+		RouteKey: &route,
+		Target:   &target,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to create route /%v for api with ID:", apiName, apiID)
+	}
+	return nil
+}
+
 // DoesAPIGatewayExist check if an API Gateway exists
 func (c *Client) DoesAPIGatewayExist(clusterName string) (bool, error) {
 
