@@ -139,19 +139,6 @@ func Mem(mem string) kresource.Quantity {
 	return kresource.MustParse(mem)
 }
 
-func LabelSelector(labels map[string]string) string {
-	if len(labels) == 0 {
-		return ""
-	}
-
-	terms := make([]string, 0, len(labels))
-	for key, value := range labels {
-		terms = append(terms, key+"="+value)
-	}
-
-	return strings.Join(terms, ",")
-}
-
 func LabelExistsSelector(labelKeys ...string) string {
 	if len(labelKeys) == 0 {
 		return ""

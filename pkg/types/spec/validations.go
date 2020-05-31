@@ -419,7 +419,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://www.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 		api.Index = i
 		api.FilePath = filePath
