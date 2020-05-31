@@ -35,6 +35,7 @@ type API struct {
 	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
+	Networking     *Networking     `json:"networking" yaml:"networking"`
 	Compute        *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
@@ -58,6 +59,10 @@ type Predictor struct {
 type Monitoring struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
+}
+
+type Networking struct {
+	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
 }
 
 type Compute struct {
@@ -274,6 +279,11 @@ func (api *API) UserStr(provider types.ProviderType) string {
 			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
 		}
 
+		if api.Networking != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
+			sb.WriteString(s.Indent(api.Networking.UserStr(), "  "))
+		}
+
 		if api.Autoscaling != nil {
 			sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
 			sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
@@ -323,6 +333,12 @@ func (monitoring *Monitoring) UserStr() string {
 	if monitoring.Key != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *monitoring.Key))
 	}
+	return sb.String()
+}
+
+func (networking *Networking) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
 	return sb.String()
 }
 

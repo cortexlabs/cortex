@@ -73,6 +73,7 @@ func apiValidation(provider types.ProviderType) *cr.StructValidation {
 			},
 			predictorValidation(),
 			monitoringValidation(),
+			networkingValidation(),
 			computeValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
@@ -177,6 +178,26 @@ func monitoringValidation() *cr.StructFieldValidation {
 					},
 					Parser: func(str string) (interface{}, error) {
 						return userconfig.ModelTypeFromString(str), nil
+					},
+				},
+			},
+		},
+	}
+}
+
+func networkingValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Networking",
+		StructValidation: &cr.StructValidation{
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "APIGateway",
+					StringValidation: &cr.StringValidation{
+						AllowedValues: userconfig.APIGatewayTypeStrings(),
+						Default:       userconfig.PublicAPIGatewayType.String(),
+					},
+					Parser: func(str string) (interface{}, error) {
+						return userconfig.APIGatewayTypeFromString(str), nil
 					},
 				},
 			},

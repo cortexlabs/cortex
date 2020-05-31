@@ -23,6 +23,7 @@ const (
 	LocalPortKey      = "local_port"
 	PredictorKey      = "predictor"
 	MonitoringKey     = "monitoring"
+	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"
 	UpdateStrategyKey = "update_strategy"
@@ -41,6 +42,9 @@ const (
 	// Monitoring
 	KeyKey       = "key"
 	ModelTypeKey = "model_type"
+
+	// Networking
+	APIGatewayKey = "api_gateway"
 
 	// Compute
 	CPUKey = "cpu"
