@@ -64,7 +64,7 @@ func (c *Client) GetAPIGatewayID(clusterName string) (string, error) {
 }
 
 // DoesAPIGatewayExist check if an API Gateway exists
-func doesAPIGatewayExist(clusterName string) (bool, error) {
+func (c *Client) DoesAPIGatewayExist(clusterName string) (bool, error) {
 
 	apiID, err := c.GetAPIGatewayID(clusterName)
 	if err != nil {
@@ -78,7 +78,7 @@ func doesAPIGatewayExist(clusterName string) (bool, error) {
 }
 
 // DoesVPCLinkExist check if a vpc link exists
-func doesVPCLinkExist(clusterName string) (bool, error) {
+func (c *Client) DoesVPCLinkExist(clusterName string) (bool, error) {
 
 	vpcLinkID, err := c.GetVpcLinkID(clusterName)
 	if err != nil {
@@ -95,7 +95,7 @@ func doesVPCLinkExist(clusterName string) (bool, error) {
 func (c *Client) DeleteVPCLink(clusterName string) error {
 
 	// first check if VPC Link exists
-	vpcLinkExists, err := doesVPCLinkExist(clusterName)
+	vpcLinkExists, err := c.DoesVPCLinkExist(clusterName)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (c *Client) DeleteVPCLink(clusterName string) error {
 		return nil
 	}
 
-	// vpc link exists and gets deleted by vpc link ID
+	// vpc link exists and gets deleted by vpc link
 	vpcLinkID, err := c.GetVpcLinkID(clusterName)
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func (c *Client) DeleteVPCLink(clusterName string) error {
 func (c *Client) DelteAPIGateway(clusterName string) error {
 
 	// first check if API Gateway exists
-	apiExists, err := doesAPIGatewayExist(clusterName)
+	apiExists, err := c.DoesAPIGatewayExist(clusterName)
 	if err != nil {
 		return err
 	}
