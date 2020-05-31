@@ -22,6 +22,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 var _jobTypeMeta = kmeta.TypeMeta{
@@ -136,7 +137,7 @@ func (c *Client) ListJobs(opts *kmeta.ListOptions) ([]kbatch.Job, error) {
 
 func (c *Client) ListJobsByLabels(labels map[string]string) ([]kbatch.Job, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListJobs(opts)
 }
