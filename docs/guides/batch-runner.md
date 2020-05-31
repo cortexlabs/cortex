@@ -40,7 +40,7 @@ class PythonPredictor:
         # If you have changed these values, the number of replicas created will be equal to max_workers / target_replica_concurrency
         # (note that the default value of target_replica_concurrency is workers_per_replica * threads_per_worker).
         # If max_workers starts to get large, you will also want to set the inference API's max_replica_concurrency to avoid long and imbalanced queue lengths
-        # Here are the autoscaling docs: https://www.cortex.dev/deployments/autoscaling
+        # Here are the autoscaling docs: https://docs.cortex.dev/deployments/autoscaling
         with ThreadPoolExecutor(max_workers=5) as executor:
             results = executor.map(self.make_request, batches)
 

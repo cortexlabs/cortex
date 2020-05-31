@@ -54,11 +54,11 @@ subnet_visibility: public  # must be "public" or "private"
 nat_gateway: none  # must be "none", "single", or "highly_available" (highly_available means one NAT gateway per availability zone)
 
 # whether the API load balancer should be internet-facing or internal (default: "internet-facing")
-# note: if using "internal", you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see www.cortex.dev/guides/vpc-peering or www.cortex.dev/guides/api-gateway)
+# note: if using "internal", you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see https://docs.cortex.dev/guides/vpc-peering or https://docs.cortex.dev/guides/api-gateway)
 api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # whether the operator load balancer should be internet-facing or internal (default: "internet-facing")
-# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)
+# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/guides/vpc-peering)
 operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # CloudWatch log group for cortex (default: <cluster_name>)
@@ -68,10 +68,10 @@ log_group: cortex
 tags:  # <string>: <string> map of key/value pairs
 
 # whether to use spot instances in the cluster (default: false)
-# see https://cortex.dev/v/0.17/cluster-management/spot-instances for additional details on spot configuration
+# see https://docs.cortex.dev/v/0.17/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 
-# see https://cortex.dev/v/0.17/guides/subdomain-https-setup for instructions on how to set up HTTPS for APIs
+# see https://docs.cortex.dev/v/0.17/guides/subdomain-https-setup for instructions on how to set up HTTPS for APIs
 ssl_certificate_arn:  # if empty, APIs will still be accessible via HTTPS (in addition to HTTP), but will not use a trusted certificate
 ```
 
