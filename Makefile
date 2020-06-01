@@ -20,10 +20,12 @@ SHELL := /bin/bash
 
 # Cortex
 
+# build cli, start local operator, and watch for changes
 devstart:
 	@$(MAKE) operator-stop || true
 	@./dev/operator_local.sh || true
 
+# configure kubectl to point to the cluster specified in dev/config/cluster.yaml
 kubectl:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
@@ -70,12 +72,12 @@ cluster-configure-y:
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure --yes
 
+# stop the in-cluster operator
 operator-stop:
 	@$(MAKE) kubectl
 	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
 
 # Docker images
-
 registry-all:
 	@./dev/registry.sh update all
 registry-all-local:
