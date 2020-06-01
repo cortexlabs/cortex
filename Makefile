@@ -30,27 +30,27 @@ kubectl:
 cluster-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
 cluster-up-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster up --yes
 	@$(MAKE) kubectl
 
 cluster-down:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster down
 
 cluster-down-y:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster down --yes
 
 cluster-info:
@@ -61,13 +61,13 @@ cluster-info:
 cluster-configure:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure
 
 cluster-configure-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure --yes
 
 operator-stop:
@@ -123,21 +123,18 @@ manager-local:
 .PHONY: cli
 cli:
 	@mkdir -p ./bin
-	@go build -o ./bin/cortex ./cli
+	@GOARCH=amd64 CGO_ENABLED=0 go build -o ./bin/cortex ./cli
 
 cli-watch:
-	@clear && echo "building cli..."
-	@$(MAKE) cli
-	@clear && echo -e "\033[1;32mCLI built\033[0m"
-	@watchmedo shell-command --command='clear && echo "rebuilding cli..." && go build -o ./bin/cortex ./cli && clear && echo "\033[1;32mCLI built\033[0m"' --patterns '*.go;*.yaml' --recursive --drop ./pkg ./cli
+	@rerun -watch ./pkg ./cli -ignore ./vendor ./bin -run sh -c "go build -installsuffix cgo -o ./bin/cortex ./cli && echo 'CLI built.'"
 
 aws-clear-bucket:
 	@./dev/aws.sh clear-bucket
 
 tools:
 	@go get -u -v golang.org/x/lint/golint
-	@python3 -m pip install black watchdog argh pyyaml
-	@echo -e "\nyou may also wish to install libyaml (via \`brew install libyaml\` or \`sudo apt install libyaml-dev\`)"
+	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
+	@pip3 install black
 
 format:
 	@./dev/format.sh
