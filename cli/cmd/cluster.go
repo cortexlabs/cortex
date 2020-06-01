@@ -305,13 +305,13 @@ var _downCmd = &cobra.Command{
 		// delete API gateway if exists
 		err = awsClient.DelteAPIGateway(*accessConfig.ClusterName)
 		if err != nil {
-			exit.Error(err)
+			errors.PrintError(err)
 		}
 
 		// delete VPC Link if exists
 		err = awsClient.DeleteVPCLink(*accessConfig.ClusterName)
 		if err != nil {
-			exit.Error(err)
+			errors.PrintError(err)
 		}
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)

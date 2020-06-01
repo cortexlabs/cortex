@@ -17,24 +17,22 @@ limitations under the License.
 package operator
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, apiNetworking userconfig.APIGatewayType, apiEndpoint string) error {
+func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
 	// internal facing API loadbalancer
 	if loadBalancerScheme.String() == "internal" {
 		// API should be exposed to public with API gateway
-		if apiNetworking.String() == "public" {
+		if api.Networking.APIGateway.String() == "public" {
 			integrationID, err := config.AWS.GetIntegrationIDInternal(config.Cluster.ClusterName)
 			if err != nil {
 				return err
 			}
-			err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, apiEndpoint)
+			err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, *api.Endpoint)
 			if err != nil {
 				return err
 			}
@@ -42,17 +40,16 @@ func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api
 	}
 	// public facing API loadbalancer
 	if loadBalancerScheme.String() == "internet-facing" {
-		endpointURL, err := APIsBaseURL()
+		endpointURL, err := APIsInternalBaseURL()
 		if err != nil {
 			return err
 		}
-		endpointURL = urls.Join(endpointURL, apiEndpoint)
-		fmt.Println(endpointURL)
+		endpointURL = urls.Join(endpointURL, *api.Endpoint)
 		integrationID, err := config.AWS.CreateHTTPIntegration(config.Cluster.ClusterName, endpointURL)
 		if err != nil {
 			return err
 		}
-		err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, apiEndpoint)
+		err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, *api.Endpoint)
 		if err != nil {
 			return err
 		}

@@ -73,7 +73,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseURL, err := operator.APIsBaseURL1(api)
+	baseURL, err := operator.APIsBaseURL(api)
 	if err != nil {
 		respondError(w, r, err)
 		return
