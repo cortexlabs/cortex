@@ -138,7 +138,12 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
-	err := parallel.RunFirstErr(
+	api, err := GetSpecFromAPIName(apiName)
+	if err != nil {
+		errors.PrintError(err)
+		return nil
+	}
+	err = parallel.RunFirstErr(
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -169,8 +174,9 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			return nil
 		},
+		// remove API resource from API gateway
 		func() error {
-			err := removeAPIfromAPIGateway(config.Cluster.APILoadBalancerScheme, apiName)
+			err = removeAPIfromAPIGateway(config.Cluster.APILoadBalancerScheme, api)
 			if err != nil {
 				errors.PrintError(err)
 				return nil
@@ -408,6 +414,26 @@ func APIsInternalBaseURL() (string, error) {
 		return "", ErrorLoadBalancerInitializing()
 	}
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+}
+
+// GetSpecFromAPIName return spec.API from API name
+func GetSpecFromAPIName(apiName string) (*spec.API, error) {
+	statuses, err := GetAllStatuses()
+	if err != nil {
+		errors.PrintError(err, "failed to get API Statuses")
+		return nil, err
+	}
+	// find API with apiName and DownloadAPISpec
+	for _, stat := range statuses {
+		if stat.APIName == apiName {
+			specAPI, err := DownloadAPISpec(apiName, stat.APIID)
+			if err != nil {
+				return nil, err
+			}
+			return specAPI, nil
+		}
+	}
+	return nil, fmt.Errorf("not able to find API %v", apiName)
 }
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {

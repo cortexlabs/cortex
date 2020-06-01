@@ -40,44 +40,49 @@ func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api
 	}
 	// public facing API loadbalancer
 	if loadBalancerScheme.String() == "internet-facing" {
-		endpointURL, err := APIsInternalBaseURL()
-		if err != nil {
-			return err
-		}
-		endpointURL = urls.Join(endpointURL, *api.Endpoint)
-		integrationID, err := config.AWS.CreateHTTPIntegration(config.Cluster.ClusterName, endpointURL)
-		if err != nil {
-			return err
-		}
-		err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, *api.Endpoint)
-		if err != nil {
-			return err
+		if api.Networking.APIGateway.String() == "public" {
+			endpointURL, err := APIsInternalBaseURL()
+			if err != nil {
+				return err
+			}
+			endpointURL = urls.Join(endpointURL, *api.Endpoint)
+			integrationID, err := config.AWS.CreateHTTPIntegration(config.Cluster.ClusterName, endpointURL)
+			if err != nil {
+				return err
+			}
+			err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, *api.Endpoint)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func removeAPIfromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, apiEndpoint string) error {
+func removeAPIfromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
 	if loadBalancerScheme.String() == "internal" {
-		err := config.AWS.DeleteAPIGatewayRoute(config.Cluster.ClusterName, apiEndpoint)
-		if err != nil {
-			return err
+		if api.Networking.APIGateway.String() == "public" {
+			err := config.AWS.DeleteAPIGatewayRoute(config.Cluster.ClusterName, *api.Endpoint)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if loadBalancerScheme.String() == "internet-facing" {
-		integrationID, err := config.AWS.GetIntegrationIDofRoute(config.Cluster.ClusterName, apiEndpoint)
-		if err != nil {
-			return err
+		if api.Networking.APIGateway.String() == "public" {
+			integrationID, err := config.AWS.GetIntegrationIDofRoute(config.Cluster.ClusterName, *api.Endpoint)
+			if err != nil {
+				return err
+			}
+			err = config.AWS.DeleteAPIGatewayRoute(config.Cluster.ClusterName, *api.Endpoint)
+			if err != nil {
+				return err
+			}
+			err = config.AWS.DeleteIntegration(config.Cluster.ClusterName, integrationID)
+			if err != nil {
+				return err
+			}
 		}
-		err = config.AWS.DeleteAPIGatewayRoute(config.Cluster.ClusterName, apiEndpoint)
-		if err != nil {
-			return err
-		}
-		err = config.AWS.DeleteIntegration(config.Cluster.ClusterName, integrationID)
-		if err != nil {
-			return err
-		}
-
 	}
 	return nil
 }
