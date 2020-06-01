@@ -10,7 +10,7 @@
       - name: iris
         model: s3://cortex-examples/tensorflow/iris-classifier/nn
       - name: resnet50
-        model: ~/sandbox/feature/multi-model-endpoint/inferentia-models/tensorflow/resnet50
+        model: s3://cortex-cluster-robertlucian-us-east-1/tensorflow/resnet50
     config:
       models:
         iris:
@@ -24,3 +24,5 @@
           input_key: images
           output_key: classes
       image-classifier-classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+  compute:
+    mem: 2G

@@ -50,6 +50,7 @@ const (
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 	_tfServingHost                         = "localhost"
+	_tfServingEmptyModelConfig             = "/etc/tfs/model_config_server.conf"
 	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
 	_apiReadinessFile                      = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                       = "/mnt/workspace/api_liveness.txt"
@@ -195,7 +196,7 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 						ImagePullPolicy: kcore.PullAlways,
 						Args: []string{
 							"--port=" + _tfServingPortStr,
-							"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
+							"--model_config_file=" + _tfServingEmptyModelConfig,
 						},
 						Env:          getEnvVars(api),
 						EnvFrom:      _baseEnvVars,
@@ -237,8 +238,6 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 }
 
 func tfDownloadArgs(api *spec.API) string {
-	tensorflowModel := *api.Predictor.Model
-
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
@@ -250,14 +249,18 @@ func tfDownloadArgs(api *spec.API) string {
 				HideFromLog:      true,
 				HideUnzippingLog: true,
 			},
-			{
-				From:                 tensorflowModel,
-				To:                   path.Join(_emptyDirMountPath, "model"),
-				Unzip:                strings.HasSuffix(tensorflowModel, ".zip"),
-				ItemName:             "the model",
-				TFModelVersionRename: path.Join(_emptyDirMountPath, "model", "1"),
-			},
 		},
+	}
+
+	rootModelPath := path.Join(_emptyDirMountPath, "model")
+	for _, model := range api.Predictor.Models {
+		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
+			From:                 model.Model,
+			To:                   path.Join(rootModelPath, model.Name),
+			Unzip:                strings.HasSuffix(model.Model, ".zip"),
+			ItemName:             fmt.Sprintf("model %s", model.Name),
+			TFModelVersionRename: path.Join(rootModelPath, model.Name, "1"),
+		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
@@ -484,12 +487,16 @@ func onnxDownloadArgs(api *spec.API) string {
 				HideFromLog:      true,
 				HideUnzippingLog: true,
 			},
-			{
-				From:     *api.Predictor.Model,
-				To:       path.Join(_emptyDirMountPath, "model"),
-				ItemName: "the model",
-			},
 		},
+	}
+
+	rootModelPath := path.Join(_emptyDirMountPath, "model")
+	for _, model := range api.Predictor.Models {
+		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
+			From:     model.Model,
+			To:       path.Join(rootModelPath, model.Name),
+			ItemName: fmt.Sprintf("model %s", model.Name),
+		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
