@@ -170,6 +170,14 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			return nil
 		},
+		func() error {
+			err := removeAPIfromAPIGateway(config.Cluster.APILoadBalancerScheme, apiName)
+			if err != nil {
+				errors.PrintError(err)
+				return nil
+			}
+			return nil
+		},
 	)
 
 	if err != nil {

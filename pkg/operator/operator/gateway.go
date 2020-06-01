@@ -35,5 +35,17 @@ func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api
 	}
 
 	return nil
+}
 
+func removeAPIfromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, apiName string) error {
+
+	if loadBalancerScheme.String() == "internal" {
+		err := config.AWS.DeleteAPIGatewayRoute(apiName, config.Cluster.ClusterName)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
 }

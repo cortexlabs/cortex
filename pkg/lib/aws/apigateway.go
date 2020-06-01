@@ -96,6 +96,7 @@ func (c *Client) CreateRouteWithIntegration(apiName string, clusterName string) 
 		return err
 	}
 
+	// create route key which includes method and path to ressource
 	route := "ANY /" + apiName
 	target := "integrations/" + integrationID
 	_, err = c.APIGatewayv2().CreateRoute(&apigatewayv2.CreateRouteInput{
@@ -107,6 +108,49 @@ func (c *Client) CreateRouteWithIntegration(apiName string, clusterName string) 
 		return errors.Wrap(err, "failed to create route /%v for api with ID:", apiName, apiID)
 	}
 	return nil
+}
+
+// DeleteAPIGatewayRoute deletes route from API Gateway
+func (c *Client) DeleteAPIGatewayRoute(apiName string, clusterName string) error {
+
+	apiID, err := c.GetAPIGatewayID(clusterName)
+	if err != nil {
+		return err
+	}
+
+	routeID, err := c.GetRouteID(apiID, apiName)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.APIGatewayv2().DeleteRoute(&apigatewayv2.DeleteRouteInput{
+		ApiId:   &apiID,
+		RouteId: &routeID,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to delete API %v ", apiName)
+	}
+
+	return nil
+}
+
+// GetRouteID retrieves Route ID
+func (c *Client) GetRouteID(apiID string, apiName string) (string, error) {
+
+	routes, err := c.APIGatewayv2().GetRoutes(&apigatewayv2.GetRoutesInput{
+		ApiId: &apiID,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get routes for API %v with ID %v", apiName, apiID)
+	}
+	for _, route := range routes.Items {
+		if *route.RouteKey == "ANY /"+apiName {
+			return *route.RouteId, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to find route for API %v with ID %v", apiName, apiID)
+
 }
 
 // DoesAPIGatewayExist check if an API Gateway exists
@@ -162,6 +206,7 @@ func (c *Client) DeleteVPCLink(clusterName string) error {
 		return err
 	}
 	return nil
+
 }
 
 //DelteAPIGateway delete API Gateway
@@ -189,4 +234,5 @@ func (c *Client) DelteAPIGateway(clusterName string) error {
 		return err
 	}
 	return nil
+
 }
