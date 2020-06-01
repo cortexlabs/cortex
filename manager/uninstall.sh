@@ -26,8 +26,6 @@ function get_operator_endpoint() {
 }
 operator_endpoint=$(get_operator_endpoint)
 
-echo -e "deleting API Gateway ...\n"
-
 echo -e "spinning down the cluster ...\n"
 
 eksctl delete cluster --wait --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT

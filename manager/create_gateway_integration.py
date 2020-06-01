@@ -47,5 +47,5 @@ if __name__ == "__main__":
     try:
         create_gateway_intregration(api_id, vpc_link_id)
     except:
-        print("Failed to create API Gateway integration")
+        print("failed to create API Gateway integration")
         traceback.print_exc()
