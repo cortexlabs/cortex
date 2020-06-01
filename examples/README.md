@@ -22,13 +22,13 @@
 
 - [Text generation](pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
 
-- [Sentiment analysis](pytorch/sentiment-analyzer): deploy a fastai model for sentiment analysis.
+- [Sentiment analysis](pytorch/sentiment-analyzer): deploy a Hugging Face transformers model for sentiment analysis.
 
 - [Search completion](pytorch/search-completer): deploy a Facebook's RoBERTa model to complete search terms.
 
 - [Answer generation](pytorch/answer-generator): deploy Microsoft's DialoGPT model to answer questions.
 
-- [Text summarization](pytorch/text-summarizer): deploy a BERT model to summarize text.
+- [Text summarization](pytorch/text-summarizer): deploy a BART model (from Hugging Face's transformers library) to summarize text.
 
 - [Reading comprehension](pytorch/reading-comprehender): deploy an AllenNLP model for reading comprehension.
 
@@ -47,3 +47,7 @@
 - [Iris classification](sklearn/iris-classifier): deploy a model to classify iris flowers.
 
 - [MPG estimation](sklearn/mpg-estimator): deploy a linear regression model to estimate MPG.
+
+## spacy
+
+- [Entity recognizer](spacy/entity-recognizer): deploy a spacy model for named entity recognition.

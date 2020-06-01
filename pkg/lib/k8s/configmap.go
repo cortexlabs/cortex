@@ -21,6 +21,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 var _configMapTypeMeta = kmeta.TypeMeta{
@@ -127,7 +128,7 @@ func (c *Client) ListConfigMaps(opts *kmeta.ListOptions) ([]kcore.ConfigMap, err
 
 func (c *Client) ListConfigMapsByLabels(labels map[string]string) ([]kcore.ConfigMap, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListConfigMaps(opts)
 }

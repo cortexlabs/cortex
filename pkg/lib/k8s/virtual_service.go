@@ -23,6 +23,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	kschema "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -187,7 +188,7 @@ func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]kunstructured.U
 
 func (c *Client) ListVirtualServicesByLabels(labels map[string]string) ([]kunstructured.Unstructured, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListVirtualServices(opts)
 }
