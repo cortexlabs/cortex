@@ -72,6 +72,7 @@ class Predictor:
                 signature_message = "ONNX model signatures: {}".format(
                     get_name_signature_pairs(self.models)
                 )
+            cx_logger().info(signature_message)
             return client
         elif self.type == "tensorflow":
             from cortex.lib.client.tensorflow import TensorFlowClient
@@ -89,10 +90,8 @@ class Predictor:
                 signature_message = "TensorFlow model signatures: {}".format(
                     get_name_signature_pairs(self.models)
                 )
-            return client
-
-        if signature_message:
             cx_logger().info(signature_message)
+            return client
 
         return None
 

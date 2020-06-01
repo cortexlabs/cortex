@@ -67,12 +67,12 @@ class ONNXClient:
             )
 
     @property
-    def session(self):
-        return self._session
+    def sessions(self):
+        return self._sessions
 
     @property
-    def input_signature(self):
-        return self._input_signature
+    def input_signatures(self):
+        return self._input_signatures
 
 
 # https://github.com/microsoft/onnxruntime/blob/v0.4.0/onnxruntime/python/onnxruntime_pybind_mlvalue.cc

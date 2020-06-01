@@ -86,8 +86,11 @@ class TensorFlowClient:
         return self._stub
 
     @property
-    def input_signature(self):
-        return self._input_signature
+    def input_signatures(self):
+        input_signatures = {}
+        for name, sign in zip(self._model_names, self._input_signatures):
+            input_signatures[name] = sign
+        return input_signatures
 
 
 DTYPE_TO_TF_TYPE = {
