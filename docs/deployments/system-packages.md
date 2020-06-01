@@ -57,7 +57,7 @@ Cortex's base Docker images are listed below. Depending on the Cortex Predictor 
 
 Note: the images listed above use the `-slim` suffix; Cortex's default API images are not `-slim`, since they have additional dependencies installed to cover common use cases. If you are building your own Docker image, starting with a `-slim` Predictor image will result in a smaller image size.
 
-The sample Dockerfile below inherits from Cortex's Python CPU serving image, and installs 3 packages. One of them is a system package and the other 2 are Python packages: `tree`, `pandas`, `rdkit`.
+The sample Dockerfile below inherits from Cortex's Python CPU serving image, and installs 3 packages. `tree` is a system package and `pandas` and `rdkit` are Python packages.
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```dockerfile
