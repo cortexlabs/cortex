@@ -48,12 +48,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseURL, err := operator.APIsBaseURL()
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
 	projectBytes, err := files.ReadReqFile(r, "project.zip")
 	if err != nil {
 		respondError(w, r, err)
@@ -108,6 +102,5 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	respond(w, schema.DeployResponse{
 		Results: results,
-		BaseURL: baseURL,
 	})
 }
