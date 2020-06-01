@@ -187,7 +187,7 @@ $ cortex deploy --env aws
 creating iris-classifier
 ```
 
-You can then get your API's endpoint (along with other useful information about your API) with the `cortex get` command:
+You can then get your API's endpoint (along with other useful information about your API) using the `cortex get` command:
 
 ```bash
 $ cortex get iris-classifier --env aws
@@ -197,7 +197,7 @@ endpoint: http://***.amazonaws.com/iris-classifier
 ...
 ```
 
-Then, to serve predictions from AWS:
+Then, to make requests to your prediction API on AWS:
 
 ```bash
 $ curl http://***.amazonaws.com/iris-classifier \
