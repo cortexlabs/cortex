@@ -62,7 +62,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err != nil {
 			errors.PrintError(err)
 		}
-		addAPItoAPIGateway(config.Cluster.APILoadBalancerScheme, api.Networking.APIGateway, api.Name)
+		addAPItoAPIGateway(config.Cluster.APILoadBalancerScheme, api.Networking.APIGateway, *api.Endpoint)
 		if err != nil {
 			errors.PrintError(err)
 		}
@@ -386,6 +386,32 @@ func IsAPIDeployed(apiName string) (bool, error) {
 }
 
 func APIsBaseURL() (string, error) {
+
+	service, err := config.K8sIstio.GetService("ingressgateway-apis")
+	if err != nil {
+		return "", err
+	}
+	if service == nil {
+		return "", ErrorCortexInstallationBroken()
+	}
+	if len(service.Status.LoadBalancer.Ingress) == 0 {
+		return "", ErrorLoadBalancerInitializing()
+	}
+	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+}
+
+func APIsBaseURL1(api *spec.API) (string, error) {
+
+	// return APIGateway Endpoint
+	if api.Networking.APIGateway.String() == "public" {
+		apiURL, err := config.AWS.GetAPIGatewayEndpoint(config.Cluster.ClusterName)
+		if err != nil {
+			return "", err
+		}
+		fmt.Println(apiURL)
+		return apiURL, nil
+	}
+
 	service, err := config.K8sIstio.GetService("ingressgateway-apis")
 	if err != nil {
 		return "", err

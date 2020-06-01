@@ -17,35 +17,70 @@ limitations under the License.
 package operator
 
 import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, apiNetworking userconfig.APIGatewayType, apiName string) error {
-
+func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, apiNetworking userconfig.APIGatewayType, apiEndpoint string) error {
+	// internal facing API loadbalancer
 	if loadBalancerScheme.String() == "internal" {
+		// API should be exposed to public with API gateway
 		if apiNetworking.String() == "public" {
-			err := config.AWS.CreateRouteWithIntegration(apiName, config.Cluster.ClusterName)
+			integrationID, err := config.AWS.GetIntegrationIDInternal(config.Cluster.ClusterName)
+			if err != nil {
+				return err
+			}
+			err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, apiEndpoint)
 			if err != nil {
 				return err
 			}
 		}
-
 	}
-
+	// public facing API loadbalancer
+	if loadBalancerScheme.String() == "internet-facing" {
+		endpointURL, err := APIsBaseURL()
+		if err != nil {
+			return err
+		}
+		endpointURL = urls.Join(endpointURL, apiEndpoint)
+		fmt.Println(endpointURL)
+		integrationID, err := config.AWS.CreateHTTPIntegration(config.Cluster.ClusterName, endpointURL)
+		if err != nil {
+			return err
+		}
+		err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, apiEndpoint)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func removeAPIfromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, apiName string) error {
-
+func removeAPIfromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, apiEndpoint string) error {
 	if loadBalancerScheme.String() == "internal" {
-		err := config.AWS.DeleteAPIGatewayRoute(apiName, config.Cluster.ClusterName)
+		err := config.AWS.DeleteAPIGatewayRoute(config.Cluster.ClusterName, apiEndpoint)
+		if err != nil {
+			return err
+		}
+	}
+	if loadBalancerScheme.String() == "internet-facing" {
+		integrationID, err := config.AWS.GetIntegrationIDofRoute(config.Cluster.ClusterName, apiEndpoint)
+		if err != nil {
+			return err
+		}
+		err = config.AWS.DeleteAPIGatewayRoute(config.Cluster.ClusterName, apiEndpoint)
+		if err != nil {
+			return err
+		}
+		err = config.AWS.DeleteIntegration(config.Cluster.ClusterName, integrationID)
 		if err != nil {
 			return err
 		}
 
 	}
-
 	return nil
 }
