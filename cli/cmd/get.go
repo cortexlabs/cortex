@@ -40,13 +40,18 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+
 	"github.com/spf13/cobra"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 const (
@@ -348,13 +353,30 @@ func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Me
 	var total5XX int
 
 	for i, api := range apis {
+		deploy, _ := config.K8s.GetDeployment(api.DeploymentID)
+		msg := ""
+		if deploy != nil {
+			labels := deploy.Spec.Template.GetLabels()
+			pods, _ := config.K8s.ListPods(&metav1.ListOptions{LabelSelector: klabels.SelectorFromSet(labels).String()})
+			if len(pods) >= 1 {
+				for _, pod := range pods {
+					if pod.Status.Phase != v1.PodRunning {
+						if pod.Status.ContainerStatuses[0].State.Waiting != nil {
+							msg = pod.Status.ContainerStatuses[0].State.Waiting.Reason
+							break
+						}
+					}
+				}
+			}
+		}
+
 		metrics := allMetrics[i]
 		status := statuses[i]
 		lastUpdated := time.Unix(api.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			api.Name,
-			status.Message(),
+			status.Message(msg),
 			status.Updated.Ready,
 			status.Stale.Ready,
 			status.Requested,

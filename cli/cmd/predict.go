@@ -82,7 +82,7 @@ var _predictCmd = &cobra.Command{
 
 		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
 		if totalReady == 0 {
-			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))
+			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message("")))
 		}
 
 		predictResponse, err := makePredictRequest(apiEndpoint, jsonPath)

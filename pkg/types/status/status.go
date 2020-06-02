@@ -41,7 +41,10 @@ type SubReplicaCounts struct {
 	Unknown      int32 `json:"unknown"`
 }
 
-func (status *Status) Message() string {
+func (status *Status) Message(msg string) string {
+	if msg != "" {
+		return msg
+	}
 	return status.Code.Message()
 }
 
