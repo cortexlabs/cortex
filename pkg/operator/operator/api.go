@@ -435,7 +435,7 @@ func APILoadBalancerURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-// GetSpecForRunningAPI return spec.API from API name only works for deployed APIs
+// GetSpecForRunningAPI return spec.API from API name. Only works for deployed APIs use IsAPIDeployed before to check if API is deployed
 func GetSpecForRunningAPI(apiName string) (*spec.API, error) {
 	apiID, err := getAPIIDForRunningAPI(apiName)
 	if err != nil {

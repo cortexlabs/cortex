@@ -91,7 +91,7 @@ func (c *Client) GetIntegrationIDInternal(clusterName string) (string, error) {
 	// 	return integrationID, nil
 	// }
 
-	return "", fmt.Errorf("no or too many integrations found for API with ID: %v", apiID)
+	return "", fmt.Errorf("no or too many integrations found for API with ID: \"%v\"", apiID)
 }
 
 // GetRouteID retrieves Route ID
@@ -105,7 +105,7 @@ func (c *Client) getRouteID(clusterName string, apiEndpoint string) (string, err
 		ApiId: &apiID,
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get routes for API with endpoint", apiEndpoint, " and ID", apiID)
+		return "", errors.Wrap(err, fmt.Sprintf("failed to get routes for API with endpoint \"%v\" and ID \"%v\"", apiEndpoint, apiID))
 	}
 
 	// find route which matches the endpoint
@@ -114,10 +114,10 @@ func (c *Client) getRouteID(clusterName string, apiEndpoint string) (string, err
 			return *route.RouteId, nil
 		}
 	}
-	return "", fmt.Errorf("failed to find route for API with endpoint %v and ID %v", apiEndpoint, apiID)
+	return "", fmt.Errorf("failed to find route for API with endpoint \"%v\" and ID \"%v\"", apiEndpoint, apiID)
 }
 
-// GetAPIGatewayEndpoint return URL for API Gateway endpoint
+// GetAPIGatewayEndpoint returns URL for API Gateway endpoint
 func (c *Client) GetAPIGatewayEndpoint(clusterName string) (string, error) {
 	apiID, err := c.getAPIGatewayID(clusterName)
 	if err != nil {
@@ -133,7 +133,7 @@ func (c *Client) GetAPIGatewayEndpoint(clusterName string) (string, error) {
 	return *api.ApiEndpoint, nil
 }
 
-// GetIntegrationIDofRoute return the integrationID of the integration which is attached to a endpoint route
+// GetIntegrationIDofRoute returns the integrationID of the integration which is attached to a endpoint route
 func (c *Client) GetIntegrationIDofRoute(clusterName string, apiEndpoint string) (string, error) {
 	apiID, err := c.getAPIGatewayID(clusterName)
 	if err != nil {
@@ -220,7 +220,7 @@ func (c *Client) DeleteIntegration(clusterName string, integrationID string) err
 	return nil
 }
 
-// DeleteAPIGatewayRoute deletes route from API Gateway
+// DeleteAPIGatewayRoute deletes route from API gateway
 func (c *Client) DeleteAPIGatewayRoute(clusterName string, apiEndpoint string) error {
 	apiID, err := c.getAPIGatewayID(clusterName)
 	if err != nil {
@@ -237,7 +237,7 @@ func (c *Client) DeleteAPIGatewayRoute(clusterName string, apiEndpoint string) e
 		RouteId: &routeID,
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to delete API with endpoint ", apiEndpoint)
+		return errors.Wrap(err, "failed to delete API with endpoint", apiEndpoint)
 	}
 	return nil
 }
@@ -289,7 +289,7 @@ func (c *Client) CheckIfAPIDeployed(clusterName string, apiEndpoint string) (boo
 		ApiId: &apiID,
 	})
 	if err != nil {
-		return false, errors.Wrap(err, "failed to get routes for API with endpoint", apiEndpoint, " and ID", apiID)
+		return false, errors.Wrap(err, fmt.Sprintf("failed to get routes for API with endpoint \"%v\" and ID \"%v\"", apiEndpoint, apiID))
 	}
 
 	// find route which matches the endpoint
@@ -324,12 +324,12 @@ func (c *Client) DeleteVPCLink(clusterName string) error {
 		VpcLinkId: &vpcLinkID,
 	})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to delete VPC link with ID", vpcLinkID)
 	}
 	return nil
 }
 
-//DelteAPIGateway delete API Gateway
+//DeleteAPIGateway delete API Gateway
 func (c *Client) DeleteAPIGateway(clusterName string) error {
 	// first check if API Gateway exists
 	apiExists, err := c.doesAPIGatewayExist(clusterName)
@@ -353,7 +353,7 @@ func (c *Client) DeleteAPIGateway(clusterName string) error {
 		ApiId: &apiID,
 	})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to delete API gateway with ID", apiID)
 	}
 	return nil
 }
