@@ -36,7 +36,7 @@ min_instances: 1
 # maximum number of instances (must be >= 1)
 max_instances: 5
 
-# instance volume size (GB) (default: 50)
+# disk storage size per instance (GB) (default: 50)
 instance_volume_size: 50
 
 # instance volume type [gp2, io1, st1, sc1] (default: gp2)
