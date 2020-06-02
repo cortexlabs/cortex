@@ -518,9 +518,8 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 			for idx, dim := range featureSignature.Shape {
 				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
 			}
-			if modelName != "default" {
+			if modelName == "default" {
 				rows[rowNum] = []interface{}{
-					modelName,
 					inputName,
 					featureSignature.Type,
 					"(" + strings.Join(shapeStr, ", ") + ")",
@@ -528,6 +527,7 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 				usesDefaultModel = true
 			} else {
 				rows[rowNum] = []interface{}{
+					modelName,
 					inputName,
 					featureSignature.Type,
 					"(" + strings.Join(shapeStr, ", ") + ")",
@@ -540,13 +540,13 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 	headers := []table.Header{}
 	if usesDefaultModel {
 		headers = []table.Header{
-			{Title: "model name", MaxWidth: 32},
 			{Title: "model input", MaxWidth: 32},
 			{Title: "type", MaxWidth: 10},
 			{Title: "shape", MaxWidth: 20},
 		}
 	} else {
 		headers = []table.Header{
+			{Title: "model name", MaxWidth: 32},
 			{Title: "model input", MaxWidth: 32},
 			{Title: "type", MaxWidth: 10},
 			{Title: "shape", MaxWidth: 20},
