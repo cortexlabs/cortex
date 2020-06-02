@@ -69,8 +69,9 @@ RUN apt-get update \
     && apt-get install -y tree \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install pandas \
-    && conda install conda-forge::rdkit
+RUN pip install --no-cache-dir pandas \
+    && conda install -y conda-forge::rdkit \
+    && conda clean -a
 ```
 
 ### Build and push to a container registry
