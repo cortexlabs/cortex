@@ -504,28 +504,58 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
 	}
 
-	rows := make([][]interface{}, len(apiSummary.ModelSignature))
-	rowNum := 0
-	for inputName, featureSignature := range apiSummary.ModelSignature {
-		shapeStr := make([]string, len(featureSignature.Shape))
-		for idx, dim := range featureSignature.Shape {
-			shapeStr[idx] = s.ObjFlatNoQuotes(dim)
-		}
-		rows[rowNum] = []interface{}{
-			inputName,
-			featureSignature.Type,
-			"(" + strings.Join(shapeStr, ", ") + ")",
-		}
-		rowNum++
+	numRows := 0
+	for _, modelSignatures := range apiSummary.ModelsSignatures {
+		numRows += len(modelSignatures)
 	}
 
-	t := table.Table{
-		Headers: []table.Header{
+	usesDefaultModel := false
+	rows := make([][]interface{}, numRows)
+	rowNum := 0
+	for modelName, modelSignatures := range apiSummary.ModelsSignatures {
+		for inputName, featureSignature := range modelSignatures {
+			shapeStr := make([]string, len(featureSignature.Shape))
+			for idx, dim := range featureSignature.Shape {
+				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
+			}
+			if modelName != "default" {
+				rows[rowNum] = []interface{}{
+					modelName,
+					inputName,
+					featureSignature.Type,
+					"(" + strings.Join(shapeStr, ", ") + ")",
+				}
+				usesDefaultModel = true
+			} else {
+				rows[rowNum] = []interface{}{
+					inputName,
+					featureSignature.Type,
+					"(" + strings.Join(shapeStr, ", ") + ")",
+				}
+			}
+			rowNum++
+		}
+	}
+
+	headers := []table.Header{}
+	if usesDefaultModel {
+		headers = []table.Header{
+			{Title: "model name", MaxWidth: 32},
 			{Title: "model input", MaxWidth: 32},
 			{Title: "type", MaxWidth: 10},
 			{Title: "shape", MaxWidth: 20},
-		},
-		Rows: rows,
+		}
+	} else {
+		headers = []table.Header{
+			{Title: "model input", MaxWidth: 32},
+			{Title: "type", MaxWidth: 10},
+			{Title: "shape", MaxWidth: 20},
+		}
+	}
+
+	t := table.Table{
+		Headers: headers,
+		Rows:    rows,
 	}
 
 	return t.MustFormat()
@@ -577,8 +607,10 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
 
-	for _, featureSignature := range apiSummary.ModelSignature {
-		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
+	for _, modelSignatures := range apiSummary.ModelsSignatures {
+		for _, featureSignature := range modelSignatures {
+			featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
+		}
 	}
 
 	return &apiSummary, nil

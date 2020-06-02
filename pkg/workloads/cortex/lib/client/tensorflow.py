@@ -76,7 +76,7 @@ class TensorFlowClient:
             return parse_response_proto(response_proto)
         else:
             raise UserRuntimeException(
-                "{} model wasn't found in the list of available models {}".format(
+                "'{}' model wasn't found in the list of available models {}".format(
                     model, self._model_names
                 )
             )

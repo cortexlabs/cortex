@@ -27,7 +27,7 @@ class ONNXClient:
         """Setup ONNX runtime session.
 
         Args:
-            models ([Model]): List of models deployed with TF serving container.
+            models ([Model]): List of models deployed with ONNX container.
         """
         self._model = models
         self._model_names = get_model_names(models)
@@ -61,7 +61,7 @@ class ONNXClient:
             return model_output
         else:
             raise UserRuntimeException(
-                "{} model wasn't found in the list of available models {}".format(
+                "'{}' model wasn't found in the list of available models {}".format(
                     model, self._model_names
                 )
             )

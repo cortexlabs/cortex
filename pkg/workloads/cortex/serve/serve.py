@@ -234,7 +234,7 @@ def get_summary():
     response = {"message": API_SUMMARY_MESSAGE}
 
     if hasattr(local_cache["client"], "input_signatures"):
-        response["model_signature"] = local_cache["client"].input_signatures
+        response["models_signatures"] = local_cache["client"].input_signatures
 
     return response
 
