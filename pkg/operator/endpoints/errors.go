@@ -100,7 +100,7 @@ func ErrorPathParamRequired(param string) error {
 }
 
 func ErrorAnyQueryParamRequired(param string, params ...string) error {
-	allParams := append(params, param)
+	allParams := append([]string{param}, params...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAnyQueryParamRequired,
 		Message: fmt.Sprintf("query params required: %s", s.UserStrsOr(allParams)),
@@ -108,7 +108,7 @@ func ErrorAnyQueryParamRequired(param string, params ...string) error {
 }
 
 func ErrorAnyPathParamRequired(param string, params ...string) error {
-	allParams := append(params, param)
+	allParams := append([]string{param}, params...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAnyPathParamRequired,
 		Message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),
