@@ -301,7 +301,7 @@ var _downCmd = &cobra.Command{
 		warnIfNotAdmin(awsClient)
 
 		// delete API gateway if exists
-		err = awsClient.DelteAPIGateway(*accessConfig.ClusterName)
+		err = awsClient.DeleteAPIGateway(*accessConfig.ClusterName)
 		if err != nil {
 			errors.PrintError(err)
 		}

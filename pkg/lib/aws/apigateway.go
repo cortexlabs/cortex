@@ -330,7 +330,7 @@ func (c *Client) DeleteVPCLink(clusterName string) error {
 }
 
 //DelteAPIGateway delete API Gateway
-func (c *Client) DelteAPIGateway(clusterName string) error {
+func (c *Client) DeleteAPIGateway(clusterName string) error {
 	// first check if API Gateway exists
 	apiExists, err := c.doesAPIGatewayExist(clusterName)
 	if err != nil {
