@@ -21,7 +21,7 @@ arg1=${1:-""}
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-kill $(pgrep -f make) >/dev/null 2>&1 || true
+kill $(pgrep -f rerun) >/dev/null 2>&1 || true
 
 eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yaml")
 
@@ -36,40 +36,14 @@ fi
 export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 
-clear
-mkdir -p ./bin
-
-if [ "$arg1" != "--operator-only" ]; then
-  echo "building cli..."
-  go build -o $ROOT/bin/cortex $ROOT/cli
-fi
-
-echo "building operator..."
-go build -o $ROOT/bin/operator $ROOT/pkg/operator
-
-echo "starting local operator..."
-($ROOT/bin/operator &)
-
-trap ctrl_c INT
-function ctrl_c() {
-  kill $(pgrep -f /bin/operator) >/dev/null 2>&1
-  exit 1
-}
+mkdir -p $ROOT/bin
 
 if [ "$arg1" = "--operator-only" ]; then
-  watchmedo shell-command \
-    --command='kill $(pgrep -f /bin/operator);'" clear && echo 'rebuilding operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator &" \
-    --patterns '*.go;*.yaml' \
-    --recursive \
-    --drop \
-    $ROOT/pkg $ROOT/dev/config
+  rerun -watch $ROOT/pkg $ROOT/dev/config -run sh -c \
+  "clear && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator"
 else
-  watchmedo shell-command \
-    --command='kill $(pgrep -f /bin/operator);'" clear && echo 'rebuilding cli...' && go build -o $ROOT/bin/cortex $ROOT/cli && echo 'rebuilding operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator &" \
-    --patterns '*.go;*.yaml' \
-    --recursive \
-    --drop \
-    $ROOT/cli $ROOT/pkg $ROOT/dev/config
+  rerun -watch $ROOT/pkg $ROOT/cli $ROOT/dev/config -run sh -c \
+  "clear && echo 'building cli...' && go build -o $ROOT/bin/cortex $ROOT/cli && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator"
 fi
 
 # go run -race $ROOT/pkg/operator/main.go  # Check for race conditions. Doesn't seem to catch them all?
