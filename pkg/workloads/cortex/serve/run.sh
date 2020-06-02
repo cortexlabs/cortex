@@ -45,7 +45,7 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
     py_version_cmd='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
     old_py_version=$(eval $py_version_cmd)
 
-    conda install --file /mnt/project/conda-packages.txt
+    conda install -y --file /mnt/project/conda-packages.txt
     new_py_version=$(eval $py_version_cmd)
 
     # reinstall core packages if Python version has changed
