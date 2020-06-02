@@ -138,10 +138,23 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
-	api, err := GetSpecFromAPIName(apiName)
+	isAPIDeployed, err := IsAPIDeployed(apiName)
 	if err != nil {
 		errors.PrintError(err)
 		return nil
+	}
+	// if API is deployed delete API from API Gateway
+	if isAPIDeployed {
+		api, err := GetSpecForRunningAPI(apiName)
+		if err != nil {
+			errors.PrintError(err)
+			return nil
+		}
+		err = removeAPIfromAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+		if err != nil {
+			errors.PrintError(err)
+			return nil
+		}
 	}
 	err = parallel.RunFirstErr(
 		func() error {
@@ -168,15 +181,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				allAPINames[i] = stat.APIName
 			}
 			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
-			if err != nil {
-				errors.PrintError(err)
-				return nil
-			}
-			return nil
-		},
-		// remove API resource from API gateway
-		func() error {
-			err = removeAPIfromAPIGateway(config.Cluster.APILoadBalancerScheme, api)
 			if err != nil {
 				errors.PrintError(err)
 				return nil
@@ -390,19 +394,34 @@ func IsAPIDeployed(apiName string) (bool, error) {
 	return deployment != nil, nil
 }
 
+// APIsBaseURL returns BaseURL of the API without resource endpoint
 func APIsBaseURL(api *spec.API) (string, error) {
 	// return APIGateway Endpoint
 	if api.Networking.APIGateway.String() == "public" {
-		apiURL, err := config.AWS.GetAPIGatewayEndpoint(config.Cluster.ClusterName)
+		apiURL, err := APIGatewayURL()
 		if err != nil {
 			return "", err
 		}
 		return apiURL, nil
 	}
-	return APIsInternalBaseURL()
+	apiLoadBalancerURL, err := APILoadBalancerURL()
+	if err != nil {
+		return "", err
+	}
+	return apiLoadBalancerURL, nil
 }
 
-func APIsInternalBaseURL() (string, error) {
+// APIGatewayURL returns API gateway url invokation URL
+func APIGatewayURL() (string, error) {
+	apiURL, err := config.AWS.GetAPIGatewayEndpoint(config.Cluster.ClusterName)
+	if err != nil {
+		return "", err
+	}
+	return apiURL, nil
+}
+
+// APILoadBalancerURL returns http endpoint of cluster ingress elb
+func APILoadBalancerURL() (string, error) {
 	service, err := config.K8sIstio.GetService("ingressgateway-apis")
 	if err != nil {
 		return "", err
@@ -416,24 +435,27 @@ func APIsInternalBaseURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-// GetSpecFromAPIName return spec.API from API name
-func GetSpecFromAPIName(apiName string) (*spec.API, error) {
-	statuses, err := GetAllStatuses()
+// GetSpecForRunningAPI return spec.API from API name only works for deployed APIs
+func GetSpecForRunningAPI(apiName string) (*spec.API, error) {
+	apiID, err := getAPIIDForRunningAPI(apiName)
 	if err != nil {
-		errors.PrintError(err, "failed to get API Statuses")
 		return nil, err
 	}
-	// find API with apiName and DownloadAPISpec
-	for _, stat := range statuses {
-		if stat.APIName == apiName {
-			specAPI, err := DownloadAPISpec(apiName, stat.APIID)
-			if err != nil {
-				return nil, err
-			}
-			return specAPI, nil
-		}
+	specAPI, err := DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("not able to find API %v", apiName)
+	return specAPI, nil
+}
+
+// getAPIIDForRunningAPI returns API id only works if API is deployed
+func getAPIIDForRunningAPI(apiName string) (string, error) {
+	deployments, err := config.K8s.ListDeploymentsByLabel("apiName", apiName)
+	if err != nil {
+		return "", err
+	}
+	//only one item becaue apiName is unique
+	return deployments[0].Labels["apiID"], nil
 }
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {

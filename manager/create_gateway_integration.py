@@ -1,6 +1,7 @@
 import boto3
 import sys
 import traceback
+import os
 
 
 def get_istio_api_gateway_elb_arn():
@@ -41,9 +42,8 @@ def create_gateway_intregration(api_id, vpc_link_id):
 if __name__ == "__main__":
     api_id = str(sys.argv[1])
     vpc_link_id = str(sys.argv[2])
-    region = str(sys.argv[3])
-    client_elb = boto3.client("elbv2", region_name=region)
-    client_apigateway = boto3.client("apigatewayv2", region_name=region)
+    client_elb = boto3.client("elbv2", region_name=os.environ["CORTEX_REGION"])
+    client_apigateway = boto3.client("apigatewayv2", region_name=os.environ["CORTEX_REGION"])
     try:
         create_gateway_intregration(api_id, vpc_link_id)
     except:

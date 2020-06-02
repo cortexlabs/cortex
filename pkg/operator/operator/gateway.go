@@ -24,6 +24,14 @@ import (
 )
 
 func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
+	//check if API is already deployed if already deployed skip
+	apiAlreadyExists, err := config.AWS.CheckIfAPIDeployed(config.Cluster.ClusterName, *api.Endpoint)
+	if err != nil {
+		return err
+	}
+	if apiAlreadyExists {
+		return nil
+	}
 	// internal facing API loadbalancer
 	if loadBalancerScheme.String() == "internal" {
 		// API should be exposed to public with API gateway
@@ -41,7 +49,7 @@ func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api
 	// public facing API loadbalancer
 	if loadBalancerScheme.String() == "internet-facing" {
 		if api.Networking.APIGateway.String() == "public" {
-			endpointURL, err := APIsInternalBaseURL()
+			endpointURL, err := APILoadBalancerURL()
 			if err != nil {
 				return err
 			}

@@ -238,7 +238,7 @@ function main() {
     aws apigatewayv2 create-stage --region $CORTEX_REGION  --tags $CORTEX_TAGS --api-id $api_id  --auto-deploy --stage-name \$default > /dev/null
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
       # add integration to api gateway if internal facing loadbalancer
-      python create_gateway_integration.py $api_id $vpc_link_id $CORTEX_REGION
+      python create_gateway_integration.py $api_id $vpc_link_id
     fi
   fi
 
