@@ -32,6 +32,7 @@ const (
 	ErrDuplicateName                        = "spec.duplicate_name"
 	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint                    = "spec.duplicate_endpoint"
+	ErrConflictingFields                    = "spec.conflicting_fields"
 	ErrSpecifyAllOrNone                     = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined         = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig         = "spec.config_greater_than_other_config"
@@ -50,7 +51,6 @@ const (
 	ErrDuplicateModels                      = "spec.duplicate_models"
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
-	ErrConflictingFields                    = "spec.conflicting_fields"
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
@@ -101,6 +101,13 @@ func ErrorDuplicateEndpoint(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpoint,
 		Message: fmt.Sprintf("endpoint is already being used by %s", apiName),
+	})
+}
+
+func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConflictingFields,
+		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
 	})
 }
 
@@ -247,13 +254,6 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldNotSupportedByPredictorType,
 		Message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
-	})
-}
-
-func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("cannot define fields %s and %s at the same time", fieldKeyA, fieldKeyB),
 	})
 }
 

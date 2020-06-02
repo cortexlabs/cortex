@@ -40,9 +40,7 @@ const (
 	SignatureKeyKey           = "signature_key"
 
 	// ModelResource
-	ModelsNameKey         = "name"
-	ModelsModelKey        = "model"
-	ModelsSignatureKeyKey = "signature_key"
+	ModelsNameKey = "name"
 
 	// Monitoring
 	KeyKey       = "key"

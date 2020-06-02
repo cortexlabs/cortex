@@ -344,9 +344,9 @@ func (predictor *Predictor) UserStr() string {
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsModelKey, model.Model))
+	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsKey, model.Model))
 	if model.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsSignatureKeyKey, *model.SignatureKey))
+		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
 	}
 	return sb.String()
 }

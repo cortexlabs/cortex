@@ -48,7 +48,7 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCa
 			if apiSpec.Predictor.Model != nil {
 				return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelKey)
 			}
-			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsModelKey)
+			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelKey)
 		}
 		localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
 	}
