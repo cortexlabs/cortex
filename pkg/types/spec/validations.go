@@ -134,9 +134,11 @@ func predictorValidation() *cr.StructFieldValidation {
 				{
 					StructField: "Config",
 					InterfaceMapValidation: &cr.InterfaceMapValidation{
-						StringKeysOnly: true,
-						AllowEmpty:     true,
-						Default:        map[string]interface{}{},
+						StringKeysOnly:     true,
+						AllowEmpty:         true,
+						AllowExplicitNull:  true,
+						ConvertNullToEmpty: true,
+						Default:            map[string]interface{}{},
 					},
 				},
 				{
@@ -226,10 +228,12 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 
 func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidation {
 	defaultNil := provider == types.LocalProviderType
+	allowExplicitNull := provider == types.LocalProviderType
 	return &cr.StructFieldValidation{
 		StructField: "Autoscaling",
 		StructValidation: &cr.StructValidation{
-			DefaultNil: defaultNil,
+			DefaultNil:        defaultNil,
+			AllowExplicitNull: allowExplicitNull,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "MinReplicas",
@@ -346,10 +350,12 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 
 func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValidation {
 	defaultNil := provider == types.LocalProviderType
+	allowExplicitNull := provider == types.LocalProviderType
 	return &cr.StructFieldValidation{
 		StructField: "UpdateStrategy",
 		StructValidation: &cr.StructValidation{
-			DefaultNil: defaultNil,
+			DefaultNil:        defaultNil,
+			AllowExplicitNull: allowExplicitNull,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "MaxSurge",
@@ -413,7 +419,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://www.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 		api.Index = i
 		api.FilePath = filePath

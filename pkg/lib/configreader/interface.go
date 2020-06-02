@@ -64,7 +64,7 @@ func ValidateInterfaceMissing(v *InterfaceValidation) (interface{}, error) {
 
 func ValidateInterfaceProvided(val interface{}, v *InterfaceValidation) (interface{}, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInterface(val, v)
 }

@@ -65,7 +65,7 @@ func ValidateFloat64ListMissing(v *Float64ListValidation) ([]float64, error) {
 
 func ValidateFloat64ListProvided(val []float64, v *Float64ListValidation) ([]float64, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateFloat64List(val, v)
 }

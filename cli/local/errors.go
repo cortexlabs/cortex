@@ -97,10 +97,10 @@ func ErrorInvalidTensorFlowZip() error {
 	})
 }
 
-func ErrorFailedToDeleteAPISpec(path string) error {
+func ErrorFailedToDeleteAPISpec(path string, err error) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToDeleteAPISpec,
-		Message: fmt.Sprintf("failed to delete api specification; run `sudo rm -rf %s` to cleanup", path),
+		Message: errors.Message(err) + fmt.Sprintf("\n\nfailed to delete api specification; run `sudo rm -rf %s` to clean up", path),
 	})
 }
 

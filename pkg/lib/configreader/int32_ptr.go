@@ -172,7 +172,7 @@ func ValidateInt32PtrMissing(v *Int32PtrValidation) (*int32, error) {
 
 func ValidateInt32PtrProvdied(val *int32, v *Int32PtrValidation) (*int32, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInt32Ptr(val, v)
 }

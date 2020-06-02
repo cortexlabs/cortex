@@ -289,10 +289,16 @@ func ErrorCannotSetStructField() error {
 	})
 }
 
-func ErrorCannotBeNull() error {
+func ErrorCannotBeNull(isRequired bool) error {
+	msg := "cannot be null"
+
+	if !isRequired {
+		msg = "cannot be null (specify a value, or remove the key to use the default value)"
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotBeNull,
-		Message: "cannot be null",
+		Message: msg,
 	})
 }
 
@@ -364,6 +370,6 @@ func ErrorCortexResourceNotAllowed(resourceName string) error {
 func ErrorImageVersionMismatch(image, tag, cortexVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageVersionMismatch,
-		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image registry path from your configuration file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, cortexVersion),
+		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image registry path from your configuration file (to use the default value), or update your CLI by following the instructions at https://docs.cortex.dev/install", image, tag, cortexVersion),
 	})
 }

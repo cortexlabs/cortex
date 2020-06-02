@@ -69,7 +69,7 @@ func ValidateStringListMissing(v *StringListValidation) ([]string, error) {
 
 func ValidateStringListProvided(val []string, v *StringListValidation) ([]string, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateStringList(val, v)
 }

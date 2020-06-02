@@ -43,7 +43,7 @@ func Int32(inter interface{}, v *Int32Validation) (int32, error) {
 		if v.TreatNullAsZero {
 			return ValidateInt32(0, v)
 		}
-		return 0, ErrorCannotBeNull()
+		return 0, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := cast.InterfaceToInt32(inter)
 	if !castOk {

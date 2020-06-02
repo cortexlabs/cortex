@@ -147,9 +147,9 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Tags",
 			StringMapValidation: &cr.StringMapValidation{
-				AllowExplicitNull: true,
-				AllowEmpty:        true,
-				ConvertNilToEmpty: true,
+				AllowExplicitNull:  true,
+				AllowEmpty:         true,
+				ConvertNullToEmpty: true,
 			},
 		},
 		{

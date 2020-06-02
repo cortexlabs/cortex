@@ -172,7 +172,7 @@ func ValidateFloat32PtrMissing(v *Float32PtrValidation) (*float32, error) {
 
 func ValidateFloat32PtrProvided(val *float32, v *Float32PtrValidation) (*float32, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateFloat32Ptr(val, v)
 }

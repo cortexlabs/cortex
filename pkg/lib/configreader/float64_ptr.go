@@ -172,7 +172,7 @@ func ValidateFloat64PtrMissing(v *Float64PtrValidation) (*float64, error) {
 
 func ValidateFloat64PtrProvided(val *float64, v *Float64PtrValidation) (*float64, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateFloat64Ptr(val, v)
 }
