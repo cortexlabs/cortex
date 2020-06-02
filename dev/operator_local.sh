@@ -17,6 +17,8 @@
 
 set -euo pipefail
 
+arg1=${1:-""}
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 kill $(pgrep -f rerun) >/dev/null 2>&1 || true
@@ -34,7 +36,14 @@ fi
 export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 
-rerun -watch $ROOT/pkg $ROOT/cli $ROOT/dev/config -ignore $ROOT/vendor $ROOT/bin -run sh -c \
-"go build -o $ROOT/bin/operator $ROOT/pkg/operator && go build -installsuffix cgo -o $ROOT/bin/cortex $ROOT/cli && $ROOT/bin/operator"
+mkdir -p $ROOT/bin
+
+if [ "$arg1" = "--operator-only" ]; then
+  rerun -watch $ROOT/pkg $ROOT/dev/config -run sh -c \
+  "clear && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator"
+else
+  rerun -watch $ROOT/pkg $ROOT/cli $ROOT/dev/config -run sh -c \
+  "clear && echo 'building cli...' && go build -o $ROOT/bin/cortex $ROOT/cli && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator"
+fi
 
 # go run -race $ROOT/pkg/operator/main.go  # Check for race conditions. Doesn't seem to catch them all?

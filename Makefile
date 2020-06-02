@@ -25,6 +25,20 @@ devstart:
 	@$(MAKE) operator-stop || true
 	@./dev/operator_local.sh || true
 
+.PHONY: cli
+cli:
+	@mkdir -p ./bin
+	@go build -o ./bin/cortex ./cli
+
+# build cli and watch for changes
+cli-watch:
+	@rerun -watch ./pkg ./cli -run sh -c "clear && echo 'building cli...' && go build -o ./bin/cortex ./cli && clear && echo '\033[1;32mCLI built\033[0m'" || true
+
+# start local operator and watch for changes
+operator-local:
+	@$(MAKE) operator-stop || true
+	@./dev/operator_local.sh --operator-only || true
+
 # configure kubectl to point to the cluster specified in dev/config/cluster.yaml
 kubectl:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
@@ -78,6 +92,7 @@ operator-stop:
 	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
 
 # Docker images
+
 registry-all:
 	@./dev/registry.sh update all
 registry-all-local:
@@ -122,21 +137,13 @@ manager-local:
 
 # Misc
 
-.PHONY: cli
-cli:
-	@mkdir -p ./bin
-	@GOARCH=amd64 CGO_ENABLED=0 go build -o ./bin/cortex ./cli
-
-cli-watch:
-	@rerun -watch ./pkg ./cli -ignore ./vendor ./bin -run sh -c "go build -installsuffix cgo -o ./bin/cortex ./cli && echo 'CLI built.'"
-
 aws-clear-bucket:
 	@./dev/aws.sh clear-bucket
 
 tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
-	@pip3 install black
+	@python3 -m pip install black
 
 format:
 	@./dev/format.sh
