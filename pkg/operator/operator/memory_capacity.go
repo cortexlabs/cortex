@@ -21,6 +21,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 const _memConfigMapName = "cortex-instance-memory"
@@ -51,9 +52,9 @@ var _nvidiaMemReserve = kresource.MustParse("100Mi")
 
 func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 	opts := kmeta.ListOptions{
-		LabelSelector: k8s.LabelSelector(map[string]string{
+		LabelSelector: klabels.SelectorFromSet(map[string]string{
 			"workload": "true",
-		}),
+		}).String(),
 	}
 	nodes, err := config.K8s.ListNodes(&opts)
 	if err != nil {

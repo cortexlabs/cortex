@@ -19,6 +19,7 @@ package spec
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -61,14 +62,14 @@ const (
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://cortex.dev for documentation)"),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://cortex.dev for documentation)"),
+		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
 	})
 }
 
@@ -104,7 +105,7 @@ func ErrorDuplicateEndpoint(apiName string) error {
 }
 
 func ErrorSpecifyAllOrNone(val string, vals ...string) error {
-	allVals := append(vals, val)
+	allVals := append([]string{val}, vals...)
 	message := fmt.Sprintf("please specify all or none of %s", s.UserStrsAnd(allVals))
 	if len(allVals) == 2 {
 		message = fmt.Sprintf("please specify both %s and %s or neither of them", s.UserStr(allVals[0]), s.UserStr(allVals[1]))
@@ -117,7 +118,7 @@ func ErrorSpecifyAllOrNone(val string, vals ...string) error {
 }
 
 func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisite string, prerequisites ...string) error {
-	allPrerequisites := append(prerequisites, prerequisite)
+	allPrerequisites := append([]string{prerequisite}, prerequisites...)
 	message := fmt.Sprintf("%s specified without specifying %s", s.UserStr(argName), s.UserStrsOr(allPrerequisites))
 
 	return errors.WithStack(&errors.Error{

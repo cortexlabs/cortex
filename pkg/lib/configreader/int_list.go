@@ -65,7 +65,7 @@ func ValidateIntListMissing(v *IntListValidation) ([]int, error) {
 
 func ValidateIntListProvided(val []int, v *IntListValidation) ([]int, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateIntList(val, v)
 }

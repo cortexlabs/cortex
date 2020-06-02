@@ -21,7 +21,8 @@ import (
 	kextensions "k8s.io/api/extensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
+	klabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var _ingressTypeMeta = kmeta.TypeMeta{
@@ -145,7 +146,7 @@ func (c *Client) ListIngresses(opts *kmeta.ListOptions) ([]kextensions.Ingress, 
 
 func (c *Client) ListIngressesByLabels(labels map[string]string) ([]kextensions.Ingress, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListIngresses(opts)
 }

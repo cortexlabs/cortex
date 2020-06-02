@@ -65,7 +65,7 @@ func ValidateBoolListMissing(v *BoolListValidation) ([]bool, error) {
 
 func ValidateBoolListProvided(val []bool, v *BoolListValidation) ([]bool, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateBoolList(val, v)
 }

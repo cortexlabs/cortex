@@ -142,12 +142,12 @@ func DeleteAPI(apiName string, prevAPISpec *spec.API, newAPISpec *spec.API) erro
 	if err == nil {
 		_, err := files.DeleteDirIfPresent(filepath.Join(_localWorkspaceDir, "apis", apiName))
 		if err != nil {
-			errList = append(errList, errors.Wrap(ErrorFailedToDeleteAPISpec(filepath.Join(_localWorkspaceDir, "apis", apiName)), err.Error()))
+			errList = append(errList, ErrorFailedToDeleteAPISpec(filepath.Join(_localWorkspaceDir, "apis", apiName), err))
 		}
 	} else if errors.GetKind(err) == ErrCortexVersionMismatch {
 		_, err := files.DeleteDirIfPresent(filepath.Join(_localWorkspaceDir, "apis", apiName))
 		if err != nil {
-			errList = append(errList, errors.Wrap(ErrorFailedToDeleteAPISpec(filepath.Join(_localWorkspaceDir, "apis", apiName)), err.Error()))
+			errList = append(errList, ErrorFailedToDeleteAPISpec(filepath.Join(_localWorkspaceDir, "apis", apiName), err))
 		}
 	} else {
 		// only add error if it isn't ErrCortexVersionMismatch

@@ -139,7 +139,7 @@ func ErrorMustHavePrefix(provided string, prefix string) error {
 }
 
 func ErrorInvalidInterface(provided interface{}, allowed interface{}, allowedVals ...interface{}) error {
-	allAllowedVals := append(allowedVals, allowed)
+	allAllowedVals := append([]interface{}{allowed}, allowedVals...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidInterface,
 		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
@@ -147,7 +147,7 @@ func ErrorInvalidInterface(provided interface{}, allowed interface{}, allowedVal
 }
 
 func ErrorInvalidFloat64(provided float64, allowed float64, allowedVals ...float64) error {
-	allAllowedVals := append(allowedVals, allowed)
+	allAllowedVals := append([]float64{allowed}, allowedVals...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidFloat64,
 		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
@@ -155,7 +155,7 @@ func ErrorInvalidFloat64(provided float64, allowed float64, allowedVals ...float
 }
 
 func ErrorInvalidFloat32(provided float32, allowed float32, allowedVals ...float32) error {
-	allAllowedVals := append(allowedVals, allowed)
+	allAllowedVals := append([]float32{allowed}, allowedVals...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidFloat32,
 		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
@@ -163,7 +163,7 @@ func ErrorInvalidFloat32(provided float32, allowed float32, allowedVals ...float
 }
 
 func ErrorInvalidInt64(provided int64, allowed int64, allowedVals ...int64) error {
-	allAllowedVals := append(allowedVals, allowed)
+	allAllowedVals := append([]int64{allowed}, allowedVals...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidInt64,
 		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
@@ -171,7 +171,7 @@ func ErrorInvalidInt64(provided int64, allowed int64, allowedVals ...int64) erro
 }
 
 func ErrorInvalidInt32(provided int32, allowed int32, allowedVals ...int32) error {
-	allAllowedVals := append(allowedVals, allowed)
+	allAllowedVals := append([]int32{allowed}, allowedVals...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidInt32,
 		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
@@ -179,7 +179,7 @@ func ErrorInvalidInt32(provided int32, allowed int32, allowedVals ...int32) erro
 }
 
 func ErrorInvalidInt(provided int, allowed int, allowedVals ...int) error {
-	allAllowedVals := append(allowedVals, allowed)
+	allAllowedVals := append([]int{allowed}, allowedVals...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidInt,
 		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
@@ -187,7 +187,7 @@ func ErrorInvalidInt(provided int, allowed int, allowedVals ...int) error {
 }
 
 func ErrorInvalidStr(provided string, allowed string, allowedVals ...string) error {
-	allAllowedVals := append(allowedVals, allowed)
+	allAllowedVals := append([]string{allowed}, allowedVals...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidStr,
 		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
@@ -237,7 +237,7 @@ func ErrorNonStringKeyFound(key interface{}) error {
 }
 
 func ErrorInvalidPrimitiveType(provided interface{}, allowedType PrimitiveType, allowedTypes ...PrimitiveType) error {
-	allAllowedTypes := append(allowedTypes, allowedType)
+	allAllowedTypes := append([]PrimitiveType{allowedType}, allowedTypes...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidPrimitiveType,
 		Message: fmt.Sprintf("%s: invalid type (expected %s)", s.UserStr(provided), s.StrsOr(PrimitiveTypes(allAllowedTypes).StringList())),
@@ -289,10 +289,16 @@ func ErrorCannotSetStructField() error {
 	})
 }
 
-func ErrorCannotBeNull() error {
+func ErrorCannotBeNull(isRequired bool) error {
+	msg := "cannot be null"
+
+	if !isRequired {
+		msg = "cannot be null (specify a value, or remove the key to use the default value)"
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotBeNull,
-		Message: "cannot be null",
+		Message: msg,
 	})
 }
 
@@ -364,6 +370,6 @@ func ErrorCortexResourceNotAllowed(resourceName string) error {
 func ErrorImageVersionMismatch(image, tag, cortexVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageVersionMismatch,
-		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image registry path from your configuration file (to use the default value), or update your CLI by following the instructions at https://www.cortex.dev/install", image, tag, cortexVersion),
+		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image registry path from your configuration file (to use the default value), or update your CLI by following the instructions at https://docs.cortex.dev/install", image, tag, cortexVersion),
 	})
 }

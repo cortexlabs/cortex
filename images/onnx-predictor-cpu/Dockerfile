@@ -33,14 +33,12 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip 
     echo "source ~/.env" >> ~/.bashrc
 
 ENV BASH_ENV=~/.env
+SHELL ["/bin/bash", "-c"]
 
 COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
-
-# use /bin/bash to run in conda environment
-RUN /bin/bash -c \
-    "pip install --no-cache-dir \
-        -r /src/cortex/serve/requirements.txt \
-        onnxruntime==1.2.0"
+RUN pip install --no-cache-dir -r \
+    /src/cortex/serve/requirements.txt \
+    onnxruntime==1.2.0
 
 ARG SLIM="false"
 RUN test "${SLIM}" = "true" || ( \

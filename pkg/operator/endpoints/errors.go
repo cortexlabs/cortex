@@ -40,7 +40,7 @@ const (
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIVersionMismatch,
-		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your CLI by following the instructions at https://www.cortex.dev/install", clientVersion, operatorVersion),
+		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update, or update your CLI by following the instructions at https://docs.cortex.dev/install", clientVersion, operatorVersion),
 	})
 }
 
@@ -68,7 +68,7 @@ func ErrorAuthAPIError() error {
 func ErrorAuthInvalid() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthInvalid,
-		Message: "invalid AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as the operator",
+		Message: "invalid AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
 	})
 }
 
@@ -100,7 +100,7 @@ func ErrorPathParamRequired(param string) error {
 }
 
 func ErrorAnyQueryParamRequired(param string, params ...string) error {
-	allParams := append(params, param)
+	allParams := append([]string{param}, params...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAnyQueryParamRequired,
 		Message: fmt.Sprintf("query params required: %s", s.UserStrsOr(allParams)),
@@ -108,7 +108,7 @@ func ErrorAnyQueryParamRequired(param string, params ...string) error {
 }
 
 func ErrorAnyPathParamRequired(param string, params ...string) error {
-	allParams := append(params, param)
+	allParams := append([]string{param}, params...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAnyPathParamRequired,
 		Message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),

@@ -147,9 +147,9 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Tags",
 			StringMapValidation: &cr.StringMapValidation{
-				AllowExplicitNull: true,
-				AllowEmpty:        true,
-				ConvertNilToEmpty: true,
+				AllowExplicitNull:  true,
+				AllowEmpty:         true,
+				ConvertNullToEmpty: true,
 			},
 		},
 		{
@@ -560,9 +560,10 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if _, ok := cc.Tags[ClusterNameTag]; !ok {
-		cc.Tags[ClusterNameTag] = cc.ClusterName
+	if cc.Tags[ClusterNameTag] != "" && cc.Tags[ClusterNameTag] != cc.ClusterName {
+		return ErrorCantOverrideDefaultTag()
 	}
+	cc.Tags[ClusterNameTag] = cc.ClusterName
 
 	if err := cc.validateAvailabilityZones(awsClient); err != nil {
 		return errors.Wrap(err, AvailabilityZonesKey)

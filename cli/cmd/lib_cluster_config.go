@@ -74,7 +74,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
 	if errors.HasError(errs) {
-		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
+		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
 	}
 
 	return nil
@@ -89,7 +89,7 @@ func getClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig, e
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://www.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
 		}
 	}
 
@@ -458,22 +458,22 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.LogGroup, privateSubnetMsg)
 
 	if clusterConfig.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see www.cortex.dev/guides/vpc-peering or www.cortex.dev/guides/api-gateway)\n\n")
+		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see https://docs.cortex.dev/guides/vpc-peering or https://docs.cortex.dev/guides/api-gateway)\n\n")
 	}
 	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-		fmt.Print("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see www.cortex.dev/guides/vpc-peering)\n\n")
+		fmt.Print("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/guides/vpc-peering)\n\n")
 	}
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/cluster-management/spot-instances for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
-			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://cortex.dev/v/%s/cluster-management/spot-instances for more information\n\n", consts.CortexVersionMinor)
+			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/cluster-management/spot-instances for more information\n\n", consts.CortexVersionMinor)
 		}
 	}
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)
 	}
 }
@@ -482,7 +482,7 @@ func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds 
 	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds, awsClient))
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
 	}
 }
