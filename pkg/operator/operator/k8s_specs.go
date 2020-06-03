@@ -23,6 +23,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -254,11 +255,17 @@ func tfDownloadArgs(api *spec.API) string {
 
 	rootModelPath := path.Join(_emptyDirMountPath, "model")
 	for _, model := range api.Predictor.Models {
+		var itemName string
+		if model.Name == consts.CortexSingleModelName {
+			itemName = "the model"
+		} else {
+			itemName = fmt.Sprintf("model %s", model.Name)
+		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
 			From:                 model.Model,
 			To:                   path.Join(rootModelPath, model.Name),
 			Unzip:                strings.HasSuffix(model.Model, ".zip"),
-			ItemName:             fmt.Sprintf("model %s", model.Name),
+			ItemName:             itemName,
 			TFModelVersionRename: path.Join(rootModelPath, model.Name, "1"),
 		})
 	}
@@ -492,10 +499,16 @@ func onnxDownloadArgs(api *spec.API) string {
 
 	rootModelPath := path.Join(_emptyDirMountPath, "model")
 	for _, model := range api.Predictor.Models {
+		var itemName string
+		if model.Name == consts.CortexSingleModelName {
+			itemName = "the model"
+		} else {
+			itemName = fmt.Sprintf("model %s", model.Name)
+		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
 			From:     model.Model,
 			To:       path.Join(rootModelPath, model.Name),
-			ItemName: fmt.Sprintf("model %s", model.Name),
+			ItemName: itemName,
 		})
 	}
 
