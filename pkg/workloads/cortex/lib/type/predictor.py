@@ -21,6 +21,7 @@ import dill
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex.lib.type.model import Model, get_signature_keys, get_name_signature_pairs
+from cortex import consts
 
 
 class Predictor:
@@ -36,7 +37,7 @@ class Predictor:
         if kwargs.get("model"):
             self.models += [
                 Model(
-                    name="default",
+                    name=consts.CORTEX_SINGLE_MODEL_NAME,
                     model=kwargs.get("model"),
                     signature_key=kwargs.get("signature_key"),
                 )
@@ -65,7 +66,7 @@ class Predictor:
             from cortex.lib.client.onnx import ONNXClient
 
             client = ONNXClient(self.models)
-            if self.models[0].name == "default":
+            if self.models[0].name == consts.CORTEX_SINGLE_MODEL_NAME:
                 signature_message = "ONNX model signature: {}".format(self.models[0].signature_key)
             else:
                 signature_message = "ONNX model signatures: {}".format(
@@ -81,7 +82,7 @@ class Predictor:
 
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
             client = TensorFlowClient(tf_serving_address, self.models)
-            if self.models[0].name == "default":
+            if self.models[0].name == consts.CORTEX_SINGLE_MODEL_NAME:
                 signature_message = "TensorFlow model signature: {}".format(
                     self.models[0].signature_key
                 )

@@ -19,6 +19,7 @@ from cortex.lib.log import cx_logger
 from cortex.lib import util
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException
 from cortex.lib.type.model import Model, get_model_names
+from cortex import consts
 
 
 class ONNXClient:
@@ -44,36 +45,42 @@ class ONNXClient:
                 metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
             self._input_signatures[model.name] = metadata
 
-    def predict(self, model_input, model=None):
+    def predict(self, model_input, model_name=None):
         """Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
 
         Args:
             model_input: Input to the model.
-            model: Model to use when multiple models are deployed per each API.
+            model_name: Model to use when multiple models are deployed per each API.
 
         Returns:
             numpy.ndarray: The prediction returned from the model.
         """
-        if "default" in self._model_names:
-            input_dict = convert_to_onnx_input(model_input, self._signatures["default"], "default")
-            model_output = self._sessions["default"].run([], input_dict)
+        if consts.CORTEX_SINGLE_MODEL_NAME in self._model_names:
+            input_dict = convert_to_onnx_input(
+                model_input,
+                self._signatures[consts.CORTEX_SINGLE_MODEL_NAME],
+                consts.CORTEX_SINGLE_MODEL_NAME,
+            )
+            model_output = self._sessions[consts.CORTEX_SINGLE_MODEL_NAME].run([], input_dict)
             return model_output
 
-        if model is None:
+        if model_name is None:
             raise UserRuntimeException(
                 "no model was specified, choose one of the following: {}".format(
-                    model, self._model_names
+                    model_name, self._model_names
                 )
             )
 
-        if model in self._model_names:
-            input_dict = convert_to_onnx_input(model_input, self._signatures[model], model)
-            model_output = self._sessions[model].run([], input_dict)
+        if model_name in self._model_names:
+            input_dict = convert_to_onnx_input(
+                model_input, self._signatures[model_name], model_name
+            )
+            model_output = self._sessions[model_name].run([], input_dict)
             return model_output
         else:
             raise UserRuntimeException(
                 "'{}' model wasn't found in the list of available models: {}".format(
-                    model, self._model_names
+                    model_name, self._model_names
                 )
             )
 

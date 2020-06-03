@@ -51,33 +51,33 @@ class TensorFlowClient:
         self._signature_keys = parsed_signature_keys
         self._input_signatures = parsed_signatures
 
-    def predict(self, model_input, model="default"):
+    def predict(self, model_input, model_name=consts.CORTEX_SINGLE_MODEL_NAME):
         """Validate model_input, convert it to a Prediction Proto, and make a request to TensorFlow Serving.
 
         Args:
             model_input: Input to the model.
-            model: Model to use when multiple models are deployed per each API.
+            model_name: Model to use when multiple models are deployed per each API.
 
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.
         """
-        if model in self._model_indexes:
-            index = self._model_indexes[model]
+        if model_name in self._model_indexes:
+            index = self._model_indexes[model_name]
 
             input_signature = self._input_signatures[index]
             signature = self._signatures[index]
             signature_key = self._signature_keys[index]
 
-            validate_model_input(input_signature, model_input, model)
+            validate_model_input(input_signature, model_input, model_name)
             prediction_request = create_prediction_request(
-                signature, signature_key, model, model_input
+                signature, signature_key, model_name, model_input
             )
             response_proto = self._stub.Predict(prediction_request, timeout=300.0)
             return parse_response_proto(response_proto)
         else:
             raise UserRuntimeException(
                 "'{}' model wasn't found in the list of available models: {}".format(
-                    model, self._model_names
+                    model_name, self._model_names
                 )
             )
 

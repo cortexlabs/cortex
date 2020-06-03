@@ -391,8 +391,9 @@ func multiModelValidation() *cr.StructFieldValidation {
 					{
 						StructField: "Name",
 						StringValidation: &cr.StringValidation{
-							Required:   true,
-							AllowEmpty: false,
+							Required:                   true,
+							AllowEmpty:                 false,
+							AlphaNumericDashUnderscore: true,
 						},
 					},
 					{
@@ -570,7 +571,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
 		modelResource := &userconfig.ModelResource{
-			Name:         "default",
+			Name:         consts.CortexSingleModelName,
 			Model:        *predictor.Model,
 			SignatureKey: predictor.SignatureKey,
 		}
@@ -578,14 +579,17 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 		predictor.Models = []*userconfig.ModelResource{modelResource}
 	}
 
+	if err := checkDuplicateModelNames(predictor.Models); err != nil {
+		return errors.Wrap(err, userconfig.ModelsKey)
+	}
+
 	for i := range predictor.Models {
+		if predictor.Models[i].Name == consts.CortexSingleModelName && predictor.Model == nil {
+			return errors.Wrap(ErrorIllegalModelName(predictor.Models[i].Name), userconfig.ModelsKey)
+		}
 		if err := validateTensorFlowModel(predictor.Models[i], providerType, projectFiles, awsClient); err != nil {
 			return errors.Wrap(err, userconfig.ModelsKey)
 		}
-	}
-
-	if err := checkDuplicateModelNames(predictor.Models); err != nil {
-		return errors.Wrap(err, userconfig.ModelsKey)
 	}
 
 	return nil
@@ -656,7 +660,7 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerTy
 }
 
 func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	if predictor.Model == nil && predictor.SignatureKey != nil {
+	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
 	if predictor.Model == nil && len(predictor.Models) == 0 {
@@ -664,27 +668,28 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
 		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
-		if predictor.SignatureKey != nil {
-			return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
-		}
 		modelResource := &userconfig.ModelResource{
-			Name:  "default",
+			Name:  consts.CortexSingleModelName,
 			Model: *predictor.Model,
 		}
 		// place the predictor.Model into predictor.Models for ease of use
 		predictor.Models = []*userconfig.ModelResource{modelResource}
 	}
 
+	if err := checkDuplicateModelNames(predictor.Models); err != nil {
+		return errors.Wrap(err, userconfig.ModelsKey)
+	}
+
 	for i := range predictor.Models {
+		if predictor.Models[i].Name == consts.CortexSingleModelName && predictor.Model == nil {
+			return errors.Wrap(ErrorIllegalModelName(predictor.Models[i].Name), userconfig.ModelsKey)
+		}
 		if predictor.Models[i].SignatureKey != nil {
 			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey)
 		}
 		if err := validateONNXModel(predictor.Models[i], providerType, projectFiles, awsClient); err != nil {
 			return errors.Wrap(err, userconfig.ModelsKey)
 		}
-	}
-	if err := checkDuplicateModelNames(predictor.Models); err != nil {
-		return errors.Wrap(err, userconfig.ModelsKey)
 	}
 
 	return nil

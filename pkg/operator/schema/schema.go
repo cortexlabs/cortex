@@ -80,14 +80,14 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-type FeatureSignature struct {
+type InputSignature struct {
 	Shape []interface{} `json:"shape"`
 	Type  string        `json:"type"`
 }
 
-type ModelSignatures map[string]FeatureSignature
+type InputSignatures map[string]InputSignature
 
 type APISummary struct {
-	Message          string                     `json:"message"`
-	ModelsSignatures map[string]ModelSignatures `json:"models_signatures"`
+	Message         string                     `json:"message"`
+	ModelSignatures map[string]InputSignatures `json:"model_signatures"`
 }
