@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	CortexVersion      = "0.17.0" // CORTEX_VERSION
+	CortexVersion      = "0.17.1" // CORTEX_VERSION
 	CortexVersionMinor = "0.17"   // CORTEX_VERSION_MINOR
 
 	DefaultImagePythonPredictorCPU   = defaultDockerImage("python-predictor-cpu")

@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-CORTEX_VERSION=0.17.0
+CORTEX_VERSION=0.17.1
 
 slim="false"
 while [[ $# -gt 0 ]]; do
