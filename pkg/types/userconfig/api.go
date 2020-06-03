@@ -151,21 +151,22 @@ func IdentifyAPI(filePath string, name string, index int) string {
 }
 
 // InitReplicas was left out deliberately
-func (autoscaling *Autoscaling) ToK8sAnnotations() map[string]string {
+func (api *API) ToK8sAnnotations() map[string]string {
 	return map[string]string{
-		MinReplicasAnnotationKey:                  s.Int32(autoscaling.MinReplicas),
-		MaxReplicasAnnotationKey:                  s.Int32(autoscaling.MaxReplicas),
-		WorkersPerReplicaAnnotationKey:            s.Int32(autoscaling.WorkersPerReplica),
-		ThreadsPerWorkerAnnotationKey:             s.Int32(autoscaling.ThreadsPerWorker),
-		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*autoscaling.TargetReplicaConcurrency),
-		MaxReplicaConcurrencyAnnotationKey:        s.Int64(autoscaling.MaxReplicaConcurrency),
-		WindowAnnotationKey:                       autoscaling.Window.String(),
-		DownscaleStabilizationPeriodAnnotationKey: autoscaling.DownscaleStabilizationPeriod.String(),
-		UpscaleStabilizationPeriodAnnotationKey:   autoscaling.UpscaleStabilizationPeriod.String(),
-		MaxDownscaleFactorAnnotationKey:           s.Float64(autoscaling.MaxDownscaleFactor),
-		MaxUpscaleFactorAnnotationKey:             s.Float64(autoscaling.MaxUpscaleFactor),
-		DownscaleToleranceAnnotationKey:           s.Float64(autoscaling.DownscaleTolerance),
-		UpscaleToleranceAnnotationKey:             s.Float64(autoscaling.UpscaleTolerance),
+		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
+		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
+		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
+		WorkersPerReplicaAnnotationKey:            s.Int32(api.Autoscaling.WorkersPerReplica),
+		ThreadsPerWorkerAnnotationKey:             s.Int32(api.Autoscaling.ThreadsPerWorker),
+		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*api.Autoscaling.TargetReplicaConcurrency),
+		MaxReplicaConcurrencyAnnotationKey:        s.Int64(api.Autoscaling.MaxReplicaConcurrency),
+		WindowAnnotationKey:                       api.Autoscaling.Window.String(),
+		DownscaleStabilizationPeriodAnnotationKey: api.Autoscaling.DownscaleStabilizationPeriod.String(),
+		UpscaleStabilizationPeriodAnnotationKey:   api.Autoscaling.UpscaleStabilizationPeriod.String(),
+		MaxDownscaleFactorAnnotationKey:           s.Float64(api.Autoscaling.MaxDownscaleFactor),
+		MaxUpscaleFactorAnnotationKey:             s.Float64(api.Autoscaling.MaxUpscaleFactor),
+		DownscaleToleranceAnnotationKey:           s.Float64(api.Autoscaling.DownscaleTolerance),
+		UpscaleToleranceAnnotationKey:             s.Float64(api.Autoscaling.UpscaleTolerance),
 	}
 }
 

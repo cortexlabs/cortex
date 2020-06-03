@@ -125,7 +125,7 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: api.Autoscaling.ToK8sAnnotations(),
+		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -291,7 +291,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: api.Autoscaling.ToK8sAnnotations(),
+		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -400,7 +400,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: api.Autoscaling.ToK8sAnnotations(),
+		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},

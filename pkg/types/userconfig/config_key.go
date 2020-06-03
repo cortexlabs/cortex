@@ -72,6 +72,7 @@ const (
 	MaxUnavailableKey = "max_unavailable"
 
 	// K8s annotation
+	APIGatewayAnnotationKey                   = "networking.cortex.dev/api-gateway"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
 	WorkersPerReplicaAnnotationKey            = "autoscaling.cortex.dev/workers-per-replica"

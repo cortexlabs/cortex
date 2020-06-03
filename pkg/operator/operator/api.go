@@ -58,11 +58,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
-		if err != nil {
-			errors.PrintError(err)
-		}
 		err = addAPIToAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+		if err != nil {
+			go deleteK8sResources(api.Name)
+			return nil, "", err
+		}
+		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
 		if err != nil {
 			errors.PrintError(err)
 		}
@@ -82,6 +83,19 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
+		}
+		if prevDeployment.Annotations[userconfig.APIGatewayAnnotationKey] != api.Networking.APIGateway.String() {
+			if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
+				err = addAPIToAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+				if err != nil {
+					return nil, "", err
+				}
+			} else if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+				err = removeAPIFromAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+				if err != nil {
+					return nil, "", err
+				}
+			}
 		}
 		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
