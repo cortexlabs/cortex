@@ -155,11 +155,24 @@ func DeleteAPI(apiName string, prevAPISpec *spec.API, newAPISpec *spec.API) erro
 	}
 
 	if prevAPISpec != nil {
+		modelsInUse := strset.New()
+		apiSpecList, err := ListAPISpecs()
+		errList = append(errList, err)
+
+		for _, apiSpec := range apiSpecList {
+			if len(apiSpec.LocalModelCaches) > 0 && apiSpec.Name != apiName {
+				for _, modelCache := range apiSpec.LocalModelCaches {
+					modelsInUse.Add(modelCache.ID)
+				}
+			}
+		}
+
 		prevModelIDs := strset.FromSlice(prevAPISpec.ModelIDs())
 		newModelIDs := strset.FromSlice(newAPISpec.ModelIDs())
 
 		if !prevModelIDs.IsEqual(newModelIDs) {
 			toDeleteModels := strset.Difference(prevModelIDs, newModelIDs)
+			toDeleteModels = strset.Difference(toDeleteModels, modelsInUse)
 
 			for modelID := range toDeleteModels {
 				err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
