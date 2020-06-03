@@ -585,10 +585,13 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 
 	for i := range predictor.Models {
 		if predictor.Models[i].Name == consts.CortexSingleModelName && predictor.Model == nil {
-			return errors.Wrap(ErrorIllegalModelName(predictor.Models[i].Name), userconfig.ModelsKey)
+			return errors.Wrap(ErrorIllegalModelName(predictor.Models[i].Name), userconfig.ModelsKey, predictor.Models[i].Name)
 		}
 		if err := validateTensorFlowModel(predictor.Models[i], providerType, projectFiles, awsClient); err != nil {
-			return errors.Wrap(err, userconfig.ModelsKey)
+			if predictor.Model == nil {
+				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models[i].Name)
+			}
+			return err
 		}
 	}
 
@@ -682,13 +685,16 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 
 	for i := range predictor.Models {
 		if predictor.Models[i].Name == consts.CortexSingleModelName && predictor.Model == nil {
-			return errors.Wrap(ErrorIllegalModelName(predictor.Models[i].Name), userconfig.ModelsKey)
+			return errors.Wrap(ErrorIllegalModelName(predictor.Models[i].Name), userconfig.ModelsKey, predictor.Models[i].Name)
 		}
 		if predictor.Models[i].SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey)
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey, predictor.Models[i].Name)
 		}
 		if err := validateONNXModel(predictor.Models[i], providerType, projectFiles, awsClient); err != nil {
-			return errors.Wrap(err, userconfig.ModelsKey)
+			if predictor.Model == nil {
+				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models[i].Name)
+			}
+			return err
 		}
 	}
 
