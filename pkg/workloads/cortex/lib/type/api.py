@@ -29,14 +29,14 @@ from cortex.lib.storage import S3
 
 
 class API:
-    def __init__(self, provider, storage, cache_dir=".", **kwargs):
+    def __init__(self, provider, storage, model_dir, cache_dir=".", **kwargs):
         self.provider = provider
         self.id = kwargs["id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
         self.endpoint = kwargs["endpoint"]
-        self.predictor = Predictor(provider, cache_dir, **kwargs["predictor"])
+        self.predictor = Predictor(provider, model_dir, cache_dir, **kwargs["predictor"])
         self.monitoring = None
         if kwargs.get("monitoring") is not None:
             self.monitoring = Monitoring(**kwargs["monitoring"])

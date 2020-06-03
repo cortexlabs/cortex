@@ -19,6 +19,5 @@ from cortex.lib.type.model import (
     Model,
     get_signature_keys,
     get_name_signature_pairs,
-    get_model_indexes,
     get_model_names,
 )

@@ -56,33 +56,25 @@ class ONNXClient:
             numpy.ndarray: The prediction returned from the model.
         """
         if consts.CORTEX_SINGLE_MODEL_NAME in self._model_names:
-            input_dict = convert_to_onnx_input(
-                model_input,
-                self._signatures[consts.CORTEX_SINGLE_MODEL_NAME],
-                consts.CORTEX_SINGLE_MODEL_NAME,
-            )
-            model_output = self._sessions[consts.CORTEX_SINGLE_MODEL_NAME].run([], input_dict)
-            return model_output
+            return self._run_inference(model_input, consts.CORTEX_SINGLE_MODEL_NAME)
 
         if model_name is None:
             raise UserRuntimeException(
-                "no model was specified, choose one of the following: {}".format(
-                    model_name, self._model_names
-                )
+                "no model was specified, choose one of the following: {}".format(self._model_names)
             )
 
         if model_name in self._model_names:
-            input_dict = convert_to_onnx_input(
-                model_input, self._signatures[model_name], model_name
-            )
-            model_output = self._sessions[model_name].run([], input_dict)
-            return model_output
+            return self._run_inference(model_input, model_name)
         else:
             raise UserRuntimeException(
                 "'{}' model wasn't found in the list of available models: {}".format(
                     model_name, self._model_names
                 )
             )
+
+    def _run_inference(self, model_input, model_name):
+        input_dict = convert_to_onnx_input(model_input, self._signatures[model_name], model_name)
+        return self._sessions[model_name].run([], input_dict)
 
     @property
     def sessions(self):
@@ -148,7 +140,7 @@ def convert_to_onnx_input(model_input, input_metadata_list, model_name):
         if util.is_dict(model_input):
             if model_input.get(input_metadata.name) is None:
                 raise UserException(
-                    'missing key "{}" for model "{}"'.format(input_metadata.name, model_name)
+                    "missing key '{}' for model '{}'".format(input_metadata.name, model_name)
                 )
             input_dict[input_metadata.name] = transform_to_numpy(
                 model_input[input_metadata.name], input_metadata, model_name
@@ -159,27 +151,27 @@ def convert_to_onnx_input(model_input, input_metadata_list, model_name):
                     model_input, input_metadata, model_name
                 )
             except CortexException as e:
-                e.wrap('key "{}" for model "{}"'.format(input_metadata.name, model_name))
+                e.wrap("key '{}' for model '{}'".format(input_metadata.name, model_name))
                 raise
     else:
         for input_metadata in input_metadata_list:
             if not util.is_dict(model_input):
                 expected_keys = [metadata.name for metadata in input_metadata_list]
                 raise UserException(
-                    "expected model_input to be a dictionary with keys {} for model '{}'".format(
+                    "expected model_input to be a dictionary with keys '{}' for model '{}'".format(
                         ", ".join('"' + key + '"' for key in expected_keys), model_name
                     )
                 )
 
             if model_input.get(input_metadata.name) is None:
                 raise UserException(
-                    'missing key "{}" for model "{}"'.format(input_metadata.name, model_name)
+                    "missing key '{}' for model '{}'".format(input_metadata.name, model_name)
                 )
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(
                     model_input[input_metadata.name], input_metadata, model_name
                 )
             except CortexException as e:
-                e.wrap('key "{}" for model "{}"'.format(input_metadata.name, model_name))
+                e.wrap("key '{}' for model '{}'".format(input_metadata.name, model_name))
                 raise
     return input_dict

@@ -25,7 +25,7 @@ from cortex import consts
 
 
 class Predictor:
-    def __init__(self, provider, cache_dir, **kwargs):
+    def __init__(self, provider, model_dir, cache_dir, **kwargs):
         self.provider = provider
         self.type = kwargs["type"]
         self.path = kwargs["path"]
@@ -33,6 +33,7 @@ class Predictor:
         self.config = kwargs.get("config", {})
         self.env = kwargs.get("env")
 
+        self.model_dir = model_dir
         self.models = []
         if kwargs.get("model"):
             self.models += [
@@ -40,6 +41,9 @@ class Predictor:
                     name=consts.CORTEX_SINGLE_MODEL_NAME,
                     model=kwargs.get("model"),
                     signature_key=kwargs.get("signature_key"),
+                    base_path=self._compute_model_basepath(
+                        kwargs.get("model"), consts.CORTEX_SINGLE_MODEL_NAME
+                    ),
                 )
             ]
         elif kwargs.get("models"):
@@ -49,18 +53,15 @@ class Predictor:
                         name=model.get("name"),
                         model=model.get("model"),
                         signature_key=model.get("signature_key"),
+                        base_path=self._compute_model_basepath(
+                            kwargs.get("model"), model.get("name")
+                        ),
                     )
                 ]
 
         self.cache_dir = cache_dir
 
-    def initialize_client(self, model_dir=None, tf_serving_host=None, tf_serving_port=None):
-        if len(self.models) > 0:
-            for model in self.models:
-                model.base_path = os.path.join(model_dir, model.name)
-                if self.type == "onnx":
-                    model.base_path = os.path.join(model.base_path, os.path.basename(model.model))
-
+    def initialize_client(self, tf_serving_host=None, tf_serving_port=None):
         signature_message = None
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
@@ -167,6 +168,12 @@ class Predictor:
                 raise UserException(str(e)) from e
 
         return impl
+
+    def _compute_model_basepath(self, model_source, model_name):
+        base_path = os.path.join(self.model_dir, model_name)
+        if self.type == "onnx":
+            base_path = os.path.join(model.base_path, os.path.basename(model_source))
+        return base_path
 
 
 PYTHON_CLASS_VALIDATION = {

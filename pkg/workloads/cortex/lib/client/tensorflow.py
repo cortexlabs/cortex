@@ -24,7 +24,7 @@ from google.protobuf import json_format
 
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.log import cx_logger
-from cortex.lib.type.model import Model, get_signature_keys, get_model_indexes, get_model_names
+from cortex.lib.type.model import Model, get_signature_keys, get_model_names
 
 
 class TensorFlowClient:
@@ -38,7 +38,6 @@ class TensorFlowClient:
         self._tf_serving_url = tf_serving_url
         self._models = models
         self._model_names = get_model_names(models)
-        self._model_indexes = get_model_indexes(models)
 
         channel = grpc.insecure_channel(tf_serving_url)
         self._stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
@@ -46,12 +45,12 @@ class TensorFlowClient:
         # in the same order as self._models
         self._signatures = get_signature_defs(self._stub, models)
         parsed_signature_keys, parsed_signatures = extract_signatures(
-            self._signatures, get_signature_keys(models), self._model_names,
+            self._signatures, get_signature_keys(models)
         )
         self._signature_keys = parsed_signature_keys
         self._input_signatures = parsed_signatures
 
-    def predict(self, model_input, model_name=consts.CORTEX_SINGLE_MODEL_NAME):
+    def predict(self, model_input, model_name=None):
         """Validate model_input, convert it to a Prediction Proto, and make a request to TensorFlow Serving.
 
         Args:
@@ -61,19 +60,16 @@ class TensorFlowClient:
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.
         """
-        if model_name in self._model_indexes:
-            index = self._model_indexes[model_name]
+        if consts.CORTEX_SINGLE_MODEL_NAME in self._model_names:
+            return self._run_inference(model_input, consts.CORTEX_SINGLE_MODEL_NAME)
 
-            input_signature = self._input_signatures[index]
-            signature = self._signatures[index]
-            signature_key = self._signature_keys[index]
-
-            validate_model_input(input_signature, model_input, model_name)
-            prediction_request = create_prediction_request(
-                signature, signature_key, model_name, model_input
+        if model_name is None:
+            raise UserRuntimeException(
+                "no model was specified, choose one of the following: {}".format(self._model_names)
             )
-            response_proto = self._stub.Predict(prediction_request, timeout=300.0)
-            return parse_response_proto(response_proto)
+
+        if model_name in self._model_names:
+            return self._run_inference(model_input, model_name)
         else:
             raise UserRuntimeException(
                 "'{}' model wasn't found in the list of available models: {}".format(
@@ -81,16 +77,25 @@ class TensorFlowClient:
                 )
             )
 
+    def _run_inference(self, model_input, model_name):
+        input_signature = self._input_signatures[model_name]
+        signature = self._signatures[model_name]
+        signature_key = self._signature_keys[model_name]
+
+        validate_model_input(input_signature, model_input, model_name)
+        prediction_request = create_prediction_request(
+            signature, signature_key, model_name, model_input
+        )
+        response_proto = self._stub.Predict(prediction_request, timeout=300.0)
+        return parse_response_proto(response_proto)
+
     @property
     def stub(self):
         return self._stub
 
     @property
     def input_signatures(self):
-        input_signatures = {}
-        for name, sign in zip(self._model_names, self._input_signatures):
-            input_signatures[name] = sign
-        return input_signatures
+        return self._input_signatures
 
 
 DTYPE_TO_TF_TYPE = {
@@ -133,9 +138,9 @@ DTYPE_TO_VALUE_KEY = {
 
 
 def get_signature_defs(stub, models):
-    sigmaps = []
+    sigmaps = {}
     for model in models:
-        sigmaps.append(get_signature_def(stub, model))
+        sigmaps[model.name] = get_signature_def(stub, model)
 
     return sigmaps
 
@@ -171,25 +176,25 @@ def create_get_model_metadata_request(model_name):
     return get_model_metadata_request
 
 
-def extract_signatures(signature_defs, signature_keys, model_names):
-    parsed_signature_keys = []
-    parsed_signatures = []
-    for i in range(len(signature_defs)):
+def extract_signatures(signature_defs, signature_keys):
+    parsed_signature_keys = {}
+    parsed_signatures = {}
+    for model_name in signature_defs:
         parsed_signature_key, parsed_signature = extract_signature(
-            signature_defs[i], signature_keys[i], model_names[i],
+            signature_defs[model_name], signature_keys[model_name], model_name,
         )
-        parsed_signature_keys.append(parsed_signature_key)
-        parsed_signatures.append(parsed_signature)
+        parsed_signature_keys[model_name] = parsed_signature_key
+        parsed_signatures[model_name] = parsed_signature
 
     return parsed_signature_keys, parsed_signatures
 
 
 def extract_signature(signature_def, signature_key, model_name):
-    cx_logger().info("signature defs found in model {}: {}".format(model_name, signature_def))
+    cx_logger().info("signature defs found in model '{}': {}".format(model_name, signature_def))
 
     available_keys = list(signature_def.keys())
     if len(available_keys) == 0:
-        raise UserException("unable to find signature defs in model {}".format(model_name))
+        raise UserException("unable to find signature defs in model '{}'".format(model_name))
 
     if signature_key is None:
         if len(available_keys) == 1:
@@ -209,7 +214,7 @@ def extract_signature(signature_def, signature_key, model_name):
         else:
             raise UserException(
                 "signature_key was not configured by user, please specify one the following keys '{}' for model '{}' (found in the signature def map)".format(
-                    "', '".join(available_keys), model_name
+                    ", ".join(available_keys), model_name
                 )
             )
     else:
@@ -278,4 +283,4 @@ def parse_response_proto(response_proto):
 def validate_model_input(input_signature, model_input, model_name):
     for input_name, _ in input_signature.items():
         if input_name not in model_input:
-            raise UserException('missing key "{}" for model "{}"'.format(input_name, model_name))
+            raise UserException("missing key '{}' for model '{}'".format(input_name, model_name))

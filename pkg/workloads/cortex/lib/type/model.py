@@ -22,7 +22,11 @@ class Model:
 
 
 def get_signature_keys(models):
-    return [model.signature_key for model in models]
+    signature_keys = {}
+    for model in models:
+        signature_keys[model.name] = model.signature_key
+
+    return signature_keys
 
 
 def get_name_signature_pairs(models):
@@ -30,13 +34,6 @@ def get_name_signature_pairs(models):
     for model in models:
         pairs[model.name] = model.signature_key
     return pairs
-
-
-def get_model_indexes(models):
-    dct = {}
-    for idx, model in enumerate(models):
-        dct[model.name] = idx
-    return dct
 
 
 def get_model_names(models):

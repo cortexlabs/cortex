@@ -244,7 +244,7 @@ def start():
     provider = os.environ["CORTEX_PROVIDER"]
     spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
+    model_dir = os.getenv("CORTEX_MODEL_DIR")
     tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
@@ -255,9 +255,15 @@ def start():
 
     try:
         raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
-        api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
+        api = API(
+            provider=provider,
+            storage=storage,
+            model_dir=model_dir,
+            cache_dir=cache_dir,
+            **raw_api_spec,
+        )
         client = api.predictor.initialize_client(
-            model_dir=model_dir, tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port,
+            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port,
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
