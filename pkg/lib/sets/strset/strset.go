@@ -38,9 +38,7 @@ func New(ts ...string) Set {
 }
 
 func FromSlice(items []string) Set {
-	s := make(Set)
-	s.Add(items...)
-	return s
+	return New(items...)
 }
 
 // NewWithSize creates a new Set and gives make map a size hint.

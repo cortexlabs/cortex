@@ -50,15 +50,15 @@ const (
 	_workspaceDir              = "/mnt/workspace"
 )
 
-type ModelCacheSlice []*spec.LocalModelCache
+type ModelCaches []*spec.LocalModelCache
 
-func (modelCaches ModelCacheSlice) String() string {
-	IDs := make([]string, 0)
-	for _, modelCache := range modelCaches {
-		IDs = append(IDs, modelCache.ID)
+func (modelCaches ModelCaches) IDs() string {
+	ids := make([]string, len(modelCaches))
+	for i, modelCache := range modelCaches {
+		ids[i] = modelCache.ID
 	}
 
-	return strings.Join(IDs, ", ")
+	return strings.Join(ids, ", ")
 }
 
 func DeployContainers(api *spec.API, awsClient *aws.Client) error {
@@ -241,7 +241,7 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 			"type":     _apiContainerName,
 			"apiID":    api.ID,
 			"apiName":  api.Name,
-			"modelIDs": ModelCacheSlice(api.LocalModelCaches).String(),
+			"modelIDs": ModelCaches(api.LocalModelCaches).IDs(),
 		},
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
@@ -308,7 +308,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			"type":     _tfServingContainerName,
 			"apiID":    api.ID,
 			"apiName":  api.Name,
-			"modelIDs": ModelCacheSlice(api.LocalModelCaches).String(),
+			"modelIDs": ModelCaches(api.LocalModelCaches).IDs(),
 		},
 	}
 
@@ -368,7 +368,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			"type":     _apiContainerName,
 			"apiID":    api.ID,
 			"apiName":  api.Name,
-			"modelIDs": ModelCacheSlice(api.LocalModelCaches).String(),
+			"modelIDs": ModelCaches(api.LocalModelCaches).IDs(),
 		},
 	}
 	containerCreateRequest, err = docker.MustDockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")

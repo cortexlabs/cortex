@@ -35,22 +35,22 @@ import (
 )
 
 func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCache, error) {
-	modelPaths := make([]string, 0)
-	for _, modelResource := range apiSpec.Predictor.Models {
-		modelPaths = append(modelPaths, modelResource.Model)
+	modelPaths := make([]string, len(apiSpec.Predictor.Models))
+	for i, modelResource := range apiSpec.Predictor.Models {
+		modelPaths[i] = modelResource.Model
 	}
 
 	localModelCaches := make([]*spec.LocalModelCache, len(modelPaths))
 	var err error
-	for idx, modelPath := range modelPaths {
-		localModelCaches[idx], err = CacheModel(modelPath, awsClient)
+	for i, modelPath := range modelPaths {
+		localModelCaches[i], err = CacheModel(modelPath, awsClient)
 		if err != nil {
 			if apiSpec.Predictor.Model != nil {
 				return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelKey)
 			}
-			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelKey)
+			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, apiSpec.Predictor.Models[i].Name, userconfig.ModelKey)
 		}
-		localModelCaches[idx].TargetPath = apiSpec.Predictor.Models[idx].Name
+		localModelCaches[i].TargetPath = apiSpec.Predictor.Models[i].Name
 	}
 
 	return localModelCaches, nil

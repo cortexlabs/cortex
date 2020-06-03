@@ -595,7 +595,7 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerTy
 	model := modelResource.Model
 
 	if strings.HasPrefix(model, "s3://") {
-		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.Model, awsClient)
+		awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
@@ -620,7 +620,7 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerTy
 		}
 	} else {
 		if providerType == types.AWSProviderType {
-			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), modelResource.Model, userconfig.ModelKey)
+			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), model, userconfig.ModelKey)
 		}
 
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())

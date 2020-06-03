@@ -48,7 +48,7 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 
 	apiSpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
 
-	// apiConfig.Predictor.Model gets added to apiConfig.Predictor.Models for ease of use
+	// apiConfig.Predictor.Model was already added to apiConfig.Predictor.Models for ease of use
 	if len(apiConfig.Predictor.Models) > 0 {
 		localModelCaches, err := CacheModels(apiSpec, awsClient)
 		if err != nil {
@@ -117,7 +117,7 @@ func areAPIsEqual(a1, a2 *spec.API) bool {
 	}
 }
 
-// DeleteAPI deletes a locally-deployed API by removing its containers, its workspace and its models.
+// DeleteAPI deletes a locally-deployed API by removing its containers, its workspace, and its models.
 // apiName is the name of the API within Cortex, prevAPISpec is the current existing API and newAPISpec
 // is the new API that'll be deployed soon after removing the existing API.
 // If prevAPISpec is nil & newAPISpec is nil, no models are removed.

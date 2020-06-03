@@ -76,7 +76,7 @@ class TensorFlowClient:
             return parse_response_proto(response_proto)
         else:
             raise UserRuntimeException(
-                "'{}' model wasn't found in the list of available models {}".format(
+                "'{}' model wasn't found in the list of available models: {}".format(
                     model, self._model_names
                 )
             )
@@ -278,4 +278,4 @@ def parse_response_proto(response_proto):
 def validate_model_input(input_signature, model_input, model_name):
     for input_name, _ in input_signature.items():
         if input_name not in model_input:
-            raise UserException("missing key \"{}\" for model '{}'".format(input_name, model_name))
+            raise UserException('missing key "{}" for model "{}"'.format(input_name, model_name))

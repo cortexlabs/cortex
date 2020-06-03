@@ -29,7 +29,7 @@ class TensorFlowServing:
         self.model_platform = "tensorflow"
         self.channel = grpc.insecure_channel(self.address)
         self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
-        self.timeout = 600
+        self.timeout = 900
 
     def add_models_config(self, names, base_paths, replace_models=False):
         request = model_management_pb2.ReloadConfigRequest()
@@ -51,24 +51,20 @@ class TensorFlowServing:
             request.config.MergeFrom(model_server_config)
 
         # request TFS to load models
-        limit = 60
+        limit = 2
         response = None
         for i in range(limit):
             try:
+                # this request doesn't return until all models have been successfully loaded
                 response = self.stub.HandleReloadConfigRequest(request, self.timeout)
                 break
             except Exception as e:
-                if isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.UNAVAILABLE:
-                    if i > 6:  # only start logging this after 30 seconds
-                        cx_logger().warn("unable to trigger the loading of model(s) - retrying ...")
-                else:
+                if not (isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.UNAVAILABLE):
                     print(e)  # unexpected error
-                    cx_logger().warn("unable to trigger the loading of model(s) - retrying ...")
-
-            time.sleep(5)
+                cx_logger().warn("unable to trigger the loading of model(s) - retrying ...")
 
         # report error or success
-        if not response is None and response.status.error_code == 0:
+        if response is not None and response.status.error_code == 0:
             cx_logger().info("successfully loaded {} models into TF-Serving".format(names))
         else:
             raise CortexException(

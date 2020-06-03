@@ -239,7 +239,7 @@ func ErrorInvalidONNXModelPath() error {
 func ErrorDuplicateModels(duplicateModel string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateModels,
-		Message: fmt.Sprintf("cannot have duplicate model %s", duplicateModel),
+		Message: fmt.Sprintf("cannot have multiple models with the same name (%s)", duplicateModel),
 	})
 }
 

@@ -14,16 +14,15 @@
 
 
 class Model:
-    def __init__(self, name=None, source=None, signature_key=None, base_path=None):
+    def __init__(self, name=None, model=None, signature_key=None, base_path=None):
         self.name = name
-        self.source = source
+        self.model = model
         self.signature_key = signature_key
         self.base_path = base_path
 
 
 def get_signature_keys(models):
-    signature_keys = [model.signature_key for model in models]
-    return signature_keys
+    return [model.signature_key for model in models]
 
 
 def get_name_signature_pairs(models):
@@ -41,7 +40,4 @@ def get_model_indexes(models):
 
 
 def get_model_names(models):
-    names = []
-    for model in models:
-        names.append(model.name)
-    return names
+    return [model.name for model in models]

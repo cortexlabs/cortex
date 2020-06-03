@@ -37,7 +37,7 @@ class Predictor:
             self.models += [
                 Model(
                     name="default",
-                    source=kwargs.get("model"),
+                    model=kwargs.get("model"),
                     signature_key=kwargs.get("signature_key"),
                 )
             ]
@@ -46,7 +46,7 @@ class Predictor:
                 self.models += [
                     Model(
                         name=model.get("name"),
-                        source=model.get("model"),
+                        model=model.get("model"),
                         signature_key=model.get("signature_key"),
                     )
                 ]
@@ -58,14 +58,13 @@ class Predictor:
             for model in self.models:
                 model.base_path = os.path.join(model_dir, model.name)
                 if self.type == "onnx":
-                    model.base_path = os.path.join(model.base_path, os.path.basename(model.source))
+                    model.base_path = os.path.join(model.base_path, os.path.basename(model.model))
 
         signature_message = None
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
             client = ONNXClient(self.models)
-            # TODO to use client.input_signature as it should be done
             if self.models[0].name == "default":
                 signature_message = "ONNX model signature: {}".format(self.models[0].signature_key)
             else:

@@ -22,7 +22,6 @@ from cortex.lib.type.model import Model, get_model_names
 
 
 class ONNXClient:
-    # def __init__(self, model_path):
     def __init__(self, models):
         """Setup ONNX runtime session.
 
@@ -45,7 +44,7 @@ class ONNXClient:
                 metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
             self._input_signatures[model.name] = metadata
 
-    def predict(self, model_input, model="default"):
+    def predict(self, model_input, model=None):
         """Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
 
         Args:
@@ -55,13 +54,25 @@ class ONNXClient:
         Returns:
             numpy.ndarray: The prediction returned from the model.
         """
+        if "default" in self._model_names:
+            input_dict = convert_to_onnx_input(model_input, self._signatures["default"], "default")
+            model_output = self._sessions["default"].run([], input_dict)
+            return model_output
+
+        if model is None:
+            raise UserRuntimeException(
+                "no model was specified, choose one of the following: {}".format(
+                    model, self._model_names
+                )
+            )
+
         if model in self._model_names:
             input_dict = convert_to_onnx_input(model_input, self._signatures[model], model)
             model_output = self._sessions[model].run([], input_dict)
             return model_output
         else:
             raise UserRuntimeException(
-                "'{}' model wasn't found in the list of available models {}".format(
+                "'{}' model wasn't found in the list of available models: {}".format(
                     model, self._model_names
                 )
             )
@@ -130,7 +141,7 @@ def convert_to_onnx_input(model_input, input_metadata_list, model_name):
         if util.is_dict(model_input):
             if model_input.get(input_metadata.name) is None:
                 raise UserException(
-                    "missing key \"{}\" for model '{}'".format(input_metadata.name, model_name)
+                    'missing key "{}" for model "{}"'.format(input_metadata.name, model_name)
                 )
             input_dict[input_metadata.name] = transform_to_numpy(
                 model_input[input_metadata.name], input_metadata, model_name
@@ -141,7 +152,7 @@ def convert_to_onnx_input(model_input, input_metadata_list, model_name):
                     model_input, input_metadata, model_name
                 )
             except CortexException as e:
-                e.wrap("key \"{}\" for model '{}'".format(input_metadata.name, model_name))
+                e.wrap('key "{}" for model "{}"'.format(input_metadata.name, model_name))
                 raise
     else:
         for input_metadata in input_metadata_list:
@@ -155,13 +166,13 @@ def convert_to_onnx_input(model_input, input_metadata_list, model_name):
 
             if model_input.get(input_metadata.name) is None:
                 raise UserException(
-                    "missing key \"{}\" for model '{}'".format(input_metadata.name, model_name)
+                    'missing key "{}" for model "{}"'.format(input_metadata.name, model_name)
                 )
             try:
                 input_dict[input_metadata.name] = transform_to_numpy(
                     model_input[input_metadata.name], input_metadata, model_name
                 )
             except CortexException as e:
-                e.wrap("key \"{}\" for model '{}'".format(input_metadata.name, model_name))
+                e.wrap('key "{}" for model "{}"'.format(input_metadata.name, model_name))
                 raise
     return input_dict
