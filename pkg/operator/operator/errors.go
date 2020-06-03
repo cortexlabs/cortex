@@ -30,6 +30,9 @@ const (
 	ErrAPIUpdating                 = "operator.api_updating"
 	ErrAPINotDeployed              = "operator.api_not_deployed"
 	ErrNoAvailableNodeComputeLimit = "operator.no_available_node_compute_limit"
+	ErrNoVPCLink                   = "operator.no_vpc_link"
+	ErrNoVPCLinkIntegration        = "operator.no_vpc_link_integration"
+	ErrNoAPIGateway                = "operator.no_api_gateway"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -68,5 +71,26 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		Message: message,
+	})
+}
+
+func ErrorNoVPCLink() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoVPCLink,
+		Message: "unable to locate cortex's vpc link",
+	})
+}
+
+func ErrorNoVPCLinkIntegration() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoVPCLinkIntegration,
+		Message: "unable to locate cortex's api gateway vpc link integration",
+	})
+}
+
+func ErrorNoAPIGateway() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoAPIGateway,
+		Message: "unable to locate cortex's api gateway",
 	})
 }

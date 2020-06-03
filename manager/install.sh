@@ -164,14 +164,14 @@ function main() {
       envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi
 
-    # create VPC Links for API Gateway
+    # create VPC Link for API Gateway
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
       vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
-      #filter all private subnets belonging to cortex cluster
-      private_subnets=$(aws ec2  describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s  '.[].Subnets[].SubnetId' | tr -d '"')
-      #get default security group for cortex VPC
+      # filter all private subnets belonging to cortex cluster
+      private_subnets=$(aws ec2 describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s '.[].Subnets[].SubnetId' | tr -d '"')
+      # get default security group for cortex VPC
       default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
-      #create VPC LINK
+      # create VPC Link
       vpc_link_id=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags $CORTEX_TAGS --name $CORTEX_CLUSTER_NAME  --subnet-ids $private_subnets --security-group-ids $default_security_group | jq .VpcLinkId | tr -d '"')
     fi
   fi
@@ -232,12 +232,11 @@ function main() {
 
   if [ "$arg1" != "--update" ]; then
     # create new API Gateway
-    api_id=$(aws apigatewayv2 create-api --tags $CORTEX_TAGS --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP |jq .ApiId | tr -d '"')
-    # create default stage, redirection because of possible bug in create-api. create-api should create default stage but doesn't
-    # so it needs to be created manually, if fixed sometime this will ConflictException so redirection
-    aws apigatewayv2 create-stage --region $CORTEX_REGION  --tags $CORTEX_TAGS --api-id $api_id  --auto-deploy --stage-name \$default > /dev/null
+    api_id=$(aws apigatewayv2 create-api --tags $CORTEX_TAGS --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP | jq .ApiId | tr -d '"')
+    # create default stage; ignore error because default stage may already exist (currently it doesn't exist because of a possible bug in create-api)
+    aws apigatewayv2 create-stage --region $CORTEX_REGION --tags $CORTEX_TAGS --api-id $api_id --auto-deploy --stage-name \$default > /dev/null
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-      # add integration to api gateway if internal facing loadbalancer
+      # add integration to api gateway if internal loadbalancer
       python create_gateway_integration.py $api_id $vpc_link_id
     fi
   fi

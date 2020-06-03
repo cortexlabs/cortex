@@ -62,7 +62,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err != nil {
 			errors.PrintError(err)
 		}
-		err = addAPItoAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+		err = addAPIToAPIGateway(config.Cluster.APILoadBalancerScheme, api)
 		if err != nil {
 			errors.PrintError(err)
 		}
@@ -138,25 +138,13 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
-	isAPIDeployed, err := IsAPIDeployed(apiName)
-	if err != nil {
-		errors.PrintError(err)
-		return nil
-	}
-	// if API is deployed delete API from API Gateway
-	if isAPIDeployed {
-		api, err := GetSpecForRunningAPI(apiName)
-		if err != nil {
-			errors.PrintError(err)
-			return nil
-		}
-		err = removeAPIfromAPIGateway(config.Cluster.APILoadBalancerScheme, api)
-		if err != nil {
-			errors.PrintError(err)
-			return nil
-		}
-	}
-	err = parallel.RunFirstErr(
+	// best effort deletion, so don't handle error yet
+	api, apiSpecErr := GetSpecForRunningAPI(apiName)
+
+	err := parallel.RunFirstErr(
+		func() error {
+			return apiSpecErr
+		},
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -168,12 +156,22 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			deleteS3Resources(apiName)
 			return nil
 		},
+		// delete API from API Gateway
+		func() error {
+			if api == nil {
+				return nil // API is not running
+			}
+			err := removeAPIFromAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
 		// delete api from cloudwatch
 		func() error {
 			statuses, err := GetAllStatuses()
 			if err != nil {
-				errors.PrintError(err, "failed to get API Statuses")
-				return nil
+				return errors.Wrap(err, "failed to get API Statuses")
 			}
 			//extract all api names from statuses
 			allAPINames := make([]string, len(statuses))
@@ -182,8 +180,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
 			if err != nil {
-				errors.PrintError(err)
-				return nil
+				return errors.Wrap(err, "failed to delete API from dashboard")
 			}
 			return nil
 		},
@@ -394,30 +391,21 @@ func IsAPIDeployed(apiName string) (bool, error) {
 	return deployment != nil, nil
 }
 
-// APIsBaseURL returns BaseURL of the API without resource endpoint
-func APIsBaseURL(api *spec.API) (string, error) {
-	// return APIGateway Endpoint
-	if api.Networking.APIGateway.String() == "public" {
-		apiURL, err := APIGatewayURL()
-		if err != nil {
-			return "", err
-		}
-		return apiURL, nil
+// APIBaseURL returns BaseURL of the API without resource endpoint
+func APIBaseURL(api *spec.API) (string, error) {
+	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
+		return APIGatewayURL()
 	}
-	apiLoadBalancerURL, err := APILoadBalancerURL()
-	if err != nil {
-		return "", err
-	}
-	return apiLoadBalancerURL, nil
+	return APILoadBalancerURL()
 }
 
-// APIGatewayURL returns API gateway url invokation URL
+// APIGatewayURL returns API gateway url invocation URL
 func APIGatewayURL() (string, error) {
-	apiURL, err := config.AWS.GetAPIGatewayEndpoint(config.Cluster.ClusterName)
+	apiGateway, err := APIGateway()
 	if err != nil {
 		return "", err
 	}
-	return apiURL, nil
+	return *apiGateway.ApiEndpoint, nil
 }
 
 // APILoadBalancerURL returns http endpoint of cluster ingress elb
@@ -435,26 +423,37 @@ func APILoadBalancerURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-// GetSpecForRunningAPI return spec.API from API name. Only works for deployed APIs use IsAPIDeployed before to check if API is deployed
+// GetSpecForRunningAPI return spec.API from API name, or nil if API is not running
 func GetSpecForRunningAPI(apiName string) (*spec.API, error) {
 	apiID, err := getAPIIDForRunningAPI(apiName)
 	if err != nil {
 		return nil, err
 	}
-	specAPI, err := DownloadAPISpec(apiName, apiID)
+
+	if apiID == "" {
+		return nil, nil
+	}
+
+	apiSpec, err := DownloadAPISpec(apiName, apiID)
 	if err != nil {
 		return nil, err
 	}
-	return specAPI, nil
+
+	return apiSpec, nil
 }
 
-// getAPIIDForRunningAPI returns API id only works if API is deployed
+// getAPIIDForRunningAPI returns API ID, or empty string if API is not running
 func getAPIIDForRunningAPI(apiName string) (string, error) {
 	deployments, err := config.K8s.ListDeploymentsByLabel("apiName", apiName)
 	if err != nil {
 		return "", err
 	}
-	//only one item becaue apiName is unique
+
+	if len(deployments) == 0 {
+		return "", nil
+	}
+
+	// only one item because apiName is unique
 	return deployments[0].Labels["apiID"], nil
 }
 

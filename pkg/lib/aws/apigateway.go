@@ -20,340 +20,192 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-// GetVpcLinkID vpc-link id only exists if internal facing loadbalancer
-func (c *Client) getVpcLinkID(clusterName string) (string, error) {
-	vpcLinks, err := c.APIGatewayv2().GetVpcLinks(&apigatewayv2.GetVpcLinksInput{})
+// GetVPCLinkByTag Gets a VPC Link by tag (returns nil if there are no matches)
+func (c *Client) GetVPCLinkByTag(tagName string, tagValue string) (*apigatewayv2.VpcLink, error) {
+	vpcLinks, err := c.APIGatewayV2().GetVpcLinks(&apigatewayv2.GetVpcLinksInput{})
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get VPC links")
+		return nil, errors.Wrap(err, "failed to get vpc links")
 	}
 
-	// find vpc link with tag cortex.dev/cluster-name=<CLUSTERNAME>
 	for _, vpcLink := range vpcLinks.Items {
 		for tag, value := range vpcLink.Tags {
-			if tag == "cortex.dev/cluster-name" && *value == clusterName {
-				return *vpcLink.VpcLinkId, nil
+			if tag == tagName && *value == tagValue {
+				return vpcLink, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("failed to find cortex VPC link")
+
+	return nil, nil
 }
 
-// GetAPIGatewayID gets the API ID of the API Gateway api
-func (c *Client) getAPIGatewayID(clusterName string) (string, error) {
-	apis, err := c.APIGatewayv2().GetApis(&apigatewayv2.GetApisInput{})
+// GetAPIGatewayByTag Gets an API Gateway by tag (returns nil if there are no matches)
+func (c *Client) GetAPIGatewayByTag(tagName string, tagValue string) (*apigatewayv2.Api, error) {
+	apis, err := c.APIGatewayV2().GetApis(&apigatewayv2.GetApisInput{})
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get API gateway apis")
+		return nil, errors.Wrap(err, "failed to get api gateways")
 	}
 
-	// find API with tag cortex.dev/cluster-name=<CLUSTERNAME>
 	for _, api := range apis.Items {
 		for tag, value := range api.Tags {
-			if tag == "cortex.dev/cluster-name" && *value == clusterName {
-				return *api.ApiId, nil
+			if tag == tagName && *value == tagValue {
+				return api, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("failed to find API gateway apis")
+
+	return nil, nil
 }
 
-// GetIntegrationIDInternal gets the ID of the created integration for the internal ELB
-func (c *Client) GetIntegrationIDInternal(clusterName string) (string, error) {
-	apiID, err := c.getAPIGatewayID(clusterName)
+// DeleteVPCLinkByTag Deletes a VPC Link by tag (returns whether or not the VPC Link existed)
+func (c *Client) DeleteVPCLinkByTag(tagName string, tagValue string) (bool, error) {
+	vpcLink, err := c.GetVPCLinkByTag(tagName, tagValue)
 	if err != nil {
-		return "", err
-	}
-	vpcLinkID, err := c.getVpcLinkID(clusterName)
-	if err != nil {
-		return "", err
+		return false, err
+	} else if vpcLink == nil {
+		return false, nil
 	}
 
-	integrations, err := c.APIGatewayv2().GetIntegrations(&apigatewayv2.GetIntegrationsInput{
-		ApiId: &apiID,
+	_, err = c.APIGatewayV2().DeleteVpcLink(&apigatewayv2.DeleteVpcLinkInput{
+		VpcLinkId: vpcLink.VpcLinkId,
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get API gateway integrations")
+		return false, errors.Wrap(err, "failed to delete vpc link")
 	}
 
-	// find integration which is connected to the cortex VPC link
+	return true, nil
+}
+
+// DeleteAPIGatewayByTag Deletes an API Gateway by tag (returns whether or not the API Gateway existed)
+func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (bool, error) {
+	apiGateway, err := c.GetAPIGatewayByTag(tagName, tagValue)
+	if err != nil {
+		return false, err
+	} else if apiGateway == nil {
+		return false, nil
+	}
+
+	_, err = c.APIGatewayV2().DeleteApi(&apigatewayv2.DeleteApiInput{
+		ApiId: apiGateway.ApiId,
+	})
+	if err != nil {
+		return false, errors.Wrap(err, "failed to delete api gateway")
+	}
+
+	return true, nil
+}
+
+// GetVPILinkIntegration gets the VPC Link integration in an API Gateway, or nil if unable to find it
+func (c *Client) GetVPCLinkIntegration(apiGatewayID string, vpcLinkID string) (*apigatewayv2.Integration, error) {
+	integrations, err := c.APIGatewayV2().GetIntegrations(&apigatewayv2.GetIntegrationsInput{
+		ApiId: &apiGatewayID,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get api gateway integrations")
+	}
+
+	// find integration which is connected to the VPC link
 	for _, integration := range integrations.Items {
 		if *integration.ConnectionId == vpcLinkID {
-			return *integration.IntegrationId, nil
+			return integration, nil
 		}
 	}
-	// check that there is one integration. There should only be one if we have internal facing loadbalancer
-	// if len(integrations.Items) == 0 {
-	// 	integrationID := *integrations.Items[0].IntegrationId
 
-	// 	return integrationID, nil
-	// }
-
-	return "", fmt.Errorf("no or too many integrations found for API with ID: \"%v\"", apiID)
+	return nil, nil
 }
 
-// GetRouteID retrieves Route ID
-func (c *Client) getRouteID(clusterName string, apiEndpoint string) (string, error) {
-	apiID, err := c.getAPIGatewayID(clusterName)
+// GetRouteIntegrationID returns the integration which is attached to a endpoint route, or empty string if unable to find it
+func (c *Client) GetRouteIntegrationID(apiGatewayID string, endpoint string) (string, error) {
+	route, err := c.GetRoute(apiGatewayID, endpoint)
 	if err != nil {
 		return "", err
 	}
 
-	routes, err := c.APIGatewayv2().GetRoutes(&apigatewayv2.GetRoutesInput{
-		ApiId: &apiID,
+	// trim of prefix of integrationID.
+	// Note: Integrations get attached to routes via a target of the format integrations/<integrationID>
+	integrationID := strings.Trim(*route.Target, "integrations/")
+	return integrationID, nil
+}
+
+// GetRouteID retrieves the route matching an endpoint, or nil if unable to find it
+func (c *Client) GetRoute(apiGatewayID string, endpoint string) (*apigatewayv2.Route, error) {
+	routes, err := c.APIGatewayV2().GetRoutes(&apigatewayv2.GetRoutesInput{
+		ApiId: &apiGatewayID,
 	})
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("failed to get routes for API with endpoint \"%v\" and ID \"%v\"", apiEndpoint, apiID))
+		return nil, errors.Wrap(err, "failed to get api gateway routes")
 	}
 
 	// find route which matches the endpoint
 	for _, route := range routes.Items {
-		if *route.RouteKey == "ANY "+apiEndpoint {
-			return *route.RouteId, nil
+		if *route.RouteKey == "ANY "+endpoint {
+			return route, nil
 		}
 	}
-	return "", fmt.Errorf("failed to find route for API with endpoint \"%v\" and ID \"%v\"", apiEndpoint, apiID)
+
+	return nil, nil
 }
 
-// GetAPIGatewayEndpoint returns URL for API Gateway endpoint
-func (c *Client) GetAPIGatewayEndpoint(clusterName string) (string, error) {
-	apiID, err := c.getAPIGatewayID(clusterName)
-	if err != nil {
-		return "", err
-	}
-
-	api, err := c.APIGatewayv2().GetApi(&apigatewayv2.GetApiInput{
-		ApiId: &apiID,
+// CreateRoute creates a new route and attaches the route to the integration
+func (c *Client) CreateRoute(apiGatewayID string, integrationID string, endpoint string) error {
+	_, err := c.APIGatewayV2().CreateRoute(&apigatewayv2.CreateRouteInput{
+		ApiId:    &apiGatewayID,
+		RouteKey: aws.String("ANY " + endpoint),
+		Target:   aws.String("integrations/" + integrationID),
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get API with ID", apiID)
-	}
-	return *api.ApiEndpoint, nil
-}
-
-// GetIntegrationIDofRoute returns the integrationID of the integration which is attached to a endpoint route
-func (c *Client) GetIntegrationIDofRoute(clusterName string, apiEndpoint string) (string, error) {
-	apiID, err := c.getAPIGatewayID(clusterName)
-	if err != nil {
-		return "", err
-	}
-
-	routeID, err := c.getRouteID(clusterName, apiEndpoint)
-	if err != nil {
-		return "", err
-	}
-
-	getRouteResponse, err := c.APIGatewayv2().GetRoute(&apigatewayv2.GetRouteInput{
-		ApiId:   &apiID,
-		RouteId: &routeID,
-	})
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get route for API with endpoint", apiEndpoint)
-	}
-	// trim of prefix of integrationID.
-	// Note: Integrations get attached to routes via a target of the format integrations/<integrationID>
-	integrationID := strings.Trim(*getRouteResponse.Target, "integrations/")
-	return integrationID, nil
-}
-
-// CreateRouteWithIntegration creates a new route and attaches the route to the integration
-func (c *Client) CreateRouteWithIntegration(clusterName string, integrationID string, apiEndpoint string) error {
-	apiID, err := c.getAPIGatewayID(clusterName)
-	if err != nil {
-		return err
-	}
-
-	// create route key which includes ANY method and endpoint path
-	route := "ANY " + apiEndpoint
-	// Note: Integrations get attached to routes via a target of the format integrations/<integrationID>
-	target := "integrations/" + integrationID
-	_, err = c.APIGatewayv2().CreateRoute(&apigatewayv2.CreateRouteInput{
-		ApiId:    &apiID,
-		RouteKey: &route,
-		Target:   &target,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to create route for API with ID", apiID)
+		return errors.Wrap(err, "failed to create route for api gateway")
 	}
 	return nil
 }
 
-// CreateHTTPIntegration creates new HTTP integration for API Gateway returns IntegrationID
-func (c *Client) CreateHTTPIntegration(clusterName string, endpointURL string) (string, error) {
-	apiID, err := c.getAPIGatewayID(clusterName)
-	if err != nil {
-		return "", err
-	}
-
-	integrationType := "HTTP_PROXY"
-	payloadFormatVersion := "1.0"
-	integrationMethod := "ANY"
-	integrationResponse, err := c.APIGatewayv2().CreateIntegration(&apigatewayv2.CreateIntegrationInput{
-		ApiId:                &apiID,
-		IntegrationType:      &integrationType,
-		IntegrationUri:       &endpointURL,
-		PayloadFormatVersion: &payloadFormatVersion,
-		IntegrationMethod:    &integrationMethod,
+// CreateHTTPIntegration creates new HTTP integration for API Gateway, returns integration ID
+func (c *Client) CreateHTTPIntegration(apiGatewayID string, targetEndpoint string) (string, error) {
+	integrationResponse, err := c.APIGatewayV2().CreateIntegration(&apigatewayv2.CreateIntegrationInput{
+		ApiId:                &apiGatewayID,
+		IntegrationType:      aws.String("HTTP_PROXY"),
+		IntegrationUri:       &targetEndpoint,
+		PayloadFormatVersion: aws.String("1.0"),
+		IntegrationMethod:    aws.String("ANY"),
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create API gateway integration for endpoint", endpointURL)
+		return "", errors.Wrap(err, fmt.Sprintf("failed to create api gateway integration for endpoint %s", targetEndpoint))
 	}
 	return *integrationResponse.IntegrationId, nil
 }
 
-// DeleteIntegration deletes integration from API gateway
-func (c *Client) DeleteIntegration(clusterName string, integrationID string) error {
-	apiID, err := c.getAPIGatewayID(clusterName)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.APIGatewayv2().DeleteIntegration(&apigatewayv2.DeleteIntegrationInput{
-		ApiId:         &apiID,
+// DeleteIntegration deletes an integration from API Gateway
+func (c *Client) DeleteIntegration(apiGatewayID string, integrationID string) error {
+	_, err := c.APIGatewayV2().DeleteIntegration(&apigatewayv2.DeleteIntegrationInput{
+		ApiId:         &apiGatewayID,
 		IntegrationId: &integrationID,
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to delete HTTP integration with ID", integrationID)
+		return errors.Wrap(err, "failed to delete api gateway integration")
 	}
 	return nil
 }
 
-// DeleteAPIGatewayRoute deletes route from API gateway
-func (c *Client) DeleteAPIGatewayRoute(clusterName string, apiEndpoint string) error {
-	apiID, err := c.getAPIGatewayID(clusterName)
-	if err != nil {
-		return err
-	}
-
-	routeID, err := c.getRouteID(clusterName, apiEndpoint)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.APIGatewayv2().DeleteRoute(&apigatewayv2.DeleteRouteInput{
-		ApiId:   &apiID,
-		RouteId: &routeID,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to delete API with endpoint", apiEndpoint)
-	}
-	return nil
-}
-
-// DoesAPIGatewayExist check if a cortex API Gateway exists
-func (c *Client) doesAPIGatewayExist(clusterName string) (bool, error) {
-	apis, err := c.APIGatewayv2().GetApis(&apigatewayv2.GetApisInput{})
-	if err != nil {
-		return false, errors.Wrap(err, "failed to get api gateway apis")
-	}
-
-	// find API with tag cortex.dev/cluster-name=<CLUSTERNAME>
-	for _, api := range apis.Items {
-		for tag, value := range api.Tags {
-			if tag == "cortex.dev/cluster-name" && *value == clusterName {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
-}
-
-// DoesVPCLinkExist check if a VPC cortex link exists
-func (c *Client) doesVPCLinkExist(clusterName string) (bool, error) {
-	vpcLinks, err := c.APIGatewayv2().GetVpcLinks(&apigatewayv2.GetVpcLinksInput{})
-	if err != nil {
-		return false, errors.Wrap(err, "failed to get vpc links")
-	}
-
-	// find vpc link with tag cortex.dev/cluster-name=<CLUSTERNAME>
-	for _, vpcLink := range vpcLinks.Items {
-		for tag, value := range vpcLink.Tags {
-			if tag == "cortex.dev/cluster-name" && *value == clusterName {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
-}
-
-// CheckIfAPIDeployed return a true if API endpoint is deployed in API Gateway
-func (c *Client) CheckIfAPIDeployed(clusterName string, apiEndpoint string) (bool, error) {
-	apiID, err := c.getAPIGatewayID(clusterName)
+// DeleteRoute deletes a route from API Gateway, and whether the route was found
+func (c *Client) DeleteRoute(apiGatewayID string, endpoint string) (bool, error) {
+	route, err := c.GetRoute(apiGatewayID, endpoint)
 	if err != nil {
 		return false, err
+	} else if route == nil {
+		return false, nil
 	}
 
-	routes, err := c.APIGatewayv2().GetRoutes(&apigatewayv2.GetRoutesInput{
-		ApiId: &apiID,
+	_, err = c.APIGatewayV2().DeleteRoute(&apigatewayv2.DeleteRouteInput{
+		ApiId:   &apiGatewayID,
+		RouteId: route.RouteId,
 	})
 	if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("failed to get routes for API with endpoint \"%v\" and ID \"%v\"", apiEndpoint, apiID))
+		return false, errors.Wrap(err, fmt.Sprintf("failed to delete api gateway route with endpoint %s", endpoint))
 	}
 
-	// find route which matches the endpoint
-	for _, route := range routes.Items {
-		if *route.RouteKey == "ANY "+apiEndpoint {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-//DeleteVPCLink delete API Gateways vpc link
-func (c *Client) DeleteVPCLink(clusterName string) error {
-	// first check if VPC Link exists
-	vpcLinkExists, err := c.doesVPCLinkExist(clusterName)
-	if err != nil {
-		return err
-	}
-
-	// if vpc link doesn't exist return
-	if !vpcLinkExists {
-		return nil
-	}
-
-	// vpc link exists and gets deleted by vpc link
-	vpcLinkID, err := c.getVpcLinkID(clusterName)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.APIGatewayv2().DeleteVpcLink(&apigatewayv2.DeleteVpcLinkInput{
-		VpcLinkId: &vpcLinkID,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to delete VPC link with ID", vpcLinkID)
-	}
-	return nil
-}
-
-//DeleteAPIGateway delete API Gateway
-func (c *Client) DeleteAPIGateway(clusterName string) error {
-	// first check if API Gateway exists
-	apiExists, err := c.doesAPIGatewayExist(clusterName)
-	if err != nil {
-		return err
-	}
-
-	// if api doesn't exist return
-	if !apiExists {
-		err = fmt.Errorf("no API gateway found")
-		return err
-	}
-
-	// api gateway exists and gets deleted by API ID
-	apiID, err := c.getAPIGatewayID(clusterName)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.APIGatewayv2().DeleteApi(&apigatewayv2.DeleteApiInput{
-		ApiId: &apiID,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to delete API gateway with ID", apiID)
-	}
-	return nil
+	return true, nil
 }

@@ -301,12 +301,13 @@ var _downCmd = &cobra.Command{
 		warnIfNotAdmin(awsClient)
 
 		// delete API gateway if exists
-		err = awsClient.DeleteAPIGateway(*accessConfig.ClusterName)
+		_, err = awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if err != nil {
 			errors.PrintError(err)
 		}
+
 		// delete VPC Link if exists
-		err = awsClient.DeleteVPCLink(*accessConfig.ClusterName)
+		_, err = awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if err != nil {
 			errors.PrintError(err)
 		}

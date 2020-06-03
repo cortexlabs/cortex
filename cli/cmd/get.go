@@ -319,11 +319,9 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 	apiEndpoint := apiRes.BaseURL
 	if env.Provider == types.AWSProviderType {
-		// no need to replace https if we use API Gateway
-		if api.Networking.APIGateway.String() == "public" {
-			apiEndpoint = urls.Join(apiRes.BaseURL, *api.Endpoint)
-		} else {
-			apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "https://", "http://", 1)
+		apiEndpoint = urls.Join(apiRes.BaseURL, *api.Endpoint)
+		if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
 		}
 	}
 

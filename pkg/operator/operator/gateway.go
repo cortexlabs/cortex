@@ -17,80 +17,122 @@ limitations under the License.
 package operator
 
 import (
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func addAPItoAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
-	//check if API is already deployed if already deployed skip
-	apiAlreadyExists, err := config.AWS.CheckIfAPIDeployed(config.Cluster.ClusterName, *api.Endpoint)
+func addAPIToAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
+	if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+		return nil
+	}
+
+	apiGateway, err := APIGateway()
 	if err != nil {
 		return err
 	}
-	if apiAlreadyExists {
+
+	// check if API Gateway route already exists
+	existingRoute, err := config.AWS.GetRoute(*apiGateway.ApiId, *api.Endpoint)
+	if err != nil {
+		return err
+	} else if existingRoute == nil {
 		return nil
 	}
-	// internal facing API loadbalancer
-	if loadBalancerScheme.String() == "internal" {
-		// API should be exposed to public with API gateway
-		if api.Networking.APIGateway.String() == "public" {
-			integrationID, err := config.AWS.GetIntegrationIDInternal(config.Cluster.ClusterName)
-			if err != nil {
-				return err
-			}
-			err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, *api.Endpoint)
-			if err != nil {
-				return err
-			}
+
+	if loadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+		vpcLink, err := config.AWS.GetVPCLinkByTag(clusterconfig.ClusterNameTag, config.Cluster.ClusterName)
+		if err != nil {
+			return err
+		} else if vpcLink == nil {
+			return ErrorNoVPCLink()
+		}
+
+		integration, err := config.AWS.GetVPCLinkIntegration(*apiGateway.ApiId, *vpcLink.VpcLinkId)
+		if err != nil {
+			return err
+		} else if integration == nil {
+			return ErrorNoVPCLinkIntegration()
+		}
+
+		err = config.AWS.CreateRoute(*apiGateway.ApiId, *integration.IntegrationId, *api.Endpoint)
+		if err != nil {
+			return err
 		}
 	}
-	// public facing API loadbalancer
-	if loadBalancerScheme.String() == "internet-facing" {
-		if api.Networking.APIGateway.String() == "public" {
-			endpointURL, err := APILoadBalancerURL()
-			if err != nil {
-				return err
-			}
-			endpointURL = urls.Join(endpointURL, *api.Endpoint)
-			integrationID, err := config.AWS.CreateHTTPIntegration(config.Cluster.ClusterName, endpointURL)
-			if err != nil {
-				return err
-			}
-			err = config.AWS.CreateRouteWithIntegration(config.Cluster.ClusterName, integrationID, *api.Endpoint)
-			if err != nil {
-				return err
-			}
+
+	if loadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
+		loadBalancerURL, err := APILoadBalancerURL()
+		if err != nil {
+			return err
+		}
+
+		targetEndpoint := urls.Join(loadBalancerURL, *api.Endpoint)
+
+		integrationID, err := config.AWS.CreateHTTPIntegration(*apiGateway.ApiId, targetEndpoint)
+		if err != nil {
+			return err
+		}
+
+		err = config.AWS.CreateRoute(*apiGateway.ApiId, integrationID, *api.Endpoint)
+		if err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
-func removeAPIfromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
-	if loadBalancerScheme.String() == "internal" {
-		if api.Networking.APIGateway.String() == "public" {
-			err := config.AWS.DeleteAPIGatewayRoute(config.Cluster.ClusterName, *api.Endpoint)
-			if err != nil {
-				return err
-			}
+func removeAPIFromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
+	if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+		return nil
+	}
+
+	apiGateway, err := APIGateway()
+	if err != nil {
+		return err
+	}
+
+	if loadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+		_, err := config.AWS.DeleteRoute(*apiGateway.ApiId, *api.Endpoint)
+		if err != nil {
+			return err
 		}
 	}
-	if loadBalancerScheme.String() == "internet-facing" {
-		if api.Networking.APIGateway.String() == "public" {
-			integrationID, err := config.AWS.GetIntegrationIDofRoute(config.Cluster.ClusterName, *api.Endpoint)
-			if err != nil {
-				return err
-			}
-			err = config.AWS.DeleteAPIGatewayRoute(config.Cluster.ClusterName, *api.Endpoint)
-			if err != nil {
-				return err
-			}
+
+	if loadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
+		integrationID, err := config.AWS.GetRouteIntegrationID(*apiGateway.ApiId, *api.Endpoint)
+		if err != nil {
+			return err
+		}
+
+		_, err = config.AWS.DeleteRoute(*apiGateway.ApiId, *api.Endpoint)
+		if err != nil {
+			return err
+		}
+
+		if integrationID != "" {
 			err = config.AWS.DeleteIntegration(config.Cluster.ClusterName, integrationID)
 			if err != nil {
 				return err
 			}
 		}
 	}
+
 	return nil
+}
+
+// APIGateway returns the Cortex API Gateway (an error is returned if unable to find it)
+func APIGateway() (*apigatewayv2.Api, error) {
+	apiGateway, err := config.AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, config.Cluster.ClusterName)
+	if err != nil {
+		return nil, err
+	} else if apiGateway == nil {
+		return nil, ErrorNoAPIGateway()
+	}
+
+	return apiGateway, nil
 }

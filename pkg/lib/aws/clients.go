@@ -43,7 +43,7 @@ type clients struct {
 	autoscaling    *autoscaling.AutoScaling
 	cloudWatchLogs *cloudwatchlogs.CloudWatchLogs
 	cloudWatch     *cloudwatch.CloudWatch
-	apiGatewayv2   *apigatewayv2.ApiGatewayV2
+	apiGatewayV2   *apigatewayv2.ApiGatewayV2
 	serviceQuotas  *servicequotas.ServiceQuotas
 	cloudFormation *cloudformation.CloudFormation
 	iam            *iam.IAM
@@ -126,11 +126,11 @@ func (c *Client) CloudWatch() *cloudwatch.CloudWatch {
 	return c.clients.cloudWatch
 }
 
-func (c *Client) APIGatewayv2() *apigatewayv2.ApiGatewayV2 {
-	if c.clients.apiGatewayv2 == nil {
-		c.clients.apiGatewayv2 = apigatewayv2.New(c.sess)
+func (c *Client) APIGatewayV2() *apigatewayv2.ApiGatewayV2 {
+	if c.clients.apiGatewayV2 == nil {
+		c.clients.apiGatewayV2 = apigatewayv2.New(c.sess)
 	}
-	return c.clients.apiGatewayv2
+	return c.clients.apiGatewayV2
 }
 
 func (c *Client) ServiceQuotas() *servicequotas.ServiceQuotas {
