@@ -170,7 +170,6 @@ class Predictor:
         return impl
 
     def _compute_model_basepath(self, model_source, model_name):
-        print(model_source, model_name, self.model_dir)
         base_path = os.path.join(self.model_dir, model_name)
         if self.type == "onnx":
             base_path = os.path.join(base_path, os.path.basename(model_source))
