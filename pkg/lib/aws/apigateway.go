@@ -32,11 +32,23 @@ func (c *Client) GetVPCLinkByTag(tagName string, tagValue string) (*apigatewayv2
 		return nil, errors.Wrap(err, "failed to get vpc links")
 	}
 
-	for _, vpcLink := range vpcLinks.Items {
-		for tag, value := range vpcLink.Tags {
-			if tag == tagName && *value == tagValue {
-				return vpcLink, nil
+	for {
+		for _, vpcLink := range vpcLinks.Items {
+			for tag, value := range vpcLink.Tags {
+				if tag == tagName && *value == tagValue {
+					return vpcLink, nil
+				}
 			}
+		}
+		// next token nil means no more pages of VPC links
+		if vpcLinks.NextToken == nil {
+			break
+		}
+		vpcLinks, err = c.APIGatewayV2().GetVpcLinks(&apigatewayv2.GetVpcLinksInput{
+			NextToken: vpcLinks.NextToken,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get vpc links")
 		}
 	}
 
@@ -50,11 +62,22 @@ func (c *Client) GetAPIGatewayByTag(tagName string, tagValue string) (*apigatewa
 		return nil, errors.Wrap(err, "failed to get api gateways")
 	}
 
-	for _, api := range apis.Items {
-		for tag, value := range api.Tags {
-			if tag == tagName && *value == tagValue {
-				return api, nil
+	for {
+		for _, api := range apis.Items {
+			for tag, value := range api.Tags {
+				if tag == tagName && *value == tagValue {
+					return api, nil
+				}
 			}
+		}
+		if apis.NextToken == nil {
+			break
+		}
+		apis, err = c.APIGatewayV2().GetApis(&apigatewayv2.GetApisInput{
+			NextToken: apis.NextToken,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get api gateways")
 		}
 	}
 
@@ -99,7 +122,7 @@ func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (bool, e
 	return true, nil
 }
 
-// GetVPILinkIntegration gets the VPC Link integration in an API Gateway, or nil if unable to find it
+// GetVPCLinkIntegration gets the VPC Link integration in an API Gateway, or nil if unable to find it
 func (c *Client) GetVPCLinkIntegration(apiGatewayID string, vpcLinkID string) (*apigatewayv2.Integration, error) {
 	integrations, err := c.APIGatewayV2().GetIntegrations(&apigatewayv2.GetIntegrationsInput{
 		ApiId: &apiGatewayID,
@@ -131,7 +154,7 @@ func (c *Client) GetRouteIntegrationID(apiGatewayID string, endpoint string) (st
 	return integrationID, nil
 }
 
-// GetRouteID retrieves the route matching an endpoint, or nil if unable to find it
+// GetRoute retrieves the route matching an endpoint, or nil if unable to find it
 func (c *Client) GetRoute(apiGatewayID string, endpoint string) (*apigatewayv2.Route, error) {
 	routes, err := c.APIGatewayV2().GetRoutes(&apigatewayv2.GetRoutesInput{
 		ApiId: &apiGatewayID,

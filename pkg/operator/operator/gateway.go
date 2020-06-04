@@ -39,7 +39,7 @@ func addAPIToAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api
 	existingRoute, err := config.AWS.GetRoute(*apiGateway.ApiId, *api.Endpoint)
 	if err != nil {
 		return err
-	} else if existingRoute == nil {
+	} else if existingRoute != nil {
 		return nil
 	}
 
