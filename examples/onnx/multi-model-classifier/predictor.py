@@ -97,4 +97,4 @@ class ONNXPredictor:
         result = postprocess(results)
         predicted_label = self.image_classes[result]
 
-        return predicted_label
+        return {"label": predicted_label}

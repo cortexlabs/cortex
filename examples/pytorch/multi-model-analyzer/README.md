@@ -1,12 +1,12 @@
-# Multi-Model API
+# Multi-Model Analyzer API
 
-This example deploys a sentiment analyzer and a text summarizer model in one API. Query parameters are used for selecting the model. 
+This example deploys a sentiment analyzer and a text summarizer model in one API. Query parameters are used for selecting the model.
 
 The example can be run on both CPU and on GPU hardware.
 
 ## Sample Prediction
 
-Deploy the model with
+Deploy the model by running:
 ```
 cortex deploy
 ```

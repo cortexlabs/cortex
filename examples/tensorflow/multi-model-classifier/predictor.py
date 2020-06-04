@@ -42,7 +42,7 @@ class TensorFlowPredictor:
         elif model in ["resnet50", "inception"]:
             predicted_label = self.predict_image_classifier(model, payload["url"])
 
-        return {"output": predicted_label}
+        return {"label": predicted_label}
 
     def predict_image_classifier(self, model, img_url):
         img = get_url_image(img_url)
