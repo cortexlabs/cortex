@@ -43,7 +43,6 @@ class TensorFlowClient:
         channel = grpc.insecure_channel(tf_serving_url)
         self._stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
-        # in the same order as self._models
         self._signatures = get_signature_defs(self._stub, models)
         parsed_signature_keys, parsed_signatures = extract_signatures(
             self._signatures, get_signature_keys(models)
