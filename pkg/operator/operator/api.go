@@ -408,18 +408,9 @@ func IsAPIDeployed(apiName string) (bool, error) {
 // APIBaseURL returns BaseURL of the API without resource endpoint
 func APIBaseURL(api *spec.API) (string, error) {
 	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
-		return APIGatewayURL()
+		return *config.Cluster.APIGateway.ApiEndpoint, nil
 	}
 	return APILoadBalancerURL()
-}
-
-// APIGatewayURL returns API gateway url invocation URL
-func APIGatewayURL() (string, error) {
-	apiGateway, err := APIGateway()
-	if err != nil {
-		return "", err
-	}
-	return *apiGateway.ApiEndpoint, nil
 }
 
 // APILoadBalancerURL returns http endpoint of cluster ingress elb
