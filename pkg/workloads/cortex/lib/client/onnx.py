@@ -109,7 +109,10 @@ def transform_to_numpy(input_pyobj, input_metadata, model_name):
 
     try:
         for idx, dim in enumerate(target_shape):
-            if type(dim) is not int:
+            # dynamic_axes implies that a given dimension can have any size
+            if type(dim) is str and "dynamic_axes" in dim:
+                target_shape[idx] = -1
+            elif type(dim) is not int:
                 target_shape[idx] = 1
 
         if type(input_pyobj) is np.ndarray:
@@ -125,7 +128,11 @@ def transform_to_numpy(input_pyobj, input_metadata, model_name):
                 )
         else:
             np_arr = np.array(input_pyobj, dtype=target_dtype)
-        np_arr = np_arr.reshape(target_shape)
+
+        # can only infer the size for up to 1 unknown dimension
+        if target_shape.count(-1) <= 1:
+            np_arr = np_arr.reshape(target_shape)
+
         return np_arr
     except Exception as e:
         raise UserException(
