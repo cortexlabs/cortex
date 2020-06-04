@@ -1,0 +1,12 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+- name: text-analyzer
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    cpu: 1
+    gpu: 1
+    mem: 12G
+  autoscaling:
+    threads_per_worker: 1
