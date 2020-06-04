@@ -6,11 +6,11 @@
     path: predictor.py
     models:
       - name: resnet50
-        model: ~/sandbox/feature/multi-model-endpoint/onnx/multi-model-classifier/resnet50/resnet50-v2-7.onnx
+        model: s3://cortex-cluster-robertlucian-us-east-1/onnx/resnet50/resnet50-v2-7.onnx
       - name: mobilenet
-        model: ~/sandbox/feature/multi-model-endpoint/onnx/multi-model-classifier/mobilenet/mobilenetv2-7.onnx
+        model: s3://cortex-cluster-robertlucian-us-east-1/onnx/mobilenet/mobilenetv2-7.onnx
       - name: shufflenet
-        model: ~/sandbox/feature/multi-model-endpoint/onnx/multi-model-classifier/shufflenet/shufflenet-v2-10.onnx
+        model: s3://cortex-cluster-robertlucian-us-east-1/onnx/shufflenet/shufflenet-v2-10.onnx
     config:
       image-classifier-classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
       image-resize: 224
