@@ -19,24 +19,31 @@ import os
 
 
 def get_istio_api_gateway_elb_arn(client_elb):
-    for elb in client_elb.describe_load_balancers()["LoadBalancers"]:
-        elb_arn = elb["LoadBalancerArn"]
-        elb_tags = client_elb.describe_tags(ResourceArns=[elb_arn])["TagDescriptions"][0]["Tags"]
-        for tag in elb_tags:
-            if (
-                tag["Key"] == "kubernetes.io/service-name"
-                and tag["Value"] == "istio-system/ingressgateway-apis"
-            ):
-                return elb_arn
-    return ""
+    paginator = client_elb.get_paginator("describe_load_balancers")
+    elb_iter = paginator.paginate()
+    for elb_page in elb_iter:
+        for elb in elb_page["LoadBalancers"]:
+            elb_arn = elb["LoadBalancerArn"]
+            elb_tags = client_elb.describe_tags(ResourceArns=[elb_arn])["TagDescriptions"][0][
+                "Tags"
+            ]
+            for tag in elb_tags:
+                if (
+                    tag["Key"] == "kubernetes.io/service-name"
+                    and tag["Value"] == "istio-system/ingressgateway-apis"
+                ):
+                    return elb_arn
+    raise Exception("Could not find ingressgateway-api ELB")
 
 
 def get_listener_arn(elb_arn, client_elb):
-    listeners = client_elb.describe_listeners(LoadBalancerArn=elb_arn)["Listeners"]
-    for listener in listeners:
-        if listener["Port"] == 80:
-            return listener["ListenerArn"]
-    return ""
+    paginator = client_elb.get_paginator("describe_listeners")
+    listener_iter = paginator.paginate(LoadBalancerArn=elb_arn)
+    for listener_page in listener_iter:
+        for listener in listener_page["Listeners"]:
+            if listener["Port"] == 80:
+                return listener["ListenerArn"]
+    raise Exception("Could not find ELB listener")
 
 
 def create_gateway_intregration(api_id, vpc_link_id):
