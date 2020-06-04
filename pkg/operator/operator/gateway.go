@@ -94,7 +94,7 @@ func removeAPIFromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme
 		}
 
 		if integrationID != "" {
-			err = config.AWS.DeleteIntegration(config.Cluster.ClusterName, integrationID)
+			err = config.AWS.DeleteIntegration(apiGatewayID, integrationID)
 			if err != nil {
 				return err
 			}
