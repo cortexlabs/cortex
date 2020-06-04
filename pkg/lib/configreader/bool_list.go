@@ -26,6 +26,7 @@ type BoolListValidation struct {
 	Default           []bool
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	CastSingleItem    bool
 	MinLength         int
 	MaxLength         int
 	InvalidLengths    []int
@@ -35,7 +36,15 @@ type BoolListValidation struct {
 func BoolList(inter interface{}, v *BoolListValidation) ([]bool, error) {
 	casted, castOk := cast.InterfaceToBoolSlice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeBoolList)
+		if v.CastSingleItem {
+			castedItem, castOk := inter.(bool)
+			if !castOk {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeBool, PrimTypeBoolList)
+			}
+			casted = []bool{castedItem}
+		} else {
+			return nil, ErrorInvalidPrimitiveType(inter, PrimTypeBoolList)
+		}
 	}
 	return ValidateBoolListProvided(casted, v)
 }

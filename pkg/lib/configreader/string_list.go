@@ -27,6 +27,7 @@ type StringListValidation struct {
 	Default                []string
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	CastSingleItem         bool
 	DisallowDups           bool
 	MinLength              int
 	MaxLength              int
@@ -39,7 +40,15 @@ type StringListValidation struct {
 func StringList(inter interface{}, v *StringListValidation) ([]string, error) {
 	casted, castOk := cast.InterfaceToStrSlice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeStringList)
+		if v.CastSingleItem {
+			castedItem, castOk := inter.(string)
+			if !castOk {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeStringList)
+			}
+			casted = []string{castedItem}
+		} else {
+			return nil, ErrorInvalidPrimitiveType(inter, PrimTypeStringList)
+		}
 	}
 	return ValidateStringListProvided(casted, v)
 }

@@ -26,6 +26,7 @@ type Int32ListValidation struct {
 	Default           []int32
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	CastSingleItem    bool
 	MinLength         int
 	MaxLength         int
 	InvalidLengths    []int
@@ -35,7 +36,15 @@ type Int32ListValidation struct {
 func Int32List(inter interface{}, v *Int32ListValidation) ([]int32, error) {
 	casted, castOk := cast.InterfaceToInt32Slice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeIntList)
+		if v.CastSingleItem {
+			castedItem, castOk := cast.InterfaceToInt32(inter)
+			if !castOk {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt, PrimTypeIntList)
+			}
+			casted = []int32{castedItem}
+		} else {
+			return nil, ErrorInvalidPrimitiveType(inter, PrimTypeIntList)
+		}
 	}
 	return ValidateInt32ListProvided(casted, v)
 }
