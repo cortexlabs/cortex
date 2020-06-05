@@ -59,7 +59,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-    models: # use models field when multiple models per API are desired; fields models & model cannot be used at the same time
+    models: # use models field when multiple models per API are desired; models & model fields cannot be used at the same time
       - name: <string> # unique name for the exported TF model (e.g. iris-model); the model's unique name is required when making predictions (required)
         model: <string> # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
         signature_key: <string> # name of the signature def to use for prediction (required if your model has more than one signature def)
@@ -108,7 +108,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
-    models: # use models field when multiple models per API are desired; fields models & model cannot be used at the same time
+    models: # use models field when multiple models per API are desired; models & model fields cannot be used at the same time
       - name: <string> # unique name for the exported ONNX model (e.g. iris-model); the model's unique name is required when making predictions (required)
         model: <string> # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
       ...

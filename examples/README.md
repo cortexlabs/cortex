@@ -36,7 +36,7 @@
 
 - [Language identification](pytorch/language-identifier): deploy a fastText model to identify languages.
 
-- [Multi-model text analysis](pytorch/multi-model-text-analyzer): deploy 3 models (ResNet50, MobileNet, ShuffleNet) in a single API.
+- [Multi-model text analysis](pytorch/multi-model-text-analyzer): deploy 2 models (Sentiment and Summarization analyzers) in a single API.
 
 - [Image classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
 

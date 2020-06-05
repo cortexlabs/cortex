@@ -3,7 +3,7 @@
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
-It is possible to serve multiple models in the same Cortex API with all 3 kinds of predictors. In this guide we are showing you the general outline of a multi-model deployment. Each template is based on a corresponding example that can be found in the [examples directory](https://github.com/cortexlabs/cortex/tree/master/examples) of the Cortex project.
+It is possible to serve multiple models in the same Cortex API using any type of Cortex Predictor. In this guide we are showing you the general outline of a multi-model deployment. Each template is based on a corresponding example that can be found in the [examples directory](https://github.com/cortexlabs/cortex/tree/master/examples) of the Cortex project.
 
 ## Python Predictor
 
@@ -68,7 +68,7 @@ To make predictions, you will first have to export your API's endpoint (yours wi
 $ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/multi-model-text-analyzer
 ```
 
-Next, you'll make prediction requests on your input data whilst using a specified model as a query parameter. Here are 2 potential examples of making prediction requests.
+Next, you'll make prediction requests on your input data with the desired model specified as a query parameter. Here are 2 potential examples of making prediction requests.
 
 ```bash
 $ curl ${api_endpoint}?model=sentiment -X POST -H "Content-Type: application/json" -d @sample-sentiment.json
@@ -139,7 +139,7 @@ To make predictions, you will first have to export your API's endpoint (yours wi
 $ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/multi-model-classifier
 ```
 
-Next, you'll make prediction requests on your input data whilst using a specified model as a query parameter. Here are 3 potential examples of making prediction requests.
+Next, you'll make prediction requests on your input data with the desired model specified as a query parameter. Here are 3 potential examples of making prediction requests.
 
 ```bash
 $ curl "${ENDPOINT}?model=iris" -X POST -H "Content-Type: application/json" -d @sample-iris.json
@@ -219,22 +219,22 @@ To make predictions, you will first have to export your API's endpoint (yours wi
 $ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/multi-model-classifier
 ```
 
-Next, you'll make prediction requests on your input data whilst using a specified model as a query parameter. Here are 3 potential examples of making prediction requests.
+Next, you'll make prediction requests on your input data with the desired model specified as a query parameter. Here are 3 potential examples of making prediction requests.
 
 ```bash
-curl "${ENDPOINT}?model=resnet50" -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl "${ENDPOINT}?model=resnet50" -X POST -H "Content-Type: application/json" -d @sample.json
 
 {"label": "tabby"}
 ```
 
 ```bash
-curl "${ENDPOINT}?model=mobilenet" -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl "${ENDPOINT}?model=mobilenet" -X POST -H "Content-Type: application/json" -d @sample.json
 
 {"label": "tabby"}
 ```
 
 ```bash
-curl "${ENDPOINT}?model=shufflenet" -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl "${ENDPOINT}?model=shufflenet" -X POST -H "Content-Type: application/json" -d @sample.json
 
 {"label": "Egyptian_cat"}
 ```
