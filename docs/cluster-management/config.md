@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster configure` via the `--config` flag (e.g. `cortex cluster up --config cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown (unless otherwise specified):
 
-<!-- CORTEX_VERSION_MINOR x2 -->
+<!-- CORTEX_VERSION_MINOR x6 -->
 ```yaml
 # cluster.yaml
 
@@ -49,6 +49,7 @@ instance_volume_type: gp2
 
 # whether the subnets used for EC2 instances should be public or private (default: "public")
 # if "public", instances will be assigned public IP addresses; if "private", instances won't have public IPs and a NAT gateway will be created to allow outgoing network requests
+# see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
 subnet_visibility: public  # must be "public" or "private"
 
 # whether to include a NAT gateway with the cluster (a NAT gateway is necessary when using private subnets)
@@ -56,11 +57,13 @@ subnet_visibility: public  # must be "public" or "private"
 nat_gateway: none  # must be "none", "single", or "highly_available" (highly_available means one NAT gateway per availability zone)
 
 # whether the API load balancer should be internet-facing or internal (default: "internet-facing")
-# note: if using "internal", you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see https://docs.cortex.dev/guides/vpc-peering or https://docs.cortex.dev/guides/api-gateway)
+# note: if using "internal", APIs will still be accessible via the public API Gateway endpoint unless you disable it in your API configuration (in which case you must configure VPC Peering to connect to your APIs)
+# see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
 api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # whether the operator load balancer should be internet-facing or internal (default: "internet-facing")
-# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/guides/vpc-peering)
+# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/guides/vpc-peering)
+# see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
 operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # CloudWatch log group for cortex (default: <cluster_name>)
@@ -73,7 +76,7 @@ tags:  # <string>: <string> map of key/value pairs
 # see https://docs.cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 
-# see https://docs.cortex.dev/v/master/guides/subdomain-https-setup for instructions on how to set up HTTPS for APIs
+# see https://docs.cortex.dev/v/master/guides/custom-domain for instructions on how to set up a custom domain
 ssl_certificate_arn:  # if empty, APIs will still be accessible via HTTPS (in addition to HTTP), but will not use a trusted certificate
 ```
 

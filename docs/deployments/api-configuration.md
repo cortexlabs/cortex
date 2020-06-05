@@ -26,6 +26,8 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  networking:
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)
   autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -46,7 +48,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -71,6 +73,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  networking:
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)
   autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -91,7 +95,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
 
 ## ONNX Predictor
 
@@ -114,6 +118,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  networking:
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)
   autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -134,4 +140,4 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
