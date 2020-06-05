@@ -4,6 +4,6 @@
   predictor:
     type: onnx
     path: predictor.py
-    model: s3://cortex-examples/xgboost/iris-classifier/gbtree.onnx
+    model: s3://cortex-examples/onnx/iris-classifier/gbtree.onnx
   monitoring:
     model_type: classification
