@@ -31,16 +31,16 @@ class TensorFlowPredictor:
         self.iris_labels = self.config["iris"]["labels"]
 
     def predict(self, payload, query_params):
-        model = query_params["model"]
+        model_name = query_params["model"]
 
         predicted_label = None
-        if model == "iris":
-            prediction = self.client.predict(payload["input"], model)
+        if model_name == "iris":
+            prediction = self.client.predict(payload["input"], model_name)
             predicted_class_id = int(prediction["class_ids"][0])
             predicted_label = self.iris_labels[predicted_class_id]
 
-        elif model in ["resnet50", "inception"]:
-            predicted_label = self.predict_image_classifier(model, payload["url"])
+        elif model_name in ["resnet50", "inception"]:
+            predicted_label = self.predict_image_classifier(model_name, payload["url"])
 
         return {"label": predicted_label}
 
