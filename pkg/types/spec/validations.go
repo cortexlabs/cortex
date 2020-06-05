@@ -46,37 +46,54 @@ import (
 
 var AutoscalingTickInterval = 10 * time.Second
 
-func apiValidation(provider types.ProviderType) *cr.StructValidation {
-	return &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "Name",
-				StringValidation: &cr.StringValidation{
-					Required:  true,
-					DNS1035:   true,
-					MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
-				},
+func apiValidation(provider types.ProviderType, apiType userconfig.APIType) *cr.StructValidation {
+	structFieldValidations := []*cr.StructFieldValidation{
+		{
+			StructField: "Name",
+			StringValidation: &cr.StringValidation{
+				Required:  true,
+				DNS1035:   true,
+				MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
 			},
-			{
-				StructField: "Endpoint",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: urls.ValidateEndpoint,
-					MaxLength: 1000, // no particular reason other than it works
-				},
+		},
+		{
+			StructField: "Type",
+			StringValidation: &cr.StringValidation{
+				Required:      true,
+				AllowedValues: userconfig.APITypeStrings(),
 			},
-			{
-				StructField: "LocalPort",
-				IntPtrValidation: &cr.IntPtrValidation{
-					GreaterThan:       pointer.Int(0),
-					LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-				},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.APITypeFromString(str), nil
 			},
+		},
+		{
+			StructField: "Endpoint",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: urls.ValidateEndpoint,
+				MaxLength: 1000, // no particular reason other than it works
+			},
+		},
+		{
+			StructField: "LocalPort",
+			IntPtrValidation: &cr.IntPtrValidation{
+				GreaterThan:       pointer.Int(0),
+				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
+			},
+		},
+		computeValidation(provider),
+	}
+
+	if apiType == userconfig.APIAPIType {
+		structFieldValidations = append(structFieldValidations,
 			predictorValidation(),
 			monitoringValidation(),
-			computeValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
-		},
+		)
+	}
+
+	return &cr.StructValidation{
+		StructFieldValidations: structFieldValidations,
 	}
 }
 
@@ -400,6 +417,25 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
+type resourceTypeStruct struct {
+	Type userconfig.APIType `json:"type" yaml:"type"`
+}
+
+var resourceTypeStructValidation = cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Type",
+			StringValidation: &cr.StringValidation{
+				Required:      true,
+				AllowedValues: userconfig.APITypeStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.APITypeFromString(str), nil
+			},
+		},
+	},
+}
+
 func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectFiles ProjectFiles, filePath string) ([]userconfig.API, error) {
 	var err error
 
@@ -415,7 +451,17 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
 		api := userconfig.API{}
-		errs := cr.Struct(&api, data, apiValidation(provider))
+
+		var apiTypeStruct resourceTypeStruct
+		errs := cr.Struct(&apiTypeStruct, data, &resourceTypeStructValidation)
+
+		if errors.HasError(errs) {
+			name, _ := data[userconfig.NameKey].(string)
+			err = errors.Wrap(ErrorTypeKeyNotSpecified(), userconfig.IdentifyAPI(filePath, name, i))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+		}
+
+		errs = cr.Struct(&api, data, apiValidation(provider, apiTypeStruct.Type))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
@@ -444,6 +490,16 @@ func ValidateAPI(
 
 	if err := validatePredictor(api.Predictor, projectFiles, providerType, awsClient); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
+	}
+
+	if api.Type == userconfig.BatchAPIType {
+		if providerType == types.LocalProviderType {
+			return errors.Wrap(ErrorAPITypeIsNotSupportedByProvider(api.Type, providerType), api.Identify(), userconfig.TypeKey)
+		}
+
+		if api.Autoscaling != nil {
+
+		}
 	}
 
 	if api.Autoscaling != nil { // should only be nil for local provider

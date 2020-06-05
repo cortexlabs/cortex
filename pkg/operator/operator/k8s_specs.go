@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
+	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -338,6 +339,90 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						},
 					},
 					*requestMonitorContainer(api),
+				},
+				NodeSelector: map[string]string{
+					"workload": "true",
+				},
+				Tolerations:        _tolerations,
+				Volumes:            _defaultVolumes,
+				ServiceAccountName: "default",
+			},
+		},
+	})
+}
+
+func PythonJobSpec(api *spec.API, parallelism int) *kbatch.Job {
+	resourceList := kcore.ResourceList{}
+	resourceLimitsList := kcore.ResourceList{}
+
+	if api.Compute.CPU != nil {
+		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	}
+
+	if api.Compute.Mem != nil {
+		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
+		userPodMemRequest.Sub(_requestMonitorMemRequest)
+		resourceList[kcore.ResourceMemory] = *userPodMemRequest
+	}
+
+	if api.Compute.GPU > 0 {
+		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+	}
+
+	return k8s.Job(&k8s.JobSpec{
+		Name:        k8sName(api.Name),
+		Parallelism: parallelism,
+		Labels: map[string]string{
+			"apiName":      api.Name,
+			"apiID":        api.ID,
+			"deploymentID": api.DeploymentID,
+		},
+		PodSpec: k8s.PodSpec{
+			Labels: map[string]string{
+				"apiName":      api.Name,
+				"apiID":        api.ID,
+				"deploymentID": api.DeploymentID,
+			},
+			Annotations: map[string]string{
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+			},
+			K8sPodSpec: kcore.PodSpec{
+				RestartPolicy: "Never", // TODO review this
+				InitContainers: []kcore.Container{
+					{
+						Name:            _downloaderInitContainerName,
+						Image:           config.Cluster.ImageDownloader,
+						ImagePullPolicy: "Always",
+						Args:            []string{"--download=" + pythonDownloadArgs(api)},
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
+					},
+				},
+				Containers: []kcore.Container{
+					{
+						Name:            _apiContainerName,
+						Image:           api.Predictor.Image,
+						ImagePullPolicy: kcore.PullAlways,
+						Env:             getEnvVars(api),
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
+						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:   _apiReadinessProbe,
+						Resources: kcore.ResourceRequirements{
+							Requests: resourceList,
+							Limits:   resourceLimitsList,
+						},
+						Ports: []kcore.ContainerPort{
+							{ContainerPort: _defaultPortInt32},
+						},
+						SecurityContext: &kcore.SecurityContext{
+							Privileged: pointer.Bool(true),
+						},
+					},
+					// *requestMonitorContainer(api),
 				},
 				NodeSelector: map[string]string{
 					"workload": "true",

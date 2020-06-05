@@ -27,14 +27,14 @@ import (
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	isDeployed, err := operator.IsAPIDeployed(apiName)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	} else if !isDeployed {
-		respondError(w, r, operator.ErrorAPINotDeployed(apiName))
-		return
-	}
+	// isDeployed, err := operator.IsAPIDeployed(apiName)
+	// if err != nil {
+	// 	respondError(w, r, err)
+	// 	return
+	// } else if !isDeployed {
+	// 	respondError(w, r, operator.ErrorAPINotDeployed(apiName))
+	// 	return
+	// }
 
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)

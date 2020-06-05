@@ -31,6 +31,7 @@ import (
 
 type API struct {
 	Name           string          `json:"name" yaml:"name"`
+	Type           APIType         `json:"type" yaml:"type"`
 	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
 	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
@@ -251,6 +252,7 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, api.Type.String()))
 
 	if provider == types.LocalProviderType && api.LocalPort != nil {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))

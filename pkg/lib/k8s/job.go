@@ -18,6 +18,7 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +34,7 @@ var _jobTypeMeta = kmeta.TypeMeta{
 type JobSpec struct {
 	Name        string
 	PodSpec     PodSpec
+	Parallelism int
 	Labels      map[string]string
 	Annotations map[string]string
 }
@@ -42,9 +44,7 @@ func Job(spec *JobSpec) *kbatch.Job {
 		spec.PodSpec.Name = spec.Name
 	}
 
-	parallelism := int32(1)
 	backoffLimit := int32(0)
-	completions := int32(1)
 
 	job := &kbatch.Job{
 		TypeMeta: _jobTypeMeta,
@@ -55,8 +55,7 @@ func Job(spec *JobSpec) *kbatch.Job {
 		},
 		Spec: kbatch.JobSpec{
 			BackoffLimit: &backoffLimit,
-			Parallelism:  &parallelism,
-			Completions:  &completions,
+			Parallelism:  pointer.Int32(int32(spec.Parallelism)),
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
 					Name:   spec.PodSpec.Name,
@@ -115,10 +114,19 @@ func (c *Client) DeleteJob(name string) (bool, error) {
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
+
 	if err != nil {
 		return false, errors.WithStack(err)
 	}
 	return true, nil
+}
+
+func (c *Client) DeleteJobs(opts *kmeta.ListOptions) (bool, error) {
+	if opts == nil {
+		opts = &kmeta.ListOptions{}
+	}
+
+	c.jobClient.DeleteCollection()
 }
 
 func (c *Client) ListJobs(opts *kmeta.ListOptions) ([]kbatch.Job, error) {

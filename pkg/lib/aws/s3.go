@@ -432,6 +432,15 @@ func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
 	return c.ReadBytesFromS3(bucket, key)
 }
 
+func (c *Client) ReadMsgpackFromS3Path(objPtr interface{}, s3Path string) error {
+	bucket, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return err
+	}
+
+	return c.ReadMsgpackFromS3(objPtr, bucket, key)
+}
+
 // overwrites existing file
 func (c *Client) DownloadFileFromS3(bucket string, key string, localPath string) error {
 	file, err := files.Create(localPath)

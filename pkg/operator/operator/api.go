@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -36,6 +38,46 @@ import (
 )
 
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
+
+func UpdateResource(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+	var latestApiSpec string
+	lastModifiedDate := time.Time{}
+
+	config.AWS.S3Iterator(config.Cluster.Bucket, filepath.Join("apis", apiConfig.Name), false, nil, func(s3Obj *s3.Object) (bool, error) {
+		if s3Obj.LastModified.After(lastModifiedDate) {
+			lastModifiedDate = *s3Obj.LastModified
+			latestApiSpec = *s3Obj.Key
+		}
+		return true, nil
+	})
+
+	if latestApiSpec != "" {
+		prevApiSpec := spec.API{}
+		config.AWS.ReadMsgpackFromS3(&prevApiSpec, config.Cluster.Bucket, latestApiSpec)
+
+		if prevApiSpec.Type != apiConfig.Type {
+			return nil, "", DeleteAPI(apiConfig.Name, false)
+		}
+	}
+
+	if apiConfig.Type == userconfig.APIAPIType {
+		return UpdateAPI(apiConfig, projectID, force)
+	}
+
+	return UpdateBatch(apiConfig, projectID)
+}
+
+// func GetLatestAPISpec
+
+func UpdateBatch(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
+	api := spec.GetAPISpec(apiConfig, projectID, "") // TODO deployment id
+	fmt.Println(api.Key)
+	if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		return nil, "", errors.Wrap(err, "upload api spec")
+	}
+
+	return api, "", nil
+}
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
@@ -297,6 +339,20 @@ func deleteK8sResources(apiName string) error {
 		},
 		func() error {
 			_, err := config.K8s.DeleteService(k8sName(apiName))
+			return err
+		},
+		func() error {
+			jobs, err := config.K8s.ListJobsByLabel("apiName", apiName)
+			if err != nil {
+				return err
+			}
+
+			return parallel.RunFirstErr(
+				func() error {
+
+				}
+			)
+			_, err := config.K8s.DeleteJob(k8sName(apiName))
 			return err
 		},
 		func() error {

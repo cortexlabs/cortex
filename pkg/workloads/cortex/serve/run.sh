@@ -65,4 +65,9 @@ fi
 # Ensure predictor print() statements are always flushed
 export PYTHONUNBUFFERED=TRUE
 
-/opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py
+if [ "$SQS_QUEUE_URL" == "" ]; then
+    /opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py
+else
+    /opt/conda/envs/env/bin/python /src/cortex/serve/batch.py
+fi
+

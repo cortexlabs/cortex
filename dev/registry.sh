@@ -188,36 +188,36 @@ elif [ "$cmd" = "update-manager-local" ]; then
 
 # usage: registry.sh update all|dev|api [--include-slim] [--skip-push]
 elif [ "$cmd" = "update" ]; then
-  if [ "$sub_cmd" == "all" ]; then
-    build_and_push $ROOT/images/tensorflow-serving-cpu tensorflow-serving-cpu latest
-    build_and_push $ROOT/images/tensorflow-serving-gpu tensorflow-serving-gpu latest
+  # if [ "$sub_cmd" == "all" ]; then
+  #   build_and_push $ROOT/images/tensorflow-serving-cpu tensorflow-serving-cpu latest
+  #   build_and_push $ROOT/images/tensorflow-serving-gpu tensorflow-serving-gpu latest
 
     cache_builder $ROOT/images/operator operator
     build_and_push $ROOT/images/operator operator latest
 
-    build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
-    build_and_push $ROOT/images/metrics-server metrics-server latest
-    build_and_push $ROOT/images/nvidia nvidia latest
-    build_and_push $ROOT/images/fluentd fluentd latest
-    build_and_push $ROOT/images/statsd statsd latest
-    build_and_push $ROOT/images/istio-proxy istio-proxy latest
-    build_and_push $ROOT/images/istio-pilot istio-pilot latest
-    build_and_push $ROOT/images/istio-citadel istio-citadel latest
-    build_and_push $ROOT/images/istio-galley istio-galley latest
-  fi
+  #   build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
+  #   build_and_push $ROOT/images/metrics-server metrics-server latest
+  #   build_and_push $ROOT/images/nvidia nvidia latest
+  #   build_and_push $ROOT/images/fluentd fluentd latest
+  #   build_and_push $ROOT/images/statsd statsd latest
+  #   build_and_push $ROOT/images/istio-proxy istio-proxy latest
+  #   build_and_push $ROOT/images/istio-pilot istio-pilot latest
+  #   build_and_push $ROOT/images/istio-citadel istio-citadel latest
+  #   build_and_push $ROOT/images/istio-galley istio-galley latest
+  # fi
 
-  if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    cache_builder $ROOT/images/request-monitor request-monitor
-    build_and_push $ROOT/images/request-monitor request-monitor latest
-    build_and_push $ROOT/images/manager manager latest
-    build_and_push $ROOT/images/downloader downloader latest
-  fi
+  # if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
+  #   cache_builder $ROOT/images/request-monitor request-monitor
+  #   build_and_push $ROOT/images/request-monitor request-monitor latest
+  #   build_and_push $ROOT/images/manager manager latest
+  #   build_and_push $ROOT/images/downloader downloader latest
+  # fi
 
   build_and_push_slim $ROOT/images/python-predictor-cpu python-predictor-cpu latest
-  build_and_push_slim $ROOT/images/python-predictor-gpu python-predictor-gpu latest
-  build_and_push_slim $ROOT/images/tensorflow-predictor tensorflow-predictor latest
-  build_and_push_slim $ROOT/images/onnx-predictor-cpu onnx-predictor-cpu latest
-  build_and_push_slim $ROOT/images/onnx-predictor-gpu onnx-predictor-gpu latest
+  # build_and_push_slim $ROOT/images/python-predictor-gpu python-predictor-gpu latest
+  # build_and_push_slim $ROOT/images/tensorflow-predictor tensorflow-predictor latest
+  # build_and_push_slim $ROOT/images/onnx-predictor-cpu onnx-predictor-cpu latest
+  # build_and_push_slim $ROOT/images/onnx-predictor-gpu onnx-predictor-gpu latest
 
   cleanup_local
 fi

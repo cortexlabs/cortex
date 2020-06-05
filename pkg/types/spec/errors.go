@@ -23,11 +23,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
 	ErrMalformedConfig                      = "spec.malformed_config"
+	ErrTypeKeyNotSpecified                  = "spec.type_key_not_specified"
 	ErrNoAPIs                               = "spec.no_apis"
 	ErrDuplicateName                        = "spec.duplicate_name"
 	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
@@ -54,12 +56,21 @@ const (
 	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
+	ErrAPITypeIsNotSupportedByProvider      = "spec.api_type_is_not_supported_by_provider"
+	ErrKeyIsNotSupportedWithAPIType         = "spec.key_is_not_supported_with_api_type"
 )
 
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
 		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
+	})
+}
+
+func ErrorTypeKeyNotSpecified() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTypeKeyNotSpecified,
+		Message: fmt.Sprintf("type key is not specified"),
 	})
 }
 
@@ -265,5 +276,19 @@ func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotAccessECRWithAnonymousAWSCreds,
 		Message: fmt.Sprintf("cannot access ECR with anonymous aws credentials; run `cortex env configure local` to specify AWS credentials with access to ECR"),
+	})
+}
+
+func ErrorAPITypeIsNotSupportedByProvider(apiType userconfig.APIType, provider types.ProviderType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPITypeIsNotSupportedByProvider,
+		Message: fmt.Sprintf("%s type is not supported on %s provider", apiType.String()),
+	})
+}
+
+func ErrorKeyIsNotSupportedWithAPIType(key string, apiType userconfig.APIType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrKeyIsNotSupportedWithAPIType,
+		Message: fmt.Sprintf("%s key is not supported for %s type", key, apiType.String()),
 	})
 }

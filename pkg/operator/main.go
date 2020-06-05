@@ -43,6 +43,7 @@ func main() {
 	routerWithoutAuth := router.NewRoute().Subrouter()
 	routerWithoutAuth.Use(endpoints.PanicMiddleware)
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
+	routerWithoutAuth.HandleFunc("/batch", endpoints.Batch).Methods("POST") // TODO blacklist /batch*endpoints in api endpoint configuration
 
 	routerWithAuth := router.NewRoute().Subrouter()
 

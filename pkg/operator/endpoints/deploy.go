@@ -17,6 +17,7 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -83,6 +84,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println(projectKey)
 	isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
 	if err != nil {
 		respondError(w, r, err)
@@ -97,6 +99,14 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
+		if apiConfig.Predictor.Env["BATCH"] == "true" {
+			_, _, err := operator.UpdateJob(&apiConfig, projectID)
+			if err != nil {
+				respondError(w, r, err)
+				return
+			}
+			continue
+		}
 		api, msg, err := operator.UpdateAPI(&apiConfig, projectID, force)
 		results[i].Message = msg
 		if err != nil {
