@@ -49,7 +49,7 @@ The expected response is:
 
 
 ```json
-{"label": "tabby"}
+{"label": "sports_car"}
 ```
 
 ### Inception Classifier Model
@@ -64,5 +64,5 @@ The expected response is:
 
 
 ```json
-{"label": "tabby"}
+{"label": "sports_car"}
 ```

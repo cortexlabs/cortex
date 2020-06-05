@@ -8,12 +8,12 @@ It is possible to serve multiple models in the same Cortex API with all 3 kinds 
 ## Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
-For the Python Predictor, we can expect a similar API configuration as that of a single-model deployment. The `predictor:config` field can be used to customize the behavior of the `predictor.py` implementation. This template is based on the [pytorch/multi-model-analyzer](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/multi-model-analyzer) example.
+For the Python Predictor, we can expect a similar API configuration as that of a single-model deployment. The `predictor:config` field can be used to customize the behavior of the `predictor.py` implementation. This template is based on the [pytorch/multi-model-text-analyzer](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/multi-model-text-analyzer) example.
 
 ### `cortex.yaml`
 
 ```yaml
-- name: text-analyzer
+- name: multi-model-text-analyzer
   predictor:
     type: python
     path: predictor.py
@@ -65,7 +65,7 @@ class PythonPredictor:
 To make predictions, you will first have to export your API's endpoint (yours will be different from mine):
 
 ```bash
-$ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/text-analyzer
+$ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/multi-model-text-analyzer
 ```
 
 Next, you'll make prediction requests on your input data whilst using a specified model as a query parameter. Here are 2 potential examples of making prediction requests.
