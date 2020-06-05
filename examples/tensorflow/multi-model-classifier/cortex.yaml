@@ -10,7 +10,7 @@
       - name: iris
         model: s3://cortex-examples/tensorflow/iris-classifier/nn
       - name: resnet50
-        model: s3://cortex-cluster-robertlucian-us-east-1/tensorflow/resnet50
+        model: s3://cortex-examples/tensorflow/resnet50
     config:
       models:
         iris:
