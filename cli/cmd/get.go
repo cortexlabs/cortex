@@ -505,8 +505,8 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 	}
 
 	numRows := 0
-	for _, modelSignatures := range apiSummary.ModelSignatures {
-		numRows += len(modelSignatures)
+	for _, inputSignatures := range apiSummary.ModelSignatures {
+		numRows += len(inputSignatures)
 	}
 
 	usesDefaultModel := false
@@ -526,7 +526,7 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 			}
 			rowNum++
 		}
-		if modelName == consts.CortexSingleModelName {
+		if modelName == consts.SingleModelName {
 			usesDefaultModel = true
 		}
 	}
@@ -590,9 +590,9 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
 
-	for _, modelSignatures := range apiSummary.ModelSignatures {
-		for _, featureSignature := range modelSignatures {
-			featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
+	for _, inputSignatures := range apiSummary.ModelSignatures {
+		for _, inputSignature := range inputSignatures {
+			inputSignature.Shape = cast.JSONNumbers(inputSignature.Shape)
 		}
 	}
 

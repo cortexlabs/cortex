@@ -159,7 +159,7 @@ model.save_model("model.bin")
 It is also possible to export an XGBoost model to the ONNX format using [onnxmltools](https://github.com/onnx/onnxmltools).
 
 <!-- CORTEX_VERSION_MINOR -->
-[examples/xgboost/iris-classifier](https://github.com/cortexlabs/cortex/blob/master/examples/xgboost/iris-classifier) uses this approach. Here is the relevant code:
+[examples/onnx/iris-classifier](https://github.com/cortexlabs/cortex/blob/master/examples/onnx/iris-classifier) uses this approach. Here is the relevant code:
 
 ```python
 from onnxmltools.convert import convert_xgboost

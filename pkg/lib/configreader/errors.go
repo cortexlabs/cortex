@@ -43,6 +43,7 @@ const (
 	ErrInvalidInt32                  = "configreader.invalid_int32"
 	ErrInvalidInt                    = "configreader.invalid_int"
 	ErrInvalidStr                    = "configreader.invalid_str"
+	ErrDisallowedStr                 = "configreader.disallowed_str"
 	ErrMustBeLessThanOrEqualTo       = "configreader.must_be_less_than_or_equal_to"
 	ErrMustBeLessThan                = "configreader.must_be_less_than"
 	ErrMustBeGreaterThanOrEqualTo    = "configreader.must_be_greater_than_or_equal_to"
@@ -191,6 +192,13 @@ func ErrorInvalidStr(provided string, allowed string, allowedVals ...string) err
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidStr,
 		Message: fmt.Sprintf("invalid value (got %s, must be %s)", s.UserStr(provided), s.UserStrsOr(allAllowedVals)),
+	})
+}
+
+func ErrorDisallowedStr(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDisallowedStr,
+		Message: fmt.Sprintf("%s is not allowed, please use a different value", s.UserStr(provided)),
 	})
 }
 

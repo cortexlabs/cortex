@@ -27,7 +27,7 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	CortexSingleModelName = "_cortex_default"
+	SingleModelName = "_cortex_default"
 
 	DefaultImagePythonPredictorCPU   = defaultDockerImage("python-predictor-cpu")
 	DefaultImagePythonPredictorGPU   = defaultDockerImage("python-predictor-gpu")

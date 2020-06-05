@@ -285,7 +285,7 @@ The `payload` parameter is parsed according to the `Content-Type` header in the 
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-[examples/xgboost/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/xgboost/iris-classifier) uses the ONNX Predictor:
+[examples/onnx/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/onnx/iris-classifier) uses the ONNX Predictor:
 
 ```python
 labels = ["setosa", "versicolor", "virginica"]

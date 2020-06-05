@@ -32,7 +32,6 @@ const (
 	ErrDuplicateName                        = "spec.duplicate_name"
 	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint                    = "spec.duplicate_endpoint"
-	ErrIllegalModelName                     = "spec.illegal_model_name"
 	ErrConflictingFields                    = "spec.conflicting_fields"
 	ErrSpecifyAllOrNone                     = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined         = "spec.one_of_prerequisites_not_defined"
@@ -102,13 +101,6 @@ func ErrorDuplicateEndpoint(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpoint,
 		Message: fmt.Sprintf("endpoint is already being used by %s", apiName),
-	})
-}
-
-func ErrorIllegalModelName(modelName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrIllegalModelName,
-		Message: fmt.Sprintf("name %s is illegal; use a different name for your model", modelName),
 	})
 }
 

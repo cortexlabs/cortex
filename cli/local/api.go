@@ -171,8 +171,7 @@ func DeleteAPI(apiName string, prevAPISpec *spec.API, newAPISpec *spec.API) erro
 		newModelIDs := strset.FromSlice(newAPISpec.ModelIDs())
 
 		if !prevModelIDs.IsEqual(newModelIDs) {
-			toDeleteModels := strset.Difference(prevModelIDs, newModelIDs)
-			toDeleteModels = strset.Difference(toDeleteModels, modelsInUse)
+			toDeleteModels := strset.Difference(prevModelIDs, newModelIDs, modelsInUse)
 
 			for modelID := range toDeleteModels {
 				err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))

@@ -256,7 +256,7 @@ func tfDownloadArgs(api *spec.API) string {
 	rootModelPath := path.Join(_emptyDirMountPath, "model")
 	for _, model := range api.Predictor.Models {
 		var itemName string
-		if model.Name == consts.CortexSingleModelName {
+		if model.Name == consts.SingleModelName {
 			itemName = "the model"
 		} else {
 			itemName = fmt.Sprintf("model %s", model.Name)
@@ -500,7 +500,7 @@ func onnxDownloadArgs(api *spec.API) string {
 	rootModelPath := path.Join(_emptyDirMountPath, "model")
 	for _, model := range api.Predictor.Models {
 		var itemName string
-		if model.Name == consts.CortexSingleModelName {
+		if model.Name == consts.SingleModelName {
 			itemName = "the model"
 		} else {
 			itemName = fmt.Sprintf("model %s", model.Name)

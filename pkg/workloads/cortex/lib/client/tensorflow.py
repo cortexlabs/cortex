@@ -24,7 +24,7 @@ from google.protobuf import json_format
 
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.log import cx_logger
-from cortex.lib.type.model import Model, get_signature_keys, get_model_names
+from cortex.lib.type.model import Model, get_model_signature_map, get_model_names
 from cortex import consts
 
 
@@ -45,7 +45,7 @@ class TensorFlowClient:
 
         self._signatures = get_signature_defs(self._stub, models)
         parsed_signature_keys, parsed_signatures = extract_signatures(
-            self._signatures, get_signature_keys(models)
+            self._signatures, get_model_signature_map(models)
         )
         self._signature_keys = parsed_signature_keys
         self._input_signatures = parsed_signatures
@@ -60,22 +60,22 @@ class TensorFlowClient:
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.
         """
-        if consts.CORTEX_SINGLE_MODEL_NAME in self._model_names:
-            return self._run_inference(model_input, consts.CORTEX_SINGLE_MODEL_NAME)
+        if consts.SINGLE_MODEL_NAME in self._model_names:
+            return self._run_inference(model_input, consts.SINGLE_MODEL_NAME)
 
         if model_name is None:
             raise UserRuntimeException(
                 "no model was specified, choose one of the following: {}".format(self._model_names)
             )
 
-        if model_name in self._model_names:
-            return self._run_inference(model_input, model_name)
-        else:
+        if model_name not in self._model_names:
             raise UserRuntimeException(
                 "'{}' model wasn't found in the list of available models: {}".format(
                     model_name, self._model_names
                 )
             )
+
+        return self._run_inference(model_input, model_name)
 
     def _run_inference(self, model_input, model_name):
         input_signature = self._input_signatures[model_name]

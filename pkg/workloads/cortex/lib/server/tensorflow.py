@@ -51,7 +51,7 @@ class TensorFlowServing:
             request.config.MergeFrom(model_server_config)
 
         # request TFS to load models
-        limit = 6
+        limit = 30
         response = None
         for i in range(limit):
             try:

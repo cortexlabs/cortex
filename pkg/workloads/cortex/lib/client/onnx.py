@@ -55,22 +55,22 @@ class ONNXClient:
         Returns:
             numpy.ndarray: The prediction returned from the model.
         """
-        if consts.CORTEX_SINGLE_MODEL_NAME in self._model_names:
-            return self._run_inference(model_input, consts.CORTEX_SINGLE_MODEL_NAME)
+        if consts.SINGLE_MODEL_NAME in self._model_names:
+            return self._run_inference(model_input, consts.SINGLE_MODEL_NAME)
 
         if model_name is None:
             raise UserRuntimeException(
                 "no model was specified, choose one of the following: {}".format(self._model_names)
             )
 
-        if model_name in self._model_names:
-            return self._run_inference(model_input, model_name)
-        else:
+        if model_name not in self._model_names:
             raise UserRuntimeException(
                 "'{}' model wasn't found in the list of available models: {}".format(
                     model_name, self._model_names
                 )
             )
+
+        return self._run_inference(model_input, model_name)
 
     def _run_inference(self, model_input, model_name):
         input_dict = convert_to_onnx_input(model_input, self._signatures[model_name], model_name)

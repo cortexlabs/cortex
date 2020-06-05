@@ -21,19 +21,12 @@ class Model:
         self.base_path = base_path
 
 
-def get_signature_keys(models):
+def get_model_signature_map(models):
     signature_keys = {}
     for model in models:
         signature_keys[model.name] = model.signature_key
 
     return signature_keys
-
-
-def get_name_signature_pairs(models):
-    pairs = {}
-    for model in models:
-        pairs[model.name] = model.signature_key
-    return pairs
 
 
 def get_model_names(models):

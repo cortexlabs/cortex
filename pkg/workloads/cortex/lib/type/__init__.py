@@ -17,7 +17,6 @@ from cortex.lib.type.predictor import Predictor
 from cortex.lib.type.monitoring import Monitoring
 from cortex.lib.type.model import (
     Model,
-    get_signature_keys,
-    get_name_signature_pairs,
+    get_model_signature_map,
     get_model_names,
 )

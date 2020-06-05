@@ -20,7 +20,7 @@ import dill
 
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
-from cortex.lib.type.model import Model, get_signature_keys, get_name_signature_pairs
+from cortex.lib.type.model import Model, get_model_signature_map
 from cortex import consts
 
 
@@ -35,18 +35,7 @@ class Predictor:
 
         self.model_dir = model_dir
         self.models = []
-        if kwargs.get("model"):
-            self.models += [
-                Model(
-                    name=consts.CORTEX_SINGLE_MODEL_NAME,
-                    model=kwargs.get("model"),
-                    signature_key=kwargs.get("signature_key"),
-                    base_path=self._compute_model_basepath(
-                        kwargs.get("model"), consts.CORTEX_SINGLE_MODEL_NAME
-                    ),
-                )
-            ]
-        elif kwargs.get("models"):
+        if kwargs.get("models"):
             for model in kwargs.get("models"):
                 self.models += [
                     Model(
@@ -67,11 +56,11 @@ class Predictor:
             from cortex.lib.client.onnx import ONNXClient
 
             client = ONNXClient(self.models)
-            if self.models[0].name == consts.CORTEX_SINGLE_MODEL_NAME:
+            if self.models[0].name == consts.SINGLE_MODEL_NAME:
                 signature_message = "ONNX model signature: {}".format(self.models[0].signature_key)
             else:
                 signature_message = "ONNX model signatures: {}".format(
-                    get_name_signature_pairs(self.models)
+                    get_model_signature_map(self.models)
                 )
             cx_logger().info(signature_message)
             return client
@@ -83,13 +72,13 @@ class Predictor:
 
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
             client = TensorFlowClient(tf_serving_address, self.models)
-            if self.models[0].name == consts.CORTEX_SINGLE_MODEL_NAME:
+            if self.models[0].name == consts.SINGLE_MODEL_NAME:
                 signature_message = "TensorFlow model signature: {}".format(
                     self.models[0].signature_key
                 )
             else:
                 signature_message = "TensorFlow model signatures: {}".format(
-                    get_name_signature_pairs(self.models)
+                    get_model_signature_map(self.models)
                 )
             cx_logger().info(signature_message)
             return client
