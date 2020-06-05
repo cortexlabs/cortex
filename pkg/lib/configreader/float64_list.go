@@ -26,6 +26,7 @@ type Float64ListValidation struct {
 	Default           []float64
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	CastSingleItem    bool
 	MinLength         int
 	MaxLength         int
 	InvalidLengths    []int
@@ -35,7 +36,15 @@ type Float64ListValidation struct {
 func Float64List(inter interface{}, v *Float64ListValidation) ([]float64, error) {
 	casted, castOk := cast.InterfaceToFloat64Slice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloatList)
+		if v.CastSingleItem {
+			castedItem, castOk := cast.InterfaceToFloat64(inter)
+			if !castOk {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloat, PrimTypeFloatList)
+			}
+			casted = []float64{castedItem}
+		} else {
+			return nil, ErrorInvalidPrimitiveType(inter, PrimTypeFloatList)
+		}
 	}
 	return ValidateFloat64ListProvided(casted, v)
 }

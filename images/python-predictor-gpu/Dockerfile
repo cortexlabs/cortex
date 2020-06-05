@@ -33,12 +33,11 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip 
     echo "source ~/.env" >> ~/.bashrc
 
 ENV BASH_ENV=~/.env
+SHELL ["/bin/bash", "-c"]
 
 COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
-
-RUN /bin/bash -c \
-    "pip install --no-cache-dir \
-        -r /src/cortex/serve/requirements.txt"
+RUN pip install --no-cache-dir -r \
+    /src/cortex/serve/requirements.txt
 
 ARG SLIM="false"
 RUN test "${SLIM}" = "true" || ( \
@@ -55,28 +54,27 @@ RUN test "${SLIM}" = "true" || ( \
             libnvinfer6=6.0.1-1+cuda10.1 \
             libnvinfer-plugin6=6.0.1-1+cuda10.1 \
         && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
-        && /bin/bash -c \
-            "pip install --no-cache-dir \
-                cloudpickle==1.4.1 \
-                Cython==0.29.17 \
-                joblib==0.14.1 \
-                Keras==2.3.1 \
-                nltk==3.5 \
-                np-utils==0.5.12.1 \
-                opencv-python==4.2.0.34 \
-                pandas==1.0.3 \
-                Pillow==7.1.2 \
-                scikit-image==0.17.1 \
-                scikit-learn==0.22.2.post1 \
-                scipy==1.4.1 \
-                six==1.14.0 \
-                statsmodels==0.11.1 \
-                sympy==1.5.1 \
-                tensorflow-gpu==2.1.0 \
-                tensorflow-hub==0.8.0 \
-                https://download.pytorch.org/whl/cu101/torch-1.5.0%2Bcu101-cp36-cp36m-linux_x86_64.whl \
-                https://download.pytorch.org/whl/cu101/torchvision-0.6.0%2Bcu101-cp36-cp36m-linux_x86_64.whl \
-                xgboost==1.0.2" \
+        && pip install --no-cache-dir \
+            cloudpickle==1.4.1 \
+            Cython==0.29.17 \
+            joblib==0.14.1 \
+            Keras==2.3.1 \
+            nltk==3.5 \
+            np-utils==0.5.12.1 \
+            opencv-python==4.2.0.34 \
+            pandas==1.0.3 \
+            Pillow==7.1.2 \
+            scikit-image==0.17.1 \
+            scikit-learn==0.22.2.post1 \
+            scipy==1.4.1 \
+            six==1.14.0 \
+            statsmodels==0.11.1 \
+            sympy==1.5.1 \
+            tensorflow-gpu==2.1.0 \
+            tensorflow-hub==0.8.0 \
+            https://download.pytorch.org/whl/cu101/torch-1.5.0%2Bcu101-cp36-cp36m-linux_x86_64.whl \
+            https://download.pytorch.org/whl/cu101/torchvision-0.6.0%2Bcu101-cp36-cp36m-linux_x86_64.whl \
+            xgboost==1.0.2 \
     )
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
