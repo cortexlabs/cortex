@@ -925,7 +925,7 @@ func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 }
 
 func checkDuplicateModelNames(modelResources []*userconfig.ModelResource) error {
-	var names strset.Set
+	names := strset.New()
 
 	for _, modelResource := range modelResources {
 		if names.Has(modelResource.Name) {
