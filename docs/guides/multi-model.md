@@ -28,7 +28,7 @@ Models should be loaded within the predictor's constructor. Query parameters are
 ```python
 # import modules here
 
-class PythonPredictor:å
+class PythonPredictor:
     def __init__(self, config):
         # prepare the environment, download/load models/labels, etc
         # ...
