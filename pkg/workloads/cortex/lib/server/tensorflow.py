@@ -51,7 +51,7 @@ class TensorFlowServing:
             request.config.MergeFrom(model_server_config)
 
         # request TFS to load models
-        limit = 2
+        limit = 6
         response = None
         for i in range(limit):
             try:
@@ -62,16 +62,20 @@ class TensorFlowServing:
                 if not (isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.UNAVAILABLE):
                     print(e)  # unexpected error
                 cx_logger().warn("unable to trigger the loading of model(s) - retrying ...")
+                time.sleep(1)
 
         # report error or success
-        if response is not None and response.status.error_code == 0:
+        if response and response.status.error_code == 0:
             cx_logger().info("successfully loaded {} models into TF-Serving".format(names))
         else:
-            raise CortexException(
-                "couldn't load user-requested models - failed with error code {}: {}".format(
-                    response.status.error_code, response.status.error_message
+            if response:
+                raise CortexException(
+                    "couldn't load user-requested models - failed with error code {}: {}".format(
+                        response.status.error_code, response.status.error_message
+                    )
                 )
-            )
+            else:
+                raise CortexException("couldn't load user-requested models")
 
     def add_model_config(self, name, base_path, replace_model=False):
         self.add_models_config([name], [base_path], replace_model)
