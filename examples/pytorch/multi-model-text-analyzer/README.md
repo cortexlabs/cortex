@@ -7,7 +7,8 @@ The example can be run on both CPU and on GPU hardware.
 ## Sample Prediction
 
 Deploy the model by running:
-```
+
+```bash
 cortex deploy
 ```
 
@@ -42,7 +43,6 @@ curl "${ENDPOINT}?model=summarizer" -X POST -H "Content-Type: application/json" 
 ```
 
 The expected response is:
-
 
 ```text
 Machine learning is the study of algorithms and statistical models that computer systems use to perform a specific task. It is seen as a subset of artificial intelligence. Machine learning algorithms are used in a wide variety of applications, such as email filtering and computer vision. In its application across business problems, machine learning is also referred to as predictive analytics.
