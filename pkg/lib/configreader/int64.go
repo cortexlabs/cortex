@@ -31,6 +31,7 @@ type Int64Validation struct {
 	Default              int64
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int64
+	DisallowedValues     []int64
 	GreaterThan          *int64
 	GreaterThanOrEqualTo *int64
 	LessThan             *int64
@@ -197,9 +198,15 @@ func ValidateInt64Val(val int64, v *Int64Validation) error {
 		}
 	}
 
-	if v.AllowedValues != nil {
+	if len(v.AllowedValues) > 0 {
 		if !slices.HasInt64(v.AllowedValues, val) {
 			return ErrorInvalidInt64(val, v.AllowedValues[0], v.AllowedValues[1:]...)
+		}
+	}
+
+	if len(v.DisallowedValues) > 0 {
+		if slices.HasInt64(v.DisallowedValues, val) {
+			return ErrorDisallowedValue(val)
 		}
 	}
 

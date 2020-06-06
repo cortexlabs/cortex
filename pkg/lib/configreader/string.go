@@ -231,7 +231,7 @@ func ValidateStringVal(val string, v *StringValidation) error {
 
 	if len(v.DisallowedValues) > 0 {
 		if slices.HasString(v.DisallowedValues, val) {
-			return ErrorDisallowedStr(val)
+			return ErrorDisallowedValue(val)
 		}
 	}
 
