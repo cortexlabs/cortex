@@ -836,6 +836,17 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 		return err
 	}
 
+	dockerClient, err := docker.GetDockerClient()
+	if err != nil {
+		return err
+	}
+
+	if providerType == types.LocalProviderType {
+		if err := docker.CheckLocalImageAccessible(dockerClient, image); err == nil {
+			return nil
+		}
+	}
+
 	dockerAuth := docker.NoAuth
 	if regex.IsValidECRURL(image) {
 		if awsClient.IsAnonymous {
@@ -871,17 +882,7 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 		}
 	}
 
-	dockerClient, err := docker.GetDockerClient()
-	if err != nil {
-		return err
-	}
-
 	if err := docker.CheckImageAccessible(dockerClient, image, dockerAuth); err != nil {
-		if providerType == types.LocalProviderType {
-			if err := docker.CheckLocalImageAccessible(dockerClient, image); err == nil {
-				return nil
-			}
-		}
 		return err
 	}
 
