@@ -38,7 +38,7 @@ func refreshInit() {
 
 var _refreshCmd = &cobra.Command{
 	Use:   "refresh API_NAME",
-	Short: "restart all replicas for an api (witout downtime)",
+	Short: "restart all replicas for an api (without downtime)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		env, err := ReadOrConfigureEnv(_flagRefreshEnv)
