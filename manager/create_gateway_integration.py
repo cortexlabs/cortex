@@ -39,9 +39,9 @@ def get_listener_arn(elb_arn, client_elb):
     paginator = client_elb.get_paginator("describe_listeners")
     for listener_page in paginator.paginate(LoadBalancerArn=elb_arn):
         for listener in listener_page["Listeners"]:
-            if listener["Port"] == 80:
+            if listener["Port"] == 443:
                 return listener["ListenerArn"]
-    raise Exception("Could not find ELB port 80 listener")
+    raise Exception("Could not find ELB port 443 listener")
 
 
 def create_gateway_intregration(api_id, vpc_link_id):
@@ -49,14 +49,14 @@ def create_gateway_intregration(api_id, vpc_link_id):
     client_apigateway = boto3.client("apigatewayv2", region_name=os.environ["CORTEX_REGION"])
 
     elb_arn = get_istio_api_gateway_elb_arn(client_elb)
-    listener80_arn = get_listener_arn(elb_arn, client_elb)
+    listener_arn = get_listener_arn(elb_arn, client_elb)
 
     client_apigateway.create_integration(
         ApiId=api_id,
         ConnectionId=vpc_link_id,
         ConnectionType="VPC_LINK",
         IntegrationType="HTTP_PROXY",
-        IntegrationUri=listener80_arn,
+        IntegrationUri=listener_arn,
         PayloadFormatVersion="1.0",
         IntegrationMethod="ANY",
     )
