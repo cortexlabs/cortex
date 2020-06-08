@@ -36,22 +36,12 @@ It is recommended to use an IAM user with the `AdministratorAccess` policy to cr
 
 ### Operator
 
-The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, read and write permissions for CloudWatch metrics, and read permissions for ECR. The policy below may be used to restrict the Operator's access:
-
-<!-- TODO add api gateway -->
+The operator requires read permissions for any S3 bucket containing exported models, read/write permissions for the Cortex S3 bucket, read permissions for ECR, read permissions for ELB, read/write permissions for API Gateway, read/write permissions for CloudWatch metrics, and read/write permissions for the Cortex CloudWatch log group. The policy below may be used to restrict the Operator's access:
 
 ```json
 {
     "Version": "2012-10-17",
     "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": [
-                "sts:GetCallerIdentity"
-            ],
-            "Resource": "*"
-        },
         {
             "Effect": "Allow",
             "Action": "s3:*",
@@ -59,9 +49,12 @@ The operator requires read permissions for any S3 bucket containing exported mod
         },
         {
             "Action": [
+                "sts:GetCallerIdentity",
+                "ecr:GetAuthorizationToken",
+                "elasticloadbalancing:Describe*",
+                "apigateway:*",
                 "cloudwatch:*",
-                "logs:*",
-                "ecr:GetAuthorizationToken"
+                "logs:*"
             ],
             "Effect": "Allow",
             "Resource": "*"
