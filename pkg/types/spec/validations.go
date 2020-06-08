@@ -842,6 +842,7 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 	}
 
 	if providerType == types.LocalProviderType {
+		// short circuit if the image is already available locally
 		if err := docker.CheckLocalImageAccessible(dockerClient, image); err == nil {
 			return nil
 		}

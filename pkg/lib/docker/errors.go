@@ -57,15 +57,11 @@ func ErrorDockerPermissions(err error) error {
 }
 
 func ErrorImageInaccessible(image string, cause error) error {
-	dockerErrMsg := ""
+	message := fmt.Sprintf("%s is not accessible", image)
 	if cause != nil {
-		dockerErrMsg = errors.Message(cause)
+		message += "\n" + errors.Message(cause) // add \n because docker client errors are
 	}
 
-	message := fmt.Sprintf("%s is not accessible", image)
-	if len(dockerErrMsg) > 0 {
-		message = fmt.Sprintf("%s\n%s", message, dockerErrMsg) // add \n because docker client errors are verbose
-	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageInaccessible,
 		Message: message,

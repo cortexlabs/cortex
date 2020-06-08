@@ -168,9 +168,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 		pulledThisImage, err := docker.PullImage(image, dockerAuth, docker.PrintDots)
 		if err != nil {
-			if err := docker.CheckLocalImageAccessible(dockerClient, image); err != nil {
-				return errors.Wrap(err, "failed to pull image", image)
-			}
+			return errors.Wrap(err, "failed to pull image", image)
 		}
 
 		if pulledThisImage {
