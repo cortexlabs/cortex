@@ -35,6 +35,8 @@ If a 5-element list is returned containing classifications of the image ("tabby"
 
 ## Exporting SavedModels
 
+Follow these instructions if you want to build the model(s) yourself, otherwise just use pre-built ones from `cortex_*.yaml`.
+
 Run the following command to install the dependencies for [Generating Resnet50 Models](Generating%20Resnet50%20Models.ipynb) notebook:
 ```bash
 pip install neuron-cc==1.0.9410.0+6008239556 torch-neuron==1.0.825.0

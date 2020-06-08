@@ -172,6 +172,12 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 1. Rebuild the image.
 1. Test all examples that use Inferentia ASICs.
 
+## ASIC temporary workaround
+
+To make the ASIC (`inf1` instances) work with Cortex, 2 unofficial solutions are still required:
+1. Custom version of the [cluster-autoscaler](https://github.com/kubernetes/autoscaler) as built on [robertlucian/cortexlabs-cluster-autoscaler:v1.16.6-6c98931](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-cluster-autoscaler).
+1. Custom AMI for `inf1` instances. The currently used AMI image `ami-07a7b48058cfe1a73` has been built off of `ami-011c865bf7da41a9d` image (which is an EKS-optimized AMI version for EKS 1.6). [These](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-runtime/nrt_start.md) instructions have been used to build the image. Alongside that, one more thing that has to be done and is not mentioned in the instructions is to set `vm.nr_hugepages` in `/etc/sysctl.conf` to `0` and to disable the `neuron-rtd` service. Be sure that `neuron-discovery` service is still left enabled.
+
 ## Cluster autoscaler
 
 1. Find the latest patch release for our current version of k8s (e.g. k8s v1.14 -> cluster-autocluster v1.14.7) on [GitHub](https://github.com/kubernetes/autoscaler/releases) and check the changelog

@@ -74,6 +74,8 @@ Then, deploy each API one at a time and check the results:
 
 ## Exporting SavedModels
 
+Follow these instructions if you want to build the model(s) yourself, otherwise just use pre-built ones from `cortex_*.yaml`.
+
 Run the following command to install the dependencies for [Generating Resnet50 Models](Generating%20Resnet50%20Models.ipynb) notebook:
 ```bash
 pip install neuron-cc==1.0.9410.0+6008239556 tensorflow-neuron==1.15.0.1.0.1333.0
