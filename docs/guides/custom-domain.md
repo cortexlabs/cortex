@@ -100,11 +100,45 @@ Take note of the certificate's ARN. The certificate is ineligible for renewal be
 
 ![step 14](https://user-images.githubusercontent.com/4365343/82222684-9e613d80-98ef-11ea-98c0-5a20b457f062.png)
 
-If you are using API Gateway, continue to the next section. Otherwise (i.e. you are connecting directly to your API load balancer) proceed to [configure the API load balancer](#configure-the-api-load-balancer).
+If you are using API Gateway, continue to the next section. Otherwise (i.e. clients connect directly to your API load balancer) proceed to [configure the API load balancer](#configure-the-api-load-balancer).
 
 ## Configure API Gateway
 
-<!-- TODO -->
+### Step 1
+
+Navigate to the [API Gateway console](https://us-west-2.console.aws.amazon.com/apigateway) (make sure that the region in top right matches your Cortex region). Click "Custom domain names" and then click "Create".
+
+![step 1](https://user-images.githubusercontent.com/808475/84082403-a105fe80-a994-11ea-8015-0df9aeef07b1.png)
+
+### Step 2
+
+Type in the name of your domain and choose the Regional endpoint type, TLS 1.2, and the ACM certificate that you created earlier. Then click "Create".
+
+![step 2](https://user-images.githubusercontent.com/808475/84082448-b8dd8280-a994-11ea-9ef7-6bb33b3a403b.png)
+
+### Step 3
+
+This should take you back to the custom domains page, and you should see your new custom domain. Make sure your API is selected. Take note of the API Gateway domain name (we will use this later), and click "Configure API mappings".
+
+![step 3](https://user-images.githubusercontent.com/808475/84084960-62267780-a999-11ea-8a6b-4be9cfca2a9c.png)
+
+### Step 4
+
+Click "Add new mapping"
+
+![step 4](https://user-images.githubusercontent.com/808475/84082516-d7dc1480-a994-11ea-9cae-d4fb1ac1e767.png)
+
+### Step 5
+
+Select your API Gateway, choose the "$default" stage, and lave "Path" blank. Click Save.
+
+![step 5](https://user-images.githubusercontent.com/808475/84082553-e5919a00-a994-11ea-9bc3-cf5f9eb869eb.png)
+
+### Step 6
+
+Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API Gateway (the target name should match the "API Gateway domain name" show in step 3). Leave "Name" blank.
+
+![step 6](https://user-images.githubusercontent.com/808475/84083366-54232780-a996-11ea-9bc6-2c9945a160d4.png)
 
 Proceed to [using your new endpoint](#using-your-new-endpoint)
 
@@ -134,13 +168,13 @@ After your cluster has been created, navigate to your [EC2 Load Balancer console
 
 Take note of the load balancer's name.
 
-![step 16](https://user-images.githubusercontent.com/808475/80142777-961c1980-8560-11ea-9202-40964dbff5e9.png)
+![step 2](https://user-images.githubusercontent.com/808475/80142777-961c1980-8560-11ea-9202-40964dbff5e9.png)
 
 ### Step 3
 
-Go to the hosted zone you created in the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and add an Alias record that routes traffic to your Cortex cluster's API load balancer (leave "Name" blank).
+Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API load balancer (leave "Name" blank).
 
-![step 17](https://user-images.githubusercontent.com/4365343/82228372-08311580-98f7-11ea-9faa-24050fc432d8.png)
+![step 3](https://user-images.githubusercontent.com/808475/84083422-6ac97e80-a996-11ea-9679-be37268a2133.png)
 
 ## Using your new endpoint
 
@@ -171,7 +205,7 @@ To test connectivity, try the following steps:
 {"message":"make a prediction by sending a post request to this endpoint with a json payload",...}
 ```
 
-### Cleanup
+## Cleanup
 
 Spin down your Cortex cluster.
 
