@@ -114,17 +114,17 @@ def is_gpu(instance_type):
 
 
 def apply_asic_settings(nodegroup, instance_type):
-    no_chips, hugepages_mem = get_asic_resources(instance_type)
+    num_chips, hugepages_mem = get_asic_resources(instance_type)
     asic_settings = {
         # custom eks-optimized AMI for inf instances
-        # TODO track https://github.com/aws/containers-roadmap/issues/619 ticket
+        # track https://github.com/aws/containers-roadmap/issues/619 ticket
         # such that when an EKS-optimized AMI for inf instances is released,
         # this AMI override can be removed and reverted back to auto
         "ami": "ami-07a7b48058cfe1a73",
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/infa=true",
-            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/infa": str(no_chips),
+            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/infa": str(num_chips),
             "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": hugepages_mem,
         },
         "labels": {"aws.amazon.com/infa": "true"},
@@ -138,18 +138,16 @@ def is_asic(instance_type):
 
 
 def get_asic_resources(instance_type):
-    no_hugepages_2Mi = 128
-    hugepages_mem = lambda no_chips: f"{no_hugepages_2Mi * no_chips}Mi"
-
-    no_chips = 0
+    num_hugepages_2Mi = 128
+    num_chips = 0
     if instance_type in ["inf1.xlarge", "inf1.2xlarge"]:
-        no_chips = 1
+        num_chips = 1
     elif instance_type == "inf1.6xlarge":
-        no_chips = 4
+        num_chips = 4
     elif instance_type == "inf1.24xlarge":
-        no_chips = 16
+        num_chips = 16
 
-    return no_chips, hugepages_mem(no_chips)
+    return num_chips, f"{num_hugepages_2Mi * num_chips}Mi"
 
 
 def generate_eks(configmap_yaml_path):

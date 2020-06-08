@@ -95,7 +95,7 @@ def get_instance_metadatas(pricing):
 
 
 def get_asics_per_instance_type(instance_type):
-    if instance_type not in asics_per_instance_type.keys():
+    if instance_type not in asics_per_instance_type:
         return 0
     return asics_per_instance_type[instance_type]
 
@@ -208,7 +208,7 @@ type InstanceMetadata struct {
 	Memory      kresource.Quantity `json:"memory"`
 	CPU         kresource.Quantity `json:"cpu"`
 	GPU         int64              `json:"gpu"`
-    ASIC        int64              `json:"asic"`
+	ASIC        int64              `json:"asic"`
 	Price       float64            `json:"price"`
 }
 

@@ -702,8 +702,12 @@ func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 		maxCPU.Sub(_nvidiaCPUReserve)
 		maxMem.Sub(_nvidiaMemReserve)
 	}
-
 	maxASIC := config.Cluster.InstanceMetadata.ASIC
+	if maxASIC > 0 {
+		// Reserve resources for inferentia device plugin daemonset
+		maxCPU.Sub(_inferentiaCPUReserve)
+		maxMem.Sub(_inferentiaMemReserve)
+	}
 
 	compute := api.Compute
 	if compute.GPU > 0 && compute.ASIC > 0 {
@@ -724,7 +728,7 @@ func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 		return ErrorNoAvailableNodeComputeLimit("ASIC", fmt.Sprintf("%d", compute.ASIC), fmt.Sprintf("%d", maxASIC))
 	}
 
-	// TODO use any number of ASICs once https://github.com/aws/aws-neuron-sdk/issues/110 is fixed
+	// use any number of ASICs once https://github.com/aws/aws-neuron-sdk/issues/110 is fixed
 	if compute.ASIC > 0 && compute.ASIC != 1 {
 		return ErrorInvalidNumberOfASICs(compute.ASIC)
 	}
@@ -757,7 +761,7 @@ func validateAutoscaling(api *userconfig.API) error {
 	if api.Compute.ASIC > 0 {
 		numASICCores := api.Compute.ASIC * _coresPerASIC
 		workersPerReplica := int64(api.Autoscaling.WorkersPerReplica)
-		if !m.CheckDivisibleByInt64(numASICCores, workersPerReplica) {
+		if !m.IsDivisibleByInt64(numASICCores, workersPerReplica) {
 			workerSuggestions := m.FindDivisibleNumbersOfInt64(numASICCores)
 			return ErrorInvalidNumberOfASICWorkers(workersPerReplica, numASICCores, workerSuggestions)
 		}

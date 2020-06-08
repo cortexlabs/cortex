@@ -50,6 +50,9 @@ var _cortexMemReserve = kresource.MustParse("1200Mi")
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")
 
+var _inferentiaCPUReserve = kresource.MustParse("100m")
+var _inferentiaMemReserve = kresource.MustParse("100Mi")
+
 func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 	opts := kmeta.ListOptions{
 		LabelSelector: k8s.LabelSelector(map[string]string{
