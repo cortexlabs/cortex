@@ -531,10 +531,14 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 		}
 	}
 
+	inputTitle := "input"
+	if usesDefaultModel {
+		inputTitle = "model input"
+	}
 	t := table.Table{
 		Headers: []table.Header{
 			{Title: "model name", MaxWidth: 32, Hidden: usesDefaultModel},
-			{Title: "model input", MaxWidth: 32},
+			{Title: inputTitle, MaxWidth: 32},
 			{Title: "type", MaxWidth: 10},
 			{Title: "shape", MaxWidth: 20},
 		},
