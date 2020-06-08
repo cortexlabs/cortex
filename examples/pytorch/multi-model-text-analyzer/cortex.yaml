@@ -8,5 +8,3 @@
     cpu: 1
     gpu: 1
     mem: 6G
-  autoscaling:
-    threads_per_worker: 1

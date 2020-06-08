@@ -41,8 +41,8 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCa
 	}
 
 	localModelCaches := make([]*spec.LocalModelCache, len(modelPaths))
-	var err error
 	for i, modelPath := range modelPaths {
+		var err error
 		localModelCaches[i], err = CacheModel(modelPath, awsClient)
 		if err != nil {
 			if apiSpec.Predictor.Model != nil {
