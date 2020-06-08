@@ -152,26 +152,18 @@ function ensure_eks() {
 function main() {
   mkdir -p $CORTEX_CLUSTER_WORKSPACE
 
+  # create API Gateway
   if [ "$arg1" != "--update" ]; then
-    # create new API Gateway
     api_id=$(aws apigatewayv2 create-api --tags $CORTEX_TAGS --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP | jq .ApiId | tr -d '"')
     # create default stage; ignore error because default stage may already exist (currently it doesn't exist because of a possible bug in create-api)
     aws apigatewayv2 create-stage --region $CORTEX_REGION --tags $CORTEX_TAGS --api-id $api_id --auto-deploy --stage-name \$default > /dev/null
   fi
 
+  # create cluster (if it doesn't already exist)
   ensure_eks
 
-  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
-
+  # create VPC Link for API Gateway
   if [ "$arg1" != "--update" ]; then
-    # pre-download images on cortex cluster up
-    if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
-      envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
-    else
-      envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
-    fi
-
-    # create VPC Link for API Gateway
     if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
       vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
       # filter all private subnets belonging to cortex cluster
@@ -180,6 +172,17 @@ function main() {
       default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
       # create VPC Link
       vpc_link_id=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags $CORTEX_TAGS --name $CORTEX_CLUSTER_NAME  --subnet-ids $private_subnets --security-group-ids $default_security_group | jq .VpcLinkId | tr -d '"')
+    fi
+  fi
+
+  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
+
+  # pre-download images on cortex cluster up
+  if [ "$arg1" != "--update" ]; then
+    if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+      envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
+    else
+      envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi
   fi
 
