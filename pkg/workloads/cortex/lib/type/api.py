@@ -167,8 +167,11 @@ def get_spec(provider, storage, cache_dir, spec_path):
         return read_msgpack(spec_path)
 
     local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    _, key = S3.deconstruct_s3_path(spec_path)
-    storage.download_file(key, local_spec_path)
+
+    if not os.path.isfile(local_spec_path):
+        _, key = S3.deconstruct_s3_path(spec_path)
+        storage.download_file(key, local_spec_path)
+
     return read_msgpack(local_spec_path)
 
 
