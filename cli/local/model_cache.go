@@ -37,7 +37,7 @@ import (
 func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCache, error) {
 	modelPaths := make([]string, len(apiSpec.Predictor.Models))
 	for i, modelResource := range apiSpec.Predictor.Models {
-		modelPaths[i] = modelResource.Model
+		modelPaths[i] = modelResource.ModelPath
 	}
 
 	localModelCaches := make([]*spec.LocalModelCache, len(modelPaths))

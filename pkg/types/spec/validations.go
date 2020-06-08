@@ -566,13 +566,13 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 
 func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.Model == nil && len(predictor.Models) == 0 {
-		return ErrorMissingTensorFlowModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
+		return ErrorMissingModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
 		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
 		modelResource := &userconfig.ModelResource{
 			Name:         consts.SingleModelName,
-			Model:        *predictor.Model,
+			ModelPath:    *predictor.Model,
 			SignatureKey: predictor.SignatureKey,
 		}
 		// place the predictor.Model into predictor.Models for ease of use
@@ -596,7 +596,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 }
 
 func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	model := modelResource.Model
+	model := modelResource.ModelPath
 
 	if strings.HasPrefix(model, "s3://") {
 		awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
@@ -620,7 +620,7 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerTy
 			} else if path == "" {
 				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 			}
-			modelResource.Model = path
+			modelResource.ModelPath = path
 		}
 	} else {
 		if providerType == types.AWSProviderType {
@@ -630,19 +630,19 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerTy
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
 
 		var err error
-		if strings.HasPrefix(modelResource.Model, "~/") {
+		if strings.HasPrefix(modelResource.ModelPath, "~/") {
 			model, err = files.EscapeTilde(model)
 			if err != nil {
 				return err
 			}
 		} else {
-			model = files.RelToAbsPath(modelResource.Model, configFileDir)
+			model = files.RelToAbsPath(modelResource.ModelPath, configFileDir)
 		}
 		if strings.HasSuffix(model, ".zip") {
 			if err := files.CheckFile(model); err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
 			}
-			modelResource.Model = model
+			modelResource.ModelPath = model
 		} else if files.IsDir(model) {
 			path, err := GetTFServingExportFromLocalPath(model)
 			if err != nil {
@@ -650,7 +650,7 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerTy
 			} else if path == "" {
 				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 			}
-			modelResource.Model = path
+			modelResource.ModelPath = path
 		} else {
 			return errors.Wrap(ErrorInvalidTensorFlowModelPath(), userconfig.ModelKey, model)
 		}
@@ -664,13 +664,13 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
 	if predictor.Model == nil && len(predictor.Models) == 0 {
-		return ErrorMissingTensorFlowModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
+		return ErrorMissingModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
 		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
 	} else if predictor.Model != nil {
 		modelResource := &userconfig.ModelResource{
-			Name:  consts.SingleModelName,
-			Model: *predictor.Model,
+			Name:      consts.SingleModelName,
+			ModelPath: *predictor.Model,
 		}
 		// place the predictor.Model into predictor.Models for ease of use
 		predictor.Models = []*userconfig.ModelResource{modelResource}
@@ -696,7 +696,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 }
 
 func validateONNXModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	model := modelResource.Model
+	model := modelResource.ModelPath
 	var err error
 	if !strings.HasSuffix(model, ".onnx") {
 		return errors.Wrap(ErrorInvalidONNXModelPath(), userconfig.ModelKey, model)
@@ -722,18 +722,18 @@ func validateONNXModel(modelResource *userconfig.ModelResource, providerType typ
 		}
 
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
-		if strings.HasPrefix(modelResource.Model, "~/") {
+		if strings.HasPrefix(modelResource.ModelPath, "~/") {
 			model, err = files.EscapeTilde(model)
 			if err != nil {
 				return err
 			}
 		} else {
-			model = files.RelToAbsPath(modelResource.Model, configFileDir)
+			model = files.RelToAbsPath(modelResource.ModelPath, configFileDir)
 		}
 		if err := files.CheckFile(model); err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
-		modelResource.Model = model
+		modelResource.ModelPath = model
 	}
 	return nil
 }
@@ -929,7 +929,7 @@ func checkDuplicateModelNames(modelResources []*userconfig.ModelResource) error 
 
 	for _, modelResource := range modelResources {
 		if names.Has(modelResource.Name) {
-			return ErrorDuplicateModels(modelResource.Name)
+			return ErrorDuplicateModelNames(modelResource.Name)
 		}
 		names.Add(modelResource.Name)
 	}

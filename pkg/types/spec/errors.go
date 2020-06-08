@@ -46,9 +46,9 @@ const (
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
 	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
 	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
-	ErrMissingTensorFlowModel               = "spec.missing_tensorflow_model"
+	ErrMissingModel                         = "spec.missing_model"
 	ErrInvalidONNXModelPath                 = "spec.invalid_onnx_model_path"
-	ErrDuplicateModels                      = "spec.duplicate_models"
+	ErrDuplicateModelNames                  = "spec.duplicate_model_names"
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
@@ -222,9 +222,9 @@ func ErrorInvalidTensorFlowModelPath() error {
 	})
 }
 
-func ErrorMissingTensorFlowModel(singleModelField string, multiModelField string, predictorType userconfig.PredictorType) error {
+func ErrorMissingModel(singleModelField string, multiModelField string, predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrMissingTensorFlowModel,
+		Kind:    ErrMissingModel,
 		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, singleModelField, userconfig.PredictorKey, multiModelField),
 	})
 }
@@ -236,9 +236,9 @@ func ErrorInvalidONNXModelPath() error {
 	})
 }
 
-func ErrorDuplicateModels(duplicateModel string) error {
+func ErrorDuplicateModelNames(duplicateModel string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateModels,
+		Kind:    ErrDuplicateModelNames,
 		Message: fmt.Sprintf("cannot have multiple models with the same name (%s)", duplicateModel),
 	})
 }
