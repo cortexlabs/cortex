@@ -91,7 +91,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 					return nil, "", err
 				}
 			} else if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-				err = removeAPIFromAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+				prevAPI, err := DownloadAPISpec(api.Name, prevDeployment.Labels["apiID"])
+				if err != nil {
+					return nil, "", err
+				}
+				err = removeAPIFromAPIGateway(config.Cluster.APILoadBalancerScheme, prevAPI)
 				if err != nil {
 					return nil, "", err
 				}
