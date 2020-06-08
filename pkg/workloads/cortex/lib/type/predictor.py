@@ -36,15 +36,13 @@ class Predictor:
         self.model_dir = model_dir
         self.models = []
         if kwargs.get("models"):
-            for model in kwargs.get("models"):
+            for model in kwargs["models"]:
                 self.models += [
                     Model(
-                        name=model.get("name"),
-                        model=model.get("model"),
+                        name=model["name"],
+                        model=model["model"],
+                        base_path=self._compute_model_basepath(model["model"], model["name"]),
                         signature_key=model.get("signature_key"),
-                        base_path=self._compute_model_basepath(
-                            model.get("model"), model.get("name")
-                        ),
                     )
                 ]
 

@@ -37,9 +37,9 @@ class TensorFlowServing:
 
         # create model(s) configuration
         config_list = model_server_config_pb2.ModelConfigList()
-        for i in range(len(names)):
+        for i, name in enumerate(names):
             model_config = config_list.config.add()
-            model_config.name = names[i]
+            model_config.name = name
             model_config.base_path = base_paths[i]
             model_config.model_platform = self.model_platform
 

@@ -36,7 +36,7 @@ def load_tensorflow_serving_models():
     client = TensorFlowServing(tf_serving_address)
     model_dir = os.environ["CORTEX_MODEL_DIR"]
     base_paths = [os.path.join(model_dir, name) for name in models]
-    client.add_models_config(models, base_paths, replace_models=True)
+    client.add_models_config(models, base_paths, replace_models=False)
 
 
 def main():

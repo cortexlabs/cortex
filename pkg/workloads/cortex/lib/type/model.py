@@ -14,11 +14,11 @@
 
 
 class Model:
-    def __init__(self, name=None, model=None, signature_key=None, base_path=None):
+    def __init__(self, name, model, base_path, signature_key=None):
         self.name = name
         self.model = model
-        self.signature_key = signature_key
         self.base_path = base_path
+        self.signature_key = signature_key
 
 
 def get_model_signature_map(models):

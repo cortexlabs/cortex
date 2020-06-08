@@ -65,7 +65,9 @@ class TensorFlowClient:
 
         if model_name is None:
             raise UserRuntimeException(
-                "no model was specified, choose one of the following: {}".format(self._model_names)
+                "model_name was not specified, choose one of the following: {}".format(
+                    self._model_names
+                )
             )
 
         if model_name not in self._model_names:
