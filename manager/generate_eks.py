@@ -102,8 +102,12 @@ def apply_gpu_settings(nodegroup):
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "nvidia.com/gpu=true",
+            "k8s.io/cluster-autoscaler/node-template/label/k8s.amazonaws.com/accelerator": "true",  # accepted values are GPU type such as nvidia-tesla-k80 but using "true" as a placeholder for now because the value doesn't matter for AWS cluster autoscaler
         },
-        "labels": {"nvidia.com/gpu": "true"},
+        "labels": {
+            "nvidia.com/gpu": "true",
+            "k8s.amazonaws.com/accelerator": "true",  # accepted values are GPU type such as nvidia-tesla-k80 but using "true" as a placeholder for now because the value doesn't matter for AWS cluster autoscaler
+        },
         "taints": {"nvidia.com/gpu": "true:NoSchedule"},
     }
 
