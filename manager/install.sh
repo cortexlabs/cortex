@@ -163,16 +163,14 @@ function main() {
   ensure_eks
 
   # create VPC Link for API Gateway
-  if [ "$arg1" != "--update" ]; then
-    if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-      vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
-      # filter all private subnets belonging to cortex cluster
-      private_subnets=$(aws ec2 describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s '.[].Subnets[].SubnetId' | tr -d '"')
-      # get default security group for cortex VPC
-      default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
-      # create VPC Link
-      vpc_link_id=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags $CORTEX_TAGS --name $CORTEX_CLUSTER_NAME  --subnet-ids $private_subnets --security-group-ids $default_security_group | jq .VpcLinkId | tr -d '"')
-    fi
+  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
+    # filter all private subnets belonging to cortex cluster
+    private_subnets=$(aws ec2 describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s '.[].Subnets[].SubnetId' | tr -d '"')
+    # get default security group for cortex VPC
+    default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
+    # create VPC Link
+    vpc_link_id=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags $CORTEX_TAGS --name $CORTEX_CLUSTER_NAME  --subnet-ids $private_subnets --security-group-ids $default_security_group | jq .VpcLinkId | tr -d '"')
   fi
 
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
@@ -216,13 +214,11 @@ function main() {
     echo "✓"
   fi
 
-  if [ "$arg1" != "--update" ]; then
-    if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-      # add integration to api gateway if internal loadbalancer
-      echo -n "￮ creating api gateway vpc link integration "
-      python create_gateway_integration.py $api_id $vpc_link_id
-      echo "✓"
-    fi
+  # add VPC Link integration to API Gateway
+  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    echo -n "￮ creating api gateway vpc link integration "
+    python create_gateway_integration.py $api_id $vpc_link_id
+    echo "✓"
   fi
 
   echo -n "￮ starting operator "
