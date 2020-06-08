@@ -213,6 +213,15 @@ function main() {
     echo "✓"
   fi
 
+  if [ "$arg1" != "--update" ]; then
+    if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+      # add integration to api gateway if internal loadbalancer
+      echo -n "￮ creating api gateway vpc link integration "
+      python create_gateway_integration.py $api_id $vpc_link_id
+      echo "✓"
+    fi
+  fi
+
   echo -n "￮ starting operator "
   kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
   printed_dot="false"
@@ -235,13 +244,6 @@ function main() {
     done
     kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
     if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
-  fi
-
-  if [ "$arg1" != "--update" ]; then
-    if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-      # add integration to api gateway if internal loadbalancer
-      python create_gateway_integration.py $api_id $vpc_link_id
-    fi
   fi
 
   echo -n "￮ configuring cli "
@@ -394,6 +396,7 @@ function validate_cortex() {
         kubectl -n=default logs "$operator_pod_name"
         echo -e "\noperator logs (previous container):\n"
         kubectl -n=default logs "$operator_pod_name" --previous
+        echo
         exit 1
       fi
       continue
