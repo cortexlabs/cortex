@@ -47,7 +47,7 @@ Flags:
 ## refresh
 
 ```text
-restart all replicas for an api (witout downtime)
+restart all replicas for an api (without downtime)
 
 Usage:
   cortex refresh API_NAME [flags]
