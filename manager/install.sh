@@ -389,8 +389,11 @@ function validate_cortex() {
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
       num_restart=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restart -ge 2 ]]; then
-        echo -e "\n\nan error occurred when starting the cortex operator. View the logs with:"
-        echo "  kubectl logs $operator_pod_name"
+        echo -e "\n\nan error occurred when starting the cortex operator"
+        echo -e "\noperator logs (currently running container):\n"
+        kubectl -n=default logs "$operator_pod_name"
+        echo -e "\noperator logs (previous container):\n"
+        kubectl -n=default logs "$operator_pod_name" --previous
         exit 1
       fi
       continue
