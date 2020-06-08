@@ -39,9 +39,9 @@ def get_listener_arn(elb_arn, client_elb):
     paginator = client_elb.get_paginator("describe_listeners")
     for listener_page in paginator.paginate(LoadBalancerArn=elb_arn):
         for listener in listener_page["Listeners"]:
-            if listener["Port"] == 443:
+            if listener["Port"] == 80:
                 return listener["ListenerArn"]
-    raise Exception("Could not find ELB port 443 listener")
+    raise Exception("Could not find ELB port 80 listener")
 
 
 def create_gateway_intregration(api_id, vpc_link_id):
