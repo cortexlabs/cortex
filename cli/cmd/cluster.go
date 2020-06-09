@@ -303,13 +303,17 @@ var _downCmd = &cobra.Command{
 		// delete API gateway if exists
 		_, err = awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if err != nil {
+			fmt.Println("unable to delete cortex's api gateway (see error below); if it still exists, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway")
 			errors.PrintError(err)
+			fmt.Println()
 		}
 
 		// delete VPC Link if exists
 		_, err = awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if err != nil {
+			fmt.Println("unable to delete cortex's vpc link (see error below); if it still exists, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway")
 			errors.PrintError(err)
+			fmt.Println()
 		}
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
