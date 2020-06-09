@@ -102,6 +102,70 @@ func (c *Client) DeleteVPCLinkByTag(tagName string, tagValue string) (bool, erro
 	return true, nil
 }
 
+// DeleteAPIGatewayMappingsForDomainName deletes all API mappings that point to the provided api gateway from the provided domain name
+func (c *Client) DeleteAPIGatewayMappingsForDomainName(apiGatewayID string, domainName string) error {
+	var nextToken *string
+
+	for {
+		apiMappings, err := c.APIGatewayV2().GetApiMappings(&apigatewayv2.GetApiMappingsInput{
+			DomainName: aws.String(domainName),
+			NextToken:  nextToken,
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to get api mappings")
+		}
+
+		for _, apiMapping := range apiMappings.Items {
+			if *apiMapping.ApiId != apiGatewayID {
+				continue
+			}
+
+			_, err := c.APIGatewayV2().DeleteApiMapping(&apigatewayv2.DeleteApiMappingInput{
+				DomainName:   aws.String(domainName),
+				ApiMappingId: apiMapping.ApiMappingId,
+			})
+			if err != nil {
+				return errors.Wrap(err, "failed to delete api mapping")
+			}
+		}
+
+		nextToken = apiMappings.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+
+	return nil
+}
+
+// DeleteAPIGatewayMappings deletes all API mappings that point to the provided api gateway
+func (c *Client) DeleteAPIGatewayMappings(apiGatewayID string) error {
+	var nextToken *string
+
+	for {
+		domainNames, err := c.APIGatewayV2().GetDomainNames(&apigatewayv2.GetDomainNamesInput{
+			NextToken: nextToken,
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to get domain names")
+		}
+
+		for _, domainName := range domainNames.Items {
+			err := c.DeleteAPIGatewayMappingsForDomainName(apiGatewayID, *domainName.DomainName)
+			if err != nil {
+				return err
+			}
+		}
+
+		nextToken = domainNames.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+
+	return nil
+}
+
 // DeleteAPIGatewayByTag Deletes an API Gateway by tag (returns whether or not the API Gateway existed)
 func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (bool, error) {
 	apiGateway, err := c.GetAPIGatewayByTag(tagName, tagValue)
@@ -109,6 +173,12 @@ func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (bool, e
 		return false, err
 	} else if apiGateway == nil {
 		return false, nil
+	}
+
+	// Delete mappings in case user added a custom domain name (otherwise this will block API Gateway deletion)
+	err = c.DeleteAPIGatewayMappings(*apiGateway.ApiId)
+	if err != nil {
+		return false, err
 	}
 
 	_, err = c.APIGatewayV2().DeleteApi(&apigatewayv2.DeleteApiInput{
