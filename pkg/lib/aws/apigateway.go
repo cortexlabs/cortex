@@ -227,6 +227,10 @@ func (c *Client) GetRouteIntegrationID(apiGatewayID string, endpoint string) (st
 		return "", err
 	}
 
+	if route == nil {
+		return "", nil
+	}
+
 	// trim of prefix of integrationID.
 	// Note: Integrations get attached to routes via a target of the format integrations/<integrationID>
 	integrationID := strings.Trim(*route.Target, "integrations/")
