@@ -471,7 +471,7 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 		if err := validateTensorFlowPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
-		if err := validateDockerImagePath(predictor.TensorFlowServingImage, awsClient); err != nil {
+		if err := validateDockerImagePath(predictor.TensorFlowServingImage, providerType, awsClient); err != nil {
 			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
 	case userconfig.ONNXPredictorType:
@@ -480,7 +480,7 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 		}
 	}
 
-	if err := validateDockerImagePath(predictor.Image, awsClient); err != nil {
+	if err := validateDockerImagePath(predictor.Image, providerType, awsClient); err != nil {
 		return errors.Wrap(err, userconfig.ImageKey)
 	}
 
@@ -828,12 +828,24 @@ func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 	return nil
 }
 
-func validateDockerImagePath(image string, awsClient *aws.Client) error {
+func validateDockerImagePath(image string, providerType types.ProviderType, awsClient *aws.Client) error {
 	if consts.DefaultImagePathsSet.Has(image) {
 		return nil
 	}
 	if _, err := cr.ValidateImageVersion(image, consts.CortexVersion); err != nil {
 		return err
+	}
+
+	dockerClient, err := docker.GetDockerClient()
+	if err != nil {
+		return err
+	}
+
+	if providerType == types.LocalProviderType {
+		// short circuit if the image is already available locally
+		if err := docker.CheckLocalImageAccessible(dockerClient, image); err == nil {
+			return nil
+		}
 	}
 
 	dockerAuth := docker.NoAuth
@@ -871,13 +883,9 @@ func validateDockerImagePath(image string, awsClient *aws.Client) error {
 		}
 	}
 
-	dockerClient, err := docker.GetDockerClient()
-	if err != nil {
-		return err
-	}
-
 	if err := docker.CheckImageAccessible(dockerClient, image, dockerAuth); err != nil {
 		return err
 	}
+
 	return nil
 }

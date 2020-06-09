@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
@@ -155,12 +156,7 @@ func ValidateImageVersion(image, cortexVersion string) (string, error) {
 		return image, nil
 	}
 
-	var tag string
-
-	if colonIndex := strings.LastIndex(image, ":"); colonIndex != -1 {
-		tag = image[colonIndex+1:]
-	}
-
+	tag := docker.ExtractImageTag(image)
 	// in docker, missing tag implies "latest"
 	if tag == "" {
 		tag = "latest"
