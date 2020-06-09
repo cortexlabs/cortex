@@ -325,15 +325,15 @@ var _downCmd = &cobra.Command{
 		if errAPIGateway != nil {
 			fmt.Print("\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/apis\n")
 			errors.PrintError(errAPIGateway)
-			fmt.Println()
 		}
 		if errVPCLink != nil {
 			fmt.Print("\nunable to delete cortex's vpc link (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/vpc-links\n")
 			errors.PrintError(errVPCLink)
-			fmt.Println()
 		}
 		if errAPIGateway == nil && errVPCLink == nil {
 			fmt.Println("✓")
+		} else {
+			fmt.Println()
 		}
 
 		fmt.Print("￮ deleting dashboard ")
@@ -346,6 +346,7 @@ var _downCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
+		fmt.Println("spinning down the cluster ...")
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
