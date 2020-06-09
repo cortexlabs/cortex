@@ -43,7 +43,7 @@ func IsDivisibleByInt(num int, divisor int) bool {
 	return false
 }
 
-func FindDivisibleNumbersOfInt(num int) []int {
+func FactorsInt(num int) []int {
 	divisibleNumbers := []int{}
 	for divisor := 1; divisor <= num; divisor++ {
 		if IsDivisibleByInt(num, divisor) {

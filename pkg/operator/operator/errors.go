@@ -18,7 +18,6 @@ package operator
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -305,7 +304,7 @@ func ErrorInsufficientASICMemory(requestedMem, minimumMem, numASICs, perASICMem 
 }
 
 func ErrorInvalidNumberOfASICWorkers(requestedWorkers int64, numASICCores int64, acceptableWorkers []int64) error {
-	msgAcceptableWorkers := strings.Join(s.ListInt64(acceptableWorkers), ",")
+	msgAcceptableWorkers := s.UserStrsOr(acceptableWorkers)
 	message := fmt.Sprintf("cannot evenly distribute %d ASIC cores over %d worker(s) - acceptable numbers of workers are %s", numASICCores, requestedWorkers, msgAcceptableWorkers)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfASICWorkers,

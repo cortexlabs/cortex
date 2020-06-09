@@ -762,7 +762,7 @@ func validateAutoscaling(api *userconfig.API) error {
 		numASICCores := api.Compute.ASIC * _coresPerASIC
 		workersPerReplica := int64(api.Autoscaling.WorkersPerReplica)
 		if !m.IsDivisibleByInt64(numASICCores, workersPerReplica) {
-			workerSuggestions := m.FindDivisibleNumbersOfInt64(numASICCores)
+			workerSuggestions := m.FactorsInt64(numASICCores)
 			return ErrorInvalidNumberOfASICWorkers(workersPerReplica, numASICCores, workerSuggestions)
 		}
 	}

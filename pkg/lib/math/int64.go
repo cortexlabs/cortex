@@ -43,7 +43,7 @@ func IsDivisibleByInt64(num int64, divisor int64) bool {
 	return false
 }
 
-func FindDivisibleNumbersOfInt64(num int64) []int64 {
+func FactorsInt64(num int64) []int64 {
 	divisibleNumbers := []int64{}
 	for divisor := int64(1); divisor <= num; divisor++ {
 		if IsDivisibleByInt64(num, divisor) {

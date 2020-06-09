@@ -43,7 +43,7 @@ func IsDivisibleByInt32(num int32, divisor int32) bool {
 	return false
 }
 
-func FindDivisibleNumbersOfInt32(num int32) []int32 {
+func FactorsInt32(num int32) []int32 {
 	divisibleNumbers := []int32{}
 	for divisor := int32(1); divisor <= num; divisor++ {
 		if IsDivisibleByInt32(num, divisor) {
