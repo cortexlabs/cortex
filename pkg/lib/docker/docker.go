@@ -143,8 +143,8 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		return false, err
 	}
 
-	if err := CheckLocalImageAccessible(dockerClient, image); err != nil {
-		return false, err
+	if err := CheckLocalImageAccessible(dockerClient, image); err == nil {
+		return false, nil
 	}
 
 	pullOutput, err := dockerClient.ImagePull(context.Background(), image, dockertypes.ImagePullOptions{
