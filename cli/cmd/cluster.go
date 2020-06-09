@@ -324,12 +324,12 @@ var _downCmd = &cobra.Command{
 		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if errAPIGateway != nil {
 			fmt.Print("\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/apis\n")
-			errors.PrintError(err)
+			errors.PrintError(errAPIGateway)
 			fmt.Println()
 		}
 		if errVPCLink != nil {
 			fmt.Print("\nunable to delete cortex's vpc link (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/vpc-links\n")
-			errors.PrintError(err)
+			errors.PrintError(errVPCLink)
 			fmt.Println()
 		}
 		if errAPIGateway == nil && errVPCLink == nil {
