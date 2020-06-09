@@ -32,8 +32,8 @@ class TensorFlowPredictor:
 
     def predict(self, payload, query_params):
         model_name = query_params["model"]
-
         predicted_label = None
+
         if model_name == "iris":
             prediction = self.client.predict(payload["input"], model_name)
             predicted_class_id = int(prediction["class_ids"][0])

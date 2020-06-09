@@ -7,7 +7,8 @@ The example can be run on both CPU and on GPU hardware.
 ## Sample Prediction
 
 Deploy the model by running:
-```
+
+```bash
 cortex deploy
 ```
 
@@ -19,11 +20,39 @@ Once the API has been successfully deployed, export the APIs endpoint. You can g
 export ENDPOINT=your-api-endpoint
 ```
 
-When making a prediction with [sample.json](sample.json), the following image will be used:
+When making a prediction with [sample-image.json](sample-image.json), the following image will be used:
 
 ![sports car](https://i.imgur.com/zovGIKD.png)
 
-### Iris Classifier Model
+### ResNet50 Classifier
+
+Make a request to the ResNet50 model:
+
+```bash
+curl "${ENDPOINT}?model=resnet50" -X POST -H "Content-Type: application/json" -d @sample-image.json
+```
+
+The expected response is:
+
+```json
+{"label": "sports_car"}
+```
+
+### Inception Classifier
+
+Make a request to the Inception model:
+
+```bash
+curl "${ENDPOINT}?model=inception" -X POST -H "Content-Type: application/json" -d @sample-image.json
+```
+
+The expected response is:
+
+```json
+{"label": "sports_car"}
+```
+
+### Iris Classifier
 
 Make a request to the Iris model:
 
@@ -35,34 +64,4 @@ The expected response is:
 
 ```json
 {"label": "setosa"}
-```
-
-### ResNet50 Classifier Model
-
-Make a request to the ResNet50 model:
-
-```bash
-curl "${ENDPOINT}?model=resnet50" -X POST -H "Content-Type: application/json" -d @sample-image.json
-```
-
-The expected response is:
-
-
-```json
-{"label": "sports_car"}
-```
-
-### Inception Classifier Model
-
-Make a request to the Inception model:
-
-```bash
-curl "${ENDPOINT}?model=inception" -X POST -H "Content-Type: application/json" -d @sample-image.json
-```
-
-The expected response is:
-
-
-```json
-{"label": "sports_car"}
 ```

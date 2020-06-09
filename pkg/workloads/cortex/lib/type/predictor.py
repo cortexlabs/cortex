@@ -55,7 +55,9 @@ class Predictor:
 
             client = ONNXClient(self.models)
             if self.models[0].name == consts.SINGLE_MODEL_NAME:
-                signature_message = "ONNX model signature: {}".format(client.input_signatures)
+                signature_message = "ONNX model signature: {}".format(
+                    client.input_signatures[consts.SINGLE_MODEL_NAME]
+                )
             else:
                 signature_message = "ONNX model signatures: {}".format(client.input_signatures)
             cx_logger().info(signature_message)
@@ -69,7 +71,9 @@ class Predictor:
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
             client = TensorFlowClient(tf_serving_address, self.models)
             if self.models[0].name == consts.SINGLE_MODEL_NAME:
-                signature_message = "TensorFlow model signature: {}".format(client.input_signatures)
+                signature_message = "TensorFlow model signature: {}".format(
+                    client.input_signatures[consts.SINGLE_MODEL_NAME]
+                )
             else:
                 signature_message = "TensorFlow model signatures: {}".format(
                     client.input_signatures

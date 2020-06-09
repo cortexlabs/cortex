@@ -55,7 +55,7 @@ class TensorFlowClient:
 
         Args:
             model_input: Input to the model.
-            model_name: Model to use when multiple models are deployed per each API.
+            model_name: Model to use when multiple models are deployed in a single API.
 
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.

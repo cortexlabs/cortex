@@ -44,7 +44,7 @@
 
 ## ONNX
 
-- [Iris classification](onnx/iris-classifier): deploy a model to classify iris flowers (exported in ONNX).
+- [Iris classification](onnx/iris-classifier): deploy an XGBoost model (exported in ONNX) to classify iris flowers.
 - [Multi-model classification](onnx/multi-model-classifier): deploy 3 models (ResNet50, MobileNet, ShuffleNet) in a single API.
 
 ## scikit-learn

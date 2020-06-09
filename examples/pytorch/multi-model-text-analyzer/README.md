@@ -1,6 +1,6 @@
 # Multi-Model Analyzer API
 
-This example deploys a sentiment analyzer and a text summarizer model in one API. Query parameters are used for selecting the model.
+This example deploys a sentiment analyzer and a text summarizer in one API. Query parameters are used for selecting the model.
 
 The example can be run on both CPU and on GPU hardware.
 
@@ -20,7 +20,7 @@ Once the API has been successfully deployed, export the APIs endpoint. You can g
 export ENDPOINT=your-api-endpoint
 ```
 
-### Sentiment Analyzer Model
+### Sentiment Analyzer Classifier
 
 Make a request to the sentiment analyzer model:
 
@@ -34,7 +34,7 @@ The expected response is:
 {"label": "POSITIVE", "score": 0.9998506903648376}
 ```
 
-### Text Summarizer Model
+### Text Summarizer
 
 Make a request to the text summarizer model:
 
