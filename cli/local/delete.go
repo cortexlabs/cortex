@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
@@ -36,7 +37,11 @@ func Delete(apiName string, keepCache bool) (schema.DeleteResponse, error) {
 			return schema.DeleteResponse{}, err
 		}
 	}
-	err = DeleteAPI(apiName, apiSpec, nil)
+
+	err = errors.FirstError(
+		DeleteAPI(apiSpec.Name),
+		DeleteCachedModels(apiSpec, nil),
+	)
 	if err != nil {
 		return schema.DeleteResponse{}, err
 	}

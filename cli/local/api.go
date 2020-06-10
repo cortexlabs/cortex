@@ -46,46 +46,51 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 		return nil, "", err
 	}
 
-	apiSpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
+	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
 
 	// apiConfig.Predictor.Model was already added to apiConfig.Predictor.Models for ease of use
 	if len(apiConfig.Predictor.Models) > 0 {
-		localModelCaches, err := CacheModels(apiSpec, awsClient)
+		localModelCaches, err := CacheModels(newAPISpec, awsClient)
 		if err != nil {
 			return nil, "", err
 		}
-		apiSpec.LocalModelCaches = localModelCaches
+		newAPISpec.LocalModelCaches = localModelCaches
 	}
 
-	apiSpec.LocalProjectDir = filepath.Dir(cortexYAMLPath)
+	newAPISpec.LocalProjectDir = filepath.Dir(cortexYAMLPath)
 
-	if areAPIsEqual(apiSpec, prevAPISpec) {
-		return apiSpec, fmt.Sprintf("%s is up to date", apiSpec.Name), nil
+	if areAPIsEqual(newAPISpec, prevAPISpec) {
+		return newAPISpec, fmt.Sprintf("%s is up to date", newAPISpec.Name), nil
 	}
 
 	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
-		err = DeleteAPI(apiSpec.Name, prevAPISpec, apiSpec)
+		err = errors.FirstError(
+			DeleteAPI(newAPISpec.Name),
+			DeleteCachedModels(prevAPISpec, newAPISpec),
+		)
 		if err != nil {
 			return nil, "", err
 		}
 	}
 
-	err = writeAPISpec(apiSpec)
+	err = writeAPISpec(newAPISpec)
 	if err != nil {
-		DeleteAPI(apiSpec.Name, apiSpec, nil)
+		DeleteAPI(newAPISpec.Name)
+		DeleteCachedModels(newAPISpec, nil)
 		return nil, "", err
 	}
 
-	if err := DeployContainers(apiSpec, awsClient); err != nil {
-		DeleteAPI(apiSpec.Name, apiSpec, nil)
+	if err := DeployContainers(newAPISpec, awsClient); err != nil {
+		DeleteAPI(newAPISpec.Name)
+		DeleteCachedModels(newAPISpec, nil)
 		return nil, "", err
 	}
 
 	if prevAPISpec == nil && len(prevAPIContainers) == 0 {
-		return apiSpec, fmt.Sprintf("creating %s", apiSpec.Name), nil
+		return newAPISpec, fmt.Sprintf("creating %s", newAPISpec.Name), nil
 	}
 
-	return apiSpec, fmt.Sprintf("updating %s", apiSpec.Name), nil
+	return newAPISpec, fmt.Sprintf("updating %s", newAPISpec.Name), nil
 }
 
 func writeAPISpec(apiSpec *spec.API) error {
@@ -114,13 +119,7 @@ func areAPIsEqual(a1, a2 *spec.API) bool {
 	return a1 == nil && a2 == nil
 }
 
-// DeleteAPI deletes a locally-deployed API by removing its containers, its workspace, and its models.
-// apiName is the name of the API within Cortex, prevAPISpec is the current existing API and newAPISpec
-// is the new API that'll be deployed soon after removing the existing API.
-// If prevAPISpec is nil & newAPISpec is nil, no models are removed.
-// If prevAPISpec is !nil & newAPISpec is nil, all models belonging to prevAPISpec are removed.
-// If prevAPISPec is !nil & newAPISpec is !nil, all models belonging to prevAPISpec that are not found in newAPISpec are removed.
-func DeleteAPI(apiName string, prevAPISpec *spec.API, newAPISpec *spec.API) error {
+func DeleteAPI(apiName string) error {
 	errList := []error{}
 
 	containers, err := GetContainersByAPI(apiName)
@@ -149,34 +148,6 @@ func DeleteAPI(apiName string, prevAPISpec *spec.API, newAPISpec *spec.API) erro
 	} else {
 		// only add error if it isn't ErrCortexVersionMismatch
 		errList = append(errList, err)
-	}
-
-	if prevAPISpec != nil {
-		modelsInUse := strset.New()
-		apiSpecList, err := ListAPISpecs()
-		errList = append(errList, err)
-
-		for _, apiSpec := range apiSpecList {
-			if len(apiSpec.LocalModelCaches) > 0 && apiSpec.Name != apiName {
-				for _, modelCache := range apiSpec.LocalModelCaches {
-					modelsInUse.Add(modelCache.ID)
-				}
-			}
-		}
-
-		prevModelIDs := strset.FromSlice(prevAPISpec.ModelIDs())
-		newModelIDs := strset.FromSlice(newAPISpec.ModelIDs())
-
-		if !prevModelIDs.IsEqual(newModelIDs) {
-			toDeleteModels := strset.Difference(prevModelIDs, newModelIDs, modelsInUse)
-
-			for modelID := range toDeleteModels {
-				err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
-				if err != nil {
-					errList = append(errList, err)
-				}
-			}
-		}
 	}
 
 	return errors.FirstError(errList...)

@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -132,6 +133,47 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 	localModelCache.HostPath = modelDir
 
 	return &localModelCache, nil
+}
+
+func DeleteCachedModels(modelsToDelete, modelsToKeep *spec.API) error {
+	if modelsToDelete == nil {
+		return nil
+	}
+
+	errList := []error{}
+	modelsInUse := strset.New()
+	apiSpecList, err := ListAPISpecs()
+	errList = append(errList, err)
+
+	for _, apiSpec := range apiSpecList {
+		if len(apiSpec.LocalModelCaches) > 0 && apiSpec.Name != modelsToDelete.Name {
+			for _, modelCache := range apiSpec.LocalModelCaches {
+				modelsInUse.Add(modelCache.ID)
+			}
+		}
+	}
+
+	toDeleteModels := strset.Difference(
+		strset.FromSlice(modelsToDelete.ModelIDs()),
+		strset.FromSlice(modelsToKeep.ModelIDs()),
+		modelsInUse,
+	)
+	err = DeleteCachedModelsByID(toDeleteModels.Slice())
+
+	errList = append(errList, err)
+	return errors.FirstError(errList...)
+}
+
+func DeleteCachedModelsByID(modelIDs []string) error {
+	errList := []error{}
+	for _, modelID := range modelIDs {
+		err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
+		if err != nil {
+			errList = append(errList, err)
+		}
+	}
+
+	return errors.FirstError(errList...)
 }
 
 func downloadModel(modelPath string, modelDir string, awsClientForBucket *aws.Client) error {
