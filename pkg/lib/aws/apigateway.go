@@ -226,15 +226,23 @@ func (c *Client) GetRouteIntegrationID(apiGatewayID string, endpoint string) (st
 	if err != nil {
 		return "", err
 	}
-
 	if route == nil {
 		return "", nil
+	}
+
+	return ExtractRouteIntegrationID(route), nil
+}
+
+// ExtractRouteIntegrationID extracts the integration ID which is attached to a route, or "" if no route is attached
+func ExtractRouteIntegrationID(route *apigatewayv2.Route) string {
+	if route == nil || route.Target == nil {
+		return ""
 	}
 
 	// trim of prefix of integrationID.
 	// Note: Integrations get attached to routes via a target of the format integrations/<integrationID>
 	integrationID := strings.Trim(*route.Target, "integrations/")
-	return integrationID, nil
+	return integrationID
 }
 
 // GetRoute retrieves the route matching an endpoint, or nil if unable to find it
@@ -306,13 +314,13 @@ func (c *Client) DeleteIntegration(apiGatewayID string, integrationID string) er
 	return nil
 }
 
-// DeleteRoute deletes a route from API Gateway, and whether the route was found
-func (c *Client) DeleteRoute(apiGatewayID string, endpoint string) (bool, error) {
+// DeleteRoute deletes a route from API Gateway, and returns the deleted route (or nil if it wasn't found)
+func (c *Client) DeleteRoute(apiGatewayID string, endpoint string) (*apigatewayv2.Route, error) {
 	route, err := c.GetRoute(apiGatewayID, endpoint)
 	if err != nil {
-		return false, err
+		return nil, err
 	} else if route == nil {
-		return false, nil
+		return nil, nil
 	}
 
 	_, err = c.APIGatewayV2().DeleteRoute(&apigatewayv2.DeleteRouteInput{
@@ -320,8 +328,8 @@ func (c *Client) DeleteRoute(apiGatewayID string, endpoint string) (bool, error)
 		RouteId: route.RouteId,
 	})
 	if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("failed to delete api gateway route with endpoint %s", endpoint))
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to delete api gateway route with endpoint %s", endpoint))
 	}
 
-	return true, nil
+	return route, nil
 }

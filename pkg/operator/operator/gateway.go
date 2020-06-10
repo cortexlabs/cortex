@@ -17,6 +17,7 @@ limitations under the License.
 package operator
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -75,24 +76,13 @@ func removeAPIFromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme
 
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
-	if loadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-		_, err := config.AWS.DeleteRoute(apiGatewayID, *api.Endpoint)
-		if err != nil {
-			return err
-		}
+	route, err := config.AWS.DeleteRoute(apiGatewayID, *api.Endpoint)
+	if err != nil {
+		return err
 	}
 
-	if loadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
-		integrationID, err := config.AWS.GetRouteIntegrationID(apiGatewayID, *api.Endpoint)
-		if err != nil {
-			return err
-		}
-
-		_, err = config.AWS.DeleteRoute(apiGatewayID, *api.Endpoint)
-		if err != nil {
-			return err
-		}
-
+	if loadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme && route != nil {
+		integrationID := aws.ExtractRouteIntegrationID(route)
 		if integrationID != "" {
 			err = config.AWS.DeleteIntegration(apiGatewayID, integrationID)
 			if err != nil {
