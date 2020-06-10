@@ -110,11 +110,8 @@ func writeAPISpec(apiSpec *spec.API) error {
 func areAPIsEqual(a1, a2 *spec.API) bool {
 	if a1 != nil && a2 != nil {
 		return strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) && a1.ID == a2.ID && a1.Compute.Equals(a2.Compute)
-	} else if a1 == nil && a2 == nil {
-		return true
-	} else {
-		return false
 	}
+	return a1 == nil && a2 == nil
 }
 
 // DeleteAPI deletes a locally-deployed API by removing its containers, its workspace, and its models.
