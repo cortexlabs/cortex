@@ -415,40 +415,6 @@ func APILoadBalancerURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-// GetSpecForRunningAPI return spec.API from API name, or nil if API is not running
-func GetSpecForRunningAPI(apiName string) (*spec.API, error) {
-	apiID, err := getAPIIDForRunningAPI(apiName)
-	if err != nil {
-		return nil, err
-	}
-
-	if apiID == "" {
-		return nil, nil
-	}
-
-	apiSpec, err := DownloadAPISpec(apiName, apiID)
-	if err != nil {
-		return nil, err
-	}
-
-	return apiSpec, nil
-}
-
-// getAPIIDForRunningAPI returns API ID, or empty string if API is not running
-func getAPIIDForRunningAPI(apiName string) (string, error) {
-	deployments, err := config.K8s.ListDeploymentsByLabel("apiName", apiName)
-	if err != nil {
-		return "", err
-	}
-
-	if len(deployments) == 0 {
-		return "", nil
-	}
-
-	// only one item because apiName is unique
-	return deployments[0].Labels["apiID"], nil
-}
-
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 	s3Key := spec.Key(apiName, apiID)
 	var api spec.API
