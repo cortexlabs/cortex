@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -93,6 +94,14 @@ func (api *API) ModelNames() []string {
 	}
 
 	return names
+}
+
+func (api *API) SubtractModelIDs(apis ...*API) []string {
+	modelIDs := strset.FromSlice(api.ModelIDs())
+	for _, a := range apis {
+		modelIDs.Subtract(strset.FromSlice(a.ModelIDs()))
+	}
+	return modelIDs.Slice()
 }
 
 func (api *API) Identify() string {

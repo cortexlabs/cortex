@@ -135,18 +135,14 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 	return &localModelCache, nil
 }
 
-func DeleteCachedModels(modelsToDelete, modelsToKeep *spec.API) error {
-	if modelsToDelete == nil {
-		return nil
-	}
-
+func DeleteCachedModels(apiName string, modelsToDelete []string) error {
 	errList := []error{}
 	modelsInUse := strset.New()
 	apiSpecList, err := ListAPISpecs()
 	errList = append(errList, err)
 
 	for _, apiSpec := range apiSpecList {
-		if len(apiSpec.LocalModelCaches) > 0 && apiSpec.Name != modelsToDelete.Name {
+		if len(apiSpec.LocalModelCaches) > 0 && apiSpec.Name != apiName {
 			for _, modelCache := range apiSpec.LocalModelCaches {
 				modelsInUse.Add(modelCache.ID)
 			}
@@ -154,8 +150,7 @@ func DeleteCachedModels(modelsToDelete, modelsToKeep *spec.API) error {
 	}
 
 	toDeleteModels := strset.Difference(
-		strset.FromSlice(modelsToDelete.ModelIDs()),
-		strset.FromSlice(modelsToKeep.ModelIDs()),
+		strset.FromSlice(modelsToDelete),
 		modelsInUse,
 	)
 	err = DeleteCachedModelsByID(toDeleteModels.Slice())
