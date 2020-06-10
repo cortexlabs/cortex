@@ -241,7 +241,7 @@ func ExtractRouteIntegrationID(route *apigatewayv2.Route) string {
 
 	// trim of prefix of integrationID.
 	// Note: Integrations get attached to routes via a target of the format integrations/<integrationID>
-	integrationID := strings.Trim(*route.Target, "integrations/")
+	integrationID := strings.TrimPrefix(*route.Target, "integrations/")
 	return integrationID
 }
 
