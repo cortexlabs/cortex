@@ -14,6 +14,7 @@
 
 import grpc
 import time
+import threading
 
 from tensorflow_serving.apis import model_service_pb2_grpc
 from tensorflow_serving.apis import model_management_pb2
@@ -29,7 +30,7 @@ class TensorFlowServing:
         self.model_platform = "tensorflow"
         self.channel = grpc.insecure_channel(self.address)
         self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
-        self.timeout = 900
+        self.timeout = 600
 
     def add_models_config(self, names, base_paths, replace_models=False):
         request = model_management_pb2.ReloadConfigRequest()
@@ -50,8 +51,18 @@ class TensorFlowServing:
             model_server_config.model_config_list.MergeFrom(config_list)
             request.config.MergeFrom(model_server_config)
 
+        loaded_models = threading.Event()
+
+        def log_loading_models():
+            while not loaded_models.is_set():
+                time.sleep(5)
+                cx_logger().warn("model(s) still loading ...")
+
+        log_thread = threading.Thread(target=log_loading_models, daemon=True)
+        log_thread.start()
+
         # request TFS to load models
-        limit = 30
+        limit = 3
         response = None
         for i in range(limit):
             try:
@@ -59,10 +70,15 @@ class TensorFlowServing:
                 response = self.stub.HandleReloadConfigRequest(request, self.timeout)
                 break
             except Exception as e:
-                if not (isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.UNAVAILABLE):
+                if not (
+                    isinstance(e, grpc.RpcError)
+                    and e.code() in [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED]
+                ):
                     print(e)  # unexpected error
-                cx_logger().warn("unable to trigger the loading of model(s) - retrying ...")
-                time.sleep(1)
+                time.sleep(1.0)
+
+        loaded_models.set()
+        log_thread.join()
 
         # report error or success
         if response and response.status.error_code == 0:
