@@ -96,7 +96,7 @@ func (c *Client) DeleteVPCLinkByTag(tagName string, tagValue string) (bool, erro
 		VpcLinkId: vpcLink.VpcLinkId,
 	})
 	if err != nil {
-		return false, errors.Wrap(err, "failed to delete vpc link")
+		return false, errors.Wrap(err, "failed to delete vpc link "+*vpcLink.VpcLinkId)
 	}
 
 	return true, nil
@@ -125,7 +125,7 @@ func (c *Client) DeleteAPIGatewayMappingsForDomainName(apiGatewayID string, doma
 				ApiMappingId: apiMapping.ApiMappingId,
 			})
 			if err != nil {
-				return errors.Wrap(err, "failed to delete api mapping")
+				return errors.Wrap(err, fmt.Sprintf("failed to delete api mapping %s in domain %s", *apiMapping.ApiMappingId, domainName))
 			}
 		}
 
@@ -185,7 +185,7 @@ func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (bool, e
 		ApiId: apiGateway.ApiId,
 	})
 	if err != nil {
-		return false, errors.Wrap(err, "failed to delete api gateway")
+		return false, errors.Wrap(err, "failed to delete api gateway "+*apiGateway.ApiId)
 	}
 
 	return true, nil
@@ -201,7 +201,7 @@ func (c *Client) GetVPCLinkIntegration(apiGatewayID string, vpcLinkID string) (*
 			NextToken: nextToken,
 		})
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get api gateway integrations")
+			return nil, errors.Wrap(err, "failed to get api gateway integrations for api gateway "+apiGatewayID)
 		}
 
 		// find integration which is connected to the VPC link
@@ -255,7 +255,7 @@ func (c *Client) GetRoute(apiGatewayID string, endpoint string) (*apigatewayv2.R
 			NextToken: nextToken,
 		})
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get api gateway routes")
+			return nil, errors.Wrap(err, "failed to get api gateway routes for api gateway "+apiGatewayID)
 		}
 
 		// find route which matches the endpoint
@@ -282,7 +282,7 @@ func (c *Client) CreateRoute(apiGatewayID string, integrationID string, endpoint
 		Target:   aws.String("integrations/" + integrationID),
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to create route for api gateway")
+		return errors.Wrap(err, fmt.Sprintf("failed to create %s route for api gateway %s with integration %s", endpoint, apiGatewayID, integrationID))
 	}
 	return nil
 }
@@ -297,7 +297,7 @@ func (c *Client) CreateHTTPIntegration(apiGatewayID string, targetEndpoint strin
 		IntegrationMethod:    aws.String("ANY"),
 	})
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("failed to create api gateway integration for endpoint %s", targetEndpoint))
+		return "", errors.Wrap(err, fmt.Sprintf("failed to create api gateway integration for endpoint %s in api gateway %s", targetEndpoint, apiGatewayID))
 	}
 	return *integrationResponse.IntegrationId, nil
 }
@@ -309,7 +309,7 @@ func (c *Client) DeleteIntegration(apiGatewayID string, integrationID string) er
 		IntegrationId: &integrationID,
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to delete api gateway integration")
+		return errors.Wrap(err, fmt.Sprintf("failed to delete api gateway integration %s in api gateway %s", integrationID, apiGatewayID))
 	}
 	return nil
 }
@@ -328,7 +328,7 @@ func (c *Client) DeleteRoute(apiGatewayID string, endpoint string) (*apigatewayv
 		RouteId: route.RouteId,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to delete api gateway route with endpoint %s", endpoint))
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to delete api gateway route %s with endpoint %s in api gateway %s", *route.RouteId, endpoint, apiGatewayID))
 	}
 
 	return route, nil
