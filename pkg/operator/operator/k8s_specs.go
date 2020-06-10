@@ -490,9 +490,10 @@ func onnxDownloadArgs(api *spec.API) string {
 
 func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
-		Name:       k8sName(api.Name),
-		Port:       _defaultPortInt32,
-		TargetPort: _defaultPortInt32,
+		Name:        k8sName(api.Name),
+		Port:        _defaultPortInt32,
+		TargetPort:  _defaultPortInt32,
+		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
 		},
@@ -510,6 +511,7 @@ func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 		ServicePort: _defaultPortInt32,
 		Path:        *api.Endpoint,
 		Rewrite:     pointer.String("predict"),
+		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
 		},

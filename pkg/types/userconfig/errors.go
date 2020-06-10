@@ -14,26 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package errors
+package userconfig
 
 import (
-	"strings"
-
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 const (
-	ErrUnexpected = "errors.unexpected"
+	ErrUnknownAPIGatewayType = "errors.unknown_api_gateway_type"
 )
 
-func ErrorUnexpected(msgs ...interface{}) error {
-	strs := make([]string, len(msgs))
-	for i, msg := range msgs {
-		strs[i] = s.ObjFlatNoQuotes(msg)
-	}
-
-	return WithStack(&Error{
-		Kind:    ErrUnexpected,
-		Message: strings.Join(strs, ": "),
+func ErrorUnknownAPIGatewayType() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnknownAPIGatewayType,
+		Message: "unknown api gateway type",
 	})
 }

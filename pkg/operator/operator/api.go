@@ -58,7 +58,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = addAPIToAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+		err = addAPIToAPIGateway(*api.Endpoint, api.Networking.APIGateway)
 		if err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
@@ -84,22 +84,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		if prevDeployment.Annotations[userconfig.APIGatewayAnnotationKey] != api.Networking.APIGateway.String() {
-			if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
-				err = addAPIToAPIGateway(config.Cluster.APILoadBalancerScheme, api)
-				if err != nil {
-					return nil, "", err
-				}
-			} else if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-				prevAPI, err := DownloadAPISpec(api.Name, prevDeployment.Labels["apiID"])
-				if err != nil {
-					return nil, "", err
-				}
-				err = removeAPIFromAPIGateway(config.Cluster.APILoadBalancerScheme, prevAPI)
-				if err != nil {
-					return nil, "", err
-				}
-			}
+		if err := updateAPIGatewayK8s(prevVirtualService, api); err != nil {
+			return nil, "", err
 		}
 		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
@@ -157,11 +143,11 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
-	api, apiSpecErr := GetSpecForRunningAPI(apiName)
+	virtualService, vsErr := config.K8s.GetVirtualService(k8sName(apiName))
 
 	err := parallel.RunFirstErr(
 		func() error {
-			return apiSpecErr
+			return vsErr
 		},
 		func() error {
 			return deleteK8sResources(apiName)
@@ -176,10 +162,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		},
 		// delete API from API Gateway
 		func() error {
-			if api == nil {
-				return nil // API is not running
-			}
-			err := removeAPIFromAPIGateway(config.Cluster.APILoadBalancerScheme, api)
+			err := removeAPIFromAPIGatewayK8s(virtualService)
 			if err != nil {
 				return err
 			}
@@ -501,4 +484,17 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 	}
 
 	return apis, nil
+}
+
+func GetEndpointFromVirtualService(virtualService *kunstructured.Unstructured) (string, error) {
+	endpoints, err := k8s.ExtractVirtualServiceEndpoints(virtualService)
+	if err != nil {
+		return "", err
+	}
+
+	if len(endpoints) != 1 {
+		return "", errors.ErrorUnexpected("expected 1 endpoint, but got", endpoints)
+	}
+
+	return endpoints.GetOne(), nil
 }

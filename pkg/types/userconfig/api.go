@@ -170,82 +170,90 @@ func (api *API) ToK8sAnnotations() map[string]string {
 	}
 }
 
-func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
+func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
+	apiGatewayType := APIGatewayTypeFromString(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
+	if apiGatewayType == UnknownAPIGatewayType {
+		return UnknownAPIGatewayType, ErrorUnknownAPIGatewayType()
+	}
+	return apiGatewayType, nil
+}
+
+func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	a := Autoscaling{}
 
-	minReplicas, err := k8s.ParseInt32Annotation(deployment, MinReplicasAnnotationKey)
+	minReplicas, err := k8s.ParseInt32Annotation(k8sObj, MinReplicasAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MinReplicas = minReplicas
 
-	maxReplicas, err := k8s.ParseInt32Annotation(deployment, MaxReplicasAnnotationKey)
+	maxReplicas, err := k8s.ParseInt32Annotation(k8sObj, MaxReplicasAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MaxReplicas = maxReplicas
 
-	workersPerReplica, err := k8s.ParseInt32Annotation(deployment, WorkersPerReplicaAnnotationKey)
+	workersPerReplica, err := k8s.ParseInt32Annotation(k8sObj, WorkersPerReplicaAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.WorkersPerReplica = workersPerReplica
 
-	threadsPerWorker, err := k8s.ParseInt32Annotation(deployment, ThreadsPerWorkerAnnotationKey)
+	threadsPerWorker, err := k8s.ParseInt32Annotation(k8sObj, ThreadsPerWorkerAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.ThreadsPerWorker = threadsPerWorker
 
-	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(deployment, TargetReplicaConcurrencyAnnotationKey)
+	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(k8sObj, TargetReplicaConcurrencyAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.TargetReplicaConcurrency = &targetReplicaConcurrency
 
-	maxReplicaConcurrency, err := k8s.ParseInt64Annotation(deployment, MaxReplicaConcurrencyAnnotationKey)
+	maxReplicaConcurrency, err := k8s.ParseInt64Annotation(k8sObj, MaxReplicaConcurrencyAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MaxReplicaConcurrency = maxReplicaConcurrency
 
-	window, err := k8s.ParseDurationAnnotation(deployment, WindowAnnotationKey)
+	window, err := k8s.ParseDurationAnnotation(k8sObj, WindowAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.Window = window
 
-	downscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(deployment, DownscaleStabilizationPeriodAnnotationKey)
+	downscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(k8sObj, DownscaleStabilizationPeriodAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.DownscaleStabilizationPeriod = downscaleStabilizationPeriod
 
-	upscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(deployment, UpscaleStabilizationPeriodAnnotationKey)
+	upscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(k8sObj, UpscaleStabilizationPeriodAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.UpscaleStabilizationPeriod = upscaleStabilizationPeriod
 
-	maxDownscaleFactor, err := k8s.ParseFloat64Annotation(deployment, MaxDownscaleFactorAnnotationKey)
+	maxDownscaleFactor, err := k8s.ParseFloat64Annotation(k8sObj, MaxDownscaleFactorAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MaxDownscaleFactor = maxDownscaleFactor
 
-	maxUpscaleFactor, err := k8s.ParseFloat64Annotation(deployment, MaxUpscaleFactorAnnotationKey)
+	maxUpscaleFactor, err := k8s.ParseFloat64Annotation(k8sObj, MaxUpscaleFactorAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MaxUpscaleFactor = maxUpscaleFactor
 
-	downscaleTolerance, err := k8s.ParseFloat64Annotation(deployment, DownscaleToleranceAnnotationKey)
+	downscaleTolerance, err := k8s.ParseFloat64Annotation(k8sObj, DownscaleToleranceAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.DownscaleTolerance = downscaleTolerance
 
-	upscaleTolerance, err := k8s.ParseFloat64Annotation(deployment, UpscaleToleranceAnnotationKey)
+	upscaleTolerance, err := k8s.ParseFloat64Annotation(k8sObj, UpscaleToleranceAnnotationKey)
 	if err != nil {
 		return nil, err
 	}

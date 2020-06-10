@@ -23,44 +23,45 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func addAPIToAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
-	if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+func addAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
+	if apiGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}
 
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
 	// check if API Gateway route already exists
-	existingRoute, err := config.AWS.GetRoute(apiGatewayID, *api.Endpoint)
+	existingRoute, err := config.AWS.GetRoute(apiGatewayID, endpoint)
 	if err != nil {
 		return err
 	} else if existingRoute != nil {
 		return nil
 	}
 
-	if loadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-		err = config.AWS.CreateRoute(apiGatewayID, *config.Cluster.VPCLinkIntegration.IntegrationId, *api.Endpoint)
+	if config.Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+		err = config.AWS.CreateRoute(apiGatewayID, *config.Cluster.VPCLinkIntegration.IntegrationId, endpoint)
 		if err != nil {
 			return err
 		}
 	}
 
-	if loadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
+	if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
 		loadBalancerURL, err := APILoadBalancerURL()
 		if err != nil {
 			return err
 		}
 
-		targetEndpoint := urls.Join(loadBalancerURL, *api.Endpoint)
+		targetEndpoint := urls.Join(loadBalancerURL, endpoint)
 
 		integrationID, err := config.AWS.CreateHTTPIntegration(apiGatewayID, targetEndpoint)
 		if err != nil {
 			return err
 		}
 
-		err = config.AWS.CreateRoute(apiGatewayID, integrationID, *api.Endpoint)
+		err = config.AWS.CreateRoute(apiGatewayID, integrationID, endpoint)
 		if err != nil {
 			return err
 		}
@@ -69,19 +70,19 @@ func addAPIToAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api
 	return nil
 }
 
-func removeAPIFromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme, api *spec.API) error {
-	if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+func removeAPIFromAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
+	if apiGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}
 
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
-	route, err := config.AWS.DeleteRoute(apiGatewayID, *api.Endpoint)
+	route, err := config.AWS.DeleteRoute(apiGatewayID, endpoint)
 	if err != nil {
 		return err
 	}
 
-	if loadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme && route != nil {
+	if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme && route != nil {
 		integrationID := aws.ExtractRouteIntegrationID(route)
 		if integrationID != "" {
 			err = config.AWS.DeleteIntegration(apiGatewayID, integrationID)
@@ -92,4 +93,70 @@ func removeAPIFromAPIGateway(loadBalancerScheme clusterconfig.LoadBalancerScheme
 	}
 
 	return nil
+}
+
+func updateAPIGateway(
+	prevEndpoint string,
+	prevAPIGatewayType userconfig.APIGatewayType,
+	newEndpoint string,
+	newAPIGatewayType userconfig.APIGatewayType,
+) error {
+
+	if prevAPIGatewayType == userconfig.NoneAPIGatewayType && newAPIGatewayType == userconfig.NoneAPIGatewayType {
+		return nil
+	}
+
+	if prevAPIGatewayType == userconfig.PublicAPIGatewayType && newAPIGatewayType == userconfig.NoneAPIGatewayType {
+		return removeAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType)
+	}
+
+	if prevAPIGatewayType == userconfig.NoneAPIGatewayType && newAPIGatewayType == userconfig.PublicAPIGatewayType {
+		return addAPIToAPIGateway(newEndpoint, newAPIGatewayType)
+	}
+
+	if prevEndpoint == newEndpoint {
+		return nil
+	}
+
+	// the endpoint has changed
+	if err := addAPIToAPIGateway(newEndpoint, newAPIGatewayType); err != nil {
+		return err
+	}
+	if err := removeAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeAPIFromAPIGatewayK8s(virtualService *kunstructured.Unstructured) error {
+	if virtualService == nil {
+		return nil // API is not running
+	}
+
+	apiGatewayType, err := userconfig.APIGatewayFromAnnotations(virtualService)
+	if err != nil {
+		return err
+	}
+
+	endpoint, err := GetEndpointFromVirtualService(virtualService)
+	if err != nil {
+		return err
+	}
+
+	return removeAPIFromAPIGateway(endpoint, apiGatewayType)
+}
+
+func updateAPIGatewayK8s(prevVirtualService *kunstructured.Unstructured, newAPI *spec.API) error {
+	prevAPIGatewayType, err := userconfig.APIGatewayFromAnnotations(prevVirtualService)
+	if err != nil {
+		return err
+	}
+
+	prevEndpoint, err := GetEndpointFromVirtualService(prevVirtualService)
+	if err != nil {
+		return err
+	}
+
+	return updateAPIGateway(prevEndpoint, prevAPIGatewayType, *newAPI.Endpoint, newAPI.Networking.APIGateway)
 }
