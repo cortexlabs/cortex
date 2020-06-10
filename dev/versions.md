@@ -60,6 +60,8 @@ Note: check their [install.md](https://github.com/kubernetes/client-go/blob/mast
 1. Find the latest tag from [releases](https://github.com/docker/engine/releases)
 1. Follow the "Update non-versioned modules" instructions using the updated version for `docker/engine`
 
+_note: docker client installation may be able to be improved, see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
+
 ### cortexlabs/yaml
 
 1. Check [go-yaml/yaml](https://github.com/go-yaml/yaml) to see if there were new releases since [cortexlabs/yaml](https://github.com/cortexlabs/yaml)

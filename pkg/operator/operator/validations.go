@@ -26,7 +26,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -80,7 +79,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
 			return err
 		}
-		if err := validateK8s(api, config.Cluster, virtualServices, maxMem); err != nil {
+		if err := validateK8s(api, virtualServices, maxMem); err != nil {
 			return err
 		}
 
@@ -103,11 +102,8 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	return nil
 }
 
-func validateK8s(api *userconfig.API,
-	config *clusterconfig.InternalConfig,
-	virtualServices []kunstructured.Unstructured,
-	maxMem *kresource.Quantity) error {
-	if err := validateCompute(api.Compute, config, maxMem); err != nil {
+func validateK8s(api *userconfig.API, virtualServices []kunstructured.Unstructured, maxMem *kresource.Quantity) error {
+	if err := validateCompute(api.Compute, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
@@ -118,13 +114,13 @@ func validateK8s(api *userconfig.API,
 	return nil
 }
 
-func validateCompute(compute *userconfig.Compute, config *clusterconfig.InternalConfig, maxMem *kresource.Quantity) error {
+func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
-	maxCPU := config.InstanceMetadata.CPU
+	maxCPU := config.Cluster.InstanceMetadata.CPU
 	maxCPU.Sub(_cortexCPUReserve)
 
-	maxGPU := config.InstanceMetadata.GPU
+	maxGPU := config.Cluster.InstanceMetadata.GPU
 	if maxGPU > 0 {
 		// Reserve resources for nvidia device plugin daemonset
 		maxCPU.Sub(_nvidiaCPUReserve)
