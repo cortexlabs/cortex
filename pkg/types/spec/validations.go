@@ -152,6 +152,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					StructField:         "SignatureKey",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
+				multiModelValidation(),
 			},
 		},
 	}
@@ -378,6 +379,43 @@ func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValida
 	}
 }
 
+func multiModelValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Models",
+		StructListValidation: &cr.StructListValidation{
+			Required:         false,
+			TreatNullAsEmpty: true,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Name",
+						StringValidation: &cr.StringValidation{
+							Required:                   true,
+							AllowEmpty:                 false,
+							DisallowedValues:           []string{consts.SingleModelName},
+							AlphaNumericDashUnderscore: true,
+						},
+					},
+					{
+						StructField: "Model",
+						StringValidation: &cr.StringValidation{
+							Required:   true,
+							AllowEmpty: false,
+						},
+					},
+					{
+						StructField: "SignatureKey",
+						StringPtrValidation: &cr.StringPtrValidation{
+							Required:   false,
+							AllowEmpty: false,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func surgeOrUnavailableValidator(str string) (string, error) {
 	if strings.HasSuffix(str, "%") {
 		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
@@ -515,6 +553,10 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelKey, userconfig.PythonPredictorType)
 	}
 
+	if len(predictor.Models) > 0 {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, userconfig.PythonPredictorType)
+	}
+
 	if predictor.TensorFlowServingImage != "" {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
 	}
@@ -523,11 +565,38 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 }
 
 func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	if predictor.Model == nil {
-		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.TensorFlowPredictorType)
+	if predictor.Model == nil && len(predictor.Models) == 0 {
+		return ErrorMissingModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
+	} else if predictor.Model != nil && len(predictor.Models) > 0 {
+		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
+	} else if predictor.Model != nil {
+		modelResource := &userconfig.ModelResource{
+			Name:         consts.SingleModelName,
+			Model:        *predictor.Model,
+			SignatureKey: predictor.SignatureKey,
+		}
+		// place the predictor.Model into predictor.Models for ease of use
+		predictor.Models = []*userconfig.ModelResource{modelResource}
 	}
 
-	model := *predictor.Model
+	if err := checkDuplicateModelNames(predictor.Models); err != nil {
+		return errors.Wrap(err, userconfig.ModelsKey)
+	}
+
+	for i := range predictor.Models {
+		if err := validateTensorFlowModel(predictor.Models[i], providerType, projectFiles, awsClient); err != nil {
+			if predictor.Model == nil {
+				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models[i].Name)
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	model := modelResource.Model
 
 	if strings.HasPrefix(model, "s3://") {
 		awsClientForBucket, err := aws.NewFromClientS3Path(model, awsClient)
@@ -551,7 +620,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 			} else if path == "" {
 				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 			}
-			predictor.Model = pointer.String(path)
+			modelResource.Model = path
 		}
 	} else {
 		if providerType == types.AWSProviderType {
@@ -561,19 +630,19 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
 
 		var err error
-		if strings.HasPrefix(*predictor.Model, "~/") {
+		if strings.HasPrefix(modelResource.Model, "~/") {
 			model, err = files.EscapeTilde(model)
 			if err != nil {
 				return err
 			}
 		} else {
-			model = files.RelToAbsPath(*predictor.Model, configFileDir)
+			model = files.RelToAbsPath(modelResource.Model, configFileDir)
 		}
 		if strings.HasSuffix(model, ".zip") {
 			if err := files.CheckFile(model); err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
 			}
-			predictor.Model = pointer.String(model)
+			modelResource.Model = model
 		} else if files.IsDir(model) {
 			path, err := GetTFServingExportFromLocalPath(model)
 			if err != nil {
@@ -581,7 +650,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 			} else if path == "" {
 				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 			}
-			predictor.Model = pointer.String(path)
+			modelResource.Model = path
 		} else {
 			return errors.Wrap(ErrorInvalidTensorFlowModelPath(), userconfig.ModelKey, model)
 		}
@@ -591,11 +660,43 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 }
 
 func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	if predictor.Model == nil {
-		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelKey, userconfig.ONNXPredictorType)
+	if predictor.SignatureKey != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
+	}
+	if predictor.Model == nil && len(predictor.Models) == 0 {
+		return ErrorMissingModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
+	} else if predictor.Model != nil && len(predictor.Models) > 0 {
+		return ErrorConflictingFields(userconfig.ModelKey, userconfig.ModelsKey)
+	} else if predictor.Model != nil {
+		modelResource := &userconfig.ModelResource{
+			Name:  consts.SingleModelName,
+			Model: *predictor.Model,
+		}
+		// place the predictor.Model into predictor.Models for ease of use
+		predictor.Models = []*userconfig.ModelResource{modelResource}
 	}
 
-	model := *predictor.Model
+	if err := checkDuplicateModelNames(predictor.Models); err != nil {
+		return errors.Wrap(err, userconfig.ModelsKey)
+	}
+
+	for i := range predictor.Models {
+		if predictor.Models[i].SignatureKey != nil {
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey, predictor.Models[i].Name)
+		}
+		if err := validateONNXModel(predictor.Models[i], providerType, projectFiles, awsClient); err != nil {
+			if predictor.Model == nil {
+				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models[i].Name)
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateONNXModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	model := modelResource.Model
 	var err error
 	if !strings.HasSuffix(model, ".onnx") {
 		return errors.Wrap(ErrorInvalidONNXModelPath(), userconfig.ModelKey, model)
@@ -621,24 +722,19 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		}
 
 		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
-		if strings.HasPrefix(*predictor.Model, "~/") {
+		if strings.HasPrefix(modelResource.Model, "~/") {
 			model, err = files.EscapeTilde(model)
 			if err != nil {
 				return err
 			}
 		} else {
-			model = files.RelToAbsPath(*predictor.Model, configFileDir)
+			model = files.RelToAbsPath(modelResource.Model, configFileDir)
 		}
 		if err := files.CheckFile(model); err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		}
-		predictor.Model = pointer.String(model)
+		modelResource.Model = model
 	}
-
-	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.ONNXPredictorType)
-	}
-
 	return nil
 }
 
@@ -823,6 +919,19 @@ func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 		if len(names[name]) > 1 {
 			return names[name]
 		}
+	}
+
+	return nil
+}
+
+func checkDuplicateModelNames(modelResources []*userconfig.ModelResource) error {
+	names := strset.New()
+
+	for _, modelResource := range modelResources {
+		if names.Has(modelResource.Name) {
+			return ErrorDuplicateModelNames(modelResource.Name)
+		}
+		names.Add(modelResource.Name)
 	}
 
 	return nil

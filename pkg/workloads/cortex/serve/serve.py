@@ -18,7 +18,6 @@ import argparse
 import inspect
 import time
 import json
-import msgpack
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import math
@@ -35,7 +34,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from cortex import consts
 from cortex.lib import util
-from cortex.lib.type import API
+from cortex.lib.type import API, get_spec
 from cortex.lib.log import cx_logger
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
@@ -234,24 +233,10 @@ def build_predict_args(request: Request):
 def get_summary():
     response = {"message": API_SUMMARY_MESSAGE}
 
-    if hasattr(local_cache["client"], "input_signature"):
-        response["model_signature"] = local_cache["client"].input_signature
+    if hasattr(local_cache["client"], "input_signatures"):
+        response["model_signatures"] = local_cache["client"].input_signatures
+
     return response
-
-
-def get_spec(provider, storage, cache_dir, spec_path):
-    if provider == "local":
-        return read_msgpack(spec_path)
-
-    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    _, key = S3.deconstruct_s3_path(spec_path)
-    storage.download_file(key, local_spec_path)
-    return read_msgpack(local_spec_path)
-
-
-def read_msgpack(msgpack_path):
-    with open(msgpack_path, "rb") as msgpack_file:
-        return msgpack.load(msgpack_file, raw=False)
 
 
 def start():
@@ -259,7 +244,7 @@ def start():
     provider = os.environ["CORTEX_PROVIDER"]
     spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
+    model_dir = os.getenv("CORTEX_MODEL_DIR")
     tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
@@ -270,9 +255,15 @@ def start():
 
     try:
         raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
-        api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
+        api = API(
+            provider=provider,
+            storage=storage,
+            model_dir=model_dir,
+            cache_dir=cache_dir,
+            **raw_api_spec,
+        )
         client = api.predictor.initialize_client(
-            model_dir, tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port,
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)

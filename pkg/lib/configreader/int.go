@@ -31,6 +31,7 @@ type IntValidation struct {
 	Default              int
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int
+	DisallowedValues     []int
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
 	LessThan             *int
@@ -197,9 +198,15 @@ func ValidateIntVal(val int, v *IntValidation) error {
 		}
 	}
 
-	if v.AllowedValues != nil {
+	if len(v.AllowedValues) > 0 {
 		if !slices.HasInt(v.AllowedValues, val) {
 			return ErrorInvalidInt(val, v.AllowedValues[0], v.AllowedValues[1:]...)
+		}
+	}
+
+	if len(v.DisallowedValues) > 0 {
+		if slices.HasInt(v.DisallowedValues, val) {
+			return ErrorDisallowedValue(val)
 		}
 	}
 

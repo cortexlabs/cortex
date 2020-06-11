@@ -31,6 +31,7 @@ type Float64Validation struct {
 	Default              float64
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
 	AllowedValues        []float64
+	DisallowedValues     []float64
 	GreaterThan          *float64
 	GreaterThanOrEqualTo *float64
 	LessThan             *float64
@@ -197,9 +198,15 @@ func ValidateFloat64Val(val float64, v *Float64Validation) error {
 		}
 	}
 
-	if v.AllowedValues != nil {
+	if len(v.AllowedValues) > 0 {
 		if !slices.HasFloat64(v.AllowedValues, val) {
 			return ErrorInvalidFloat64(val, v.AllowedValues[0], v.AllowedValues[1:]...)
+		}
+	}
+
+	if len(v.DisallowedValues) > 0 {
+		if slices.HasFloat64(v.DisallowedValues, val) {
+			return ErrorDisallowedValue(val)
 		}
 	}
 

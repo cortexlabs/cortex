@@ -2,99 +2,71 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-It is possible to serve multiple models in the same Cortex API when using the Python predictor type (support for the TensorFlow predictor type is [coming soon](https://github.com/cortexlabs/cortex/issues/890)). In this guide, we'll deploy a sentiment analyzer and a text summarizer in one API, and we'll use query parameters to select the model. We'll be sharing a single GPU across both models.
+<!-- CORTEX_VERSION_MINOR -->
+It is possible to serve multiple models in the same Cortex API using any type of Cortex Predictor. In this guide we'll show the general outline of a multi-model deployment. The section for each predictor type is based on a corresponding example that can be found in the [examples directory](https://github.com/cortexlabs/cortex/tree/master/examples) of the Cortex project.
 
-## Step 1: implement your API
+## Python Predictor
 
-Create a new folder called "multi-model", and add these files:
+For the Python Predictor, the API configuration for a multi-model API is similar to single-model APIs. The Predictor's `config` field can be used to customize the behavior of the `predictor.py` implementation.
+
+<!-- CORTEX_VERSION_MINOR -->
+The following template is based on the [pytorch/multi-model-text-analyzer](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/multi-model-text-analyzer) example.
 
 ### `cortex.yaml`
 
 ```yaml
-- name: text-analyzer
+- name: multi-model-text-analyzer
   predictor:
     type: python
     path: predictor.py
-  compute:
-    cpu: 1
-    gpu: 1
-    mem: 12G
-  autoscaling:
-    threads_per_worker: 1
-```
-
-_Note: `threads_per_worker: 1` is the default, but setting it higher in production may increase throughput, especially when inference on one model takes a lot longer than the other(s)._
-
-### `requirements.txt`
-
-```python
-torch
-transformers==2.9.*
+    config: {...}
+    ...
 ```
 
 ### `predictor.py`
 
-```python
-import torch
-from transformers import pipeline
-from starlette.responses import JSONResponse
+Models should be loaded within the predictor's constructor. Query parameters are encouraged to be used when selecting the model for inference.
 
+```python
+# import modules here
 
 class PythonPredictor:
     def __init__(self, config):
-        device = 0 if torch.cuda.is_available() else -1
-        print(f"using device: {'cuda' if device == 0 else 'cpu'}")
+        # prepare the environment, download/load models/labels, etc
+        # ...
 
-        self.analyzer = pipeline(task="sentiment-analysis", device=device)
-        self.summarizer = pipeline(task="summarization", device=device)
+        # load models
+        self.analyzer = initialize_model("sentiment-analysis")
+        self.summarizer = initialize_model("summarization")
 
     def predict(self, query_params, payload):
+        # preprocessing
         model_name = query_params.get("model")
+        model_input = payload["text"]
+        # ...
 
+        # make prediction
         if model_name == "sentiment":
-            return self.analyzer(payload["text"])[0]
+            results = self.analyzer(model_input)
+            predicted_label = postprocess(results)
+            return {"label": predicted_label}
         elif model_name == "summarizer":
-            summary = self.summarizer(payload["text"])
-            return summary[0]["summary_text"]
+            results = self.summarizer(model_input)
+            predicted_label = postprocess(results)
+            return {"label": predicted_label}
         else:
             return JSONResponse({"error": f"unknown model: {model_name}"}, status_code=400)
 ```
 
-### `sample-sentiment.json`
+### Making predictions
 
-```json
-{
-  "text": "best day ever"
-}
-```
-
-### `sample-summarizer.json`
-
-```json
-{
-  "text": "Machine learning (ML) is the scientific study of algorithms and statistical models that computer systems use to perform a specific task without using explicit instructions, relying on patterns and inference instead. It is seen as a subset of artificial intelligence. Machine learning algorithms build a mathematical model based on sample data, known as training data, in order to make predictions or decisions without being explicitly programmed to perform the task. Machine learning algorithms are used in a wide variety of applications, such as email filtering and computer vision, where it is difficult or infeasible to develop a conventional algorithm for effectively performing the task. Machine learning is closely related to computational statistics, which focuses on making predictions using computers. The study of mathematical optimization delivers methods, theory and application domains to the field of machine learning. Data mining is a field of study within machine learning, and focuses on exploratory data analysis through unsupervised learning. In its application across business problems, machine learning is also referred to as predictive analytics."
-}
-```
-
-## Step 2: deploy your API
+For convenience, we'll export our API's endpoint (yours will be different from mine):
 
 ```bash
-$ cd multi-model
-
-$ cortex deploy
+$ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/multi-model-text-analyzer
 ```
 
-Wait for your API to be ready (you can track its progress with `cortex get --watch`).
-
-## Step 3: make prediction requests
-
-Run `cortex get text-analyzer` to get your API endpoint, and save it as a bash variable for convenience (yours will be different from mine):
-
-```bash
-$ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/text-analyzer
-```
-
-Make a request to the sentiment analysis model:
+Next, we'll make a prediction using the sentiment analyzer model by specifying the model name as a query parameter:
 
 ```bash
 $ curl ${api_endpoint}?model=sentiment -X POST -H "Content-Type: application/json" -d @sample-sentiment.json
@@ -102,10 +74,175 @@ $ curl ${api_endpoint}?model=sentiment -X POST -H "Content-Type: application/jso
 {"label": "POSITIVE", "score": 0.9998506903648376}
 ```
 
-Make a request to the text summarizer model:
+Then we'll make a prediction using the text summarizer model:
 
 ```bash
 $ curl ${api_endpoint}?model=summarizer -X POST -H "Content-Type: application/json" -d @sample-summarizer.json
 
 Machine learning is the study of algorithms and statistical models that computer systems use to perform a specific task. It is seen as a subset of artificial intelligence. Machine learning algorithms are used in a wide variety of applications, such as email filtering and computer vision. In its application across business problems, machine learning is also referred to as predictive analytics.
+```
+
+## TensorFlow Predictor
+
+For the TensorFlow Predictor, a multi-model API is configured by placing the list of models in the Predictor's `models` field (each model will specify its own unique name). The `predict()` method of the `tensorflow_client` object expects a second argument that represents the name of the model that will be used for inference.
+
+<!-- CORTEX_VERSION_MINOR -->
+The following template is based on the [tensorflow/multi-model-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/multi-model-classifier) example.
+
+### `cortex.yaml`
+
+```yaml
+- name: multi-model-classifier
+  predictor:
+    type: tensorflow
+    path: predictor.py
+    models:
+      - name: iris
+        model: s3://cortex-examples/tensorflow/iris-classifier/nn
+      - name: inception
+        model: s3://cortex-examples/tensorflow/image-classifier/inception
+      - name: resnet50
+        model: s3://cortex-examples/tensorflow/multi-model-classifier/resnet50
+      ...
+```
+
+### `predictor.py`
+
+```python
+# import modules here
+
+class TensorFlowPredictor:
+    def __init__(self, tensorflow_client, config):
+        # prepare the environment, download/load labels, etc
+        # ...
+
+        self.client = tensorflow_client
+
+    def predict(self, payload, query_params):
+        # preprocessing
+        model_name = query_params["model"]
+        model_input = preprocess(payload["url"])
+
+        # make prediction
+        results = self.client.predict(model_input, model_name)
+
+        # postprocess
+        predicted_label = postprocess(results)
+
+        return {"label": predicted_label}
+```
+
+### Making predictions
+
+For convenience, we'll export our API's endpoint (yours will be different from mine):
+
+```bash
+$ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/multi-model-classifier
+```
+
+Next, we'll make a prediction using the iris classifier model by specifying the model name as a query parameter:
+
+```bash
+$ curl "${ENDPOINT}?model=iris" -X POST -H "Content-Type: application/json" -d @sample-iris.json
+
+{"label": "setosa"}
+```
+
+Then we'll make a prediction using the resnet50 model:
+
+```bash
+$ curl "${ENDPOINT}?model=resnet50" -X POST -H "Content-Type: application/json" -d @sample-image.json
+
+{"label": "sports_car"}
+```
+
+Finally we'll make a prediction using the inception model:
+
+```bash
+$ curl "${ENDPOINT}?model=inception" -X POST -H "Content-Type: application/json" -d @sample-image.json
+
+{"label": "sports_car"}
+```
+
+## ONNX Predictor
+
+For the ONNX Predictor, a multi-model API is configured by placing the list of models in the Predictor's `models` field (each model will specify its own unique name). The `predict()` method of the `onnx_client` object expects a second argument that represents the name of the model that will be used for inference.
+
+<!-- CORTEX_VERSION_MINOR -->
+The following template is based on the [onnx/multi-model-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/onnx/multi-model-classifier) example.
+
+### `cortex.yaml`
+
+```yaml
+- name: multi-model-classifier
+  predictor:
+    type: onnx
+    path: predictor.py
+    models:
+      - name: resnet50
+        model: s3://cortex-examples/onnx/resnet50/resnet50-v2-7.onnx
+      - name: mobilenet
+        model: s3://cortex-examples/onnx/mobilenet/mobilenetv2-7.onnx
+      - name: shufflenet
+        model: s3://cortex-examples/onnx/shufflenet/shufflenet-v2-10.onnx
+      ...
+```
+
+### `predictor.py`
+
+```python
+# import modules here
+
+class ONNXPredictor:
+    def __init__(self, onnx_client, config):
+        # prepare the environment, download/load labels, etc
+        # ...
+
+        self.client = onnx_client
+
+    def predict(self, payload, query_params):
+        # process the input
+        model_name = query_params["model"]
+        model_input = preprocess(payload["url"])
+
+        # make prediction
+        results = self.client.predict(model_input, model_name)
+
+        # postprocess
+        predicted_label = postprocess(results)
+
+        return {"label": predicted_label}
+
+```
+
+### Making predictions
+
+For convenience, we'll export our API's endpoint (yours will be different from mine):
+
+```bash
+$ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/multi-model-classifier
+```
+
+Next, we'll make a prediction using the resnet50 model by specifying the model name as a query parameter:
+
+```bash
+$ curl "${ENDPOINT}?model=resnet50" -X POST -H "Content-Type: application/json" -d @sample.json
+
+{"label": "tabby"}
+```
+
+Then we'll make a prediction using the mobilenet model:
+
+```bash
+$ curl "${ENDPOINT}?model=mobilenet" -X POST -H "Content-Type: application/json" -d @sample.json
+
+{"label": "tabby"}
+```
+
+Finally we'll make a prediction using the shufflenet model:
+
+```bash
+$ curl "${ENDPOINT}?model=shufflenet" -X POST -H "Content-Type: application/json" -d @sample.json
+
+{"label": "Egyptian_cat"}
 ```
