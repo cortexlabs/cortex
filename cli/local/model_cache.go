@@ -141,10 +141,12 @@ func DeleteCachedModels(apiName string, modelsToDelete []string) error {
 	apiSpecList, err := ListAPISpecs()
 	errList = append(errList, err)
 
-	for _, apiSpec := range apiSpecList {
-		if len(apiSpec.LocalModelCaches) > 0 && apiSpec.Name != apiName {
-			for _, modelCache := range apiSpec.LocalModelCaches {
-				modelsInUse.Add(modelCache.ID)
+	if err == nil {
+		for _, apiSpec := range apiSpecList {
+			if len(apiSpec.LocalModelCaches) > 0 && apiSpec.Name != apiName {
+				for _, modelCache := range apiSpec.LocalModelCaches {
+					modelsInUse.Add(modelCache.ID)
+				}
 			}
 		}
 	}
