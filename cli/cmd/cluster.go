@@ -323,11 +323,11 @@ var _downCmd = &cobra.Command{
 		_, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if errAPIGateway != nil {
-			fmt.Print("\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/apis\n")
+			fmt.Print("\n\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/apis\n")
 			errors.PrintError(errAPIGateway)
 		}
 		if errVPCLink != nil {
-			fmt.Print("\nunable to delete cortex's vpc link (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/vpc-links\n")
+			fmt.Print("\n\nunable to delete cortex's vpc link (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/vpc-links\n")
 			errors.PrintError(errVPCLink)
 		}
 		if errAPIGateway == nil && errVPCLink == nil {
@@ -339,14 +339,14 @@ var _downCmd = &cobra.Command{
 		fmt.Print("￮ deleting dashboard ")
 		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
 		if err != nil {
-			fmt.Print("\nunable to delete cortex's api dashboard (see error below); if it still exists after the cluster has been deleted, please delete it manually via the cloudwatch console: https://console.aws.amazon.com/cloudwatch/home#dashboards:\n")
+			fmt.Print("\n\nunable to delete cortex's api dashboard (see error below); if it still exists after the cluster has been deleted, please delete it manually via the cloudwatch console: https://console.aws.amazon.com/cloudwatch/home#dashboards:\n")
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
 			fmt.Println("✓")
 		}
 
-		fmt.Println("spinning down the cluster ...")
+		fmt.Println("￮ spinning down the cluster ...")
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
