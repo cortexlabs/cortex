@@ -546,15 +546,16 @@ func validateTensorFlowPredictor(api *userconfig.API) error {
 			return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 		}
 	} else {
-		neuronExport := false
+		isNeuronExport := false
 		if api.Compute.ASIC > 0 {
-			neuronExport = true
+			isNeuronExport = true
 		}
-		path, err := getTFServingExportFromS3Path(model, neuronExport, awsClient)
+		path, err := getTFServingExportFromS3Path(model, isNeuronExport, awsClient)
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
-		} else if path == "" {
-			if neuronExport {
+		}
+		if path == "" {
+			if isNeuronExport {
 				return errors.Wrap(ErrorInvalidNeuronTensorFlowDir(model), userconfig.ModelKey)
 			}
 			return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
@@ -592,7 +593,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor) error {
 	return nil
 }
 
-func getTFServingExportFromS3Path(path string, neuronExport bool, awsClient *aws.Client) (string, error) {
+func getTFServingExportFromS3Path(path string, isNeuronExport bool, awsClient *aws.Client) (string, error) {
 	if isValidTensorFlowS3Directory(path, awsClient) {
 		return path, nil
 	}
@@ -625,11 +626,11 @@ func getTFServingExportFromS3Path(path string, neuronExport bool, awsClient *aws
 
 		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
 		if version >= highestVersion {
-			if neuronExport && isValidNeuronTensorflowS3Directory(possiblePath, awsClient) {
+			if isNeuronExport && isValidNeuronTensorflowS3Directory(possiblePath, awsClient) {
 				highestVersion = version
 				highestPath = possiblePath
 			}
-			if !neuronExport && isValidTensorFlowS3Directory(possiblePath, awsClient) {
+			if !isNeuronExport && isValidTensorFlowS3Directory(possiblePath, awsClient) {
 				highestVersion = version
 				highestPath = possiblePath
 			}

@@ -35,6 +35,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -677,16 +678,16 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				)
 			}
 			if container == _apiContainerName {
-				envVars = append(envVars, []kcore.EnvVar{
-					{
+				envVars = append(envVars,
+					kcore.EnvVar{
 						Name:  "CORTEX_MULTIPLE_TF_SERVERS",
 						Value: "yes",
 					},
-					{
+					kcore.EnvVar{
 						Name:  "CORTEX_ACTIVE_NEURON",
 						Value: "yes",
 					},
-				}...)
+				)
 			}
 		}
 	}
@@ -718,6 +719,23 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			"--model_name=" + _tfServingModelName,
 		}
 	}
+	var probeHandler kcore.Handler
+	if len(ports) == 1 {
+		probeHandler = kcore.Handler{
+			TCPSocket: &kcore.TCPSocketAction{
+				Port: intstr.IntOrString{
+					IntVal: _tfBaseServingPortInt32,
+				},
+			},
+		}
+	}
+	if len(ports) > 1 {
+		probeHandler = kcore.Handler{
+			Exec: &kcore.ExecAction{
+				Command: []string{"/bin/bash", "-c", `test $(nc -zv localhost ` + fmt.Sprintf("%d-%d", _tfBaseServingPortInt32, _tfBaseServingPortInt32+int32(len(ports))-1) + ` 2>&1 | wc -l) -eq ` + fmt.Sprintf("%d", len(ports))},
+			},
+		}
+	}
 	return &kcore.Container{
 		Name:            _tfServingContainerName,
 		Image:           api.Predictor.TFServeImage,
@@ -732,11 +750,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			PeriodSeconds:       5,
 			SuccessThreshold:    1,
 			FailureThreshold:    2,
-			Handler: kcore.Handler{
-				Exec: &kcore.ExecAction{
-					Command: []string{"/bin/bash", "-c", `test $(nc -zv localhost ` + fmt.Sprintf("%d-%d", _tfBaseServingPortInt32, _tfBaseServingPortInt32+int32(len(ports))-1) + ` 2>&1 | wc -l) -eq ` + fmt.Sprintf("%d", len(ports))},
-				},
-			},
+			Handler:             probeHandler,
 		},
 		Resources: resources,
 		Ports:     ports,
