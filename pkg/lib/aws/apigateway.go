@@ -83,23 +83,48 @@ func (c *Client) GetAPIGatewayByTag(tagName string, tagValue string) (*apigatewa
 	return nil, nil
 }
 
-// DeleteVPCLinkByTag Deletes a VPC Link by tag (returns whether or not the VPC Link existed)
-func (c *Client) DeleteVPCLinkByTag(tagName string, tagValue string) (bool, error) {
+// DeleteVPCLinkByTag Deletes a VPC Link by tag (returns the deleted VPC Link, or nil if it was not found )
+func (c *Client) DeleteVPCLinkByTag(tagName string, tagValue string) (*apigatewayv2.VpcLink, error) {
 	vpcLink, err := c.GetVPCLinkByTag(tagName, tagValue)
 	if err != nil {
-		return false, err
+		return nil, err
 	} else if vpcLink == nil {
-		return false, nil
+		return nil, nil
 	}
 
 	_, err = c.APIGatewayV2().DeleteVpcLink(&apigatewayv2.DeleteVpcLinkInput{
 		VpcLinkId: vpcLink.VpcLinkId,
 	})
 	if err != nil {
-		return false, errors.Wrap(err, "failed to delete vpc link "+*vpcLink.VpcLinkId)
+		return nil, errors.Wrap(err, "failed to delete vpc link "+*vpcLink.VpcLinkId)
 	}
 
-	return true, nil
+	return vpcLink, nil
+}
+
+// DeleteAPIGatewayByTag Deletes an API Gateway by tag (returns whether or not the API Gateway existed)
+func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (*apigatewayv2.Api, error) {
+	apiGateway, err := c.GetAPIGatewayByTag(tagName, tagValue)
+	if err != nil {
+		return nil, err
+	} else if apiGateway == nil {
+		return nil, nil
+	}
+
+	// Delete mappings in case user added a custom domain name (otherwise this will block API Gateway deletion)
+	err = c.DeleteAPIGatewayMappings(*apiGateway.ApiId)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = c.APIGatewayV2().DeleteApi(&apigatewayv2.DeleteApiInput{
+		ApiId: apiGateway.ApiId,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to delete api gateway "+*apiGateway.ApiId)
+	}
+
+	return apiGateway, nil
 }
 
 // DeleteAPIGatewayMappingsForDomainName deletes all API mappings that point to the provided api gateway from the provided domain name
@@ -164,31 +189,6 @@ func (c *Client) DeleteAPIGatewayMappings(apiGatewayID string) error {
 	}
 
 	return nil
-}
-
-// DeleteAPIGatewayByTag Deletes an API Gateway by tag (returns whether or not the API Gateway existed)
-func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (bool, error) {
-	apiGateway, err := c.GetAPIGatewayByTag(tagName, tagValue)
-	if err != nil {
-		return false, err
-	} else if apiGateway == nil {
-		return false, nil
-	}
-
-	// Delete mappings in case user added a custom domain name (otherwise this will block API Gateway deletion)
-	err = c.DeleteAPIGatewayMappings(*apiGateway.ApiId)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = c.APIGatewayV2().DeleteApi(&apigatewayv2.DeleteApiInput{
-		ApiId: apiGateway.ApiId,
-	})
-	if err != nil {
-		return false, errors.Wrap(err, "failed to delete api gateway "+*apiGateway.ApiId)
-	}
-
-	return true, nil
 }
 
 // GetVPCLinkIntegration gets the VPC Link integration in an API Gateway, or nil if unable to find it
