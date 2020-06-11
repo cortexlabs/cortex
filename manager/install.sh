@@ -173,7 +173,7 @@ function main() {
       exit 1
     fi
     # create default stage; ignore error because default stage may already exist (currently it doesn't exist because of a possible bug in create-api)
-    aws apigatewayv2 create-stage --region $CORTEX_REGION --tags $CORTEX_TAGS --api-id $api_id --auto-deploy --stage-name \$default > /dev/null
+    aws apigatewayv2 create-stage --region $CORTEX_REGION --tags $CORTEX_TAGS --api-id $api_id --auto-deploy --stage-name \$default &>/dev/null || true
   fi
 
   # create cluster (if it doesn't already exist)
