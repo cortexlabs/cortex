@@ -30,7 +30,7 @@ class TensorFlowServing:
         self.model_platform = "tensorflow"
         self.channel = grpc.insecure_channel(self.address)
         self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
-        self.timeout = 600
+        self.timeout = 600  # gRPC timeout in seconds
 
     def add_models_config(self, names, base_paths, replace_models=False):
         request = model_management_pb2.ReloadConfigRequest()
