@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euo pipefail
+set -eo pipefail
 
 export CORTEX_VERSION=master
 EKSCTL_TIMEOUT=45m
