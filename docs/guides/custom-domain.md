@@ -2,11 +2,11 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-A custom domain that you own can be used for your prediction endpoints; for example, you can make your API accessible via `api.example.com/iris-classifier`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager (ACM).
+You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/iris-classifier`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager (ACM).
 
-There are two methods of achieving this, and which method to use depends on whether you're using API Gateway or not (i.e. API requests are sent directly to the API load balancer). API Gateway is enabled by default, and is generally recommended unless it doesn't support your use case due to limitations such as the 29 second request timeout, or if you are keeping your APIs internal to your VPC.
+There are two methods for achieving this, and which method to use depends on whether you're using API Gateway or not (without API Gateway, requests are sent directly to the API load balancer instead). API Gateway is enabled by default.
 
-The first set of steps are the same whether or not you're using API Gateway. If you aren't using API gateway, this guide must be completed before spinning up your Cortex cluster.
+The first set of steps are the same whether or not you're using API Gateway. If you aren't using API gateway, follow this guide before creating your Cortex cluster.
 
 _note: you must own a domain and be able to modify its DNS records to complete this guide._
 
@@ -124,7 +124,7 @@ This should take you back to the custom domains page, and you should see your ne
 
 ### Step 4
 
-Click "Add new mapping"
+Click "Add new mapping".
 
 ![step 4](https://user-images.githubusercontent.com/808475/84082516-d7dc1480-a994-11ea-9cae-d4fb1ac1e767.png)
 

@@ -57,7 +57,7 @@ subnet_visibility: public  # must be "public" or "private"
 nat_gateway: none  # must be "none", "single", or "highly_available" (highly_available means one NAT gateway per availability zone)
 
 # whether the API load balancer should be internet-facing or internal (default: "internet-facing")
-# note: if using "internal", APIs will still be accessible via the public API Gateway endpoint unless you disable it in your API configuration (in which case you must configure VPC Peering to connect to your APIs)
+# note: if using "internal", APIs will still be accessible via the public API Gateway endpoint unless you also disable API Gateway in your API's configuration (if you do that, you must configure VPC Peering to connect to your APIs)
 # see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
 api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
