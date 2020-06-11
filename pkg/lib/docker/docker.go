@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -142,17 +143,8 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		return false, err
 	}
 
-	existingImages, err := dockerClient.ImageList(context.Background(), dockertypes.ImageListOptions{})
-	if err != nil {
-		return false, WrapDockerError(err)
-	}
-
-	for _, existingImage := range existingImages {
-		for _, tag := range existingImage.RepoTags {
-			if tag == image {
-				return false, nil
-			}
-		}
+	if err := CheckLocalImageAccessible(dockerClient, image); err == nil {
+		return false, nil
 	}
 
 	pullOutput, err := dockerClient.ImagePull(context.Background(), image, dockertypes.ImagePullOptions{
@@ -244,4 +236,30 @@ func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string) 
 		return ErrorImageInaccessible(dockerImage, err)
 	}
 	return nil
+}
+
+func CheckLocalImageAccessible(dockerClient *Client, dockerImage string) error {
+	images, err := dockerClient.ImageList(context.Background(), dockertypes.ImageListOptions{})
+	if err != nil {
+		return WrapDockerError(err)
+	}
+
+	// in docker, missing tag implies "latest"
+	if ExtractImageTag(dockerImage) == "" {
+		dockerImage = fmt.Sprintf("%s:latest", dockerImage)
+	}
+
+	for _, image := range images {
+		if slices.HasString(image.RepoTags, dockerImage) {
+			return nil
+		}
+	}
+	return ErrorImageInaccessible(dockerImage, nil)
+}
+
+func ExtractImageTag(dockerImage string) string {
+	if colonIndex := strings.LastIndex(dockerImage, ":"); colonIndex != -1 {
+		return dockerImage[colonIndex+1:]
+	}
+	return ""
 }
