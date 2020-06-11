@@ -54,9 +54,9 @@ const (
 	ErrAPINotDeployed                     = "operator.api_not_deployed"
 	ErrRegistryAccountIDMismatch          = "operator.registry_account_id_mismatch"
 	ErrComputeResourceConflict            = "operator.compute_resource_conflict"
-	ErrInsufficientASICMemory             = "operator.insufficient_asic_memory"
-	ErrInvalidNumberOfASICWorkers         = "operator.invalid_number_of_asic_workers"
-	ErrInvalidNumberOfASICs               = "operator.invalid_number_of_asics"
+	ErrInsufficientInfMemory              = "operator.insufficient_inf_memory"
+	ErrInvalidNumberOfInfWorkers          = "operator.invalid_number_of_inf_workers"
+	ErrInvalidNumberOfInfs                = "operator.invalid_number_of_infs"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -295,26 +295,26 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	})
 }
 
-func ErrorInsufficientASICMemory(requestedMem, minimumMem, numASICs, perASICMem string) error {
+func ErrorInsufficientInfMemory(requestedMem, minimumMem, numInfs, perInfMem string) error {
 	return errors.WithStack(&errors.Error{
-		Kind: ErrInsufficientASICMemory,
-		Message: fmt.Sprintf("requested %s memory, but to cover the ASIC requirements, a minimum of %s = 2 * %s ASIC(s) * %s per ASIC is required",
-			requestedMem, minimumMem, numASICs, perASICMem),
+		Kind: ErrInsufficientInfMemory,
+		Message: fmt.Sprintf("requested %s memory, but to cover the Inf requirements, a minimum of %s = 2 * %s Inf(s) * %s per Inf is required",
+			requestedMem, minimumMem, numInfs, perInfMem),
 	})
 }
 
-func ErrorInvalidNumberOfASICWorkers(requestedWorkers int64, numASICCores int64, acceptableWorkers []int64) error {
+func ErrorInvalidNumberOfInfWorkers(requestedWorkers int64, numInfCores int64, acceptableWorkers []int64) error {
 	msgAcceptableWorkers := s.UserStrsOr(acceptableWorkers)
-	message := fmt.Sprintf("cannot evenly distribute %d ASIC cores over %d worker(s) - acceptable numbers of workers are %s", numASICCores, requestedWorkers, msgAcceptableWorkers)
+	message := fmt.Sprintf("cannot evenly distribute %d Inf ASICs over %d worker(s) - acceptable numbers of workers are %s", numInfCores, requestedWorkers, msgAcceptableWorkers)
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNumberOfASICWorkers,
+		Kind:    ErrInvalidNumberOfInfWorkers,
 		Message: message,
 	})
 }
 
-func ErrorInvalidNumberOfASICs(requestedASICs int64) error {
+func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNumberOfASICs,
-		Message: fmt.Sprintf("cannot request %d ASICs (only 1 ASIC can be used per API replica)", requestedASICs),
+		Kind:    ErrInvalidNumberOfInfs,
+		Message: fmt.Sprintf("cannot request %d Infs (only 1 Inf can be used per API replica)", requestedInfs),
 	})
 }

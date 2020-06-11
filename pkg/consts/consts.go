@@ -27,22 +27,22 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultImagePythonServe     = defaultDockerImage("python-serve")
-	DefaultImagePythonServeGPU  = defaultDockerImage("python-serve-gpu")
-	DefaultImagePythonServeASIC = defaultDockerImage("python-serve-asic")
-	DefaultImageTFServe         = defaultDockerImage("tf-serve")
-	DefaultImageTFServeGPU      = defaultDockerImage("tf-serve-gpu")
-	DefaultImageTFServeASIC     = defaultDockerImage("tf-serve-asic")
-	DefaultImageTFAPI           = defaultDockerImage("tf-api")
-	DefaultImageONNXServe       = defaultDockerImage("onnx-serve")
-	DefaultImageONNXServeGPU    = defaultDockerImage("onnx-serve-gpu")
-	DefaultImagePathsSet        = strset.New(
+	DefaultImagePythonServe    = defaultDockerImage("python-serve")
+	DefaultImagePythonServeGPU = defaultDockerImage("python-serve-gpu")
+	DefaultImagePythonServeInf = defaultDockerImage("python-serve-inf")
+	DefaultImageTFServe        = defaultDockerImage("tf-serve")
+	DefaultImageTFServeGPU     = defaultDockerImage("tf-serve-gpu")
+	DefaultImageTFServeInf     = defaultDockerImage("tf-serve-inf")
+	DefaultImageTFAPI          = defaultDockerImage("tf-api")
+	DefaultImageONNXServe      = defaultDockerImage("onnx-serve")
+	DefaultImageONNXServeGPU   = defaultDockerImage("onnx-serve-gpu")
+	DefaultImagePathsSet       = strset.New(
 		DefaultImagePythonServe,
 		DefaultImagePythonServeGPU,
-		DefaultImagePythonServeASIC,
+		DefaultImagePythonServeInf,
 		DefaultImageTFServe,
 		DefaultImageTFServeGPU,
-		DefaultImageTFServeASIC,
+		DefaultImageTFServeInf,
 		DefaultImageTFAPI,
 		DefaultImageONNXServe,
 		DefaultImageONNXServeGPU,

@@ -6,7 +6,7 @@ This project implements an image recognition system using ResNet50. This system 
 
 There are 3 Cortex APIs available in this example:
 
-1. [cortex_asic.yaml](cortex_asic.yaml) - to be used with `inf1` instances.
+1. [cortex_inf.yaml](cortex_inf.yaml) - to be used with `inf1` instances.
 1. [cortex_cpu.yaml](cortex_cpu.yaml) - to be used with any instances that have CPUs.
 1. [cortex_gpu.yaml](cortex_gpu.yaml) - to be used with instances that come with GPU support.
 
@@ -40,7 +40,7 @@ If a 5-element list is returned containing classifications of the image ("tabby"
 Usage: throughput_test.py [OPTIONS] IMG_URL ENDPOINT
 
   Program for testing the throughput of Resnet50 model on instances equipped
-  with CPU, GPU or ASIC devices.
+  with CPU, GPU or Inferentia ASIC devices.
 
 Options:
   -w, --workers INTEGER     Number of workers for prediction requests.
@@ -68,7 +68,7 @@ export IMG_URL=https://i.imgur.com/213xcvs.jpg # this is the cat image shown in 
 
 Then, deploy each API one at a time and check the results:
 
-1. Running `python throughput_test.py -i 30 -w 4 -t 48` on an `inf1.2xlarge` instance using the [cortex_asic.yaml](cortex_asic.yaml) config will get **~510 inferences/sec** with an average latency of **80 ms**.
+1. Running `python throughput_test.py -i 30 -w 4 -t 48` on an `inf1.2xlarge` instance using the [cortex_inf.yaml](cortex_inf.yaml) config will get **~510 inferences/sec** with an average latency of **80 ms**.
 1. Running `python throughput_test.py -i 30 -w 4 -t 2` on a `c5.xlarge` instance using the [cortex_cpu.yaml](cortex_cpu.yaml) config will get **~16.2 inferences/sec** with an average latency of **200 ms**.
 1. Running `python throughput_test.py -i 30 -w 4 -t 24` on a `g4dn.xlarge` instance using the [cortex_gpu.yaml](cortex_gpu.yaml) config will get **~125 inferences/sec** with an average latency of **85 ms**. Optimizing the model with TensorRT to use FP16 on TF-serving only seems to achieve a 10% performance improvement - one thing to consider is that the TensorRT engines hadn't been built beforehand, so this might have affected the results negatively.
 

@@ -495,7 +495,7 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 }
 
 func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
-	if target.ASIC > 0 && suggested.ASIC == 0 {
+	if target.Inf > 0 && suggested.Inf == 0 {
 		return ErrorIncompatibleSpotInstanceTypeInf(suggested)
 	}
 

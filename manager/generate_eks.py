@@ -113,9 +113,9 @@ def is_gpu(instance_type):
     return instance_type.startswith("g") or instance_type.startswith("p")
 
 
-def apply_asic_settings(nodegroup, instance_type):
-    num_chips, hugepages_mem = get_asic_resources(instance_type)
-    asic_settings = {
+def apply_inf_settings(nodegroup, instance_type):
+    num_chips, hugepages_mem = get_inf_resources(instance_type)
+    inf_settings = {
         # custom eks-optimized AMI for inf instances
         # track https://github.com/aws/containers-roadmap/issues/619 ticket
         # such that when an EKS-optimized AMI for inf instances is released,
@@ -130,14 +130,14 @@ def apply_asic_settings(nodegroup, instance_type):
         "labels": {"aws.amazon.com/infa": "true"},
         "taints": {"aws.amazon.com/infa": "true:NoSchedule"},
     }
-    return merge_override(nodegroup, asic_settings)
+    return merge_override(nodegroup, inf_settings)
 
 
-def is_asic(instance_type):
+def is_inf(instance_type):
     return instance_type.startswith("inf")
 
 
-def get_asic_resources(instance_type):
+def get_inf_resources(instance_type):
     num_hugepages_2Mi = 128
     num_chips = 0
     if instance_type in ["inf1.xlarge", "inf1.2xlarge"]:
@@ -176,8 +176,8 @@ def generate_eks(configmap_yaml_path):
     if is_gpu(cluster_configmap["instance_type"]):
         apply_gpu_settings(worker_nodegroup)
 
-    if is_asic(cluster_configmap["instance_type"]):
-        apply_asic_settings(worker_nodegroup, instance_type=cluster_configmap["instance_type"])
+    if is_inf(cluster_configmap["instance_type"]):
+        apply_inf_settings(worker_nodegroup, instance_type=cluster_configmap["instance_type"])
 
     eks = {
         "apiVersion": "eksctl.io/v1alpha5",
@@ -201,8 +201,8 @@ def generate_eks(configmap_yaml_path):
         apply_clusterconfig(backup_nodegroup, cluster_configmap)
         if is_gpu(cluster_configmap["instance_type"]):
             apply_gpu_settings(backup_nodegroup)
-        if is_asic(cluster_configmap["instance_type"]):
-            apply_asic_settings(backup_nodegroup, cluster_configmap["instance_type"])
+        if is_inf(cluster_configmap["instance_type"]):
+            apply_inf_settings(backup_nodegroup, cluster_configmap["instance_type"])
 
         backup_nodegroup["minSize"] = 0
         backup_nodegroup["desiredCapacity"] = 0

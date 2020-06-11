@@ -12,7 +12,7 @@
   compute:
     cpu: 4
     mem: 4G
-    asic: 1
+    inf: 1
   autoscaling:
     workers_per_replica: 4
     threads_per_worker: 256

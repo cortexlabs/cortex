@@ -199,7 +199,7 @@ var _computeValidation = &cr.StructFieldValidation{
 				},
 			},
 			{
-				StructField: "ASIC",
+				StructField: "Inf",
 				Int64Validation: &cr.Int64Validation{
 					Default:              0,
 					GreaterThanOrEqualTo: pointer.Int64(0),
@@ -547,7 +547,7 @@ func validateTensorFlowPredictor(api *userconfig.API) error {
 		}
 	} else {
 		isNeuronExport := false
-		if api.Compute.ASIC > 0 {
+		if api.Compute.Inf > 0 {
 			isNeuronExport = true
 		}
 		path, err := getTFServingExportFromS3Path(model, isNeuronExport, awsClient)
@@ -703,16 +703,16 @@ func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 		maxCPU.Sub(_nvidiaCPUReserve)
 		maxMem.Sub(_nvidiaMemReserve)
 	}
-	maxASIC := config.Cluster.InstanceMetadata.ASIC
-	if maxASIC > 0 {
+	maxInf := config.Cluster.InstanceMetadata.Inf
+	if maxInf > 0 {
 		// Reserve resources for inferentia device plugin daemonset
 		maxCPU.Sub(_inferentiaCPUReserve)
 		maxMem.Sub(_inferentiaMemReserve)
 	}
 
 	compute := api.Compute
-	if compute.GPU > 0 && compute.ASIC > 0 {
-		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.ASICKey)
+	if compute.GPU > 0 && compute.Inf > 0 {
+		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.InfKey)
 	}
 	if maxCPU.Cmp(compute.CPU.Quantity) < 0 {
 		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
@@ -725,17 +725,17 @@ func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 	if compute.GPU > maxGPU {
 		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
 	}
-	if compute.ASIC > maxASIC {
-		return ErrorNoAvailableNodeComputeLimit("ASIC", fmt.Sprintf("%d", compute.ASIC), fmt.Sprintf("%d", maxASIC))
+	if compute.Inf > maxInf {
+		return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
 	}
 
-	// use any number of ASICs once https://github.com/aws/aws-neuron-sdk/issues/110 is fixed
-	if compute.ASIC > 1 {
-		return ErrorInvalidNumberOfASICs(compute.ASIC)
+	// use any number of Infs once https://github.com/aws/aws-neuron-sdk/issues/110 is fixed
+	if compute.Inf > 1 {
+		return ErrorInvalidNumberOfInfs(compute.Inf)
 	}
 
-	if compute.ASIC > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ASICKey, api.Predictor.Type)
+	if compute.Inf > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.InfKey, api.Predictor.Type)
 	}
 	return nil
 }
@@ -759,12 +759,12 @@ func validateAutoscaling(api *userconfig.API) error {
 		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
 	}
 
-	if api.Compute.ASIC > 0 {
-		numASICCores := api.Compute.ASIC * _coresPerASIC
+	if api.Compute.Inf > 0 {
+		numInfCores := api.Compute.Inf * _coresPerInf
 		workersPerReplica := int64(api.Autoscaling.WorkersPerReplica)
-		if !m.IsDivisibleByInt64(numASICCores, workersPerReplica) {
-			workerSuggestions := m.FactorsInt64(numASICCores)
-			return ErrorInvalidNumberOfASICWorkers(workersPerReplica, numASICCores, workerSuggestions)
+		if !m.IsDivisibleByInt64(numInfCores, workersPerReplica) {
+			workerSuggestions := m.FactorsInt64(numInfCores)
+			return ErrorInvalidNumberOfInfWorkers(workersPerReplica, numInfCores, workerSuggestions)
 		}
 	}
 

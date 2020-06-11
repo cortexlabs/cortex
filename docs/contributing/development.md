@@ -211,12 +211,12 @@ Take note of the following images:
 # for Python Predictor
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve:latest
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve-gpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve-asic:latest
+XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve-inf:latest
 
 # for Tensorflow Predictor
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve:latest
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-gpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-asic:latest
+XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-serve-inf:latest
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tf-api:latest
 
 # for ONNX Predictor

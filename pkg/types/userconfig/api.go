@@ -59,10 +59,10 @@ type Tracker struct {
 }
 
 type Compute struct {
-	CPU  k8s.Quantity  `json:"cpu" yaml:"cpu"`
-	Mem  *k8s.Quantity `json:"mem" yaml:"mem"`
-	GPU  int64         `json:"gpu" yaml:"gpu"`
-	ASIC int64         `json:"asic" yaml:"asic"`
+	CPU k8s.Quantity  `json:"cpu" yaml:"cpu"`
+	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU int64         `json:"gpu" yaml:"gpu"`
+	Inf int64         `json:"inf" yaml:"inf"`
 }
 
 type Autoscaling struct {
@@ -93,12 +93,12 @@ func (api *API) Identify() string {
 
 func (api *API) ApplyDefaultDockerPaths() {
 	usesGPU := false
-	usesASIC := false
+	usesInf := false
 	if api.Compute.GPU > 0 {
 		usesGPU = true
 	}
-	if api.Compute.ASIC > 0 {
-		usesASIC = true
+	if api.Compute.Inf > 0 {
+		usesInf = true
 	}
 
 	predictor := api.Predictor
@@ -107,8 +107,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.Image == "" {
 			if usesGPU {
 				predictor.Image = consts.DefaultImagePythonServeGPU
-			} else if usesASIC {
-				predictor.Image = consts.DefaultImagePythonServeASIC
+			} else if usesInf {
+				predictor.Image = consts.DefaultImagePythonServeInf
 			} else {
 				predictor.Image = consts.DefaultImagePythonServe
 			}
@@ -120,8 +120,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.TFServeImage == "" {
 			if usesGPU {
 				predictor.TFServeImage = consts.DefaultImageTFServeGPU
-			} else if usesASIC {
-				predictor.TFServeImage = consts.DefaultImageTFServeASIC
+			} else if usesInf {
+				predictor.TFServeImage = consts.DefaultImageTFServeInf
 			} else {
 				predictor.TFServeImage = consts.DefaultImageTFServe
 			}
@@ -331,8 +331,8 @@ func (compute *Compute) UserStr() string {
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
-	if compute.ASIC > 0 {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ASICKey, s.Int64(compute.ASIC)))
+	if compute.Inf > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", InfKey, s.Int64(compute.Inf)))
 	}
 	if compute.Mem != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))

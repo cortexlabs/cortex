@@ -48,7 +48,7 @@ EKS_PRICING_ENDPOINT_TEMPLATE = (
     "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEKS/current/{}/index.json"
 )
 
-asics_per_instance_type = {
+inf_per_instance_type = {
     "inf1.xlarge": 1,
     "inf1.2xlarge": 1,
     "inf1.6xlarge": 4,
@@ -202,7 +202,7 @@ type InstanceMetadata struct {
 	Memory      kresource.Quantity `json:"memory"`
 	CPU         kresource.Quantity `json:"cpu"`
 	GPU         int64              `json:"gpu"`
-	ASIC        int64              `json:"asic"`
+	Inf        int64               `json:"inf"`
 	Price       float64            `json:"price"`
 }
 
@@ -256,7 +256,7 @@ instance_region_map_template = Template(
 )
 
 instance_metadata_template = Template(
-    """"${type}": {Region: "${region}", Type: "${type}", Memory: kresource.MustParse("${memory}Mi"), CPU: kresource.MustParse("${cpu}"), GPU: ${gpu}, ASIC: ${asic}, Price: ${price}},
+    """"${type}": {Region: "${region}", Type: "${type}", Memory: kresource.MustParse("${memory}Mi"), CPU: kresource.MustParse("${cpu}"), GPU: ${gpu}, Inf: ${inf}, Price: ${price}},
 """
 )
 
@@ -311,7 +311,7 @@ def main():
                     "memory": metadata["mem"],
                     "cpu": metadata["cpu"],
                     "gpu": metadata["gpu"],
-                    "asic": asics_per_instance_type.get(instance_type, 0),
+                    "inf": inf_per_instance_type.get(instance_type, 0),
                     "price": metadata["price"],
                 }
             )

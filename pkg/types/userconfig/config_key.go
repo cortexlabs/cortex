@@ -42,10 +42,10 @@ const (
 	ModelTypeKey = "model_type"
 
 	// Compute
-	CPUKey  = "cpu"
-	MemKey  = "mem"
-	GPUKey  = "gpu"
-	ASICKey = "asic"
+	CPUKey = "cpu"
+	MemKey = "mem"
+	GPUKey = "gpu"
+	InfKey = "inf"
 
 	// Autoscaling
 	MinReplicasKey                  = "min_replicas"

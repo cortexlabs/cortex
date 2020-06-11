@@ -139,7 +139,7 @@ function main() {
     if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
       envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
     elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
-      envsubst < manifests/image-downloader-asic.yaml | kubectl apply -f - &>/dev/null
+      envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
     else
       envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi
@@ -176,7 +176,7 @@ function main() {
   fi
 
   if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
-    echo -n "￮ configuring asic support "
+    echo -n "￮ configuring inf support "
     envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi

@@ -29,33 +29,33 @@ spec:
       nodeSelector:
         workload: "true"
       tolerations:
-      - key: workload
-        value: "true"
-        operator: Equal
-        effect: NoSchedule
-      - key: aws.amazon.com/infa
-        value: "true"
-        operator: Equal
-        effect: NoSchedule
+        - key: workload
+          value: "true"
+          operator: Equal
+          effect: NoSchedule
+        - key: aws.amazon.com/infa
+          value: "true"
+          operator: Equal
+          effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:
-      - name: python-serve-asic
-        image: $CORTEX_IMAGE_PYTHON_SERVE_ASIC
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
-      - name: tf-serve
-        image: $CORTEX_IMAGE_TF_SERVE_ASIC
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
-      - name: tf-api
-        image: $CORTEX_IMAGE_TF_API
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
-      - name: neuron-rtd
-        image: $CORTEX_IMAGE_NEURON_RTD
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
-      - name: downloader
-        image: $CORTEX_IMAGE_DOWNLOADER
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
+        - name: python-serve-inf
+          image: $CORTEX_IMAGE_PYTHON_SERVE_INF
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]
+        - name: tf-serve
+          image: $CORTEX_IMAGE_TF_SERVE_INF
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]
+        - name: tf-api
+          image: $CORTEX_IMAGE_TF_API
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]
+        - name: neuron-rtd
+          image: $CORTEX_IMAGE_NEURON_RTD
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]
+        - name: downloader
+          image: $CORTEX_IMAGE_DOWNLOADER
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]

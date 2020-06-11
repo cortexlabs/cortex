@@ -47,7 +47,7 @@ const (
 	_tfServingModelName                            = "model"
 	_downloaderInitContainerName                   = "downloader"
 	_neuronRTDContainerName                        = "neuron-rtd"
-	_coresPerASIC                                  = int64(4)
+	_coresPerInf                                   = int64(4)
 	_downloaderLastLog                             = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr             = int32(8888), "8888"
 	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
@@ -63,7 +63,7 @@ var (
 	_requestMonitorMemRequest = kresource.MustParse("10Mi")
 
 	// each Inferentia chip requires 128 HugePages with each HugePage having a size of 2Mi
-	_hugePagesMemPerASIC = 128 * 2 * int64(math.Pow(1024, 2))
+	_hugePagesMemPerInf = 128 * 2 * int64(math.Pow(1024, 2))
 )
 
 type downloadContainerConfig struct {
@@ -107,7 +107,7 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	userPodMemRequest := api.Compute.Mem.Quantity.Copy()
 	userPodMemRequest.Sub(_requestMonitorMemRequest)
 
-	if api.Compute.ASIC == 0 {
+	if api.Compute.Inf == 0 {
 		q1, q2 := k8s.SplitInTwo(userPodCPURequest)
 		apiResourceList[kcore.ResourceCPU] = *q1
 		tfServingResourceList[kcore.ResourceCPU] = *q2
@@ -268,7 +268,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 
 	podCPURequest.Sub(_requestMonitorCPURequest)
 
-	if api.Compute.ASIC == 0 {
+	if api.Compute.Inf == 0 {
 		userPodResourceList[kcore.ResourceCPU] = *podCPURequest
 
 		if api.Compute.Mem != nil {
@@ -641,13 +641,13 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 	}
 
-	if api.Compute.ASIC > 0 {
+	if api.Compute.Inf > 0 {
 		if (container == _apiContainerName && api.Predictor.Type == userconfig.PythonPredictorType) ||
 			(container == _tfServingContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType) {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.ASIC * _coresPerASIC / int64(api.Autoscaling.WorkersPerReplica)),
+					Value: s.Int64(api.Compute.Inf * _coresPerInf / int64(api.Autoscaling.WorkersPerReplica)),
 				},
 				kcore.EnvVar{
 					Name:  "NEURON_RTD_ADDRESS",
@@ -703,7 +703,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		},
 	}
 
-	if api.Compute.ASIC > 0 {
+	if api.Compute.Inf > 0 {
 		numPorts := api.Autoscaling.WorkersPerReplica
 		for i := int32(1); i < numPorts; i++ {
 			ports = append(ports, kcore.ContainerPort{
@@ -711,7 +711,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			})
 		}
 	}
-	if api.Compute.ASIC == 0 {
+	if api.Compute.Inf == 0 {
 		// the entrypoint is different for Inferentia-based APIs
 		args = []string{
 			"--port=" + _tfBaseServingPortStr,
@@ -758,7 +758,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 }
 
 func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMount) *kcore.Container {
-	totalHugePages := api.Compute.ASIC * _hugePagesMemPerASIC
+	totalHugePages := api.Compute.Inf * _hugePagesMemPerInf
 	return &kcore.Container{
 		Name:            _neuronRTDContainerName,
 		Image:           config.Cluster.ImageNeuronRTD,
@@ -776,11 +776,11 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		Resources: kcore.ResourceRequirements{
 			Limits: kcore.ResourceList{
 				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.ASIC, kresource.DecimalSI),
+				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
 			Requests: kcore.ResourceList{
 				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.ASIC, kresource.DecimalSI),
+				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
 		},
 	}
