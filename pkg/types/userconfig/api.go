@@ -58,7 +58,7 @@ type Predictor struct {
 
 type ModelResource struct {
 	Name         string  `json:"name" yaml:"name"`
-	ModelPath    string  `json:"model" yaml:"model"`
+	Model        string  `json:"model" yaml:"model"`
 	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
 }
 
@@ -344,7 +344,7 @@ func (predictor *Predictor) UserStr() string {
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsKey, model.ModelPath))
+	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsKey, model.Model))
 	if model.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
 	}

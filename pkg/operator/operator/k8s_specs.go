@@ -262,9 +262,9 @@ func tfDownloadArgs(api *spec.API) string {
 			itemName = fmt.Sprintf("model %s", model.Name)
 		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:                 model.ModelPath,
+			From:                 model.Model,
 			To:                   path.Join(rootModelPath, model.Name),
-			Unzip:                strings.HasSuffix(model.ModelPath, ".zip"),
+			Unzip:                strings.HasSuffix(model.Model, ".zip"),
 			ItemName:             itemName,
 			TFModelVersionRename: path.Join(rootModelPath, model.Name, "1"),
 		})
@@ -506,7 +506,7 @@ func onnxDownloadArgs(api *spec.API) string {
 			itemName = fmt.Sprintf("model %s", model.Name)
 		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:     model.ModelPath,
+			From:     model.Model,
 			To:       path.Join(rootModelPath, model.Name),
 			ItemName: itemName,
 		})
