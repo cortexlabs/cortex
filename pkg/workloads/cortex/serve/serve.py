@@ -211,7 +211,7 @@ def start():
     model_dir = os.getenv("CORTEX_MODEL_DIR", None)
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
 
-    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS", None)
+    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
         with FileLock("/run/used_ports.json.lock"):
             with open("/run/used_ports.json", "r+") as f:

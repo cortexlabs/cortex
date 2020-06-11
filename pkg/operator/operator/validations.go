@@ -554,10 +554,10 @@ func validateTensorFlowPredictor(api *userconfig.API) error {
 		if err != nil {
 			return errors.Wrap(err, userconfig.ModelKey)
 		} else if path == "" {
-			if !neuronExport {
-				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
+			if neuronExport {
+				return errors.Wrap(ErrorInvalidNeuronTensorFlowDir(model), userconfig.ModelKey)
 			}
-			return errors.Wrap(ErrorInvalidNeuronTensorFlowDir(model), userconfig.ModelKey)
+			return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 		}
 		predictor.Model = pointer.String(path)
 	}
@@ -729,7 +729,7 @@ func validateCompute(api *userconfig.API, maxMem *kresource.Quantity) error {
 	}
 
 	// use any number of ASICs once https://github.com/aws/aws-neuron-sdk/issues/110 is fixed
-	if compute.ASIC > 0 && compute.ASIC != 1 {
+	if compute.ASIC > 1 {
 		return ErrorInvalidNumberOfASICs(compute.ASIC)
 	}
 

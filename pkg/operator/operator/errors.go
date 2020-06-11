@@ -229,7 +229,7 @@ func ErrorInvalidTensorFlowDir(path string) error {
 	})
 }
 
-var _neuronTfExpectedStructMessage = `For TensorFlow models, the path must contain a directory with the following structure:
+var _neuronTfExpectedStructMessage = `For Neuron TensorFlow models, the path must contain a directory with the following structure:
 1523423423/ (Version prefix, usually a timestamp)
 └── saved_model.pb`
 
@@ -291,7 +291,7 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrComputeResourceConflict,
-		Message: fmt.Sprintf("resources %s and %s cannot be mixed together", resourceA, resourceB),
+		Message: fmt.Sprintf("%s and %s resources cannot be used together", resourceA, resourceB),
 	})
 }
 
@@ -315,6 +315,6 @@ func ErrorInvalidNumberOfASICWorkers(requestedWorkers int64, numASICCores int64,
 func ErrorInvalidNumberOfASICs(requestedASICs int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfASICs,
-		Message: fmt.Sprintf("cannot request %d ASICs for the API - can only have 1 ASIC per API replica", requestedASICs),
+		Message: fmt.Sprintf("cannot request %d ASICs (only 1 ASIC can be used per API replica)", requestedASICs),
 	})
 }

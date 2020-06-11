@@ -94,12 +94,6 @@ def get_instance_metadatas(pricing):
     return instance_mapping
 
 
-def get_asics_per_instance_type(instance_type):
-    if instance_type not in asics_per_instance_type:
-        return 0
-    return asics_per_instance_type[instance_type]
-
-
 def get_elb_metadata(pricing):
     for product_id, product in pricing["products"].items():
         if product.get("attributes") is None:
@@ -317,7 +311,7 @@ def main():
                     "memory": metadata["mem"],
                     "cpu": metadata["cpu"],
                     "gpu": metadata["gpu"],
-                    "asic": get_asics_per_instance_type(instance_type),
+                    "asic": asics_per_instance_type.get(instance_type, 0),
                     "price": metadata["price"],
                 }
             )

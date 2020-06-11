@@ -21,7 +21,7 @@ if __name__ == "__main__":
     with open("/src/cortex/serve/log_config.yaml", "r") as f:
         log_config = yaml.load(f, yaml.FullLoader)
 
-    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS", None)
+    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
         base_serving_port = int(os.environ["CORTEX_TF_BASE_SERVING_PORT"])
         workers = int(os.environ["CORTEX_WORKERS_PER_REPLICA"])
