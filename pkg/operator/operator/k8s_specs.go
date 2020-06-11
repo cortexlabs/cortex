@@ -46,7 +46,6 @@ const (
 	_tfServingModelName                            = "model"
 	_downloaderInitContainerName                   = "downloader"
 	_neuronRTDContainerName                        = "neuron-rtd"
-	_hugePagesMemPerASIC                           = int64(2 * 128)
 	_coresPerASIC                                  = int64(4)
 	_downloaderLastLog                             = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr             = int32(8888), "8888"
@@ -55,12 +54,15 @@ const (
 	_apiReadinessFile                              = "/mnt/api_readiness.txt"
 	_apiLivenessFile                               = "/mnt/api_liveness.txt"
 	_apiLivenessStalePeriod                        = 7 // seconds (there is a 2-second buffer to be safe)
-	_neuronRTDSocketReadinessFile                  = "/sock/neuron.sock"
+	_neuronRTDSocket                               = "/sock/neuron.sock"
 )
 
 var (
 	_requestMonitorCPURequest = kresource.MustParse("10m")
 	_requestMonitorMemRequest = kresource.MustParse("10Mi")
+
+	// each Inferentia chip requires 128 HugePages with each HugePage having a size of 2Mi
+	_hugePagesMemPerASIC = 128 * 2 * int64(math.Pow(1024, 2))
 )
 
 type downloadContainerConfig struct {
@@ -639,7 +641,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	}
 
 	if api.Compute.ASIC > 0 {
-		if (container == _apiContainerName && api.Predictor.Type != userconfig.TensorFlowPredictorType) ||
+		if (container == _apiContainerName && api.Predictor.Type == userconfig.PythonPredictorType) ||
 			(container == _tfServingContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType) {
 			envVars = append(envVars,
 				kcore.EnvVar{
@@ -648,43 +650,44 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				},
 				kcore.EnvVar{
 					Name:  "NEURON_RTD_ADDRESS",
-					Value: fmt.Sprintf("unix:%s", _neuronRTDSocketReadinessFile),
+					Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
 				},
 			)
 		}
 
-		if container == _tfServingContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType {
-			envVars = append(envVars, []kcore.EnvVar{
-				{
-					Name:  "TF_WORKERS",
-					Value: s.Int32(api.Autoscaling.WorkersPerReplica),
-				},
-				{
-					Name:  "TF_STARTING_PORT",
-					Value: _tfBaseServingPortStr,
-				},
-				{
-					Name:  "TF_MODEL_BASE_PATH",
-					Value: path.Join(_emptyDirMountPath, "model"),
-				},
-				{
-					Name:  "TF_MODEL_NAME",
-					Value: _tfServingModelName,
-				},
-			}...)
-		}
-
-		if container == _apiContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType {
-			envVars = append(envVars, []kcore.EnvVar{
-				{
-					Name:  "CORTEX_MULTIPLE_TF_SERVERS",
-					Value: "yes",
-				},
-				{
-					Name:  "CORTEX_ACTIVE_NEURON",
-					Value: "yes",
-				},
-			}...)
+		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
+			if container == _tfServingContainerName {
+				envVars = append(envVars,
+					kcore.EnvVar{
+						Name:  "TF_WORKERS",
+						Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+					},
+					kcore.EnvVar{
+						Name:  "TF_STARTING_PORT",
+						Value: _tfBaseServingPortStr,
+					},
+					kcore.EnvVar{
+						Name:  "CORTEX_MODEL_DIR",
+						Value: path.Join(_emptyDirMountPath, "model"),
+					},
+					kcore.EnvVar{
+						Name:  "TF_MODEL_NAME",
+						Value: _tfServingModelName,
+					},
+				)
+			}
+			if container == _apiContainerName {
+				envVars = append(envVars, []kcore.EnvVar{
+					{
+						Name:  "CORTEX_MULTIPLE_TF_SERVERS",
+						Value: "yes",
+					},
+					{
+						Name:  "CORTEX_ACTIVE_NEURON",
+						Value: "yes",
+					},
+				}...)
+			}
 		}
 	}
 
@@ -706,7 +709,9 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 				ContainerPort: _tfBaseServingPortInt32 + i,
 			})
 		}
-	} else {
+	}
+	if api.Compute.ASIC == 0 {
+		// the entrypoint is different for Inferentia-based APIs
 		args = []string{
 			"--port=" + _tfBaseServingPortStr,
 			"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
@@ -753,14 +758,14 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 			},
 		},
 		VolumeMounts:   volumeMounts,
-		ReadinessProbe: socketExistsProbe(_neuronRTDSocketReadinessFile),
+		ReadinessProbe: socketExistsProbe(_neuronRTDSocket),
 		Resources: kcore.ResourceRequirements{
 			Limits: kcore.ResourceList{
-				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI),
+				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
 				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.ASIC, kresource.DecimalSI),
 			},
 			Requests: kcore.ResourceList{
-				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages*int64(math.Pow(1024, 2)), kresource.BinarySI),
+				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
 				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.ASIC, kresource.DecimalSI),
 			},
 		},

@@ -46,7 +46,7 @@ mkdir my-api && cd my-api && touch Dockerfile
 
 The default Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image:
 
-<!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
+<!-- CORTEX_VERSION_BRANCH_STABLE x6 -->
 * Python Predictor (CPU): `cortexlabs/python-serve:master`
 * Python Predictor (GPU): `cortexlabs/python-serve-gpu:master`
 * Python Predictor (ASIC): `cortexlabs/python-serve-asic:master`

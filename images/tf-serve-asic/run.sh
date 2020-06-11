@@ -21,5 +21,5 @@ for i in $(seq 1 $TF_WORKERS); do
     worker=$i port=$((TF_STARTING_PORT+i-1)) envsubst < /tmp/template.conf >> /tmp/supervisord.conf
 done
 
-cp /tmp/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+mv /tmp/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

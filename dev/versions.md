@@ -169,8 +169,10 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 1. Run a `cortexlabs/neuron-rtd` container and check if there are newer versions of `aws-neuron-tools` and `aws-neuron-runtime` with `yum info <package>` command.
 1. Add in the newer versions inside of `images/neuron-rtd/Dockerfile`.
-1. Rebuild the image.
-1. Test all examples that use Inferentia ASICs.
+1. Match the neuron versions in `pkg/workloads/cortex/serve/python-asic-requirements.txt` with those of the Neuron RTD.
+1. Match the neuron versions in `images/tf-serve-asic/Dockerfile` with those of the Neuron RTD.
+1. Rebuild all afferent images.
+1. Test Inferentia examples.
 
 ## ASIC temporary workaround
 
