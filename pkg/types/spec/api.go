@@ -99,7 +99,7 @@ func (api *API) ModelNames() []string {
 func (api *API) SubtractModelIDs(apis ...*API) []string {
 	modelIDs := strset.FromSlice(api.ModelIDs())
 	for _, a := range apis {
-		modelIDs.Subtract(strset.FromSlice(a.ModelIDs()))
+		modelIDs.Remove(a.ModelIDs()...)
 	}
 	return modelIDs.Slice()
 }
