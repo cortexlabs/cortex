@@ -65,9 +65,4 @@ def create_gateway_intregration(api_id, vpc_link_id):
 if __name__ == "__main__":
     api_id = str(sys.argv[1])
     vpc_link_id = str(sys.argv[2])
-
-    try:
-        create_gateway_intregration(api_id, vpc_link_id)
-    except:
-        print("failed to create API Gateway integration")
-        traceback.print_exc()
+    create_gateway_intregration(api_id, vpc_link_id)
