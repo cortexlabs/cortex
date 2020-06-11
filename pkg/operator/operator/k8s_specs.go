@@ -625,16 +625,16 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 
 		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
-			envVars = append(envVars, []kcore.EnvVar{
-				{
+			envVars = append(envVars,
+				kcore.EnvVar{
 					Name:  "CORTEX_MODEL_DIR",
 					Value: path.Join(_emptyDirMountPath, "model"),
 				},
-				{
+				kcore.EnvVar{
 					Name:  "CORTEX_TF_BASE_SERVING_PORT",
 					Value: _tfBaseServingPortStr,
 				},
-			}...)
+			)
 		}
 	}
 
