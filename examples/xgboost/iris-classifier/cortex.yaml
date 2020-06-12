@@ -1,9 +1,0 @@
-# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
-
-- name: iris-classifier
-  predictor:
-    type: onnx
-    path: predictor.py
-    model: s3://cortex-examples/xgboost/iris-classifier/gbtree.onnx
-  tracker:
-    model_type: classification

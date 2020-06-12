@@ -15,36 +15,42 @@
 import os
 import base64
 import time
+from pathlib import Path
+import json
+import msgpack
 
 import datadog
 
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
 from cortex.lib.type.predictor import Predictor
-from cortex.lib.type.tracker import Tracker
+from cortex.lib.type.monitoring import Monitoring
+from cortex.lib.storage import S3
 
 
 class API:
-    def __init__(self, storage, cache_dir=".", **kwargs):
+    def __init__(self, provider, storage, model_dir, cache_dir=".", **kwargs):
+        self.provider = provider
         self.id = kwargs["id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
         self.endpoint = kwargs["endpoint"]
-        self.predictor = Predictor(storage, cache_dir, **kwargs["predictor"])
-        self.tracker = None
-        if kwargs.get("tracker") is not None:
-            self.tracker = Tracker(**kwargs["tracker"])
+        self.predictor = Predictor(provider, model_dir, cache_dir, **kwargs["predictor"])
+        self.monitoring = None
+        if kwargs.get("monitoring") is not None:
+            self.monitoring = Monitoring(**kwargs["monitoring"])
 
         self.cache_dir = cache_dir
         self.storage = storage
 
-        host_ip = os.environ["HOST_IP"]
-        datadog.initialize(statsd_host=host_ip, statsd_port="8125")
-        self.statsd = datadog.statsd
+        if provider != "local":
+            host_ip = os.environ["HOST_IP"]
+            datadog.initialize(statsd_host=host_ip, statsd_port="8125")
+            self.statsd = datadog.statsd
 
     def get_cached_classes(self):
-        prefix = os.path.join(self.metadata_root, self.id, "classes") + "/"
+        prefix = os.path.join(self.metadata_root, "classes") + "/"
         class_paths = self.storage.search(prefix=prefix)
         class_set = set()
         for class_path in class_paths:
@@ -56,21 +62,36 @@ class API:
         try:
             ascii_encoded = class_name.encode("ascii")  # cloudwatch only supports ascii
             encoded_class_name = base64.urlsafe_b64encode(ascii_encoded)
-            key = os.path.join(self.metadata_root, self.id, "classes", encoded_class_name.decode())
+            key = os.path.join(self.metadata_root, "classes", encoded_class_name.decode())
             self.storage.put_json("", key)
         except Exception as e:
             raise ValueError("unable to store class {}".format(class_name)) from e
 
-    def metric_dimensions(self):
+    def metric_dimensions_with_id(self):
         return [{"Name": "APIName", "Value": self.name}, {"Name": "APIID", "Value": self.id}]
 
-    def post_request_metrics(self, status_code, total_time):
-        metrics = [self.status_code_metric(status_code), self.latency_metric(total_time)]
-        self.post_metrics(metrics)
+    def metric_dimensions(self):
+        return [{"Name": "APIName", "Value": self.name}]
 
-    def post_tracker_metrics(self, prediction_value=None):
+    def post_request_metrics(self, status_code, total_time):
+        total_time_ms = total_time * 1000
+        if self.provider == "local":
+            self.store_metrics_locally(status_code, total_time_ms)
+        else:
+            metrics = [
+                self.status_code_metric(self.metric_dimensions(), status_code),
+                self.status_code_metric(self.metric_dimensions_with_id(), status_code),
+                self.latency_metric(self.metric_dimensions(), total_time_ms),
+                self.latency_metric(self.metric_dimensions_with_id(), total_time_ms),
+            ]
+            self.post_metrics(metrics)
+
+    def post_monitoring_metrics(self, prediction_value=None):
         if prediction_value is not None:
-            metrics = [self.prediction_metrics(prediction_value)]
+            metrics = [
+                self.prediction_metrics(self.metric_dimensions(), prediction_value),
+                self.prediction_metrics(self.metric_dimensions_with_id(), prediction_value),
+            ]
             self.post_metrics(metrics)
 
     def post_metrics(self, metrics):
@@ -87,9 +108,27 @@ class API:
         except:
             cx_logger().warn("failure encountered while publishing metrics", exc_info=True)
 
-    def status_code_metric(self, status_code):
+    def store_metrics_locally(self, status_code, total_time):
         status_code_series = int(status_code / 100)
-        status_code_dimensions = self.metric_dimensions() + [
+
+        status_code_file_name = f"/mnt/workspace/{os.getpid()}.{status_code_series}XX"
+        self.increment_counter_file(status_code_file_name, 1)
+
+        request_time_file = f"/mnt/workspace/{os.getpid()}.request_time"
+        self.increment_counter_file(request_time_file, total_time)
+
+    def increment_counter_file(self, file_name, value):
+        previous_val = 0
+        if Path(file_name).is_file():
+            with open(file_name, "r") as f:
+                previous_val = json.load(f)  # values are either of type int or float
+
+        with open(file_name, "w") as f:
+            json.dump(previous_val + value, f)
+
+    def status_code_metric(self, dimensions, status_code):
+        status_code_series = int(status_code / 100)
+        status_code_dimensions = dimensions + [
             {"Name": "Code", "Value": "{}XX".format(status_code_series)}
         ]
         return {
@@ -99,18 +138,16 @@ class API:
             "Unit": "Count",
         }
 
-    def latency_metric(self, total_time):
+    def latency_metric(self, dimensions, total_time):
         return {
             "MetricName": "Latency",
-            "Dimensions": self.metric_dimensions(),
-            "Value": total_time * 1000,  # milliseconds
+            "Dimensions": dimensions,
+            "Value": total_time,  # milliseconds
         }
 
-    def prediction_metrics(self, prediction_value):
-        if self.tracker.model_type == "classification":
-            dimensions_with_class = self.metric_dimensions() + [
-                {"Name": "Class", "Value": str(prediction_value)}
-            ]
+    def prediction_metrics(self, dimensions, prediction_value):
+        if self.monitoring.model_type == "classification":
+            dimensions_with_class = dimensions + [{"Name": "Class", "Value": str(prediction_value)}]
             return {
                 "MetricName": "Prediction",
                 "Dimensions": dimensions_with_class,
@@ -120,6 +157,24 @@ class API:
         else:
             return {
                 "MetricName": "Prediction",
-                "Dimensions": self.metric_dimensions(),
+                "Dimensions": dimensions,
                 "Value": float(prediction_value),
             }
+
+
+def get_spec(provider, storage, cache_dir, spec_path):
+    if provider == "local":
+        return read_msgpack(spec_path)
+
+    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
+
+    if not os.path.isfile(local_spec_path):
+        _, key = S3.deconstruct_s3_path(spec_path)
+        storage.download_file(key, local_spec_path)
+
+    return read_msgpack(local_spec_path)
+
+
+def read_msgpack(msgpack_path):
+    with open(msgpack_path, "rb") as msgpack_file:
+        return msgpack.load(msgpack_file, raw=False)

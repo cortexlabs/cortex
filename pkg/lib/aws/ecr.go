@@ -18,6 +18,7 @@ package aws
 
 import (
 	"encoding/base64"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -30,6 +31,8 @@ type ECRAuthConfig struct {
 	AccessToken   string
 	ProxyEndpoint string
 }
+
+var _ecrRegionRegex = regexp.MustCompile(`ecr\.(\S+)\.amazon`)
 
 func (c *Client) GetECRAuthToken() (*ecr.GetAuthorizationTokenOutput, error) {
 	result, err := c.ECR().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
@@ -71,4 +74,12 @@ func GetAccountIDFromECRURL(path string) string {
 		return strings.Split(path, ".")[0]
 	}
 	return ""
+}
+
+func GetRegionFromECRURL(path string) string {
+	res := _ecrRegionRegex.FindStringSubmatch(path)
+	if len(res) != 2 {
+		return ""
+	}
+	return res[1]
 }

@@ -47,8 +47,13 @@ const (
 	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
 	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
+	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
+	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
+	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
+	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
+	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 )
 
 func ErrorInvalidRegion(region string) error {
@@ -149,10 +154,10 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 	})
 }
 
-func ErrorInvalidAvailabilityZone(userZone string, allZones strset.Set) error {
+func ErrorInvalidAvailabilityZone(userZone string, allZones strset.Set, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAvailabilityZone,
-		Message: fmt.Sprintf("%s is not an availability zone; please choose from the following availability zones: %s", s.UserStr(userZone), s.UserStrsOr(allZones.SliceSorted())),
+		Message: fmt.Sprintf("%s is not an availability zone in %s; please choose from the following availability zones: %s", s.UserStr(userZone), region, s.UserStrsOr(allZones.SliceSorted())),
 	})
 }
 
@@ -196,6 +201,13 @@ func ErrorDidNotMatchStrictS3Regex() error {
 	})
 }
 
+func ErrorNATRequiredWithPrivateSubnetVisibility() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNATRequiredWithPrivateSubnetVisibility,
+		Message: fmt.Sprintf("a nat gateway is required when `%s: %s` is specified; either set %s to %s or %s, or set %s to %s", SubnetVisibilityKey, PrivateSubnetVisibility, NATGatewayKey, s.UserStr(SingleNATGateway), s.UserStr(HighlyAvailableNATGateway), SubnetVisibilityKey, s.UserStr(PublicSubnetVisibility)),
+	})
+}
+
 func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clusterRegion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
@@ -207,5 +219,33 @@ func ErrorInvalidInstanceType(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidInstanceType,
 		Message: fmt.Sprintf("%s is not a valid instance type", instanceType),
+	})
+}
+
+func ErrorIOPSNotSupported(volumeType VolumeType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSNotSupported,
+		Message: fmt.Sprintf("IOPS cannot be configured for volume type %s; set `%s: %s` or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, IO1VolumeType, InstanceVolumeIOPSKey),
+	})
+}
+
+func ErrorIOPSTooLarge(iops int64, volumeSize int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSTooLarge,
+		Message: fmt.Sprintf("%s (%d) cannot be more than 50 times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", InstanceVolumeIOPSKey, iops, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
+	})
+}
+
+func ErrorCantOverrideDefaultTag() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCantOverrideDefaultTag,
+		Message: fmt.Sprintf("the \"%s\" tag cannot be overridden (it is set by default, and it must always be equal to your cluster name)", ClusterNameTag),
+	})
+}
+
+func ErrorSSLCertificateARNNotFound(sslCertificateARN string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSSLCertificateARNNotFound,
+		Message: fmt.Sprintf("unable to find the specified ssl certificate in region %s: %s", region, sslCertificateARN),
 	})
 }

@@ -15,6 +15,7 @@
 import sys
 import os
 import argparse
+import inspect
 import time
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -33,13 +34,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from cortex import consts
 from cortex.lib import util
-from cortex.lib.type import API
-from cortex.lib.log import cx_logger, debug_obj
-from cortex.lib.storage import S3, FileLock
+from cortex.lib.type import API, get_spec
+from cortex.lib.log import cx_logger
+from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
 
 if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
-    errMsg = f"your Cortex operator version ({os.environ['CORTEX_VERSION']}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your predictor image by modifying the appropriate `image_*` field(s) in your cluster configuration file (e.g. cluster.yaml) and running `cortex cluster update --config cluster.yaml`"
+    errMsg = f"your Cortex operator version ({os.environ['CORTEX_VERSION']}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your predictor image by modifying the `image` field in your API configuration file (e.g. cortex.yaml) and re-running `cortex deploy`, or update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update"
     raise ValueError(errMsg)
 
 
@@ -65,36 +66,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-local_cache = {"api": None, "predictor_impl": None, "client": None, "class_set": set()}
+local_cache = {
+    "api": None,
+    "provider": None,
+    "predictor_impl": None,
+    "predict_route": None,
+    "client": None,
+    "class_set": set(),
+}
 
 
 def update_api_liveness():
     threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
-    with open("/mnt/api_liveness.txt", "w") as f:
+    with open("/mnt/workspace/api_liveness.txt", "w") as f:
         f.write(str(math.ceil(time.time())))
 
 
 @app.on_event("startup")
 def startup():
-    open("/mnt/api_readiness.txt", "a").close()
+    open("/mnt/workspace/api_readiness.txt", "a").close()
     update_api_liveness()
 
 
 @app.on_event("shutdown")
 def shutdown():
     try:
-        os.remove("/mnt/api_readiness.txt")
+        os.remove("/mnt/workspace/api_readiness.txt")
     except:
         pass
 
     try:
-        os.remove("/mnt/api_liveness.txt")
+        os.remove("/mnt/workspace/api_liveness.txt")
     except:
         pass
 
 
 def is_prediction_request(request):
-    return request.url.path == "/predict" and request.method == "POST"
+    return request.url.path == local_cache["predict_route"] and request.method == "POST"
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -123,9 +131,10 @@ async def register_request(request: Request, call_next):
     response = None
     try:
         if is_prediction_request(request):
-            request_id = request.headers["x-request-id"]
-            file_id = f"/mnt/requests/{request_id}"
-            open(file_id, "a").close()
+            if local_cache["provider"] != "local":
+                request_id = request.headers["x-request-id"]
+                file_id = f"/mnt/requests/{request_id}"
+                open(file_id, "a").close()
 
         response = await call_next(request)
     finally:
@@ -145,14 +154,34 @@ async def register_request(request: Request, call_next):
     return response
 
 
-@app.post("/predict")
-def predict(request: Any = Body(..., media_type="application/json"), debug=False):
+@app.middleware("http")
+async def parse_payload(request: Request, call_next):
+    if not is_prediction_request(request):
+        return await call_next(request)
+
+    if "payload" not in local_cache["predict_fn_args"]:
+        return await call_next(request)
+
+    content_type = request.headers.get("content-type", "").lower()
+
+    if content_type.startswith("multipart/form") or content_type.startswith(
+        "application/x-www-form-urlencoded"
+    ):
+        request.state.payload = await request.form()
+    elif content_type.startswith("application/json"):
+        request.state.payload = await request.json()
+    else:
+        request.state.payload = await request.body()
+
+    return await call_next(request)
+
+
+def predict(request: Request):
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
+    args = build_predict_args(request)
 
-    debug_obj("payload", request, debug)
-    prediction = predictor_impl.predict(request)
-    debug_obj("prediction", prediction, debug)
+    prediction = predictor_impl.predict(**args)
 
     if isinstance(prediction, bytes):
         response = Response(content=prediction, media_type="application/octet-stream")
@@ -170,12 +199,12 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
-    if api.tracker is not None:
+    if local_cache["provider"] != "local" and api.monitoring is not None:
         try:
-            predicted_value = api.tracker.extract_predicted_value(prediction)
-            api.post_tracker_metrics(predicted_value)
+            predicted_value = api.monitoring.extract_predicted_value(prediction)
+            api.post_monitoring_metrics(predicted_value)
             if (
-                api.tracker.model_type == "classification"
+                api.monitoring.model_type == "classification"
                 and predicted_value not in local_cache["class_set"]
             ):
                 tasks = BackgroundTasks()
@@ -188,28 +217,42 @@ def predict(request: Any = Body(..., media_type="application/json"), debug=False
     return response
 
 
-@app.get("/predict")
+def build_predict_args(request: Request):
+    args = {}
+
+    if "payload" in local_cache["predict_fn_args"]:
+        args["payload"] = request.state.payload
+    if "headers" in local_cache["predict_fn_args"]:
+        args["headers"] = request.headers
+    if "query_params" in local_cache["predict_fn_args"]:
+        args["query_params"] = request.query_params
+
+    return args
+
+
 def get_summary():
     response = {"message": API_SUMMARY_MESSAGE}
 
-    if hasattr(local_cache["client"], "input_signature"):
-        response["model_signature"] = local_cache["client"].input_signature
+    if hasattr(local_cache["client"], "input_signatures"):
+        response["model_signatures"] = local_cache["client"].input_signatures
+
     return response
-
-
-def get_spec(storage, cache_dir, s3_path):
-    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    _, key = S3.deconstruct_s3_path(s3_path)
-    storage.download_file(key, local_spec_path)
-    return util.read_msgpack(local_spec_path)
 
 
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    spec = os.environ["CORTEX_API_SPEC"]
+    provider = os.environ["CORTEX_PROVIDER"]
+    spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
-    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+
+    model_dir = os.getenv("CORTEX_MODEL_DIR")
+    tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
+    tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
+
+    if provider == "local":
+        storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
+    else:
+        storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
 
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
@@ -224,27 +267,46 @@ def start():
                 f.seek(0)
                 json.dump(used_ports, f)
                 f.truncate()
-    else:
-        tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", None)
 
     try:
-        raw_api_spec = get_spec(storage, cache_dir, spec)
-        api = API(storage=storage, cache_dir=cache_dir, **raw_api_spec)
-        client = api.predictor.initialize_client(model_dir, tf_serving_port)
+        raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
+        api = API(
+            provider=provider,
+            storage=storage,
+            model_dir=model_dir,
+            cache_dir=cache_dir,
+            **raw_api_spec,
+        )
+        client = api.predictor.initialize_client(
+            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port,
+        )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
         local_cache["api"] = api
+        local_cache["provider"] = provider
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
+        local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+        predict_route = "/"
+        if provider != "local":
+            predict_route = "/predict"
+        local_cache["predict_route"] = predict_route
     except:
         cx_logger().exception("failed to start api")
         sys.exit(1)
 
-    if api.tracker is not None and api.tracker.model_type == "classification":
+    if (
+        provider != "local"
+        and api.monitoring is not None
+        and api.monitoring.model_type == "classification"
+    ):
         try:
             local_cache["class_set"] = api.get_cached_classes()
         except:
             cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
+
+    app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
+    app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])
 
     return app

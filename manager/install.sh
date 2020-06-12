@@ -102,27 +102,48 @@ function ensure_eks() {
     exit 1
   fi
 
-  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
-    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
-    # only update min if on demand nodegroup exists and on demand nodegroup is not a backup
-    if [[ -n $asg_on_demand_name ]] && [[ "$CORTEX_SPOT_CONFIG_ON_DEMAND_BACKUP" != "True" ]]; then
-      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --min-size=$CORTEX_MIN_INSTANCES
-    fi
+  asg_on_demand_resize_flags=""
+  asg_spot_resize_flags=""
 
-    if [[ -n $asg_spot_name ]]; then
-      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --min-size=$CORTEX_MIN_INSTANCES
+  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
+    # only update min for on-demand nodegroup if it's not a backup
+    if [[ -n $asg_on_demand_name ]] && [[ "$CORTEX_SPOT_CONFIG_ON_DEMAND_BACKUP" != "True" ]]; then
+      asg_on_demand_resize_flags+=" --min-size=$CORTEX_MIN_INSTANCES"
     fi
-    echo "✓"
+    if [[ -n $asg_spot_name ]]; then
+      asg_spot_resize_flags+=" --min-size=$CORTEX_MIN_INSTANCES"
+    fi
   fi
 
   if [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
-    echo -n "￮ updating max instances to $CORTEX_MAX_INSTANCES "
     if [[ -n $asg_on_demand_name ]]; then
-      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --max-size=$CORTEX_MAX_INSTANCES
+      asg_on_demand_resize_flags+=" --max-size=$CORTEX_MAX_INSTANCES"
     fi
     if [[ -n $asg_spot_name ]]; then
-      aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --max-size=$CORTEX_MAX_INSTANCES
+      asg_spot_resize_flags+=" --max-size=$CORTEX_MAX_INSTANCES"
     fi
+  fi
+
+  is_resizing="false"
+  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ] && [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
+    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES and max instances to $CORTEX_MAX_INSTANCES "
+    is_resizing="true"
+  elif [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
+    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
+    is_resizing="true"
+  elif [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
+    echo -n "￮ updating max instances to $CORTEX_MAX_INSTANCES "
+    is_resizing="true"
+  fi
+
+  if [ "$asg_on_demand_resize_flags" != "" ]; then
+    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name $asg_on_demand_resize_flags
+  fi
+  if [ "$asg_spot_resize_flags" != "" ]; then
+    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name $asg_spot_resize_flags
+  fi
+
+  if [ "$is_resizing" == "true" ]; then
     echo "✓"
   fi
 }
@@ -153,7 +174,7 @@ function main() {
   echo -n "￮ configuring networking "
   setup_istio
   envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  echo " ✓"
 
   echo -n "￮ configuring autoscaling "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml
@@ -183,30 +204,37 @@ function main() {
 
   echo -n "￮ starting operator "
   kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
-  until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
+  printed_dot="false"
+  until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; printed_dot="true"; sleep 2; done
   envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
 
   validate_cortex
 
   if kubectl get daemonset image-downloader -n=default &>/dev/null; then
     echo -n "￮ downloading docker images "
+    printed_dot="false"
     i=0
     until [ "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
       if [ $i -eq 100 ]; then break; fi  # give up after 5 minutes
       echo -n "."
+      printed_dot="true"
       ((i=i+1))
       sleep 3
     done
     kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
-    echo "✓"
+    if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
   fi
 
   echo -n "￮ configuring cli "
-  python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENVIRONMENT" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
+  python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENV_NAME" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
   echo "✓"
 
-  echo -e "\ncortex is ready!"
+  if [ "$arg1" != "--update" ] && [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing, but you may now set up VPC Peering)"
+  else
+    echo -e "\ncortex is ready!"
+  fi
 }
 
 function setup_configmap() {
@@ -222,6 +250,7 @@ function setup_configmap() {
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
+    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
@@ -257,11 +286,27 @@ function setup_istio() {
     sleep 3
   done
 
+  export CORTEX_API_LOAD_BALANCER_ANNOTATION=""
+  if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    export CORTEX_API_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
+  fi
+  export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION=""
+  if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
+  fi
+
+  export CORTEX_SSL_CERTIFICATE_ANNOTATION=""
+  if [[ -n "$CORTEX_SSL_CERTIFICATE_ARN" ]]; then
+    export CORTEX_SSL_CERTIFICATE_ANNOTATION="service.beta.kubernetes.io/aws-load-balancer-ssl-cert: $CORTEX_SSL_CERTIFICATE_ARN"
+  fi
+
   envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
 }
 
 function validate_cortex() {
   set +e
+
+  validation_start_time="$(date +%s)"
 
   echo -n "￮ waiting for load balancers "
 
@@ -272,6 +317,13 @@ function validate_cortex() {
   operator_endpoint=""
 
   while true; do
+    # 30 minute timeout
+    now="$(date +%s)"
+    if [ "$now" -ge "$(($validation_start_time+1800))" ]; then
+      echo -e "\n\ntimeout has occurred when validating your cortex cluster"
+      exit 1
+    fi
+
     echo -n "."
     sleep 3
 
@@ -307,11 +359,13 @@ function validate_cortex() {
       operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
-    if [ "$operator_endpoint_reachable" != "ready" ]; then
-      if ! curl $operator_endpoint >/dev/null 2>&1; then
-        continue
+    if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+      if [ "$operator_endpoint_reachable" != "ready" ]; then
+        if ! curl --max-time 3 $operator_endpoint >/dev/null 2>&1; then
+          continue
+        fi
+        operator_endpoint_reachable="ready"
       fi
-      operator_endpoint_reachable="ready"
     fi
 
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
@@ -331,7 +385,7 @@ function validate_cortex() {
     break
   done
 
-  echo "✓"
+  echo " ✓"
 }
 
 main

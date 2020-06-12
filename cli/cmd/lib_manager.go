@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -36,99 +37,26 @@ import (
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
-	dockerclient "github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/docker/docker/pkg/term"
 )
 
-var _cachedDockerClient *dockerclient.Client
-
-func getDockerClient() (*dockerclient.Client, error) {
-	if _cachedDockerClient != nil {
-		return _cachedDockerClient, nil
-	}
-
-	var err error
-	_cachedDockerClient, err = dockerclient.NewClientWithOpts(dockerclient.FromEnv)
-	if err != nil {
-		return nil, wrapDockerError(err)
-	}
-
-	_cachedDockerClient.NegotiateAPIVersion(context.Background())
-	return _cachedDockerClient, nil
-}
-
-func wrapDockerError(err error) error {
-	if dockerclient.IsErrConnectionFailed(err) {
-		return ErrorConnectToDockerDaemon()
-	}
-
-	if strings.Contains(strings.ToLower(err.Error()), "permission denied") {
-		return ErrorDockerPermissions(err)
-	}
-
-	return errors.WithStack(err)
-}
-
-func checkDockerRunning() error {
-	docker, err := getDockerClient()
-	if err != nil {
-		return err
-	}
-
-	if _, err := docker.Info(context.Background()); err != nil {
-		return wrapDockerError(err)
-	}
-
-	return nil
-}
-
-func pullManager(managerImage string) error {
-	docker, err := getDockerClient()
-	if err != nil {
-		return err
-	}
-
-	images, err := docker.ImageList(context.Background(), dockertypes.ImageListOptions{})
-	if err != nil {
-		return wrapDockerError(err)
-	}
-
-	for _, image := range images {
-		for _, tag := range image.RepoTags {
-			if tag == managerImage {
-				return nil
-			}
-		}
-	}
-
-	pullOutput, err := docker.ImagePull(context.Background(), managerImage, dockertypes.ImagePullOptions{})
-	if err != nil {
-		return wrapDockerError(err)
-	}
-	defer pullOutput.Close()
-
-	termFd, isTerm := term.GetFdInfo(os.Stderr)
-	jsonmessage.DisplayJSONMessagesStream(pullOutput, os.Stderr, termFd, isTerm, nil)
-	fmt.Println()
-
-	return nil
-}
-
-func runManager(containerConfig *container.Config) (string, *int, error) {
+func runManager(containerConfig *container.Config, addNewLineAfterPull bool) (string, *int, error) {
 	containerConfig.Env = append(containerConfig.Env, "CORTEX_CLI_VERSION="+consts.CortexVersion)
 
 	// Add a slight delay before running the command to ensure logs don't start until after the container is attached
 	containerConfig.Cmd[0] = "sleep 0.1 && /root/check_cortex_version.sh && " + containerConfig.Cmd[0]
 
-	docker, err := getDockerClient()
+	dockerClient, err := docker.GetDockerClient()
 	if err != nil {
 		return "", nil, err
 	}
 
-	err = pullManager(containerConfig.Image)
+	pulledImage, err := docker.PullImage(containerConfig.Image, docker.NoAuth, docker.PrintDots)
 	if err != nil {
 		return "", nil, err
+	}
+
+	if pulledImage && addNewLineAfterPull {
+		fmt.Println()
 	}
 
 	hostConfig := &container.HostConfig{
@@ -141,13 +69,13 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		},
 	}
 
-	containerInfo, err := docker.ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
+	containerInfo, err := dockerClient.ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
-		return "", nil, wrapDockerError(err)
+		return "", nil, docker.WrapDockerError(err)
 	}
 
 	removeContainer := func() {
-		docker.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
+		dockerClient.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
 			RemoveVolumes: true,
 			Force:         true,
 		})
@@ -166,18 +94,19 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 		exit.Error(ErrorDockerCtrlC())
 	}()
 
-	err = docker.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
+	err = dockerClient.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
-		return "", nil, wrapDockerError(err)
+		return "", nil, docker.WrapDockerError(err)
 	}
 
-	logsOutput, err := docker.ContainerAttach(context.Background(), containerInfo.ID, dockertypes.ContainerAttachOptions{
+	// Use ContainerAttach() since that allows logs to be streamed even if they don't end in new lines
+	logsOutput, err := dockerClient.ContainerAttach(context.Background(), containerInfo.ID, dockertypes.ContainerAttachOptions{
 		Stream: true,
 		Stdout: true,
 		Stderr: true,
 	})
 	if err != nil {
-		return "", nil, wrapDockerError(err)
+		return "", nil, docker.WrapDockerError(err)
 	}
 	defer logsOutput.Close()
 
@@ -185,18 +114,18 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 	tee := io.TeeReader(logsOutput.Reader, &outputBuffer)
 
 	_, err = io.Copy(os.Stdout, tee)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return "", nil, errors.WithStack(err)
 	}
 
-	output := outputBuffer.String()
+	output := strings.ReplaceAll(outputBuffer.String(), "\r\n", "\n")
 
 	// Let the ctrl+c handler run its course
 	if caughtCtrlC {
 		time.Sleep(5 * time.Second)
 	}
 
-	info, err := docker.ContainerInspect(context.Background(), containerInfo.ID)
+	info, err := dockerClient.ContainerInspect(context.Background(), containerInfo.ID)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
 	}
@@ -208,7 +137,7 @@ func runManager(containerConfig *container.Config) (string, *int, error) {
 	return output, &info.State.ExitCode, nil
 }
 
-func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials) (string, *int, error) {
+func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, envName string) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
@@ -230,7 +159,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENVIRONMENT=" + _flagEnv,
+			"CORTEX_ENV_NAME=" + envName,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
@@ -238,21 +167,22 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
+			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"),
 			"CORTEX_CLUSTER_CONFIG_FILE=" + mountedConfigPath,
 			"CORTEX_CLUSTER_WORKSPACE=" + clusterWorkspace,
-			"CORTEX_IMAGE_PYTHON_SERVE=" + consts.DefaultImagePythonServe,
-			"CORTEX_IMAGE_PYTHON_SERVE_INF=" + consts.DefaultImagePythonServeInf,
-			"CORTEX_IMAGE_PYTHON_SERVE_GPU=" + consts.DefaultImagePythonServeGPU,
-			"CORTEX_IMAGE_TF_SERVE=" + consts.DefaultImageTFServe,
-			"CORTEX_IMAGE_TF_SERVE_INF=" + consts.DefaultImageTFServeInf,
-			"CORTEX_IMAGE_TF_SERVE_GPU=" + consts.DefaultImageTFServeGPU,
-			"CORTEX_IMAGE_TF_API=" + consts.DefaultImageTFAPI,
-			"CORTEX_IMAGE_ONNX_SERVE=" + consts.DefaultImageONNXServe,
-			"CORTEX_IMAGE_ONNX_SERVE_GPU=" + consts.DefaultImageONNXServeGPU,
+			"CORTEX_IMAGE_PYTHON_PREDICTOR_CPU=" + consts.DefaultImagePythonPredictorCPU,
+			"CORTEX_IMAGE_PYTHON_PREDICTOR_GPU=" + consts.DefaultImagePythonPredictorGPU,
+			"CORTEX_IMAGE_PYTHON_PREDICTOR_INF=" + consts.DefaultImagePythonPredictorInf,
+			"CORTEX_IMAGE_TENSORFLOW_SERVING_CPU=" + consts.DefaultImageTensorFlowServingCPU,
+			"CORTEX_IMAGE_TENSORFLOW_SERVING_GPU=" + consts.DefaultImageTensorFlowServingGPU,
+			"CORTEX_IMAGE_TENSORFLOW_SERVING_INF=" + consts.DefaultImageTensorFlowServingInf,
+			"CORTEX_IMAGE_TENSORFLOW_PREDICTOR=" + consts.DefaultImageTensorFlowPredictor,
+			"CORTEX_IMAGE_ONNX_PREDICTOR_CPU=" + consts.DefaultImageONNXPredictorCPU,
+			"CORTEX_IMAGE_ONNX_PREDICTOR_GPU=" + consts.DefaultImageONNXPredictorGPU,
 		},
 	}
 
-	output, exitCode, err := runManager(containerConfig)
+	output, exitCode, err := runManager(containerConfig, false)
 	if err != nil {
 		return "", nil, err
 	}
@@ -260,7 +190,7 @@ func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Con
 	return output, exitCode, nil
 }
 
-func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds AWSCredentials) (string, *int, error) {
+func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds AWSCredentials, envName string) (string, *int, error) {
 	containerConfig := &container.Config{
 		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
@@ -269,7 +199,7 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENVIRONMENT=" + _flagEnv,
+			"CORTEX_ENV_NAME=" + envName,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CORTEX_AWS_ACCESS_KEY_ID=" + awsCreds.CortexAWSAccessKeyID,
@@ -279,7 +209,7 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		},
 	}
 
-	output, exitCode, err := runManager(containerConfig)
+	output, exitCode, err := runManager(containerConfig, true)
 	if err != nil {
 		return "", nil, err
 	}

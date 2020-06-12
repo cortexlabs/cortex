@@ -29,6 +29,7 @@ type Int32PtrValidation struct {
 	Default              *int32
 	AllowExplicitNull    bool
 	AllowedValues        []int32
+	DisallowedValues     []int32
 	GreaterThan          *int32
 	GreaterThanOrEqualTo *int32
 	LessThan             *int32
@@ -39,6 +40,7 @@ type Int32PtrValidation struct {
 func makeInt32ValValidation(v *Int32PtrValidation) *Int32Validation {
 	return &Int32Validation{
 		AllowedValues:        v.AllowedValues,
+		DisallowedValues:     v.DisallowedValues,
 		GreaterThan:          v.GreaterThan,
 		GreaterThanOrEqualTo: v.GreaterThanOrEqualTo,
 		LessThan:             v.LessThan,
@@ -165,14 +167,14 @@ func Int32PtrFromPrompt(promptOpts *prompt.Options, v *Int32PtrValidation) (*int
 
 func ValidateInt32PtrMissing(v *Int32PtrValidation) (*int32, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateInt32Ptr(v.Default, v)
 }
 
 func ValidateInt32PtrProvdied(val *int32, v *Int32PtrValidation) (*int32, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInt32Ptr(val, v)
 }

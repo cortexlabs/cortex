@@ -4,8 +4,6 @@
   predictor:
     type: python
     path: predictor.py
-    config:
-      device: cuda  # use "cpu" to run on CPUs
   compute:
     cpu: 1
     gpu: 1

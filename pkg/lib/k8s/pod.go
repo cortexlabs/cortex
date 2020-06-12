@@ -26,6 +26,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	kscheme "k8s.io/client-go/kubernetes/scheme"
 	kremotecommand "k8s.io/client-go/tools/remotecommand"
 )
@@ -302,7 +303,7 @@ func (c *Client) ListPods(opts *kmeta.ListOptions) ([]kcore.Pod, error) {
 
 func (c *Client) ListPodsByLabels(labels map[string]string) ([]kcore.Pod, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListPods(opts)
 }
@@ -349,10 +350,7 @@ func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
 		totalCPU.Add(requests[kcore.ResourceCPU])
 		totalMem.Add(requests[kcore.ResourceMemory])
 		if gpu, ok := requests["nvidia.com/gpu"]; ok {
-			gpuVal, ok := gpu.AsInt64()
-			if ok {
-				totalGPU += gpuVal
-			}
+			totalGPU += gpu.Value()
 		}
 	}
 

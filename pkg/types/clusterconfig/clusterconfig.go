@@ -28,48 +28,58 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
+const ClusterNameTag = "cortex.dev/cluster-name"
+
 var (
 	_spotInstanceDistributionLength = 2
 	_maxInstancePools               = 20
-
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
 
 type Config struct {
-	InstanceType           *string     `json:"instance_type" yaml:"instance_type"`
-	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
-	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
-	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
-	Spot                   *bool       `json:"spot" yaml:"spot"`
-	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
-	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
-	Region                 *string     `json:"region" yaml:"region"`
-	AvailabilityZones      []string    `json:"availability_zones" yaml:"availability_zones"`
-	Bucket                 string      `json:"bucket" yaml:"bucket"`
-	LogGroup               string      `json:"log_group" yaml:"log_group"`
-	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
-	ImageOperator          string      `json:"image_operator" yaml:"image_operator"`
-	ImageManager           string      `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader        string      `json:"image_downloader" yaml:"image_downloader"`
-	ImageRequestMonitor    string      `json:"image_request_monitor" yaml:"image_request_monitor"`
-	ImageClusterAutoscaler string      `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer     string      `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageInferentia        string      `json:"image_inferentia" yaml:"image_inferentia"`
-	ImageNeuronRTD         string      `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
-	ImageNvidia            string      `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentd           string      `json:"image_fluentd" yaml:"image_fluentd"`
-	ImageStatsd            string      `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy        string      `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot        string      `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel      string      `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley       string      `json:"image_istio_galley" yaml:"image_istio_galley"`
+	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
+	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
+	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize         int64              `json:"instance_volume_size" yaml:"instance_volume_size"`
+	InstanceVolumeType         VolumeType         `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeIOPS         *int64             `json:"instance_volume_iops" yaml:"instance_volume_iops"`
+	Tags                       map[string]string  `json:"tags" yaml:"tags"`
+	Spot                       *bool              `json:"spot" yaml:"spot"`
+	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
+	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
+	Region                     *string            `json:"region" yaml:"region"`
+	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
+	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
+	Bucket                     string             `json:"bucket" yaml:"bucket"`
+	LogGroup                   string             `json:"log_group" yaml:"log_group"`
+	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
+	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
+	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
+	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader            string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor        string             `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageClusterAutoscaler     string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer         string             `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageInferentia            string             `json:"image_inferentia" yaml:"image_inferentia"`
+	ImageNeuronRTD             string             `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
+	ImageNvidia                string             `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentd               string             `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
+	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageIstioCitadel          string             `json:"image_istio_citadel" yaml:"image_istio_citadel"`
+	ImageIstioGalley           string             `json:"image_istio_galley" yaml:"image_istio_galley"`
 }
 
 type SpotConfig struct {
@@ -124,6 +134,38 @@ var UserValidation = &cr.StructValidation{
 				Default:              50,
 				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
 				LessThanOrEqualTo:    pointer.Int64(16384),
+			},
+		},
+		{
+			StructField: "InstanceVolumeType",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: VolumeTypesStrings(),
+				Default:       GP2VolumeType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return VolumeTypeFromString(str), nil
+			},
+		},
+		{
+			StructField: "Tags",
+			StringMapValidation: &cr.StringMapValidation{
+				AllowExplicitNull:  true,
+				AllowEmpty:         true,
+				ConvertNullToEmpty: true,
+			},
+		},
+		{
+			StructField: "SSLCertificateARN",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "InstanceVolumeIOPS",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThanOrEqualTo: pointer.Int64(100),
+				LessThanOrEqualTo:    pointer.Int64(64000),
+				AllowExplicitNull:    true,
 			},
 		},
 		{
@@ -197,7 +239,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
+				Validator: RegionValidator,
 			},
 		},
 		{
@@ -223,6 +265,52 @@ var UserValidation = &cr.StructValidation{
 				MaxLength: 63,
 			},
 			DefaultField: "ClusterName",
+		},
+		{
+			StructField: "SubnetVisibility",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: SubnetVisibilityStrings(),
+				Default:       PublicSubnetVisibility.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return SubnetVisibilityFromString(str), nil
+			},
+		},
+		{
+			StructField: "NATGateway",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: NATGatewayStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return NATGatewayFromString(str), nil
+			},
+			DefaultField: "SubnetVisibility",
+			DefaultFieldFunc: func(val interface{}) interface{} {
+				if val.(SubnetVisibility) == PublicSubnetVisibility {
+					return NoneNATGateway.String()
+				}
+				return SingleNATGateway.String()
+			},
+		},
+		{
+			StructField: "APILoadBalancerScheme",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerSchemeStrings(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerSchemeFromString(str), nil
+			},
+		},
+		{
+			StructField: "OperatorLoadBalancerScheme",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerSchemeStrings(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerSchemeFromString(str), nil
+			},
 		},
 		{
 			StructField: "ImageOperator",
@@ -356,7 +444,7 @@ func ValidateRegion(region string) error {
 	return nil
 }
 
-func validateRegion(region string) (string, error) {
+func RegionValidator(region string) (string, error) {
 	if err := ValidateRegion(region); err != nil {
 		return "", err
 	}
@@ -392,7 +480,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
+				Validator: RegionValidator,
 			},
 		},
 		{
@@ -416,38 +504,94 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 }
 
 func (cc *Config) Validate(awsClient *aws.Client) error {
-	fmt.Print("verifying your configuration...\n\n")
+	fmt.Print("verifying your configuration ...\n\n")
 
 	if *cc.MinInstances > *cc.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
-	if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
-		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
+	if cc.SubnetVisibility == PrivateSubnetVisibility && cc.NATGateway == NoneNATGateway {
+		return ErrorNATRequiredWithPrivateSubnetVisibility()
 	}
 
-	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
-		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
+	if cc.Bucket == "" {
+		accountID, _, err := awsClient.GetCachedAccountID()
+		if err != nil {
+			return err
+		}
+
+		bucketID := hash.String(accountID + *cc.Region)[:10]
+
+		defaultBucket := cc.ClusterName + "-" + bucketID
+		if len(defaultBucket) > 63 {
+			defaultBucket = defaultBucket[:63]
+		}
+		if strings.HasSuffix(defaultBucket, "-") {
+			defaultBucket = defaultBucket[:len(defaultBucket)-1]
+		}
+
+		cc.Bucket = defaultBucket
+	} else {
+		bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
+		if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
+			return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
+		}
 	}
 
-	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
+	primaryInstanceType := *cc.InstanceType
+	if _, ok := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, *cc.Region), InstanceTypeKey)
+	}
+
+	if cc.SSLCertificateARN != nil {
+		exists, err := awsClient.DoesCertificateExist(*cc.SSLCertificateARN)
+		if err != nil {
+			return errors.Wrap(err, SSLCertificateARNKey)
+		}
+
+		if !exists {
+			return errors.Wrap(ErrorSSLCertificateARNNotFound(*cc.SSLCertificateARN, *cc.Region), SSLCertificateARNKey)
+		}
+	}
+
+	// Throw error if IOPS defined for other storage than io1
+	if cc.InstanceVolumeType != IO1VolumeType && cc.InstanceVolumeIOPS != nil {
+		return ErrorIOPSNotSupported(cc.InstanceVolumeType)
+	}
+
+	if cc.InstanceVolumeType == IO1VolumeType && cc.InstanceVolumeIOPS != nil {
+		if *cc.InstanceVolumeIOPS > cc.InstanceVolumeSize*50 {
+			return ErrorIOPSTooLarge(*cc.InstanceVolumeIOPS, cc.InstanceVolumeSize)
+		}
+	}
+
+	if aws.EBSMetadatas[*cc.Region][cc.InstanceVolumeType.String()].IOPSConfigurable && cc.InstanceVolumeIOPS == nil {
+		cc.InstanceVolumeIOPS = pointer.Int64(math.MinInt64(cc.InstanceVolumeSize*50, 3000))
+	}
+
+	if err := awsClient.VerifyInstanceQuota(primaryInstanceType); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
 			return errors.Wrap(err, InstanceTypeKey)
 		}
 	}
 
+	if cc.Tags[ClusterNameTag] != "" && cc.Tags[ClusterNameTag] != cc.ClusterName {
+		return ErrorCantOverrideDefaultTag()
+	}
+	cc.Tags[ClusterNameTag] = cc.ClusterName
+
 	if err := cc.validateAvailabilityZones(awsClient); err != nil {
 		return errors.Wrap(err, AvailabilityZonesKey)
 	}
 
 	if cc.Spot != nil && *cc.Spot {
-		cc.FillEmptyFields(awsClient)
+		cc.FillEmptySpotFields(awsClient)
 
-		chosenInstance := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]
+		primaryInstance := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]
+
 		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
-			if instanceType == *cc.InstanceType {
+			if instanceType == primaryInstanceType {
 				continue
 			}
 			if _, ok := aws.InstanceMetadatas[*cc.Region][instanceType]; !ok {
@@ -455,14 +599,14 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
-			err := CheckSpotInstanceCompatibility(chosenInstance, instanceMetadata)
+			err := CheckSpotInstanceCompatibility(primaryInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 			}
 
 			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
 			if awsErr == nil {
-				if err := CheckSpotInstancePriceCompatibility(chosenInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
+				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
 					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 				}
 			}
@@ -526,7 +670,7 @@ func CheckSpotInstancePriceCompatibility(target aws.InstanceMetadata, suggested 
 }
 
 func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
-	chosenInstance := aws.InstanceMetadatas[region][instanceType]
+	primaryInstance := aws.InstanceMetadatas[region][instanceType]
 	cleanedDistribution := []string{instanceType}
 	for _, spotInstance := range spotConfig.InstanceDistribution {
 		if spotInstance != instanceType {
@@ -536,7 +680,7 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	spotConfig.InstanceDistribution = cleanedDistribution
 
 	if spotConfig.MaxPrice == nil {
-		spotConfig.MaxPrice = &chosenInstance.Price
+		spotConfig.MaxPrice = &primaryInstance.Price
 	}
 
 	if spotConfig.OnDemandBaseCapacity == nil {
@@ -562,7 +706,7 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 	return nil
 }
 
-func (cc *Config) FillEmptyFields(awsClient *aws.Client) error {
+func (cc *Config) FillEmptySpotFields(awsClient *aws.Client) error {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
@@ -575,7 +719,7 @@ func (cc *Config) FillEmptyFields(awsClient *aws.Client) error {
 
 func applyPromptDefaults(defaults Config) *Config {
 	defaultConfig := &Config{
-		Region:       pointer.String("us-west-2"),
+		Region:       pointer.String("us-east-1"),
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
@@ -601,8 +745,16 @@ func applyPromptDefaults(defaults Config) *Config {
 	return defaultConfig
 }
 
-func RegionPrompt(clusterConfig *Config) error {
+func RegionPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
+
+	if disallowPrompt {
+		if clusterConfig.Region == nil {
+			clusterConfig.Region = defaults.Region
+		}
+		return nil
+	}
+
 	regionPrompt := &cr.PromptValidation{
 		SkipNonNilFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
@@ -612,7 +764,7 @@ func RegionPrompt(clusterConfig *Config) error {
 					Prompt: RegionUserKey,
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: validateRegion,
+					Validator: RegionValidator,
 					Default:   defaults.Region,
 				},
 			},
@@ -626,38 +778,25 @@ func RegionPrompt(clusterConfig *Config) error {
 	return nil
 }
 
-func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
+func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
-	accountID, _, err := awsClient.GetCachedAccountID()
-	if err != nil {
-		return err
-	}
-	bucketID := hash.String(accountID + *clusterConfig.Region)[:10]
 
-	defaultBucket := clusterConfig.ClusterName + "-" + bucketID
-	if len(defaultBucket) > 63 {
-		defaultBucket = defaultBucket[:63]
-	}
-	if strings.HasSuffix(defaultBucket, "-") {
-		defaultBucket = defaultBucket[:len(defaultBucket)-1]
+	if disallowPrompt {
+		if clusterConfig.InstanceType == nil {
+			clusterConfig.InstanceType = defaults.InstanceType
+		}
+		if clusterConfig.MinInstances == nil {
+			clusterConfig.MinInstances = defaults.MinInstances
+		}
+		if clusterConfig.MaxInstances == nil {
+			clusterConfig.MaxInstances = defaults.MaxInstances
+		}
+		return nil
 	}
 
 	remainingPrompts := &cr.PromptValidation{
-		SkipNonNilFields:   true,
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "Bucket",
-				PromptOpts: &prompt.Options{
-					Prompt: BucketUserKey,
-				},
-				StringValidation: &cr.StringValidation{
-					Default:   defaultBucket,
-					MinLength: 3,
-					MaxLength: 63,
-					Validator: validateBucketName,
-				},
-			},
 			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
@@ -694,7 +833,7 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 		},
 	}
 
-	err = cr.ReadPrompt(clusterConfig, remainingPrompts)
+	err := cr.ReadPrompt(clusterConfig, remainingPrompts)
 	if err != nil {
 		return err
 	}
@@ -702,10 +841,28 @@ func InstallPrompt(clusterConfig *Config, awsClient *aws.Client) error {
 	return nil
 }
 
-func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Config) *cr.PromptValidation {
-	defaults := applyPromptDefaults(*userClusterConfig)
+func ConfigurePrompt(userClusterConfig *Config, cachedClusterConfig *Config, skipPopulatedFields bool, disallowPrompt bool) error {
+	defaults := applyPromptDefaults(*cachedClusterConfig)
 
-	return &cr.PromptValidation{
+	if disallowPrompt {
+		if userClusterConfig.MinInstances == nil {
+			if cachedClusterConfig.MinInstances != nil {
+				userClusterConfig.MinInstances = cachedClusterConfig.MinInstances
+			} else {
+				userClusterConfig.MinInstances = defaults.MinInstances
+			}
+		}
+		if userClusterConfig.MaxInstances == nil {
+			if cachedClusterConfig.MaxInstances != nil {
+				userClusterConfig.MaxInstances = cachedClusterConfig.MaxInstances
+			} else {
+				userClusterConfig.MaxInstances = defaults.MaxInstances
+			}
+		}
+		return nil
+	}
+
+	remainingPrompts := &cr.PromptValidation{
 		SkipNonNilFields: skipPopulatedFields,
 		PromptItemValidations: []*cr.PromptItemValidation{
 			{
@@ -732,6 +889,13 @@ func UpdatePromptValidation(skipPopulatedFields bool, userClusterConfig *Config)
 			},
 		},
 	}
+
+	err := cr.ReadPrompt(userClusterConfig, remainingPrompts)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 var AccessPromptValidation = &cr.PromptValidation{
@@ -755,8 +919,8 @@ var AccessPromptValidation = &cr.PromptValidation{
 				Prompt: RegionUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateRegion,
-				Default:   pointer.String("us-west-2"),
+				Validator: RegionValidator,
+				Default:   pointer.String("us-east-1"),
 			},
 		},
 	},
@@ -869,7 +1033,13 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(InstanceTypeUserKey, *cc.InstanceType)
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
 	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
+	items.Add(TagsUserKey, s.ObjFlat(cc.Tags))
+	if cc.SSLCertificateARN != nil {
+		items.Add(SSLCertificateARNUserKey, *cc.SSLCertificateARN)
+	}
 	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
+	items.Add(InstanceVolumeTypeUserKey, cc.InstanceVolumeType)
+	items.Add(InstanceVolumeIOPSUserKey, cc.InstanceVolumeIOPS)
 	items.Add(SpotUserKey, s.YesNo(*cc.Spot))
 
 	if cc.Spot != nil && *cc.Spot {
@@ -881,6 +1051,10 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
 	items.Add(LogGroupUserKey, cc.LogGroup)
+	items.Add(SubnetVisibilityUserKey, cc.SubnetVisibility)
+	items.Add(NATGatewayUserKey, cc.NATGateway)
+	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
+	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)

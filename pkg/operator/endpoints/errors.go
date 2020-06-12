@@ -40,7 +40,7 @@ const (
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIVersionMismatch,
-		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://www.cortex.dev/cluster-management/update, or update your CLI by following the instructions at https://www.cortex.dev/install", clientVersion, operatorVersion),
+		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update, or update your CLI by following the instructions at https://docs.cortex.dev/install", clientVersion, operatorVersion),
 	})
 }
 
@@ -61,21 +61,21 @@ func ErrorHeaderMalformed(header string) error {
 func ErrorAuthAPIError() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthAPIError,
-		Message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster update` to update the operator's AWS credentials",
+		Message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster configure` to update the operator's AWS credentials",
 	})
 }
 
 func ErrorAuthInvalid() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthInvalid,
-		Message: "invalid AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as the operator",
+		Message: "invalid AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
 	})
 }
 
 func ErrorAuthOtherAccount() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthOtherAccount,
-		Message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex configure` to configure your CLI with credentials for any IAM user in the same AWS account as your cluster",
+		Message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
 	})
 }
 
@@ -100,7 +100,7 @@ func ErrorPathParamRequired(param string) error {
 }
 
 func ErrorAnyQueryParamRequired(param string, params ...string) error {
-	allParams := append(params, param)
+	allParams := append([]string{param}, params...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAnyQueryParamRequired,
 		Message: fmt.Sprintf("query params required: %s", s.UserStrsOr(allParams)),
@@ -108,7 +108,7 @@ func ErrorAnyQueryParamRequired(param string, params ...string) error {
 }
 
 func ErrorAnyPathParamRequired(param string, params ...string) error {
-	allParams := append(params, param)
+	allParams := append([]string{param}, params...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAnyPathParamRequired,
 		Message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),

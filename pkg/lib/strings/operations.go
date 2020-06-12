@@ -18,6 +18,8 @@ package strings
 
 import (
 	"strings"
+
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
 )
 
 func ToTitle(str string) string {
@@ -36,6 +38,19 @@ func EnsureSuffix(str string, suffix string) string {
 		return str + suffix
 	}
 	return str
+}
+
+func EnsureBlankLineIfNotEmpty(str string) string {
+	if str == "" {
+		return str
+	}
+	if strings.HasSuffix(str, "\n\n") {
+		return str
+	}
+	if strings.HasSuffix(str, "\n") {
+		return str + "\n"
+	}
+	return str + "\n\n"
 }
 
 func RemoveTrailingNewLines(str string) string {
@@ -150,4 +165,20 @@ func StrsSentence(strs []string, lastJoinWord string) string {
 		lastIndex := len(strs) - 1
 		return strings.Join(strs[:lastIndex], ", ") + ", " + lastJoinWord + " " + strs[lastIndex]
 	}
+}
+
+func PluralS(str string, count interface{}) string {
+	return PluralCustom(str, str+"s", count)
+}
+
+func PluralEs(str string, count interface{}) string {
+	return PluralCustom(str, str+"es", count)
+}
+
+func PluralCustom(singular string, plural string, count interface{}) string {
+	countInt, _ := cast.InterfaceToInt64(count)
+	if countInt == 1 {
+		return singular
+	}
+	return plural
 }

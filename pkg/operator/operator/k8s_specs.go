@@ -23,12 +23,14 @@ import (
 	"path"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
@@ -46,16 +48,17 @@ const (
 	_tfServingContainerName                        = "serve"
 	_tfServingModelName                            = "model"
 	_downloaderInitContainerName                   = "downloader"
+	_downloaderLastLog                             = "downloading the %s serving image"
 	_neuronRTDContainerName                        = "neuron-rtd"
-	_coresPerInf                                   = int64(4)
-	_downloaderLastLog                             = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr             = int32(8888), "8888"
 	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
+	_tfServingHost                                 = "localhost"
+	_tfServingEmptyModelConfig                     = "/etc/tfs/model_config_server.conf"
 	_requestMonitorReadinessFile                   = "/request_monitor_ready.txt"
-	_apiReadinessFile                              = "/mnt/api_readiness.txt"
-	_apiLivenessFile                               = "/mnt/api_liveness.txt"
-	_apiLivenessStalePeriod                        = 7 // seconds (there is a 2-second buffer to be safe)
+	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
+	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
+	_apiLivenessStalePeriod                        = 7 // seconds (there is a 2-second buffer to be safe)
 )
 
 var (
@@ -84,7 +87,7 @@ type downloadContainerArg struct {
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
-		return tfAPISpec(api, prevDeployment)
+		return tensorflowAPISpec(api, prevDeployment)
 	case userconfig.ONNXPredictorType:
 		return onnxAPISpec(api, prevDeployment)
 	case userconfig.PythonPredictorType:
@@ -94,7 +97,7 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 	}
 }
 
-func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
+func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
@@ -102,17 +105,18 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	volumes := _defaultVolumes
 	containers := []kcore.Container{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	userPodMemRequest := api.Compute.Mem.Quantity.Copy()
-	userPodMemRequest.Sub(_requestMonitorMemRequest)
-
 	if api.Compute.Inf == 0 {
-		q1, q2 := k8s.SplitInTwo(userPodCPURequest)
-		apiResourceList[kcore.ResourceCPU] = *q1
-		tfServingResourceList[kcore.ResourceCPU] = *q2
+		if api.Compute.CPU != nil {
+			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			q1, q2 := k8s.SplitInTwo(userPodCPURequest)
+			apiResourceList[kcore.ResourceCPU] = *q1
+			tfServingResourceList[kcore.ResourceCPU] = *q2
+		}
 
 		if api.Compute.Mem != nil {
+			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
+			userPodMemRequest.Sub(_requestMonitorMemRequest)
 			q1, q2 := k8s.SplitInTwo(userPodMemRequest)
 			apiResourceList[kcore.ResourceMemory] = *q1
 			tfServingResourceList[kcore.ResourceMemory] = *q2
@@ -136,12 +140,18 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 
 		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
 
-		q1, q2, q3 := k8s.SplitInThree(userPodCPURequest)
-		apiResourceList[kcore.ResourceCPU] = *q1
-		tfServingResourceList[kcore.ResourceCPU] = *q2
-		neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q3
+		if api.Compute.CPU != nil {
+			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			q1, q2, q3 := k8s.SplitInThree(userPodCPURequest)
+			apiResourceList[kcore.ResourceCPU] = *q1
+			tfServingResourceList[kcore.ResourceCPU] = *q2
+			neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q3
+		}
 
 		if api.Compute.Mem != nil {
+			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
+			userPodMemRequest.Sub(_requestMonitorMemRequest)
 			q1, q2, q3 := k8s.SplitInThree(userPodMemRequest)
 			apiResourceList[kcore.ResourceMemory] = *q1
 			tfServingResourceList[kcore.ResourceMemory] = *q2
@@ -228,8 +238,6 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 }
 
 func tfDownloadArgs(api *spec.API) string {
-	tensorflowModel := *api.Predictor.Model
-
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
@@ -241,14 +249,24 @@ func tfDownloadArgs(api *spec.API) string {
 				HideFromLog:      true,
 				HideUnzippingLog: true,
 			},
-			{
-				From:                 tensorflowModel,
-				To:                   path.Join(_emptyDirMountPath, "model"),
-				Unzip:                strings.HasSuffix(tensorflowModel, ".zip"),
-				ItemName:             "the model",
-				TFModelVersionRename: path.Join(_emptyDirMountPath, "model", "1"),
-			},
 		},
+	}
+
+	rootModelPath := path.Join(_emptyDirMountPath, "model")
+	for _, model := range api.Predictor.Models {
+		var itemName string
+		if model.Name == consts.SingleModelName {
+			itemName = "the model"
+		} else {
+			itemName = fmt.Sprintf("model %s", model.Name)
+		}
+		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
+			From:                 model.Model,
+			To:                   path.Join(rootModelPath, model.Name),
+			Unzip:                strings.HasSuffix(model.Model, ".zip"),
+			ItemName:             itemName,
+			TFModelVersionRename: path.Join(rootModelPath, model.Name, "1"),
+		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
@@ -256,30 +274,28 @@ func tfDownloadArgs(api *spec.API) string {
 }
 
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	userPodResourceList := kcore.ResourceList{}
-	userPodResourceLimitsList := kcore.ResourceList{}
-	userPodvolumeMounts := _defaultVolumeMounts
-
+	apiPodResourceList := kcore.ResourceList{}
+	apiPodResourceLimitsList := kcore.ResourceList{}
+	apiPodVolumeMounts := _defaultVolumeMounts
 	volumes := _defaultVolumes
 	containers := []kcore.Container{}
 
-	podCPURequest := api.Compute.CPU.Quantity.Copy()
-	podMemRequest := api.Compute.Mem.Quantity.Copy()
-
-	podCPURequest.Sub(_requestMonitorCPURequest)
-
 	if api.Compute.Inf == 0 {
-		userPodResourceList[kcore.ResourceCPU] = *podCPURequest
+		if api.Compute.CPU != nil {
+			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			apiPodResourceList[kcore.ResourceCPU] = *userPodCPURequest
+		}
 
 		if api.Compute.Mem != nil {
-			userPodMemRequest := podMemRequest
+			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
 			userPodMemRequest.Sub(_requestMonitorMemRequest)
-			userPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
+			apiPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
 		}
 
 		if api.Compute.GPU > 0 {
-			userPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-			userPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+			apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+			apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		}
 
 	} else {
@@ -292,17 +308,22 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				MountPath: "/sock",
 			},
 		}
-		userPodvolumeMounts = append(userPodvolumeMounts, rtdVolumeMounts...)
+		apiPodVolumeMounts = append(apiPodVolumeMounts, rtdVolumeMounts...)
 		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
 
-		q1, q2 := k8s.SplitInTwo(podCPURequest)
-		userPodResourceList[kcore.ResourceCPU] = *q1
-		neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q2
+		if api.Compute.CPU != nil {
+			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			q1, q2 := k8s.SplitInTwo(userPodCPURequest)
+			apiPodResourceList[kcore.ResourceCPU] = *q1
+			neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q2
+		}
 
 		if api.Compute.Mem != nil {
-			podMemRequest.Sub(_requestMonitorMemRequest)
-			q1, q2 := k8s.SplitInTwo(podMemRequest)
-			userPodResourceList[kcore.ResourceMemory] = *q1
+			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
+			userPodMemRequest.Sub(_requestMonitorMemRequest)
+			q1, q2 := k8s.SplitInTwo(userPodMemRequest)
+			apiPodResourceList[kcore.ResourceMemory] = *q1
 			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *q2
 		}
 
@@ -315,12 +336,12 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, _apiContainerName),
 		EnvFrom:         _baseEnvVars,
-		VolumeMounts:    userPodvolumeMounts,
+		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiReadinessProbe,
 		Resources: kcore.ResourceRequirements{
-			Requests: userPodResourceList,
-			Limits:   userPodResourceLimitsList,
+			Requests: apiPodResourceList,
+			Limits:   apiPodResourceLimitsList,
 		},
 		Ports: []kcore.ContainerPort{
 			{ContainerPort: _defaultPortInt32},
@@ -401,12 +422,14 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
-	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
-	userPodCPURequest.Sub(_requestMonitorCPURequest)
-	resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	if api.Compute.CPU != nil {
+		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		resourceList[kcore.ResourceCPU] = *userPodCPURequest
+	}
 
 	if api.Compute.Mem != nil {
-		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
 		userPodMemRequest.Sub(_requestMonitorMemRequest)
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
@@ -496,12 +519,22 @@ func onnxDownloadArgs(api *spec.API) string {
 				HideFromLog:      true,
 				HideUnzippingLog: true,
 			},
-			{
-				From:     *api.Predictor.Model,
-				To:       path.Join(_emptyDirMountPath, "model"),
-				ItemName: "the model",
-			},
 		},
+	}
+
+	rootModelPath := path.Join(_emptyDirMountPath, "model")
+	for _, model := range api.Predictor.Models {
+		var itemName string
+		if model.Name == consts.SingleModelName {
+			itemName = "the model"
+		} else {
+			itemName = fmt.Sprintf("model %s", model.Name)
+		}
+		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
+			From:     model.Model,
+			To:       path.Join(rootModelPath, model.Name),
+			ItemName: itemName,
+		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
@@ -564,6 +597,13 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		})
 	}
 
+	envVars = append(envVars,
+		kcore.EnvVar{
+			Name:  "CORTEX_PROVIDER",
+			Value: types.AWSProviderType.String(),
+		},
+	)
+
 	if container == _apiContainerName {
 		envVars = append(envVars,
 			kcore.EnvVar{
@@ -621,10 +661,16 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 
 		if api.Predictor.Type == userconfig.ONNXPredictorType {
-			envVars = append(envVars, kcore.EnvVar{
-				Name:  "CORTEX_MODEL_DIR",
-				Value: path.Join(_emptyDirMountPath, "model"),
-			})
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_MODEL_DIR",
+					Value: path.Join(_emptyDirMountPath, "model"),
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_MODELS",
+					Value: strings.Join(api.ModelNames(), ","),
+				},
+			)
 		}
 
 		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
@@ -637,6 +683,14 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					Name:  "CORTEX_TF_BASE_SERVING_PORT",
 					Value: _tfBaseServingPortStr,
 				},
+				kcore.EnvVar{
+					Name:  "CORTEX_TF_SERVING_HOST",
+					Value: _tfServingHost,
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_MODELS",
+					Value: strings.Join(api.ModelNames(), ","),
+				},
 			)
 		}
 	}
@@ -647,7 +701,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.Inf * _coresPerInf / int64(api.Autoscaling.WorkersPerReplica)),
+					Value: s.Int64(api.Compute.Inf * consts.CoresPerInf / int64(api.Autoscaling.WorkersPerReplica)),
 				},
 				kcore.EnvVar{
 					Name:  "NEURON_RTD_ADDRESS",
@@ -664,7 +718,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 						Value: s.Int32(api.Autoscaling.WorkersPerReplica),
 					},
 					kcore.EnvVar{
-						Name:  "TF_STARTING_PORT",
+						Name:  "CORTEX_TF_BASE_SERVING_PORT",
 						Value: _tfBaseServingPortStr,
 					},
 					kcore.EnvVar{
@@ -674,6 +728,10 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					kcore.EnvVar{
 						Name:  "TF_MODEL_NAME",
 						Value: _tfServingModelName,
+					},
+					kcore.EnvVar{
+						Name:  "TF_EMPTY_MODEL_CONFIG",
+						Value: _tfServingEmptyModelConfig,
 					},
 				)
 			}
@@ -715,8 +773,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		// the entrypoint is different for Inferentia-based APIs
 		args = []string{
 			"--port=" + _tfBaseServingPortStr,
-			"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
-			"--model_name=" + _tfServingModelName,
+			"--model_config_file=" + _tfServingEmptyModelConfig,
 		}
 	}
 	var probeHandler kcore.Handler
@@ -736,9 +793,10 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			},
 		}
 	}
+
 	return &kcore.Container{
 		Name:            _tfServingContainerName,
-		Image:           api.Predictor.TFServeImage,
+		Image:           api.Predictor.TensorFlowServingImage,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            args,
 		Env:             getEnvVars(api, _tfServingContainerName),

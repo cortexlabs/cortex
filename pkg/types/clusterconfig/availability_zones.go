@@ -42,7 +42,7 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 	zones, err := awsClient.ListSupportedAvailabilityZones(*cc.InstanceType, extraInstances...)
 	if err != nil {
 		// Try again without checking instance types
-		zones, err = awsClient.ListAvailabilityZones()
+		zones, err = awsClient.ListAvailabilityZonesInRegion()
 		if err != nil {
 			return nil // Let eksctl choose the availability zones
 		}
@@ -56,9 +56,9 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 
 	// See https://github.com/weaveworks/eksctl/blob/master/pkg/eks/api.go
 	if awsClient.Region == "us-east-1" {
-		zones.Shrink(2)
+		zones.ShrinkSorted(2)
 	} else {
-		zones.Shrink(3)
+		zones.ShrinkSorted(3)
 	}
 
 	cc.AvailabilityZones = zones.SliceSorted()
@@ -67,14 +67,14 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 }
 
 func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInstances ...string) error {
-	allZones, err := awsClient.ListAvailabilityZones()
+	allZones, err := awsClient.ListAvailabilityZonesInRegion()
 	if err != nil {
 		return nil // Skip validation
 	}
 
 	for _, userZone := range cc.AvailabilityZones {
 		if !allZones.Has(userZone) {
-			return ErrorInvalidAvailabilityZone(userZone, allZones)
+			return ErrorInvalidAvailabilityZone(userZone, allZones, awsClient.Region)
 		}
 	}
 

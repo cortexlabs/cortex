@@ -25,39 +25,40 @@ import (
 )
 
 const (
-	ErrInvalidAWSCredentials    = "aws.invalid_aws_credentials"
-	ErrInvalidS3aPath           = "aws.invalid_s3a_path"
-	ErrInvalidS3Path            = "aws.invalid_s3_path"
-	ErrAuth                     = "aws.auth"
-	ErrBucketInaccessible       = "aws.bucket_inaccessible"
-	ErrBucketNotFound           = "aws.bucket_not_found"
-	ErrInstanceTypeLimitIsZero  = "aws.instance_type_limit_is_zero"
-	ErrNoValidSpotPrices        = "aws.no_valid_spot_prices"
-	ErrReadCredentials          = "aws.read_credentials"
-	ErrECRExtractingCredentials = "aws.ecr_failed_credentials"
+	ErrInvalidAWSCredentials        = "aws.invalid_aws_credentials"
+	ErrInvalidS3aPath               = "aws.invalid_s3a_path"
+	ErrInvalidS3Path                = "aws.invalid_s3_path"
+	ErrUnexpectedMissingCredentials = "aws.unexpected_missing_credentials"
+	ErrAuth                         = "aws.auth"
+	ErrBucketInaccessible           = "aws.bucket_inaccessible"
+	ErrBucketNotFound               = "aws.bucket_not_found"
+	ErrInstanceTypeLimitIsZero      = "aws.instance_type_limit_is_zero"
+	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
+	ErrReadCredentials              = "aws.read_credentials"
+	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
 )
 
 func IsNotFoundErr(err error) bool {
-	return CheckErrCode(err, "NotFound")
+	return IsErrCode(err, "NotFound")
 }
 
 func IsNoSuchKeyErr(err error) bool {
-	return CheckErrCode(err, "NoSuchKey")
+	return IsErrCode(err, "NoSuchKey")
 }
 
 func IsNoSuchBucketErr(err error) bool {
-	return CheckErrCode(err, "NoSuchBucket")
+	return IsErrCode(err, "NoSuchBucket")
 }
 
 func IsForbiddenErr(err error) bool {
-	return CheckErrCode(err, "Forbidden")
+	return IsErrCode(err, "Forbidden")
 }
 
 func IsGenericNotFoundErr(err error) bool {
 	return IsNotFoundErr(err) || IsNoSuchKeyErr(err) || IsNoSuchBucketErr(err)
 }
 
-func CheckErrCode(err error, errorCode string) bool {
+func IsErrCode(err error, errorCode string) bool {
 	awsErr, ok := errors.CauseOrSelf(err).(awserr.Error)
 	if !ok {
 		return false
@@ -80,14 +81,30 @@ func ErrorInvalidAWSCredentials(awsErr error) error {
 func ErrorInvalidS3aPath(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidS3aPath,
-		Message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/iris-classifier/tensorflow is a valid s3a path)", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s is not a valid s3a path (e.g. s3a://cortex-examples/pytorch/iris-classifier/weights.pth is a valid s3a path)", s.UserStr(provided)),
 	})
 }
 
 func ErrorInvalidS3Path(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidS3Path,
-		Message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/iris-classifier/tensorflow is a valid s3 path)", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s is not a valid s3 path (e.g. s3://cortex-examples/pytorch/iris-classifier/weights.pth is a valid s3 path)", s.UserStr(provided)),
+	})
+}
+
+func ErrorUnexpectedMissingCredentials(awsAccessKeyID *string, awsSecretAccessKey *string) error {
+	var msg string
+	if awsAccessKeyID == nil && awsSecretAccessKey == nil {
+		msg = "aws access key id and aws secret access key are missing"
+	} else if awsAccessKeyID == nil {
+		msg = "aws access key id is missing"
+	} else if awsSecretAccessKey == nil {
+		msg = "aws secret access key is missing"
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnexpectedMissingCredentials,
+		Message: msg,
 	})
 }
 

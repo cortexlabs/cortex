@@ -50,10 +50,6 @@ $ curl http://***.amazonaws.com/my-api \
     -d '{"key": "value"}'
 ```
 
-## Debugging
-
-You can log information about each request by adding the `?debug=true` parameter to your requests. This will print the payload and the value after running your `predict()` function in the API logs.
-
 ## `cortex delete`
 
 Use the `cortex delete` command to delete your API:
@@ -68,5 +64,5 @@ deleting my-api
 
 <!-- CORTEX_VERSION_MINOR -->
 * [Tutorial](../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthough of deploying an iris classifier API
-* [CLI documentation](../cluster-management/cli.md) lists all CLI commands
+* [CLI documentation](../miscellaneous/cli.md) lists all CLI commands
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples) demonstrate how to deploy models from common ML libraries

@@ -22,6 +22,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 var _hpaTypeMeta = kmeta.TypeMeta{
@@ -139,7 +140,7 @@ func (c *Client) ListHPAs(opts *kmeta.ListOptions) ([]kautoscaling.HorizontalPod
 
 func (c *Client) ListHPAsByLabels(labels map[string]string) ([]kautoscaling.HorizontalPodAutoscaler, error) {
 	opts := &kmeta.ListOptions{
-		LabelSelector: LabelSelector(labels),
+		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListHPAs(opts)
 }

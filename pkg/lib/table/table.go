@@ -41,6 +41,16 @@ type Header struct {
 	Hidden   bool
 }
 
+func (t *Table) FindHeaderByTitle(title string) *Header {
+	for i, header := range t.Headers {
+		if header.Title == title {
+			return &t.Headers[i]
+		}
+	}
+
+	return nil
+}
+
 type Opts struct {
 	Sort *bool // default is true
 }
@@ -88,8 +98,8 @@ func validate(t Table) error {
 }
 
 // Prints the error message as a string (if there is an error)
-func (t *Table) MustPrint() {
-	fmt.Print(t.MustFormat())
+func (t *Table) MustPrint(opts ...*Opts) {
+	fmt.Print(t.MustFormat(opts...))
 }
 
 // Return the error message as a string

@@ -36,5 +36,6 @@ eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_RE
 operator_endpoint=$(get_operator_endpoint)
 apis_endpoint=$(get_apis_endpoint)
 
+# before modifying this, search for this prefix
 echo "operator endpoint: $operator_endpoint"
 echo "apis endpoint:     $apis_endpoint"

@@ -24,16 +24,53 @@ Out of these three models (*YOLOv3*, *CRAFT* and *CRNN*) only *YOLOv3* has been 
 
 The other two models, *CRAFT* and *CRNN*, can be found in [keras-ocr](https://github.com/faustomorales/keras-ocr).
 
-## Deploying
+## Deployment - Lite Version
 
-The recommended number of instances to run this smoothly on a video stream is about 12 GPU instances (2 GPU instances for *YOLOv3* and 10 for *CRNN* + *CRAFT*). `cortex.yaml` is already set up to use these 12 instances. Note: this is the optimal number of instances when using the `g4dn.xlarge` instance type. For the client to work smoothly, the number of workers per replica can be adjusted, especially for `p3` or `g4` instances, where the GPU has a lot of compute capacity.
+A lite version of the deployment is available with `cortex_lite.yaml`. The lite version accepts an image as input and returns an image with the recognized license plates overlayed on top. A single GPU is required for this deployment (i.e. `g4dn.xlarge`).
+
+Once the cortex cluster is created, run
+```bash
+cortex deploy cortex_lite.yaml
+```
+
+And monitor the API with
+```bash
+cortex get --watch
+```
+
+To run an inference on the lite version, the only 3 tools you need are `curl`, `sed` and `base64`. This API expects an URL pointing to an image onto which the inferencing is done. This includes the detection of license plates with *YOLOv3* and the recognition part with *CRAFT* + *CRNN* models.
+
+Export the endpoint & the image's URL by running
+```bash
+export ENDPOINT=your-api-endpoint
+export IMAGE_URL=https://i.imgur.com/r8xdI7P.png
+```
+
+Then run the following piped commands
+```
+curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d '{"url":"'${IMAGE_URL}'"}' |
+sed 's/"//g' |
+base64 -d > prediction.jpg
+```
+
+The resulting image is the same as the one in [Verifying the Deployed APIs](#verifying-the-deployed-apis).
+
+For another prediction, let's use a generic image from the web. Export [this image's URL link](https://i.imgur.com/mYuvMOs.jpg) and re-run the prediction. This is what we get.
+
+![annotated sample image](https://i.imgur.com/tg1PE1E.jpg)
+
+*The above prediction has the bounding boxes colored differently to distinguish them from the cars' red bodies*
+
+## Deployment - Full Version
+
+The recommended number of instances to run this smoothly on a video stream is about 12 GPU instances (2 GPU instances for *YOLOv3* and 10 for *CRNN* + *CRAFT*). `cortex_full.yaml` is already set up to use these 12 instances. Note: this is the optimal number of instances when using the `g4dn.xlarge` instance type. For the client to work smoothly, the number of workers per replica can be adjusted, especially for `p3` or `g4` instances, where the GPU has a lot of compute capacity.
 
 If you don't have access to this many GPU-equipped instances, you could just lower the number and expect dropped frames. It will still prove the point, albeit at a much lower framerate and with higher latency. More on that [here](https://github.com/RobertLucian/cortex-license-plate-reader-client).
 
 Then after the cortex cluster is created, run
 
 ```bash
-cortex deploy
+cortex deploy cortex_full.yaml
 ```
 
 And monitor the APIs with
@@ -41,10 +78,6 @@ And monitor the APIs with
 ```bash
 cortex get --watch
 ```
-
-## Launching the Client
-
-### Verifying the Deployed APIs
 
 We can run the inference on a sample image to verify that both APIs are working as expected before we move on to running the client. Here is an example image:
 
@@ -81,13 +114,29 @@ Once the APIs are up and running, launch the streaming client by following the i
 
 ## Customization/Optimization
 
-### Uploading the SavedModel to S3
+### Uploading the Model to S3
 
-The only model that has to be uploaded to an S3 bucket (for Cortex to deploy) is the *YOLOv3* model. The other two models are downloaded automatically upon deploying the service.
+The only model to upload to an S3 bucket (for Cortex to deploy) is the *YOLOv3* model. The other two models are downloaded automatically upon deploying the service.
 
-*Note: The Keras model from [here](https://github.com/experiencor/keras-yolo3) has been converted to SavedModel model instead.*
+If you would like to host the model from your own bucket, or if you want to fine tune the model for your needs, here's what you can do.
 
-If you would like to host the model from your own bucket, or if you want to fine tune the model for your needs, you can:
+#### Lite Version
+
+Download the *Keras* model:
+
+```bash
+wget -O license_plate.h5 "https://www.dropbox.com/s/vsvgoyricooksyv/license_plate.h5?dl=0"
+```
+
+And then upload it to your bucket (also make sure [cortex_lite.yaml](cortex_lite.yaml) points to this bucket):
+
+```bash
+BUCKET=my-bucket
+YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3_keras
+aws s3 cp license_plate.h5 "s3://$BUCKET/$YOLO3_PATH/model.h5"
+```
+
+#### Full Version
 
 Download the *SavedModel*:
 
@@ -101,11 +150,11 @@ Unzip it:
 unzip yolov3.zip -d yolov3
 ```
 
-And then upload it to your bucket (also make sure [cortex.yaml](cortex.yaml) points to this bucket):
+And then upload it to your bucket (also make sure [cortex_full.yaml](cortex_full.yaml) points to this bucket):
 
 ```bash
 BUCKET=my-bucket
-YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3
+YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3_tf
 aws s3 cp yolov3/ "s3://$BUCKET/$YOLO3_PATH" --recursive
 ```
 

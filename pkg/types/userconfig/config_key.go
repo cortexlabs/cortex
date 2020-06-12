@@ -20,24 +20,29 @@ const (
 	// API
 	NameKey           = "name"
 	EndpointKey       = "endpoint"
+	LocalPortKey      = "local_port"
 	PredictorKey      = "predictor"
-	TrackerKey        = "tracker"
+	MonitoringKey     = "monitoring"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"
 	UpdateStrategyKey = "update_strategy"
 
 	// Predictor
-	TypeKey         = "type"
-	PathKey         = "path"
-	ModelKey        = "model"
-	PythonPathKey   = "python_path"
-	ImageKey        = "image"
-	TFServeImageKey = "tf_serve_image"
-	ConfigKey       = "config"
-	EnvKey          = "env"
-	SignatureKeyKey = "signature_key"
+	TypeKey                   = "type"
+	PathKey                   = "path"
+	ModelKey                  = "model"
+	ModelsKey                 = "models"
+	PythonPathKey             = "python_path"
+	ImageKey                  = "image"
+	TensorFlowServingImageKey = "tensorflow_serving_image"
+	ConfigKey                 = "config"
+	EnvKey                    = "env"
+	SignatureKeyKey           = "signature_key"
 
-	// Tracker
+	// ModelResource
+	ModelsNameKey = "name"
+
+	// Monitoring
 	KeyKey       = "key"
 	ModelTypeKey = "model_type"
 

@@ -20,36 +20,65 @@ import dill
 
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex.lib.type.model import Model, get_model_signature_map
+from cortex import consts
 
 
 class Predictor:
-    def __init__(self, storage, cache_dir, **kwargs):
+    def __init__(self, provider, model_dir, cache_dir, **kwargs):
+        self.provider = provider
         self.type = kwargs["type"]
         self.path = kwargs["path"]
-        self.model = kwargs.get("model")
         self.python_path = kwargs.get("python_path")
         self.config = kwargs.get("config", {})
         self.env = kwargs.get("env")
-        self.signature_key = kwargs.get("signature_key")
+
+        self.model_dir = model_dir
+        self.models = []
+        if kwargs.get("models"):
+            for model in kwargs["models"]:
+                self.models += [
+                    Model(
+                        name=model["name"],
+                        model=model["model"],
+                        base_path=self._compute_model_basepath(model["model"], model["name"]),
+                        signature_key=model.get("signature_key"),
+                    )
+                ]
 
         self.cache_dir = cache_dir
-        self.storage = storage
 
-    def initialize_client(self, model_dir=None, tf_serve_port=None):
+    def initialize_client(self, tf_serving_host=None, tf_serving_port=None):
+        signature_message = None
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
-            _, prefix = self.storage.deconstruct_s3_path(self.model)
-            model_path = os.path.join(model_dir, os.path.basename(prefix))
-            client = ONNXClient(model_path)
-            cx_logger().info("ONNX model signature: {}".format(client.input_signature))
+            client = ONNXClient(self.models)
+            if self.models[0].name == consts.SINGLE_MODEL_NAME:
+                signature_message = "ONNX model signature: {}".format(
+                    client.input_signatures[consts.SINGLE_MODEL_NAME]
+                )
+            else:
+                signature_message = "ONNX model signatures: {}".format(client.input_signatures)
+            cx_logger().info(signature_message)
             return client
         elif self.type == "tensorflow":
             from cortex.lib.client.tensorflow import TensorFlowClient
 
-            validate_model_dir(model_dir)
-            client = TensorFlowClient("localhost:" + str(tf_serve_port), self.signature_key)
-            cx_logger().info("TensorFlow model signature: {}".format(client.input_signature))
+            for model in self.models:
+                validate_model_dir(model.base_path)
+
+            tf_serving_address = tf_serving_host + ":" + tf_serving_port
+            client = TensorFlowClient(tf_serving_address, self.models)
+            if self.models[0].name == consts.SINGLE_MODEL_NAME:
+                signature_message = "TensorFlow model signature: {}".format(
+                    client.input_signatures[consts.SINGLE_MODEL_NAME]
+                )
+            else:
+                signature_message = "TensorFlow model signatures: {}".format(
+                    client.input_signatures
+                )
+            cx_logger().info(signature_message)
             return client
 
         return None
@@ -57,10 +86,12 @@ class Predictor:
     def initialize_impl(self, project_dir, client=None):
         class_impl = self.class_impl(project_dir)
         try:
-            if self.type == "python":
-                return class_impl(self.config)
+            if self.type == "onnx":
+                return class_impl(onnx_client=client, config=self.config)
+            elif self.type == "tensorflow":
+                return class_impl(tensorflow_client=client, config=self.config)
             else:
-                return class_impl(client, self.config)
+                return class_impl(config=self.config)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
         finally:
@@ -125,58 +156,99 @@ class Predictor:
 
         return impl
 
+    def _compute_model_basepath(self, model_source, model_name):
+        base_path = os.path.join(self.model_dir, model_name)
+        if self.type == "onnx":
+            base_path = os.path.join(base_path, os.path.basename(model_source))
+        return base_path
+
 
 PYTHON_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "args": ["self", "config"]},
-        {"name": "predict", "args": ["self", "payload"]},
+        {"name": "__init__", "required_args": ["self", "config"]},
+        {
+            "name": "predict",
+            "required_args": ["self"],
+            "optional_args": ["payload", "query_params", "headers"],
+        },
     ]
 }
 
 TENSORFLOW_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "args": ["self", "tensorflow_client", "config"]},
-        {"name": "predict", "args": ["self", "payload"]},
+        {"name": "__init__", "required_args": ["self", "tensorflow_client", "config"]},
+        {
+            "name": "predict",
+            "required_args": ["self"],
+            "optional_args": ["payload", "query_params", "headers"],
+        },
     ]
 }
 
 ONNX_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "args": ["self", "onnx_client", "config"]},
-        {"name": "predict", "args": ["self", "payload"]},
+        {"name": "__init__", "required_args": ["self", "onnx_client", "config"]},
+        {
+            "name": "predict",
+            "required_args": ["self"],
+            "optional_args": ["payload", "query_params", "headers"],
+        },
     ]
 }
 
 
 def _validate_impl(impl, impl_req):
-    for optional_func in impl_req.get("optional", []):
-        _validate_optional_fn_args(impl, optional_func["name"], optional_func["args"])
+    for optional_func_signature in impl_req.get("optional", []):
+        _validate_optional_fn_args(impl, optional_func_signature)
 
-    for required_func in impl_req.get("required", []):
-        _validate_required_fn_args(impl, required_func["name"], required_func["args"])
-
-
-def _validate_optional_fn_args(impl, fn_name, args):
-    if fn_name in vars(impl):
-        _validate_required_fn_args(impl, fn_name, args)
+    for required_func_signature in impl_req.get("required", []):
+        _validate_required_fn_args(impl, required_func_signature)
 
 
-def _validate_required_fn_args(impl, fn_name, args):
-    fn = getattr(impl, fn_name, None)
+def _validate_optional_fn_args(impl, func_signature):
+    if getattr(impl, func_signature["name"], None):
+        _validate_required_fn_args(impl, func_signature)
+
+
+def _validate_required_fn_args(impl, func_signature):
+    fn = getattr(impl, func_signature["name"], None)
     if not fn:
-        raise UserException('required function "{}" is not defined'.format(fn_name))
+        raise UserException(f'required function "{func_signature["name"]}" is not defined')
 
     if not callable(fn):
-        raise UserException('"{}" is defined, but is not a function'.format(fn_name))
+        raise UserException(f'"{func_signature["name"]}" is defined, but is not a function')
 
     argspec = inspect.getfullargspec(fn)
 
-    if argspec.args != args:
-        raise UserException(
-            'invalid signature for function "{}": expected arguments ({}) but found ({})'.format(
-                fn_name, ", ".join(args), ", ".join(argspec.args)
+    required_args = func_signature.get("required_args", [])
+    optional_args = func_signature.get("optional_args", [])
+    fn_str = f'{func_signature["name"]}({", ".join(argspec.args)})'
+
+    for arg_name in required_args:
+        if arg_name not in argspec.args:
+            raise UserException(
+                f'invalid signature for function "{fn_str}": "{arg_name}" is a required argument, but was not provided'
             )
-        )
+
+        if arg_name == "self":
+            if argspec.args[0] != "self":
+                raise UserException(
+                    f'invalid signature for function "{fn_str}": "self" must be the first argument'
+                )
+
+    seen_args = []
+    for arg_name in argspec.args:
+        if arg_name not in required_args and arg_name not in optional_args:
+            raise UserException(
+                f'invalid signature for function "{fn_str}": "{arg_name}" is not a supported argument'
+            )
+
+        if arg_name in seen_args:
+            raise UserException(
+                f'invalid signature for function "{fn_str}": "{arg_name}" is duplicated'
+            )
+
+        seen_args.append(arg_name)
 
 
 def uses_neuron_savedmodel():

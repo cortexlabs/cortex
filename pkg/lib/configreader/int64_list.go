@@ -26,6 +26,7 @@ type Int64ListValidation struct {
 	Default           []int64
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	CastSingleItem    bool
 	MinLength         int
 	MaxLength         int
 	InvalidLengths    []int
@@ -35,7 +36,15 @@ type Int64ListValidation struct {
 func Int64List(inter interface{}, v *Int64ListValidation) ([]int64, error) {
 	casted, castOk := cast.InterfaceToInt64Slice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeIntList)
+		if v.CastSingleItem {
+			castedItem, castOk := cast.InterfaceToInt64(inter)
+			if !castOk {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeInt, PrimTypeIntList)
+			}
+			casted = []int64{castedItem}
+		} else {
+			return nil, ErrorInvalidPrimitiveType(inter, PrimTypeIntList)
+		}
 	}
 	return ValidateInt64ListProvided(casted, v)
 }
@@ -65,7 +74,7 @@ func ValidateInt64ListMissing(v *Int64ListValidation) ([]int64, error) {
 
 func ValidateInt64ListProvided(val []int64, v *Int64ListValidation) ([]int64, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInt64List(val, v)
 }

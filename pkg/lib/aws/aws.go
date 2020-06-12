@@ -23,11 +23,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 type Client struct {
 	Region          string
 	sess            *session.Session
+	IsAnonymous     bool
 	clients         clients
 	accountID       *string
 	hashedAccountID *string
@@ -40,6 +42,22 @@ func NewFromEnv(region string) (*Client, error) {
 func NewFromCreds(region string, accessKeyID string, secretAccessKey string) (*Client, error) {
 	creds := credentials.NewStaticCredentials(accessKeyID, secretAccessKey, "")
 	return New(region, creds)
+}
+
+func NewFromClientS3Path(s3Path string, awsClient *Client) (*Client, error) {
+	if !awsClient.IsAnonymous {
+		if awsClient.AccessKeyID() == nil || awsClient.SecretAccessKey() == nil {
+			return nil, ErrorUnexpectedMissingCredentials(awsClient.AccessKeyID(), awsClient.SecretAccessKey())
+		}
+		return NewFromCredsS3Path(s3Path, *awsClient.AccessKeyID(), *awsClient.SecretAccessKey())
+	}
+
+	region, err := GetBucketRegionFromS3Path(s3Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewAnonymousClientWithRegion(region)
 }
 
 func NewFromEnvS3Path(s3Path string) (*Client, error) {
@@ -84,11 +102,30 @@ func New(region string, creds *credentials.Credentials) (*Client, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return &Client{
 		sess:   sess,
 		Region: *sess.Config.Region,
+	}, nil
+}
+
+func NewAnonymousClient() (*Client, error) {
+	return NewAnonymousClientWithRegion("us-east-1") // region is always required
+}
+
+func NewAnonymousClientWithRegion(region string) (*Client, error) {
+	sess, err := session.NewSession(&aws.Config{
+		Credentials: credentials.AnonymousCredentials,
+		Region:      aws.String(region),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Client{
+		sess:        sess,
+		Region:      region,
+		IsAnonymous: true,
 	}, nil
 }

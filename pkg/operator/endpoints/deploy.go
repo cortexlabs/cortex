@@ -17,27 +17,26 @@ limitations under the License.
 package endpoints
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 func Deploy(w http.ResponseWriter, r *http.Request) {
 	force := getOptionalBoolQParam("force", false, r)
 
-	configPath := getOptionalQParam("configPath", r)
-	if configPath == "" {
-		configPath = "api config file"
+	configPath, err := getRequiredQueryParam("configPath", r)
+	if err != nil {
+		respondError(w, r, errors.WithStack(err))
+		return
 	}
 
 	configBytes, err := files.ReadReqFile(r, "config")
@@ -61,14 +60,24 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	projectID := hash.Bytes(projectBytes)
-	projectKey := operator.ProjectKey(projectID)
+	projectKey := spec.ProjectKey(projectID)
 	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	apiConfigs, err := operator.ExtractAPIConfigs(configBytes, projectFileMap, configPath)
+	projectFiles := operator.ProjectFiles{
+		ProjectByteMap: projectFileMap,
+		ConfigFilePath: configPath,
+	}
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	err = operator.ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -100,61 +109,5 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 	respond(w, schema.DeployResponse{
 		Results: results,
 		BaseURL: baseURL,
-		Message: deployMessage(results),
 	})
-}
-
-func deployMessage(results []schema.DeployResult) string {
-	statusMessage := mergeResultMessages(results)
-
-	if didAllResultsError(results) {
-		return statusMessage
-	}
-
-	apiCommandsMessage := getAPICommandsMessage(results)
-
-	return statusMessage + "\n\n" + apiCommandsMessage
-}
-
-func mergeResultMessages(results []schema.DeployResult) string {
-	var okMessages []string
-	var errMessages []string
-
-	for _, result := range results {
-		if result.Error != "" {
-			errMessages = append(errMessages, result.Error)
-		} else {
-			okMessages = append(okMessages, result.Message)
-		}
-	}
-
-	messages := append(okMessages, errMessages...)
-
-	return strings.Join(messages, "\n")
-}
-
-func didAllResultsError(results []schema.DeployResult) bool {
-	for _, result := range results {
-		if result.Error == "" {
-			return false
-		}
-	}
-	return true
-}
-
-func getAPICommandsMessage(results []schema.DeployResult) string {
-	apiName := "<api_name>"
-	if len(results) == 1 {
-		apiName = results[0].API.Name
-	}
-
-	var items table.KeyValuePairs
-	items.Add("cortex get", "(show api statuses)")
-	items.Add(fmt.Sprintf("cortex get %s", apiName), "(show api info)")
-	items.Add(fmt.Sprintf("cortex logs %s", apiName), "(stream api logs)")
-
-	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
-		Delimiter: pointer.String(""),
-		NumSpaces: pointer.Int(2),
-	}))
 }

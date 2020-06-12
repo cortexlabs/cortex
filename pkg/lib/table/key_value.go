@@ -20,13 +20,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type KeyValuePairOpts struct {
-	Delimiter *string // default: ":"
-	NumSpaces *int    // default: 1
+	Delimiter     *string // default: ":"
+	NumSpaces     *int    // default: 1
+	RightJustify  *bool   // default: false
+	BoldFirstLine *bool   // default: false
 }
 
 type KeyValuePairs struct {
@@ -60,12 +63,25 @@ func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 	}
 
 	var b strings.Builder
-	for _, pair := range kvs.kvs {
+	for i, pair := range kvs.kvs {
 		keyStr := s.ObjFlatNoQuotes(pair.k)
 		valStr := s.ObjFlatNoQuotes(pair.v)
 		keyLen := len(keyStr)
-		spaces := strings.Repeat(" ", maxLen-keyLen+*opts.NumSpaces)
-		b.WriteString(keyStr + *opts.Delimiter + spaces + valStr + "\n")
+		var str string
+		if *opts.RightJustify {
+			alignmentSpaces := strings.Repeat(" ", maxLen-keyLen)
+			delimiterSpaces := strings.Repeat(" ", *opts.NumSpaces)
+			str = alignmentSpaces + keyStr + *opts.Delimiter + delimiterSpaces + valStr + "\n"
+		} else {
+			spaces := strings.Repeat(" ", maxLen-keyLen+*opts.NumSpaces)
+			str = keyStr + *opts.Delimiter + spaces + valStr + "\n"
+		}
+
+		if *opts.BoldFirstLine && i == 0 {
+			str = console.Bold(str)
+		}
+
+		b.WriteString(str)
 	}
 
 	return b.String()
@@ -85,6 +101,12 @@ func mergeOptions(options ...*KeyValuePairOpts) KeyValuePairOpts {
 		if opt != nil && opt.NumSpaces != nil {
 			mergedOpts.NumSpaces = opt.NumSpaces
 		}
+		if opt != nil && opt.RightJustify != nil {
+			mergedOpts.RightJustify = opt.RightJustify
+		}
+		if opt != nil && opt.BoldFirstLine != nil {
+			mergedOpts.BoldFirstLine = opt.BoldFirstLine
+		}
 	}
 
 	if mergedOpts.Delimiter == nil {
@@ -92,6 +114,12 @@ func mergeOptions(options ...*KeyValuePairOpts) KeyValuePairOpts {
 	}
 	if mergedOpts.NumSpaces == nil {
 		mergedOpts.NumSpaces = pointer.Int(1)
+	}
+	if mergedOpts.RightJustify == nil {
+		mergedOpts.RightJustify = pointer.Bool(false)
+	}
+	if mergedOpts.BoldFirstLine == nil {
+		mergedOpts.BoldFirstLine = pointer.Bool(false)
 	}
 
 	return mergedOpts

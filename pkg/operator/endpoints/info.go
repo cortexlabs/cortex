@@ -19,16 +19,131 @@ package endpoints
 import (
 	"net/http"
 	"os"
+	"sort"
+	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	kcore "k8s.io/api/core/v1"
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
+	nodeInfos, numPendingReplicas, err := getNodeInfos()
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
 	response := schema.InfoResponse{
 		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
 		ClusterConfig:        *config.Cluster,
+		NodeInfos:            nodeInfos,
+		NumPendingReplicas:   numPendingReplicas,
 	}
 	respond(w, response)
+}
+
+func getNodeInfos() ([]schema.NodeInfo, int, error) {
+	pods, err := config.K8sAllNamspaces.ListPods(nil)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	nodes, err := config.K8sAllNamspaces.ListNodesByLabel("workload", "true")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	nodeInfoMap := make(map[string]*schema.NodeInfo, len(nodes)) // node name -> info
+	spotPriceCache := make(map[string]float64)                   // instance type -> spot price
+
+	for _, node := range nodes {
+		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
+
+		price := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
+		if isSpot {
+			if spotPrice, ok := spotPriceCache[instanceType]; ok {
+				price = spotPrice
+			} else {
+				spotPrice, err := config.AWS.SpotInstancePrice(*config.Cluster.Region, instanceType)
+				if err == nil && spotPrice != 0 {
+					price = spotPrice
+					spotPriceCache[instanceType] = spotPrice
+				} else {
+					spotPriceCache[instanceType] = price // the request failed, so no need to try again in the future
+				}
+			}
+		}
+
+		nodeInfoMap[node.Name] = &schema.NodeInfo{
+			Name:             node.Name,
+			InstanceType:     instanceType,
+			IsSpot:           isSpot,
+			Price:            price,
+			NumReplicas:      0,                             // will be added to below
+			ComputeCapacity:  nodeComputeAllocatable(&node), // will be subtracted from below
+			ComputeAvailable: nodeComputeAllocatable(&node), // will be subtracted from below
+		}
+	}
+
+	var numPendingReplicas int
+
+	for _, pod := range pods {
+		_, isAPIPod := pod.Labels["apiName"]
+
+		if pod.Spec.NodeName == "" && isAPIPod {
+			numPendingReplicas++
+			continue
+		}
+
+		node, ok := nodeInfoMap[pod.Spec.NodeName]
+		if !ok {
+			continue
+		}
+
+		if isAPIPod {
+			node.NumReplicas++
+		}
+
+		cpu, mem, gpu := k8s.TotalPodCompute(&pod.Spec)
+
+		node.ComputeAvailable.CPU.SubQty(cpu)
+		node.ComputeAvailable.Mem.SubQty(mem)
+		node.ComputeAvailable.GPU -= gpu
+
+		if !isAPIPod {
+			node.ComputeCapacity.CPU.SubQty(cpu)
+			node.ComputeCapacity.Mem.SubQty(mem)
+			node.ComputeCapacity.GPU -= gpu
+		}
+	}
+
+	nodeNames := make([]string, 0, len(nodeInfoMap))
+	for nodeName := range nodeInfoMap {
+		nodeNames = append(nodeNames, nodeName)
+	}
+
+	sort.Strings(nodeNames)
+
+	nodeInfos := make([]schema.NodeInfo, len(nodeNames))
+	for i, nodeName := range nodeNames {
+		nodeInfos[i] = *nodeInfoMap[nodeName]
+	}
+
+	return nodeInfos, numPendingReplicas, nil
+}
+
+func nodeComputeAllocatable(node *kcore.Node) userconfig.Compute {
+	gpuQty := node.Status.Allocatable["nvidia.com/gpu"]
+
+	return userconfig.Compute{
+		CPU: k8s.WrapQuantity(*node.Status.Allocatable.Cpu()),
+		Mem: k8s.WrapQuantity(*node.Status.Allocatable.Memory()),
+		GPU: (&gpuQty).Value(),
+	}
 }

@@ -30,6 +30,7 @@ type StringPtrValidation struct {
 	AllowExplicitNull             bool
 	AllowEmpty                    bool
 	AllowedValues                 []string
+	DisallowedValues              []string
 	Prefix                        string
 	MaxLength                     int
 	MinLength                     int
@@ -50,6 +51,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 	return &StringValidation{
 		AllowEmpty:                    v.AllowEmpty,
 		AllowedValues:                 v.AllowedValues,
+		DisallowedValues:              v.DisallowedValues,
 		Prefix:                        v.Prefix,
 		MaxLength:                     v.MaxLength,
 		MinLength:                     v.MinLength,
@@ -196,14 +198,14 @@ func StringPtrFromPrompt(promptOpts *prompt.Options, v *StringPtrValidation) (*s
 
 func ValidateStringPtrMissing(v *StringPtrValidation) (*string, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateStringPtr(v.Default, v)
 }
 
 func ValidateStringPtrProvided(val *string, v *StringPtrValidation) (*string, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateStringPtr(val, v)
 }

@@ -31,6 +31,7 @@ type Float64Validation struct {
 	Default              float64
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
 	AllowedValues        []float64
+	DisallowedValues     []float64
 	GreaterThan          *float64
 	GreaterThanOrEqualTo *float64
 	LessThan             *float64
@@ -43,7 +44,7 @@ func Float64(inter interface{}, v *Float64Validation) (float64, error) {
 		if v.TreatNullAsZero {
 			return ValidateFloat64(0, v)
 		}
-		return 0, ErrorCannotBeNull()
+		return 0, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := cast.InterfaceToFloat64(inter)
 	if !castOk {
@@ -158,7 +159,7 @@ func Float64FromPrompt(promptOpts *prompt.Options, v *Float64Validation) (float6
 
 func ValidateFloat64Missing(v *Float64Validation) (float64, error) {
 	if v.Required {
-		return 0, ErrorMustBeDefined()
+		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateFloat64(v.Default, v)
 }
@@ -197,9 +198,15 @@ func ValidateFloat64Val(val float64, v *Float64Validation) error {
 		}
 	}
 
-	if v.AllowedValues != nil {
+	if len(v.AllowedValues) > 0 {
 		if !slices.HasFloat64(v.AllowedValues, val) {
 			return ErrorInvalidFloat64(val, v.AllowedValues[0], v.AllowedValues[1:]...)
+		}
+	}
+
+	if len(v.DisallowedValues) > 0 {
+		if slices.HasFloat64(v.DisallowedValues, val) {
+			return ErrorDisallowedValue(val)
 		}
 	}
 

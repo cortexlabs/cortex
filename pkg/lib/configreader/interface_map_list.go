@@ -26,6 +26,7 @@ type InterfaceMapListValidation struct {
 	Default                []map[string]interface{}
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	CastSingleItem         bool
 	MinLength              int
 	MaxLength              int
 	InvalidLengths         []int
@@ -37,7 +38,15 @@ type InterfaceMapListValidation struct {
 func InterfaceMapList(inter interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	casted, castOk := cast.InterfaceToStrInterfaceMapSlice(inter)
 	if !castOk {
-		return nil, ErrorInvalidPrimitiveType(inter, PrimTypeMapList)
+		if v.CastSingleItem {
+			castedItem, castOk := cast.InterfaceToStrInterfaceMap(inter)
+			if !castOk {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeMap, PrimTypeMapList)
+			}
+			casted = []map[string]interface{}{castedItem}
+		} else {
+			return nil, ErrorInvalidPrimitiveType(inter, PrimTypeMapList)
+		}
 	}
 	return ValidateInterfaceMapListProvided(casted, v)
 }
@@ -67,7 +76,7 @@ func ValidateInterfaceMapListMissing(v *InterfaceMapListValidation) ([]map[strin
 
 func ValidateInterfaceMapListProvided(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateInterfaceMapList(val, v)
 }

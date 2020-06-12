@@ -37,6 +37,7 @@ type StringValidation struct {
 	AllowEmpty                           bool // Allow `<field>: ""`
 	TreatNullAsEmpty                     bool // `<field>: ` and `<field>: null` will be read as `<field>: ""`
 	AllowedValues                        []string
+	DisallowedValues                     []string
 	Prefix                               string
 	MaxLength                            int
 	MinLength                            int
@@ -63,7 +64,7 @@ func String(inter interface{}, v *StringValidation) (string, error) {
 		if v.TreatNullAsEmpty {
 			return ValidateString("", v)
 		}
-		return "", ErrorCannotBeNull()
+		return "", ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := inter.(string)
 	if !castOk {
@@ -188,7 +189,7 @@ func StringFromPrompt(promptOpts *prompt.Options, v *StringValidation) (string, 
 
 func ValidateStringMissing(v *StringValidation) (string, error) {
 	if v.Required {
-		return "", ErrorMustBeDefined()
+		return "", ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateString(v.Default, v)
 }
@@ -222,9 +223,15 @@ func ValidateStringVal(val string, v *StringValidation) error {
 		}
 	}
 
-	if v.AllowedValues != nil {
+	if len(v.AllowedValues) > 0 {
 		if !slices.HasString(v.AllowedValues, val) {
 			return ErrorInvalidStr(val, v.AllowedValues[0], v.AllowedValues[1:]...)
+		}
+	}
+
+	if len(v.DisallowedValues) > 0 {
+		if slices.HasString(v.DisallowedValues, val) {
+			return ErrorDisallowedValue(val)
 		}
 	}
 

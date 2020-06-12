@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,8 +32,9 @@ import (
 type API struct {
 	Name           string          `json:"name" yaml:"name"`
 	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
+	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
-	Tracker        *Tracker        `json:"tracker" yaml:"tracker"`
+	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Compute        *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
@@ -42,24 +44,31 @@ type API struct {
 }
 
 type Predictor struct {
-	Type         PredictorType          `json:"type" yaml:"type"`
-	Path         string                 `json:"path" yaml:"path"`
-	Model        *string                `json:"model" yaml:"model"`
-	PythonPath   *string                `json:"python_path" yaml:"python_path"`
-	Image        string                 `json:"image" yaml:"image"`
-	TFServeImage string                 `json:"tf_serve_image" yaml:"tf_serve_image"`
-	Config       map[string]interface{} `json:"config" yaml:"config"`
-	Env          map[string]string      `json:"env" yaml:"env"`
-	SignatureKey *string                `json:"signature_key" yaml:"signature_key"`
+	Type                   PredictorType          `json:"type" yaml:"type"`
+	Path                   string                 `json:"path" yaml:"path"`
+	Model                  *string                `json:"model" yaml:"model"`
+	Models                 []*ModelResource       `json:"models" yaml:"models"`
+	PythonPath             *string                `json:"python_path" yaml:"python_path"`
+	Image                  string                 `json:"image" yaml:"image"`
+	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
+	Config                 map[string]interface{} `json:"config" yaml:"config"`
+	Env                    map[string]string      `json:"env" yaml:"env"`
+	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 }
 
-type Tracker struct {
+type ModelResource struct {
+	Name         string  `json:"name" yaml:"name"`
+	Model        string  `json:"model" yaml:"model"`
+	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
+}
+
+type Monitoring struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
 type Compute struct {
-	CPU k8s.Quantity  `json:"cpu" yaml:"cpu"`
+	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
 	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
 	Inf int64         `json:"inf" yaml:"inf"`
@@ -91,6 +100,17 @@ func (api *API) Identify() string {
 	return IdentifyAPI(api.FilePath, api.Name, api.Index)
 }
 
+func (api *API) ModelNames() []string {
+	names := []string{}
+	if api != nil && len(api.Predictor.Models) > 0 {
+		for _, model := range api.Predictor.Models {
+			names = append(names, model.Name)
+		}
+	}
+
+	return names
+}
+
 func (api *API) ApplyDefaultDockerPaths() {
 	usesGPU := false
 	usesInf := false
@@ -106,32 +126,32 @@ func (api *API) ApplyDefaultDockerPaths() {
 	case PythonPredictorType:
 		if predictor.Image == "" {
 			if usesGPU {
-				predictor.Image = consts.DefaultImagePythonServeGPU
+				predictor.Image = consts.DefaultImagePythonPredictorGPU
 			} else if usesInf {
-				predictor.Image = consts.DefaultImagePythonServeInf
+				predictor.Image = consts.DefaultImagePythonPredictorInf
 			} else {
-				predictor.Image = consts.DefaultImagePythonServe
+				predictor.Image = consts.DefaultImagePythonPredictorCPU
 			}
 		}
 	case TensorFlowPredictorType:
 		if predictor.Image == "" {
-			predictor.Image = consts.DefaultImageTFAPI
+			predictor.Image = consts.DefaultImageTensorFlowPredictor
 		}
-		if predictor.TFServeImage == "" {
+		if predictor.TensorFlowServingImage == "" {
 			if usesGPU {
-				predictor.TFServeImage = consts.DefaultImageTFServeGPU
+				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
 			} else if usesInf {
-				predictor.TFServeImage = consts.DefaultImageTFServeInf
+				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingInf
 			} else {
-				predictor.TFServeImage = consts.DefaultImageTFServe
+				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
 			}
 		}
 	case ONNXPredictorType:
 		if predictor.Image == "" {
 			if usesGPU {
-				predictor.Image = consts.DefaultImageONNXServeGPU
+				predictor.Image = consts.DefaultImageONNXPredictorGPU
 			} else {
-				predictor.Image = consts.DefaultImageONNXServe
+				predictor.Image = consts.DefaultImageONNXPredictorCPU
 			}
 		}
 	}
@@ -255,34 +275,42 @@ func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
 	return &a, nil
 }
 
-func (api *API) UserStr() string {
+func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
+
+	if provider == types.LocalProviderType && api.LocalPort != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))
+	}
+
+	if provider != types.LocalProviderType && api.Endpoint != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
+	}
 
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
-
-	if api.Tracker != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
-		sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
-	}
 
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
 
-	if api.Autoscaling != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
-		sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
-	}
+	if provider != types.LocalProviderType {
+		if api.Monitoring != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
+			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
+		}
 
-	if api.UpdateStrategy != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
-		sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
-	}
+		if api.Autoscaling != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
+			sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
+		}
 
+		if api.UpdateStrategy != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
+			sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
+		}
+	}
 	return sb.String()
 }
 
@@ -293,6 +321,12 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.Model != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
 	}
+	if predictor.Model == nil && len(predictor.Models) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
+		for _, model := range predictor.Models {
+			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
+		}
+	}
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
@@ -300,8 +334,8 @@ func (predictor *Predictor) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
-	if predictor.TFServeImage != "" {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", TFServeImageKey, predictor.TFServeImage))
+	if predictor.TensorFlowServingImage != "" {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TensorFlowServingImageKey, predictor.TensorFlowServingImage))
 	}
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
@@ -316,28 +350,72 @@ func (predictor *Predictor) UserStr() string {
 	return sb.String()
 }
 
-func (tracker *Tracker) UserStr() string {
+func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, tracker.ModelType.String()))
-	if tracker.Key != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *tracker.Key))
+	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
+	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsKey, model.Model))
+	if model.SignatureKey != nil {
+		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
+	}
+	return sb.String()
+}
+
+func (monitoring *Monitoring) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, monitoring.ModelType.String()))
+	if monitoring.Key != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *monitoring.Key))
 	}
 	return sb.String()
 }
 
 func (compute *Compute) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
+	if compute.CPU == nil {
+		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", CPUKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", CPUKey, compute.CPU.UserString))
+	}
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
 	}
 	if compute.Inf > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", InfKey, s.Int64(compute.Inf)))
 	}
-	if compute.Mem != nil {
+	if compute.Mem == nil {
+		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", MemKey))
+	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
 	return sb.String()
+}
+
+func (compute Compute) Equals(c2 *Compute) bool {
+	if c2 == nil {
+		return false
+	}
+
+	if compute.CPU == nil && c2.CPU != nil || compute.CPU != nil && c2.CPU == nil {
+		return false
+	}
+
+	if compute.CPU != nil && c2.CPU != nil && !compute.CPU.Equal(*c2.CPU) {
+		return false
+	}
+
+	if compute.Mem == nil && c2.Mem != nil || compute.Mem != nil && c2.Mem == nil {
+		return false
+	}
+
+	if compute.Mem != nil && c2.Mem != nil && !compute.Mem.Equal(*c2.Mem) {
+		return false
+	}
+
+	if compute.GPU != c2.GPU {
+		return false
+	}
+
+	return true
 }
 
 func (autoscaling *Autoscaling) UserStr() string {

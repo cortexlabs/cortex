@@ -10,23 +10,24 @@ Reference the section below which corresponds to your Predictor type: [Python](#
 
 ```yaml
 - name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (default: <api_name>)
+  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
+  local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: cortexlabs/python-serve[-gpu])
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/python-predictor-cpu or cortexlabs/python-predictor-gpu based on compute)
     env: <string: string>  # dictionary of environment variables
-  tracker:
-    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
-    model_type: <string>  # model type, must be "classification" or "regression" (required)
+  monitoring:  # (aws only)
+    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
+    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   compute:
-    cpu: <string | int | float>  # CPU request per replica (default: 200m)
+    cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     inf: <int> # Inferentia ASIC request per replica (default: 0)
-    mem: <string>  # memory request per replica (default: Null)
-  autoscaling:
+    mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
@@ -41,8 +42,8 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_upscale_factor: <float>  # the maximum factor by which to scale up the API on a single scaling event (default: 1.5)
     downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05)
     upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05)
-  update_strategy:
-    max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
+  update_strategy:  # (aws only)
+    max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
@@ -52,26 +53,32 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
 
 ```yaml
 - name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (default: <api_name>)
+  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
+  local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
-    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
+    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'models' must be provided)
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+    models:  # use this when multiple models per API are desired (either this or 'model' must be provided)
+      - name: <string> # unique name for the model (e.g. iris-classifier) (required)
+        model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
+        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+      ...
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: cortexlabs/tf-api)
-    tf_serve_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tf-serve[-gpu], which is based on tensorflow/serving)
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
+    tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tensorflow-serving-gpu or cortexlabs/tensorflow-serving-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
-  tracker:
-    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
-    model_type: <string>  # model type, must be "classification" or "regression" (required)
+  monitoring:  # (aws only)
+    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
+    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   compute:
-    cpu: <string | int | float>  # CPU request per replica (default: 200m)
+    cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     inf: <int> # Inferentia ASIC request per replica (default: 0)
-    mem: <string>  # memory request per replica (default: Null)
-  autoscaling:
+    mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
@@ -86,8 +93,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_upscale_factor: <float>  # the maximum factor by which to scale up the API on a single scaling event (default: 1.5)
     downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05)
     upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05)
-  update_strategy:
-    max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
+  update_strategy:  # (aws only)
+    max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
@@ -97,23 +104,29 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
 
 ```yaml
 - name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (default: <api_name>)
+  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
+  local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (either this or 'models' must be provided)
+    models:  # use this when multiple models per API are desired (either this or 'model' must be provided)
+      - name: <string> # unique name for the model (e.g. iris-classifier) (required)
+        model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+      ...
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-serve[-gpu])
+    image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-gpu or cortexlabs/onnx-predictor-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
-  tracker:
-    key: <string>  # the JSON key in the response to track (required if the response payload is a JSON object)
-    model_type: <string>  # model type, must be "classification" or "regression" (required)
+  monitoring:  # (aws only)
+    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
+    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   compute:
-    cpu: <string | int | float>  # CPU request per replica (default: 200m)
+    cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
-    mem: <string>  # memory request per replica (default: Null)
-  autoscaling:
+    mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
@@ -128,8 +141,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_upscale_factor: <float>  # the maximum factor by which to scale up the API on a single scaling event (default: 1.5)
     downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05)
     upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05)
-  update_strategy:
-    max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
+  update_strategy:  # (aws only)
+    max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 

@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Bash script
 
-Cortex looks inside the root directory of the project for a file named `dependencies.sh`. (i.e. the directory which contains `cortex.yaml`).
+Cortex looks for a file named `dependencies.sh` in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`). For example:
 
 ```text
 ./iris-classifier/
@@ -14,11 +14,11 @@ Cortex looks inside the root directory of the project for a file named `dependen
 └── dependencies.sh
 ```
 
-This `dependencies.sh` gets executed during the initialization of each replica. Typical use cases include installing required system packages to be used in Predictor, building python packages from source, etc.
+`dependencies.sh` is executed with `bash` shell during the initialization of each replica (before installing Python packages in `requirements.txt` or `conda-packages.txt`). Typical use cases include installing required system packages to be used in your Predictor, building Python packages from source, etc.
 
-Sample `dependencies.sh` installing `tree` utility:
+Here is an example `dependencies.sh`, which installs the `tree` utility:
+
 ```bash
-#!/bin/bash
 apt-get update && apt-get install -y tree
 ```
 
@@ -36,6 +36,8 @@ class PythonPredictor:
 
 ## Custom Docker image
 
+You can also build a custom Docker image for use in your APIs, e.g. to avoid installing dependencies during replica initialization.
+
 ### Create a Dockerfile
 
 Create a Dockerfile to build your custom image:
@@ -44,27 +46,33 @@ Create a Dockerfile to build your custom image:
 mkdir my-api && cd my-api && touch Dockerfile
 ```
 
-The default Docker images used to deploy your models are listed below. Based on the Cortex Predictor and compute type specified in your API configuration, choose a Cortex image to use as the base for your custom Docker image:
+Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x6 -->
-* Python Predictor (CPU): `cortexlabs/python-serve:master`
-* Python Predictor (GPU): `cortexlabs/python-serve-gpu:master`
-* Python Predictor (Inferentia): `cortexlabs/python-serve-inf:master`
-* TensorFlow Predictor (CPU, GPU and Inferentia): `cortexlabs/tf-api:master`
-* ONNX Predictor (CPU): `cortexlabs/onnx-serve:master`
-* ONNX Predictor (GPU): `cortexlabs/onnx-serve-gpu:master`
+* Python Predictor (CPU): `cortexlabs/python-predictor-cpu-slim:master`
+* Python Predictor (GPU): `cortexlabs/python-predictor-gpu-slim:master`
+* Python Predictor (Inferentia): `cortexlabs/python-predictor-inf-slim:master`
+* TensorFlow Predictor (CPU, GPU, Inferentia): `cortexlabs/tensorflow-predictor-slim:master`
+* ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu-slim:master`
+* ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu-slim:master`
 
-The sample Dockerfile below inherits from Cortex's Python CPU serving image and installs the `tree` system package.
+Note: the images listed above use the `-slim` suffix; Cortex's default API images are not `-slim`, since they have additional dependencies installed to cover common use cases. If you are building your own Docker image, starting with a `-slim` Predictor image will result in a smaller image size.
+
+The sample Dockerfile below inherits from Cortex's Python CPU serving image, and installs 3 packages. `tree` is a system package and `pandas` and `rdkit` are Python packages.
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-serve:master
+FROM cortexlabs/python-predictor-cpu-slim:master
 
 RUN apt-get update \
     && apt-get install -y tree \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir pandas \
+    && conda install -y conda-forge::rdkit \
+    && conda clean -a
 ```
 
 ### Build and push to a container registry
@@ -77,9 +85,9 @@ Create a repository to store your image:
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
 
-eval $(aws ecr get-login --no-include-email --region us-west-2)
+eval $(aws ecr get-login --no-include-email --region us-east-1)
 
-aws ecr create-repository --repository-name=org/my-api --region=us-west-2
+aws ecr create-repository --repository-name=org/my-api --region=us-east-1
 # take note of repository url
 ```
 
@@ -105,7 +113,7 @@ Update your API configuration file to point to your image:
   ...
 ```
 
-*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together serve predictions: one which runs your Predictor code (`cortexlabs/tf-api`), and TensorFlow Serving which loads the SavedModel (`cortexlabs/tf-serve[-gpu]`). There's a 2nd available field `tf_serve_image` that can be used to override the TensorFlow Serving image. The default image (`cortexlabs/tf-serve[-gpu]`) is based on the official Tensorflow Serving image (`tensorflow/serving`). Unless a different version of Tensorflow Serving is required, this image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
+*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together to serve predictions: one runs your Predictor code (`cortexlabs/tensorflow-predictor`), and the other is TensorFlow serving to load the SavedModel (`cortexlabs/tensorflow-serving-gpu` or `cortexlabs/tensorflow-serving-cpu`). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images (`cortexlabs/tensorflow-serving-gpu` and `cortexlabs/tensorflow-serving-cpu`) are based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
 
 Deploy your API as usual:
 

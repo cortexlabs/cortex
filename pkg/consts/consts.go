@@ -27,28 +27,32 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultImagePythonServe    = defaultDockerImage("python-serve")
-	DefaultImagePythonServeGPU = defaultDockerImage("python-serve-gpu")
-	DefaultImagePythonServeInf = defaultDockerImage("python-serve-inf")
-	DefaultImageTFServe        = defaultDockerImage("tf-serve")
-	DefaultImageTFServeGPU     = defaultDockerImage("tf-serve-gpu")
-	DefaultImageTFServeInf     = defaultDockerImage("tf-serve-inf")
-	DefaultImageTFAPI          = defaultDockerImage("tf-api")
-	DefaultImageONNXServe      = defaultDockerImage("onnx-serve")
-	DefaultImageONNXServeGPU   = defaultDockerImage("onnx-serve-gpu")
-	DefaultImagePathsSet       = strset.New(
-		DefaultImagePythonServe,
-		DefaultImagePythonServeGPU,
-		DefaultImagePythonServeInf,
-		DefaultImageTFServe,
-		DefaultImageTFServeGPU,
-		DefaultImageTFServeInf,
-		DefaultImageTFAPI,
-		DefaultImageONNXServe,
-		DefaultImageONNXServeGPU,
+	SingleModelName = "_cortex_default"
+
+	DefaultImagePythonPredictorCPU   = defaultDockerImage("python-predictor-cpu")
+	DefaultImagePythonPredictorGPU   = defaultDockerImage("python-predictor-gpu")
+	DefaultImagePythonPredictorInf   = defaultDockerImage("python-predictor-inf")
+	DefaultImageTensorFlowServingCPU = defaultDockerImage("tensorflow-serving-cpu")
+	DefaultImageTensorFlowServingGPU = defaultDockerImage("tensorflow-serving-gpu")
+	DefaultImageTensorFlowServingInf = defaultDockerImage("tensorflow-serving-inf")
+	DefaultImageTensorFlowPredictor  = defaultDockerImage("tensorflow-predictor")
+	DefaultImageONNXPredictorCPU     = defaultDockerImage("onnx-predictor-cpu")
+	DefaultImageONNXPredictorGPU     = defaultDockerImage("onnx-predictor-gpu")
+	DefaultImagePathsSet             = strset.New(
+		DefaultImagePythonPredictorCPU,
+		DefaultImagePythonPredictorGPU,
+		DefaultImagePythonPredictorInf,
+		DefaultImageTensorFlowServingCPU,
+		DefaultImageTensorFlowServingGPU,
+		DefaultImageTensorFlowServingInf,
+		DefaultImageTensorFlowPredictor,
+		DefaultImageONNXPredictorCPU,
+		DefaultImageONNXPredictorGPU,
 	)
 
-	MaxClassesPerTrackerRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
+	MaxClassesPerMonitoringRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
+	DashboardTitle                 = "# cortex monitoring dashboard"
+	CoresPerInf                    = int64(4)
 )
 
 func defaultDockerImage(imageName string) string {

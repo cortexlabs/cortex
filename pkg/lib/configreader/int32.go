@@ -31,6 +31,7 @@ type Int32Validation struct {
 	Default              int32
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int32
+	DisallowedValues     []int32
 	GreaterThan          *int32
 	GreaterThanOrEqualTo *int32
 	LessThan             *int32
@@ -43,7 +44,7 @@ func Int32(inter interface{}, v *Int32Validation) (int32, error) {
 		if v.TreatNullAsZero {
 			return ValidateInt32(0, v)
 		}
-		return 0, ErrorCannotBeNull()
+		return 0, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := cast.InterfaceToInt32(inter)
 	if !castOk {
@@ -158,7 +159,7 @@ func Int32FromPrompt(promptOpts *prompt.Options, v *Int32Validation) (int32, err
 
 func ValidateInt32Missing(v *Int32Validation) (int32, error) {
 	if v.Required {
-		return 0, ErrorMustBeDefined()
+		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateInt32(v.Default, v)
 }
@@ -197,9 +198,15 @@ func ValidateInt32Val(val int32, v *Int32Validation) error {
 		}
 	}
 
-	if v.AllowedValues != nil {
+	if len(v.AllowedValues) > 0 {
 		if !slices.HasInt32(v.AllowedValues, val) {
 			return ErrorInvalidInt32(val, v.AllowedValues[0], v.AllowedValues[1:]...)
+		}
+	}
+
+	if len(v.DisallowedValues) > 0 {
+		if slices.HasInt32(v.DisallowedValues, val) {
+			return ErrorDisallowedValue(val)
 		}
 	}
 

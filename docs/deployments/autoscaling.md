@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Cortex autoscales your web services based on your configuration.
+Cortex autoscales your web services on a per-API basis based on your configuration.
 
 ## Replica Parallelism
 
@@ -24,13 +24,13 @@ Cortex autoscales your web services based on your configuration.
 
   The autoscaler uses this formula to determine the number of desired replicas:
 
-  `desired replicas = sum(in-flight requests in each replica) / target_replica_concurrency`
+  `desired replicas = sum(in-flight requests accross all replicas) / target_replica_concurrency`
 
   For example, setting `target_replica_concurrency` to `workers_per_replica` * `threads_per_worker` (the default) causes the cluster to adjust the number of replicas so that on average, requests are immediately processed without waiting in a queue, and workers/threads are never idle.
 
 * `max_replica_concurrency` (default: 1024): This is the maximum number of in-flight requests per replica before requests are rejected with HTTP error code 503. `max_replica_concurrency` includes requests that are currently being processed as well as requests that are waiting in the replica's queue (a replica can actively process `workers_per_replica` * `threads_per_worker` requests concurrently, and will hold any additional requests in a local queue). Decreasing `max_replica_concurrency` and configuring the client to retry when it receives 503 responses will improve queue fairness by preventing requests from sitting in long queues.
 
-  *Note (if `workers_per_replica` > 1): Because requests are randomly assigned to workers within a replica (which leads to unbalanced worker queues), clients may receive 503 responses before reaching `max_replica_concurrency`. For example, if you set `workers_per_replica: 2` and `max_replica_concurrency: 100`, each worker will be allowed to handle 50 requests concurrently. If your replica receives 90 requests that take the same amount of time to process, there is a 24.6% possibility that more than 50 requests are routed to 1 worker, and each request that is routed to that worker above 50 is responded to with a 503. To address this, it is recommended to implement client retries for 503 errors, or to increase `max_replica_concurrency` to minimize the probability of getting 503 responses.*
+  *Note (if `workers_per_replica` > 1): In reality, there is a queue per worker; for most purposes thinking of it as a per-replica queue will be sufficient, although in some cases the distinction is relevant. Because requests are randomly assigned to workers within a replica (which leads to unbalanced worker queues), clients may receive 503 responses before reaching `max_replica_concurrency`. For example, if you set `workers_per_replica: 2` and `max_replica_concurrency: 100`, each worker will be allowed to handle 50 requests concurrently. If your replica receives 90 requests that take the same amount of time to process, there is a 24.6% possibility that more than 50 requests are routed to 1 worker, and each request that is routed to that worker above 50 is responded to with a 503. To address this, it is recommended to implement client retries for 503 errors, or to increase `max_replica_concurrency` to minimize the probability of getting 503 responses.*
 
 * `window` (default: 60s): The time over which to average the API wide in-flight requests (which is the sum of in-flight requests in each replica). The longer the window, the slower the autoscaler will react to changes in API wide in-flight requests, since it is averaged over the `window`. API wide in-flight requests is calculated every 10 seconds, so `window` must be a multiple of 10 seconds.
 
@@ -46,6 +46,6 @@ Cortex autoscales your web services based on your configuration.
 
 * `upscale_tolerance` (default: 0.05): Any recommendation falling within this factor above the current number of replicas will not trigger a scale up event. For example, if `upscale_tolerance` is 0.1 and there are 20 running replicas, a recommendation of 21 or 22 replicas will not be acted on, and the API will remain at 20 replicas. Increasing this value will prevent thrashing, but setting it too high will prevent the cluster from maintaining it's optimal size.
 
-## Autoscaling Nodes
+## Autoscaling Instances
 
-Cortex spins up and down nodes based on the aggregate resource requests of all APIs. The number of nodes will be at least `min_instances` and no more than `max_instances` ([configured during installation](../cluster-management/config.md) and modifiable via `cortex cluster update`).
+Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../cluster-management/config.md) and modifiable via `cortex cluster configure`).

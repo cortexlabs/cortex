@@ -19,7 +19,7 @@ import pathlib
 from jinja2 import Environment, FileSystemLoader
 
 if __name__ == "__main__":
-    configmap_yaml_path = sys.argv[1]
+    cluster_config_path = sys.argv[1]
     template_path = pathlib.Path(sys.argv[2])
 
     file_loader = FileSystemLoader(str(template_path.parent))
@@ -29,6 +29,6 @@ if __name__ == "__main__":
     env.rstrip_blocks = True
 
     template = env.get_template(str(template_path.name))
-    with open(sys.argv[1], "r") as f:
-        cluster_configmap = yaml.safe_load(f)
-        print(template.render(config=cluster_configmap))
+    with open(cluster_config_path, "r") as f:
+        cluster_config = yaml.safe_load(f)
+        print(template.render(config=cluster_config))

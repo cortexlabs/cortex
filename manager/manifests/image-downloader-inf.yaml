@@ -39,23 +39,23 @@ spec:
           effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:
-        - name: python-serve-inf
-          image: $CORTEX_IMAGE_PYTHON_SERVE_INF
-          command: ["/bin/sh"]
-          args: ["-c", "sleep 1000000"]
-        - name: tf-serve
-          image: $CORTEX_IMAGE_TF_SERVE_INF
-          command: ["/bin/sh"]
-          args: ["-c", "sleep 1000000"]
-        - name: tf-api
-          image: $CORTEX_IMAGE_TF_API
-          command: ["/bin/sh"]
-          args: ["-c", "sleep 1000000"]
-        - name: neuron-rtd
-          image: $CORTEX_IMAGE_NEURON_RTD
-          command: ["/bin/sh"]
-          args: ["-c", "sleep 1000000"]
-        - name: downloader
-          image: $CORTEX_IMAGE_DOWNLOADER
-          command: ["/bin/sh"]
-          args: ["-c", "sleep 1000000"]
+      - name: python-predictor-inf
+        image: $CORTEX_IMAGE_PYTHON_PREDICTOR_INF
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: tensorflow-serving-inf
+        image: $CORTEX_IMAGE_TENSORFLOW_SERVING_INF
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: tensorflow-predictor
+        image: $CORTEX_IMAGE_TENSORFLOW_PREDICTOR
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: downloader
+        image: $CORTEX_IMAGE_DOWNLOADER
+        command: [ "/bin/sh" ]
+        args: [ "-c", "sleep 1000000" ]
+      - name: neuron-rtd
+        image: $CORTEX_IMAGE_NEURON_RTD
+        command: ["/bin/sh"]
+        args: ["-c", "sleep 1000000"]

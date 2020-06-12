@@ -15,21 +15,22 @@
 import sys
 import yaml
 import os
-from copy import deepcopy
 import collections
 
 
-# kublet config schema: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
-default_nodegroup = {
-    "ami": "auto",
-    "iam": {"withAddonPolicies": {"autoScaler": True}},
-    "kubeletExtraConfig": {
-        "kubeReserved": {"cpu": "150m", "memory": "300Mi", "ephemeral-storage": "1Gi"},
-        "kubeReservedCgroup": "/kube-reserved",
-        "systemReserved": {"cpu": "150m", "memory": "300Mi", "ephemeral-storage": "1Gi"},
-        "evictionHard": {"memory.available": "200Mi", "nodefs.available": "5%"},
-    },
-}
+# kubelet config schema: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
+def default_nodegroup(cluster_config):
+    return {
+        "ami": "auto",
+        "iam": {"withAddonPolicies": {"autoScaler": True}},
+        "privateNetworking": cluster_config.get("subnet_visibility", "public") != "public",
+        "kubeletExtraConfig": {
+            "kubeReserved": {"cpu": "150m", "memory": "300Mi", "ephemeral-storage": "1Gi"},
+            "kubeReservedCgroup": "/kube-reserved",
+            "systemReserved": {"cpu": "150m", "memory": "300Mi", "ephemeral-storage": "1Gi"},
+            "evictionHard": {"memory.available": "200Mi", "nodefs.available": "5%"},
+        },
+    }
 
 
 def merge_override(a, b):
@@ -60,10 +61,6 @@ def apply_worker_settings(nodegroup):
 
 
 def apply_clusterconfig(nodegroup, config):
-    if config["min_instances"] == 0:
-        desired_capacity = 1
-    else:
-        desired_capacity = config["min_instances"]
 
     clusterconfig_settings = {
         "instanceType": config["instance_type"],
@@ -71,8 +68,12 @@ def apply_clusterconfig(nodegroup, config):
         "volumeSize": config["instance_volume_size"],
         "minSize": config["min_instances"],
         "maxSize": config["max_instances"],
-        "desiredCapacity": desired_capacity,
+        "volumeType": config["instance_volume_type"],
+        "desiredCapacity": 1 if config["min_instances"] == 0 else config["min_instances"],
     }
+    # add iops to settings if volume_type is io1
+    if config["instance_volume_type"] == "io1":
+        clusterconfig_settings["volumeIOPS"] = config["instance_volume_iops"]
 
     return merge_override(nodegroup, clusterconfig_settings)
 
@@ -101,8 +102,12 @@ def apply_gpu_settings(nodegroup):
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "nvidia.com/gpu=true",
+            "k8s.io/cluster-autoscaler/node-template/label/k8s.amazonaws.com/accelerator": "true",  # accepted values are GPU type such as nvidia-tesla-k80 but using "true" as a placeholder for now because the value doesn't matter for AWS cluster autoscaler
         },
-        "labels": {"nvidia.com/gpu": "true"},
+        "labels": {
+            "nvidia.com/gpu": "true",
+            "k8s.amazonaws.com/accelerator": "true",  # accepted values are GPU type such as nvidia-tesla-k80 but using "true" as a placeholder for now because the value doesn't matter for AWS cluster autoscaler
+        },
         "taints": {"nvidia.com/gpu": "true:NoSchedule"},
     }
 
@@ -150,59 +155,65 @@ def get_inf_resources(instance_type):
     return num_chips, f"{num_hugepages_2Mi * num_chips}Mi"
 
 
-def generate_eks(configmap_yaml_path):
-    with open(configmap_yaml_path, "r") as f:
-        cluster_configmap = yaml.safe_load(f)
+def generate_eks(cluster_config_path):
+    with open(cluster_config_path, "r") as f:
+        cluster_config = yaml.safe_load(f)
 
-    operator_nodegroup = deepcopy(default_nodegroup)
+    operator_nodegroup = default_nodegroup(cluster_config)
     operator_settings = {
         "name": "ng-cortex-operator",
         "instanceType": "t3.medium",
-        "availabilityZones": cluster_configmap["availability_zones"],
+        "availabilityZones": cluster_config["availability_zones"],
         "minSize": 1,
         "maxSize": 1,
         "desiredCapacity": 1,
     }
     operator_nodegroup = merge_override(operator_nodegroup, operator_settings)
 
-    worker_nodegroup = deepcopy(default_nodegroup)
+    worker_nodegroup = default_nodegroup(cluster_config)
     apply_worker_settings(worker_nodegroup)
 
-    apply_clusterconfig(worker_nodegroup, cluster_configmap)
+    apply_clusterconfig(worker_nodegroup, cluster_config)
 
-    if cluster_configmap["spot"]:
-        apply_spot_settings(worker_nodegroup, cluster_configmap)
+    if cluster_config["spot"]:
+        apply_spot_settings(worker_nodegroup, cluster_config)
 
-    if is_gpu(cluster_configmap["instance_type"]):
+    if is_gpu(cluster_config["instance_type"]):
         apply_gpu_settings(worker_nodegroup)
 
-    if is_inf(cluster_configmap["instance_type"]):
-        apply_inf_settings(worker_nodegroup, instance_type=cluster_configmap["instance_type"])
+    if is_inf(cluster_config["instance_type"]):
+        apply_inf_settings(worker_nodegroup, instance_type=cluster_config["instance_type"])
+
+    nat_gateway = "Disable"
+    if cluster_config["nat_gateway"] == "single":
+        nat_gateway = "Single"
+    elif cluster_config["nat_gateway"] == "highly_available":
+        nat_gateway = "HighlyAvailable"
 
     eks = {
         "apiVersion": "eksctl.io/v1alpha5",
         "kind": "ClusterConfig",
         "metadata": {
-            "name": cluster_configmap["cluster_name"],
-            "region": cluster_configmap["region"],
+            "name": cluster_config["cluster_name"],
+            "region": cluster_config["region"],
             "version": "1.16",
+            "tags": cluster_config["tags"],
         },
-        "vpc": {"nat": {"gateway": "Disable"}},
-        "availabilityZones": cluster_configmap["availability_zones"],
-        "cloudWatch": {"clusterLogging": {"enableTypes": ["*"]}},
+        "vpc": {"nat": {"gateway": nat_gateway}},
+        "availabilityZones": cluster_config["availability_zones"],
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
 
-    if cluster_configmap.get("spot_config") is not None and cluster_configmap["spot_config"].get(
+    if cluster_config.get("spot_config") is not None and cluster_config["spot_config"].get(
         "on_demand_backup", False
     ):
-        backup_nodegroup = deepcopy(default_nodegroup)
+        backup_nodegroup = default_nodegroup(cluster_config)
         apply_worker_settings(backup_nodegroup)
-        apply_clusterconfig(backup_nodegroup, cluster_configmap)
-        if is_gpu(cluster_configmap["instance_type"]):
+        apply_clusterconfig(backup_nodegroup, cluster_config)
+        if is_gpu(cluster_config["instance_type"]):
             apply_gpu_settings(backup_nodegroup)
-        if is_inf(cluster_configmap["instance_type"]):
-            apply_inf_settings(backup_nodegroup, cluster_configmap["instance_type"])
+        if is_inf(cluster_config["instance_type"]):
+            apply_inf_settings(backup_nodegroup, cluster_config["instance_type"])
 
         backup_nodegroup["minSize"] = 0
         backup_nodegroup["desiredCapacity"] = 0
@@ -223,4 +234,4 @@ class IgnoreAliases(yaml.Dumper):
 
 
 if __name__ == "__main__":
-    generate_eks(configmap_yaml_path=sys.argv[1])
+    generate_eks(cluster_config_path=sys.argv[1])

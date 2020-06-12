@@ -56,6 +56,15 @@ func HasError(errs []error) bool {
 	return false
 }
 
+func AreAllErrors(errs []error) bool {
+	for _, err := range errs {
+		if err == nil {
+			return false
+		}
+	}
+	return true
+}
+
 func FirstError(errs ...error) error {
 	for _, err := range errs {
 		if err != nil {
@@ -63,4 +72,41 @@ func FirstError(errs ...error) error {
 		}
 	}
 	return nil
+}
+
+func MapHasError(errs map[string]error) bool {
+	for _, err := range errs {
+		if err != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func FirstErrorInMap(errs map[string]error) error {
+	for _, err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func FirstKeyInErrorMap(errs map[string]error) string {
+	for k, err := range errs {
+		if err != nil {
+			return k
+		}
+	}
+	return ""
+}
+
+func NonNilErrorMapKeys(errs map[string]error) []string {
+	var keys []string
+	for k, err := range errs {
+		if err != nil {
+			keys = append(keys, k)
+		}
+	}
+	return keys
 }

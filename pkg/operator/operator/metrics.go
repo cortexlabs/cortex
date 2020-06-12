@@ -102,8 +102,8 @@ func getMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTime *
 		}
 		metrics.NetworkStats = networkStats
 
-		if api.Tracker != nil {
-			if api.Tracker.ModelType == userconfig.ClassificationModelType {
+		if api.Monitoring != nil {
+			if api.Monitoring.ModelType == userconfig.ClassificationModelType {
 				metrics.ClassDistribution = extractClassificationMetrics(metricDataResults)
 			} else {
 				regressionStats, err := extractRegressionMetrics(metricDataResults)
@@ -120,8 +120,8 @@ func getMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTime *
 func queryMetrics(api *spec.API, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
 	allMetrics := getNetworkStatsDef(api, period)
 
-	if api.Tracker != nil {
-		if api.Tracker.ModelType == userconfig.ClassificationModelType {
+	if api.Monitoring != nil {
+		if api.Monitoring.ModelType == userconfig.ClassificationModelType {
 			classMetrics, err := getClassesMetricDef(api, period)
 			if err != nil {
 				return nil, err
@@ -138,7 +138,7 @@ func queryMetrics(api *spec.API, period int64, startTime *time.Time, endTime *ti
 		StartTime:         startTime,
 		MetricDataQueries: allMetrics,
 	}
-	output, err := config.AWS.CloudWatchMetrics().GetMetricData(&metricsDataQuery)
+	output, err := config.AWS.CloudWatch().GetMetricData(&metricsDataQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -231,10 +231,6 @@ func getAPIDimensions(api *spec.API) []*cloudwatch.Dimension {
 		{
 			Name:  aws.String("APIName"),
 			Value: aws.String(api.Name),
-		},
-		{
-			Name:  aws.String("APIID"),
-			Value: aws.String(api.ID),
 		},
 	}
 }
@@ -364,8 +360,8 @@ func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQue
 }
 
 func getClassesMetricDef(api *spec.API, period int64) ([]*cloudwatch.MetricDataQuery, error) {
-	prefix := filepath.Join(api.MetadataRoot, api.ID, "classes") + "/"
-	classes, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, prefix, pointer.Int64(int64(consts.MaxClassesPerTrackerRequest)))
+	prefix := filepath.Join(api.MetadataRoot, "classes") + "/"
+	classes, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, prefix, false, pointer.Int64(int64(consts.MaxClassesPerMonitoringRequest)))
 	if err != nil {
 		return nil, err
 	}

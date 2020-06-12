@@ -132,7 +132,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			inter = make(map[interface{}]interface{}, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return []error{ErrorCannotBeNull()}
+				return []error{ErrorCannotBeNull(v.Required)}
 			}
 			return nil
 		}
@@ -376,7 +376,7 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 			inter = make([]interface{}, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return nil, []error{ErrorCannotBeNull()}
+				return nil, []error{ErrorCannotBeNull(v.Required)}
 			}
 			return nil, nil
 		}
@@ -413,7 +413,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 			inter = make(map[interface{}]interface{}, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return nil, []error{ErrorCannotBeNull()}
+				return nil, []error{ErrorCannotBeNull(v.Required)}
 			}
 			return nil, nil
 		}
@@ -496,7 +496,7 @@ func InterfaceStructList(dest interface{}, inter interface{}, v *InterfaceStruct
 			inter = make([]interface{}, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return nil, []error{ErrorCannotBeNull()}
+				return nil, []error{ErrorCannotBeNull(v.Required)}
 			}
 			return nil, nil
 		}
@@ -568,17 +568,22 @@ type PromptItemValidation struct {
 	Float32PtrValidation *Float32PtrValidation
 	Float64Validation    *Float64Validation
 	Float64PtrValidation *Float64PtrValidation
+
+	// Additional parsing step for StringValidation or StringPtrValidation
+	Parser func(string) (interface{}, error)
 }
 
 type PromptValidation struct {
-	PromptItemValidations []*PromptItemValidation
-	SkipNonEmptyFields    bool // skips fields that are not zero-valued
-	SkipNonNilFields      bool // skips pointer fields that are not nil
+	PromptItemValidations  []*PromptItemValidation
+	SkipNonEmptyFields     bool // skips fields that are not zero-valued
+	SkipNonNilFields       bool // skips pointer fields that are not nil
+	PrintNewLineIfPrompted bool // prints an extra new line at the end if any questions were asked
 }
 
 func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 	var val interface{}
 	var err error
+	shouldPrintTrailingNewLine := false
 
 	for _, promptItemValidation := range promptValidation.PromptItemValidations {
 		if promptValidation.SkipNonEmptyFields {
@@ -593,11 +598,34 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			}
 		}
 
+		if promptValidation.PrintNewLineIfPrompted {
+			shouldPrintTrailingNewLine = true
+		}
+
 		for {
 			if promptItemValidation.StringValidation != nil {
 				val, err = StringFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.StringValidation)
+				if err == nil && promptItemValidation.Parser != nil {
+					val, err = promptItemValidation.Parser(val.(string))
+				}
 			} else if promptItemValidation.StringPtrValidation != nil {
 				val, err = StringPtrFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.StringPtrValidation)
+				if err == nil && promptItemValidation.Parser != nil {
+					if val.(*string) == nil {
+						val = nil
+					} else {
+						val, err = promptItemValidation.Parser(*val.(*string))
+						if err == nil && val != nil {
+							valValue := reflect.ValueOf(val)
+							valPtrValue := reflect.New(valValue.Type())
+							valPtrValue.Elem().Set(valValue)
+							val = valPtrValue.Interface()
+						} else {
+							val = nil
+							// err is already set
+						}
+					}
+				}
 			} else if promptItemValidation.BoolValidation != nil {
 				val, err = BoolFromPrompt(promptItemValidation.PromptOpts, promptItemValidation.BoolValidation)
 			} else if promptItemValidation.BoolPtrValidation != nil {
@@ -629,7 +657,12 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			if err == nil {
 				break
 			}
-			fmt.Printf("error: %s\n\n", errors.Message(err))
+
+			if promptItemValidation.PromptOpts.SkipTrailingNewline {
+				fmt.Printf("error: %s\n", errors.Message(err))
+			} else {
+				fmt.Printf("error: %s\n\n", errors.Message(err))
+			}
 		}
 
 		if val == nil {
@@ -641,6 +674,10 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if shouldPrintTrailingNewLine {
+		fmt.Println()
 	}
 
 	return nil
@@ -657,7 +694,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 			strMap = make(map[string]string, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return []error{ErrorCannotBeNull()}
+				return []error{ErrorCannotBeNull(v.Required)}
 			}
 			return nil
 		}

@@ -175,6 +175,9 @@ spec:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: fluentd
   template:
     metadata:
       labels:

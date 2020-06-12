@@ -19,6 +19,7 @@ package k8s
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -69,8 +70,7 @@ func ErrorParseAnnotation(annotationName string, annotationVal string, desiredTy
 
 func ErrorParseQuantity(qtyStr string) error {
 	return errors.WithStack(&errors.Error{
-		Kind: ErrParseQuantity,
-		// CORTEX_VERSION_MINOR
-		Message: qtyStr + ": invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://cortex.dev/v/master/deployments/compute)",
+		Kind:    ErrParseQuantity,
+		Message: fmt.Sprintf("%s: invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://docs.cortex.dev/v/%s/deployments/compute)", qtyStr, consts.CortexVersionMinor),
 	})
 }

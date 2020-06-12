@@ -21,17 +21,29 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type InfoResponse struct {
 	MaskedAWSAccessKeyID string                       `json:"masked_aws_access_key_id"`
 	ClusterConfig        clusterconfig.InternalConfig `json:"cluster_config"`
+	NodeInfos            []NodeInfo                   `json:"node_infos"`
+	NumPendingReplicas   int                          `json:"num_pending_replicas"`
+}
+
+type NodeInfo struct {
+	Name             string             `json:"name"`
+	InstanceType     string             `json:"instance_type"`
+	IsSpot           bool               `json:"is_spot"`
+	Price            float64            `json:"price"`
+	NumReplicas      int                `json:"num_replicas"`
+	ComputeCapacity  userconfig.Compute `json:"compute_capacity"`  // the total resources available to the user on a node
+	ComputeAvailable userconfig.Compute `json:"compute_available"` // unused resources on a node
 }
 
 type DeployResponse struct {
 	Results []DeployResult `json:"results"`
 	BaseURL string         `json:"base_url"`
-	Message string         `json:"message"`
 }
 
 type DeployResult struct {
@@ -48,10 +60,11 @@ type GetAPIsResponse struct {
 }
 
 type GetAPIResponse struct {
-	API     spec.API        `json:"api"`
-	Status  status.Status   `json:"status"`
-	Metrics metrics.Metrics `json:"metrics"`
-	BaseURL string          `json:"base_url"`
+	API          spec.API        `json:"api"`
+	Status       status.Status   `json:"status"`
+	Metrics      metrics.Metrics `json:"metrics"`
+	BaseURL      string          `json:"base_url"`
+	DashboardURL string          `json:"dashboard_url"`
 }
 
 type DeleteResponse struct {
@@ -67,12 +80,14 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-type FeatureSignature struct {
+type InputSignature struct {
 	Shape []interface{} `json:"shape"`
 	Type  string        `json:"type"`
 }
 
+type InputSignatures map[string]InputSignature
+
 type APISummary struct {
-	Message        string                      `json:"message"`
-	ModelSignature map[string]FeatureSignature `json:"model_signature"`
+	Message         string                     `json:"message"`
+	ModelSignatures map[string]InputSignatures `json:"model_signatures"`
 }

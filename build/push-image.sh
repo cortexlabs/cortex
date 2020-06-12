@@ -19,8 +19,28 @@ set -euo pipefail
 
 CORTEX_VERSION=master
 
+slim="false"
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    --include-slim)
+    slim="true"
+    shift
+    ;;
+    *)
+    positional_args+=("$1")
+    shift
+    ;;
+  esac
+done
+set -- "${positional_args[@]}"
+
 image=$1
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-docker push cortexlabs/$image:$CORTEX_VERSION
+docker push cortexlabs/${image}:${CORTEX_VERSION}
+
+if [ "$slim" == "true" ]; then
+  docker push cortexlabs/${image}-slim:${CORTEX_VERSION}
+fi

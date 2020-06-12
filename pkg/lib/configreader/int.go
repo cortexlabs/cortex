@@ -31,6 +31,7 @@ type IntValidation struct {
 	Default              int
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int
+	DisallowedValues     []int
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
 	LessThan             *int
@@ -43,7 +44,7 @@ func Int(inter interface{}, v *IntValidation) (int, error) {
 		if v.TreatNullAsZero {
 			return ValidateInt(0, v)
 		}
-		return 0, ErrorCannotBeNull()
+		return 0, ErrorCannotBeNull(v.Required)
 	}
 	casted, castOk := cast.InterfaceToInt(inter)
 	if !castOk {
@@ -158,7 +159,7 @@ func IntFromPrompt(promptOpts *prompt.Options, v *IntValidation) (int, error) {
 
 func ValidateIntMissing(v *IntValidation) (int, error) {
 	if v.Required {
-		return 0, ErrorMustBeDefined()
+		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return ValidateInt(v.Default, v)
 }
@@ -197,9 +198,15 @@ func ValidateIntVal(val int, v *IntValidation) error {
 		}
 	}
 
-	if v.AllowedValues != nil {
+	if len(v.AllowedValues) > 0 {
 		if !slices.HasInt(v.AllowedValues, val) {
 			return ErrorInvalidInt(val, v.AllowedValues[0], v.AllowedValues[1:]...)
+		}
+	}
+
+	if len(v.DisallowedValues) > 0 {
+		if slices.HasInt(v.DisallowedValues, val) {
+			return ErrorDisallowedValue(val)
 		}
 	}
 

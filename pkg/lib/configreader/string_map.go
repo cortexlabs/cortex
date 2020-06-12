@@ -26,6 +26,7 @@ type StringMapValidation struct {
 	Default                map[string]string
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	ConvertNullToEmpty     bool
 	AllowCortexResources   bool
 	RequireCortexResources bool
 	Validator              func(map[string]string) (map[string]string, error)
@@ -64,7 +65,7 @@ func ValidateStringMapMissing(v *StringMapValidation) (map[string]string, error)
 
 func ValidateStringMapProvided(val map[string]string, v *StringMapValidation) (map[string]string, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateStringMap(val, v)
 }
@@ -89,5 +90,10 @@ func validateStringMap(val map[string]string, v *StringMapValidation) (map[strin
 	if v.Validator != nil {
 		return v.Validator(val)
 	}
+
+	if val == nil && v.ConvertNullToEmpty {
+		val = make(map[string]string)
+	}
+
 	return val, nil
 }

@@ -29,6 +29,7 @@ type IntPtrValidation struct {
 	Default              *int
 	AllowExplicitNull    bool
 	AllowedValues        []int
+	DisallowedValues     []int
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
 	LessThan             *int
@@ -39,6 +40,7 @@ type IntPtrValidation struct {
 func makeIntValValidation(v *IntPtrValidation) *IntValidation {
 	return &IntValidation{
 		AllowedValues:        v.AllowedValues,
+		DisallowedValues:     v.DisallowedValues,
 		GreaterThan:          v.GreaterThan,
 		GreaterThanOrEqualTo: v.GreaterThanOrEqualTo,
 		LessThan:             v.LessThan,
@@ -165,14 +167,14 @@ func IntPtrFromPrompt(promptOpts *prompt.Options, v *IntPtrValidation) (*int, er
 
 func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 	if v.Required {
-		return nil, ErrorMustBeDefined()
+		return nil, ErrorMustBeDefined(v.AllowedValues)
 	}
 	return validateIntPtr(v.Default, v)
 }
 
 func ValidateIntPtrProvided(val *int, v *IntPtrValidation) (*int, error) {
 	if !v.AllowExplicitNull && val == nil {
-		return nil, ErrorCannotBeNull()
+		return nil, ErrorCannotBeNull(v.Required)
 	}
 	return validateIntPtr(val, v)
 }

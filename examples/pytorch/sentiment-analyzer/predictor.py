@@ -1,19 +1,15 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-from fastai.text import *
-import requests
+import torch
+from transformers import pipeline
 
 
 class PythonPredictor:
     def __init__(self, config):
-        req = requests.get(
-            "https://cortex-examples.s3-us-west-2.amazonaws.com/pytorch/sentiment-analyzer/export.pkl"
-        )
-        with open("export.pkl", "wb") as model:
-            model.write(req.content)
+        device = 0 if torch.cuda.is_available() else -1
+        print(f"using device: {'cuda' if device == 0 else 'cpu'}")
 
-        self.predictor = load_learner(".")
+        self.analyzer = pipeline(task="sentiment-analysis", device=device)
 
     def predict(self, payload):
-        prediction = self.predictor.predict(payload["text"])
-        return prediction[0].obj
+        return self.analyzer(payload["text"])[0]
