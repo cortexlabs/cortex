@@ -13,20 +13,12 @@ ENV PATH=/opt/aws/neuron/bin/:$PATH
 
 RUN apt-get update -qq && apt-get install -y -q \
     build-essential \
-    curl \
-    libfreetype6-dev \
-    libpng-dev \
-    libzmq3-dev \
     pkg-config \
-    rsync \
     software-properties-common \
+    curl \
+    git \
     unzip \
     zlib1g-dev \
-    git \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libsndfile1 \
     locales \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
@@ -53,14 +45,44 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip 
 
 ENV BASH_ENV=~/.env
 
-COPY pkg/workloads/cortex/lib/requirements.txt /src/cortex/lib/requirements.txt
-COPY pkg/workloads/cortex/serve/python-inf.requirements.txt /src/cortex/serve/requirements.txt
+COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
+RUN pip install --no-cache-dir -r \
+    /src/cortex/serve/requirements.txt
 
-RUN /bin/bash -c "pip install --no-cache-dir -r /src/cortex/lib/requirements.txt" && \
-    grep -v -e --no-deps /src/cortex/serve/requirements.txt > /src/cortex/serve/requirements_with_deps.txt && \
-    grep -e --no-deps /src/cortex/serve/requirements.txt | sed 's/--no-deps//g' > /src/cortex/serve/requirements_without_deps.txt && \
-    /bin/bash -c "pip install --no-cache-dir --extra-index-url https://pip.repos.neuron.amazonaws.com -r /src/cortex/serve/requirements_with_deps.txt" && \
-    /bin/bash -c "pip install --no-cache-dir --extra-index-url https://pip.repos.neuron.amazonaws.com -r /src/cortex/serve/requirements_without_deps.txt --no-deps"
+ARG SLIM="false"
+RUN test "${SLIM}" = "true" || ( \
+        # libsm6, libxext6, and libxrender-dev are required for opencv
+        # libpng-dev is required for some image processing libaries
+        # libsndfile1 is required for some audio processing libaries
+        apt-get update -qq && apt-get install -y -q \
+            libsm6 \
+            libxext6 \
+            libxrender-dev \
+            libpng-dev \
+            libsndfile1 \
+        && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
+        && pip install --no-cache-dir --extra-index-url https://pip.repos.neuron.amazonaws.com \
+            neuron-cc==1.0.9410.0+6008239556 \
+            tensorflow-neuron==1.15.0.1.0.1333.0 \
+            torch-neuron==1.0.825.0 \
+            cloudpickle==1.4.1 \
+            Cython==0.29.17 \
+            joblib==0.14.1 \
+            nltk==3.5 \
+            np-utils==0.5.12.1 \
+            opencv-python==4.2.0.34 \
+            pandas==1.0.3 \
+            Pillow==6.2.2 \
+            scikit-image==0.17.1 \
+            scikit-learn==0.22.2.post1 \
+            scipy==1.3.2 \
+            six==1.14.0 \
+            statsmodels==0.11.1 \
+            sympy==1.5.1 \
+            numpy==1.16.5 \
+        && pip install --no-cache-dir --no-deps \
+            torchvision==0.4.2 \
+    )
 
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
