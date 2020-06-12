@@ -131,7 +131,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 ## Neuron device plugin
 
 1. Check if [k8s-neuron-device-plugin](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) has been updated since the last time. If so, then update `manager/manifests/inferentia.yaml` with the latest and replace the container's image with `$CORTEX_IMAGE_INFERENTIA`.
-1. Check if newer versions of the device plugin have appeared. Last update we got was in https://github.com/aws/aws-neuron-sdk/issues/102. Currently, all device versions are residing at [robertlucian/cortexlabs-inferentia](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-inferentia). If there's a newer version, then pull the last one and push it to `robertlucian`'s Dockerhub repo. The reason for keeping it somewhere else is because AWS' repo is not to be trusted - the project is still in its infancy and things could change on a whim.
+1. Check if newer versions of the device plugin have appeared. Last update we got was in https://github.com/aws/aws-neuron-sdk/issues/102.
 
 ## Python packages
 
