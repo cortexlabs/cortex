@@ -55,6 +55,7 @@ const (
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
+	ErrResourceIncompatibleForProviderType  = "spec.resource_incompatible_for_provider_type"
 	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
@@ -285,6 +286,13 @@ func ErrorLocalModelPathNotSupportedByAWSProvider() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrLocalPathNotSupportedByAWSProvider,
 		Message: fmt.Sprintf("local model paths are not supported for aws provider, please specify an S3 path"),
+	})
+}
+
+func ErrorIncompatibleProviderResource(resourceType, providerType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrResourceIncompatibleForProviderType,
+		Message: fmt.Sprintf("%s resource is incompatible with %s provider type", resourceType, providerType),
 	})
 }
 

@@ -499,7 +499,7 @@ func ValidateAPI(
 	}
 
 	if api.Compute != nil { // should only be nil for local provider
-		if err := validateCompute(api); err != nil {
+		if err := validateCompute(api, providerType); err != nil {
 			return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 		}
 	}
@@ -959,8 +959,13 @@ func validateAutoscaling(api *userconfig.API) error {
 	return nil
 }
 
-func validateCompute(api *userconfig.API) error {
+func validateCompute(api *userconfig.API, providerType types.ProviderType) error {
 	compute := api.Compute
+
+	if compute.Inf > 0 && providerType == types.LocalProviderType {
+		return ErrorIncompatibleProviderResource(userconfig.InfKey, providerType.String())
+	}
+
 	if compute.GPU > 0 && compute.Inf > 0 {
 		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.InfKey)
 	}
