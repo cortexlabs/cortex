@@ -30,7 +30,7 @@ class FileLock:
         self._time_loop = 0.001
 
         # create lock if it doesn't exist
-        with open(self._lock_file_handlefile, "w+") as f:
+        with open(self._lock_file, "w+") as f:
             pass
 
     def acquire(self):
