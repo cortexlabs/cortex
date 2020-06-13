@@ -44,6 +44,7 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip 
     echo "source ~/.env" >> ~/.bashrc
 
 ENV BASH_ENV=~/.env
+SHELL ["/bin/bash", "-c"]
 
 COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
 RUN pip install --no-cache-dir -r \
