@@ -25,7 +25,7 @@ def load_tensorflow_serving_models():
     # get TFS address-specific details
     model_dir = os.environ["CORTEX_MODEL_DIR"]
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
-    tf_base_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
+    tf_base_serving_port = int(os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000"))
 
     # get models from environment variable
     models = os.environ["CORTEX_MODELS"].split(",")
