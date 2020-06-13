@@ -21,7 +21,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name:  neuron-device-plugin-ds
+      name: neuron-device-plugin-ds
   updateStrategy:
     type: RollingUpdate
   template:
@@ -56,7 +56,6 @@ spec:
           volumeMounts:
             - name: device-plugin
               mountPath: /var/lib/kubelet/device-plugins
-          # check if https://github.com/aws/aws-neuron-sdk/issues/103 is updated with new requests/limits
           resources:
             requests:
               cpu: 100m

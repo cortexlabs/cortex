@@ -970,7 +970,6 @@ func validateCompute(api *userconfig.API, providerType types.ProviderType) error
 		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.InfKey)
 	}
 
-	// use any number of Infs once https://github.com/aws/aws-neuron-sdk/issues/110 is fixed
 	if compute.Inf > 1 {
 		return ErrorInvalidNumberOfInfs(compute.Inf)
 	}
