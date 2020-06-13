@@ -19,6 +19,7 @@ import json
 
 from cortex.lib.type import get_spec
 from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.checkers.pod import wait_neuron_rtd
 
 
 def load_tensorflow_serving_models():
@@ -49,6 +50,11 @@ def load_tensorflow_serving_models():
 def main():
     with open("/src/cortex/serve/log_config.yaml", "r") as f:
         log_config = yaml.load(f, yaml.FullLoader)
+
+    # wait until neuron-rtd sidecar is ready
+    uses_inferentia = os.getenv("CORTEX_ACTIVE_NEURON")
+    if uses_inferentia:
+        wait_neuron_rtd()
 
     # strictly for Inferentia
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")

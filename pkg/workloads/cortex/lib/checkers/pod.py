@@ -12,6 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CORTEX_VERSION = "master"
-SINGLE_MODEL_NAME = "_cortex_default"
-INFERENTIA_NEURON_SOCK = "/sock/neuron.sock"
+import os, stat, time
+from cortex import consts
+
+
+def neuron_socket_exists():
+    if not os.path.exists(consts.INFERENTIA_NEURON_SOCK):
+        return False
+    else:
+        mode = os.stat(consts.INFERENTIA_NEURON_SOCK)
+        return stat.S_ISSOCK(mode.st_mode)
+
+
+def wait_neuron_rtd():
+    while not neuron_socket_exists():
+        time.sleep(0.01)
