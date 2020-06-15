@@ -257,7 +257,7 @@ function main() {
     envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
-    
+
   # add VPC Link integration to API Gateway
   if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -n "￮ creating api gateway vpc link integration "
