@@ -7,12 +7,21 @@ import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
 from model import IrisNet
+import time
+import uuid
 
 labels = ["setosa", "versicolor", "virginica"]
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+uuidStr = str(uuid.uuid4())
 
 
 class PythonPredictor:
     def __init__(self, config):
+        print(config)
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
 
@@ -28,23 +37,29 @@ class PythonPredictor:
         model.load_state_dict(torch.load("/tmp/model.pth"))
         model.eval()
 
+        self.config = config
         self.model = model
 
     def predict(self, payload):
         # Convert the request to a tensor and pass it into the model
-        input_tensor = torch.FloatTensor(
-            [
-                [
-                    payload["sepal_length"],
-                    payload["sepal_width"],
-                    payload["petal_length"],
-                    payload["petal_width"],
-                ]
-            ]
-        )
+        logging.debug("debug")
+        logger.info("info")
+        print(uuidStr + " " + payload)
+        time.sleep(10)
 
-        # Run the prediction
-        output = self.model(input_tensor)
+        # input_tensor = torch.FloatTensor(
+        #     [
+        #         [
+        #             payload["sepal_length"],
+        #             payload["sepal_width"],
+        #             payload["petal_length"],
+        #             payload["petal_width"],
+        #         ]
+        #     ]
+        # )
 
-        # Translate the model output to the corresponding label string
-        return labels[torch.argmax(output[0])]
+        # # Run the prediction
+        # output = self.model(input_tensor)
+
+        # # Translate the model output to the corresponding label string
+        # return labels[torch.argmax(output[0])]

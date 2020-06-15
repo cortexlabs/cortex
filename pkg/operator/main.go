@@ -17,9 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
@@ -43,7 +45,10 @@ func main() {
 	routerWithoutAuth := router.NewRoute().Subrouter()
 	routerWithoutAuth.Use(endpoints.PanicMiddleware)
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch", endpoints.Batch).Methods("POST") // TODO blacklist /batch*endpoints in api endpoint configuration
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.Batch).Methods("POST") // TODO blacklist /batch*endpoints in cortex.yaml endpoint configuration
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.Batch).Methods("GET")
+	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.Batch).Methods("GET")
+	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.BatchDelete).Methods("DELETE")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 
@@ -59,6 +64,12 @@ func main() {
 	routerWithAuth.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
 	routerWithAuth.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
 	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
+
+	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		debug.Pp(r.RequestURI)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode("ok")
+	})
 
 	log.Print("Running on port " + _operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))

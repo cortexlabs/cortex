@@ -99,14 +99,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		if apiConfig.Predictor.Env["BATCH"] == "true" {
-			_, _, err := operator.UpdateJob(&apiConfig, projectID)
-			if err != nil {
-				respondError(w, r, err)
-				return
-			}
-			continue
-		}
 		api, msg, err := operator.UpdateAPI(&apiConfig, projectID, force)
 		results[i].Message = msg
 		if err != nil {

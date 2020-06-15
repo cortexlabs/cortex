@@ -19,6 +19,8 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/operator/cloud"
+	"github.com/cortexlabs/cortex/pkg/operator/deployment/sync"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -26,14 +28,14 @@ import (
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
-	statuses, err := operator.GetAllStatuses()
+	statuses, err := sync.GetAllStatuses()
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
 	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	apis, err := cloud.DownloadAPISpecs(apiNames, apiIDs)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -62,13 +64,13 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	status, err := operator.GetStatus(apiName)
+	status, err := sync.GetStatus(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	api, err := cloud.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -91,7 +93,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		Status:       *status,
 		Metrics:      *metrics,
 		BaseURL:      baseURL,
-		DashboardURL: operator.DashboardURL(),
+		DashboardURL: sync.DashboardURL(),
 	})
 }
 

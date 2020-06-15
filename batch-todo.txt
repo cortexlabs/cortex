@@ -1,0 +1,32 @@
+- create virtual service for batch api
+- initialize batch endpoint cache based on virtual services
+- use fifo-queue
+- tag fifo-queue
+- delete fifo-queue when batch job gets deleted
+- run a background thread in python worker to periodically renew lock on a message because we don't know how long a message will take
+
+- delete old fifo-queues (job doesn't exist)
+- write completion spec summary after job is done
+
+- fluentd
+- batch spec
+- fix configreader error messages (error: cortex.yaml: iris-classifier: key "monitoring" is not supported) include type in identify Cortex?
+
+- rename APIType to something else
+- secure batch endpoints??
+
+
+
+
+status scenarios:
+- requests being enqueued by operator (async batch request?)
+  - what happens if one of the messages is too large?
+- request enqueuing has been completed by operator and pods are being initialized?
+- what happens if there isn't enough room for all of the pods to run?
+- one of the pod fails
+- all of the pods fail (items still in queue)
+
+
+job needs two statuses
+- worker/replica stats
+- batch progress

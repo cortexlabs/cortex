@@ -1,10 +1,15 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 - name: iris-classifier
+  type: batch
   predictor:
     type: python
     path: predictor.py
     config:
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
-  monitoring:
-    model_type: classification
+    env:
+      BATCH: "true"
+      SQS_QUEUE_URL: https://sqs.us-west-2.amazonaws.com/969758392368/batch
+      AWS_REGION: us-west-2
+  # monitoring:
+  #   model_type: classification

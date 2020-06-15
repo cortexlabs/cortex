@@ -44,12 +44,55 @@ API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 
 local_cache = {
     "api": None,
+    "job": None,
     "provider": None,
     "predictor_impl": None,
     "predict_route": None,
     "client": None,
     "class_set": set(),
+    "sqs": None,
 }
+
+
+class Ticker:
+    def __init__(self, interval, func, *args, **kwargs):
+        self.interval = interval
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.prev_val = None
+
+    def start(self):
+        self.timer = threading.Timer(self.interval, self.start)
+        self.timer.start()
+        self.kwargs["prev_val"] = self.prev_val
+        self.prev_val = self.func(*self.args, **self.kwargs)
+
+    def stop(self):
+        self.timer.cancel()
+
+
+def dimensions():
+    return [
+        {"Name": "APIName", "Value": local_cache["api"].name},
+        {"Name": "JobID", "Value": local_cache["job"]["job_id"]},
+    ]
+
+
+def success_counter_metric():
+    return {"MetricName": "Succeeded", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
+
+
+def failed_counter_metric():
+    return {"MetricName": "Failed", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
+
+
+def time_per_partition_metric(total_time_seconds):
+    return {
+        "MetricName": "TimePerPartition",
+        "Dimensions": dimensions(),
+        "Value": total_time_seconds,
+    }
 
 
 def update_api_liveness():
@@ -63,12 +106,22 @@ def startup():
     update_api_liveness()
 
 
-def get_spec(provider, storage, cache_dir, spec_path):
+def renew_message_visibility(queue_url, receipt_handle, interval, **kwargs):
+    local_cache["sqs"].change_message_visibility(
+        QueueUrl=queue_url,
+        ReceiptHandle=receipt_handle,
+        VisibilityTimeout=kwargs["prev_val"] + interval,
+    )
+
+    return kwargs["prev_val"] + interval
+
+
+def get_api_spec(provider, storage, cache_dir, api_spec_path):
     if provider == "local":
-        return read_msgpack(spec_path)
+        return read_msgpack(api_spec_path)
 
     local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    _, key = S3.deconstruct_s3_path(spec_path)
+    _, key = S3.deconstruct_s3_path(api_spec_path)
     storage.download_file(key, local_spec_path)
     return read_msgpack(local_spec_path)
 
@@ -78,9 +131,15 @@ def read_msgpack(msgpack_path):
         return msgpack.load(msgpack_file, raw=False)
 
 
-def sqs_loop():
-    sqs = boto3.client("sqs", region_name=os.environ["AWS_REGION"])
+def get_job_spec(storage, cache_dir, job_spec_path):
+    local_spec_path = os.path.join(cache_dir, "job_spec.json")
+    _, key = S3.deconstruct_s3_path(job_spec_path)
+    storage.download_file(key, local_spec_path)
+    with open(local_spec_path) as f:
+        return json.load(f)
 
+
+def sqs_loop():
     queue_url = os.environ.get("SQS_QUEUE_URL")
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
@@ -89,12 +148,12 @@ def sqs_loop():
 
     while True:
         print("entering loop")
-        response = sqs.receive_message(
+        response = local_cache["sqs"].receive_message(
             QueueUrl=queue_url,
             AttributeNames=["SentTimestamp"],
             MaxNumberOfMessages=1,
             MessageAttributeNames=["All"],
-            WaitTimeSeconds=20,
+            WaitTimeSeconds=1,
         )
 
         print(response)
@@ -103,17 +162,28 @@ def sqs_loop():
             print("no results")
             break
 
-        local_cache["predictor_impl"].predict(payload=response["Messages"][0]["Body"])
-
-        sqs.delete_message(
-            QueueUrl=queue_url, ReceiptHandle=response["Messages"][0]["ReceiptHandle"]
-        )
+        start_time = time.time()
+        try:
+            local_cache["predictor_impl"].predict(payload=response["Messages"][0]["Body"])
+            local_cache["api"].post_metrics(
+                [success_counter_metric(), time_per_partition_metric(time.time() - start_time)]
+            )
+        except Exception as e:
+            local_cache["api"].post_metrics(
+                [failed_counter_metric(), time_per_partition_metric(time.time() - start_time)]
+            )
+        finally:
+            local_cache["sqs"].delete_message(
+                QueueUrl=queue_url, ReceiptHandle=response["Messages"][0]["ReceiptHandle"]
+            )
 
 
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     provider = os.environ["CORTEX_PROVIDER"]
-    spec_path = os.environ["CORTEX_API_SPEC"]
+    api_spec_path = os.environ["CORTEX_API_SPEC"]
+    job_spec_path = os.environ["CORTEX_JOB_SPEC"]
+
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     model_dir = os.getenv("CORTEX_MODEL_DIR", None)
     tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", "9000")
@@ -125,7 +195,17 @@ def start():
         storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
 
     try:
-        raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
+        raw_api_spec = get_api_spec(provider, storage, cache_dir, api_spec_path)
+        if raw_api_spec["predictor"].get("config") is None:
+            raw_api_spec["predictor"]["config"] = {}
+
+        job_spec = get_job_spec(storage, cache_dir, job_spec_path)
+        print(job_spec)
+        if job_spec.get("config") is not None:
+            raw_api_spec["predictor"]["config"] = util.merge_dicts_overwrite(
+                raw_api_spec["predictor"]["config"], job_spec["config"]
+            )
+
         api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
         client = api.predictor.initialize_client(
             model_dir, tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
@@ -136,8 +216,11 @@ def start():
         local_cache["api"] = api
         local_cache["provider"] = provider
         local_cache["client"] = client
+        local_cache["job"] = job_spec
         local_cache["predictor_impl"] = predictor_impl
         local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+        local_cache["sqs"] = boto3.client("sqs", region_name=os.environ["AWS_REGION"])
+
     except:
         cx_logger().exception("failed to start api")
         sys.exit(1)

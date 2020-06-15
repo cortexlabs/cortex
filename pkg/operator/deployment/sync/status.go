@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package sync
 
 import (
 	"sort"
@@ -38,7 +38,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(k8sName(apiName))
+			deployment, err = config.K8s.GetDeployment(K8sName(apiName))
 			return err
 		},
 		func() error {

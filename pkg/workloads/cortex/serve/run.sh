@@ -29,12 +29,6 @@ echo "9999999999" > /mnt/workspace/api_liveness.txt
 
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 
-if [ "$CORTEX_PROVIDER" != "local" ]; then
-    sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
-    sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
-    sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
-fi
-
 # execute script if present in project's directory
 if [ -f "/mnt/project/dependencies.sh" ]; then
     bash -e /mnt/project/dependencies.sh
@@ -66,6 +60,12 @@ fi
 export PYTHONUNBUFFERED=TRUE
 
 if [ "$SQS_QUEUE_URL" == "" ]; then
+    if [ "$CORTEX_PROVIDER" != "local" ]; then
+        sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
+        sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
+        sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
+    fi
+
     /opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py
 else
     /opt/conda/envs/env/bin/python /src/cortex/serve/batch.py

@@ -192,8 +192,8 @@ elif [ "$cmd" = "update" ]; then
   #   build_and_push $ROOT/images/tensorflow-serving-cpu tensorflow-serving-cpu latest
   #   build_and_push $ROOT/images/tensorflow-serving-gpu tensorflow-serving-gpu latest
 
-    cache_builder $ROOT/images/operator operator
-    build_and_push $ROOT/images/operator operator latest
+    # cache_builder $ROOT/images/operator operator
+    # build_and_push $ROOT/images/operator operator latest
 
   #   build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
   #   build_and_push $ROOT/images/metrics-server metrics-server latest

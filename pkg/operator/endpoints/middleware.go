@@ -18,6 +18,7 @@ package endpoints
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -39,6 +40,7 @@ const (
 
 func PanicMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.RequestURI)
 		defer recoverAndRespond(w, r)
 		next.ServeHTTP(w, r)
 	})

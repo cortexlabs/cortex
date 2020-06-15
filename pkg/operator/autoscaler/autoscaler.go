@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package autoscaler
 
 import (
 	"log"
@@ -84,7 +84,7 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 	return &min
 }
 
-func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
+func AutoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
 	if err != nil {
 		return nil, err

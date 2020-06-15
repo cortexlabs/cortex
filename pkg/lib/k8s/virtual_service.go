@@ -51,7 +51,8 @@ type VirtualServiceSpec struct {
 	Gateways    []string
 	ServiceName string
 	ServicePort int32
-	Path        string
+	ExactPath   *string
+	PrefixPath  *string
 	Rewrite     *string
 	Labels      map[string]string
 	Annotations map[string]string
@@ -67,12 +68,18 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 		"annotations": spec.Annotations,
 	}
 
+	uriMap := map[string]interface{}{}
+
+	if spec.ExactPath != nil {
+		uriMap["exact"] = urls.CanonicalizeEndpoint(*spec.ExactPath)
+	} else if spec.PrefixPath != nil {
+		uriMap["prefix"] = urls.CanonicalizeEndpoint(*spec.PrefixPath)
+	}
+
 	httpSpec := map[string]interface{}{
 		"match": []map[string]interface{}{
 			{
-				"uri": map[string]interface{}{
-					"exact": urls.CanonicalizeEndpoint(spec.Path),
-				},
+				"uri": uriMap,
 			},
 		},
 		"route": []map[string]interface{}{
@@ -87,7 +94,8 @@ func VirtualService(spec *VirtualServiceSpec) *kunstructured.Unstructured {
 		},
 	}
 
-	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(spec.Path) {
+	// TODO what happens if rewrite path == PrefixPath or ExactPath?
+	if spec.Rewrite != nil {
 		httpSpec["rewrite"] = map[string]interface{}{
 			"uri": urls.CanonicalizeEndpoint(*spec.Rewrite),
 		}

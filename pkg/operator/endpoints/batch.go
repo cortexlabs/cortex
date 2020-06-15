@@ -21,31 +21,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/operator/deployment/batch"
+	"github.com/gorilla/mux"
 )
 
-type Submission struct {
-	APIName     string        `json:"api_name"`
-	Items       []interface{} `json:"items"`
-	Parallelism int           `json:"parallelism"`
-}
-
 func Batch(w http.ResponseWriter, r *http.Request) {
-	rw := http.MaxBytesReader(w, r.Body, 1<<10)
+	fmt.Println("here")
+	vars := mux.Vars(r)
+
+	rw := http.MaxBytesReader(w, r.Body, 32<<10)
 
 	bodyBytes, err := ioutil.ReadAll(rw)
 	if err != nil {
-		fmt.Println("hi")
 		respondError(w, r, err)
 		return
 	}
 
-	sub := Submission{}
+	sub := batch.Submission{}
 
 	err = json.Unmarshal(bodyBytes, &sub)
 	if err != nil {
@@ -53,22 +46,30 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	debug.Pp(sub)
-
-	objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, filepath.Join("apis", sub.APIName), false, pointer.Int64(1))
+	jobSpec, err := batch.SubmitJob(vars["apiName"], sub)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	apiSpec := spec.API{}
-	err = config.AWS.ReadMsgpackFromS3(&apiSpec, config.Cluster.Bucket, *objects[0].Key)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
+	respond(w, jobSpec)
 
-	debug.Pp(apiSpec)
+	// debug.Pp(sub)
+
+	// objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, filepath.Join("apis", sub.APIName), false, pointer.Int64(1))
+	// if err != nil {
+	// 	respondError(w, r, err)
+	// 	return
+	// }
+
+	// apiSpec := spec.API{}
+	// err = config.AWS.ReadMsgpackFromS3(&apiSpec, config.Cluster.Bucket, *objects[0].Key)
+	// if err != nil {
+	// 	respondError(w, r, err)
+	// 	return
+	// }
+
+	// debug.Pp(apiSpec)
 
 	// output, err := config.AWS.SQS().CreateQueue(
 	// 	&sqs.CreateQueueInput{
@@ -100,6 +101,17 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 	// 	respondError(w, r, err)
 	// 	return
 	// }
+
+}
+
+func BatchDelete(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	err := batch.DeleteJob(vars["apiName"], vars["jobID"])
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
 
 	respond(w, "ok")
 }

@@ -80,12 +80,12 @@ func apiValidation(provider types.ProviderType, apiType userconfig.APIType) *cr.
 				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
 			},
 		},
+		predictorValidation(),
 		computeValidation(provider),
 	}
 
 	if apiType == userconfig.APIAPIType {
 		structFieldValidations = append(structFieldValidations,
-			predictorValidation(),
 			monitoringValidation(),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
@@ -422,6 +422,7 @@ type resourceTypeStruct struct {
 }
 
 var resourceTypeStructValidation = cr.StructValidation{
+	AllowExtraFields: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "Type",
@@ -457,7 +458,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
-			err = errors.Wrap(ErrorTypeKeyNotSpecified(), userconfig.IdentifyAPI(filePath, name, i))
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 

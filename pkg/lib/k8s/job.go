@@ -126,7 +126,16 @@ func (c *Client) DeleteJobs(opts *kmeta.ListOptions) (bool, error) {
 		opts = &kmeta.ListOptions{}
 	}
 
-	c.jobClient.DeleteCollection()
+	pro := kmeta.DeletePropagationForeground
+
+	err := c.jobClient.DeleteCollection(&kmeta.DeleteOptions{
+		PropagationPolicy: &pro,
+	}, *opts)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	return true, nil
 }
 
 func (c *Client) ListJobs(opts *kmeta.ListOptions) ([]kbatch.Job, error) {

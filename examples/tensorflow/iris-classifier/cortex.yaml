@@ -7,3 +7,7 @@
     model: s3://cortex-examples/tensorflow/iris-classifier/nn
   monitoring:
     model_type: classification
+  compute:
+    gpu: 1
+  autoscaling:
+    min_replicas: 3

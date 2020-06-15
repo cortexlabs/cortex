@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package k8s
 
 import (
 	"encoding/base64"
@@ -44,7 +44,7 @@ const (
 	_specCacheDir                          = "/mnt/spec"
 	_emptyDirMountPath                     = "/mnt"
 	_emptyDirVolumeName                    = "mnt"
-	_apiContainerName                      = "api"
+	APIContainerName                       = "api"
 	_tfServingContainerName                = "serve"
 	_downloaderInitContainerName           = "downloader"
 	_downloaderLastLog                     = "downloading the %s serving image"
@@ -55,6 +55,7 @@ const (
 	_apiReadinessFile                      = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                       = "/mnt/workspace/api_liveness.txt"
 	_apiLivenessStalePeriod                = 7 // seconds (there is a 2-second buffer to be safe)
+	_operatorService                       = "operator"
 )
 
 var (
@@ -77,7 +78,7 @@ type downloadContainerArg struct {
 	HideUnzippingLog     bool   `json:"hide_unzipping_log"`      // if true, don't log when unzipping
 }
 
-func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
+func DeploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
 		return tensorflowPredictorSpec(api, prevDeployment)
@@ -90,7 +91,7 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 	}
 }
 
-func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
+func tensorflowPodSpec(api *spec.API) *kcore.PodSpec {
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
@@ -116,8 +117,101 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	return &kcore.PodSpec{
+		RestartPolicy: "Always",
+		InitContainers: []kcore.Container{
+			{
+				Name:            _downloaderInitContainerName,
+				Image:           config.Cluster.ImageDownloader,
+				ImagePullPolicy: "Always",
+				Args:            []string{"--download=" + tfDownloadArgs(api)},
+				EnvFrom:         _baseEnvVars,
+				VolumeMounts:    _defaultVolumeMounts,
+			},
+		},
+		Containers: []kcore.Container{
+			{
+				Name:            APIContainerName,
+				Image:           api.Predictor.Image,
+				ImagePullPolicy: kcore.PullAlways,
+				Env: append(
+					getEnvVars(api),
+					kcore.EnvVar{
+						Name:  "CORTEX_MODEL_DIR",
+						Value: path.Join(_emptyDirMountPath, "model"),
+					},
+					kcore.EnvVar{
+						Name:  "CORTEX_TF_SERVING_PORT",
+						Value: _tfServingPortStr,
+					},
+					kcore.EnvVar{
+						Name:  "CORTEX_TF_SERVING_HOST",
+						Value: _tfServingHost,
+					},
+				),
+				EnvFrom:        _baseEnvVars,
+				VolumeMounts:   _defaultVolumeMounts,
+				ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+				LivenessProbe:  _apiReadinessProbe,
+				Resources: kcore.ResourceRequirements{
+					Requests: apiResourceList,
+				},
+				Ports: []kcore.ContainerPort{
+					{ContainerPort: _defaultPortInt32},
+				},
+				SecurityContext: &kcore.SecurityContext{
+					Privileged: pointer.Bool(true),
+				},
+			},
+			*requestMonitorContainer(api),
+			{
+				Name:            _tfServingContainerName,
+				Image:           api.Predictor.TensorFlowServingImage,
+				ImagePullPolicy: kcore.PullAlways,
+				Args: []string{
+					"--port=" + _tfServingPortStr,
+					"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
+				},
+				Env:          getEnvVars(api),
+				EnvFrom:      _baseEnvVars,
+				VolumeMounts: _defaultVolumeMounts,
+				ReadinessProbe: &kcore.Probe{
+					InitialDelaySeconds: 5,
+					TimeoutSeconds:      5,
+					PeriodSeconds:       5,
+					SuccessThreshold:    1,
+					FailureThreshold:    2,
+					Handler: kcore.Handler{
+						TCPSocket: &kcore.TCPSocketAction{
+							Port: intstr.IntOrString{
+								IntVal: _tfServingPortInt32,
+							},
+						},
+					},
+				},
+				Resources: kcore.ResourceRequirements{
+					Requests: tfServingResourceList,
+					Limits:   tfServingLimitsList,
+				},
+				Ports: []kcore.ContainerPort{
+					{
+						ContainerPort: _tfServingPortInt32,
+					},
+				},
+			},
+		},
+		NodeSelector: map[string]string{
+			"workload": "true",
+		},
+		Tolerations:        _tolerations,
+		Volumes:            _defaultVolumes,
+		ServiceAccountName: "default",
+	}
+}
+
+func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           k8sName(api.Name),
+		Name:           K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
@@ -139,96 +233,7 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy: "Always",
-				InitContainers: []kcore.Container{
-					{
-						Name:            _downloaderInitContainerName,
-						Image:           config.Cluster.ImageDownloader,
-						ImagePullPolicy: "Always",
-						Args:            []string{"--download=" + tfDownloadArgs(api)},
-						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    _defaultVolumeMounts,
-					},
-				},
-				Containers: []kcore.Container{
-					{
-						Name:            _apiContainerName,
-						Image:           api.Predictor.Image,
-						ImagePullPolicy: kcore.PullAlways,
-						Env: append(
-							getEnvVars(api),
-							kcore.EnvVar{
-								Name:  "CORTEX_MODEL_DIR",
-								Value: path.Join(_emptyDirMountPath, "model"),
-							},
-							kcore.EnvVar{
-								Name:  "CORTEX_TF_SERVING_PORT",
-								Value: _tfServingPortStr,
-							},
-							kcore.EnvVar{
-								Name:  "CORTEX_TF_SERVING_HOST",
-								Value: _tfServingHost,
-							},
-						),
-						EnvFrom:        _baseEnvVars,
-						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:  _apiReadinessProbe,
-						Resources: kcore.ResourceRequirements{
-							Requests: apiResourceList,
-						},
-						Ports: []kcore.ContainerPort{
-							{ContainerPort: _defaultPortInt32},
-						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
-					},
-					*requestMonitorContainer(api),
-					{
-						Name:            _tfServingContainerName,
-						Image:           api.Predictor.TensorFlowServingImage,
-						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _tfServingPortStr,
-							"--model_base_path=" + path.Join(_emptyDirMountPath, "model"),
-						},
-						Env:          getEnvVars(api),
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: _defaultVolumeMounts,
-						ReadinessProbe: &kcore.Probe{
-							InitialDelaySeconds: 5,
-							TimeoutSeconds:      5,
-							PeriodSeconds:       5,
-							SuccessThreshold:    1,
-							FailureThreshold:    2,
-							Handler: kcore.Handler{
-								TCPSocket: &kcore.TCPSocketAction{
-									Port: intstr.IntOrString{
-										IntVal: _tfServingPortInt32,
-									},
-								},
-							},
-						},
-						Resources: kcore.ResourceRequirements{
-							Requests: tfServingResourceList,
-							Limits:   tfServingLimitsList,
-						},
-						Ports: []kcore.ContainerPort{
-							{
-								ContainerPort: _tfServingPortInt32,
-							},
-						},
-					},
-				},
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
-				Tolerations:        _tolerations,
-				Volumes:            _defaultVolumes,
-				ServiceAccountName: "default",
-			},
+			K8sPodSpec: *tensorflowPodSpec(api),
 		},
 	})
 }
@@ -261,7 +266,7 @@ func tfDownloadArgs(api *spec.API) string {
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
 
-func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
+func PythonPodSpec(api *spec.API) *kcore.PodSpec {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
@@ -282,8 +287,54 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	return &kcore.PodSpec{
+		RestartPolicy: "Always",
+		InitContainers: []kcore.Container{
+			{
+				Name:            _downloaderInitContainerName,
+				Image:           config.Cluster.ImageDownloader,
+				ImagePullPolicy: "Always",
+				Args:            []string{"--download=" + pythonDownloadArgs(api)},
+				EnvFrom:         _baseEnvVars,
+				VolumeMounts:    _defaultVolumeMounts,
+			},
+		},
+		Containers: []kcore.Container{
+			{
+				Name:            APIContainerName,
+				Image:           api.Predictor.Image,
+				ImagePullPolicy: kcore.PullAlways,
+				Env:             getEnvVars(api),
+				EnvFrom:         _baseEnvVars,
+				VolumeMounts:    _defaultVolumeMounts,
+				ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
+				LivenessProbe:   _apiReadinessProbe,
+				Resources: kcore.ResourceRequirements{
+					Requests: resourceList,
+					Limits:   resourceLimitsList,
+				},
+				Ports: []kcore.ContainerPort{
+					{ContainerPort: _defaultPortInt32},
+				},
+				SecurityContext: &kcore.SecurityContext{
+					Privileged: pointer.Bool(true),
+				},
+			},
+			// *requestMonitorContainer(api),
+		},
+		NodeSelector: map[string]string{
+			"workload": "true",
+		},
+		Tolerations:        _tolerations,
+		Volumes:            _defaultVolumes,
+		ServiceAccountName: "default",
+	}
+}
+
+func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           k8sName(api.Name),
+		Name:           K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
@@ -305,75 +356,16 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy: "Always",
-				InitContainers: []kcore.Container{
-					{
-						Name:            _downloaderInitContainerName,
-						Image:           config.Cluster.ImageDownloader,
-						ImagePullPolicy: "Always",
-						Args:            []string{"--download=" + pythonDownloadArgs(api)},
-						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    _defaultVolumeMounts,
-					},
-				},
-				Containers: []kcore.Container{
-					{
-						Name:            _apiContainerName,
-						Image:           api.Predictor.Image,
-						ImagePullPolicy: kcore.PullAlways,
-						Env:             getEnvVars(api),
-						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    _defaultVolumeMounts,
-						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:   _apiReadinessProbe,
-						Resources: kcore.ResourceRequirements{
-							Requests: resourceList,
-							Limits:   resourceLimitsList,
-						},
-						Ports: []kcore.ContainerPort{
-							{ContainerPort: _defaultPortInt32},
-						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
-					},
-					*requestMonitorContainer(api),
-				},
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
-				Tolerations:        _tolerations,
-				Volumes:            _defaultVolumes,
-				ServiceAccountName: "default",
-			},
+			K8sPodSpec: *PythonPodSpec(api),
 		},
 	})
 }
 
-func PythonJobSpec(api *spec.API, parallelism int) *kbatch.Job {
-	resourceList := kcore.ResourceList{}
-	resourceLimitsList := kcore.ResourceList{}
-
-	if api.Compute.CPU != nil {
-		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-		userPodCPURequest.Sub(_requestMonitorCPURequest)
-		resourceList[kcore.ResourceCPU] = *userPodCPURequest
-	}
-
-	if api.Compute.Mem != nil {
-		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-		userPodMemRequest.Sub(_requestMonitorMemRequest)
-		resourceList[kcore.ResourceMemory] = *userPodMemRequest
-	}
-
-	if api.Compute.GPU > 0 {
-		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-	}
+func PythonJobSpec(api *spec.API, podSpec *kcore.PodSpec, parallelism int) *kbatch.Job {
+	podSpec.RestartPolicy = "OnFailure"
 
 	return k8s.Job(&k8s.JobSpec{
-		Name:        k8sName(api.Name),
+		Name:        K8sName(api.Name),
 		Parallelism: parallelism,
 		Labels: map[string]string{
 			"apiName":      api.Name,
@@ -389,48 +381,7 @@ func PythonJobSpec(api *spec.API, parallelism int) *kbatch.Job {
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy: "Never", // TODO review this
-				InitContainers: []kcore.Container{
-					{
-						Name:            _downloaderInitContainerName,
-						Image:           config.Cluster.ImageDownloader,
-						ImagePullPolicy: "Always",
-						Args:            []string{"--download=" + pythonDownloadArgs(api)},
-						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    _defaultVolumeMounts,
-					},
-				},
-				Containers: []kcore.Container{
-					{
-						Name:            _apiContainerName,
-						Image:           api.Predictor.Image,
-						ImagePullPolicy: kcore.PullAlways,
-						Env:             getEnvVars(api),
-						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    _defaultVolumeMounts,
-						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:   _apiReadinessProbe,
-						Resources: kcore.ResourceRequirements{
-							Requests: resourceList,
-							Limits:   resourceLimitsList,
-						},
-						Ports: []kcore.ContainerPort{
-							{ContainerPort: _defaultPortInt32},
-						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
-					},
-					// *requestMonitorContainer(api),
-				},
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
-				Tolerations:        _tolerations,
-				Volumes:            _defaultVolumes,
-				ServiceAccountName: "default",
-			},
+			K8sPodSpec: *podSpec,
 		},
 	})
 }
@@ -454,7 +405,7 @@ func pythonDownloadArgs(api *spec.API) string {
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
 
-func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
+func onnxPodSpec(api *spec.API) *kcore.PodSpec {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 
@@ -475,8 +426,58 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	return &kcore.PodSpec{
+		InitContainers: []kcore.Container{
+			{
+				Name:            _downloaderInitContainerName,
+				Image:           config.Cluster.ImageDownloader,
+				ImagePullPolicy: "Always",
+				Args:            []string{"--download=" + onnxDownloadArgs(api)},
+				EnvFrom:         _baseEnvVars,
+				VolumeMounts:    _defaultVolumeMounts,
+			},
+		},
+		Containers: []kcore.Container{
+			{
+				Name:            APIContainerName,
+				Image:           api.Predictor.Image,
+				ImagePullPolicy: kcore.PullAlways,
+				Env: append(
+					getEnvVars(api),
+					kcore.EnvVar{
+						Name:  "CORTEX_MODEL_DIR",
+						Value: path.Join(_emptyDirMountPath, "model"),
+					},
+				),
+				EnvFrom:        _baseEnvVars,
+				VolumeMounts:   _defaultVolumeMounts,
+				ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+				LivenessProbe:  _apiReadinessProbe,
+				Resources: kcore.ResourceRequirements{
+					Requests: resourceList,
+					Limits:   resourceLimitsList,
+				},
+				Ports: []kcore.ContainerPort{
+					{ContainerPort: _defaultPortInt32},
+				},
+				SecurityContext: &kcore.SecurityContext{
+					Privileged: pointer.Bool(true),
+				},
+			},
+			*requestMonitorContainer(api),
+		},
+		NodeSelector: map[string]string{
+			"workload": "true",
+		},
+		Tolerations:        _tolerations,
+		Volumes:            _defaultVolumes,
+		ServiceAccountName: "default",
+	}
+}
+
+func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           k8sName(api.Name),
+		Name:           K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
@@ -498,53 +499,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
-			K8sPodSpec: kcore.PodSpec{
-				InitContainers: []kcore.Container{
-					{
-						Name:            _downloaderInitContainerName,
-						Image:           config.Cluster.ImageDownloader,
-						ImagePullPolicy: "Always",
-						Args:            []string{"--download=" + onnxDownloadArgs(api)},
-						EnvFrom:         _baseEnvVars,
-						VolumeMounts:    _defaultVolumeMounts,
-					},
-				},
-				Containers: []kcore.Container{
-					{
-						Name:            _apiContainerName,
-						Image:           api.Predictor.Image,
-						ImagePullPolicy: kcore.PullAlways,
-						Env: append(
-							getEnvVars(api),
-							kcore.EnvVar{
-								Name:  "CORTEX_MODEL_DIR",
-								Value: path.Join(_emptyDirMountPath, "model"),
-							},
-						),
-						EnvFrom:        _baseEnvVars,
-						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:  _apiReadinessProbe,
-						Resources: kcore.ResourceRequirements{
-							Requests: resourceList,
-							Limits:   resourceLimitsList,
-						},
-						Ports: []kcore.ContainerPort{
-							{ContainerPort: _defaultPortInt32},
-						},
-						SecurityContext: &kcore.SecurityContext{
-							Privileged: pointer.Bool(true),
-						},
-					},
-					*requestMonitorContainer(api),
-				},
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
-				Tolerations:        _tolerations,
-				Volumes:            _defaultVolumes,
-				ServiceAccountName: "default",
-			},
+			K8sPodSpec: *onnxPodSpec(api),
 		},
 	})
 }
@@ -575,7 +530,7 @@ func onnxDownloadArgs(api *spec.API) string {
 
 func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
-		Name:       k8sName(api.Name),
+		Name:       K8sName(api.Name),
 		Port:       _defaultPortInt32,
 		TargetPort: _defaultPortInt32,
 		Labels: map[string]string{
@@ -589,12 +544,28 @@ func serviceSpec(api *spec.API) *kcore.Service {
 
 func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:        k8sName(api.Name),
+		Name:        K8sName(api.Name),
 		Gateways:    []string{"apis-gateway"},
-		ServiceName: k8sName(api.Name),
+		ServiceName: K8sName(api.Name),
 		ServicePort: _defaultPortInt32,
-		Path:        *api.Endpoint,
+		ExactPath:   api.Endpoint,
 		Rewrite:     pointer.String("predict"),
+		Labels: map[string]string{
+			"apiName": api.Name,
+			"apiType": api.Type.String(),
+		},
+	})
+}
+
+// TODO rename
+func virtualServiceSpecBatch(api *spec.API) *kunstructured.Unstructured {
+	return k8s.VirtualService(&k8s.VirtualServiceSpec{
+		Name:        K8sName(api.Name),
+		Gateways:    []string{"apis-gateway"},
+		ServiceName: "operator",
+		ServicePort: _defaultPortInt32,
+		PrefixPath:  api.Endpoint,
+		Rewrite:     pointer.String(path.Join()),
 		Labels: map[string]string{
 			"apiName": api.Name,
 		},
@@ -629,6 +600,32 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 		})
 	}
 
+	if api.Autoscaling != nil {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "CORTEX_WORKERS_PER_REPLICA",
+				Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_THREADS_PER_WORKER",
+				Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
+				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
+			},
+			kcore.EnvVar{
+				Name: "CORTEX_MAX_WORKER_CONCURRENCY",
+				// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
+				Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Autoscaling.WorkersPerReplica)))),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_SO_MAX_CONN",
+				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
+			},
+		)
+	}
+
 	envVars = append(envVars,
 		kcore.EnvVar{
 			Name: "HOST_IP",
@@ -637,27 +634,6 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 					FieldPath: "status.hostIP",
 				},
 			},
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_WORKERS_PER_REPLICA",
-			Value: s.Int32(api.Autoscaling.WorkersPerReplica),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_THREADS_PER_WORKER",
-			Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-		},
-		kcore.EnvVar{
-			Name: "CORTEX_MAX_WORKER_CONCURRENCY",
-			// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
-			Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Autoscaling.WorkersPerReplica)))),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_SO_MAX_CONN",
-			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_SERVING_PORT",
@@ -709,7 +685,7 @@ func requestMonitorContainer(api *spec.API) *kcore.Container {
 	}
 }
 
-func k8sName(apiName string) string {
+func K8sName(apiName string) string {
 	return "api-" + apiName
 }
 
