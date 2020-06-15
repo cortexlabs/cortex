@@ -118,10 +118,13 @@ def is_gpu(instance_type):
     return instance_type.startswith("g") or instance_type.startswith("p")
 
 
-def apply_inf_settings(nodegroup, instance_type):
+def apply_inf_settings(nodegroup, cluster_config):
+    instance_type = cluster_config["instance_type"]
+    instance_region = cluster_config["region"]
+
     num_chips, hugepages_mem = get_inf_resources(instance_type)
     inf_settings = {
-        "ami": "ami-07a7b48058cfe1a73",
+        "ami": get_ami_image(instance_region),
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/infa=true",
@@ -151,6 +154,14 @@ def get_inf_resources(instance_type):
     return num_chips, f"{num_hugepages_2Mi * num_chips}Mi"
 
 
+def get_ami_image(availability_zone):
+    if availability_zone.startswith("us-east-1"):
+        return "ami-07a7b48058cfe1a73"
+    elif availability_zone.startswith("us-west-2"):
+        return "ami-00c8c8387d112425c"
+    return ""
+
+
 def generate_eks(cluster_config_path):
     with open(cluster_config_path, "r") as f:
         cluster_config = yaml.safe_load(f)
@@ -178,7 +189,7 @@ def generate_eks(cluster_config_path):
         apply_gpu_settings(worker_nodegroup)
 
     if is_inf(cluster_config["instance_type"]):
-        apply_inf_settings(worker_nodegroup, instance_type=cluster_config["instance_type"])
+        apply_inf_settings(worker_nodegroup, cluster_config)
 
     nat_gateway = "Disable"
     if cluster_config["nat_gateway"] == "single":
@@ -209,7 +220,7 @@ def generate_eks(cluster_config_path):
         if is_gpu(cluster_config["instance_type"]):
             apply_gpu_settings(backup_nodegroup)
         if is_inf(cluster_config["instance_type"]):
-            apply_inf_settings(backup_nodegroup, cluster_config["instance_type"])
+            apply_inf_settings(backup_nodegroup, cluster_config)
 
         backup_nodegroup["minSize"] = 0
         backup_nodegroup["desiredCapacity"] = 0
