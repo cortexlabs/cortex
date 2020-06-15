@@ -61,7 +61,6 @@ def apply_worker_settings(nodegroup):
 
 
 def apply_clusterconfig(nodegroup, config):
-
     clusterconfig_settings = {
         "instanceType": config["instance_type"],
         "availabilityZones": config["availability_zones"],
