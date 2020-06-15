@@ -30,16 +30,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _cmdStr string
+var (
+	_cmdStr string
 
-var _configFileExts = []string{"yaml", "yml"}
+	_configFileExts = []string{"yaml", "yml"}
 
-var _localDir string
-var _cliConfigPath string
-var _clientIDPath string
-var _emailPath string
-var _debugPath string
-var _cwd string
+	_localDir      string
+	_cliConfigPath string
+	_clientIDPath  string
+	_emailPath     string
+	_debugPath     string
+	_cwd           string
+)
 
 type commandType int
 

@@ -40,7 +40,7 @@ func StreamLogs(apiName string) error {
 		return ErrorAPIContainersNotFound(apiName)
 	}
 
-	containerIDs := []string{}
+	var containerIDs []string
 	for _, container := range containers {
 		containerIDs = append(containerIDs, container.ID)
 	}
