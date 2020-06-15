@@ -459,6 +459,25 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
+type resourceKindStruct struct {
+	Kind userconfig.Kind `json:"kind" yaml:"kind"`
+}
+
+var resourceTypeStructValidation = cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Kind",
+			StringValidation: &cr.StringValidation{
+				Required:      true,
+				AllowedValues: userconfig.KindStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.KindFromString(str), nil
+			},
+		},
+	},
+}
+
 func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectFiles ProjectFiles, filePath string) ([]userconfig.API, error) {
 	var err error
 
@@ -474,7 +493,17 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
 		api := userconfig.API{}
-		errs := cr.Struct(&api, data, apiValidation(provider))
+		var apiTypeStruct resourceTypeStruct
+		errs := cr.Struct(&apiTypeStruct, data, &resourceTypeStructValidation)
+
+		if errors.HasError(errs) {
+			name, _ := data[userconfig.NameKey].(string)
+			err = errors.Wrap(ErrorTypeKeyNotSpecified(), userconfig.IdentifyAPI(filePath, name, i))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+		}
+
+		errs = cr.Struct(&api, data, apiValidation(provider))
+
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))

@@ -19,6 +19,7 @@ package userconfig
 const (
 	// API
 	NameKey           = "name"
+	KindKey           = "kind"
 	EndpointKey       = "endpoint"
 	LocalPortKey      = "local_port"
 	PredictorKey      = "predictor"

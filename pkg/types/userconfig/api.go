@@ -31,6 +31,7 @@ import (
 
 type API struct {
 	Name           string          `json:"name" yaml:"name"`
+	Kind           Kind            `json:"kind" yaml:"kind"`
 	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
 	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
@@ -153,7 +154,7 @@ func (api *API) ApplyDefaultDockerPaths() {
 	}
 }
 
-func IdentifyAPI(filePath string, name string, index int) string {
+func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 	str := ""
 
 	if filePath != "" {
@@ -163,9 +164,9 @@ func IdentifyAPI(filePath string, name string, index int) string {
 	if name != "" {
 		return str + name
 	} else if index >= 0 {
-		return str + "api at " + s.Index(index)
+		return str + +kind.String() + " at " + s.Index(index)
 	}
-	return str + "api"
+	return str + kind.String()
 }
 
 // InitReplicas was left out deliberately
@@ -283,6 +284,7 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
 
 	if provider == types.LocalProviderType && api.LocalPort != nil {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))
