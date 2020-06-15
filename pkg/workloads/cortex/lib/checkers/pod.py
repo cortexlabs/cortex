@@ -26,4 +26,4 @@ def neuron_socket_exists():
 
 def wait_neuron_rtd():
     while not neuron_socket_exists():
-        time.sleep(0.01)
+        time.sleep(0.1)
