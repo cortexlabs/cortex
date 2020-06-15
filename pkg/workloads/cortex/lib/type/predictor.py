@@ -20,36 +20,65 @@ import dill
 
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex.lib.type.model import Model, get_model_signature_map
+from cortex import consts
 
 
 class Predictor:
-    def __init__(self, provider, cache_dir, **kwargs):
+    def __init__(self, provider, model_dir, cache_dir, **kwargs):
         self.provider = provider
         self.type = kwargs["type"]
         self.path = kwargs["path"]
-        self.model = kwargs.get("model")
         self.python_path = kwargs.get("python_path")
         self.config = kwargs.get("config", {})
         self.env = kwargs.get("env")
-        self.signature_key = kwargs.get("signature_key")
+
+        self.model_dir = model_dir
+        self.models = []
+        if kwargs.get("models"):
+            for model in kwargs["models"]:
+                self.models += [
+                    Model(
+                        name=model["name"],
+                        model=model["model"],
+                        base_path=self._compute_model_basepath(model["model"], model["name"]),
+                        signature_key=model.get("signature_key"),
+                    )
+                ]
 
         self.cache_dir = cache_dir
 
-    def initialize_client(self, model_dir=None, tf_serving_host=None, tf_serving_port=None):
+    def initialize_client(self, tf_serving_host=None, tf_serving_port=None):
+        signature_message = None
         if self.type == "onnx":
             from cortex.lib.client.onnx import ONNXClient
 
-            model_path = os.path.join(model_dir, os.path.basename(self.model))
-            client = ONNXClient(model_path)
-            cx_logger().info("ONNX model signature: {}".format(client.input_signature))
+            client = ONNXClient(self.models)
+            if self.models[0].name == consts.SINGLE_MODEL_NAME:
+                signature_message = "ONNX model signature: {}".format(
+                    client.input_signatures[consts.SINGLE_MODEL_NAME]
+                )
+            else:
+                signature_message = "ONNX model signatures: {}".format(client.input_signatures)
+            cx_logger().info(signature_message)
             return client
         elif self.type == "tensorflow":
             from cortex.lib.client.tensorflow import TensorFlowClient
 
+            for model in self.models:
+                validate_model_dir(model.base_path)
+
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
-            validate_model_dir(model_dir)
-            client = TensorFlowClient(tf_serving_address, self.signature_key)
-            cx_logger().info("TensorFlow model signature: {}".format(client.input_signature))
+            client = TensorFlowClient(tf_serving_address, self.models)
+            if self.models[0].name == consts.SINGLE_MODEL_NAME:
+                signature_message = "TensorFlow model signature: {}".format(
+                    client.input_signatures[consts.SINGLE_MODEL_NAME]
+                )
+            else:
+                signature_message = "TensorFlow model signatures: {}".format(
+                    client.input_signatures
+                )
+            cx_logger().info(signature_message)
             return client
 
         return None
@@ -126,6 +155,12 @@ class Predictor:
                 raise UserException(str(e)) from e
 
         return impl
+
+    def _compute_model_basepath(self, model_source, model_name):
+        base_path = os.path.join(self.model_dir, model_name)
+        if self.type == "onnx":
+            base_path = os.path.join(base_path, os.path.basename(model_source))
+        return base_path
 
 
 PYTHON_CLASS_VALIDATION = {

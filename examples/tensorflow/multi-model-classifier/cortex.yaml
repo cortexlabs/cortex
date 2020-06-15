@@ -1,0 +1,28 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+- name: multi-model-classifier
+  predictor:
+    type: tensorflow
+    path: predictor.py
+    models:
+      - name: inception
+        model: s3://cortex-examples/tensorflow/image-classifier/inception
+      - name: iris
+        model: s3://cortex-examples/tensorflow/iris-classifier/nn
+      - name: resnet50
+        model: s3://cortex-examples/tensorflow/resnet50
+    config:
+      models:
+        iris:
+          labels: ["setosa", "versicolor", "virginica"]
+        resnet50:
+          input_shape: [224, 224]
+          input_key: input
+          output_key: output
+        inception:
+          input_shape: [224, 224]
+          input_key: images
+          output_key: classes
+      image-classifier-classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+  compute:
+    mem: 2G

@@ -29,6 +29,7 @@ type Int64PtrValidation struct {
 	Default              *int64
 	AllowExplicitNull    bool
 	AllowedValues        []int64
+	DisallowedValues     []int64
 	GreaterThan          *int64
 	GreaterThanOrEqualTo *int64
 	LessThan             *int64
@@ -39,6 +40,7 @@ type Int64PtrValidation struct {
 func makeInt64ValValidation(v *Int64PtrValidation) *Int64Validation {
 	return &Int64Validation{
 		AllowedValues:        v.AllowedValues,
+		DisallowedValues:     v.DisallowedValues,
 		GreaterThan:          v.GreaterThan,
 		GreaterThanOrEqualTo: v.GreaterThanOrEqualTo,
 		LessThan:             v.LessThan,

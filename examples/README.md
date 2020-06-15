@@ -12,6 +12,8 @@
 
 - [License plate reader](tensorflow/license-plate-reader): deploy a YOLOv3 model (and others) to identify license plates in real time.
 
+- [Multi-model classification](tensorflow/multi-model-classifier): deploy 3 models (ResNet50, Iris, Inception) in a single API.
+
 ## Keras
 
 - [Denoisify text documents](keras/document-denoiser): deploy an Autoencoder model to clean text document images of noise.
@@ -34,13 +36,16 @@
 
 - [Language identification](pytorch/language-identifier): deploy a fastText model to identify languages.
 
+- [Multi-model text analysis](pytorch/multi-model-text-analyzer): deploy 2 models (Sentiment and Summarization analyzers) in a single API.
+
 - [Image classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
 
 - [Object detection](pytorch/object-detector): deploy a Faster R-CNN model from TorchVision to detect objects in images.
 
-## XGBoost
+## ONNX
 
-- [Iris classification](xgboost/iris-classifier): deploy a model to classify iris flowers (exported in ONNX).
+- [Iris classification](onnx/iris-classifier): deploy an XGBoost model (exported in ONNX) to classify iris flowers.
+- [Multi-model classification](onnx/multi-model-classifier): deploy 3 models (ResNet50, MobileNet, ShuffleNet) in a single API.
 
 ## scikit-learn
 

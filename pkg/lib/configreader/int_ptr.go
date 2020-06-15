@@ -29,6 +29,7 @@ type IntPtrValidation struct {
 	Default              *int
 	AllowExplicitNull    bool
 	AllowedValues        []int
+	DisallowedValues     []int
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
 	LessThan             *int
@@ -39,6 +40,7 @@ type IntPtrValidation struct {
 func makeIntValValidation(v *IntPtrValidation) *IntValidation {
 	return &IntValidation{
 		AllowedValues:        v.AllowedValues,
+		DisallowedValues:     v.DisallowedValues,
 		GreaterThan:          v.GreaterThan,
 		GreaterThanOrEqualTo: v.GreaterThanOrEqualTo,
 		LessThan:             v.LessThan,

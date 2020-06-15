@@ -48,12 +48,19 @@ type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
 	Model                  *string                `json:"model" yaml:"model"`
+	Models                 []*ModelResource       `json:"models" yaml:"models"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
+}
+
+type ModelResource struct {
+	Name         string  `json:"name" yaml:"name"`
+	Model        string  `json:"model" yaml:"model"`
+	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
 }
 
 type Monitoring struct {
@@ -95,6 +102,17 @@ type UpdateStrategy struct {
 
 func (api *API) Identify() string {
 	return IdentifyAPI(api.FilePath, api.Name, api.Index)
+}
+
+func (api *API) ModelNames() []string {
+	names := []string{}
+	if api != nil && len(api.Predictor.Models) > 0 {
+		for _, model := range api.Predictor.Models {
+			names = append(names, model.Name)
+		}
+	}
+
+	return names
 }
 
 func (api *API) ApplyDefaultDockerPaths() {
@@ -313,6 +331,12 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.Model != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
 	}
+	if predictor.Model == nil && len(predictor.Models) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
+		for _, model := range predictor.Models {
+			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
+		}
+	}
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
@@ -332,6 +356,16 @@ func (predictor *Predictor) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
 		d, _ := yaml.Marshal(&predictor.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
+	}
+	return sb.String()
+}
+
+func (model *ModelResource) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
+	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsKey, model.Model))
+	if model.SignatureKey != nil {
+		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
 	}
 	return sb.String()
 }

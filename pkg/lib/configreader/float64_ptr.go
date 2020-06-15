@@ -29,6 +29,7 @@ type Float64PtrValidation struct {
 	Default              *float64
 	AllowExplicitNull    bool
 	AllowedValues        []float64
+	DisallowedValues     []float64
 	GreaterThan          *float64
 	GreaterThanOrEqualTo *float64
 	LessThan             *float64
@@ -39,6 +40,7 @@ type Float64PtrValidation struct {
 func makeFloat64ValValidation(v *Float64PtrValidation) *Float64Validation {
 	return &Float64Validation{
 		AllowedValues:        v.AllowedValues,
+		DisallowedValues:     v.DisallowedValues,
 		GreaterThan:          v.GreaterThan,
 		GreaterThanOrEqualTo: v.GreaterThanOrEqualTo,
 		LessThan:             v.LessThan,

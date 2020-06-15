@@ -30,6 +30,7 @@ type StringPtrValidation struct {
 	AllowExplicitNull             bool
 	AllowEmpty                    bool
 	AllowedValues                 []string
+	DisallowedValues              []string
 	Prefix                        string
 	MaxLength                     int
 	MinLength                     int
@@ -50,6 +51,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 	return &StringValidation{
 		AllowEmpty:                    v.AllowEmpty,
 		AllowedValues:                 v.AllowedValues,
+		DisallowedValues:              v.DisallowedValues,
 		Prefix:                        v.Prefix,
 		MaxLength:                     v.MaxLength,
 		MinLength:                     v.MinLength,

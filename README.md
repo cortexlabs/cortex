@@ -144,12 +144,6 @@ Cortex manages its own Kubernetes cluster so that end-to-end functionality like 
 
 <br>
 
-## What is Cortex similar to?
-
-Cortex is an open source alternative to serving models with SageMaker or building your own model deployment platform on top of AWS services like Elastic Kubernetes Service (EKS), Lambda, or Fargate and open source projects like Docker, Kubernetes, TensorFlow Serving, and TorchServe.
-
-<br>
-
 ## Examples
 
 <!-- CORTEX_VERSION_README_MINOR x3 -->

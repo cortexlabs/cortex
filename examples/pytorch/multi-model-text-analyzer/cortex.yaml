@@ -1,9 +1,10 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- name: iris-classifier
+- name: multi-model-text-analyzer
   predictor:
-    type: onnx
+    type: python
     path: predictor.py
-    model: s3://cortex-examples/xgboost/iris-classifier/gbtree.onnx
-  monitoring:
-    model_type: classification
+  compute:
+    cpu: 1
+    gpu: 1
+    mem: 6G

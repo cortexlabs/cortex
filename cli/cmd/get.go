@@ -507,24 +507,41 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
 	}
 
-	rows := make([][]interface{}, len(apiSummary.ModelSignature))
-	rowNum := 0
-	for inputName, featureSignature := range apiSummary.ModelSignature {
-		shapeStr := make([]string, len(featureSignature.Shape))
-		for idx, dim := range featureSignature.Shape {
-			shapeStr[idx] = s.ObjFlatNoQuotes(dim)
-		}
-		rows[rowNum] = []interface{}{
-			inputName,
-			featureSignature.Type,
-			"(" + strings.Join(shapeStr, ", ") + ")",
-		}
-		rowNum++
+	numRows := 0
+	for _, inputSignatures := range apiSummary.ModelSignatures {
+		numRows += len(inputSignatures)
 	}
 
+	usesDefaultModel := false
+	rows := make([][]interface{}, numRows)
+	rowNum := 0
+	for modelName, inputSignatures := range apiSummary.ModelSignatures {
+		for inputName, inputSignature := range inputSignatures {
+			shapeStr := make([]string, len(inputSignature.Shape))
+			for idx, dim := range inputSignature.Shape {
+				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
+			}
+			rows[rowNum] = []interface{}{
+				modelName,
+				inputName,
+				inputSignature.Type,
+				"(" + strings.Join(shapeStr, ", ") + ")",
+			}
+			rowNum++
+		}
+		if modelName == consts.SingleModelName {
+			usesDefaultModel = true
+		}
+	}
+
+	inputTitle := "input"
+	if usesDefaultModel {
+		inputTitle = "model input"
+	}
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "model input", MaxWidth: 32},
+			{Title: "model name", MaxWidth: 32, Hidden: usesDefaultModel},
+			{Title: inputTitle, MaxWidth: 32},
 			{Title: "type", MaxWidth: 10},
 			{Title: "shape", MaxWidth: 20},
 		},
@@ -580,8 +597,10 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
 
-	for _, featureSignature := range apiSummary.ModelSignature {
-		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
+	for _, inputSignatures := range apiSummary.ModelSignatures {
+		for _, inputSignature := range inputSignatures {
+			inputSignature.Shape = cast.JSONNumbers(inputSignature.Shape)
+		}
 	}
 
 	return &apiSummary, nil
