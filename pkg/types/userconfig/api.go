@@ -35,6 +35,7 @@ type API struct {
 	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
+	Networking     *Networking     `json:"networking" yaml:"networking"`
 	Compute        *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
@@ -65,6 +66,10 @@ type ModelResource struct {
 type Monitoring struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
+}
+
+type Networking struct {
+	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
 }
 
 type Compute struct {
@@ -164,100 +169,109 @@ func IdentifyAPI(filePath string, name string, index int) string {
 }
 
 // InitReplicas was left out deliberately
-func (autoscaling *Autoscaling) ToK8sAnnotations() map[string]string {
+func (api *API) ToK8sAnnotations() map[string]string {
 	return map[string]string{
-		MinReplicasAnnotationKey:                  s.Int32(autoscaling.MinReplicas),
-		MaxReplicasAnnotationKey:                  s.Int32(autoscaling.MaxReplicas),
-		WorkersPerReplicaAnnotationKey:            s.Int32(autoscaling.WorkersPerReplica),
-		ThreadsPerWorkerAnnotationKey:             s.Int32(autoscaling.ThreadsPerWorker),
-		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*autoscaling.TargetReplicaConcurrency),
-		MaxReplicaConcurrencyAnnotationKey:        s.Int64(autoscaling.MaxReplicaConcurrency),
-		WindowAnnotationKey:                       autoscaling.Window.String(),
-		DownscaleStabilizationPeriodAnnotationKey: autoscaling.DownscaleStabilizationPeriod.String(),
-		UpscaleStabilizationPeriodAnnotationKey:   autoscaling.UpscaleStabilizationPeriod.String(),
-		MaxDownscaleFactorAnnotationKey:           s.Float64(autoscaling.MaxDownscaleFactor),
-		MaxUpscaleFactorAnnotationKey:             s.Float64(autoscaling.MaxUpscaleFactor),
-		DownscaleToleranceAnnotationKey:           s.Float64(autoscaling.DownscaleTolerance),
-		UpscaleToleranceAnnotationKey:             s.Float64(autoscaling.UpscaleTolerance),
+		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
+		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
+		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
+		WorkersPerReplicaAnnotationKey:            s.Int32(api.Autoscaling.WorkersPerReplica),
+		ThreadsPerWorkerAnnotationKey:             s.Int32(api.Autoscaling.ThreadsPerWorker),
+		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*api.Autoscaling.TargetReplicaConcurrency),
+		MaxReplicaConcurrencyAnnotationKey:        s.Int64(api.Autoscaling.MaxReplicaConcurrency),
+		WindowAnnotationKey:                       api.Autoscaling.Window.String(),
+		DownscaleStabilizationPeriodAnnotationKey: api.Autoscaling.DownscaleStabilizationPeriod.String(),
+		UpscaleStabilizationPeriodAnnotationKey:   api.Autoscaling.UpscaleStabilizationPeriod.String(),
+		MaxDownscaleFactorAnnotationKey:           s.Float64(api.Autoscaling.MaxDownscaleFactor),
+		MaxUpscaleFactorAnnotationKey:             s.Float64(api.Autoscaling.MaxUpscaleFactor),
+		DownscaleToleranceAnnotationKey:           s.Float64(api.Autoscaling.DownscaleTolerance),
+		UpscaleToleranceAnnotationKey:             s.Float64(api.Autoscaling.UpscaleTolerance),
 	}
 }
 
-func AutoscalingFromAnnotations(deployment kmeta.Object) (*Autoscaling, error) {
+func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
+	apiGatewayType := APIGatewayTypeFromString(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
+	if apiGatewayType == UnknownAPIGatewayType {
+		return UnknownAPIGatewayType, ErrorUnknownAPIGatewayType()
+	}
+	return apiGatewayType, nil
+}
+
+func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	a := Autoscaling{}
 
-	minReplicas, err := k8s.ParseInt32Annotation(deployment, MinReplicasAnnotationKey)
+	minReplicas, err := k8s.ParseInt32Annotation(k8sObj, MinReplicasAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MinReplicas = minReplicas
 
-	maxReplicas, err := k8s.ParseInt32Annotation(deployment, MaxReplicasAnnotationKey)
+	maxReplicas, err := k8s.ParseInt32Annotation(k8sObj, MaxReplicasAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MaxReplicas = maxReplicas
 
-	workersPerReplica, err := k8s.ParseInt32Annotation(deployment, WorkersPerReplicaAnnotationKey)
+	workersPerReplica, err := k8s.ParseInt32Annotation(k8sObj, WorkersPerReplicaAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.WorkersPerReplica = workersPerReplica
 
-	threadsPerWorker, err := k8s.ParseInt32Annotation(deployment, ThreadsPerWorkerAnnotationKey)
+	threadsPerWorker, err := k8s.ParseInt32Annotation(k8sObj, ThreadsPerWorkerAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.ThreadsPerWorker = threadsPerWorker
 
-	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(deployment, TargetReplicaConcurrencyAnnotationKey)
+	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(k8sObj, TargetReplicaConcurrencyAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.TargetReplicaConcurrency = &targetReplicaConcurrency
 
-	maxReplicaConcurrency, err := k8s.ParseInt64Annotation(deployment, MaxReplicaConcurrencyAnnotationKey)
+	maxReplicaConcurrency, err := k8s.ParseInt64Annotation(k8sObj, MaxReplicaConcurrencyAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MaxReplicaConcurrency = maxReplicaConcurrency
 
-	window, err := k8s.ParseDurationAnnotation(deployment, WindowAnnotationKey)
+	window, err := k8s.ParseDurationAnnotation(k8sObj, WindowAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.Window = window
 
-	downscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(deployment, DownscaleStabilizationPeriodAnnotationKey)
+	downscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(k8sObj, DownscaleStabilizationPeriodAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.DownscaleStabilizationPeriod = downscaleStabilizationPeriod
 
-	upscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(deployment, UpscaleStabilizationPeriodAnnotationKey)
+	upscaleStabilizationPeriod, err := k8s.ParseDurationAnnotation(k8sObj, UpscaleStabilizationPeriodAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.UpscaleStabilizationPeriod = upscaleStabilizationPeriod
 
-	maxDownscaleFactor, err := k8s.ParseFloat64Annotation(deployment, MaxDownscaleFactorAnnotationKey)
+	maxDownscaleFactor, err := k8s.ParseFloat64Annotation(k8sObj, MaxDownscaleFactorAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MaxDownscaleFactor = maxDownscaleFactor
 
-	maxUpscaleFactor, err := k8s.ParseFloat64Annotation(deployment, MaxUpscaleFactorAnnotationKey)
+	maxUpscaleFactor, err := k8s.ParseFloat64Annotation(k8sObj, MaxUpscaleFactorAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.MaxUpscaleFactor = maxUpscaleFactor
 
-	downscaleTolerance, err := k8s.ParseFloat64Annotation(deployment, DownscaleToleranceAnnotationKey)
+	downscaleTolerance, err := k8s.ParseFloat64Annotation(k8sObj, DownscaleToleranceAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
 	a.DownscaleTolerance = downscaleTolerance
 
-	upscaleTolerance, err := k8s.ParseFloat64Annotation(deployment, UpscaleToleranceAnnotationKey)
+	upscaleTolerance, err := k8s.ParseFloat64Annotation(k8sObj, UpscaleToleranceAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
@@ -290,6 +304,11 @@ func (api *API) UserStr(provider types.ProviderType) string {
 		if api.Monitoring != nil {
 			sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
 			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
+		}
+
+		if api.Networking != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
+			sb.WriteString(s.Indent(api.Networking.UserStr(), "  "))
 		}
 
 		if api.Autoscaling != nil {
@@ -357,6 +376,12 @@ func (monitoring *Monitoring) UserStr() string {
 	if monitoring.Key != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *monitoring.Key))
 	}
+	return sb.String()
+}
+
+func (networking *Networking) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
 	return sb.String()
 }
 

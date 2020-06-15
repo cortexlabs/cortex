@@ -43,7 +43,6 @@ type NodeInfo struct {
 
 type DeployResponse struct {
 	Results []DeployResult `json:"results"`
-	BaseURL string         `json:"base_url"`
 }
 
 type DeployResult struct {
@@ -56,7 +55,6 @@ type GetAPIsResponse struct {
 	APIs       []spec.API        `json:"apis"`
 	Statuses   []status.Status   `json:"statuses"`
 	AllMetrics []metrics.Metrics `json:"all_metrics"`
-	BaseURL    string            `json:"base_url"`
 }
 
 type GetAPIResponse struct {

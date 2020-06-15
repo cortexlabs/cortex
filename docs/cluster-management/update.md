@@ -33,6 +33,6 @@ cortex version
 cortex cluster up
 ```
 
-In production environments, you can upgrade your cluster without downtime if you have a service in front of your Cortex cluster (for example, you can [configure API Gateway as a proxy service](../guides/api-gateway.md)): first spin up your new cluster, then update your client-facing service to route traffic to your new cluster, and then spin down your old cluster.
+In production environments, you can upgrade your cluster without downtime if you have a service in front of your Cortex cluster (for example, a backend server or an external API Gateway): first spin up your new cluster, then update your client-facing service to route traffic to your new cluster, and then spin down your old cluster.
 
 If you've set up HTTPS by specifying an SSL Certificate for a subdomain in your cluster configuration, you can upgrade your cluster with minimal downtime: first spin up a new cluster, then update the A record in your subdomain hosted zone to point to the API loadbalancer of your new cluster. Wait at least a 24 to 48 hours before spinning down your old cluster to allow old DNS cache to be flushed.
