@@ -612,7 +612,6 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 			}
 		}
 
-		fmt.Println(cc.SpotConfig.InstanceDistribution)
 		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > *cc.MaxInstances {
 			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.SpotConfig.OnDemandBaseCapacity, *cc.MaxInstances)
 		}
