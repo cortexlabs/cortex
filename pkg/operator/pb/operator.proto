@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "pb";
+
+message InfoResponse {
+	bytes Response         = 1;
+}
+
+message DeployResponse {
+	bytes Response = 1;
+}
+
+message RefreshResponse {
+	bytes Response = 1;
+}
+
+message DeleteResponse {
+	bytes Response         = 1;
+}
+
+message GetAPIsResponse {
+	bytes Response      = 1;
+}
+
+message GetAPIResponse {
+	bytes Response     = 1;
+}
+
+message LogsResponse  {
+    bytes Response = 1;
+}
+
+message UploadRequest {
+  bytes Config = 1;
+  bytes Project = 2;
+}
+
+service EndPointService {
+    rpc Info(google.protobuf.Empty) returns (InfoResponse) {}
+    rpc Deploy(stream UploadRequest) returns (DeployResponse) {}
+    rpc Refresh(google.protobuf.Empty) returns (RefreshResponse) {}
+    rpc Delete(google.protobuf.Empty) returns (DeleteResponse) {}
+    rpc GetAPIs(google.protobuf.Empty) returns (GetAPIsResponse) {}
+    rpc GetAPI(google.protobuf.Empty) returns (GetAPIResponse) {}
+    rpc ReadLogs(google.protobuf.Empty) returns (stream LogsResponse) {}
+}

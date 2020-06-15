@@ -17,10 +17,18 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"google.golang.org/grpc/metadata"
 	"net/http"
+	"context"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/pb"
+	"github.com/golang/protobuf/ptypes/empty"
+
 	"github.com/gorilla/mux"
 )
 
@@ -38,4 +46,33 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		Message: msg,
 	}
 	respond(w, response)
+}
+
+func (ep *endpoint) Refresh(ctx context.Context, empty *empty.Empty) (*pb.RefreshResponse, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("empty ctx")
+	}
+	apiName := md.Get("apiName")
+	if len(apiName) == 0 {
+		return nil, fmt.Errorf("empty value apiName")
+	}
+	keep := md.Get("force")
+	force := true
+	if len(keep) == 0 {
+		force = false
+	}
+	if strings.ToLower(keep[0]) != "true" {
+		force = false
+	}
+	msg, err := operator.RefreshAPI(apiName, force)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &schema.RefreshResponse{
+		Message: msg,
+	}
+	res, _ := json.Marshal(response)
+	return &pb.RefreshResponse{Response: res}, nil
 }

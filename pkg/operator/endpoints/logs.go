@@ -17,6 +17,8 @@ limitations under the License.
 package endpoints
 
 import (
+	"github.com/cortexlabs/cortex/pkg/operator/pb"
+	"github.com/golang/protobuf/ptypes/empty"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -45,4 +47,9 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	defer socket.Close()
 
 	operator.ReadLogs(apiName, socket)
+}
+
+// TODO
+func (ep *endpoint) ReadLogs(empty *empty.Empty, srv pb.EndPointService_ReadLogsServer) error {
+	return nil
 }

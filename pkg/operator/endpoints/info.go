@@ -17,17 +17,21 @@ limitations under the License.
 package endpoints
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"sort"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/pb"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/golang/protobuf/ptypes/empty"
 	kcore "k8s.io/api/core/v1"
 )
 
@@ -45,6 +49,23 @@ func Info(w http.ResponseWriter, r *http.Request) {
 		NumPendingReplicas:   numPendingReplicas,
 	}
 	respond(w, response)
+}
+
+func (ep *endpoint) Info(ctx context.Context, empty *empty.Empty) (*pb.InfoResponse, error) {
+	nodeInfos, numPendingReplicas, err := getNodeInfos()
+	if err != nil {
+		return nil, err
+	}
+	response := &schema.InfoResponse{
+		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
+		ClusterConfig:        *config.Cluster,
+		NodeInfos:            nodeInfos,
+		NumPendingReplicas:   numPendingReplicas,
+	}
+	res, _ := json.Marshal(response)
+	return &pb.InfoResponse{
+		Response: res,
+	}, nil
 }
 
 func getNodeInfos() ([]schema.NodeInfo, int, error) {

@@ -136,7 +136,7 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 }
 
 func DeleteCachedModels(apiName string, modelsToDelete []string) error {
-	errList := []error{}
+	var errList []error
 	modelsInUse := strset.New()
 	apiSpecList, err := ListAPISpecs()
 	errList = append(errList, err)
@@ -162,7 +162,7 @@ func DeleteCachedModels(apiName string, modelsToDelete []string) error {
 }
 
 func DeleteCachedModelsByID(modelIDs []string) error {
-	errList := []error{}
+	var errList []error
 	for _, modelID := range modelIDs {
 		err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
 		if err != nil {

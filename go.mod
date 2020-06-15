@@ -20,6 +20,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.9.0
 	github.com/getsentry/sentry-go v0.6.1
+	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.4.2
@@ -36,6 +37,7 @@ require (
 	github.com/xlab/treeprint v1.0.0
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f // indirect
+	google.golang.org/grpc v1.23.1
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gotest.tools v2.2.0+incompatible // indirect

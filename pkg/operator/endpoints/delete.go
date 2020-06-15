@@ -17,8 +17,14 @@ limitations under the License.
 package endpoints
 
 import (
+	"context"
 	"fmt"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/operator/pb"
+	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc/metadata"
 	"net/http"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -26,37 +32,72 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func (ep *endpoint) Delete(ctx context.Context, empty *empty.Empty) (*pb.DeleteResponse, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("empty ctx")
+	}
+	api := md.Get("apiName")
+	if len(api) == 0 {
+		return nil, fmt.Errorf("empty value apiName")
+	}
+	keepCache := md.Get("keepCache")
+	cache := true
+	if len(keepCache) == 0 {
+		cache = false
+	}
+	if strings.ToLower(keepCache[0]) != "true" {
+		cache = false
+	}
+	response, err := delete(api[0], cache)
+
+	if err != nil {
+		// TODO: handle error
+		return nil, err
+	}
+	res, _ := json.Marshal(response)
+	return &pb.DeleteResponse{Response: res}, nil
+}
+
 func Delete(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 	keepCache := getOptionalBoolQParam("keepCache", false, r)
 
-	isDeployed, err := operator.IsAPIDeployed(apiName)
+	response, err := delete(apiName, keepCache)
 	if err != nil {
+		if fmt.Sprintf("%d", http.StatusNotFound) == err.Error() {
+			respondErrorCode(w, r, http.StatusNotFound, operator.ErrorAPINotDeployed(apiName))
+			return
+		}
 		respondError(w, r, err)
 		return
+	}
+	respond(w, *response)
+}
+
+func delete(api string, keepCache bool) (*schema.DeleteResponse, error) {
+	isDeployed, err := operator.IsAPIDeployed(api)
+	if err != nil {
+		return nil, err
 	}
 
 	if !isDeployed {
 		// Delete anyways just to be sure everything is deleted
 		go func() {
-			err = operator.DeleteAPI(apiName, keepCache)
+			err = operator.DeleteAPI(api, keepCache)
 			if err != nil {
 				telemetry.Error(err)
 			}
 		}()
-
-		respondErrorCode(w, r, http.StatusNotFound, operator.ErrorAPINotDeployed(apiName))
-		return
+		return nil, fmt.Errorf("%d", http.StatusNotFound)
 	}
 
-	err = operator.DeleteAPI(apiName, keepCache)
+	err = operator.DeleteAPI(api, keepCache)
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
 	}
 
-	response := schema.DeleteResponse{
-		Message: fmt.Sprintf("deleting %s", apiName),
-	}
-	respond(w, response)
+	return &schema.DeleteResponse{
+		Message: fmt.Sprintf("deleting %s", api),
+	}, nil
 }

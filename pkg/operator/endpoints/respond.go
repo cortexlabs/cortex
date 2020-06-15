@@ -18,6 +18,7 @@ package endpoints
 
 import (
 	"encoding/json"
+	"github.com/cortexlabs/cortex/pkg/operator/pb"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -67,4 +68,12 @@ func recoverAndRespond(w http.ResponseWriter, r *http.Request, strs ...string) {
 		telemetry.Error(err)
 		respondError(w, r, err)
 	}
+}
+
+type endpoint struct {
+
+}
+
+func NewEndpoint() pb.EndPointServiceServer{
+	return &endpoint{}
 }

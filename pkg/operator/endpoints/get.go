@@ -17,82 +17,96 @@ limitations under the License.
 package endpoints
 
 import (
+	"context"
+	"fmt"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/operator/pb"
+	"google.golang.org/grpc/metadata"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/gorilla/mux"
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
-	statuses, err := operator.GetAllStatuses()
+	res, err := getAPIS()
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+	respond(w, *res)
+}
+
+func getAPIS() (*schema.GetAPIsResponse, error) {
+	statuses, err := operator.GetAllStatuses()
+	if err != nil {
+		return nil, err
 	}
 
 	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
 	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
 	}
 
 	allMetrics, err := operator.GetMultipleMetrics(apis)
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
 	}
 
 	baseURL, err := operator.APIsBaseURL()
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
 	}
-
-	respond(w, schema.GetAPIsResponse{
+	return &schema.GetAPIsResponse{
 		APIs:       apis,
 		Statuses:   statuses,
 		AllMetrics: allMetrics,
 		BaseURL:    baseURL,
-	})
+	}, nil
 }
 
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
-
-	status, err := operator.GetStatus(apiName)
+	res, err := getAPI(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+	respond(w, *res)
+}
+
+func getAPI(apiName string) (*schema.GetAPIResponse, error) {
+	status, err := operator.GetStatus(apiName)
+	if err != nil {
+		return nil, err
 	}
 
 	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
 	}
 
 	metrics, err := operator.GetMetrics(api)
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
 	}
 
 	baseURL, err := operator.APIsBaseURL()
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
 	}
-
-	respond(w, schema.GetAPIResponse{
+	return &schema.GetAPIResponse{
 		API:          *api,
 		Status:       *status,
 		Metrics:      *metrics,
 		BaseURL:      baseURL,
 		DashboardURL: operator.DashboardURL(),
-	})
+	}, nil
 }
 
 func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
@@ -105,4 +119,30 @@ func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
 	}
 
 	return apiNames, apiIDs
+}
+
+func (ep *endpoint) GetAPIs(ctx context.Context, empty *empty.Empty) (*pb.GetAPIsResponse, error) {
+	res, err := getAPIS()
+	if err != nil {
+		return nil, err
+	}
+	result, _ := json.Marshal(res)
+	return &pb.GetAPIsResponse{Response: result},nil
+}
+
+func (ep *endpoint) GetAPI(ctx context.Context, empty *empty.Empty) (*pb.GetAPIResponse, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("empty ctx")
+	}
+	api := md.Get("apiName")
+	if len(api) == 0 {
+		return nil, fmt.Errorf("empty value apiName")
+	}
+	res, err := getAPI(api[0])
+	if err != nil {
+		return nil, err
+	}
+	result, _ := json.Marshal(res)
+	return &pb.GetAPIResponse{Response: result}, nil
 }
