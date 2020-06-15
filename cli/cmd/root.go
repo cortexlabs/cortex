@@ -121,7 +121,7 @@ func initTelemetry() {
 var _rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
-	Short:   "machine learning model serving infrastructure",
+	Short:   "build machine learning apis",
 }
 
 func Execute() {
