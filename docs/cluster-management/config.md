@@ -77,7 +77,7 @@ tags:  # <string>: <string> map of key/value pairs
 spot: false
 
 # see https://docs.cortex.dev/v/master/guides/custom-domain for instructions on how to set up a custom domain
-ssl_certificate_arn:  # if empty, APIs will still be accessible via HTTPS (in addition to HTTP), but will not use a trusted certificate
+ssl_certificate_arn:
 ```
 
 The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [API configuration](../deployments/api-configuration.md).

@@ -172,7 +172,7 @@ function main() {
       echo -e "unable to extract api gateway ID from create-api output:\n$create_api_output"
       exit 1
     fi
-    # create default stage; ignore error because default stage may already exist (currently it doesn't exist because of a possible bug in create-api)
+    # create default stage; ignore error because default stage is supposed to be already created, but currently it isn't because of a possible bug in create-api
     aws apigatewayv2 create-stage --region $CORTEX_REGION --tags $CORTEX_TAGS --api-id $api_id --auto-deploy --stage-name \$default &>/dev/null || true
   fi
 
