@@ -4,15 +4,15 @@
   predictor:
     type: tensorflow
     path: predictor.py
-    model: s3://cortex-cluster-robertlucian-us-east-1/tensorflow/resnet50_neuron
+    model: s3://cortex-examples/tensorflow/resnet50_neuron
     config:
       classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
       input_shape: [224, 224]
       input_key: input
   compute:
-    cpu: 4
-    mem: 4G
     inf: 1
+    cpu: 3
+    mem: 4G
   autoscaling:
     workers_per_replica: 4
     threads_per_worker: 256
