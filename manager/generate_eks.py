@@ -154,10 +154,10 @@ def get_inf_resources(instance_type):
     return num_chips, f"{num_hugepages_2Mi * num_chips}Mi"
 
 
-def get_ami_image(availability_zone):
-    if availability_zone.startswith("us-east-1"):
+def get_ami_image(region):
+    if region.startswith("us-east-1"):
         return "ami-07a7b48058cfe1a73"
-    elif availability_zone.startswith("us-west-2"):
+    elif region.startswith("us-west-2"):
         return "ami-00c8c8387d112425c"
     return ""
 
