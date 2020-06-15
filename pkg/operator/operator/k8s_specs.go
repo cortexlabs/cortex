@@ -200,7 +200,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: api.Autoscaling.ToK8sAnnotations(),
+		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -362,7 +362,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: api.Autoscaling.ToK8sAnnotations(),
+		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -449,7 +449,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
-		Annotations: api.Autoscaling.ToK8sAnnotations(),
+		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -543,9 +543,10 @@ func onnxDownloadArgs(api *spec.API) string {
 
 func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
-		Name:       k8sName(api.Name),
-		Port:       _defaultPortInt32,
-		TargetPort: _defaultPortInt32,
+		Name:        k8sName(api.Name),
+		Port:        _defaultPortInt32,
+		TargetPort:  _defaultPortInt32,
+		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
 		},
@@ -563,6 +564,7 @@ func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 		ServicePort: _defaultPortInt32,
 		Path:        *api.Endpoint,
 		Rewrite:     pointer.String("predict"),
+		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
 		},

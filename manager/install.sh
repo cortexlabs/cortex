@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -eo pipefail
 
 export CORTEX_VERSION=master
 EKSCTL_TIMEOUT=45m
@@ -43,6 +43,10 @@ function ensure_eks() {
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
       asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
+      if [ "$asg_name" = "" ] || [ "$asg_name" = "null" ]; then
+        echo -e "unable to find autoscaling group name from info:\n$asg_info"
+        exit 1
+      fi
       aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
     fi
 
@@ -89,17 +93,25 @@ function ensure_eks() {
     asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
   fi
 
-  if [[ -z $asg_spot_name ]]; then
-    asg_min_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MinSize')
-    asg_max_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MaxSize')
-  else
-    asg_min_size=$(echo "$asg_spot_info" | jq -r 'first | .MinSize')
-    asg_max_size=$(echo "$asg_spot_info" | jq -r 'first | .MaxSize')
-  fi
-
   if [[ -z "$asg_spot_name" ]] && [[ -z "$asg_on_demand_name" ]]; then
     echo "error: unable to find valid autoscaling groups"
     exit 1
+  fi
+
+  if [[ -z $asg_spot_name ]]; then
+    asg_min_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MinSize')
+    asg_max_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MaxSize')
+    if [ "$asg_min_size" = "" ] || [ "$asg_min_size" = "null" ] || [ "$asg_max_size" = "" ] || [ "$asg_max_size" = "null" ]; then
+      echo -e "unable to find on-demand autoscaling group size from info:\n$asg_on_demand_info"
+      exit 1
+    fi
+  else
+    asg_min_size=$(echo "$asg_spot_info" | jq -r 'first | .MinSize')
+    asg_max_size=$(echo "$asg_spot_info" | jq -r 'first | .MaxSize')
+    if [ "$asg_min_size" = "" ] || [ "$asg_min_size" = "null" ] || [ "$asg_max_size" = "" ] || [ "$asg_max_size" = "null" ]; then
+      echo -e "unable to find spot autoscaling group size from info:\n$asg_spot_info"
+      exit 1
+    fi
   fi
 
   asg_on_demand_resize_flags=""
@@ -151,7 +163,51 @@ function ensure_eks() {
 function main() {
   mkdir -p $CORTEX_CLUSTER_WORKSPACE
 
+  # create API Gateway
+  if [ "$arg1" != "--update" ]; then
+    create_api_output=$(aws apigatewayv2 create-api --tags $CORTEX_TAGS --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP)
+    api_id=$(echo $create_api_output | jq .ApiId | tr -d '"')
+    if [ "$api_id" = "" ] || [ "$api_id" = "null" ]; then
+      echo -e "unable to extract api gateway ID from create-api output:\n$create_api_output"
+      exit 1
+    fi
+    # create default stage; ignore error because default stage is supposed to be already created, but currently it isn't because of a possible bug in create-api
+    aws apigatewayv2 create-stage --region $CORTEX_REGION --tags $CORTEX_TAGS --api-id $api_id --auto-deploy --stage-name \$default &>/dev/null || true
+  fi
+
+  # create cluster (if it doesn't already exist)
   ensure_eks
+
+  # create VPC Link for API Gateway
+  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
+    if [ "$vpc_id" = "" ] || [ "$vpc_id" = "null" ]; then
+      echo "unable to find cortex vpc"
+      exit 1
+    fi
+
+    # filter all private subnets belonging to cortex cluster
+    private_subnets=$(aws ec2 describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s '.[].Subnets[].SubnetId' | tr -d '"')
+    if [ "$private_subnets" = "" ] || [ "$private_subnets" = "null" ]; then
+      echo "unable to find cortex private subnets"
+      exit 1
+    fi
+
+    # get default security group for cortex VPC
+    default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
+    if [ "$default_security_group" = "" ] || [ "$default_security_group" = "null" ]; then
+      echo "unable to find cortex default security group"
+      exit 1
+    fi
+
+    # create VPC Link
+    create_vpc_link_output=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags $CORTEX_TAGS --name $CORTEX_CLUSTER_NAME --subnet-ids $private_subnets --security-group-ids $default_security_group)
+    vpc_link_id=$(echo $create_vpc_link_output | jq .VpcLinkId | tr -d '"')
+    if [ "$vpc_link_id" = "" ] || [ "$vpc_link_id" = "null" ]; then
+      echo -e "unable to extract vpc link ID from create-vpc-link output:\n$create_vpc_link_output"
+      exit 1
+    fi
+  fi
 
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
@@ -199,6 +255,13 @@ function main() {
   if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
     echo -n "￮ configuring inf support "
     envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
+    echo "✓"
+  fi
+    
+  # add VPC Link integration to API Gateway
+  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    echo -n "￮ creating api gateway vpc link integration "
+    python create_gateway_integration.py $api_id $vpc_link_id
     echo "✓"
   fi
 
@@ -265,14 +328,14 @@ function setup_istio() {
   echo -n "."
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
-  if ! kubectl get secret -n istio-system | grep -q istio-customgateway-certs; then
+  if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
     WEBSITE=localhost
     openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
     kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
   fi
 
   helm template istio-manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f - >/dev/null
-  until kubectl api-resources | grep -q virtualservice; do
+  until grep -q "virtualservice" <<< $(kubectl api-resources); do
     echo -n "."
     sleep 3
   done
@@ -327,7 +390,7 @@ function validate_cortex() {
     echo -n "."
     sleep 3
 
-    operator_pod_name=$(kubectl -n=default get pods -o=name --sort-by=.metadata.creationTimestamp | grep "^pod/operator-" | tail -1)
+    operator_pod_name=$(kubectl -n=default get pods -o=name --sort-by=.metadata.creationTimestamp | (grep "^pod/operator-" || true) | tail -1)
     if [ "$operator_pod_name" == "" ]; then
       operator_pod_ready_cycles=0
     else
@@ -371,8 +434,12 @@ function validate_cortex() {
     if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
       num_restart=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restart -ge 2 ]]; then
-        echo -e "\n\nan error occurred when starting the cortex operator. View the logs with:"
-        echo "  kubectl logs $operator_pod_name"
+        echo -e "\n\nan error occurred when starting the cortex operator"
+        echo -e "\noperator logs (currently running container):\n"
+        kubectl -n=default logs "$operator_pod_name"
+        echo -e "\noperator logs (previous container):\n"
+        kubectl -n=default logs "$operator_pod_name" --previous
+        echo
         exit 1
       fi
       continue

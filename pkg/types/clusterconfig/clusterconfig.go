@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -95,10 +96,13 @@ type InternalConfig struct {
 	Config
 
 	// Populated by operator
-	ID                string               `json:"id"`
-	APIVersion        string               `json:"api_version"`
-	OperatorInCluster bool                 `json:"operator_in_cluster"`
-	InstanceMetadata  aws.InstanceMetadata `json:"instance_metadata"`
+	ID                 string                    `json:"id"`
+	APIVersion         string                    `json:"api_version"`
+	OperatorInCluster  bool                      `json:"operator_in_cluster"`
+	InstanceMetadata   aws.InstanceMetadata      `json:"instance_metadata"`
+	APIGateway         apigatewayv2.Api          `json:"api_gateway"`
+	VPCLink            *apigatewayv2.VpcLink     `json:"vpc_link"`
+	VPCLinkIntegration *apigatewayv2.Integration `json:"vpc_link_integration"`
 }
 
 // The bare minimum to identify a cluster

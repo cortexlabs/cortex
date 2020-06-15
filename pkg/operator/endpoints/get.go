@@ -45,17 +45,10 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseURL, err := operator.APIsBaseURL()
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
 	respond(w, schema.GetAPIsResponse{
 		APIs:       apis,
 		Statuses:   statuses,
 		AllMetrics: allMetrics,
-		BaseURL:    baseURL,
 	})
 }
 
@@ -80,7 +73,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseURL, err := operator.APIsBaseURL()
+	baseURL, err := operator.APIBaseURL(api)
 	if err != nil {
 		respondError(w, r, err)
 		return

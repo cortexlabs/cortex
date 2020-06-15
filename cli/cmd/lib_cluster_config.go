@@ -457,9 +457,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.LogGroup, privateSubnetMsg)
 
-	if clusterConfig.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-		fmt.Print("warning: you've configured the API load balancer to be internal; you must configure VPC Peering or an API Gateway VPC Link to connect to your APIs (see https://docs.cortex.dev/guides/vpc-peering or https://docs.cortex.dev/guides/api-gateway)\n\n")
-	}
 	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
 		fmt.Print("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/guides/vpc-peering)\n\n")
 	}
