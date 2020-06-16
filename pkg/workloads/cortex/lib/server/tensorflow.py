@@ -61,10 +61,14 @@ class TensorFlowServing:
         log_thread = threading.Thread(target=log_loading_models, daemon=True)
         log_thread.start()
 
+        timeout_error_limit = 3
+        timeout_error_counter = 0
+        generic_error_limit = 100
+        generic_error_counter = 0
+
         # request TFS to load models
-        limit = 3
         response = None
-        for i in range(limit):
+        while True:
             try:
                 # this request doesn't return until all models have been successfully loaded
                 response = self.stub.HandleReloadConfigRequest(request, self.timeout)
@@ -75,7 +79,18 @@ class TensorFlowServing:
                     and e.code() in [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED]
                 ):
                     print(e)  # unexpected error
-                time.sleep(1.0)
+
+                if isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
+                    timeout_error_counter += 1
+                else:
+                    generic_error_counter += 1
+
+            if timeout_error_counter >= timeout_error_limit:
+                break
+            if generic_error_counter >= generic_error_limit:
+                break
+
+            time.sleep(1.0)
 
         loaded_models.set()
         log_thread.join()
