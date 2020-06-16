@@ -2,6 +2,8 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
+_TL;DR: skip to the section below for some examples of using CLI environments_
+
 The `cortex` CLI can be used to deploy models locally and/or to any number of clusters. Environments are used to select which cluster to use for a `cortex` command. An environment contains the information required to connect to a cluster (e.g. AWS credentials and Cortex operator URL).
 
 By default, the CLI ships with a single environment named `local`. This is the default environment for all Cortex commands (other than `cortex cluster` commands), which means that APIs will be deployed locally by default.
@@ -75,4 +77,20 @@ cortex delete my-api --env cluster1
 cortex deploy --env cluster2
 cortex logs my-api --env cluster2
 cortex delete my-api --env cluster2
+```
+
+## Example: configuring the `cortex` CLI on a new machine (after your cluster is running)
+
+If you have access to the cluster configuration file which you used to create your cluster, running `cortex cluster info` on your new machine will automatically configure your CLI:
+
+```bash
+# configure the aws environment to connect to the cluster specified in cluster.yaml
+cortex cluster info --config cluster.yaml --env aws
+```
+
+If for some reason this doesn't work, or you don't have access to your cluster configuration file, you can configure the CLI manually:
+
+```bash
+# this will prompt for the necessary configuration
+cortex env configure
 ```
