@@ -63,7 +63,7 @@ class TensorFlowServing:
 
         timeout_error_limit = 3
         timeout_error_counter = 0
-        generic_error_limit = 100
+        generic_error_limit = 200
         generic_error_counter = 0
 
         # request TFS to load models
