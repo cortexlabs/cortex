@@ -144,7 +144,7 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 			{
 				Type:   mount.TypeBind,
 				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-				Target: "/mnt/workspace",
+				Target: _workspaceDir,
 			},
 		},
 	}
@@ -207,7 +207,7 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 		{
 			Type:   mount.TypeBind,
 			Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-			Target: "/mnt/workspace",
+			Target: _workspaceDir,
 		},
 	}
 	for _, modelCache := range api.LocalModelCaches {
@@ -347,7 +347,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			{
 				Type:   mount.TypeBind,
 				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-				Target: "/mnt/workspace",
+				Target: _workspaceDir,
 			},
 		}, mounts...),
 	}

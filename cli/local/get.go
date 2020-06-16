@@ -43,8 +43,8 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 		return schema.GetAPIsResponse{}, err
 	}
 
-	statusList := []status.Status{}
-	metricsList := []metrics.Metrics{}
+	var statusList []status.Status
+	var metricsList []metrics.Metrics
 	for _, apiSpec := range apiSpecList {
 		apiStatus, err := GetAPIStatus(&apiSpec)
 		if err != nil {
