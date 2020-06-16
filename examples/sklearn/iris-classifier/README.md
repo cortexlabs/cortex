@@ -124,7 +124,7 @@ Create a `cortex.yaml` file and add the configuration below and replace `cortex-
       key: sklearn/iris-classifier/model.pkl
 ```
 
-Here are the complete [API configuration docs](../../../docs/deployments/api-configuration).
+Here are the complete [API configuration docs](../../../docs/deployments/api-configuration.md).
 
 <br>
 

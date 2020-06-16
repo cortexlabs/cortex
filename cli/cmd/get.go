@@ -319,7 +319,10 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 	apiEndpoint := apiRes.BaseURL
 	if env.Provider == types.AWSProviderType {
-		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "https://", "http://", 1)
+		apiEndpoint = urls.Join(apiRes.BaseURL, *api.Endpoint)
+		if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
+		}
 	}
 
 	if apiRes.DashboardURL != "" {

@@ -4,13 +4,17 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 _The information on this page assumes you are running Cortex on AWS. If you're only deploying locally, this information does not apply (although AWS credentials can still be passed into your APIs, and can be specified with `cortex env configure local`)_
 
-## Private cluster
+## Private cluster subnets
 
-By default, instances are created in public subnets and are assigned public IP addresses. You can configure all instances in your cluster to use private subnets by setting `subnet_visibility: private` in your [cluster configuration](config.md) file before creating your cluster (e.g. via `cortex cluster up -c cluster.yaml`). If private subnets are used, instances will not have public IP addresses, and Cortex will create a NAT gateway to allow outgoing network requests.
+By default, instances are created in public subnets and are assigned public IP addresses. You can configure all instances in your cluster to use private subnets by setting `subnet_visibility: private` in your [cluster configuration](../cluster-management/config.md) file before creating your cluster. If private subnets are used, instances will not have public IP addresses, and Cortex will create a NAT gateway to allow outgoing network requests.
 
-By default, the API load balancer is internet-facing, and therefore APIs are publicly accessible. You can configure your API load balancer to be internal by setting `api_load_balancer_scheme: internal` in your cluster configuration file (before creating your cluster). If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) or an [API Gateway with VPC Link](../guides/api-gateway.md) to make prediction requests to your APIs.
+## Private APIs
 
-By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator validates that the requester is an active IAM user in the same AWS account as the Cortex cluster (see [below](#cli)). Therefore it is usually unnecessary to configure the operator's load balancer to be internal, but this can be done by by setting `operator_load_balancer_scheme: internal` in your cluster configuration file. If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) to allow your CLI to connect to the Cortex operator (this will be necessary to run any `cortex` commands).
+See [networking](../deployments/networking.md) for a discussion of API visibility.
+
+## Private operator
+
+By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator validates that the CLI user is an active IAM user in the same AWS account as the Cortex cluster (see [below](#cli)). Therefore it is usually unnecessary to configure the operator's load balancer to be private, but this can be done by by setting `operator_load_balancer_scheme: internal` in your [cluster configuration](../cluster-management/config.md) file. If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) to allow your CLI to connect to the Cortex operator (this will be necessary to run any `cortex` commands).
 
 ## IAM permissions
 
@@ -30,20 +34,12 @@ It is recommended to use an IAM user with the `AdministratorAccess` policy to cr
 
 ### Operator
 
-The operator requires read permissions for any S3 bucket containing exported models, read and write permissions for the Cortex S3 bucket, read and write permissions for the Cortex CloudWatch log group, read and write permissions for CloudWatch metrics, and read permissions for ECR. The policy below may be used to restrict the Operator's access:
+The operator requires read permissions for any S3 bucket containing exported models, read/write permissions for the Cortex S3 bucket, read permissions for ECR, read permissions for ELB, read/write permissions for API Gateway, read/write permissions for CloudWatch metrics, and read/write permissions for the Cortex CloudWatch log group. The policy below may be used to restrict the Operator's access:
 
 ```json
 {
     "Version": "2012-10-17",
     "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": [
-                "sts:GetCallerIdentity"
-            ],
-            "Resource": "*"
-        },
         {
             "Effect": "Allow",
             "Action": "s3:*",
@@ -51,9 +47,12 @@ The operator requires read permissions for any S3 bucket containing exported mod
         },
         {
             "Action": [
+                "sts:GetCallerIdentity",
+                "ecr:GetAuthorizationToken",
+                "elasticloadbalancing:Describe*",
+                "apigateway:*",
                 "cloudwatch:*",
-                "logs:*",
-                "ecr:GetAuthorizationToken"
+                "logs:*"
             ],
             "Effect": "Allow",
             "Resource": "*"
@@ -67,11 +66,3 @@ It is possible to further restrict access by limiting access to particular resou
 ### CLI
 
 In order to connect to the operator via the CLI, you must provide valid AWS credentials for any user with access to the account. No special permissions are required. The CLI can be configured using the `cortex env configure ENVIRONMENT_NAME` command (e.g. `cortex env configure aws`).
-
-## HTTPS
-
-All APIs are accessible via HTTPS (in addition to HTTP). The SSL certificate is autogenerated during installation using `localhost` as the Common Name (CN). Therefore, clients will need to skip certificate verification (e.g. `curl -k`) when using HTTPS.
-
-To use AWS's default (trusted) certificate or your own certificate, you can [set up API Gateway](../guides/api-gateway.md) to be a proxy to your Cortex cluster. Since the API load balancer created by Cortex is internet-facing by default, in order to force traffic to go through your API Gateway endpoint, you will also need to set `api_load_balancer_scheme: internal` in your [cluster configuration](config.md) file (before creating your cluster).
-
-Alternatively, you can create an SSL certificate for your custom domain, and use this certificate in the API load balancer (see our instructions for [setting up HTTPS on a subdomain](../guides/subdomain-https-setup.md)).
