@@ -4,6 +4,16 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 The `cortex` CLI can be used to deploy models locally and/or to any number of clusters. Environments are used to select which cluster to use for a `cortex` command. An environment contains the information required to connect to a cluster (e.g. AWS credentials and Cortex operator URL).
 
+## Example: `aws` only
+
+```bash
+cortex cluster up       # configures the aws env; same as `cortex cluster up --env aws`
+cortex env default aws  # sets aws as the default env
+cortex deploy           # uses aws env; same as `cortex deploy --env aws`
+cortex logs my-api      # uses aws env; same as `cortex logs my-api --env aws`
+cortex delete my-api    # uses aws env; same as `cortex delete my-api --env aws`
+```
+
 ## Example: `local` only
 
 ```bash
@@ -27,16 +37,6 @@ cortex deploy           # uses local env; same as `cortex deploy --env local`
 cortex env default aws    # sets aws as the default env
 cortex deploy             # uses aws env; same as `cortex deploy --env aws`
 cortex deploy --env local
-```
-
-## Example: only `aws`
-
-```bash
-cortex cluster up       # configures the aws env; same as `cortex cluster up --env aws`
-cortex env default aws  # sets aws as the default env
-cortex deploy           # uses aws env; same as `cortex deploy --env aws`
-cortex logs my-api      # uses aws env; same as `cortex logs my-api --env aws`
-cortex delete my-api    # uses aws env; same as `cortex delete my-api --env aws`
 ```
 
 ## Example: multiple clusters
@@ -69,7 +69,9 @@ cortex logs my-api --env cluster2
 cortex delete my-api --env cluster2
 ```
 
-## Example: configuring the `cortex` CLI on a new machine (after your cluster is running)
+## Example: configure `cortex` CLI to connect to an existing cluster
+
+If you are installing the `cortex` CLI on a new computer, you can configure it to access an existing Cortex cluster.
 
 If you have access to the cluster configuration file which you used to create your cluster, running `cortex cluster info` on your new machine will automatically configure your CLI:
 
