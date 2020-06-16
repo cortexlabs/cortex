@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -292,7 +293,7 @@ func applyK8sService(api *spec.API, prevService *kcore.Service) error {
 	return err
 }
 
-func applyK8sVirtualService(api *spec.API, prevVirtualService *kunstructured.Unstructured) error {
+func applyK8sVirtualService(api *spec.API, prevVirtualService *v1alpha3.VirtualService) error {
 	newVirtualService := virtualServiceSpec(api)
 
 	if prevVirtualService == nil {

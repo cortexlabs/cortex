@@ -39,9 +39,12 @@ require (
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/api v0.16.9
-	k8s.io/apimachinery v0.16.10-beta.0
-	k8s.io/client-go v0.16.9
+	istio.io/api v0.0.0-20200615162408-9b5293c30ef5
+	istio.io/client-go v0.0.0-20200615164228-d77b0b53b6a0
+	k8s.io/api v0.18.1
+	k8s.io/apimachinery v0.18.1
+	k8s.io/client-go v0.18.1
+	sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e // indirect
 )
 
 replace github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
