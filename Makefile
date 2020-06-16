@@ -1,3 +1,17 @@
+# Copyright 2020 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 SHELL := /bin/bash
 
 #######
@@ -18,10 +32,7 @@ cli:
 
 # build cli and watch for changes
 cli-watch:
-	@clear && echo "building cli..."
-	@$(MAKE) cli
-	@clear && echo -e "\033[1;32mCLI built\033[0m"
-	@watchmedo shell-command --command='clear && echo "rebuilding cli..." && go build -o ./bin/cortex ./cli && clear && echo "\033[1;32mCLI built\033[0m"' --patterns '*.go;*.yaml' --recursive --drop ./pkg ./cli
+	@rerun -watch ./pkg ./cli -run sh -c "clear && echo 'building cli...' && go build -o ./bin/cortex ./cli && clear && echo '\033[1;32mCLI built\033[0m'" || true
 
 # start local operator and watch for changes
 operator-local:
@@ -35,27 +46,27 @@ kubectl:
 cluster-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
 cluster-up-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster up --yes
 	@$(MAKE) kubectl
 
 cluster-down:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster down
 
 cluster-down-y:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster down --yes
 
 cluster-info:
@@ -66,13 +77,13 @@ cluster-info:
 cluster-configure:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure
 
 cluster-configure-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
-	@kill $(shell pgrep -f make) >/dev/null 2>&1 || true
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure --yes
 
 # stop the in-cluster operator
@@ -131,8 +142,8 @@ aws-clear-bucket:
 
 tools:
 	@go get -u -v golang.org/x/lint/golint
-	@python3 -m pip install black watchdog argh pyyaml
-	@echo -e "\nyou may also wish to install libyaml (via \`brew install libyaml\` or \`sudo apt install libyaml-dev\`)"
+	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
+	@python3 -m pip install black
 
 format:
 	@./dev/format.sh
