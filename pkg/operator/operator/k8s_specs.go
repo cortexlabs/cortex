@@ -66,7 +66,7 @@ var (
 	_requestMonitorMemRequest = kresource.MustParse("10Mi")
 
 	// each Inferentia chip requires 128 HugePages with each HugePage having a size of 2Mi
-	_hugePagesMemPerInf = 128 * 2 * int64(math.Pow(1024, 2))
+	_hugePagesMemPerInf = int64(128 * 2 * 1024 * 1024) // bytes
 )
 
 type downloadContainerConfig struct {
@@ -169,7 +169,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiReadinessProbe,
+		LivenessProbe:   _apiLivenessProbe,
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
 		},
@@ -338,7 +338,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiReadinessProbe,
+		LivenessProbe:   _apiLivenessProbe,
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
 			Limits:   apiPodResourceLimitsList,
@@ -482,7 +482,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						EnvFrom:         _baseEnvVars,
 						VolumeMounts:    _defaultVolumeMounts,
 						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
-						LivenessProbe:   _apiReadinessProbe,
+						LivenessProbe:   _apiLivenessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -682,6 +682,10 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					Value: path.Join(_emptyDirMountPath, "model"),
 				},
 				kcore.EnvVar{
+					Name:  "CORTEX_MODELS",
+					Value: strings.Join(api.ModelNames(), ","),
+				},
+				kcore.EnvVar{
 					Name:  "CORTEX_TF_BASE_SERVING_PORT",
 					Value: _tfBaseServingPortStr,
 				},
@@ -689,21 +693,17 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					Name:  "CORTEX_TF_SERVING_HOST",
 					Value: _tfServingHost,
 				},
-				kcore.EnvVar{
-					Name:  "CORTEX_MODELS",
-					Value: strings.Join(api.ModelNames(), ","),
-				},
 			)
 		}
 	}
 
 	if api.Compute.Inf > 0 {
-		if (container == _apiContainerName && api.Predictor.Type == userconfig.PythonPredictorType) ||
-			(container == _tfServingContainerName && api.Predictor.Type == userconfig.TensorFlowPredictorType) {
+		if (api.Predictor.Type == userconfig.PythonPredictorType && container == _apiContainerName) ||
+			(api.Predictor.Type == userconfig.TensorFlowPredictorType && container == _tfServingContainerName) {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.Inf * consts.CoresPerInf / int64(api.Autoscaling.WorkersPerReplica)),
+					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf / int64(api.Autoscaling.WorkersPerReplica)),
 				},
 				kcore.EnvVar{
 					Name:  "NEURON_RTD_ADDRESS",
@@ -726,10 +726,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					kcore.EnvVar{
 						Name:  "CORTEX_MODEL_DIR",
 						Value: path.Join(_emptyDirMountPath, "model"),
-					},
-					kcore.EnvVar{
-						Name:  "TF_MODEL_NAME",
-						Value: _tfServingModelName,
 					},
 					kcore.EnvVar{
 						Name:  "TF_EMPTY_MODEL_CONFIG",
@@ -771,6 +767,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			})
 		}
 	}
+
 	if api.Compute.Inf == 0 {
 		// the entrypoint is different for Inferentia-based APIs
 		args = []string{
@@ -778,6 +775,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			"--model_config_file=" + _tfServingEmptyModelConfig,
 		}
 	}
+
 	var probeHandler kcore.Handler
 	if len(ports) == 1 {
 		probeHandler = kcore.Handler{
@@ -787,8 +785,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 				},
 			},
 		}
-	}
-	if len(ports) > 1 {
+	} else {
 		probeHandler = kcore.Handler{
 			Exec: &kcore.ExecAction{
 				Command: []string{"/bin/bash", "-c", `test $(nc -zv localhost ` + fmt.Sprintf("%d-%d", _tfBaseServingPortInt32, _tfBaseServingPortInt32+int32(len(ports))-1) + ` 2>&1 | wc -l) -eq ` + fmt.Sprintf("%d", len(ports))},
@@ -834,11 +831,11 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		VolumeMounts:   volumeMounts,
 		ReadinessProbe: socketExistsProbe(_neuronRTDSocket),
 		Resources: kcore.ResourceRequirements{
-			Limits: kcore.ResourceList{
+			Requests: kcore.ResourceList{
 				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
 				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
-			Requests: kcore.ResourceList{
+			Limits: kcore.ResourceList{
 				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
 				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
@@ -868,7 +865,7 @@ func k8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-var _apiReadinessProbe = &kcore.Probe{
+var _apiLivenessProbe = &kcore.Probe{
 	InitialDelaySeconds: 5,
 	TimeoutSeconds:      5,
 	PeriodSeconds:       5,
@@ -881,31 +878,34 @@ var _apiReadinessProbe = &kcore.Probe{
 	},
 }
 
-func k8sProbe(handler kcore.Handler) *kcore.Probe {
+func fileExistsProbe(fileName string) *kcore.Probe {
 	return &kcore.Probe{
 		InitialDelaySeconds: 3,
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 		SuccessThreshold:    1,
 		FailureThreshold:    1,
-		Handler:             handler,
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
+				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
+			},
+		},
 	}
 }
 
-func fileExistsProbe(fileName string) *kcore.Probe {
-	return k8sProbe(kcore.Handler{
-		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
-		},
-	})
-}
-
 func socketExistsProbe(socketName string) *kcore.Probe {
-	return k8sProbe(kcore.Handler{
-		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
+	return &kcore.Probe{
+		InitialDelaySeconds: 3,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+		SuccessThreshold:    1,
+		FailureThreshold:    1,
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
+				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
+			},
 		},
-	})
+	}
 }
 
 var _tolerations = []kcore.Toleration{

@@ -30,7 +30,12 @@ import base64
     help="Number of workers for prediction requests.",
 )
 @click.option(
-    "--threads", "-t", type=int, default=1, show_default=True, help="Number of threads per worker."
+    "--threads",
+    "-t",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Number of threads per worker for prediction requests.",
 )
 @click.option(
     "--samples",
@@ -45,7 +50,7 @@ import base64
     "-i",
     type=float,
     default=0.0,
-    help="How long the thread making predictions will run for in seconds. If set, -s option won't be considered anymore.",
+    help="How long the thread making predictions will run for in seconds. If set, -s option will be ignored.",
 )
 @click.option(
     "--batch-size",

@@ -17,10 +17,10 @@ from cortex import consts
 
 
 def neuron_socket_exists():
-    if not os.path.exists(consts.INFERENTIA_NEURON_SOCK):
+    if not os.path.exists(consts.INFERENTIA_NEURON_SOCKET):
         return False
     else:
-        mode = os.stat(consts.INFERENTIA_NEURON_SOCK)
+        mode = os.stat(consts.INFERENTIA_NEURON_SOCKET)
         return stat.S_ISSOCK(mode.st_mode)
 
 

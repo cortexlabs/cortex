@@ -37,18 +37,15 @@ func MaxInt64(val int64, vals ...int64) int64 {
 }
 
 func IsDivisibleByInt64(num int64, divisor int64) bool {
-	if num%divisor == 0 {
-		return true
-	}
-	return false
+	return num%divisor == 0
 }
 
 func FactorsInt64(num int64) []int64 {
 	divisibleNumbers := []int64{}
-	for divisor := int64(1); divisor <= num; divisor++ {
+	for divisor := int64(1); divisor <= num/2; divisor++ {
 		if IsDivisibleByInt64(num, divisor) {
 			divisibleNumbers = append(divisibleNumbers, divisor)
 		}
 	}
-	return divisibleNumbers
+	return append(divisibleNumbers, num)
 }

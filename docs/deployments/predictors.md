@@ -125,9 +125,7 @@ class PythonPredictor:
 
 ### Pre-installed packages
 
-The following Python packages are pre-installed in Python Predictors and can be used in your implementations.
-
-#### For CPU/GPU-equipped APIs
+The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
 
 ```text
 boto3==1.13.7
@@ -158,7 +156,7 @@ torchvision==0.6.0
 xgboost==1.0.2
 ```
 
-#### For Inferentia-equipped APIs
+For Inferentia-equipped APIs, the list is slightly different:
 
 ```text
 cloudpickle==1.3.0
@@ -183,7 +181,7 @@ torchvision==0.4.2
 ```
 
 <!-- CORTEX_VERSION_MINOR x3 -->
-The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-inf/Dockerfile) (for Inf).
+The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-inf/Dockerfile) (for Inferentia).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 

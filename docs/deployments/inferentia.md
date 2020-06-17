@@ -2,57 +2,61 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## Cortex
-
 To use [Inferentia ASICs](https://aws.amazon.com/machine-learning/inferentia/):
 
 1. You may need to [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
-1. Set instance type to an AWS Inferentia instance (e.g. `inf1.xlarge`) when installing Cortex.
-1. Set the `inf` field in the `compute` configuration for your API. One unit of Inf corresponds to one virtual Inf. Every unit represents an Inferentia ASIC with 4 Neuron Cores and 8GB of cache memory attached to it. Fractional requests are not allowed.
+1. Set the instance type to an AWS Inferentia instance (e.g. `inf1.xlarge`) when creating your Cortex cluster.
+1. Set the `inf` field in the `compute` configuration for your API. One unit of `inf` corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. Fractional requests are not allowed.
 
 ## Neuron
 
 Inferentia ASICs come in different sizes depending on the instance type:
 
-* `inf1.xlarge`/`inf1.2xlarge` - each has 1 Inferentia ASIC.
-* `inf1.6xlarge` - has 4 Inferentia ASICs.
-* `inf1.24xlarge` - has 16 Inferentia ASICs.
+* `inf1.xlarge`/`inf1.2xlarge` - each has 1 Inferentia ASIC
+* `inf1.6xlarge` - has 4 Inferentia ASICs
+* `inf1.24xlarge` - has 16 Inferentia ASICs
 
-Each Inferentia ASIC comes with 4 Neuron Cores and 8GB of cache memory. To better understand how Inferentia ASICs work, read these [technical notes](https://github.com/aws/aws-neuron-sdk/blob/master/docs/technotes/README.md) and this [FAQ](https://github.com/aws/aws-neuron-sdk/blob/master/FAQ.md).
+Each Inferentia ASIC comes with 4 NeuronCores and 8GB of cache memory. To better understand how Inferentia ASICs work, read these [technical notes](https://github.com/aws/aws-neuron-sdk/blob/master/docs/technotes/README.md) and this [FAQ](https://github.com/aws/aws-neuron-sdk/blob/master/FAQ.md).
 
 ### NeuronCore Groups
 
-An NCG ([*NeuronCore Group*](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-NeuronCore-Group.md)) is a set of Neuron Cores that is used to load and run a compiled model. At any point in time, only one model will be running in an NCG. Models can also be shared within an NCG, but for that to happen, the device driver is going to have to dynamically context switch between each model - therefore the Cortex team has decided to only allow one model per NCG to improve performance. The compiled output models are saved in the same format as the source's.
+A [NeuronCore Group](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-NeuronCore-Group.md) (NCG) is a set of NeuronCores that is used to load and run a compiled model. NCGs exist to aggregate NeuronCores to improve hardware performance. Models can be shared within an NCG, but this would require the device driver to dynamically context switch between each model, which degrades performance. Therefore we've decided to only allow one model per NCG (unless you are using a [multi-model endpoint](../guides/multi-model.md), in which case there will be multiple models on a single NCG, and there will be context switching).
 
-NCGs exist for the sole purpose of aggregating Neuron Cores to improve hardware performance. It is advised to set the NCGs' size to that of the compiled model's within your API. The NCGs' size is determined indirectly using the available number of Inferentia ASICs to the API and the number of workers per replica.
+Each Cortex API worker will have its own copy of the model and will run on its own NCG (the number of API workers is configured by the [`workers_per_replica`](autoscaling.md#replica-parallelism) field in the API configuration). Each NCG will have an equal share of NeuronCores. Therefore, the size of each NCG will be `4 * inf / workers_per_replica` (`inf` refers to your API's `compute` request, and it's multiplied by 4 because there are 4 NeuronCores per Inferentia chip).
 
-Determining the maximum value for [`workers_per_replica`](autoscaling.md#replica-parallelism) for `inf1` instances can be calculated using following formula:
+For example, if your API requests 2 `inf` chips, there will be 8 NeuronCores available. If you set `workers_per_replica` to 1, there will be one copy of your model running on a single NCG of size 8 NeuronCores. If `workers_per_replica` is 2, there will be two copies of your model, each running on a separate NCG of size 4 NeuronCores. If `workers_per_replica` is 4, there will be 4 NCGs of size 2 NeuronCores, and if If `workers_per_replica` is 8, there will be 8 NCGs of size 1 NeuronCores. In this scenario, these are the only valid values for `workers_per_replica`. In other words the total number of requested NeuronCores (which equals 4 * the number of requested Inferentia chips) must be divisible by `workers_per_replica`.
 
-```text
-{2^i; 1 <= i <= 4 * compute:inf / model_no_cores, i is int}
-```
+The 8GB cache memory is shared between all 4 NeuronCores of an Inferentia chip. Therefore an NCG with 8 NeuronCores (i.e. 2 Inf chips) will have access to 16GB of cache memory. An NGC with 2 NeuronCores will have access to 8GB of cache memory, which will be shared with the other NGC of size 2 running on the same Inferentia chip.
 
-`compute:inf` represents the number of Inferentia ASICs used per API replica and `model_no_cores` is the number of cores for which the model has been compiled. For example, a model that has been compiled to use 1 neuron core and an API that uses 1 Inferentia ASIC will allow [`workers_per_replica`](autoscaling.md#replica-parallelism) to be set to 1, 2 or 4 - in this case, for 1 worker, the model will be loaded within an NCG (*NeuronCore Group*) of size 4, for 2 it will be an NCG of size 2 and for 4 it's an NCG of size 1. For Tensorflow Predictors that use Inferentia ASICs, the models will always be placed in different NCGs to avoid context-switching.
+### Compiling models
 
-The NCG's compute and memory resources scale along with the NCG's size - an 8-sized NCG will have at its disposal 2x8GB of cache memory and 8 Neuron Cores. A 2-sized NCG will have 1x8GB and 2 Neuron Cores. The 8GB cache memory is shared between all 4 Neuron Cores of an Inferentia ASIC.
+Before a model can be deployed on Inferentia chips, it must be compiled for Inferentia. The Neuron compiler can be used to convert a regular TensorFlow SavedModel or PyTorch model into the hardware-specific instruction set for Inferentia. Inferentia currently supports compiled models from TensorFlow and PyTorch.
 
-Before a model is deployed on Inferentia hardware, it first has to be compiled for the said hardware. The Neuron compiler can be used to convert a regular TF SavedModel or PyTorch model into hardware-specific instruction set for Inferentia. Cortex currently supports TensorFlow and PyTorch compiled models.
+By default, the Neuron compiler will compile a model to use 1 NeuronCore, but can be manually set to a different size (1, 2, 4, etc).
 
-### Compiling Models
+For optimal performance, your model should be compiled to run on the number of NeuronCores available to it.
 
-By default, the neuron compiler will try to compile a model to use 1 Neuron core, but can be manually set to a different size (1, 2, 4, etc). To understand why setting a higher Neuron core count can improve performance, read [NeuronCore Pipeline notes](https://github.com/aws/aws-neuron-sdk/blob/master/docs/technotes/neuroncore-pipeline.md).
+<add formula>
+
+If `workers_per_replica` is 1 (the default), then your model will have 4 * the number of `inf` chips requested in your API's `compute` configuration. If `workers_per_replica` > 1, see above for how to calculate the number of NeuronCores that will be available. See [Improving performance](#improving-performance) below for a discussion of choosing the appropriate number of NeuronCores.
+
+Here is an example of compiling a TensorFlow SavedModel for Inferentia:
 
 ```python
-# for TensorFlow SavedModel
 import tensorflow.neuron as tfn
+
 tfn.saved_model.compile(
     model_dir,
     compiled_model_dir,
     compiler_args=["--num-neuroncores", "1"]
 )
+```
 
-# for PyTorch model
+Here is an example of compiling a PyTorch model for Inferentia:
+
+```python
 import torch_neuron, torch
+
 model.eval()
 model_neuron = torch.neuron.trace(
     model,
@@ -62,17 +66,19 @@ model_neuron = torch.neuron.trace(
 model_neuron.save(compiled_model)
 ```
 
-The current versions of `tensorflow-neuron` and `torch-neuron` are found in the [pre-installed packages list](predictors.md#for-inferentia-equipped-apis). To compile models of your own, these packages have to installed using the extra index URL for pip `--extra-index-url=https://pip.repos.neuron.amazonaws.com`.
+The versions of `tensorflow-neuron` and `torch-neuron` that are used by Cortex are found in the [pre-installed packages list](predictors.md#for-inferentia-equipped-apis). When installing these packages with `pip` to compile models of your own, use the extra index URL `--extra-index-url=https://pip.repos.neuron.amazonaws.com`.
 
-See the [TensorFlow](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-compile-infer.md#step-3-compile-on-compilation-instance) and the [PyTorch](https://github.com/aws/aws-neuron-sdk/blob/master/docs/pytorch-neuron/tutorial-compile-infer.md#step-3-compile-on-compilation-instance) guides on how to compile models to be used on ASIC hardware. There are 2 examples implemented with Cortex for both frameworks:
+See AWS's [TensorFlow](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-compile-infer.md#step-3-compile-on-compilation-instance) and [PyTorch](https://github.com/aws/aws-neuron-sdk/blob/master/docs/pytorch-neuron/tutorial-compile-infer.md#step-3-compile-on-compilation-instance) guides on how to compile models for Inferentia. Here are 2 examples implemented with Cortex:
 
-1. ResNet50 [example model](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/image-classifier-resnet50) implemented for TensorFlow.
-1. ResNet50 [example model](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/image-classifier-resnet50) implemented for PyTorch.
+1. [ResNet50 in TensorFlow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/image-classifier-resnet50)
+1. [ResNet50 in PyTorch](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/image-classifier-resnet50)
 
-### Increasing Performance
+### Improving performance
 
 A few things can be done to improve performance using compiled models on Cortex:
 
-1. There's a minimum number of Neuron Cores for which a model can be compiled for. That number depends on the model's architecture. Generally, compiling a model for more cores than its required minimum helps at distributing the model's operators across multiple cores, which in turn can lead to lower latencies, but due to having to set [`compute:workers_per_replica`'s value](autoscaling.md#replica-parallelism) to a smaller value, the maximum throughput will be reduced. For higher throughput and higher latency, compile the models for as few Neuron Cores as possible using the `--num-neuroncores` compiler option and increase [`compute:workers_per_replica`'s value](autoscaling.md#replica-parallelism) to the maximum allowed.
-1. Try to achieve a near [100% placement](https://github.com/aws/aws-neuron-sdk/blob/b28262e3072574c514a0d72ad3fe5ca48686d449/src/examples/tensorflow/keras_resnet50/pb2sm_compile.py#L59) of the model's graph onto the Neuron Cores. During the compilation phase, converted operators that can't execute on Neuron Cores will be compiled to execute on the machine's CPU and memory instead. If the model is not 100% compatible with the Neuron Cores' instruction set, then expect bits of the model to execute/reside on the machine's CPU/memory. Even if just a few percent of them reside on the host's, the maximum throughput capacity of the instance can get severly limited.
-1. Use [`--static-weights` compiler option](https://github.com/aws/aws-neuron-sdk/blob/master/docs/technotes/performance-tuning.md#compiling-for-pipeline-optimization) where possible. This option tells the compiler to make it such that the whole model gets cached onto the Neuron Cores (NCG). This avoids a lot of back-and-forth between the machine's CPU/memory and the Inferentia ASICs.
+1. There's a minimum number of NeuronCores for which a model can be compiled. That number depends on the model's architecture. Generally, compiling a model for more cores than its required minimum helps to distribute the model's operators across multiple cores, which in turn [can lead to lower latency](https://github.com/aws/aws-neuron-sdk/blob/master/docs/technotes/neuroncore-pipeline.md). However, compiling a model for more NeuronCores means that you'll have to set `workers_per_replica` to be lower so that the NeuronCore Group has access to the number of NeuronCores for which you compiled your model. This is acceptable if latency is your top priority, but if throughput is more important to you, this tradeoff is usually not worth it. To maximize throughput, compile your model for as few NeuronCores as possible and increase `workers_per_replica` to the maximum possible (see above for a sample calculation).
+
+1. Try to achieve a near [100% placement](https://github.com/aws/aws-neuron-sdk/blob/b28262e3072574c514a0d72ad3fe5ca48686d449/src/examples/tensorflow/keras_resnet50/pb2sm_compile.py#L59) of your model's graph onto the NeuronCores. During the compilation phase, any operators that can't execute on NeuronCores will be compiled to execute on the machine's CPU and memory instead. Even if just a few percent of the operations reside on the host's CPU/memory, the maximum throughput of the instance can be significantly limited.
+
+1. Use the [`--static-weights` compiler option](https://github.com/aws/aws-neuron-sdk/blob/master/docs/technotes/performance-tuning.md#compiling-for-pipeline-optimization) when possible. This option tells the compiler to make it such that the entire model gets cached onto the NeuronCores. This avoids a lot of back-and-forth between the machine's CPU/memory and the Inferentia ASICs.

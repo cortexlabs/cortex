@@ -51,7 +51,7 @@ class PythonPredictor:
 
             self.model = torch.jit.load(model_name)
         else:
-            raise RuntimeError("invalid predictor: config: device field value")
+            raise RuntimeError("invalid predictor: config: must be cpu, gpu, or inf")
 
         # save normalization transform for later use
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

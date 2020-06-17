@@ -135,10 +135,9 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
    1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update strategy, resource requests, tolerations, node selector, priority class, etc)
 1. Confirm GPUs work for PyTorch, TensorFlow, and ONNX models
 
-## Neuron device plugin
+## Inferentia device plugin
 
-1. Check if [k8s-neuron-device-plugin](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) has been updated since the last time. If so, then update `manager/manifests/inferentia.yaml` with the latest and replace the container's image with `$CORTEX_IMAGE_INFERENTIA`.
-1. Check if newer versions of the device plugin have appeared. Last update we got was in https://github.com/aws/aws-neuron-sdk/issues/102. Currently, all device versions are residing at [robertlucian/cortexlabs-inferentia](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-inferentia). If there's a newer version, then pull the last one and push it to `robertlucian`'s Dockerhub repo. The reason for keeping it somewhere else is because AWS' repo is not to be trusted - the project is still in its infancy and things could change on a whim.
+1. Check if [k8s-neuron-device-plugin](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) has been updated since the last time (we're running the version listed here: https://github.com/aws/aws-neuron-sdk/issues/102). If so, then update `images/inferentia/Dockerfile` and update `manager/manifests/inferentia.yaml` with the latest and replace the container's image with `$CORTEX_IMAGE_INFERENTIA`. Currently, all device versions are residing at [robertlucian/cortexlabs-inferentia](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-inferentia), because the ECR repo that was hosting the image seems to have been taken down. See https://github.com/cortexlabs/cortex/issues/1133.
 
 ## Python packages
 
@@ -182,11 +181,13 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 1. Rebuild all afferent images.
 1. Test Inferentia examples.
 
-## Inf temporary workaround
+## Inferentia temporary workarounds
 
-To make the Inferentia ASICs (`inf1` instances) work with Cortex, 2 unofficial solutions are still required:
+To make the Inferentia work with Cortex, 3 unofficial solutions are still required:
+
 1. Custom version of the [cluster-autoscaler](https://github.com/kubernetes/autoscaler) as built on [robertlucian/cortexlabs-cluster-autoscaler:v1.16.6-6c98931](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-cluster-autoscaler).
 1. Custom AMI for `inf1` instances. The currently used AMI image `ami-07a7b48058cfe1a73` has been built off of `ami-011c865bf7da41a9d` image (which is an EKS-optimized AMI version for EKS 1.6). [These](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-runtime/nrt_start.md) instructions have been used to build the image. Alongside that, one more thing that has to be done and is not mentioned in the instructions is to set `vm.nr_hugepages` in `/etc/sysctl.conf` to `0` and to disable the `neuron-rtd` service. Be sure that `neuron-discovery` service is still left enabled.
+1. The Inferentia device plugin points to `robertlucian/cortexlabs-inferentia` (see above).
 
 ## Cluster autoscaler
 

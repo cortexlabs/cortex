@@ -244,7 +244,7 @@ type InstanceMetadata struct {
 	Memory      kresource.Quantity `json:"memory"`
 	CPU         kresource.Quantity `json:"cpu"`
 	GPU         int64              `json:"gpu"`
-	Inf        int64               `json:"inf"`
+	Inf         int64              `json:"inf"`
 	Price       float64            `json:"price"`
 }
 

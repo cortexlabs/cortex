@@ -31,7 +31,6 @@ See [GPU documentation](gpus.md) for more information.
 
 One unit of memory is one byte. Memory can be expressed as an integer or by using one of these suffixes: `K`, `M`, `G`, `T` (or their power-of two counterparts: `Ki`, `Mi`, `Gi`, `Ti`). For example, the following values represent roughly the same memory: `128974848`, `129e6`, `129M`, `123Mi`.
 
-
 ## Inf
 
-One unit of Inf corresponds to one virtual Inf. Every unit represents an Inferentia ASIC with 4 Neuron Cores and 8GB of cache memory attached to it. Fractional requests are not allowed.
+One unit of Inf corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. Fractional requests are not allowed.

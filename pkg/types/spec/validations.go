@@ -33,7 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	m "github.com/cortexlabs/cortex/pkg/lib/math"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -519,10 +519,8 @@ func ValidateAPI(
 		}
 	}
 
-	if api.Compute != nil { // should only be nil for local provider
-		if err := validateCompute(api, providerType); err != nil {
-			return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
-		}
+	if err := validateCompute(api, providerType); err != nil {
+		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
 	if api.UpdateStrategy != nil { // should only be nil for local provider
@@ -654,10 +652,7 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, api *userc
 			}
 		} else {
 
-			isNeuronExport := false
-			if api.Compute.Inf > 0 {
-				isNeuronExport = true
-			}
+			isNeuronExport := api.Compute.Inf > 0
 			path, err := getTFServingExportFromS3Path(model, isNeuronExport, awsClientForBucket)
 			if err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
@@ -969,11 +964,10 @@ func validateAutoscaling(api *userconfig.API) error {
 	}
 
 	if api.Compute.Inf > 0 {
-		numInfCores := api.Compute.Inf * consts.CoresPerInf
+		numNeuronCores := api.Compute.Inf * consts.NeuronCoresPerInf
 		workersPerReplica := int64(api.Autoscaling.WorkersPerReplica)
-		if !m.IsDivisibleByInt64(numInfCores, workersPerReplica) {
-			workerSuggestions := m.FactorsInt64(numInfCores)
-			return ErrorInvalidNumberOfInfWorkers(workersPerReplica, numInfCores, workerSuggestions)
+		if !libmath.IsDivisibleByInt64(numNeuronCores, workersPerReplica) {
+			return ErrorInvalidNumberOfInfWorkers(workersPerReplica, api.Compute.Inf, numNeuronCores)
 		}
 	}
 
@@ -984,7 +978,11 @@ func validateCompute(api *userconfig.API, providerType types.ProviderType) error
 	compute := api.Compute
 
 	if compute.Inf > 0 && providerType == types.LocalProviderType {
-		return ErrorIncompatibleProviderResource(userconfig.InfKey, providerType.String())
+		return ErrorUnsupportedLocalComputeResource(userconfig.InfKey)
+	}
+
+	if compute.Inf > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.InfKey, api.Predictor.Type)
 	}
 
 	if compute.GPU > 0 && compute.Inf > 0 {
@@ -993,10 +991,6 @@ func validateCompute(api *userconfig.API, providerType types.ProviderType) error
 
 	if compute.Inf > 1 {
 		return ErrorInvalidNumberOfInfs(compute.Inf)
-	}
-
-	if compute.Inf > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.InfKey, api.Predictor.Type)
 	}
 
 	return nil

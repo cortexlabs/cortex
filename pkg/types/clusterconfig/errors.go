@@ -108,7 +108,7 @@ func ErrorIncompatibleSpotInstanceTypeGPU(target aws.InstanceMetadata, suggested
 func ErrorIncompatibleSpotInstanceTypeInf(suggested aws.InstanceMetadata) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncompatibleSpotInstanceTypeInf,
-		Message: fmt.Sprintf("all instances must have at least 1 Inf, but %s only has %d Inf", suggested.Type, suggested.Inf),
+		Message: fmt.Sprintf("all instances must have at least 1 Inferentia chip, but %s doesn't have any", suggested.Type),
 	})
 }
 

@@ -14,4 +14,4 @@
 
 CORTEX_VERSION = "master"
 SINGLE_MODEL_NAME = "_cortex_default"
-INFERENTIA_NEURON_SOCK = "/sock/neuron.sock"
+INFERENTIA_NEURON_SOCKET = "/sock/neuron.sock"

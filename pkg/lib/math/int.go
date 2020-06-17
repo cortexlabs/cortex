@@ -37,18 +37,15 @@ func MaxInt(val int, vals ...int) int {
 }
 
 func IsDivisibleByInt(num int, divisor int) bool {
-	if num%divisor == 0 {
-		return true
-	}
-	return false
+	return num%divisor == 0
 }
 
 func FactorsInt(num int) []int {
 	divisibleNumbers := []int{}
-	for divisor := 1; divisor <= num; divisor++ {
+	for divisor := 1; divisor <= num/2; divisor++ {
 		if IsDivisibleByInt(num, divisor) {
 			divisibleNumbers = append(divisibleNumbers, divisor)
 		}
 	}
-	return divisibleNumbers
+	return append(divisibleNumbers, num)
 }

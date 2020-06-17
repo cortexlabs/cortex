@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -55,7 +56,7 @@ const (
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
-	ErrResourceIncompatibleForProviderType  = "spec.resource_incompatible_for_provider_type"
+	ErrUnsupportedLocalComputeResource      = "spec.unsupported_local_compute_resource"
 	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
@@ -289,10 +290,10 @@ func ErrorLocalModelPathNotSupportedByAWSProvider() error {
 	})
 }
 
-func ErrorIncompatibleProviderResource(resourceType, providerType string) error {
+func ErrorUnsupportedLocalComputeResource(resourceType string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrResourceIncompatibleForProviderType,
-		Message: fmt.Sprintf("%s resource is incompatible with %s provider type", resourceType, providerType),
+		Kind:    ErrUnsupportedLocalComputeResource,
+		Message: fmt.Sprintf("%s compute resources cannot be used locally", resourceType),
 	})
 }
 
@@ -324,18 +325,17 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	})
 }
 
-func ErrorInvalidNumberOfInfWorkers(requestedWorkers int64, numInfCores int64, acceptableWorkers []int64) error {
-	msgAcceptableWorkers := s.UserStrsOr(acceptableWorkers)
-	message := fmt.Sprintf("cannot evenly distribute %d Inf ASICs over %d worker(s) - acceptable numbers of workers are %s", numInfCores, requestedWorkers, msgAcceptableWorkers)
+func ErrorInvalidNumberOfInfWorkers(workersPerReplica int64, numInf int64, numNeuronCores int64) error {
+	acceptableWorkers := libmath.FactorsInt64(numNeuronCores)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfInfWorkers,
-		Message: message,
+		Message: fmt.Sprintf("cannot evenly distribute %d Inferentia %s (%d NeuronCores total) over %d worker(s) - acceptable numbers of workers are %s", numInf, s.PluralS("ASIC", numInf), numNeuronCores, workersPerReplica, s.UserStrsOr(acceptableWorkers)),
 	})
 }
 
 func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfInfs,
-		Message: fmt.Sprintf("cannot request %d Infs (only 1 Inf can be used per API replica)", requestedInfs),
+		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
 	})
 }

@@ -35,14 +35,14 @@ def load_tensorflow_serving_models():
     from cortex.lib.server.tensorflow import TensorFlowServing
 
     # determine if multiple TF workers are required
-    tf_workers = 1
+    num_workers = 1
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
-        tf_workers = int(os.environ["CORTEX_WORKERS_PER_REPLICA"])
+        num_workers = int(os.environ["CORTEX_WORKERS_PER_REPLICA"])
 
     # initialize models for each TF worker
     base_paths = [os.path.join(model_dir, name) for name in models]
-    for w in range(int(tf_workers)):
+    for w in range(int(num_workers)):
         tfs = TensorFlowServing(f"{tf_serving_host}:{tf_base_serving_port+w}")
         tfs.add_models_config(models, base_paths, replace_models=False)
 
@@ -60,9 +60,9 @@ def main():
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
         base_serving_port = int(os.environ["CORTEX_TF_BASE_SERVING_PORT"])
-        workers = int(os.environ["CORTEX_WORKERS_PER_REPLICA"])
+        num_workers = int(os.environ["CORTEX_WORKERS_PER_REPLICA"])
         used_ports = {}
-        for w in range(int(workers)):
+        for w in range(int(num_workers)):
             used_ports[str(base_serving_port + w)] = False
         with open("/run/used_ports.json", "w+") as f:
             json.dump(used_ports, f)

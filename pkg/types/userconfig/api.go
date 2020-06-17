@@ -117,14 +117,8 @@ func (api *API) ModelNames() []string {
 }
 
 func (api *API) ApplyDefaultDockerPaths() {
-	usesGPU := false
-	usesInf := false
-	if api.Compute.GPU > 0 {
-		usesGPU = true
-	}
-	if api.Compute.Inf > 0 {
-		usesInf = true
-	}
+	usesGPU := api.Compute.GPU > 0
+	usesInf := api.Compute.Inf > 0
 
 	predictor := api.Predictor
 	switch predictor.Type {
