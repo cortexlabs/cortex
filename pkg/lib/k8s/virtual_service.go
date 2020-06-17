@@ -17,7 +17,6 @@ limitations under the License.
 package k8s
 
 import (
-	"context"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -102,9 +101,7 @@ func (c *Client) CreateVirtualService(spec *v1alpha3.VirtualService) (*v1alpha3.
 	spec.SetNamespace(c.Namespace)
 
 	istio, err := versionedclient.NewForConfig(c.RestConfig)
-	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(spec.GetNamespace()).Create(context.TODO(), spec, v1.CreateOptions{
-		TypeMeta: _virtualServiceTypeMeta,
-	})
+	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(spec.GetNamespace()).Create(spec)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -116,9 +113,7 @@ func (c *Client) UpdateVirtualService(existing, updated *v1alpha3.VirtualService
 	updated.SetResourceVersion(existing.GetResourceVersion())
 
 	istio, err := versionedclient.NewForConfig(c.RestConfig)
-	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(updated.GetNamespace()).Update(context.TODO(), updated, v1.UpdateOptions{
-		TypeMeta: _virtualServiceTypeMeta,
-	})
+	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(updated.GetNamespace()).Update(updated)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -139,7 +134,7 @@ func (c *Client) ApplyVirtualService(spec *v1alpha3.VirtualService) (*v1alpha3.V
 func (c *Client) GetVirtualService(name string) (*v1alpha3.VirtualService, error) {
 
 	istio, err := versionedclient.NewForConfig(c.RestConfig)
-	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(c.Namespace).Get(context.TODO(), name, v1.GetOptions{
+	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(c.Namespace).Get( name, v1.GetOptions{
 		TypeMeta: _virtualServiceTypeMeta,
 	})
 	if kerrors.IsNotFound(err) {
@@ -153,7 +148,7 @@ func (c *Client) GetVirtualService(name string) (*v1alpha3.VirtualService, error
 
 func (c *Client) DeleteVirtualService(name string) (bool, error) {
 	istio, err := versionedclient.NewForConfig(c.RestConfig)
-	err = istio.NetworkingV1alpha3().VirtualServices(c.Namespace).Delete(context.TODO(), name, v1.DeleteOptions{
+	err = istio.NetworkingV1alpha3().VirtualServices(c.Namespace).Delete(name, &v1.DeleteOptions{
 		TypeMeta: _virtualServiceTypeMeta,
 	})
 	if kerrors.IsNotFound(err) {
@@ -171,7 +166,7 @@ func (c *Client) ListVirtualServices(opts *v1.ListOptions) ([]v1alpha3.VirtualSe
 	}
 
 	istio, err := versionedclient.NewForConfig(c.RestConfig)
-	vsList, err := istio.NetworkingV1alpha3().VirtualServices(c.Namespace).List(context.TODO(), v1.ListOptions{
+	vsList, err := istio.NetworkingV1alpha3().VirtualServices(c.Namespace).List(v1.ListOptions{
 		TypeMeta: _virtualServiceTypeMeta,
 	})
 	if err != nil {

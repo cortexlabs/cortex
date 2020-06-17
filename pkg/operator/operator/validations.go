@@ -28,8 +28,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
-	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type ProjectFiles struct {
@@ -102,7 +102,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	return nil
 }
 
-func validateK8s(api *userconfig.API, virtualServices []kunstructured.Unstructured, maxMem *kresource.Quantity) error {
+func validateK8s(api *userconfig.API, virtualServices []v1alpha3.VirtualService, maxMem *kresource.Quantity) error {
 	if err := validateCompute(api.Compute, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
@@ -139,7 +139,7 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 	return nil
 }
 
-func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstructured.Unstructured) error {
+func validateEndpointCollisions(api *userconfig.API, virtualServices []v1alpha3.VirtualService) error {
 	for _, virtualService := range virtualServices {
 		gateways, err := k8s.ExtractVirtualServiceGateways(&virtualService)
 		if err != nil {
@@ -180,8 +180,8 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	return nil
 }
 
-func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quantity, error) {
-	var virtualServices []kunstructured.Unstructured
+func getValidationK8sResources() ([]v1alpha3.VirtualService, *kresource.Quantity, error) {
+	var virtualServices []v1alpha3.VirtualService
 	var maxMem *kresource.Quantity
 
 	err := parallel.RunFirstErr(

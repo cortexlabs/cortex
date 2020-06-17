@@ -33,7 +33,6 @@ import (
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
@@ -195,10 +194,10 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *kunstructured.Unstructured, error) {
+func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *v1alpha3.VirtualService, error) {
 	var deployment *kapps.Deployment
 	var service *kcore.Service
-	var virtualService *kunstructured.Unstructured
+	var virtualService *v1alpha3.VirtualService
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -221,7 +220,7 @@ func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Servi
 	return deployment, service, virtualService, err
 }
 
-func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevService *kcore.Service, prevVirtualService *kunstructured.Unstructured) error {
+func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevService *kcore.Service, prevVirtualService *v1alpha3.VirtualService) error {
 	return parallel.RunFirstErr(
 		func() error {
 			return applyK8sDeployment(api, prevDeployment)
@@ -453,7 +452,7 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 	return apis, nil
 }
 
-func GetEndpointFromVirtualService(virtualService *kunstructured.Unstructured) (string, error) {
+func GetEndpointFromVirtualService(virtualService *v1alpha3.VirtualService) (string, error) {
 	endpoints, err := k8s.ExtractVirtualServiceEndpoints(virtualService)
 	if err != nil {
 		return "", err
