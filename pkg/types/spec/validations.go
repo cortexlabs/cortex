@@ -46,7 +46,7 @@ import (
 
 var AutoscalingTickInterval = 10 * time.Second
 
-func apiValidation(provider types.ProviderType) *cr.StructValidation {
+func apiValidation(provider types.ProviderType, kind userconfig.Kind) *cr.StructValidation {
 	return &cr.StructValidation{
 		StructFieldValidations: []*cr.StructFieldValidation{
 			{
@@ -55,6 +55,16 @@ func apiValidation(provider types.ProviderType) *cr.StructValidation {
 					Required:  true,
 					DNS1035:   true,
 					MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
+				},
+			},
+			{
+				StructField: "Kind",
+				StringValidation: &cr.StringValidation{
+					Required:      true,
+					AllowedValues: userconfig.KindStrings(),
+				},
+				Parser: func(str string) (interface{}, error) {
+					return userconfig.KindFromString(str), nil
 				},
 			},
 			{
@@ -459,11 +469,12 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
-type resourceKindStruct struct {
+type kindStruct struct {
 	Kind userconfig.Kind `json:"kind" yaml:"kind"`
 }
 
-var resourceTypeStructValidation = cr.StructValidation{
+var kindStructValidation = cr.StructValidation{
+	AllowExtraFields: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "Kind",
@@ -490,19 +501,19 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 	if !ok {
 		return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
 	}
+
 	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
 		api := userconfig.API{}
-		var apiTypeStruct resourceTypeStruct
-		errs := cr.Struct(&apiTypeStruct, data, &resourceTypeStructValidation)
-
+		var kindStruct kindStruct
+		errs := cr.Struct(&kindStruct, data, &kindStructValidation)
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
-			err = errors.Wrap(ErrorTypeKeyNotSpecified(), userconfig.IdentifyAPI(filePath, name, i))
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 
-		errs = cr.Struct(&api, data, apiValidation(provider))
+		errs = cr.Struct(&api, data, apiValidation(provider, kindStruct.Kind))
 
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)

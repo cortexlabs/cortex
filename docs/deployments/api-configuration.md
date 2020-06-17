@@ -10,7 +10,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
 
 ```yaml
 - name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:
     type: python
@@ -54,6 +54,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
 
 ```yaml
 - name: <string>  # API name (required)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:
@@ -106,6 +107,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
 
 ```yaml
 - name: <string>  # API name (required)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:

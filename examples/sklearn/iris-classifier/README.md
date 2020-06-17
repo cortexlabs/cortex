@@ -116,6 +116,7 @@ Create a `cortex.yaml` file and add the configuration below and replace `cortex-
 # cortex.yaml
 
 - name: iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -217,6 +218,7 @@ Add `monitoring` to your `cortex.yaml` and specify that this is a classification
 # cortex.yaml
 
 - name: iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -259,6 +261,7 @@ This model is fairly small but larger models may require more compute resources.
 # cortex.yaml
 
 - name: iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -304,6 +307,7 @@ If you trained another model and want to A/B test it with your previous model, s
 # cortex.yaml
 
 - name: iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -317,6 +321,7 @@ If you trained another model and want to A/B test it with your previous model, s
     mem: 100M
 
 - name: another-iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -398,6 +403,7 @@ Next, add the `api` to `cortex.yaml`:
 # cortex.yaml
 
 - name: iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -411,6 +417,7 @@ Next, add the `api` to `cortex.yaml`:
     mem: 100M
 
 - name: another-iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -424,6 +431,7 @@ Next, add the `api` to `cortex.yaml`:
     mem: 100M
 
 - name: batch-iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: batch-predictor.py

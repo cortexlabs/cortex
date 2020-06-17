@@ -84,6 +84,7 @@ class PythonPredictor:
 
 ```yaml
 - name: iris-classifier-batch
+  kind: sync_api
   predictor:
     type: python
     path: batch.py

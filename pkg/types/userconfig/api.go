@@ -154,7 +154,7 @@ func (api *API) ApplyDefaultDockerPaths() {
 	}
 }
 
-func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
+func IdentifyAPI(filePath string, name string, index int) string {
 	str := ""
 
 	if filePath != "" {
@@ -164,9 +164,9 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 	if name != "" {
 		return str + name
 	} else if index >= 0 {
-		return str + +kind.String() + " at " + s.Index(index)
+		return str + " at " + s.Index(index)
 	}
-	return str + kind.String()
+	return str
 }
 
 // InitReplicas was left out deliberately

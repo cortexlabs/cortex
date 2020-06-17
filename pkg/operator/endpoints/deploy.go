@@ -19,6 +19,7 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -66,6 +67,8 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		ConfigFilePath: configPath,
 	}
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	debug.Pp(apiConfigs)
+	debug.Pp(err)
 	if err != nil {
 		respondError(w, r, err)
 		return

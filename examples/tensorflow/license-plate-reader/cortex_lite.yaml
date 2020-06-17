@@ -1,6 +1,7 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 - name: license-plate-reader
+  kind: sync_api
   predictor:
     type: python
     path: predictor_lite.py

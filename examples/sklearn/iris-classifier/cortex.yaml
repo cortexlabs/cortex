@@ -1,6 +1,7 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 - name: iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -14,6 +15,7 @@
     mem: 100M
 
 - name: another-iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
@@ -27,6 +29,7 @@
     mem: 100M
 
 - name: batch-iris-classifier
+  kind: sync_api
   predictor:
     type: python
     path: batch-predictor.py

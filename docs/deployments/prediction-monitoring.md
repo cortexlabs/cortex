@@ -19,6 +19,7 @@ For classification models, `monitoring` should be configured with `model_type: c
 
 ```yaml
 - name: iris
+  kind: sync_api
   predictor:
     type: python
     path: predictor.py
