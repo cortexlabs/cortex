@@ -33,7 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -531,7 +531,7 @@ func serviceSpec(api *spec.API) *kcore.Service {
 	})
 }
 
-func virtualServiceSpec(api *spec.API) *v1alpha3.VirtualService {
+func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        k8sName(api.Name),
 		Gateways:    []string{"apis-gateway"},
