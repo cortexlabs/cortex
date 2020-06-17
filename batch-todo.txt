@@ -7,6 +7,7 @@
 
 - delete old fifo-queues (job doesn't exist)
 - write completion spec summary after job is done
+- delete queues on cluster down
 
 - fluentd
 - batch spec
@@ -14,6 +15,7 @@
 
 - rename APIType to something else
 - secure batch endpoints??
+- rename workers_per_replica to processes?
 
 
 

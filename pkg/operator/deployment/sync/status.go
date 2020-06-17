@@ -58,26 +58,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	return apiStatus(deployment, pods)
 }
 
-func GetAllStatuses() ([]status.Status, error) {
-	var deployments []kapps.Deployment
-	var pods []kcore.Pod
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
-			return err
-		},
-		func() error {
-			var err error
-			pods, err = config.K8s.ListPodsWithLabelKeys("apiName")
-			return err
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
+func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.Status, error) {
 	statuses := make([]status.Status, len(deployments))
 	for i, deployment := range deployments {
 		status, err := apiStatus(&deployment, pods)

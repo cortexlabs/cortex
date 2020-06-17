@@ -196,17 +196,17 @@ type Submission struct {
 }
 
 type JobSpec struct {
-	ID              string      `json:"job_id"`
-	APIName         string      `json:"api_name"`
-	APIID           string      `json:"api_id"`
-	SQSUrl          string      `json:"sqs_url"`
-	Config          interface{} `json:"config"`
-	Parallelism     int         `json:"parallelism"`
-	TotalPartitions int         `json:"total_partitions"`
-	Status          Code        `json:"status"`
-	StartTime       time.Time   `json:"start_time"`
-	EndTime         *time.Time  `json:"end_time"`
-	LastUpdated     time.Time   `json:"last_updated"`
+	ID              string         `json:"job_id"`
+	APIName         string         `json:"api_name"`
+	APIID           string         `json:"api_id"`
+	SQSUrl          string         `json:"sqs_url"`
+	Config          interface{}    `json:"config"`
+	Parallelism     int            `json:"parallelism"`
+	TotalPartitions int            `json:"total_partitions"`
+	Status          status.JobCode `json:"status"`
+	StartTime       time.Time      `json:"start_time"`
+	EndTime         *time.Time     `json:"end_time"`
+	LastUpdated     time.Time      `json:"last_updated"`
 }
 
 func JobKey(apiName, jobID string) string {
@@ -232,7 +232,7 @@ func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
 		return nil, err
 	}
 
-	jobID := k8s.RandomName()[20:]
+	jobID := k8s.RandomName()[0:20]
 
 	output, err := config.AWS.SQS().CreateQueue(
 		&sqs.CreateQueueInput{
@@ -240,7 +240,7 @@ func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
 				"FifoQueue":                 aws.String("true"),
 				"ContentBasedDeduplication": aws.String("true"),
 			},
-			QueueName: aws.String(apiName + "-" + jobID + ".fifo"),
+			QueueName: aws.String("cortex" + "-" + apiName + "-" + jobID + ".fifo"),
 			Tags: map[string]*string{
 				clusterconfig.ClusterNameTag: &config.Cluster.ClusterName,
 				"apiName":                    &apiSpec.Name,
@@ -262,7 +262,7 @@ func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
 		Parallelism: submission.Parallelism,
 		LastUpdated: time.Now(),
 		StartTime:   time.Now(),
-		Status:      Enqueuing,
+		Status:      status.JobEnqueuing,
 	}
 
 	err = config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, JobKey(apiName, jobID))
@@ -286,6 +286,7 @@ type ThreadSafeJobSpec struct {
 }
 
 func (t *ThreadSafeJobSpec) UpdateLiveness() error {
+	fmt.Println("UpdateLiveness")
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	jobSpec, err := DownloadJobSpec(t.APIName, t.ID)
@@ -293,13 +294,14 @@ func (t *ThreadSafeJobSpec) UpdateLiveness() error {
 		return err // TODO
 	}
 
-	if jobSpec.Status != Enqueuing {
+	if jobSpec.Status != status.JobEnqueuing {
+		fmt.Println("not enqueueing")
 		return nil
 	}
 
 	jobSpec.LastUpdated = time.Now()
 
-	err := UploadJobSpec(jobSpec)
+	err = UploadJobSpec(jobSpec)
 	if err != nil {
 		return err // TODO
 	}
@@ -338,42 +340,53 @@ func cronErrHandler(cronName string) func(error) { // TODO what happens if liven
 }
 
 func DeployJob(jobSpec *ThreadSafeJobSpec, submission *Submission) {
-	livenessCron := cron.Run(jobSpec.UpdateLiveness, cronErrHandler(fmt.Sprintf("enqueueing %s for api %s liveness failed", jobSpec.ID, jobSpec.APIName)), 10*time.Second)
+	livenessCron := cron.Run(jobSpec.UpdateLiveness, cronErrHandler(fmt.Sprintf("failed liveness check", jobSpec.ID, jobSpec.APIName)), 10*time.Second)
 	defer livenessCron.Cancel()
+
+	cloud.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "started enqueueing partitions")
 
 	err := Enqueue(jobSpec, submission)
 	if err != nil {
-		jobSpec.Status = Error
+		cloud.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
+		fmt.Println(err.Error())
+		jobSpec.Status = status.JobFailed
 		jobSpec.PushToS3()
 	}
 
+	cloud.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "completed enqueueing partitions")
+
 	err = ApplyK8sJob(jobSpec)
 	if err != nil {
-		jobSpec.Status = Error
+		cloud.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
+		fmt.Println(err.Error())
+		jobSpec.Status = status.JobFailed
 		jobSpec.PushToS3()
 	}
 }
 
 func Enqueue(jobSpec *ThreadSafeJobSpec, submission *Submission) error {
 	total := 0
+	startTime := time.Now()
 	for i, item := range submission.Items {
-		randomId := k8s.RandomName()
-
-		_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-			MessageDeduplicationId: aws.String(randomId),
-			QueueUrl:               aws.String(jobSpec.SQSUrl),
-			MessageBody:            aws.String(string(item)),
-			MessageGroupId:         aws.String(randomId),
-		})
-
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("item %d", i)) // TODO
+		for k := 0; k < 100; k++ {
+			randomId := k8s.RandomName()
+			_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
+				MessageDeduplicationId: aws.String(randomId),
+				QueueUrl:               aws.String(jobSpec.SQSUrl),
+				MessageBody:            aws.String(string(item)),
+				MessageGroupId:         aws.String(randomId),
+			})
+			if err != nil {
+				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("item %d", i)) // TODO
+			}
+			total++
 		}
-		total++
 	}
 
+	debug.Pp(time.Now().Sub(startTime).Milliseconds())
+
 	jobSpec.TotalPartitions = total
-	jobSpec.Status = Running
+	jobSpec.Status = status.JobRunning
 	err := jobSpec.PushToS3()
 	if err != nil {
 		return err
@@ -395,12 +408,12 @@ func ApplyK8sJob(jobSpec *ThreadSafeJobSpec) error {
 		if container.Name == ok8s.APIContainerName {
 			container.Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_SQS_QUEUE",
-				Value: *output.QueueUrl,
+				Value: jobSpec.SQSUrl,
 			})
 		}
 	}
 
-	job := ok8s.PythonJobSpec(apiSpec, podSpec, jobSpec.Parallelism)
+	job := ok8s.PythonJobSpec(apiSpec, jobSpec.ID, podSpec, jobSpec.Parallelism)
 	job.Labels["jobID"] = jobSpec.ID
 
 	_, err = config.K8s.CreateJob(job)
@@ -454,32 +467,112 @@ func DownloadJobSpec(apiName, jobID string) (*JobSpec, error) {
 	return &jobSpec, nil
 }
 
-func GetJobStatus(apiName, jobID string) error {
-	jobSpec := JobSpec{}
-	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, JobKey(apiName, jobID))
+func GetJobStatus(apiName, jobID string, pods []kcore.Pod) (*status.JobStatus, error) {
+	jobSpec, err := DownloadJobSpec(apiName, jobID)
 	if err != nil {
-		return err // TODO
+		return nil, err // TODO
 	}
 
-	jobStatus := JobStatus{
-		Total: jobSpec.TotalPartitions,
+	jobStatus := status.JobStatus{
+		APIName:     apiName,
+		JobID:       jobID,
+		Status:      jobSpec.Status,
+		StartTime:   jobSpec.StartTime,
+		Parallelism: jobSpec.Parallelism,
 	}
 
-	queueURL, err := QueueURL(apiName, jobID)
+	if jobSpec.Status != status.JobEnqueuing {
+		jobStatus.Total = jobSpec.TotalPartitions
+	}
+
+	queueMetrics, err := cloud.GetQueueMetrics(apiName, jobID)
 	if err != nil {
-		return err // TODO
+		return nil, err // TODO
 	}
 
+	jobStatus.InQueue = queueMetrics.InQueue
+	jobStatus.InProgress = queueMetrics.NotVisible
+
+	metrics, err := GetMetrics(jobSpec)
+	if err != nil {
+		return nil, err // TODO
+	}
+
+	jobStatus.JobStats = metrics.JobStats
+
+	counts := getReplicaCounts(jobID, pods)
+
+	jobStatus.WorkerStats = &counts
+
+	return &jobStatus, nil
 }
 
-type JobStatus struct {
-	Total                   int
-	InQueue                 int
-	InProgress              int
-	Succeeded               int
-	Failed                  int
-	StartTime               *time.Time
-	EndTime                 *time.Time
-	AverageTimePerPartition *float64
-	WorkerStats             *status.SubReplicaCounts
+const _stalledPodTimeout = 10 * time.Minute
+
+func getReplicaCounts(jobID string, pods []kcore.Pod) status.SubReplicaCounts {
+	counts := status.SubReplicaCounts{}
+
+	for _, pod := range pods {
+		if pod.Labels["jobID"] != jobID {
+			continue
+		}
+		addPodToReplicaCounts(&pod, &counts)
+	}
+
+	return counts
+}
+
+func addPodToReplicaCounts(pod *kcore.Pod, counts *status.SubReplicaCounts) {
+
+	if k8s.IsPodReady(pod) {
+		counts.Ready++
+		return
+	}
+
+	switch k8s.GetPodStatus(pod) {
+	case k8s.PodStatusPending:
+		if time.Since(pod.CreationTimestamp.Time) > _stalledPodTimeout {
+			counts.Stalled++
+		} else {
+			counts.Pending++
+		}
+	case k8s.PodStatusInitializing:
+		counts.Initializing++
+	case k8s.PodStatusRunning:
+		counts.Initializing++
+	case k8s.PodStatusTerminating:
+		counts.Terminating++
+	case k8s.PodStatusFailed:
+		counts.Failed++
+	case k8s.PodStatusKilled:
+		counts.Killed++
+	case k8s.PodStatusKilledOOM:
+		counts.KilledOOM++
+	default:
+		counts.Unknown++
+	}
+}
+
+func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code {
+	if counts.Updated.Ready >= counts.Requested {
+		return status.Live
+	}
+
+	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
+		return status.Error
+	}
+
+	if counts.Updated.KilledOOM > 0 {
+		return status.OOM
+	}
+
+	if counts.Updated.Stalled > 0 {
+		return status.Stalled
+	}
+
+	if counts.Updated.Ready >= minReplicas {
+		return status.Live
+	}
+
+	return status.Updating
 }

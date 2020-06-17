@@ -190,6 +190,13 @@ func MergeStrSlices(slices ...[]string) []string {
 	return result
 }
 
+func PrependStr(x string, y []string) []string {
+	y = append(y, "")
+	copy(y[1:], y)
+	y[0] = x
+	return y
+}
+
 func ZipStrsToMap(strs1 []string, strs2 []string) map[string]string {
 	strMap := map[string]string{}
 	length := libmath.MinInt(len(strs1), len(strs2))

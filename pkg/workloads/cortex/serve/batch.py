@@ -156,8 +156,6 @@ def sqs_loop():
             WaitTimeSeconds=1,
         )
 
-        print(response)
-
         if response.get("Messages") is None or len(response["Messages"]) == 0:
             print("no results")
             break

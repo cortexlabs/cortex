@@ -137,6 +137,8 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
+	deployments, k8sError := config.K8s.ListDeploymentsWithLabelKeys("apiName")
+
 	err := parallel.RunFirstErr(
 		func() error {
 			return deleteK8sResources(apiName)
@@ -151,17 +153,16 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		},
 		// delete api from cloudwatch
 		func() error {
-			statuses, err := GetAllStatuses()
-			if err != nil {
-				errors.PrintError(err, "failed to get API Statuses")
+			if k8sError != nil {
+				errors.PrintError(k8sError, "failed to get API deployments")
 				return nil
 			}
 			//extract all api names from statuses
-			allAPINames := make([]string, len(statuses))
-			for i, stat := range statuses {
-				allAPINames[i] = stat.APIName
+			allAPINames := make([]string, len(deployments))
+			for i, deployment := range deployments {
+				allAPINames[i] = deployment.Labels["apiName"]
 			}
-			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
+			err := removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
 			if err != nil {
 				errors.PrintError(err)
 				return nil

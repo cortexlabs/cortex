@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -52,6 +53,8 @@ import (
 const (
 	_titleEnvironment = "env"
 	_titleAPI         = "api"
+	_titleJobCount    = "running jobs"
+	_titleLatestJobID = "last job id"
 	_titleStatus      = "status"
 	_titleUpToDate    = "up-to-date"
 	_titleStale       = "stale"
@@ -150,24 +153,32 @@ func getAPIsInAllEnvironments() (string, error) {
 	var allAPIStatuses []status.Status
 	var allMetrics []metrics.Metrics
 	var allEnvs []string
+	var allBatchAPIs []schema.BatchAPI
+	var allBatchAPIEnvs []string
 	errorsMap := map[string]error{}
 	for _, env := range cliConfig.Environments {
 		var apisRes schema.GetAPIsResponse
 		var err error
 		if env.Provider == types.AWSProviderType {
 			apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
+			debug.Pp(apisRes)
 		} else {
 			apisRes, err = local.GetAPIs()
 		}
 
 		if err == nil {
-			for range apisRes.APIs {
+			for range apisRes.SyncAPIs.APIs {
 				allEnvs = append(allEnvs, env.Name)
 			}
 
-			allAPIs = append(allAPIs, apisRes.APIs...)
-			allAPIStatuses = append(allAPIStatuses, apisRes.Statuses...)
-			allMetrics = append(allMetrics, apisRes.AllMetrics...)
+			allAPIs = append(allAPIs, apisRes.SyncAPIs.APIs...)
+			allAPIStatuses = append(allAPIStatuses, apisRes.SyncAPIs.Statuses...)
+			allMetrics = append(allMetrics, apisRes.SyncAPIs.AllMetrics...)
+			allBatchAPIs = append(allBatchAPIs, apisRes.BatchAPIs...)
+
+			for range apisRes.BatchAPIs {
+				allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)
+			}
 		} else {
 			errorsMap[env.Name] = err
 		}
@@ -175,7 +186,7 @@ func getAPIsInAllEnvironments() (string, error) {
 
 	out := ""
 
-	if len(allAPIs) == 0 {
+	if len(allAPIs) == 0 && len(allBatchAPIs) == 0 {
 		if len(errorsMap) == 1 {
 			// Print the error if there is just one
 			exit.Error(errors.FirstErrorInMap(errorsMap))
@@ -185,13 +196,19 @@ func getAPIsInAllEnvironments() (string, error) {
 			out += console.Bold("no apis are deployed") + "\n"
 		}
 	} else {
-		t := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
-
-		if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
-			hideReplicaCountColumns(&t)
+		if len(allBatchAPIs) > 0 {
+			t2 := batchTable(allBatchAPIs, allBatchAPIEnvs)
+			out += t2.MustFormat()
 		}
 
-		out += t.MustFormat()
+		if len(allAPIs) > 0 {
+			t := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
+
+			if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
+				hideReplicaCountColumns(&t)
+			}
+			out += t.MustFormat()
+		}
 	}
 
 	if len(errorsMap) == 1 {
@@ -234,16 +251,16 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(apisRes.APIs) == 0 {
+	if len(apisRes.SyncAPIs.APIs) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
 	envNames := []string{}
-	for range apisRes.APIs {
+	for range apisRes.SyncAPIs.APIs {
 		envNames = append(envNames, env.Name)
 	}
 
-	t := apiTable(apisRes.APIs, apisRes.Statuses, apisRes.AllMetrics, envNames)
+	t := apiTable(apisRes.SyncAPIs.APIs, apisRes.SyncAPIs.Statuses, apisRes.SyncAPIs.AllMetrics, envNames)
 
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
@@ -337,6 +354,54 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	out += titleStr("configuration") + strings.TrimSpace(api.UserStr(env.Provider))
 
 	return out, nil
+}
+
+func batchTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
+	rows := make([][]interface{}, 0, len(batchAPIs))
+
+	var totalFailed int
+
+	for i, api := range batchAPIs {
+		lastUpdated := time.Unix(api.API.LastUpdated, 0)
+		latestStartTime := time.Time{}
+		latestJobID := ""
+		requested := 0
+		failed := 0
+		for _, job := range api.Jobs {
+			if job.StartTime.After(latestStartTime) {
+				latestStartTime = job.StartTime
+				latestJobID = job.JobID
+			}
+
+			requested += job.Parallelism
+			failed += int(job.WorkerStats.Failed)
+		}
+
+		totalFailed += failed
+
+		rows = append(rows, []interface{}{
+			envNames[i],
+			api.API.Name,
+			len(api.Jobs),
+			latestJobID,
+			requested,
+			failed,
+			libtime.SinceStr(&lastUpdated),
+		})
+	}
+
+	return table.Table{
+		Headers: []table.Header{
+			{Title: _titleEnvironment},
+			{Title: _titleAPI},
+			{Title: _titleJobCount},
+			{Title: _titleLatestJobID},
+			{Title: _titleRequested},
+			{Title: _titleFailed, Hidden: totalFailed == 0},
+			{Title: _titleLastupdated},
+		},
+		Rows: rows,
+	}
 }
 
 func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics, envNames []string) table.Table {

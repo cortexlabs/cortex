@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/deployment/batch"
 	"github.com/gorilla/mux"
 )
@@ -114,4 +115,22 @@ func BatchDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, "ok")
+}
+
+func BatchGet(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	pods, err := config.K8s.ListPodsWithLabelKeys("jobID")
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	jobStatus, err := batch.GetJobStatus(vars["apiName"], vars["jobID"], pods)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	respond(w, jobStatus)
 }

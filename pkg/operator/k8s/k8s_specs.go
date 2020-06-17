@@ -91,30 +91,39 @@ func DeploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 	}
 }
 
-func tensorflowPodSpec(api *spec.API) *kcore.PodSpec {
-	apiResourceList := kcore.ResourceList{}
-	tfServingResourceList := kcore.ResourceList{}
-	tfServingLimitsList := kcore.ResourceList{}
+func SplitApiCompute(compute *userconfig.Compute) (kcore.ResourceList, kcore.ResourceList) {
+	withoutGPU := kcore.ResourceList{}
+	withGPU := kcore.ResourceList{}
 
-	if api.Compute.CPU != nil {
-		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+	if compute.CPU != nil {
+		userPodCPURequest := k8s.QuantityPtr(compute.CPU.Quantity.DeepCopy())
 		userPodCPURequest.Sub(_requestMonitorCPURequest)
 		q1, q2 := k8s.SplitInTwo(userPodCPURequest)
-		apiResourceList[kcore.ResourceCPU] = *q1
-		tfServingResourceList[kcore.ResourceCPU] = *q2
+		withoutGPU[kcore.ResourceCPU] = *q1
+		withGPU[kcore.ResourceCPU] = *q2
 	}
 
-	if api.Compute.Mem != nil {
-		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
+	if compute.Mem != nil {
+		userPodMemRequest := k8s.QuantityPtr(compute.Mem.Quantity.DeepCopy())
 		userPodMemRequest.Sub(_requestMonitorMemRequest)
 		q1, q2 := k8s.SplitInTwo(userPodMemRequest)
-		apiResourceList[kcore.ResourceMemory] = *q1
-		tfServingResourceList[kcore.ResourceMemory] = *q2
+		withoutGPU[kcore.ResourceMemory] = *q1
+		withGPU[kcore.ResourceMemory] = *q2
 	}
 
+	if compute.GPU > 0 {
+		withGPU["nvidia.com/gpu"] = *kresource.NewQuantity(compute.GPU, kresource.DecimalSI)
+	}
+
+	return withoutGPU, withGPU
+}
+
+func tensorflowPodSpec(api *spec.API) *kcore.PodSpec {
+	apiResourceList, tfServingResourceList := SplitApiCompute(api.Compute)
+	tfServingLimitsList := kcore.ResourceList{}
+
 	if api.Compute.GPU > 0 {
-		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		tfServingLimitsList["nvidia.com/gpu"] = tfServingResourceList["nvidia.com/gpu"]
 	}
 
 	return &kcore.PodSpec{
@@ -361,22 +370,22 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	})
 }
 
-func PythonJobSpec(api *spec.API, podSpec *kcore.PodSpec, parallelism int) *kbatch.Job {
-	podSpec.RestartPolicy = "OnFailure"
+func PythonJobSpec(api *spec.API, jobID string, podSpec *kcore.PodSpec, parallelism int) *kbatch.Job {
+	podSpec.RestartPolicy = "Never"
 
 	return k8s.Job(&k8s.JobSpec{
-		Name:        K8sName(api.Name),
+		Name:        api.Name + "-" + jobID,
 		Parallelism: parallelism,
 		Labels: map[string]string{
-			"apiName":      api.Name,
-			"apiID":        api.ID,
-			"deploymentID": api.DeploymentID,
+			"apiName": api.Name,
+			"apiID":   api.ID,
+			"jobID":   jobID,
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":      api.Name,
-				"apiID":        api.ID,
-				"deploymentID": api.DeploymentID,
+				"apiName": api.Name,
+				"apiID":   api.ID,
+				"jobID":   jobID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",

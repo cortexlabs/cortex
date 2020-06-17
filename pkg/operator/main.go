@@ -47,7 +47,7 @@ func main() {
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
 	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.Batch).Methods("POST") // TODO blacklist /batch*endpoints in cortex.yaml endpoint configuration
 	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.Batch).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.Batch).Methods("GET")
+	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.BatchGet).Methods("GET")
 	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.BatchDelete).Methods("DELETE")
 
 	routerWithAuth := router.NewRoute().Subrouter()

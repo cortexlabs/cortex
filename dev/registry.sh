@@ -198,7 +198,7 @@ elif [ "$cmd" = "update" ]; then
   #   build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
   #   build_and_push $ROOT/images/metrics-server metrics-server latest
   #   build_and_push $ROOT/images/nvidia nvidia latest
-  #   build_and_push $ROOT/images/fluentd fluentd latest
+  build_and_push $ROOT/images/fluentd fluentd latest
   #   build_and_push $ROOT/images/statsd statsd latest
   #   build_and_push $ROOT/images/istio-proxy istio-proxy latest
   #   build_and_push $ROOT/images/istio-pilot istio-pilot latest
@@ -209,7 +209,7 @@ elif [ "$cmd" = "update" ]; then
   # if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
   #   cache_builder $ROOT/images/request-monitor request-monitor
   #   build_and_push $ROOT/images/request-monitor request-monitor latest
-  #   build_and_push $ROOT/images/manager manager latest
+  build_and_push $ROOT/images/manager manager latest
   #   build_and_push $ROOT/images/downloader downloader latest
   # fi
 

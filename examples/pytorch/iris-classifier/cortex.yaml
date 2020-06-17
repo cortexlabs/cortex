@@ -9,7 +9,35 @@
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
     env:
       BATCH: "true"
-      SQS_QUEUE_URL: https://sqs.us-west-2.amazonaws.com/969758392368/batch
       AWS_REGION: us-west-2
-  # monitoring:
-  #   model_type: classification
+
+
+# - name: text-generator
+#   kind: sync
+#   predictor:
+#     type: python
+#     path: predictor.py
+#     config:
+#       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+#     env:
+#       BATCH: "true"
+#       SQS_QUEUE_URL: https://sqs.us-west-2.amazonaws.com/969758392368/batch
+#       AWS_REGION: us-west-2
+#   compute:
+#     gpu: 1
+#     cpu: 2
+#     mem: 16G
+#   autoscaling:
+#     target_queue_length: 1
+#     min_replicas: 1
+#     max_replicas: 10
+#   monitoring:
+#     model_type: classification
+
+# - name: text-generator
+#   kind: traffic-splitter
+#   api_names:
+#     - name: text-generator
+#       weight: 5
+#     - name: iris-classifier
+#       weight: 5

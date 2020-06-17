@@ -42,10 +42,7 @@ class PythonPredictor:
 
     def predict(self, payload):
         # Convert the request to a tensor and pass it into the model
-        logging.debug("debug")
-        logger.info("info")
-        print(uuidStr + " " + payload)
-        time.sleep(10)
+        time.sleep(1)
 
         # input_tensor = torch.FloatTensor(
         #     [

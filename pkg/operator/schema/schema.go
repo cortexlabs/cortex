@@ -53,10 +53,9 @@ type DeployResult struct {
 }
 
 type GetAPIsResponse struct {
-	APIs       []spec.API        `json:"apis"`
-	Statuses   []status.Status   `json:"statuses"`
-	AllMetrics []metrics.Metrics `json:"all_metrics"`
-	BaseURL    string            `json:"base_url"`
+	SyncAPIs  SyncAPIs   `json:"sync_apis"`
+	BatchAPIs []BatchAPI `json:"batch_api"`
+	BaseURL   string     `json:"base_url"`
 }
 
 type GetAPIResponse struct {
@@ -65,6 +64,17 @@ type GetAPIResponse struct {
 	Metrics      metrics.Metrics `json:"metrics"`
 	BaseURL      string          `json:"base_url"`
 	DashboardURL string          `json:"dashboard_url"`
+}
+
+type SyncAPIs struct {
+	APIs       []spec.API        `json:"apis"`
+	Statuses   []status.Status   `json:"statuses"`
+	AllMetrics []metrics.Metrics `json:"all_metrics"`
+}
+
+type BatchAPI struct {
+	API  spec.API           `json:"api"`
+	Jobs []status.JobStatus `json:"jobs"`
 }
 
 type DeleteResponse struct {

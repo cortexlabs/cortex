@@ -97,7 +97,7 @@ func rerun(f func() (string, error)) {
 
 			prevStrSlice = nextStrSlice
 
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 4)
 		}
 	} else {
 		str, err := f()

@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/deployment/batch"
 	"github.com/cortexlabs/cortex/pkg/operator/deployment/sync"
 )
 
@@ -44,10 +43,9 @@ func cleanupJobs() error {
 		}
 
 		debug.Pp(queueMetrics)
-		if queueMetrics.InQueue+queueMetrics.NotVisible == 0 {
-			batch.DeleteJob(job.Labels["apiName"], job.Labels["jobID"])
-
-		}
+		// if queueMetrics.InQueue+queueMetrics.NotVisible == 0 {
+		// 	batch.DeleteJob(job.Labels["apiName"], job.Labels["jobID"])
+		// }
 	}
 	if len(jobs) == 0 {
 		fmt.Println("empty")

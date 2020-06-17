@@ -38,6 +38,7 @@ type SubReplicaCounts struct {
 	Killed       int32 `json:"killed"`
 	KilledOOM    int32 `json:"killed_oom"`
 	Stalled      int32 `json:"stalled"` // pending for a long time
+	Succeeded    int32 `json:"succeeded"`
 	Unknown      int32 `json:"unknown"`
 }
 

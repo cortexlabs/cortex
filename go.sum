@@ -511,6 +511,7 @@ honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWh
 k8s.io/api v0.0.0-20180712090710-2d6f90ab1293/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
 k8s.io/api v0.16.9 h1:3vCx0WX9qcg1Hv4aQ/G1tiIKectGVuimvPVTJU4VOCA=
 k8s.io/api v0.16.9/go.mod h1:Y7dZNHs1Xy0mSwSlzL9QShi6qkljnN41yR8oWCRTDe8=
+k8s.io/api v0.18.3 h1:2AJaUQdgUZLoDZHrun21PW2Nx9+ll6cUzvn3IKhSIn0=
 k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
 k8s.io/apimachinery v0.16.9/go.mod h1:Xk2vD2TRRpuWYLQNM6lT9R7DSFZUYG03SarNkbGrnKE=
 k8s.io/apimachinery v0.16.10-beta.0 h1:l+qmzwWTMIBtFGlo5OpPYoZKCgGLtpAWvIa8Wcr9luU=

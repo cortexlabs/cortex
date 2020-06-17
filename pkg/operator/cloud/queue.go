@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
@@ -31,7 +32,7 @@ func QueuePrefix(apiName string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", config.AWS.Region, operatorAccountID, apiName), nil
+	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/cortex-%s", config.AWS.Region, operatorAccountID, apiName), nil
 }
 
 func QueueURL(apiName, jobID string) (string, error) {
@@ -54,6 +55,8 @@ func GetQueueMetrics(apiName, jobID string) (*QueueMetrics, error) {
 		return nil, err // TODO
 	}
 
+	fmt.Println(queueURL)
+
 	output, err := config.AWS.SQS().GetQueueAttributes(&sqs.GetQueueAttributesInput{
 		AttributeNames: aws.StringSlice([]string{"ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"}),
 		QueueUrl:       aws.String(queueURL),
@@ -62,14 +65,16 @@ func GetQueueMetrics(apiName, jobID string) (*QueueMetrics, error) {
 		return nil, err // TODO
 	}
 
+	debug.Pp(output)
+
 	metrics := QueueMetrics{}
 	parsedInt, ok := s.ParseInt(*output.Attributes["ApproximateNumberOfMessages"])
-	if !ok {
+	if ok {
 		metrics.InQueue = parsedInt
 	}
 
 	parsedInt, ok = s.ParseInt(*output.Attributes["ApproximateNumberOfMessagesNotVisible"])
-	if !ok {
+	if ok {
 		metrics.NotVisible = parsedInt
 	}
 

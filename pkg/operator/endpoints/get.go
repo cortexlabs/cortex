@@ -17,18 +17,59 @@ limitations under the License.
 package endpoints
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/deployment/batch"
 	"github.com/cortexlabs/cortex/pkg/operator/deployment/sync"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/mux"
+	kapps "k8s.io/api/apps/v1"
+	kbatch "k8s.io/api/batch/v1"
+	kcore "k8s.io/api/core/v1"
+	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
-	statuses, err := sync.GetAllStatuses()
+	var deployments []kapps.Deployment
+	var jobs []kbatch.Job
+	var pods []kcore.Pod
+	var virtualServices []kunstructured.Unstructured
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
+			return err
+		},
+		func() error {
+			var err error
+			pods, err = config.K8s.ListPodsWithLabelKeys("apiName")
+			return err
+		},
+		func() error {
+			var err error
+			jobs, err = config.K8s.ListJobsWithLabelKeys("apiName")
+			return err
+		},
+		func() error {
+			var err error
+			virtualServices, err = config.K8s.ListVirtualServicesByLabel("apiType", "batch")
+			return err
+		},
+	)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	statuses, err := sync.GetAllStatuses(deployments, pods)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -53,11 +94,62 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	batchAPIsMap := map[string]*schema.BatchAPI{}
+
+	fmt.Println(len(virtualServices))
+
+	for _, virtualService := range virtualServices {
+		apiName := virtualService.GetLabels()["apiName"]
+		apiID := virtualService.GetLabels()["apiID"]
+		api, err := cloud.DownloadAPISpec(apiName, apiID)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		batchAPIsMap[apiName] = &schema.BatchAPI{
+			API: *api,
+		}
+	}
+
+	for _, job := range jobs {
+		apiName := job.Labels["apiName"]
+		if _, ok := batchAPIsMap[apiName]; !ok {
+			continue
+		}
+
+		jobID := job.Labels["jobID"]
+		status, err := batch.GetJobStatus(apiName, jobID, pods)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+
+		jobsForAPI := batchAPIsMap[apiName].Jobs
+		jobsForAPI = append(jobsForAPI, *status)
+
+		batchAPIsMap[apiName].Jobs = jobsForAPI
+	}
+
+	debug.Pp(batchAPIsMap)
+
+	batchAPIList := make([]schema.BatchAPI, len(batchAPIsMap))
+
+	i := 0
+	for _, batchAPI := range batchAPIsMap {
+		batchAPIList[i] = *batchAPI
+		i++
+	}
+
+	debug.Pp(batchAPIList)
+
 	respond(w, schema.GetAPIsResponse{
-		APIs:       apis,
-		Statuses:   statuses,
-		AllMetrics: allMetrics,
-		BaseURL:    baseURL,
+		SyncAPIs: schema.SyncAPIs{
+			APIs:       apis,
+			Statuses:   statuses,
+			AllMetrics: allMetrics,
+		},
+		BatchAPIs: batchAPIList,
+		BaseURL:   baseURL,
 	})
 }
 

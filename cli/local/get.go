@@ -60,9 +60,11 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 	}
 
 	return schema.GetAPIsResponse{
-		APIs:       apiSpecList,
-		Statuses:   statusList,
-		AllMetrics: metricsList,
+		SyncAPIs: schema.SyncAPIs{
+			APIs:       apiSpecList,
+			Statuses:   statusList,
+			AllMetrics: metricsList,
+		},
 	}, nil
 }
 
