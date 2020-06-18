@@ -18,6 +18,7 @@ package strings
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 )
@@ -58,9 +59,7 @@ func TrimTrailingNewLines(str string) string {
 }
 
 func TrimTrailingWhitespace(str string) string {
-	tmpStr := "a" + str
-	tmpStrTrimmed := strings.TrimSpace(tmpStr)
-	return tmpStrTrimmed[1:]
+	return strings.TrimRightFunc(str, unicode.IsSpace)
 }
 
 func EnsureSingleTrailingNewLine(str string) string {
