@@ -1,6 +1,6 @@
 # Image Classifier with ResNet50
 
-This examole implements an image recognition system using ResNet50, which allows for the recognition of up to 1000 classes.
+This example implements an image recognition system using ResNet50, which allows for the recognition of up to 1000 classes.
 
 ## Deploying
 

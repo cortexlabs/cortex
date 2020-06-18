@@ -1,6 +1,6 @@
 # Image Classifier with ResNet50
 
-This examole implements an image recognition system using ResNet50, which allows for the recognition of up to 1000 classes.
+This example implements an image recognition system using ResNet50, which allows for the recognition of up to 1000 classes.
 
 ## Deploying
 
@@ -93,4 +93,4 @@ If you'd also like to build the TensorRT version of the GPU model, run the follo
 pip install tensorflow==2.0.0
 ```
 
-TensorRT also has to be installed. Follow the instructions on [Nvidia TensorRT Documentation](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html#installing-debian) to download and install TensorRT on your local machine (this will require ~5GB of space, andyou will have to create an Nvidia account). TensorRT is required for the exporting process of the SavedModel. The notebook also requires that the SavedModel generated with the [generate_resnet50_models.ipynb](generate_resnet50_models.ipynb) notebook exists in the `resnet50` directory. The TensorRT SavedModel will be exported to the `resnet50_gpu` directory. You can then replace the existing SavedModel with the TensorRT-optimized version in [cortex_gpu.yaml](cortex_gpu.yaml) - it's a drop-in replacement that doesn't require any other dependencies on the Cortex side. By default, [cortex_gpu.yaml](cortex_gpu.yaml) config uses the non-TensorRT-optimized version due to simplicity.
+TensorRT also has to be installed. Follow the instructions on [Nvidia TensorRT Documentation](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html#installing-debian) to download and install TensorRT on your local machine (this will require ~5GB of space, and you will have to create an Nvidia account). TensorRT is required for the exporting process of the SavedModel. The notebook also requires that the SavedModel generated with the [generate_resnet50_models.ipynb](generate_resnet50_models.ipynb) notebook exists in the `resnet50` directory. The TensorRT SavedModel will be exported to the `resnet50_gpu` directory. You can then replace the existing SavedModel with the TensorRT-optimized version in [cortex_gpu.yaml](cortex_gpu.yaml) - it's a drop-in replacement that doesn't require any other dependencies on the Cortex side. By default, [cortex_gpu.yaml](cortex_gpu.yaml) config uses the non-TensorRT-optimized version due to simplicity.
