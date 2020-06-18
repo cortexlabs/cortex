@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Context
 
-When doing inferences with TensorFlow using the Python Predictor, it has to be noted that Python Predictor constructor and its `predict` method run on different threads. This means that when the program enters the `predict` method, the current session which has presumably been saved as an attribute inside the [`PythonPredictor`](../deployments/predictors.md#python-predictor) object won't point to the default graph the session has been initialized with.
+When doing inferences with TensorFlow using the [Python Predictor](../deployments/predictors.md#python-predictor), it has to be noted that Python Predictor constructor and its `predict` method run on different threads. This means that when the program enters the `predict` method, the current session which has presumably been saved as an attribute inside the [`PythonPredictor`](../deployments/predictors.md#python-predictor) object won't point to the default graph the session has been initialized with.
 
 The error you will get as a consequence of having run the 2 methods (constructor and `predict` method) in different threads is:
 `
