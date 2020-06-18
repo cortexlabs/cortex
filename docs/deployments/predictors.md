@@ -342,9 +342,7 @@ The following Python packages are pre-installed in ONNX Predictors and can be us
 
 ```text
 boto3==1.13.7
-datadog==0.36.0
 dill==0.3.1.1
-fastapi==0.54.1
 msgpack==1.0.0
 numpy==1.18.4
 onnxruntime==1.2.0
