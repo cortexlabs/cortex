@@ -4,7 +4,6 @@
   predictor:
     type: tensorflow
     path: predictor.py
-    signature_key: serving_default
     model: s3://cortex-examples/tensorflow/resnet50
     config:
       classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
