@@ -30,8 +30,7 @@ import (
 )
 
 type API struct {
-	Name           string          `json:"name" yaml:"name"`
-	Kind           Kind            `json:"kind" yaml:"kind"`
+	Resource
 	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
 	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
@@ -40,9 +39,8 @@ type API struct {
 	Compute        *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
-
-	Index    int    `json:"index" yaml:"-"`
-	FilePath string `json:"file_path" yaml:"-"`
+	Index          int             `json:"index" yaml:"-"`
+	FilePath       string          `json:"file_path" yaml:"-"`
 }
 
 type Predictor struct {
@@ -154,15 +152,15 @@ func (api *API) ApplyDefaultDockerPaths() {
 	}
 }
 
-func IdentifyAPI(filePath string, name string, index int) string {
+func IdentifyAPI(filePath string, resourceIdentity string, index int) string {
 	str := ""
 
 	if filePath != "" {
 		str += filePath + ": "
 	}
 
-	if name != "" {
-		return str + name
+	if resourceIdentity != "" {
+		return str + resourceIdentity
 	} else if index >= 0 {
 		return str + " at " + s.Index(index)
 	}

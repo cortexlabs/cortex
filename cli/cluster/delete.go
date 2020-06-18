@@ -64,6 +64,6 @@ func getReadyReplicasOrNil(operatorConfig OperatorConfig, apiName string) *int32
 		return nil
 	}
 
-	totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
+	totalReady := apiRes.SyncAPI.Status.Updated.Ready + apiRes.SyncAPI.Status.Stale.Ready
 	return &totalReady
 }

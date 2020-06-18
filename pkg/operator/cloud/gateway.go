@@ -14,19 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package cloud
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func addAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
+func AddAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
 	if apiGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}
@@ -49,7 +50,7 @@ func addAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayTyp
 	}
 
 	if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
-		loadBalancerURL, err := APILoadBalancerURL()
+		loadBalancerURL, err := ok8s.APILoadBalancerURL()
 		if err != nil {
 			return err
 		}
@@ -70,7 +71,7 @@ func addAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayTyp
 	return nil
 }
 
-func removeAPIFromAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
+func RemoveAPIFromAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
 	if apiGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}
@@ -95,7 +96,7 @@ func removeAPIFromAPIGateway(endpoint string, apiGatewayType userconfig.APIGatew
 	return nil
 }
 
-func updateAPIGateway(
+func UpdateAPIGateway(
 	prevEndpoint string,
 	prevAPIGatewayType userconfig.APIGatewayType,
 	newEndpoint string,
@@ -107,11 +108,11 @@ func updateAPIGateway(
 	}
 
 	if prevAPIGatewayType == userconfig.PublicAPIGatewayType && newAPIGatewayType == userconfig.NoneAPIGatewayType {
-		return removeAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType)
+		return RemoveAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType)
 	}
 
 	if prevAPIGatewayType == userconfig.NoneAPIGatewayType && newAPIGatewayType == userconfig.PublicAPIGatewayType {
-		return addAPIToAPIGateway(newEndpoint, newAPIGatewayType)
+		return AddAPIToAPIGateway(newEndpoint, newAPIGatewayType)
 	}
 
 	if prevEndpoint == newEndpoint {
@@ -119,17 +120,17 @@ func updateAPIGateway(
 	}
 
 	// the endpoint has changed
-	if err := addAPIToAPIGateway(newEndpoint, newAPIGatewayType); err != nil {
+	if err := AddAPIToAPIGateway(newEndpoint, newAPIGatewayType); err != nil {
 		return err
 	}
-	if err := removeAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType); err != nil {
+	if err := RemoveAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func removeAPIFromAPIGatewayK8s(virtualService *kunstructured.Unstructured) error {
+func RemoveAPIFromAPIGatewayK8s(virtualService *kunstructured.Unstructured) error {
 	if virtualService == nil {
 		return nil // API is not running
 	}
@@ -139,24 +140,24 @@ func removeAPIFromAPIGatewayK8s(virtualService *kunstructured.Unstructured) erro
 		return err
 	}
 
-	endpoint, err := GetEndpointFromVirtualService(virtualService)
+	endpoint, err := ok8s.GetEndpointFromVirtualService(virtualService)
 	if err != nil {
 		return err
 	}
 
-	return removeAPIFromAPIGateway(endpoint, apiGatewayType)
+	return RemoveAPIFromAPIGateway(endpoint, apiGatewayType)
 }
 
-func updateAPIGatewayK8s(prevVirtualService *kunstructured.Unstructured, newAPI *spec.API) error {
+func UpdateAPIGatewayK8s(prevVirtualService *kunstructured.Unstructured, newAPI *spec.API) error {
 	prevAPIGatewayType, err := userconfig.APIGatewayFromAnnotations(prevVirtualService)
 	if err != nil {
 		return err
 	}
 
-	prevEndpoint, err := GetEndpointFromVirtualService(prevVirtualService)
+	prevEndpoint, err := ok8s.GetEndpointFromVirtualService(prevVirtualService)
 	if err != nil {
 		return err
 	}
 
-	return updateAPIGateway(prevEndpoint, prevAPIGatewayType, *newAPI.Endpoint, newAPI.Networking.APIGateway)
+	return UpdateAPIGateway(prevEndpoint, prevAPIGatewayType, *newAPI.Endpoint, newAPI.Networking.APIGateway)
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package sync_api
 
 import (
 	"encoding/json"
@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/gorilla/websocket"
 	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
 	kapps "k8s.io/api/apps/v1"
@@ -118,7 +119,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 		case <-timer.C:
 			if deployment == nil || time.Since(lastDeploymentRefresh) > _deploymentRefreshPeriod {
 				var err error
-				deployment, err = config.K8s.GetDeployment(k8sName(apiName))
+				deployment, err = config.K8s.GetDeployment(ok8s.K8sName(apiName))
 				if err != nil {
 					telemetry.Error(err)
 					writeAndCloseSocket(socket, "error: "+errors.Message(err))

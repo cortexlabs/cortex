@@ -52,17 +52,19 @@ type DeployResult struct {
 }
 
 type GetAPIsResponse struct {
-	APIs       []spec.API        `json:"apis"`
-	Statuses   []status.Status   `json:"statuses"`
-	AllMetrics []metrics.Metrics `json:"all_metrics"`
+	SyncAPIs []SyncAPI `json:"sync_apis"`
 }
 
-type GetAPIResponse struct {
-	API          spec.API        `json:"api"`
+type SyncAPI struct {
+	Spec         spec.API        `json:"spec"`
 	Status       status.Status   `json:"status"`
 	Metrics      metrics.Metrics `json:"metrics"`
 	BaseURL      string          `json:"base_url"`
 	DashboardURL string          `json:"dashboard_url"`
+}
+
+type GetAPIResponse struct {
+	SyncAPI *SyncAPI `json:"sync_api"`
 }
 
 type DeleteResponse struct {

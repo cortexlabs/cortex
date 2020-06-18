@@ -38,7 +38,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -47,48 +46,47 @@ import (
 var AutoscalingTickInterval = 10 * time.Second
 
 func apiValidation(provider types.ProviderType, kind userconfig.Kind) *cr.StructValidation {
-	return &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "Name",
-				StringValidation: &cr.StringValidation{
-					Required:  true,
-					DNS1035:   true,
-					MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
-				},
+	structFieldValidations := []*cr.StructFieldValidation{}
+	structFieldValidations = append(structFieldValidations, resourceStructValidations...)
+	structFieldValidations = append(structFieldValidations,
+		&cr.StructFieldValidation{
+			StructField: "LocalPort",
+			IntPtrValidation: &cr.IntPtrValidation{
+				GreaterThan:       pointer.Int(0),
+				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
 			},
-			{
-				StructField: "Kind",
-				StringValidation: &cr.StringValidation{
-					Required:      true,
-					AllowedValues: userconfig.KindStrings(),
-				},
-				Parser: func(str string) (interface{}, error) {
-					return userconfig.KindFromString(str), nil
-				},
-			},
-			{
-				StructField: "Endpoint",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: urls.ValidateEndpoint,
-					MaxLength: 1000, // no particular reason other than it works
-				},
-			},
-			{
-				StructField: "LocalPort",
-				IntPtrValidation: &cr.IntPtrValidation{
-					GreaterThan:       pointer.Int(0),
-					LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-				},
-			},
-			predictorValidation(),
-			monitoringValidation(),
-			networkingValidation(),
-			computeValidation(provider),
-			autoscalingValidation(provider),
-			updateStrategyValidation(provider),
 		},
+		predictorValidation(),
+		monitoringValidation(),
+		networkingValidation(),
+		computeValidation(provider),
+		autoscalingValidation(provider),
+		updateStrategyValidation(provider),
+	)
+	return &cr.StructValidation{
+		StructFieldValidations: structFieldValidations,
 	}
+}
+
+var resourceStructValidations = []*cr.StructFieldValidation{
+	{
+		StructField: "Name",
+		StringValidation: &cr.StringValidation{
+			Required:  true,
+			DNS1035:   true,
+			MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
+		},
+	},
+	{
+		StructField: "Kind",
+		StringValidation: &cr.StringValidation{
+			Required:      true,
+			AllowedValues: userconfig.KindStrings(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return userconfig.KindFromString(str), nil
+		},
+	},
 }
 
 func predictorValidation() *cr.StructFieldValidation {
@@ -470,23 +468,13 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 }
 
 type kindStruct struct {
+	Name string          `json:"name" yaml:"name"`
 	Kind userconfig.Kind `json:"kind" yaml:"kind"`
 }
 
 var kindStructValidation = cr.StructValidation{
-	AllowExtraFields: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "Kind",
-			StringValidation: &cr.StringValidation{
-				Required:      true,
-				AllowedValues: userconfig.KindStrings(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return userconfig.KindFromString(str), nil
-			},
-		},
-	},
+	AllowExtraFields:       true,
+	StructFieldValidations: resourceStructValidations,
 }
 
 func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectFiles ProjectFiles, filePath string) ([]userconfig.API, error) {

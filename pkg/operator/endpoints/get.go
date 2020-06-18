@@ -19,55 +19,65 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/sync_api"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/mux"
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
-	statuses, err := operator.GetAllStatuses()
+	statuses, err := sync_api.GetAllStatuses()
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
 	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	apis, err := cloud.DownloadAPISpecs(apiNames, apiIDs)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	allMetrics, err := operator.GetMultipleMetrics(apis)
+	allMetrics, err := sync_api.GetMultipleMetrics(apis)
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+
+	syncAPIs := make([]schema.SyncAPI, len(apis))
+
+	for i, api := range apis {
+		syncAPIs[i] = schema.SyncAPI{
+			Spec:    api,
+			Status:  statuses[i],
+			Metrics: allMetrics[i],
+		}
 	}
 
 	respond(w, schema.GetAPIsResponse{
-		APIs:       apis,
-		Statuses:   statuses,
-		AllMetrics: allMetrics,
+		SyncAPIs: syncAPIs,
 	})
 }
 
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	status, err := operator.GetStatus(apiName)
+	status, err := sync_api.GetStatus(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	api, err := cloud.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	metrics, err := operator.GetMetrics(api)
+	metrics, err := sync_api.GetMetrics(api)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -80,11 +90,13 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, schema.GetAPIResponse{
-		API:          *api,
-		Status:       *status,
-		Metrics:      *metrics,
-		BaseURL:      baseURL,
-		DashboardURL: operator.DashboardURL(),
+		SyncAPI: &schema.SyncAPI{
+			Spec:         *api,
+			Status:       *status,
+			Metrics:      *metrics,
+			BaseURL:      baseURL,
+			DashboardURL: sync_api.DashboardURL(),
+		},
 	})
 }
 

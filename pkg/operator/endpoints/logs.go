@@ -20,6 +20,7 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/sync_api"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
@@ -27,7 +28,7 @@ import (
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	isDeployed, err := operator.IsAPIDeployed(apiName)
+	isDeployed, err := sync_api.IsAPIDeployed(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -44,5 +45,5 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	operator.ReadLogs(apiName, socket)
+	sync_api.ReadLogs(apiName, socket)
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package sync_api
 
 import (
 	"encoding/base64"
@@ -124,16 +124,19 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
+			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":      api.Name,
+				"apiKind":      api.Kind.String(),
 				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
 			},
@@ -302,16 +305,19 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
+			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":      api.Name,
+				"apiKind":      api.Kind.String(),
 				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
 			},
@@ -411,16 +417,19 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
+			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":      api.Name,
+				"apiKind":      api.Kind.String(),
 				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
 			},
@@ -524,9 +533,11 @@ func serviceSpec(api *spec.API) *kcore.Service {
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 	})
 }
@@ -542,6 +553,7 @@ func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 	})
 }

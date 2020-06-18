@@ -20,31 +20,18 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
-	ErrCortexInstallationBroken    = "operator.cortex_installation_broken"
-	ErrLoadBalancerInitializing    = "operator.load_balancer_initializing"
-	ErrMalformedConfig             = "operator.malformed_config"
-	ErrNoAPIs                      = "operator.no_apis"
-	ErrAPIUpdating                 = "operator.api_updating"
-	ErrAPINotDeployed              = "operator.api_not_deployed"
-	ErrNoAvailableNodeComputeLimit = "operator.no_available_node_compute_limit"
+	ErrMalformedConfig                    = "operator.malformed_config"
+	ErrNoAPIs                             = "operator.no_apis"
+	ErrAPIUpdating                        = "operator.api_updating"
+	ErrAPINotDeployed                     = "operator.api_not_deployed"
+	ErrNoAvailableNodeComputeLimit        = "operator.no_available_node_compute_limit"
+	ErrCannotChangeTypeOfDeployedResource = "operator.cannot_change_kind_of_deployed_resource"
+	ErrKindNotSupported                   = "operator.kind_not_supported"
 )
-
-func ErrorCortexInstallationBroken() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCortexInstallationBroken,
-		Message: "cortex is out of date or not installed properly; run `cortex cluster configure` to repair, or spin down your cluster with `cortex cluster down` and create a new one with `cortex cluster up`",
-	})
-}
-
-func ErrorLoadBalancerInitializing() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrLoadBalancerInitializing,
-		Message: "load balancer is still initializing",
-	})
-}
 
 func ErrorAPIUpdating(apiName string) error {
 	return errors.WithStack(&errors.Error{
@@ -68,5 +55,19 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		Message: message,
+	})
+}
+
+func ErrorCannotChangeKindOfDeployedResource(name string, newKind, prevKind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCannotChangeTypeOfDeployedResource,
+		Message: fmt.Sprintf("cannot change the kind of %s to %s because it has already been deployed with kind %s; please delete it with `cortex delete %s` and redeploy to change the kind", name, newKind.String(), prevKind.String(), name),
+	})
+}
+
+func ErrorKindNotSupported(kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrKindNotSupported,
+		Message: fmt.Sprintf("%s kind is not supported", kind.String()),
 	})
 }
