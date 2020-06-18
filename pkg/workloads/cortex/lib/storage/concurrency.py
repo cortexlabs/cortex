@@ -20,6 +20,8 @@ import os, fcntl, time
 class FileLock:
     def __init__(self, lock_file, timeout=None):
         """
+        Lock for files. Not thread-safe. Instantiate one lock per thread.
+
         lock_file - File to use as lock.
         timeout - If used, a timeout exception will be raised if the lock can't be acquired. Measured in seconds.
         """

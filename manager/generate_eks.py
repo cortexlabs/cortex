@@ -141,7 +141,6 @@ def is_inf(instance_type):
 
 
 def get_inf_resources(instance_type):
-    num_hugepages_2Mi = 128
     num_chips = 0
     if instance_type in ["inf1.xlarge", "inf1.2xlarge"]:
         num_chips = 1
@@ -150,15 +149,15 @@ def get_inf_resources(instance_type):
     elif instance_type == "inf1.24xlarge":
         num_chips = 16
 
-    return num_chips, f"{num_hugepages_2Mi * num_chips}Mi"
+    return num_chips, f"{128 * num_chips}Mi"
 
 
 def get_ami_image(region):
     if region.startswith("us-east-1"):
         return "ami-07a7b48058cfe1a73"
-    elif region.startswith("us-west-2"):
+    if region.startswith("us-west-2"):
         return "ami-00c8c8387d112425c"
-    return ""
+    raise RuntimeError(f"ami image is in region {region} instead of 'us-east-1' or 'us-west-2'")
 
 
 def generate_eks(cluster_config_path):
