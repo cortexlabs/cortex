@@ -159,9 +159,12 @@ xgboost==1.0.2
 For Inferentia-equipped APIs, the list is slightly different:
 
 ```text
+boto3==1.13.7
 cloudpickle==1.3.0
-Cython==0.29.16
+Cython==0.29.17
+dill==0.3.1.1
 joblib==0.14.1
+msgpack==1.0.0
 neuron-cc==1.0.9410.0+6008239556
 nltk==3.4.5
 np-utils==0.5.12.1
@@ -169,6 +172,8 @@ numpy==1.16.5
 opencv-python==4.2.0.32
 pandas==1.0.3
 Pillow==6.2.2
+pyyaml==5.3.1
+requests==2.23.0
 scikit-image==0.16.2
 scikit-learn==0.22.2.post1
 scipy==1.3.2
@@ -337,7 +342,9 @@ The following Python packages are pre-installed in ONNX Predictors and can be us
 
 ```text
 boto3==1.13.7
+datadog==0.36.0
 dill==0.3.1.1
+fastapi==0.54.1
 msgpack==1.0.0
 numpy==1.18.4
 onnxruntime==1.2.0
