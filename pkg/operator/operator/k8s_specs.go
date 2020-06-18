@@ -641,7 +641,7 @@ func requestMonitorContainer(api *spec.API) *kcore.Container {
 		Name:            "request-monitor",
 		Image:           config.Cluster.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{api.Name, config.Cluster.LogGroup},
+		Args:            []string{api.Name, config.Cluster.ClusterName},
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    _defaultVolumeMounts,
 		ReadinessProbe:  fileExistsProbe(_requestMonitorReadinessFile),

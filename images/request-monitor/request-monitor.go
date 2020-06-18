@@ -33,10 +33,10 @@ const _tickInterval = 10 * time.Second
 const _requestSampleInterval = 1 * time.Second
 
 var (
-	client   *cloudwatch.CloudWatch
-	apiName  string
-	region   string
-	logGroup string
+	client      *cloudwatch.CloudWatch
+	apiName     string
+	region      string
+	clusterName string
 )
 
 type Counter struct {
@@ -59,10 +59,10 @@ func (c *Counter) GetAllAndDelete() []int {
 	return output
 }
 
-// ./request-monitor api_name log_group
+// ./request-monitor api_name cluster_name
 func main() {
 	apiName = os.Args[1]
-	logGroup = os.Args[2]
+	clusterName = os.Args[2]
 	region = os.Getenv("CORTEX_REGION")
 
 	sess, err := session.NewSession(&aws.Config{
@@ -140,7 +140,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 	log.Printf("recorded %.2f in-flight requests on replica", total)
 	curTime := time.Now()
 	metricData := cloudwatch.PutMetricDataInput{
-		Namespace: aws.String(logGroup),
+		Namespace: aws.String(clusterName),
 		MetricData: []*cloudwatch.MetricDatum{
 			{
 				MetricName: aws.String("in-flight"),
