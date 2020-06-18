@@ -23,7 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/sync_api"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 )
 
 func Init() error {
@@ -41,7 +41,7 @@ func Init() error {
 
 	for _, deployment := range deployments {
 		// TODO only apply sync_api resource kind
-		if err := sync_api.UpdateAutoscalerCron(&deployment); err != nil {
+		if err := syncapi.UpdateAutoscalerCron(&deployment); err != nil {
 			return err
 		}
 	}

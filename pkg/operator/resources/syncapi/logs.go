@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sync_api
+package syncapi
 
 import (
 	"encoding/json"
@@ -119,7 +119,7 @@ func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *
 		case <-timer.C:
 			if deployment == nil || time.Since(lastDeploymentRefresh) > _deploymentRefreshPeriod {
 				var err error
-				deployment, err = config.K8s.GetDeployment(ok8s.K8sName(apiName))
+				deployment, err = config.K8s.GetDeployment(ok8s.Name(apiName))
 				if err != nil {
 					telemetry.Error(err)
 					writeAndCloseSocket(socket, "error: "+errors.Message(err))

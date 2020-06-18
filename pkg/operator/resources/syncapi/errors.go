@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sync_api
+package syncapi
 
 import (
 	"fmt"
@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	ErrAPIUpdating    = "sync_api.api_updating"
-	ErrAPINotDeployed = "sync_api.api_not_deployed"
+	ErrAPIUpdating    = "syncapi.api_updating"
+	ErrAPINotDeployed = "syncapi.api_not_deployed"
 )
 
 func ErrorAPIUpdating(apiName string) error {

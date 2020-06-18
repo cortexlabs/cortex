@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/sync_api"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -38,7 +38,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	}
 
 	if apiConfig.Kind == userconfig.SyncAPIKind {
-		return sync_api.UpdateAPI(apiConfig, projectID, force)
+		return syncapi.UpdateAPI(apiConfig, projectID, force)
 	}
 
 	return nil, "", errors.Wrap(ErrorKindNotSupported(apiConfig.Kind), apiConfig.Identify()) // unexpected
@@ -53,7 +53,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
-		return sync_api.RefreshAPI(apiName, force)
+		return syncapi.RefreshAPI(apiName, force)
 	}
 
 	return "", errors.Wrap(ErrorKindNotSupported(deployedResource.Kind), deployedResource.Identify()) // unexpected
@@ -62,7 +62,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
-			return sync_api.DeleteAPI(apiName, keepCache)
+			return syncapi.DeleteAPI(apiName, keepCache)
 		},
 	)
 

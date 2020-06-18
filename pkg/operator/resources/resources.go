@@ -19,12 +19,12 @@ package resources
 import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/sync_api"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func FindDeployedResourceByName(resourceName string) (*userconfig.Resource, error) {
-	virtualService, err := config.K8s.GetVirtualService(ok8s.K8sName(resourceName))
+	virtualService, err := config.K8s.GetVirtualService(ok8s.Name(resourceName))
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func FindDeployedResourceByName(resourceName string) (*userconfig.Resource, erro
 
 func IsResourceUpdating(resource userconfig.Resource) (bool, error) {
 	if resource.Kind == userconfig.SyncAPIKind {
-		return sync_api.IsAPIUpdating(resource.Name)
+		return syncapi.IsAPIUpdating(resource.Name)
 	}
 
 	return false, ErrorKindNotSupported(resource.Kind)

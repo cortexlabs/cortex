@@ -21,14 +21,14 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/sync_api"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/mux"
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
-	statuses, err := sync_api.GetAllStatuses()
+	statuses, err := syncapi.GetAllStatuses()
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -41,7 +41,7 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allMetrics, err := sync_api.GetMultipleMetrics(apis)
+	allMetrics, err := syncapi.GetMultipleMetrics(apis)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -65,7 +65,7 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	status, err := sync_api.GetStatus(apiName)
+	status, err := syncapi.GetStatus(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -77,7 +77,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics, err := sync_api.GetMetrics(api)
+	metrics, err := syncapi.GetMetrics(api)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -95,7 +95,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 			Status:       *status,
 			Metrics:      *metrics,
 			BaseURL:      baseURL,
-			DashboardURL: sync_api.DashboardURL(),
+			DashboardURL: syncapi.DashboardURL(),
 		},
 	})
 }

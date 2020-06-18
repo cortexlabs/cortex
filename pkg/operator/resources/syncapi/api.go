@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sync_api
+package syncapi
 
 import (
 	"fmt"
@@ -204,7 +204,7 @@ func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Servi
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(ok8s.K8sName(apiConfig.Name))
+			deployment, err = config.K8s.GetDeployment(ok8s.Name(apiConfig.Name))
 			return err
 		},
 		func() error {
@@ -334,7 +334,7 @@ func deleteS3Resources(apiName string) error {
 }
 
 func IsAPIUpdating(apiName string) (bool, error) {
-	deployment, err := config.K8s.GetDeployment(ok8s.K8sName(apiName))
+	deployment, err := config.K8s.GetDeployment(ok8s.Name(apiName))
 	if err != nil {
 		return false, err
 	}

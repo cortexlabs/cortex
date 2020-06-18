@@ -23,7 +23,7 @@ import (
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func K8sName(apiName string) string {
+func Name(apiName string) string {
 	return "api-" + apiName
 }
 
