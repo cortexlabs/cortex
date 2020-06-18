@@ -20,7 +20,6 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -83,7 +82,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseURL, err := operator.APIBaseURL(api)
+	baseURL, err := syncapi.APIBaseURL(api)
 	if err != nil {
 		respondError(w, r, err)
 		return

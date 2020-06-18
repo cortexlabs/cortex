@@ -17,9 +17,12 @@ limitations under the License.
 package resources
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -45,4 +48,50 @@ func IsResourceUpdating(resource userconfig.Resource) (bool, error) {
 	}
 
 	return false, ErrorKindNotSupported(resource.Kind)
+}
+
+func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+	deployedResource, err := FindDeployedResourceByName(apiConfig.Name)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if deployedResource != nil && deployedResource.Kind != apiConfig.Kind {
+		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
+	}
+
+	if apiConfig.Kind == userconfig.SyncAPIKind {
+		return syncapi.UpdateAPI(apiConfig, projectID, force)
+	}
+
+	return nil, "", errors.Wrap(ErrorKindNotSupported(apiConfig.Kind), apiConfig.Identify()) // unexpected
+}
+
+func RefreshAPI(apiName string, force bool) (string, error) {
+	deployedResource, err := FindDeployedResourceByName(apiName)
+	if err != nil {
+		return "", err
+	} else if deployedResource == nil {
+		return "", ErrorAPINotDeployed(deployedResource.Name)
+	}
+
+	if deployedResource.Kind == userconfig.SyncAPIKind {
+		return syncapi.RefreshAPI(apiName, force)
+	}
+
+	return "", errors.Wrap(ErrorKindNotSupported(deployedResource.Kind), deployedResource.Identify()) // unexpected
+}
+
+func DeleteAPI(apiName string, keepCache bool) error {
+	err := parallel.RunFirstErr(
+		func() error {
+			return syncapi.DeleteAPI(apiName, keepCache)
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

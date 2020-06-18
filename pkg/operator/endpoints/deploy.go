@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -94,7 +95,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := operator.UpdateAPI(&apiConfig, projectID, force)
+		api, msg, err := resources.UpdateAPI(&apiConfig, projectID, force)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)

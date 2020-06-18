@@ -402,3 +402,11 @@ func IsAPIDeployed(apiName string) (bool, error) {
 	}
 	return deployment != nil, nil
 }
+
+// APIBaseURL returns BaseURL of the API without resource endpoint
+func APIBaseURL(api *spec.API) (string, error) {
+	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
+		return *config.Cluster.APIGateway.ApiEndpoint, nil
+	}
+	return ok8s.APILoadBalancerURL()
+}

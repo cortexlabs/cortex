@@ -21,7 +21,6 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/mux"
@@ -40,17 +39,17 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	if deployedResource == nil {
 		// Delete anyways just to be sure everything is deleted
 		go func() {
-			err = operator.DeleteAPI(apiName, keepCache)
+			err = resources.DeleteAPI(apiName, keepCache)
 			if err != nil {
 				telemetry.Error(err)
 			}
 		}()
 
-		respondErrorCode(w, r, http.StatusNotFound, operator.ErrorAPINotDeployed(apiName))
+		respondErrorCode(w, r, http.StatusNotFound, resources.ErrorAPINotDeployed(apiName))
 		return
 	}
 
-	err = operator.DeleteAPI(apiName, keepCache)
+	err = resources.DeleteAPI(apiName, keepCache)
 	if err != nil {
 		respondError(w, r, err)
 		return

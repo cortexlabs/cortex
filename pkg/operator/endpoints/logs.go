@@ -19,7 +19,7 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -33,7 +33,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	} else if !isDeployed {
-		respondError(w, r, operator.ErrorAPINotDeployed(apiName))
+		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
 		return
 	}
 
