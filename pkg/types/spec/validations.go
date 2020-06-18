@@ -153,6 +153,20 @@ func predictorValidation() *cr.StructFieldValidation {
 					StructField:         "SignatureKey",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
+				{
+					StructField: "BatchSize",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						Required:             false,
+						GreaterThanOrEqualTo: pointer.Int32(1),
+					},
+				},
+				{
+					StructField: "BatchTimeout",
+					Float64PtrValidation: &cr.Float64PtrValidation{
+						Required:    false,
+						GreaterThan: pointer.Float64(0),
+					},
+				},
 				multiModelValidation(),
 			},
 		},

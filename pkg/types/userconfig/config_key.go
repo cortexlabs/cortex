@@ -39,6 +39,8 @@ const (
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
 	SignatureKeyKey           = "signature_key"
+	BatchSizeKey              = "batch_size"
+	BatchTimeoutKey           = "batch_timeout"
 
 	// ModelResource
 	ModelsNameKey = "name"

@@ -55,6 +55,8 @@ type Predictor struct {
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
+	BatchSize              *int64                 `json:"batch_size" yaml:"batch_size"`
+	BatchTimeout           *float64               `json:"batch_timeout" yaml:"batch_timeout"`
 }
 
 type ModelResource struct {
@@ -356,6 +358,12 @@ func (predictor *Predictor) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
 		d, _ := yaml.Marshal(&predictor.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
+	}
+	if predictor.BatchSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", BatchSizeKey, predictor.BatchSize))
+	}
+	if predictor.BatchTimeout != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", BatchTimeoutKey, predictor.BatchTimeout))
 	}
 	return sb.String()
 }
