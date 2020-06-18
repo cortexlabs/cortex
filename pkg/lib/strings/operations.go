@@ -53,8 +53,14 @@ func EnsureBlankLineIfNotEmpty(str string) string {
 	return str + "\n\n"
 }
 
-func RemoveTrailingNewLines(str string) string {
+func TrimTrailingNewLines(str string) string {
 	return strings.TrimRight(str, "\n")
+}
+
+func TrimTrailingWhitespace(str string) string {
+	tmpStr := "a" + str
+	tmpStrTrimmed := strings.TrimSpace(tmpStr)
+	return tmpStrTrimmed[1:]
 }
 
 func EnsureSingleTrailingNewLine(str string) string {
