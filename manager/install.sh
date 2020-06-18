@@ -256,7 +256,7 @@ function main() {
     echo -n "￮ creating api gateway vpc link integration "
     python create_gateway_integration.py $api_id $vpc_link_id
     printed_dot="false"
-    until [ "$(aws apigatewayv2 get-vpc-link --vpc-link-id 28nnw5 | jq .VpcLinkStatus | tr -d '"')" = "AVAILABLE" ]; do echo -n "."; printed_dot="true"; sleep 2; done
+    until [ "$(aws apigatewayv2 get-vpc-link --region $CORTEX_REGION --vpc-link-id $vpc_link_id | jq .VpcLinkStatus | tr -d '"')" = "AVAILABLE" ]; do echo -n "."; printed_dot="true"; sleep 2; done
     echo "✓"
   fi
 
