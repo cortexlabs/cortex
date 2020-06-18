@@ -163,6 +163,7 @@ func (t *Table) Format(opts ...*Opts) (string, error) {
 			headerStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(header.Title))
 		}
 	}
+	headerStr = s.TrimTrailingWhitespace(headerStr)
 
 	ellipses := "..."
 	rowStrs := make([]string, len(rows))
@@ -185,7 +186,7 @@ func (t *Table) Format(opts ...*Opts) (string, error) {
 				rowStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(val))
 			}
 		}
-		rowStrs[rowNum] = rowStr
+		rowStrs[rowNum] = s.TrimTrailingWhitespace(rowStr)
 	}
 
 	if *mergedOpts.Sort {
