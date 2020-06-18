@@ -105,7 +105,7 @@ func ErrorUnableToGetResource() error {
 func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCommandNotSupportedForKind,
-		Message: fmt.Sprintf("`%s` is not supported for resources of kind %s", command, kind.String),
+		Message: fmt.Sprintf("`%s` is not supported for resources of kind %s", command, kind.String()),
 	})
 }
 
