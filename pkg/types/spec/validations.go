@@ -815,7 +815,7 @@ func getTFServingExportFromS3Path(path string, isNeuronExport bool, awsClientFor
 		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
 
 		if version >= highestVersion {
-			if isNeuronExport && isValidNeuronTensorflowS3Directory(possiblePath, awsClientForBucket) {
+			if isNeuronExport && isValidNeuronTensorFlowS3Directory(possiblePath, awsClientForBucket) {
 				highestVersion = version
 				highestPath = possiblePath
 			}
@@ -852,11 +852,11 @@ func isValidTensorFlowS3Directory(path string, awsClientForBucket *aws.Client) b
 	return true
 }
 
-// isValidNeuronTensorflowS3Directory checks that the path contains a valid S3 directory for Neuron TensorFlow models
+// isValidNeuronTensorFlowS3Directory checks that the path contains a valid S3 directory for Neuron TensorFlow models
 // Must contain the following structure:
 // - 1523423423/ (version prefix, usually a timestamp)
 // 		- saved_model.pb
-func isValidNeuronTensorflowS3Directory(path string, awsClient *aws.Client) bool {
+func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
 	if valid, err := awsClient.IsS3PathFile(
 		aws.JoinS3Path(path, "saved_model.pb"),
 	); err != nil || !valid {
