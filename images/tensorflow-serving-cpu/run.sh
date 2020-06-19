@@ -30,4 +30,4 @@ if [[ -n ${TF_BATCH_SIZE} &&  -n ${TF_BATCH_TIMEOUT} ]]; then
 fi
 
 # launch TFS
-tensorflow_model_server_neuron "$@"
+tensorflow_model_server "$@"

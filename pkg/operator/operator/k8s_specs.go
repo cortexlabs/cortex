@@ -128,7 +128,7 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 		tfServingContainerEnvVars = append(tfServingContainerEnvVars,
 			kcore.EnvVar{
 				Name:  "TF_BATCH_SIZE",
-				Value: s.Int64(*api.Predictor.BatchSize),
+				Value: s.Int32(*api.Predictor.BatchSize),
 			},
 			kcore.EnvVar{
 				Name:  "TF_BATCH_TIMEOUT",

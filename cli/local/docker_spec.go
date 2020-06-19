@@ -301,7 +301,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
 		tfServingContainerEnvVars = append(tfServingContainerEnvVars,
 			"CORTEX_WORKERS_PER_REPLICA="+s.Int32(api.Autoscaling.WorkersPerReplica),
-			"TF_BATCH_SIZE="+s.Int64(*api.Predictor.BatchSize),
+			"TF_BATCH_SIZE="+s.Int32(*api.Predictor.BatchSize),
 			"TF_BATCH_TIMEOUT="+s.Float64(*api.Predictor.BatchTimeout),
 		)
 		tfServingContainerArgs = append(tfServingContainerArgs,
