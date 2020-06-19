@@ -12,8 +12,4 @@
       input_shape: [224, 224]
   compute:
     inf: 1
-    cpu: 2
-    mem: 2G
-  autoscaling:
-    workers_per_replica: 2
-    threads_per_worker: 1
+    cpu: 1

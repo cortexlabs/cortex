@@ -33,4 +33,4 @@ One unit of memory is one byte. Memory can be expressed as an integer or by usin
 
 ## Inf
 
-One unit of Inf corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. Fractional requests are not allowed.
+One unit of Inf corresponds to one Inferentia ASIC with 4 NeuronCores *(not the same thing as `cpu`)* and 8GB of cache memory *(not the same thing as `mem`)*. Fractional requests are not allowed.

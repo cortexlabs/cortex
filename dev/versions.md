@@ -177,7 +177,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 1. Run a `cortexlabs/neuron-rtd` container and check if there are newer versions of `aws-neuron-tools` and `aws-neuron-runtime` with `yum info <package>` command.
 1. Set this version in `images/neuron-rtd/Dockerfile`, `images/python-predictor-inf/Dockerfile`, and `images/tensorflow-serving-inf/Dockerfile`.
-1. Rebuild images and test Inferentia examples.
+1. Rebuild `images/neuron-rtd/Dockerfile`, `images/python-predictor-inf/Dockerfile`, `images/tensorflow-serving-inf/Dockerfile` images and test Inferentia examples.
 
 ## Inferentia temporary workarounds
 
