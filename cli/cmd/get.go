@@ -44,7 +44,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
@@ -149,9 +148,7 @@ func getAPIsInAllEnvironments() (string, error) {
 		return "", err
 	}
 
-	var allAPIs []spec.API
-	var allAPIStatuses []status.Status
-	var allMetrics []metrics.Metrics
+	var allSyncAPIs []schema.SyncAPI
 	var allEnvs []string
 	var allBatchAPIs []schema.BatchAPI
 	var allBatchAPIEnvs []string
@@ -167,18 +164,16 @@ func getAPIsInAllEnvironments() (string, error) {
 		}
 
 		if err == nil {
-			for range apisRes.SyncAPIs.APIs {
-				allEnvs = append(allEnvs, env.Name)
-			}
-
-			allAPIs = append(allAPIs, apisRes.SyncAPIs.APIs...)
-			allAPIStatuses = append(allAPIStatuses, apisRes.SyncAPIs.Statuses...)
-			allMetrics = append(allMetrics, apisRes.SyncAPIs.AllMetrics...)
-			allBatchAPIs = append(allBatchAPIs, apisRes.BatchAPIs...)
-
 			for range apisRes.BatchAPIs {
 				allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)
 			}
+
+			for range apisRes.SyncAPIs {
+				allEnvs = append(allEnvs, env.Name)
+			}
+
+			allSyncAPIs = append(allSyncAPIs, apisRes.SyncAPIs...)
+			allBatchAPIs = append(allBatchAPIs, apisRes.BatchAPIs...)
 		} else {
 			errorsMap[env.Name] = err
 		}
@@ -186,7 +181,7 @@ func getAPIsInAllEnvironments() (string, error) {
 
 	out := ""
 
-	if len(allAPIs) == 0 && len(allBatchAPIs) == 0 {
+	if len(allSyncAPIs) == 0 && len(allBatchAPIs) == 0 {
 		if len(errorsMap) == 1 {
 			// Print the error if there is just one
 			exit.Error(errors.FirstErrorInMap(errorsMap))
@@ -201,9 +196,8 @@ func getAPIsInAllEnvironments() (string, error) {
 			out += t2.MustFormat()
 		}
 
-		if len(allAPIs) > 0 {
-			t := apiTable(allAPIs, allAPIStatuses, allMetrics, allEnvs)
-
+		if len(allSyncAPIs) > 0 {
+			t := apiTable(allSyncAPIs, allEnvs)
 			if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
 				hideReplicaCountColumns(&t)
 			}
@@ -251,16 +245,16 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(apisRes.SyncAPIs.APIs) == 0 {
+	if len(apisRes.SyncAPIs) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
 	envNames := []string{}
-	for range apisRes.SyncAPIs.APIs {
+	for range apisRes.SyncAPIs {
 		envNames = append(envNames, env.Name)
 	}
 
-	t := apiTable(apisRes.SyncAPIs.APIs, apisRes.SyncAPIs.Statuses, apisRes.SyncAPIs.AllMetrics, envNames)
+	t := apiTable(apisRes.SyncAPIs, envNames)
 
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
@@ -314,44 +308,48 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			return "", err
 		}
 	}
+	return syncAPITable(apiRes.SyncAPI, env)
+}
 
+func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, error) {
 	var out string
 
-	t := apiTable([]spec.API{apiRes.API}, []status.Status{apiRes.Status}, []metrics.Metrics{apiRes.Metrics}, []string{env.Name})
+	t := apiTable([]schema.SyncAPI{*syncAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 	t.FindHeaderByTitle(_titleAPI).Hidden = true
 
 	out += t.MustFormat()
 
-	api := apiRes.API
-
-	if env.Provider != types.LocalProviderType && api.Monitoring != nil {
-		switch api.Monitoring.ModelType {
+	if env.Provider != types.LocalProviderType && syncAPI.Spec.Monitoring != nil {
+		switch syncAPI.Spec.Monitoring.ModelType {
 		case userconfig.ClassificationModelType:
-			out += "\n" + classificationMetricsStr(&apiRes.Metrics)
+			out += "\n" + classificationMetricsStr(&syncAPI.Metrics)
 		case userconfig.RegressionModelType:
-			out += "\n" + regressionMetricsStr(&apiRes.Metrics)
+			out += "\n" + regressionMetricsStr(&syncAPI.Metrics)
 		}
 	}
 
-	apiEndpoint := apiRes.BaseURL
+	apiEndpoint := syncAPI.BaseURL
 	if env.Provider == types.AWSProviderType {
-		apiEndpoint = strings.Replace(urls.Join(apiRes.BaseURL, *api.Endpoint), "https://", "http://", 1)
+		apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Endpoint)
+		if syncAPI.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
+		}
 	}
 
-	if apiRes.DashboardURL != "" {
-		out += "\n" + console.Bold("metrics dashboard: ") + apiRes.DashboardURL + "\n"
+	if syncAPI.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + syncAPI.DashboardURL + "\n"
 	}
 
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
 
-	if api.Predictor.Type == userconfig.TensorFlowPredictorType || api.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(&apiRes.Status, apiEndpoint)
+	if syncAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || syncAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
+		out += "\n" + describeModelInput(&syncAPI.Status, apiEndpoint)
 	}
 
-	out += titleStr("configuration") + strings.TrimSpace(api.UserStr(env.Provider))
+	out += titleStr("configuration") + strings.TrimSpace(syncAPI.Spec.UserStr(env.Provider))
 
 	return out, nil
 }
@@ -404,39 +402,37 @@ func batchTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
 	}
 }
 
-func apiTable(apis []spec.API, statuses []status.Status, allMetrics []metrics.Metrics, envNames []string) table.Table {
-	rows := make([][]interface{}, 0, len(apis))
+func apiTable(syncAPIs []schema.SyncAPI, envNames []string) table.Table {
+	rows := make([][]interface{}, 0, len(syncAPIs))
 
 	var totalFailed int32
 	var totalStale int32
 	var total4XX int
 	var total5XX int
 
-	for i, api := range apis {
-		metrics := allMetrics[i]
-		status := statuses[i]
-		lastUpdated := time.Unix(api.LastUpdated, 0)
+	for i, syncAPI := range syncAPIs {
+		lastUpdated := time.Unix(syncAPI.Spec.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			api.Name,
-			status.Message(),
-			status.Updated.Ready,
-			status.Stale.Ready,
-			status.Requested,
-			status.Updated.TotalFailed(),
+			syncAPI.Spec.Name,
+			syncAPI.Status.Message(),
+			syncAPI.Status.Updated.Ready,
+			syncAPI.Status.Stale.Ready,
+			syncAPI.Status.Requested,
+			syncAPI.Status.Updated.TotalFailed(),
 			libtime.SinceStr(&lastUpdated),
-			latencyStr(&metrics),
-			code2XXStr(&metrics),
-			code4XXStr(&metrics),
-			code5XXStr(&metrics),
+			latencyStr(&syncAPI.Metrics),
+			code2XXStr(&syncAPI.Metrics),
+			code4XXStr(&syncAPI.Metrics),
+			code5XXStr(&syncAPI.Metrics),
 		})
 
-		totalFailed += status.Updated.TotalFailed()
-		totalStale += status.Stale.Ready
+		totalFailed += syncAPI.Status.Updated.TotalFailed()
+		totalStale += syncAPI.Status.Stale.Ready
 
-		if metrics.NetworkStats != nil {
-			total4XX += metrics.NetworkStats.Code4XX
-			total5XX += metrics.NetworkStats.Code5XX
+		if syncAPI.Metrics.NetworkStats != nil {
+			total4XX += syncAPI.Metrics.NetworkStats.Code4XX
+			total5XX += syncAPI.Metrics.NetworkStats.Code5XX
 		}
 	}
 
@@ -569,24 +565,41 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
 	}
 
-	rows := make([][]interface{}, len(apiSummary.ModelSignature))
-	rowNum := 0
-	for inputName, featureSignature := range apiSummary.ModelSignature {
-		shapeStr := make([]string, len(featureSignature.Shape))
-		for idx, dim := range featureSignature.Shape {
-			shapeStr[idx] = s.ObjFlatNoQuotes(dim)
-		}
-		rows[rowNum] = []interface{}{
-			inputName,
-			featureSignature.Type,
-			"(" + strings.Join(shapeStr, ", ") + ")",
-		}
-		rowNum++
+	numRows := 0
+	for _, inputSignatures := range apiSummary.ModelSignatures {
+		numRows += len(inputSignatures)
 	}
 
+	usesDefaultModel := false
+	rows := make([][]interface{}, numRows)
+	rowNum := 0
+	for modelName, inputSignatures := range apiSummary.ModelSignatures {
+		for inputName, inputSignature := range inputSignatures {
+			shapeStr := make([]string, len(inputSignature.Shape))
+			for idx, dim := range inputSignature.Shape {
+				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
+			}
+			rows[rowNum] = []interface{}{
+				modelName,
+				inputName,
+				inputSignature.Type,
+				"(" + strings.Join(shapeStr, ", ") + ")",
+			}
+			rowNum++
+		}
+		if modelName == consts.SingleModelName {
+			usesDefaultModel = true
+		}
+	}
+
+	inputTitle := "input"
+	if usesDefaultModel {
+		inputTitle = "model input"
+	}
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "model input", MaxWidth: 32},
+			{Title: "model name", MaxWidth: 32, Hidden: usesDefaultModel},
+			{Title: inputTitle, MaxWidth: 32},
 			{Title: "type", MaxWidth: 10},
 			{Title: "shape", MaxWidth: 20},
 		},
@@ -642,8 +655,10 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
 
-	for _, featureSignature := range apiSummary.ModelSignature {
-		featureSignature.Shape = cast.JSONNumbers(featureSignature.Shape)
+	for _, inputSignatures := range apiSummary.ModelSignatures {
+		for _, inputSignature := range inputSignatures {
+			inputSignature.Shape = cast.JSONNumbers(inputSignature.Shape)
+		}
 	}
 
 	return &apiSummary, nil

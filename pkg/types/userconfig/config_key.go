@@ -19,10 +19,12 @@ package userconfig
 const (
 	// API
 	NameKey           = "name"
+	KindKey           = "kind"
 	EndpointKey       = "endpoint"
 	LocalPortKey      = "local_port"
 	PredictorKey      = "predictor"
 	MonitoringKey     = "monitoring"
+	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"
 	UpdateStrategyKey = "update_strategy"
@@ -31,6 +33,7 @@ const (
 	TypeKey                   = "type"
 	PathKey                   = "path"
 	ModelKey                  = "model"
+	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
 	TensorFlowServingImageKey = "tensorflow_serving_image"
@@ -38,9 +41,15 @@ const (
 	EnvKey                    = "env"
 	SignatureKeyKey           = "signature_key"
 
+	// ModelResource
+	ModelsNameKey = "name"
+
 	// Monitoring
 	KeyKey       = "key"
 	ModelTypeKey = "model_type"
+
+	// Networking
+	APIGatewayKey = "api_gateway"
 
 	// Compute
 	CPUKey = "cpu"
@@ -68,6 +77,7 @@ const (
 	MaxUnavailableKey = "max_unavailable"
 
 	// K8s annotation
+	APIGatewayAnnotationKey                   = "networking.cortex.dev/api-gateway"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
 	WorkersPerReplicaAnnotationKey            = "autoscaling.cortex.dev/workers-per-replica"

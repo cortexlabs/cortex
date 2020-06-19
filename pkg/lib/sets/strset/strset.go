@@ -37,6 +37,10 @@ func New(ts ...string) Set {
 	return s
 }
 
+func FromSlice(items []string) Set {
+	return New(items...)
+}
+
 // NewWithSize creates a new Set and gives make map a size hint.
 func NewWithSize(size int) Set {
 	return make(Set, size)
@@ -56,6 +60,23 @@ func (s Set) Remove(items ...string) {
 	for _, item := range items {
 		delete(s, item)
 	}
+}
+
+// GetOne returns an item from the set or "" if the set is empty.
+func (s Set) GetOne() string {
+	for item := range s {
+		return item
+	}
+	return ""
+}
+
+// GetOne2 returns an item from the set. The second value is a bool that is
+// true if an item exists in the set, or false if the set is empty.
+func (s Set) GetOne2() (string, bool) {
+	for item := range s {
+		return item, true
+	}
+	return "", false
 }
 
 // Pop deletes and returns an item from the Set. The underlying Set s is

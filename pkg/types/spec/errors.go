@@ -34,6 +34,7 @@ const (
 	ErrDuplicateName                        = "spec.duplicate_name"
 	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint                    = "spec.duplicate_endpoint"
+	ErrConflictingFields                    = "spec.conflicting_fields"
 	ErrSpecifyAllOrNone                     = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined         = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig         = "spec.config_greater_than_other_config"
@@ -47,7 +48,9 @@ const (
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
 	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
 	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
+	ErrMissingModel                         = "spec.missing_model"
 	ErrInvalidONNXModelPath                 = "spec.invalid_onnx_model_path"
+	ErrDuplicateModelNames                  = "spec.duplicate_model_names"
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
@@ -56,8 +59,8 @@ const (
 	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
-	ErrAPITypeIsNotSupportedByProvider      = "spec.api_type_is_not_supported_by_provider"
-	ErrKeyIsNotSupportedWithAPIType         = "spec.key_is_not_supported_with_api_type"
+	ErrKindIsNotSupportedByProvider         = "spec.kind_is_not_supported_by_provider"
+	ErrKeyIsNotSupportedWithKind            = "spec.key_is_not_supported_with_kind"
 )
 
 func ErrorMalformedConfig() error {
@@ -109,6 +112,13 @@ func ErrorDuplicateEndpoint(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpoint,
 		Message: fmt.Sprintf("endpoint is already being used by %s", apiName),
+	})
+}
+
+func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConflictingFields,
+		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
 	})
 }
 
@@ -223,10 +233,24 @@ func ErrorInvalidTensorFlowModelPath() error {
 	})
 }
 
+func ErrorMissingModel(singleModelField string, multiModelField string, predictorType userconfig.PredictorType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMissingModel,
+		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, singleModelField, userconfig.PredictorKey, multiModelField),
+	})
+}
+
 func ErrorInvalidONNXModelPath() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidONNXModelPath,
 		Message: "onnx model path must be an onnx exported file ending in `.onnx`",
+	})
+}
+
+func ErrorDuplicateModelNames(duplicateModel string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDuplicateModelNames,
+		Message: fmt.Sprintf("cannot have multiple models with the same name (%s)", duplicateModel),
 	})
 }
 
@@ -279,16 +303,16 @@ func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
 	})
 }
 
-func ErrorAPITypeIsNotSupportedByProvider(apiType userconfig.APIType, provider types.ProviderType) error {
+func ErrorKindIsNotSupportedByProvider(kind userconfig.Kind, provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPITypeIsNotSupportedByProvider,
-		Message: fmt.Sprintf("%s type is not supported on %s provider", apiType.String()),
+		Kind:    ErrKindIsNotSupportedByProvider,
+		Message: fmt.Sprintf("%s kind is not supported on %s provider", kind.String()),
 	})
 }
 
-func ErrorKeyIsNotSupportedWithAPIType(key string, apiType userconfig.APIType) error {
+func ErrorKeyIsNotSupportedWithKind(key string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrKeyIsNotSupportedWithAPIType,
-		Message: fmt.Sprintf("%s key is not supported for %s type", key, apiType.String()),
+		Kind:    ErrKeyIsNotSupportedWithKind,
+		Message: fmt.Sprintf("%s key is not supported for %s type", key, kind.String()),
 	})
 }

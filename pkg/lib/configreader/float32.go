@@ -31,6 +31,7 @@ type Float32Validation struct {
 	Default              float32
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
 	AllowedValues        []float32
+	DisallowedValues     []float32
 	GreaterThan          *float32
 	GreaterThanOrEqualTo *float32
 	LessThan             *float32
@@ -197,9 +198,15 @@ func ValidateFloat32Val(val float32, v *Float32Validation) error {
 		}
 	}
 
-	if v.AllowedValues != nil {
+	if len(v.AllowedValues) > 0 {
 		if !slices.HasFloat32(v.AllowedValues, val) {
 			return ErrorInvalidFloat32(val, v.AllowedValues[0], v.AllowedValues[1:]...)
+		}
+	}
+
+	if len(v.DisallowedValues) > 0 {
+		if slices.HasFloat32(v.DisallowedValues, val) {
+			return ErrorDisallowedValue(val)
 		}
 	}
 

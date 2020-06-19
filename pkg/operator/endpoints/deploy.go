@@ -20,12 +20,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -49,12 +51,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseURL, err := operator.APIsBaseURL()
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
 	projectBytes, err := files.ReadReqFile(r, "project.zip")
 	if err != nil {
 		respondError(w, r, err)
@@ -73,6 +69,8 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		ConfigFilePath: configPath,
 	}
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	debug.Pp(apiConfigs)
+	debug.Pp(err)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -99,7 +97,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := operator.UpdateAPI(&apiConfig, projectID, force)
+		api, msg, err := resources.UpdateAPI(&apiConfig, projectID, force)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)
@@ -110,6 +108,5 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	respond(w, schema.DeployResponse{
 		Results: results,
-		BaseURL: baseURL,
 	})
 }

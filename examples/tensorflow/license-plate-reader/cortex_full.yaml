@@ -1,6 +1,7 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 - name: yolov3
+  kind: sync_api
   predictor:
     type: tensorflow
     path: predictor_yolo.py
@@ -19,6 +20,7 @@
     threads_per_worker: 3
 
 - name: crnn
+  kind: sync_api
   predictor:
     type: python
     path: predictor_crnn.py

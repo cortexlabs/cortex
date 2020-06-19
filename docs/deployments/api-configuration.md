@@ -10,7 +10,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
 
 ```yaml
 - name: <string>  # API name (required)
-  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:
     type: python
@@ -26,6 +26,8 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  networking:
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)
   autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -46,19 +48,25 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
 
 ## TensorFlow Predictor
 
 ```yaml
 - name: <string>  # API name (required)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
-    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
+    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'models' must be provided)
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+    models:  # use this when multiple models per API are desired (either this or 'model' must be provided)
+      - name: <string> # unique name for the model (e.g. iris-classifier) (required)
+        model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
+        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+      ...
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
@@ -71,6 +79,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  networking:
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)
   autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -91,18 +101,24 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
 
 ## ONNX Predictor
 
 ```yaml
 - name: <string>  # API name (required)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
   local_port: <int>  # specify the port for API (local only) (default: 8888)
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+    model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (either this or 'models' must be provided)
+    models:  # use this when multiple models per API are desired (either this or 'model' must be provided)
+      - name: <string> # unique name for the model (e.g. iris-classifier) (required)
+        model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+      ...
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-gpu or cortexlabs/onnx-predictor-cpu based on compute)
@@ -114,6 +130,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
+  networking:
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)
   autoscaling:  # (aws only)
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
@@ -134,4 +152,4 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).

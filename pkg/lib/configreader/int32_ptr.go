@@ -29,6 +29,7 @@ type Int32PtrValidation struct {
 	Default              *int32
 	AllowExplicitNull    bool
 	AllowedValues        []int32
+	DisallowedValues     []int32
 	GreaterThan          *int32
 	GreaterThanOrEqualTo *int32
 	LessThan             *int32
@@ -39,6 +40,7 @@ type Int32PtrValidation struct {
 func makeInt32ValValidation(v *Int32PtrValidation) *Int32Validation {
 	return &Int32Validation{
 		AllowedValues:        v.AllowedValues,
+		DisallowedValues:     v.DisallowedValues,
 		GreaterThan:          v.GreaterThan,
 		GreaterThanOrEqualTo: v.GreaterThanOrEqualTo,
 		LessThan:             v.LessThan,

@@ -16,6 +16,7 @@
 * [API configuration](deployments/api-configuration.md)
 * [API deployment](deployments/deployment.md)
 * [Autoscaling](deployments/autoscaling.md)
+* [Networking](deployments/networking.md)
 * [Compute](deployments/compute.md)
 * [Using GPUs](deployments/gpus.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)
@@ -49,8 +50,7 @@
 
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
-* [Set up AWS API gateway](guides/api-gateway.md)
-* [Set up HTTPS on a subdomain](guides/subdomain-https-setup.md)
+* [Set up a custom domain](guides/custom-domain.md)
 * [Set up VPC peering](guides/vpc-peering.md)
 * [Add a batch runner API](guides/batch-runner.md)
 * [SSH into worker instance](guides/ssh-instance.md)

@@ -19,7 +19,7 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/mux"
 )
@@ -28,7 +28,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 	force := getOptionalBoolQParam("force", false, r)
 
-	msg, err := operator.RefreshAPI(apiName, force)
+	msg, err := resources.RefreshAPI(apiName, force)
 	if err != nil {
 		respondError(w, r, err)
 		return

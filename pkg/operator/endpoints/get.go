@@ -24,9 +24,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/deployment/batch"
-	"github.com/cortexlabs/cortex/pkg/operator/deployment/sync"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batch"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/mux"
@@ -69,7 +68,7 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statuses, err := sync.GetAllStatuses(deployments, pods)
+	statuses, err := syncapi.GetAllStatuses(deployments, pods)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -82,16 +81,20 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allMetrics, err := operator.GetMultipleMetrics(apis)
+	allMetrics, err := syncapi.GetMultipleMetrics(apis)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	baseURL, err := operator.APIsBaseURL()
-	if err != nil {
-		respondError(w, r, err)
-		return
+	syncAPIs := make([]schema.SyncAPI, len(apis))
+
+	for i, api := range apis {
+		syncAPIs[i] = schema.SyncAPI{
+			Spec:    api,
+			Status:  statuses[i],
+			Metrics: allMetrics[i],
+		}
 	}
 
 	batchAPIsMap := map[string]*schema.BatchAPI{}
@@ -143,20 +146,15 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 	debug.Pp(batchAPIList)
 
 	respond(w, schema.GetAPIsResponse{
-		SyncAPIs: schema.SyncAPIs{
-			APIs:       apis,
-			Statuses:   statuses,
-			AllMetrics: allMetrics,
-		},
 		BatchAPIs: batchAPIList,
-		BaseURL:   baseURL,
+		SyncAPIs:  syncAPIs,
 	})
 }
 
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	status, err := sync.GetStatus(apiName)
+	status, err := syncapi.GetStatus(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -168,24 +166,26 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics, err := operator.GetMetrics(api)
+	metrics, err := syncapi.GetMetrics(api)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	baseURL, err := operator.APIsBaseURL()
+	baseURL, err := syncapi.APIBaseURL(api)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
 	respond(w, schema.GetAPIResponse{
-		API:          *api,
-		Status:       *status,
-		Metrics:      *metrics,
-		BaseURL:      baseURL,
-		DashboardURL: sync.DashboardURL(),
+		SyncAPI: &schema.SyncAPI{
+			Spec:         *api,
+			Status:       *status,
+			Metrics:      *metrics,
+			BaseURL:      baseURL,
+			DashboardURL: syncapi.DashboardURL(),
+		},
 	})
 }
 

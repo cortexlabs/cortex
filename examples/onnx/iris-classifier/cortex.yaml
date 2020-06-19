@@ -1,0 +1,10 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+- name: iris-classifier
+  kind: sync_api
+  predictor:
+    type: onnx
+    path: predictor.py
+    model: s3://cortex-examples/onnx/iris-classifier/gbtree.onnx
+  monitoring:
+    model_type: classification

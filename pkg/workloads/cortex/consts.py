@@ -13,3 +13,4 @@
 # limitations under the License.
 
 CORTEX_VERSION = "master"
+SINGLE_MODEL_NAME = "_cortex_default"

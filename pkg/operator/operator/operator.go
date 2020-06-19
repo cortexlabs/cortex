@@ -26,7 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/deployment/sync"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 )
 
 func cleanupJobs() error {
@@ -68,7 +68,8 @@ func Init() error {
 	}
 
 	for _, deployment := range deployments {
-		if err := sync.UpdateAutoscalerCron(&deployment); err != nil {
+		// TODO only apply sync_api resource kind
+		if err := syncapi.UpdateAutoscalerCron(&deployment); err != nil {
 			return err
 		}
 	}

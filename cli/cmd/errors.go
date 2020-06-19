@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -46,6 +47,8 @@ func getCloudFormationURL(clusterName, region string) string {
 const (
 	ErrInvalidProvider                      = "cli.invalid_provider"
 	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
+	ErrUnableToGetResource                  = "cli.unable_to_get_resource"
+	ErrCommandNotSupportedForKind           = "cli.command_not_supported_for_kind"
 	ErrEnvironmentNotFound                  = "cli.environment_not_found"
 	ErrOperatorEndpointInLocalEnvironment   = "cli.operator_endpoint_in_local_environment"
 	ErrOperatorConfigFromLocalEnvironment   = "cli.operater_config_from_local_environment"
@@ -89,6 +92,20 @@ func ErrorNotSupportedInLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotSupportedInLocalEnvironment,
 		Message: "this command is not supported in local environment",
+	})
+}
+
+func ErrorUnableToGetResource() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnableToGetResource,
+		Message: "unable to get resource",
+	})
+}
+
+func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCommandNotSupportedForKind,
+		Message: fmt.Sprintf("`%s` is not supported for resources of kind %s", command, kind.String()),
 	})
 }
 
@@ -289,7 +306,7 @@ func ErrorClusterAlreadyDeleted(clusterName string, region string) error {
 func ErrorFailedClusterStatus(status clusterstate.Status, clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedClusterStatus,
-		Message: fmt.Sprintf("cluster \"%s\" in %s encountered an unexpected status %s; please try to delete the cluster with `cortex cluster down`, or delete the cloudformation stacks manually in your AWS console (%s)", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
+		Message: fmt.Sprintf("cluster \"%s\" in %s encountered an unexpected status %s; please try to delete the cluster with `cortex cluster down`, or delete the cloudformation stacks directly from your AWS console (%s)", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
 	})
 }
 

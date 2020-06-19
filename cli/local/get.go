@@ -27,9 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 )
 
 func GetAPIs() (schema.GetAPIsResponse, error) {
@@ -43,28 +41,27 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 		return schema.GetAPIsResponse{}, err
 	}
 
-	statusList := []status.Status{}
-	metricsList := []metrics.Metrics{}
-	for _, apiSpec := range apiSpecList {
+	syncAPIs := make([]schema.SyncAPI, len(apiSpecList))
+	for i, apiSpec := range apiSpecList {
 		apiStatus, err := GetAPIStatus(&apiSpec)
 		if err != nil {
 			return schema.GetAPIsResponse{}, err
 		}
-		statusList = append(statusList, apiStatus)
 
 		metrics, err := GetAPIMetrics(&apiSpec)
 		if err != nil {
 			return schema.GetAPIsResponse{}, err
 		}
-		metricsList = append(metricsList, metrics)
+
+		syncAPIs[i] = schema.SyncAPI{
+			Spec:    apiSpec,
+			Status:  apiStatus,
+			Metrics: metrics,
+		}
 	}
 
 	return schema.GetAPIsResponse{
-		SyncAPIs: schema.SyncAPIs{
-			APIs:       apiSpecList,
-			Statuses:   statusList,
-			AllMetrics: metricsList,
-		},
+		SyncAPIs: syncAPIs,
 	}, nil
 }
 
@@ -172,9 +169,11 @@ func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 	}
 
 	return schema.GetAPIResponse{
-		API:     *apiSpec,
-		Status:  apiStatus,
-		Metrics: apiMetrics,
-		BaseURL: "http://localhost:" + apiPort,
+		SyncAPI: &schema.SyncAPI{
+			Spec:    *apiSpec,
+			Status:  apiStatus,
+			Metrics: apiMetrics,
+			BaseURL: "http://localhost:" + apiPort,
+		},
 	}, nil
 }

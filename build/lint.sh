@@ -69,6 +69,7 @@ fi
 # Check for missing license
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "./.vscode/*" \
 ! -path "./examples/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
@@ -92,6 +93,7 @@ if [ "$is_release_branch" = "true" ]; then
   output=$(cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
   ! -path "./vendor/*" \
+  ! -path "./.vscode/*" \
   ! -path "./docs/contributing/development.md" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
@@ -109,6 +111,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./build/lint.sh" \
   ! -path "./dev/update_version_comments.sh" \
   ! -path "./vendor/*" \
+  ! -path "./.vscode/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
@@ -165,6 +168,7 @@ fi
 # Check for trailing whitespace
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "./.vscode/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -178,6 +182,7 @@ fi
 # Check for missing new line at end of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "./.vscode/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -191,6 +196,7 @@ fi
 # Check for multiple new lines at end of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "./.vscode/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -204,6 +210,7 @@ fi
 # Check for new line(s) at beginning of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "./.vscode/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \

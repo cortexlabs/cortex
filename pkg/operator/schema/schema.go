@@ -43,7 +43,6 @@ type NodeInfo struct {
 
 type DeployResponse struct {
 	Results []DeployResult `json:"results"`
-	BaseURL string         `json:"base_url"`
 }
 
 type DeployResult struct {
@@ -53,23 +52,21 @@ type DeployResult struct {
 }
 
 type GetAPIsResponse struct {
-	SyncAPIs  SyncAPIs   `json:"sync_apis"`
+	SyncAPIs  []SyncAPI  `json:"sync_apis"`
 	BatchAPIs []BatchAPI `json:"batch_api"`
-	BaseURL   string     `json:"base_url"`
 }
 
-type GetAPIResponse struct {
-	API          spec.API        `json:"api"`
+type SyncAPI struct {
+	Spec         spec.API        `json:"spec"`
 	Status       status.Status   `json:"status"`
 	Metrics      metrics.Metrics `json:"metrics"`
 	BaseURL      string          `json:"base_url"`
 	DashboardURL string          `json:"dashboard_url"`
 }
 
-type SyncAPIs struct {
-	APIs       []spec.API        `json:"apis"`
-	Statuses   []status.Status   `json:"statuses"`
-	AllMetrics []metrics.Metrics `json:"all_metrics"`
+type GetAPIResponse struct {
+	SyncAPI  *SyncAPI  `json:"sync_api"`
+	BatchAPI *BatchAPI `json:"batch_api"`
 }
 
 type BatchAPI struct {
@@ -90,12 +87,14 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-type FeatureSignature struct {
+type InputSignature struct {
 	Shape []interface{} `json:"shape"`
 	Type  string        `json:"type"`
 }
 
+type InputSignatures map[string]InputSignature
+
 type APISummary struct {
-	Message        string                      `json:"message"`
-	ModelSignature map[string]FeatureSignature `json:"model_signature"`
+	Message         string                     `json:"message"`
+	ModelSignatures map[string]InputSignatures `json:"model_signatures"`
 }

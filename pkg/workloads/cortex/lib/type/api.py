@@ -17,6 +17,7 @@ import base64
 import time
 from pathlib import Path
 import json
+import msgpack
 
 import datadog
 
@@ -24,17 +25,18 @@ from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
 from cortex.lib.type.predictor import Predictor
 from cortex.lib.type.monitoring import Monitoring
+from cortex.lib.storage import S3
 
 
 class API:
-    def __init__(self, provider, storage, cache_dir=".", **kwargs):
+    def __init__(self, provider, storage, model_dir, cache_dir=".", **kwargs):
         self.provider = provider
         self.id = kwargs["id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
         self.endpoint = kwargs["endpoint"]
-        self.predictor = Predictor(provider, cache_dir, **kwargs["predictor"])
+        self.predictor = Predictor(provider, model_dir, cache_dir, **kwargs["predictor"])
         self.monitoring = None
         if kwargs.get("monitoring") is not None:
             self.monitoring = Monitoring(**kwargs["monitoring"])
@@ -158,3 +160,21 @@ class API:
                 "Dimensions": dimensions,
                 "Value": float(prediction_value),
             }
+
+
+def get_spec(provider, storage, cache_dir, spec_path):
+    if provider == "local":
+        return read_msgpack(spec_path)
+
+    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
+
+    if not os.path.isfile(local_spec_path):
+        _, key = S3.deconstruct_s3_path(spec_path)
+        storage.download_file(key, local_spec_path)
+
+    return read_msgpack(local_spec_path)
+
+
+def read_msgpack(msgpack_path):
+    with open(msgpack_path, "rb") as msgpack_file:
+        return msgpack.load(msgpack_file, raw=False)

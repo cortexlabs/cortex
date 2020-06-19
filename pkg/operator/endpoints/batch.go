@@ -23,7 +23,7 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/deployment/batch"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batch"
 	"github.com/gorilla/mux"
 )
 
