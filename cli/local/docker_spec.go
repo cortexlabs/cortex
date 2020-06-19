@@ -34,7 +34,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 )
 
@@ -44,6 +43,7 @@ const (
 	_defaultPortStr            = "8888"
 	_tfServingPortStr          = "9000"
 	_tfServingEmptyModelConfig = "/etc/tfs/model_config_server.conf"
+	_tfServingBatchConfig      = "/etc/tfs/batch_config.conf"
 	_projectDir                = "/mnt/project"
 	_cacheDir                  = "/mnt/cache"
 	_modelDir                  = "/mnt/model"
@@ -293,13 +293,28 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Mounts:    mounts,
 	}
 
+	tfServingContainerEnvVars := []string{}
+	tfServingContainerArgs := []string{
+		"--port=" + _tfServingPortStr,
+		"--model_config_file=" + _tfServingEmptyModelConfig,
+	}
+	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+		tfServingContainerEnvVars = append(tfServingContainerEnvVars,
+			"CORTEX_WORKERS_PER_REPLICA="+s.Int32(api.Autoscaling.WorkersPerReplica),
+			"TF_BATCH_SIZE="+s.Int64(*api.Predictor.BatchSize),
+			"TF_BATCH_TIMEOUT="+s.Float64(*api.Predictor.BatchTimeout),
+		)
+		tfServingContainerArgs = append(tfServingContainerArgs,
+			"--enable-batching",
+			"--batching-parameters-file="+_tfServingBatchConfig,
+		)
+	}
+
 	serveContainerConfig := &container.Config{
 		Image: api.Predictor.TensorFlowServingImage,
 		Tty:   true,
-		Cmd: strslice.StrSlice{
-			"--port=" + _tfServingPortStr,
-			"--model_config_file=" + _tfServingEmptyModelConfig,
-		},
+		Env:   tfServingContainerEnvVars,
+		Cmd:   tfServingContainerArgs,
 		ExposedPorts: nat.PortSet{
 			_tfServingPortStr + "/tcp": struct{}{},
 		},
