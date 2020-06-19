@@ -23,6 +23,8 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
+	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	istionetworkingclient "istio.io/client-go/pkg/clientset/versioned/typed/networking/v1alpha3"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientdynamic "k8s.io/client-go/dynamic"
@@ -47,18 +49,19 @@ var (
 )
 
 type Client struct {
-	RestConfig       *kclientrest.Config
-	clientset        *kclientset.Clientset
-	dynamicClient    kclientdynamic.Interface
-	podClient        kclientcore.PodInterface
-	nodeClient       kclientcore.NodeInterface
-	serviceClient    kclientcore.ServiceInterface
-	configMapClient  kclientcore.ConfigMapInterface
-	deploymentClient kclientapps.DeploymentInterface
-	jobClient        kclientbatch.JobInterface
-	ingressClient    kclientextensions.IngressInterface
-	hpaClient        kclientautoscaling.HorizontalPodAutoscalerInterface
-	Namespace        string
+	RestConfig           *kclientrest.Config
+	clientset            *kclientset.Clientset
+	dynamicClient        kclientdynamic.Interface
+	podClient            kclientcore.PodInterface
+	nodeClient           kclientcore.NodeInterface
+	serviceClient        kclientcore.ServiceInterface
+	configMapClient      kclientcore.ConfigMapInterface
+	deploymentClient     kclientapps.DeploymentInterface
+	jobClient            kclientbatch.JobInterface
+	ingressClient        kclientextensions.IngressInterface
+	hpaClient            kclientautoscaling.HorizontalPodAutoscalerInterface
+	virtualServiceClient istionetworkingclient.VirtualServiceInterface
+	Namespace            string
 }
 
 func New(namespace string, inCluster bool) (*Client, error) {
@@ -86,6 +89,12 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
+
+	istioClient, err := istioclient.NewForConfig(client.RestConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "kubeconfig")
+	}
+	client.virtualServiceClient = istioClient.NetworkingV1alpha3().VirtualServices(namespace)
 
 	client.podClient = client.clientset.CoreV1().Pods(namespace)
 	client.nodeClient = client.clientset.CoreV1().Nodes()

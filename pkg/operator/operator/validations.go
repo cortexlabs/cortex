@@ -141,19 +141,12 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 
 func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService) error {
 	for _, virtualService := range virtualServices {
-		gateways, err := k8s.ExtractVirtualServiceGateways(&virtualService)
-		if err != nil {
-			return err
-		}
+		gateways := k8s.ExtractVirtualServiceGateways(&virtualService)
 		if !gateways.Has("apis-gateway") {
 			continue
 		}
 
-		endpoints, err := k8s.ExtractVirtualServiceEndpoints(&virtualService)
-		if err != nil {
-			return err
-		}
-
+		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService)
 		for endpoint := range endpoints {
 			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Endpoint, "/") && virtualService.GetLabels()["apiName"] != api.Name {
 				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.GetLabels()["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
