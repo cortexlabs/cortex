@@ -92,7 +92,6 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			},
 		},
 	}
-
 	return virtualService
 }
 
@@ -131,7 +130,6 @@ func (c *Client) ApplyVirtualService(spec *istioclientnetworking.VirtualService)
 }
 
 func (c *Client) GetVirtualService(name string) (*istioclientnetworking.VirtualService, error) {
-
 	istio, err := istioversionedclient.NewForConfig(c.RestConfig)
 	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(c.Namespace).Get(name, v1.GetOptions{
 		TypeMeta: _virtualServiceTypeMeta,
@@ -163,7 +161,6 @@ func (c *Client) ListVirtualServices(opts *v1.ListOptions) ([]istioclientnetwork
 	if opts == nil {
 		opts = &v1.ListOptions{}
 	}
-
 	istio, err := istioversionedclient.NewForConfig(c.RestConfig)
 	vsList, err := istio.NetworkingV1alpha3().VirtualServices(c.Namespace).List(v1.ListOptions{
 		TypeMeta: _virtualServiceTypeMeta,
@@ -201,7 +198,6 @@ func ExtractVirtualServiceGateways(virtualService *istioclientnetworking.Virtual
 
 func ExtractVirtualServiceEndpoints(virtualService *istioclientnetworking.VirtualService) (strset.Set, error) {
 	endpoints := strset.New()
-
 	httpRoutes := virtualService.Spec.Http
 	for _, http := range httpRoutes {
 		for _, match := range http.Match {
