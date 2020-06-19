@@ -21,11 +21,9 @@ mkdir /etc/tfs
 echo "model_config_list {}" > /etc/tfs/model_config_server.conf
 
 # configure batching if specified
-if [[ -n ${TF_BATCH_SIZE} &&  -n ${TF_BATCH_TIMEOUT} ]]; then
-    batch_timeout_micros=$((${TF_BATCH_TIMEOUT} * 1000000))
-    batch_timeout_micros=$(printf -v int %.0f ${batch_timeout_micros})
+if [[ -n ${TF_BATCH_SIZE} &&  -n ${TF_BATCH_TIMEOUT_MICROS} ]]; then
     echo "max_batch_size { value: ${TF_BATCH_SIZE} }" > /etc/tfs/batch_config.conf
-    echo "batch_timeout_micros { value: ${batch_timeout_micros} }" >> /etc/tfs/batch_config.conf
+    echo "batch_timeout_micros { value: ${TF_BATCH_TIMEOUT_MICROS} }" >> /etc/tfs/batch_config.conf
     echo "num_batch_threads { value: ${TF_NUM_BATCHED_THREADS} }" >> /etc/tfs/batch_config.conf
 fi
 

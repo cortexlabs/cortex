@@ -307,7 +307,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		}
 		tfServingContainerEnvVars = append(tfServingContainerEnvVars,
 			"TF_BATCH_SIZE="+s.Int32(*api.Predictor.BatchSize),
-			"TF_BATCH_TIMEOUT="+s.Float64(*api.Predictor.BatchTimeout),
+			"TF_BATCH_TIMEOUT_MICROS="+s.Int64(int64(*api.Predictor.BatchTimeout*1000000)),
 			"TF_NUM_BATCHED_THREADS="+s.Int32(tfNumBatchedThreads),
 		)
 		tfServingContainerArgs = append(tfServingContainerArgs,

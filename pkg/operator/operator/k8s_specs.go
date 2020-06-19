@@ -130,8 +130,8 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 				Value: s.Int32(*api.Predictor.BatchSize),
 			},
 			kcore.EnvVar{
-				Name:  "TF_BATCH_TIMEOUT",
-				Value: s.Float64(*api.Predictor.BatchTimeout),
+				Name:  "TF_BATCH_TIMEOUT_MICROS",
+				Value: s.Int64(int64(*api.Predictor.BatchTimeout * 1000000)),
 			},
 			kcore.EnvVar{
 				Name:  "TF_NUM_BATCHED_THREADS",
