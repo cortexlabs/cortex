@@ -27,14 +27,14 @@ cortex deploy cortex_cpu.yaml
 Check that your API is live by running `cortex get image-classifier-resnet50`, and copy the example `curl` command that's shown. After the API is live, run the `curl` command, e.g.
 
 ```bash
-curl <API endpoint> -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl <API endpoint> -X POST -H "Content-Type: application/json" -d @sample.json
+
+["tabby", "Egyptian_cat", "tiger_cat", "tiger", "plastic_bag"]
 ```
 
-This image is embedded in [sample.json](sample.json):
+The following image is embedded in [sample.json](sample.json):
 
 ![image](https://i.imgur.com/213xcvs.jpg)
-
-If a 5-element list is returned containing classifications of the image ("tabby", "Egyptian_cat", "tiger_cat", "tiger", "plastic_bag"), then it means the API is working. The first classification in the list is the most likely.
 
 ## Throughput test
 
