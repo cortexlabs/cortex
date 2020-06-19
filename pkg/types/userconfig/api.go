@@ -362,10 +362,10 @@ func (predictor *Predictor) UserStr() string {
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	if predictor.BatchSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", BatchSizeKey, predictor.BatchSize))
+		sb.WriteString(fmt.Sprintf("%s: %d\n", BatchSizeKey, *predictor.BatchSize))
 	}
 	if predictor.BatchTimeout != nil {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", BatchTimeoutKey, predictor.BatchTimeout))
+		sb.WriteString(fmt.Sprintf("%s: %f\n", BatchTimeoutKey, *predictor.BatchTimeout))
 	}
 	return sb.String()
 }

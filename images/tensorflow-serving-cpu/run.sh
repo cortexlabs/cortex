@@ -26,7 +26,7 @@ if [[ -n ${TF_BATCH_SIZE} &&  -n ${TF_BATCH_TIMEOUT} ]]; then
     batch_timeout_micros=$(printf -v int %.0f ${batch_timeout_micros})
     echo "max_batch_size { value: ${TF_BATCH_SIZE} }" > /etc/tfs/batch_config.conf
     echo "batch_timeout_micros { value: ${batch_timeout_micros} }" >> /etc/tfs/batch_config.conf
-    echo "num_batch_threads { value: ${CORTEX_WORKERS_PER_REPLICA} }" >> /etc/tfs/batch_config.conf
+    echo "num_batch_threads { value: ${TF_NUM_BATCHED_THREADS} }" >> /etc/tfs/batch_config.conf
 fi
 
 # launch TFS

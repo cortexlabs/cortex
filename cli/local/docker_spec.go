@@ -38,16 +38,17 @@ import (
 )
 
 const (
-	_apiContainerName          = "api"
-	_tfServingContainerName    = "serve"
-	_defaultPortStr            = "8888"
-	_tfServingPortStr          = "9000"
-	_tfServingEmptyModelConfig = "/etc/tfs/model_config_server.conf"
-	_tfServingBatchConfig      = "/etc/tfs/batch_config.conf"
-	_projectDir                = "/mnt/project"
-	_cacheDir                  = "/mnt/cache"
-	_modelDir                  = "/mnt/model"
-	_workspaceDir              = "/mnt/workspace"
+	_apiContainerName             = "api"
+	_tfServingContainerName       = "serve"
+	_defaultPortStr               = "8888"
+	_tfServingPortStr             = "9000"
+	_tfServingEmptyModelConfig    = "/etc/tfs/model_config_server.conf"
+	_tfServingBatchConfig         = "/etc/tfs/batch_config.conf"
+	_tfServingDefaultBatchThreads = int32(1)
+	_projectDir                   = "/mnt/project"
+	_cacheDir                     = "/mnt/cache"
+	_modelDir                     = "/mnt/model"
+	_workspaceDir                 = "/mnt/workspace"
 )
 
 type ModelCaches []*spec.LocalModelCache
@@ -299,14 +300,19 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		"--model_config_file=" + _tfServingEmptyModelConfig,
 	}
 	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+		tfNumBatchedThreads := _tfServingDefaultBatchThreads
+		// TODO check if we can get the same non-nil autoscaling field just like for the AWS provider
+		if api.Autoscaling != nil {
+			tfNumBatchedThreads = api.Autoscaling.WorkersPerReplica
+		}
 		tfServingContainerEnvVars = append(tfServingContainerEnvVars,
-			"CORTEX_WORKERS_PER_REPLICA="+s.Int32(api.Autoscaling.WorkersPerReplica),
 			"TF_BATCH_SIZE="+s.Int32(*api.Predictor.BatchSize),
 			"TF_BATCH_TIMEOUT="+s.Float64(*api.Predictor.BatchTimeout),
+			"TF_NUM_BATCHED_THREADS="+s.Int32(tfNumBatchedThreads),
 		)
 		tfServingContainerArgs = append(tfServingContainerArgs,
-			"--enable-batching",
-			"--batching-parameters-file="+_tfServingBatchConfig,
+			"--enable_batching",
+			"--batching_parameters_file="+_tfServingBatchConfig,
 		)
 	}
 

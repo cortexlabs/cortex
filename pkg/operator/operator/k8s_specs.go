@@ -124,7 +124,6 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 		"--model_config_file=" + _tfServingEmptyModelConfig,
 	}
 	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
-		// CORTEX_WORKERS_PER_REPLICA is also required, but it's already added in getEnvVars
 		tfServingContainerEnvVars = append(tfServingContainerEnvVars,
 			kcore.EnvVar{
 				Name:  "TF_BATCH_SIZE",
@@ -133,6 +132,10 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 			kcore.EnvVar{
 				Name:  "TF_BATCH_TIMEOUT",
 				Value: s.Float64(*api.Predictor.BatchTimeout),
+			},
+			kcore.EnvVar{
+				Name:  "TF_NUM_BATCHED_THREADS",
+				Value: s.Int32(api.Autoscaling.WorkersPerReplica),
 			},
 		)
 
