@@ -56,7 +56,9 @@ type Predictor struct {
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 	BatchSize              *int64                 `json:"batch_size" yaml:"batch_size"`
-	BatchTimeout           *float64               `json:"batch_timeout" yaml:"batch_timeout"`
+
+	// measured in seconds
+	BatchTimeout *float64 `json:"batch_timeout" yaml:"batch_timeout"`
 }
 
 type ModelResource struct {
