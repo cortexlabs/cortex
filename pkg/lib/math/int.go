@@ -16,6 +16,11 @@ limitations under the License.
 
 package math
 
+import (
+	"math"
+	"sort"
+)
+
 func MinInt(val int, vals ...int) int {
 	min := val
 	for _, v := range vals {
@@ -42,10 +47,24 @@ func IsDivisibleByInt(num int, divisor int) bool {
 
 func FactorsInt(num int) []int {
 	divisibleNumbers := []int{}
-	for divisor := 1; divisor <= num/2; divisor++ {
-		if IsDivisibleByInt(num, divisor) {
+	maxDivisor := int(math.Sqrt(float64(num)))
+	incrementer := 1
+
+	// Skip even numbers if num is odd
+	if num%2 == 1 {
+		incrementer = 2
+	}
+
+	for divisor := 1; divisor <= maxDivisor; divisor += incrementer {
+		if num%divisor == 0 {
 			divisibleNumbers = append(divisibleNumbers, divisor)
+			complementaryDivisor := num / divisor
+			if divisor != complementaryDivisor {
+				divisibleNumbers = append(divisibleNumbers, complementaryDivisor)
+			}
 		}
 	}
-	return append(divisibleNumbers, num)
+
+	sort.Ints(divisibleNumbers)
+	return divisibleNumbers
 }
