@@ -255,9 +255,10 @@ function main() {
   if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -n "￮ creating api gateway vpc link integration "
     python create_gateway_integration.py $api_id $vpc_link_id
-    printed_dot="false"
-    until [ "$(aws apigatewayv2 get-vpc-link --region $CORTEX_REGION --vpc-link-id $vpc_link_id | jq .VpcLinkStatus | tr -d '"')" = "AVAILABLE" ]; do echo -n "."; printed_dot="true"; sleep 2; done
     echo "✓"
+    echo -n "￮ waiting for api gateway vpc link integration "
+    until [ "$(aws apigatewayv2 get-vpc-link --region $CORTEX_REGION --vpc-link-id $vpc_link_id | jq .VpcLinkStatus | tr -d '"')" = "AVAILABLE" ]; do echo -n "."; sleep 3; done
+    echo " ✓"
   fi
 
   echo -n "￮ starting operator "
