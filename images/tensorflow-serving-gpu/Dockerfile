@@ -4,3 +4,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends -q \
         libnvinfer6=6.0.1-1+cuda10.1 \
         libnvinfer-plugin6=6.0.1-1+cuda10.1 \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
+
+COPY images/tensorflow-serving-gpu/run.sh /src
+
+ENTRYPOINT ["/src/run.sh"]
