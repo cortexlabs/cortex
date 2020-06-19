@@ -142,6 +142,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 ## Python packages
 
 1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
+1. To determine the versions used in `images/python-predictor-inf/Dockerfile`, run `pip install --extra-index-url https://pip.repos.neuron.amazonaws.com neuron-cc tensorflow-neuron torch-neuron` from a clean environment and check what versions of all the dependencies are installed.
 1. Update versions in `pkg/workloads/cortex/serve/requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
 1. Update the versions listed in "Pre-installed packages" in `predictors.md` (look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`)
 1. Rerun all examples and check their logs
@@ -175,11 +176,8 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 ## Neuron RTD
 
 1. Run a `cortexlabs/neuron-rtd` container and check if there are newer versions of `aws-neuron-tools` and `aws-neuron-runtime` with `yum info <package>` command.
-1. Add in the newer versions inside of `images/neuron-rtd/Dockerfile`.
-1. Match the neuron versions in `images/python-predictor-inf/Dockerfile` with those of the Neuron RTD.
-1. Match the neuron versions in `images/tensorflow-serving-inf/Dockerfile` with those of the Neuron RTD.
-1. Rebuild all afferent images.
-1. Test Inferentia examples.
+1. Set this version in `images/neuron-rtd/Dockerfile`, `images/python-predictor-inf/Dockerfile`, and `images/tensorflow-serving-inf/Dockerfile`.
+1. Rebuild images and test Inferentia examples.
 
 ## Inferentia temporary workarounds
 
