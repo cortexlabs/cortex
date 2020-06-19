@@ -581,19 +581,27 @@ func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFile
 
 func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
+	}
+
+	if predictor.BatchSize != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.BatchSizeKey, predictor.Type)
+	}
+
+	if predictor.BatchTimeout != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.BatchTimeoutKey, predictor.Type)
 	}
 
 	if predictor.Model != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelKey, predictor.Type)
 	}
 
 	if len(predictor.Models) > 0 {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, predictor.Type)
 	}
 
 	if predictor.TensorFlowServingImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
 	}
 
 	return nil
@@ -698,6 +706,15 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
+
+	if predictor.BatchSize != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.BatchSizeKey, predictor.Type)
+	}
+
+	if predictor.BatchTimeout != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.BatchTimeoutKey, predictor.Type)
+	}
+
 	if predictor.Model == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
