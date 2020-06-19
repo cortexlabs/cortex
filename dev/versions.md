@@ -143,7 +143,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
 1. Update versions in `pkg/workloads/cortex/serve/requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
-1. Update the versions listed in "Pre-installed packages" in `python.md`, `onnx.md`, and `tensorflow.md` (look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`)
+1. Update the versions listed in "Pre-installed packages" in `predictors.md` (look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`)
 1. Rerun all examples and check their logs
 
 ## Istio
