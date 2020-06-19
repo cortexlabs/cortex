@@ -52,6 +52,7 @@ const (
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
 	_tfServingHost                         = "localhost"
 	_tfServingEmptyModelConfig             = "/etc/tfs/model_config_server.conf"
+	_tfServingBatchConfig                  = "/etc/tfs/batch_config.conf"
 	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
 	_apiReadinessFile                      = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                       = "/mnt/workspace/api_liveness.txt"
@@ -115,6 +116,30 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 	if api.Compute.GPU > 0 {
 		tfServingResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		tfServingLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+	}
+
+	tfServingContainerEnvVars := getEnvVars(api)
+	tfServingContainerArgs := []string{
+		"--port=" + _tfServingPortStr,
+		"--model_config_file=" + _tfServingEmptyModelConfig,
+	}
+	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+		// CORTEX_WORKERS_PER_REPLICA is also required, but it's already added in getEnvVars
+		tfServingContainerEnvVars = append(tfServingContainerEnvVars,
+			kcore.EnvVar{
+				Name:  "TF_BATCH_SIZE",
+				Value: s.Int64(*api.Predictor.BatchSize),
+			},
+			kcore.EnvVar{
+				Name:  "TF_BATCH_TIMEOUT",
+				Value: s.Float64(*api.Predictor.BatchTimeout),
+			},
+		)
+
+		tfServingContainerArgs = append(tfServingContainerArgs,
+			"--enable_batching",
+			"--batching_parameters_file="+_tfServingBatchConfig,
+		)
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
@@ -195,13 +220,10 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 						Name:            _tfServingContainerName,
 						Image:           api.Predictor.TensorFlowServingImage,
 						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _tfServingPortStr,
-							"--model_config_file=" + _tfServingEmptyModelConfig,
-						},
-						Env:          getEnvVars(api),
-						EnvFrom:      _baseEnvVars,
-						VolumeMounts: _defaultVolumeMounts,
+						Args:            tfServingContainerArgs,
+						Env:             tfServingContainerEnvVars,
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
 						ReadinessProbe: &kcore.Probe{
 							InitialDelaySeconds: 5,
 							TimeoutSeconds:      5,

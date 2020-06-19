@@ -608,6 +608,12 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 }
 
 func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	if predictor.BatchSize != nil && predictor.BatchTimeout == nil {
+		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchSizeKey, userconfig.BatchTimeoutKey)
+	}
+	if predictor.BatchTimeout != nil && predictor.BatchSize == nil {
+		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchTimeoutKey, userconfig.BatchSizeKey)
+	}
 	if predictor.Model == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
