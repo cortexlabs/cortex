@@ -683,7 +683,10 @@ func getEnvConfigDefaults(envName string) cliconfig.Environment {
 
 // If envName is "", this will prompt for the environment name to configure
 func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cliconfig.Environment, error) {
-	fieldsToSkipPrompt.Provider = types.ProviderTypeFromString(envName)
+	if fieldsToSkipPrompt.Provider == types.UnknownProviderType {
+		fieldsToSkipPrompt.Provider = types.ProviderTypeFromString(envName)
+	}
+
 	env := cliconfig.Environment{
 		Name:               envName,
 		Provider:           fieldsToSkipPrompt.Provider,
