@@ -132,6 +132,7 @@ boto3==1.13.7
 cloudpickle==1.4.1
 Cython==0.29.17
 dill==0.3.1.1
+fastapi==0.54.1
 joblib==0.14.1
 Keras==2.3.1
 msgpack==1.0.0
@@ -163,6 +164,7 @@ boto3==1.13.7
 cloudpickle==1.3.0
 Cython==0.29.17
 dill==0.3.1.1
+fastapi==0.54.1
 joblib==0.14.1
 msgpack==1.0.0
 neuron-cc==1.0.9410.0+6008239556
@@ -257,6 +259,7 @@ The following Python packages are pre-installed in TensorFlow Predictors and can
 ```text
 boto3==1.13.7
 dill==0.3.1.1
+fastapi==0.54.1
 msgpack==1.0.0
 numpy==1.18.4
 opencv-python==4.2.0.34
@@ -343,6 +346,7 @@ The following Python packages are pre-installed in ONNX Predictors and can be us
 ```text
 boto3==1.13.7
 dill==0.3.1.1
+fastapi==0.54.1
 msgpack==1.0.0
 numpy==1.18.4
 onnxruntime==1.2.0
