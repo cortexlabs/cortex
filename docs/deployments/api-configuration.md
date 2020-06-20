@@ -25,6 +25,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
+    inf: <int> # Inferentia ASIC request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
   networking:
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)
@@ -77,6 +78,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
+    inf: <int> # Inferentia ASIC request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
   networking:
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)

@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -238,6 +239,13 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 				},
 				{
 					StructField: "GPU",
+					Int64Validation: &cr.Int64Validation{
+						Default:              0,
+						GreaterThanOrEqualTo: pointer.Int64(0),
+					},
+				},
+				{
+					StructField: "Inf",
 					Int64Validation: &cr.Int64Validation{
 						Default:              0,
 						GreaterThanOrEqualTo: pointer.Int64(0),
@@ -501,14 +509,18 @@ func ValidateAPI(
 		api.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validatePredictor(api.Predictor, projectFiles, providerType, awsClient); err != nil {
+	if err := validatePredictor(api, projectFiles, providerType, awsClient); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
 	if api.Autoscaling != nil { // should only be nil for local provider
-		if err := validateAutoscaling(api.Autoscaling); err != nil {
+		if err := validateAutoscaling(api); err != nil {
 			return errors.Wrap(err, api.Identify(), userconfig.AutoscalingKey)
 		}
+	}
+
+	if err := validateCompute(api, providerType); err != nil {
+		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
 	if api.UpdateStrategy != nil { // should only be nil for local provider
@@ -520,14 +532,16 @@ func ValidateAPI(
 	return nil
 }
 
-func validatePredictor(predictor *userconfig.Predictor, projectFiles ProjectFiles, providerType types.ProviderType, awsClient *aws.Client) error {
+func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerType types.ProviderType, awsClient *aws.Client) error {
+	predictor := api.Predictor
+
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
 		if err := validatePythonPredictor(predictor); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
+		if err := validateTensorFlowPredictor(api, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
 		if err := validateDockerImagePath(predictor.TensorFlowServingImage, providerType, awsClient); err != nil {
@@ -585,7 +599,9 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	return nil
 }
 
-func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateTensorFlowPredictor(api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	predictor := api.Predictor
+
 	if predictor.Model == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(userconfig.ModelKey, userconfig.ModelsKey, predictor.Type)
 	} else if predictor.Model != nil && len(predictor.Models) > 0 {
@@ -605,7 +621,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 	}
 
 	for i := range predictor.Models {
-		if err := validateTensorFlowModel(predictor.Models[i], providerType, projectFiles, awsClient); err != nil {
+		if err := validateTensorFlowModel(predictor.Models[i], api, providerType, projectFiles, awsClient); err != nil {
 			if predictor.Model == nil {
 				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models[i].Name)
 			}
@@ -616,7 +632,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 	return nil
 }
 
-func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateTensorFlowModel(modelResource *userconfig.ModelResource, api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	model := modelResource.Model
 
 	if strings.HasPrefix(model, "s3://") {
@@ -635,10 +651,16 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, providerTy
 				return errors.Wrap(ErrorS3FileNotFound(model), userconfig.ModelKey)
 			}
 		} else {
-			path, err := getTFServingExportFromS3Path(model, awsClientForBucket)
+
+			isNeuronExport := api.Compute.Inf > 0
+			path, err := getTFServingExportFromS3Path(model, isNeuronExport, awsClientForBucket)
 			if err != nil {
 				return errors.Wrap(err, userconfig.ModelKey)
-			} else if path == "" {
+			}
+			if path == "" {
+				if isNeuronExport {
+					return errors.Wrap(ErrorInvalidNeuronTensorFlowDir(model), userconfig.ModelKey)
+				}
 				return errors.Wrap(ErrorInvalidTensorFlowDir(model), userconfig.ModelKey)
 			}
 			modelResource.Model = path
@@ -759,7 +781,7 @@ func validateONNXModel(modelResource *userconfig.ModelResource, providerType typ
 	return nil
 }
 
-func getTFServingExportFromS3Path(path string, awsClientForBucket *aws.Client) (string, error) {
+func getTFServingExportFromS3Path(path string, isNeuronExport bool, awsClientForBucket *aws.Client) (string, error) {
 	if isValidTensorFlowS3Directory(path, awsClientForBucket) {
 		return path, nil
 	}
@@ -791,16 +813,23 @@ func getTFServingExportFromS3Path(path string, awsClientForBucket *aws.Client) (
 		}
 
 		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
-		if version >= highestVersion && isValidTensorFlowS3Directory(possiblePath, awsClientForBucket) {
-			highestVersion = version
-			highestPath = possiblePath
+
+		if version >= highestVersion {
+			if isNeuronExport && isValidNeuronTensorFlowS3Directory(possiblePath, awsClientForBucket) {
+				highestVersion = version
+				highestPath = possiblePath
+			}
+			if !isNeuronExport && isValidTensorFlowS3Directory(possiblePath, awsClientForBucket) {
+				highestVersion = version
+				highestPath = possiblePath
+			}
 		}
 	}
 
 	return highestPath, nil
 }
 
-// IsValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
+// isValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
 // Must contain the following structure:
 // - 1523423423/ (version prefix, usually a timestamp)
 // 		- saved_model.pb
@@ -820,6 +849,20 @@ func isValidTensorFlowS3Directory(path string, awsClientForBucket *aws.Client) b
 	); err != nil || !valid {
 		return false
 	}
+	return true
+}
+
+// isValidNeuronTensorFlowS3Directory checks that the path contains a valid S3 directory for Neuron TensorFlow models
+// Must contain the following structure:
+// - 1523423423/ (version prefix, usually a timestamp)
+// 		- saved_model.pb
+func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool {
+	if valid, err := awsClient.IsS3PathFile(
+		aws.JoinS3Path(path, "saved_model.pb"),
+	); err != nil || !valid {
+		return false
+	}
+
 	return true
 }
 
@@ -897,7 +940,9 @@ func validatePythonPath(pythonPath string, projectFiles ProjectFiles) error {
 	return nil
 }
 
-func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
+func validateAutoscaling(api *userconfig.API) error {
+	autoscaling := api.Autoscaling
+
 	if autoscaling.TargetReplicaConcurrency == nil {
 		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(autoscaling.WorkersPerReplica * autoscaling.ThreadsPerWorker))
 	}
@@ -916,6 +961,36 @@ func validateAutoscaling(autoscaling *userconfig.Autoscaling) error {
 
 	if autoscaling.InitReplicas < autoscaling.MinReplicas {
 		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
+	}
+
+	if api.Compute.Inf > 0 {
+		numNeuronCores := api.Compute.Inf * consts.NeuronCoresPerInf
+		workersPerReplica := int64(api.Autoscaling.WorkersPerReplica)
+		if !libmath.IsDivisibleByInt64(numNeuronCores, workersPerReplica) {
+			return ErrorInvalidNumberOfInfWorkers(workersPerReplica, api.Compute.Inf, numNeuronCores)
+		}
+	}
+
+	return nil
+}
+
+func validateCompute(api *userconfig.API, providerType types.ProviderType) error {
+	compute := api.Compute
+
+	if compute.Inf > 0 && providerType == types.LocalProviderType {
+		return ErrorUnsupportedLocalComputeResource(userconfig.InfKey)
+	}
+
+	if compute.Inf > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.InfKey, api.Predictor.Type)
+	}
+
+	if compute.GPU > 0 && compute.Inf > 0 {
+		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.InfKey)
+	}
+
+	if compute.Inf > 1 {
+		return ErrorInvalidNumberOfInfs(compute.Inf)
 	}
 
 	return nil

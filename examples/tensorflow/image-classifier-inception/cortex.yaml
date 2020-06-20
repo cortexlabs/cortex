@@ -1,10 +1,12 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- name: image-classifier
+- name: image-classifier-inception
   predictor:
-    type: python
+    type: tensorflow
     path: predictor.py
+    model: s3://cortex-examples/tensorflow/image-classifier/inception
+  monitoring:
+    model_type: classification
   compute:
     cpu: 1
     gpu: 1
-    mem: 4G

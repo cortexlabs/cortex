@@ -54,6 +54,7 @@ const (
 	CPUKey = "cpu"
 	MemKey = "mem"
 	GPUKey = "gpu"
+	InfKey = "inf"
 
 	// Autoscaling
 	MinReplicasKey                  = "min_replicas"

@@ -29,7 +29,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/math"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -72,6 +72,8 @@ type Config struct {
 	ImageRequestMonitor        string             `json:"image_request_monitor" yaml:"image_request_monitor"`
 	ImageClusterAutoscaler     string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer         string             `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageInferentia            string             `json:"image_inferentia" yaml:"image_inferentia"`
+	ImageNeuronRTD             string             `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
 	ImageNvidia                string             `json:"image_nvidia" yaml:"image_nvidia"`
 	ImageFluentd               string             `json:"image_fluentd" yaml:"image_fluentd"`
 	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
@@ -357,6 +359,20 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField: "ImageInferentia",
+			StringValidation: &cr.StringValidation{
+				Default:   "cortexlabs/inferentia:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImageNeuronRTD",
+			StringValidation: &cr.StringValidation{
+				Default:   "cortexlabs/neuron-rtd:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
 			StructField: "ImageNvidia",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/nvidia:" + consts.CortexVersion,
@@ -554,7 +570,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	if aws.EBSMetadatas[*cc.Region][cc.InstanceVolumeType.String()].IOPSConfigurable && cc.InstanceVolumeIOPS == nil {
-		cc.InstanceVolumeIOPS = pointer.Int64(math.MinInt64(cc.InstanceVolumeSize*50, 3000))
+		cc.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(cc.InstanceVolumeSize*50, 3000))
 	}
 
 	if err := awsClient.VerifyInstanceQuota(primaryInstanceType); err != nil {
@@ -577,6 +593,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		cc.FillEmptySpotFields(awsClient)
 
 		primaryInstance := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]
+
 		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
 			if instanceType == primaryInstanceType {
 				continue
@@ -617,10 +634,6 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 		return ErrorInstanceTypeTooSmall()
 	}
 
-	if strings.HasPrefix(instanceMetadata.Type, "inf") {
-		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
-	}
-
 	if _, ok := awsutils.InstanceENIsAvailable[instanceMetadata.Type]; !ok {
 		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
 	}
@@ -629,6 +642,10 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 }
 
 func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+	if target.Inf > 0 && suggested.Inf == 0 {
+		return ErrorIncompatibleSpotInstanceTypeInf(suggested)
+	}
+
 	if target.GPU > suggested.GPU {
 		return ErrorIncompatibleSpotInstanceTypeGPU(target, suggested)
 	}
@@ -1048,6 +1065,8 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageRequestMonitorUserKey, cc.ImageRequestMonitor)
 	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
 	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
+	items.Add(ImageInferentiaUserKey, cc.ImageInferentia)
+	items.Add(ImageNeuronRTDUserKey, cc.ImageNeuronRTD)
 	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
 	items.Add(ImageFluentdUserKey, cc.ImageFluentd)
 	items.Add(ImageStatsdUserKey, cc.ImageStatsd)

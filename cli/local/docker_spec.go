@@ -357,7 +357,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Tty:   true,
 		Env: append(
 			getAPIEnv(api, awsClient),
-			"CORTEX_TF_SERVING_PORT="+_tfServingPortStr,
+			"CORTEX_TF_BASE_SERVING_PORT="+_tfServingPortStr,
 			"CORTEX_TF_SERVING_HOST="+tfContainerHost,
 		),
 		ExposedPorts: nat.PortSet{

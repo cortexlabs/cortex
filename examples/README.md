@@ -8,7 +8,9 @@
 
 - [Sentiment analysis](tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
 
-- [Image classification](tensorflow/image-classifier): deploy an Inception model to classify images.
+- [Image classification](tensorflow/image-classifier-inception): deploy an Inception model to classify images.
+
+- [Image classification](tensorflow/image-classifier-resnet50): deploy a ResNet50 model to classify images.
 
 - [License plate reader](tensorflow/license-plate-reader): deploy a YOLOv3 model (and others) to identify license plates in real time.
 
@@ -38,13 +40,16 @@
 
 - [Multi-model text analysis](pytorch/multi-model-text-analyzer): deploy 2 models (Sentiment and Summarization analyzers) in a single API.
 
-- [Image classification](pytorch/image-classifier): deploy an AlexNet model from TorchVision to classify images.
+- [Image classification](pytorch/image-classifier-alexnet): deploy an AlexNet model from TorchVision to classify images.
+
+- [Image classification](pytorch/image-classifier-resnet50): deploy a ResNet50 model from TorchVision to classify images.
 
 - [Object detection](pytorch/object-detector): deploy a Faster R-CNN model from TorchVision to detect objects in images.
 
 ## ONNX
 
 - [Iris classification](onnx/iris-classifier): deploy an XGBoost model (exported in ONNX) to classify iris flowers.
+
 - [Multi-model classification](onnx/multi-model-classifier): deploy 3 models (ResNet50, MobileNet, ShuffleNet) in a single API.
 
 ## scikit-learn
