@@ -22,31 +22,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	istionetworking "istio.io/api/networking/v1alpha3"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
-	kschema "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var (
-	_virtualServiceTypeMeta = v1.TypeMeta{
-		APIVersion: "v1alpha3",
-		Kind:       "VirtualService",
-	}
-
-	_virtualServiceGVR = kschema.GroupVersionResource{
-		Group:    "networking.istio.io",
-		Version:  "v1alpha3",
-		Resource: "virtualservices",
-	}
-
-	_virtualServiceGVK = kschema.GroupVersionKind{
-		Group:   "networking.istio.io",
-		Version: "v1alpha3",
-		Kind:    "VirtualService",
-	}
-)
+var _virtualServiceTypeMeta = kmeta.TypeMeta{
+	APIVersion: "v1alpha3",
+	Kind:       "VirtualService",
+}
 
 type VirtualServiceSpec struct {
 	Name        string
@@ -62,7 +46,7 @@ type VirtualServiceSpec struct {
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
 	virtualService := &istioclientnetworking.VirtualService{
 		TypeMeta: _virtualServiceTypeMeta,
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
@@ -70,36 +54,44 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 		Spec: istionetworking.VirtualService{
 			Hosts:    []string{"*"},
 			Gateways: spec.Gateways,
-			Http: []*istionetworking.HTTPRoute{{
-				Match: []*istionetworking.HTTPMatchRequest{{
-					Uri: &istionetworking.StringMatch{
-						MatchType: &istionetworking.StringMatch_Exact{
-							Exact: urls.CanonicalizeEndpoint(spec.Path),
+			Http: []*istionetworking.HTTPRoute{
+				{
+					Match: []*istionetworking.HTTPMatchRequest{
+						{
+							Uri: &istionetworking.StringMatch{
+								MatchType: &istionetworking.StringMatch_Exact{
+									Exact: urls.CanonicalizeEndpoint(spec.Path),
+								},
+							},
+						},
+					},
+					Route: []*istionetworking.HTTPRouteDestination{
+						{
+							Destination: &istionetworking.Destination{
+								Host: spec.ServiceName,
+								Port: &istionetworking.PortSelector{
+									Number: uint32(spec.ServicePort),
+								},
+							},
 						},
 					},
 				},
-				},
-				Route: []*istionetworking.HTTPRouteDestination{{
-					Destination: &istionetworking.Destination{
-						Host: spec.ServiceName,
-						Port: &istionetworking.PortSelector{
-							Number: uint32(spec.ServicePort),
-						},
-					},
-				},
-				},
-			},
 			},
 		},
 	}
+
+	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(spec.Path) {
+		virtualService.Spec.Http[0].Rewrite = &istionetworking.HTTPRewrite{
+			Uri: urls.CanonicalizeEndpoint(*spec.Rewrite),
+		}
+	}
+
 	return virtualService
 }
 
-func (c *Client) CreateVirtualService(spec *istioclientnetworking.VirtualService) (*istioclientnetworking.VirtualService, error) {
-	spec.SetNamespace(c.Namespace)
-
-	istio, err := istioversionedclient.NewForConfig(c.RestConfig)
-	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(spec.GetNamespace()).Create(spec)
+func (c *Client) CreateVirtualService(virtualService *istioclientnetworking.VirtualService) (*istioclientnetworking.VirtualService, error) {
+	virtualService.TypeMeta = _virtualServiceTypeMeta
+	virtualService, err := c.virtualServiceClient.Create(virtualService)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -107,47 +99,41 @@ func (c *Client) CreateVirtualService(spec *istioclientnetworking.VirtualService
 }
 
 func (c *Client) UpdateVirtualService(existing, updated *istioclientnetworking.VirtualService) (*istioclientnetworking.VirtualService, error) {
-	updated.SetNamespace(c.Namespace)
-	updated.SetResourceVersion(existing.GetResourceVersion())
+	updated.TypeMeta = _virtualServiceTypeMeta
+	updated.ResourceVersion = existing.ResourceVersion
 
-	istio, err := istioversionedclient.NewForConfig(c.RestConfig)
-	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(updated.GetNamespace()).Update(updated)
+	virtualService, err := c.virtualServiceClient.Update(updated)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return virtualService, nil
 }
 
-func (c *Client) ApplyVirtualService(spec *istioclientnetworking.VirtualService) (*istioclientnetworking.VirtualService, error) {
-	existing, err := c.GetVirtualService(spec.GetName())
+func (c *Client) ApplyVirtualService(virtualService *istioclientnetworking.VirtualService) (*istioclientnetworking.VirtualService, error) {
+	existing, err := c.GetVirtualService(virtualService.Name)
 	if err != nil {
 		return nil, err
 	}
 	if existing == nil {
-		return c.CreateVirtualService(spec)
+		return c.CreateVirtualService(virtualService)
 	}
-	return c.UpdateVirtualService(existing, spec)
+	return c.UpdateVirtualService(existing, virtualService)
 }
 
 func (c *Client) GetVirtualService(name string) (*istioclientnetworking.VirtualService, error) {
-	istio, err := istioversionedclient.NewForConfig(c.RestConfig)
-	virtualService, err := istio.NetworkingV1alpha3().VirtualServices(c.Namespace).Get(name, v1.GetOptions{
-		TypeMeta: _virtualServiceTypeMeta,
-	})
+	virtualService, err := c.virtualServiceClient.Get(name, kmeta.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	virtualService.TypeMeta = _virtualServiceTypeMeta
 	return virtualService, nil
 }
 
 func (c *Client) DeleteVirtualService(name string) (bool, error) {
-	istio, err := istioversionedclient.NewForConfig(c.RestConfig)
-	err = istio.NetworkingV1alpha3().VirtualServices(c.Namespace).Delete(name, &v1.DeleteOptions{
-		TypeMeta: _virtualServiceTypeMeta,
-	})
+	err := c.virtualServiceClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -157,25 +143,22 @@ func (c *Client) DeleteVirtualService(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) ListVirtualServices(opts *v1.ListOptions) ([]istioclientnetworking.VirtualService, error) {
+func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]istioclientnetworking.VirtualService, error) {
 	if opts == nil {
-		opts = &v1.ListOptions{}
+		opts = &kmeta.ListOptions{}
 	}
-	istio, err := istioversionedclient.NewForConfig(c.RestConfig)
-	vsList, err := istio.NetworkingV1alpha3().VirtualServices(c.Namespace).List(v1.ListOptions{
-		TypeMeta: _virtualServiceTypeMeta,
-	})
+	vsList, err := c.virtualServiceClient.List(*opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	for i := range vsList.Items {
-		vsList.Items[i].SetGroupVersionKind(_virtualServiceGVK)
+		vsList.Items[i].TypeMeta = _virtualServiceTypeMeta
 	}
 	return vsList.Items, nil
 }
 
 func (c *Client) ListVirtualServicesByLabels(labels map[string]string) ([]istioclientnetworking.VirtualService, error) {
-	opts := &v1.ListOptions{
+	opts := &kmeta.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListVirtualServices(opts)
@@ -186,23 +169,22 @@ func (c *Client) ListVirtualServicesByLabel(labelKey string, labelValue string) 
 }
 
 func (c *Client) ListVirtualServicesWithLabelKeys(labelKeys ...string) ([]istioclientnetworking.VirtualService, error) {
-	opts := &v1.ListOptions{
+	opts := &kmeta.ListOptions{
 		LabelSelector: LabelExistsSelector(labelKeys...),
 	}
 	return c.ListVirtualServices(opts)
 }
 
-func ExtractVirtualServiceGateways(virtualService *istioclientnetworking.VirtualService) (strset.Set, error) {
-	return strset.FromSlice(virtualService.Spec.Gateways), nil
+func ExtractVirtualServiceGateways(virtualService *istioclientnetworking.VirtualService) strset.Set {
+	return strset.FromSlice(virtualService.Spec.Gateways)
 }
 
-func ExtractVirtualServiceEndpoints(virtualService *istioclientnetworking.VirtualService) (strset.Set, error) {
+func ExtractVirtualServiceEndpoints(virtualService *istioclientnetworking.VirtualService) strset.Set {
 	endpoints := strset.New()
-	httpRoutes := virtualService.Spec.Http
-	for _, http := range httpRoutes {
+	for _, http := range virtualService.Spec.Http {
 		for _, match := range http.Match {
 			endpoints.Add(urls.CanonicalizeEndpoint(match.Uri.GetExact()))
 		}
 	}
-	return endpoints, nil
+	return endpoints
 }

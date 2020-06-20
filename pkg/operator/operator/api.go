@@ -453,14 +453,9 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 }
 
 func GetEndpointFromVirtualService(virtualService *istioclientnetworking.VirtualService) (string, error) {
-	endpoints, err := k8s.ExtractVirtualServiceEndpoints(virtualService)
-	if err != nil {
-		return "", err
-	}
-
+	endpoints := k8s.ExtractVirtualServiceEndpoints(virtualService)
 	if len(endpoints) != 1 {
 		return "", errors.ErrorUnexpected("expected 1 endpoint, but got", endpoints)
 	}
-
 	return endpoints.GetOne(), nil
 }
