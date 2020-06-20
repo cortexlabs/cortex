@@ -76,6 +76,7 @@ type Compute struct {
 	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
 	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
+	Inf int64         `json:"inf" yaml:"inf"`
 }
 
 type Autoscaling struct {
@@ -116,10 +117,8 @@ func (api *API) ModelNames() []string {
 }
 
 func (api *API) ApplyDefaultDockerPaths() {
-	usesGPU := false
-	if api.Compute.GPU > 0 {
-		usesGPU = true
-	}
+	usesGPU := api.Compute.GPU > 0
+	usesInf := api.Compute.Inf > 0
 
 	predictor := api.Predictor
 	switch predictor.Type {
@@ -127,6 +126,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.Image == "" {
 			if usesGPU {
 				predictor.Image = consts.DefaultImagePythonPredictorGPU
+			} else if usesInf {
+				predictor.Image = consts.DefaultImagePythonPredictorInf
 			} else {
 				predictor.Image = consts.DefaultImagePythonPredictorCPU
 			}
@@ -138,6 +139,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.TensorFlowServingImage == "" {
 			if usesGPU {
 				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
+			} else if usesInf {
+				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingInf
 			} else {
 				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
 			}
@@ -394,6 +397,9 @@ func (compute *Compute) UserStr() string {
 	}
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
+	}
+	if compute.Inf > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", InfKey, s.Int64(compute.Inf)))
 	}
 	if compute.Mem == nil {
 		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", MemKey))

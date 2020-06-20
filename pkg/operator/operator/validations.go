@@ -103,7 +103,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 }
 
 func validateK8s(api *userconfig.API, virtualServices []kunstructured.Unstructured, maxMem *kresource.Quantity) error {
-	if err := validateCompute(api.Compute, maxMem); err != nil {
+	if err := validateK8sCompute(api.Compute, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
@@ -114,7 +114,7 @@ func validateK8s(api *userconfig.API, virtualServices []kunstructured.Unstructur
 	return nil
 }
 
-func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
+func validateK8sCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -127,6 +127,13 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 		maxMem.Sub(_nvidiaMemReserve)
 	}
 
+	maxInf := config.Cluster.InstanceMetadata.Inf
+	if maxInf > 0 {
+		// Reserve resources for inferentia device plugin daemonset
+		maxCPU.Sub(_inferentiaCPUReserve)
+		maxMem.Sub(_inferentiaMemReserve)
+	}
+
 	if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
 		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
 	}
@@ -135,6 +142,9 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 	}
 	if compute.GPU > maxGPU {
 		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
+	}
+	if compute.Inf > maxInf {
+		return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
 	}
 	return nil
 }
