@@ -20,7 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
 func Name(apiName string) string {
@@ -42,11 +42,8 @@ func APILoadBalancerURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-func GetEndpointFromVirtualService(virtualService *kunstructured.Unstructured) (string, error) {
-	endpoints, err := k8s.ExtractVirtualServiceEndpoints(virtualService)
-	if err != nil {
-		return "", err
-	}
+func GetEndpointFromVirtualService(virtualService *istioclientnetworking.VirtualService) (string, error) {
+	endpoints := k8s.ExtractVirtualServiceEndpoints(virtualService)
 
 	if len(endpoints) != 1 {
 		return "", errors.ErrorUnexpected("expected 1 endpoint, but got", endpoints)
