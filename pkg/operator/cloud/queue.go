@@ -18,6 +18,7 @@ package cloud
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -26,27 +27,57 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
-func QueuePrefix(apiName string) (string, error) {
+func QueuePrefix() (string, error) {
 	operatorAccountID, _, err := config.AWS.GetCachedAccountID()
 	if err != nil {
-		return "", err
+		return "", err // TODO
 	}
 
-	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/cortex-%s", config.AWS.Region, operatorAccountID, apiName), nil
+	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/cortex", config.AWS.Region, operatorAccountID), nil
 }
 
 func QueueURL(apiName, jobID string) (string, error) {
-	queueURL, err := QueuePrefix(apiName)
+	queuePrefix, err := QueuePrefix()
 	if err != nil {
-		return "", nil
+		return "", nil // TODO
 	}
 
-	return queueURL + "-" + jobID + ".fifo", nil
+	return queuePrefix + "-" + "apiName" + "-" + jobID + ".fifo", nil
+}
+
+func IdentifiersFromQueueURL(queueURL string) (string, string) {
+	split := strings.Split(queueURL, "/")
+	queueName := split[len(split)-1]
+	apiAndJob := queueName[len("cortex-") : len(queueName)-len(".fifo")]
+	apiAndJobSplit := strings.Split(apiAndJob, "-")
+	jobID := apiAndJobSplit[len(apiAndJobSplit)-1]
+	apiNamesplit := apiAndJobSplit[:len(apiAndJobSplit)-1]
+	apiName := strings.Join(apiNamesplit[1:], "-")
+
+	return apiName, jobID
 }
 
 type QueueMetrics struct {
 	InQueue    int `json:"in_queue"`
 	NotVisible int `json:"not_visible"`
+}
+
+func ListQueues() ([]string, error) {
+	queuePrefix, err := QueuePrefix()
+	if err != nil {
+		return nil, err // TODO
+	}
+
+	output, err := config.AWS.SQS().ListQueues(
+		&sqs.ListQueuesInput{
+			QueueNamePrefix: aws.String(queuePrefix),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return aws.StringValueSlice(output.QueueUrls), nil
 }
 
 func GetQueueMetrics(apiName, jobID string) (*QueueMetrics, error) {
@@ -55,8 +86,10 @@ func GetQueueMetrics(apiName, jobID string) (*QueueMetrics, error) {
 		return nil, err // TODO
 	}
 
-	fmt.Println(queueURL)
+	return GetQueueMetricsFromURL(queueURL)
+}
 
+func GetQueueMetricsFromURL(queueURL string) (*QueueMetrics, error) {
 	output, err := config.AWS.SQS().GetQueueAttributes(&sqs.GetQueueAttributesInput{
 		AttributeNames: aws.StringSlice([]string{"ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"}),
 		QueueUrl:       aws.String(queueURL),

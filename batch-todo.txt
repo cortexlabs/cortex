@@ -4,20 +4,14 @@
 - tag fifo-queue
 - delete fifo-queue when batch job gets deleted
 - run a background thread in python worker to periodically renew lock on a message because we don't know how long a message will take
+- fluentd
 
 - delete old fifo-queues (job doesn't exist)
 - write completion spec summary after job is done
 - delete queues on cluster down
 
-- fluentd
-- batch spec
-- fix configreader error messages (error: cortex.yaml: iris-classifier: key "monitoring" is not supported) include type in identify Cortex?
-
-- rename APIType to something else
 - secure batch endpoints??
 - rename workers_per_replica to processes?
-
-
 
 
 status scenarios:

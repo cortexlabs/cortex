@@ -53,7 +53,7 @@ const (
 	_titleEnvironment = "env"
 	_titleAPI         = "api"
 	_titleJobCount    = "running jobs"
-	_titleLatestJobID = "last job id"
+	_titleLatestJobID = "latest job id"
 	_titleStatus      = "status"
 	_titleUpToDate    = "up-to-date"
 	_titleStale       = "stale"
@@ -298,6 +298,11 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			}
 			return "", err
 		}
+		if apiRes.SyncAPI != nil {
+			return syncAPITable(apiRes.SyncAPI, env)
+		} else {
+
+		}
 	} else {
 		apiRes, err = local.GetAPI(apiName)
 		if err != nil {
@@ -308,7 +313,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			return "", err
 		}
 	}
-	return syncAPITable(apiRes.SyncAPI, env)
+
+	return "", nil // TODO
 }
 
 func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, error) {

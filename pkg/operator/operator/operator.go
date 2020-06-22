@@ -20,20 +20,74 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batch"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/types/status"
+	kbatch "k8s.io/api/batch/v1"
 )
 
 func cleanupJobs() error {
+	queues, err := cloud.ListQueues()
+	if err != nil {
+		fmt.Println(err.Error()) // TODO
+	}
+
 	jobs, err := config.K8s.ListJobs(nil)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err.Error()) // TODO
 	}
+
+	// delete if enqueue liveness failed
+
+	jobMap := map[string]kbatch.Job{}
+
+	for _, job := range jobs {
+		jobMap[job.Labels["jobID"]] = job
+	}
+
+	for _, queueURL := range queues {
+		metrics, err := cloud.GetQueueMetricsFromURL(queueURL)
+		if err != nil {
+			fmt.Println(err.Error()) // TODO
+		}
+
+		if metrics.InQueue+metrics.NotVisible == 0 {
+			_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
+				QueueUrl: aws.String(queueURL),
+			})
+			if err != nil {
+				fmt.Println(err.Error()) // TODO
+			}
+
+			// delete job
+		}
+
+		apiName, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+
+		if _, ok := jobMap[jobID]; !ok {
+			// check jobspec status
+			jobSpec, err := batch.DownloadJobSpec(apiName, jobID)
+			if err != nil {
+				fmt.Println(err.Error()) // TODO
+			}
+
+			if jobSpec.Status == status.JobEnqueuing && jobSpec.LastUpdated.Sub(time.Now()) > 2*time.Minute {
+				// TODO write timeout status to job spec
+				// push job spec message to cloud watch
+
+				// delete queue
+			}
+		}
+	}
+
 	errs := []error{}
 	for _, job := range jobs {
 		// if job.Status.Active == 0 {

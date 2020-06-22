@@ -24,10 +24,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batch"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	kapps "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
@@ -59,7 +62,7 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		},
 		func() error {
 			var err error
-			virtualServices, err = config.K8s.ListVirtualServicesByLabel("apiType", "batch")
+			virtualServices, err = config.K8s.ListVirtualServicesByLabel("apiKind", "batch_api")
 			return err
 		},
 	)
@@ -154,31 +157,58 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	status, err := syncapi.GetStatus(apiName)
+	resource, err := resources.FindDeployedResourceByName(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+
+	if resource.Kind == userconfig.SyncAPIKind {
+		apiResponse, err := getSyncAPI(apiName)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		respond(w, apiResponse) // TODO
+		return
+	} else if resource.Kind == userconfig.BatchAPIKind {
+		apiResponse, err := getBatchAPI(apiName)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		respond(w, apiResponse) // TODO
+		return
+	}
+
+	respond(w, "ok") // TODO
+}
+
+func getSyncAPI(apiName string) (*schema.GetAPIResponse, error) {
+	status, err := syncapi.GetStatus(apiName)
+	if err != nil {
+		return nil, err
 	}
 
 	api, err := cloud.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
+
 	}
 
 	metrics, err := syncapi.GetMetrics(api)
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
+
 	}
 
 	baseURL, err := syncapi.APIBaseURL(api)
 	if err != nil {
-		respondError(w, r, err)
-		return
+		return nil, err
+
 	}
 
-	respond(w, schema.GetAPIResponse{
+	return &schema.GetAPIResponse{
 		SyncAPI: &schema.SyncAPI{
 			Spec:         *api,
 			Status:       *status,
@@ -186,7 +216,47 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 			BaseURL:      baseURL,
 			DashboardURL: syncapi.DashboardURL(),
 		},
-	})
+	}, nil
+}
+
+func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
+	virtualService, err := config.K8s.GetVirtualService(ok8s.Name(apiName))
+	if err != nil {
+		return nil, err // TODO
+	}
+	apiID := virtualService.GetLabels()["apiID"]
+	api, err := cloud.DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		return nil, err
+	}
+
+	jobs, err := config.K8s.ListJobsByLabel("apiName", apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	allBatchAPIPods, err := config.K8s.ListPodsByLabel("apiKind", userconfig.BatchAPIKind.String())
+	if err != nil {
+		return nil, err
+	}
+
+	jobStatuses := make([]status.JobStatus, len(jobs))
+	for _, job := range jobs {
+		jobID := job.Labels["jobID"]
+		status, err := batch.GetJobStatus(apiName, jobID, allBatchAPIPods)
+		if err != nil {
+			return nil, err
+		}
+
+		jobStatuses = append(jobStatuses, *status)
+	}
+
+	return &schema.GetAPIResponse{
+		BatchAPI: &schema.BatchAPI{
+			API:  *api,
+			Jobs: jobStatuses,
+		},
+	}, nil
 }
 
 func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {

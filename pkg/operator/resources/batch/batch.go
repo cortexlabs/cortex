@@ -19,6 +19,7 @@ package batch
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"path/filepath"
 	"sync"
 	"time"
@@ -45,7 +46,16 @@ import (
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
-// TODO move
+var jobIDMutex = sync.Mutex{}
+
+// Job id creation optimized for listing the most recently created jobs in S3. S3 objects are listed in ascending UTF-8 binary order. This should work until the year 2262.
+func MonotonicallyDecreasingJobID() string {
+	jobIDMutex.Lock()
+	defer jobIDMutex.Unlock()
+
+	i := math.MaxInt64 - time.Now().UnixNano()
+	return fmt.Sprintf("%x", i)
+}
 
 func QueuesPerAPI(apiName string) ([]string, error) {
 	response, err := config.AWS.SQS().ListQueues(&sqs.ListQueuesInput{
@@ -231,7 +241,7 @@ func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
 		return nil, err
 	}
 
-	jobID := k8s.RandomName()[0:20]
+	jobID := MonotonicallyDecreasingJobID()
 
 	output, err := config.AWS.SQS().CreateQueue(
 		&sqs.CreateQueueInput{
@@ -466,7 +476,7 @@ func DownloadJobSpec(apiName, jobID string) (*JobSpec, error) {
 	return &jobSpec, nil
 }
 
-func GetJobStatus(apiName, jobID string, pods []kcore.Pod) (*status.JobStatus, error) {
+func GetJobStatus(apiName, jobID string, allRunningPods []kcore.Pod) (*status.JobStatus, error) {
 	jobSpec, err := DownloadJobSpec(apiName, jobID)
 	if err != nil {
 		return nil, err // TODO
@@ -499,7 +509,7 @@ func GetJobStatus(apiName, jobID string, pods []kcore.Pod) (*status.JobStatus, e
 
 	jobStatus.JobStats = metrics.JobStats
 
-	counts := getReplicaCounts(jobID, pods)
+	counts := getReplicaCounts(jobID, allRunningPods)
 
 	jobStatus.WorkerStats = &counts
 
@@ -508,10 +518,10 @@ func GetJobStatus(apiName, jobID string, pods []kcore.Pod) (*status.JobStatus, e
 
 const _stalledPodTimeout = 10 * time.Minute
 
-func getReplicaCounts(jobID string, pods []kcore.Pod) status.SubReplicaCounts {
+func getReplicaCounts(jobID string, allRunningPods []kcore.Pod) status.SubReplicaCounts {
 	counts := status.SubReplicaCounts{}
 
-	for _, pod := range pods {
+	for _, pod := range allRunningPods {
 		if pod.Labels["jobID"] != jobID {
 			continue
 		}
