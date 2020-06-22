@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Machine learning model serving infrastructure](../README.md)
+* [Build machine learning APIs](../README.md)
 * [Install](cluster-management/install.md)
 * [Tutorial](../examples/sklearn/iris-classifier/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
@@ -19,6 +19,7 @@
 * [Networking](deployments/networking.md)
 * [Compute](deployments/compute.md)
 * [Using GPUs](deployments/gpus.md)
+* [Using Inferentia](deployments/inferentia.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)

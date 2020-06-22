@@ -20,7 +20,7 @@ metadata:
   labels:
     app: fluentd
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: fluentd
@@ -33,7 +33,7 @@ rules:
     - pods/logs
   verbs: [get, list, watch]
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: fluentd
@@ -168,6 +168,9 @@ metadata:
   name: fluentd
   namespace: default
 spec:
+  selector:
+    matchLabels:
+      app: fluentd
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
@@ -222,6 +225,9 @@ spec:
         - name: config
           mountPath: /fluentd/etc
       tolerations:
+      - key: aws.amazon.com/infa
+        operator: Exists
+        effect: NoSchedule
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule

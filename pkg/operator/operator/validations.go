@@ -28,8 +28,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
-	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type ProjectFiles struct {
@@ -102,8 +102,8 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	return nil
 }
 
-func validateK8s(api *userconfig.API, virtualServices []kunstructured.Unstructured, maxMem *kresource.Quantity) error {
-	if err := validateCompute(api.Compute, maxMem); err != nil {
+func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem *kresource.Quantity) error {
+	if err := validateK8sCompute(api.Compute, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
 
@@ -114,7 +114,7 @@ func validateK8s(api *userconfig.API, virtualServices []kunstructured.Unstructur
 	return nil
 }
 
-func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
+func validateK8sCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -127,6 +127,13 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 		maxMem.Sub(_nvidiaMemReserve)
 	}
 
+	maxInf := config.Cluster.InstanceMetadata.Inf
+	if maxInf > 0 {
+		// Reserve resources for inferentia device plugin daemonset
+		maxCPU.Sub(_inferentiaCPUReserve)
+		maxMem.Sub(_inferentiaMemReserve)
+	}
+
 	if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
 		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
 	}
@@ -136,24 +143,20 @@ func validateCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) er
 	if compute.GPU > maxGPU {
 		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
 	}
+	if compute.Inf > maxInf {
+		return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
+	}
 	return nil
 }
 
-func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstructured.Unstructured) error {
+func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService) error {
 	for _, virtualService := range virtualServices {
-		gateways, err := k8s.ExtractVirtualServiceGateways(&virtualService)
-		if err != nil {
-			return err
-		}
+		gateways := k8s.ExtractVirtualServiceGateways(&virtualService)
 		if !gateways.Has("apis-gateway") {
 			continue
 		}
 
-		endpoints, err := k8s.ExtractVirtualServiceEndpoints(&virtualService)
-		if err != nil {
-			return err
-		}
-
+		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService)
 		for endpoint := range endpoints {
 			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Endpoint, "/") && virtualService.GetLabels()["apiName"] != api.Name {
 				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.GetLabels()["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
@@ -180,8 +183,8 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	return nil
 }
 
-func getValidationK8sResources() ([]kunstructured.Unstructured, *kresource.Quantity, error) {
-	var virtualServices []kunstructured.Unstructured
+func getValidationK8sResources() ([]istioclientnetworking.VirtualService, *kresource.Quantity, error) {
+	var virtualServices []istioclientnetworking.VirtualService
 	var maxMem *kresource.Quantity
 
 	err := parallel.RunFirstErr(

@@ -39,6 +39,8 @@ require (
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gotest.tools v2.2.0+incompatible // indirect
+	istio.io/api v0.0.0-20200107183329-ed4b507c54e1
+	istio.io/client-go v0.0.0-20200107185429-9053b0f86b03
 	k8s.io/api v0.16.9
 	k8s.io/apimachinery v0.16.10-beta.0
 	k8s.io/client-go v0.16.9

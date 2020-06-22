@@ -144,7 +144,7 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 			{
 				Type:   mount.TypeBind,
 				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-				Target: "/mnt/workspace",
+				Target: _workspaceDir,
 			},
 		},
 	}
@@ -207,7 +207,7 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 		{
 			Type:   mount.TypeBind,
 			Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-			Target: "/mnt/workspace",
+			Target: _workspaceDir,
 		},
 	}
 	for _, modelCache := range api.LocalModelCaches {
@@ -347,7 +347,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			{
 				Type:   mount.TypeBind,
 				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-				Target: "/mnt/workspace",
+				Target: _workspaceDir,
 			},
 		}, mounts...),
 	}
@@ -357,7 +357,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Tty:   true,
 		Env: append(
 			getAPIEnv(api, awsClient),
-			"CORTEX_TF_SERVING_PORT="+_tfServingPortStr,
+			"CORTEX_TF_BASE_SERVING_PORT="+_tfServingPortStr,
 			"CORTEX_TF_SERVING_HOST="+tfContainerHost,
 		),
 		ExposedPorts: nat.PortSet{

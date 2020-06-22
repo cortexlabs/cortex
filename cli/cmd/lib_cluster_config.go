@@ -476,7 +476,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 }
 
 func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, disallowPrompt bool) {
-	fmt.Println(clusterConfigConfirmaionStr(clusterConfig, awsCreds, awsClient))
+	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds, awsClient))
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/cluster-management/config for more information", consts.CortexVersionMinor)
@@ -484,7 +484,7 @@ func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds 
 	}
 }
 
-func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
+func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
@@ -587,6 +587,12 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 	}
 	if clusterConfig.ImageMetricsServer != defaultConfig.ImageMetricsServer {
 		items.Add(clusterconfig.ImageMetricsServerUserKey, clusterConfig.ImageMetricsServer)
+	}
+	if clusterConfig.ImageInferentia != defaultConfig.ImageInferentia {
+		items.Add(clusterconfig.ImageInferentiaUserKey, clusterConfig.ImageInferentia)
+	}
+	if clusterConfig.ImageNeuronRTD != defaultConfig.ImageNeuronRTD {
+		items.Add(clusterconfig.ImageNeuronRTDUserKey, clusterConfig.ImageNeuronRTD)
 	}
 	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
 		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)

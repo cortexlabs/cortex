@@ -38,7 +38,6 @@ function ensure_eks() {
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
     python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
-
     eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
 
     if [ "$CORTEX_SPOT" == "True" ]; then
@@ -216,6 +215,8 @@ function main() {
   if [ "$arg1" != "--update" ]; then
     if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
       envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
+    elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+      envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
     else
       envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi
@@ -251,11 +252,20 @@ function main() {
     echo "✓"
   fi
 
+  if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+    echo -n "￮ configuring inf support "
+    envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
+    echo "✓"
+  fi
+
   # add VPC Link integration to API Gateway
   if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -n "￮ creating api gateway vpc link integration "
     python create_gateway_integration.py $api_id $vpc_link_id
     echo "✓"
+    echo -n "￮ waiting for api gateway vpc link integration "
+    until [ "$(aws apigatewayv2 get-vpc-link --region $CORTEX_REGION --vpc-link-id $vpc_link_id | jq .VpcLinkStatus | tr -d '"')" = "AVAILABLE" ]; do echo -n "."; sleep 3; done
+    echo " ✓"
   fi
 
   echo -n "￮ starting operator "

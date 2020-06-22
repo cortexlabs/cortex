@@ -147,6 +147,8 @@ image_downloader: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/downloader
 image_request_monitor: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/request-monitor:latest
 image_cluster_autoscaler: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/cluster-autoscaler:latest
 image_metrics_server: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/metrics-server:latest
+image_inferentia: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/inferentia:latest
+image_neuron_rtd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/neuron-rtd:latest
 image_nvidia: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/nvidia:latest
 image_fluentd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest
 image_statsd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/statsd:latest
@@ -207,14 +209,17 @@ cd examples/pytorch/iris-classifier
 ```
 
 Take note of the following images:
-```
+
+```bash
 # for Python Predictor
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-cpu:latest
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-gpu:latest
+XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-inf:latest
 
 # for TensorFlow Predictor
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-cpu:latest
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-gpu:latest
+XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-inf:latest
 XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-predictor:latest
 
 # for ONNX Predictor
@@ -223,6 +228,7 @@ XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-predictor-gpu:latest
 ```
 
 Edit `cortex.yaml` and override `image`/`tensorflow_serving_image` with the appropriate image(s) for the given predictor type:
+
 ```yaml
 # cortex.yaml
 

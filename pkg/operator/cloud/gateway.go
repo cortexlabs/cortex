@@ -24,7 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
 func AddAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
@@ -130,7 +130,7 @@ func UpdateAPIGateway(
 	return nil
 }
 
-func RemoveAPIFromAPIGatewayK8s(virtualService *kunstructured.Unstructured) error {
+func RemoveAPIFromAPIGatewayK8s(virtualService *istioclientnetworking.VirtualService) error {
 	if virtualService == nil {
 		return nil // API is not running
 	}
@@ -148,7 +148,7 @@ func RemoveAPIFromAPIGatewayK8s(virtualService *kunstructured.Unstructured) erro
 	return RemoveAPIFromAPIGateway(endpoint, apiGatewayType)
 }
 
-func UpdateAPIGatewayK8s(prevVirtualService *kunstructured.Unstructured, newAPI *spec.API) error {
+func UpdateAPIGatewayK8s(prevVirtualService *istioclientnetworking.VirtualService, newAPI *spec.API) error {
 	prevAPIGatewayType, err := userconfig.APIGatewayFromAnnotations(prevVirtualService)
 	if err != nil {
 		return err

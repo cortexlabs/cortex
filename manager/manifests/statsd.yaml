@@ -25,7 +25,7 @@ data:
         "region": "$CORTEX_REGION"
       },
       "metrics": {
-        "namespace": "$CORTEX_LOG_GROUP",
+        "namespace": "$CORTEX_CLUSTER_NAME",
         "force_flush_interval": 1,
         "metrics_collected": {
           "statsd": {
@@ -106,6 +106,9 @@ spec:
             name: cwagentstatsdconfig
       terminationGracePeriodSeconds: 60
       tolerations:
+      - key: aws.amazon.com/infa
+        operator: Exists
+        effect: NoSchedule
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
