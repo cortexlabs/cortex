@@ -48,7 +48,7 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 
 	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
 
-	// apiConfig.Predictor.Model was already added to apiConfig.Predictor.Models for ease of use
+	// apiConfig.Predictor.ModelPath was already added to apiConfig.Predictor.Models for ease of use
 	if len(apiConfig.Predictor.Models) > 0 {
 		localModelCaches, err := CacheModels(newAPISpec, awsClient)
 		if err != nil {
