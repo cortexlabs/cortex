@@ -19,8 +19,6 @@ package userconfig
 const (
 	// API
 	NameKey           = "name"
-	EndpointKey       = "endpoint"
-	LocalPortKey      = "local_port"
 	PredictorKey      = "predictor"
 	MonitoringKey     = "monitoring"
 	NetworkingKey     = "networking"
@@ -49,6 +47,8 @@ const (
 
 	// Networking
 	APIGatewayKey = "api_gateway"
+	EndpointKey   = "endpoint"
+	LocalPortKey  = "local_port"
 
 	// Compute
 	CPUKey = "cpu"

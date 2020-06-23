@@ -58,20 +58,6 @@ func apiValidation(provider types.ProviderType) *cr.StructValidation {
 					MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
 				},
 			},
-			{
-				StructField: "Endpoint",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: urls.ValidateEndpoint,
-					MaxLength: 1000, // no particular reason other than it works
-				},
-			},
-			{
-				StructField: "LocalPort",
-				IntPtrValidation: &cr.IntPtrValidation{
-					GreaterThan:       pointer.Int(0),
-					LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-				},
-			},
 			predictorValidation(),
 			monitoringValidation(),
 			networkingValidation(),
@@ -192,6 +178,20 @@ func networkingValidation() *cr.StructFieldValidation {
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
 			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Endpoint",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Validator: urls.ValidateEndpoint,
+						MaxLength: 1000, // no particular reason other than it works
+					},
+				},
+				{
+					StructField: "LocalPort",
+					IntPtrValidation: &cr.IntPtrValidation{
+						GreaterThan:       pointer.Int(0),
+						LessThanOrEqualTo: pointer.Int(math.MaxUint16),
+					},
+				},
 				{
 					StructField: "APIGateway",
 					StringValidation: &cr.StringValidation{
@@ -505,8 +505,8 @@ func ValidateAPI(
 	providerType types.ProviderType,
 	awsClient *aws.Client,
 ) error {
-	if providerType == types.AWSProviderType && api.Endpoint == nil {
-		api.Endpoint = pointer.String("/" + api.Name)
+	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
+		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
 	if err := validatePredictor(api, projectFiles, providerType, awsClient); err != nil {

@@ -199,35 +199,35 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	for i := range apis {
 		api := &apis[i]
 
-		updatingAPIToPortMap[api.Name] = api.LocalPort
-		if api.LocalPort != nil {
-			if collidingAPIName, ok := portToUpdatingAPIMap[*api.LocalPort]; ok {
-				return errors.Wrap(ErrorDuplicateLocalPort(collidingAPIName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.LocalPort))
+		updatingAPIToPortMap[api.Name] = api.Networking.LocalPort
+		if api.Networking.LocalPort != nil {
+			if collidingAPIName, ok := portToUpdatingAPIMap[*api.Networking.LocalPort]; ok {
+				return errors.Wrap(ErrorDuplicateLocalPort(collidingAPIName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.Networking.LocalPort))
 			}
-			usedPorts = append(usedPorts, *api.LocalPort)
-			portToUpdatingAPIMap[*api.LocalPort] = api.Name
+			usedPorts = append(usedPorts, *api.Networking.LocalPort)
+			portToUpdatingAPIMap[*api.Networking.LocalPort] = api.Name
 		}
 	}
 
 	for i := range apis {
 		api := &apis[i]
-		if api.LocalPort != nil {
+		if api.Networking.LocalPort != nil {
 			// same port as previous deployment of this API
-			if *api.LocalPort == runningAPIsToPortMap[api.Name] {
+			if *api.Networking.LocalPort == runningAPIsToPortMap[api.Name] {
 				continue
 			}
 
 			// port is being used by another API
-			if apiName, ok := portToRunningAPIsMap[*api.LocalPort]; ok {
-				return errors.Wrap(ErrorDuplicateLocalPort(apiName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.LocalPort))
+			if apiName, ok := portToRunningAPIsMap[*api.Networking.LocalPort]; ok {
+				return errors.Wrap(ErrorDuplicateLocalPort(apiName), api.Identify(), userconfig.LocalPortKey, s.Int(*api.Networking.LocalPort))
 			}
-			isPortAvailable, err := checkPortAvailability(*api.LocalPort)
+			isPortAvailable, err := checkPortAvailability(*api.Networking.LocalPort)
 			if err != nil {
 				return err
 			}
 
 			if !isPortAvailable {
-				return errors.Wrap(ErrorPortAlreadyInUse(*api.LocalPort), api.Identify(), userconfig.LocalPortKey)
+				return errors.Wrap(ErrorPortAlreadyInUse(*api.Networking.LocalPort), api.Identify(), userconfig.LocalPortKey)
 			}
 		} else {
 			// get previous api deployment port
@@ -235,7 +235,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 				// check that the previous api deployment port has not been claimed in new deployment
 				if _, ok := portToUpdatingAPIMap[port]; !ok {
-					api.LocalPort = pointer.Int(port)
+					api.Networking.LocalPort = pointer.Int(port)
 				}
 			}
 		}
@@ -243,13 +243,13 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 	for i := range apis {
 		api := &apis[i]
-		if api.LocalPort == nil {
+		if api.Networking.LocalPort == nil {
 			availablePort, err := findTheNextAvailablePort(usedPorts)
 			if err != nil {
 				errors.Wrap(err, api.Identify())
 			}
 
-			api.LocalPort = pointer.Int(availablePort)
+			api.Networking.LocalPort = pointer.Int(availablePort)
 		}
 	}
 

@@ -99,7 +99,7 @@ func ErrorDuplicateEndpointInOneDeploy(apis []userconfig.API) error {
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpointInOneDeploy,
-		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Endpoint), s.StrsAnd(names)),
+		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Networking.Endpoint), s.StrsAnd(names)),
 	})
 }
 
