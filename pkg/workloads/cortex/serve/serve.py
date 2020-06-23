@@ -53,7 +53,7 @@ API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 
 loop = asyncio.get_event_loop()
 loop.set_default_executor(
-    ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_WORKER"]))
+    ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_PROCESS"]))
 )
 
 app = FastAPI()

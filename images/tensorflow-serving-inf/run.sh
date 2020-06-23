@@ -16,7 +16,7 @@
 
 set -e
 
-for i in $(seq 1 $TF_WORKERS); do
+for i in $(seq 1 $TF_PROCESSES); do
     echo -e "\n\n" >> /tmp/supervisord.conf
     worker=$i port=$((CORTEX_TF_BASE_SERVING_PORT+i-1)) envsubst < /tmp/template.conf >> /tmp/supervisord.conf
 done

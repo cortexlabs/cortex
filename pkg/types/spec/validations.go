@@ -134,7 +134,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "WorkersPerReplica",
+					StructField: "ProcessesPerReplica",
 					Int32Validation: &cr.Int32Validation{
 						Default:              1,
 						GreaterThanOrEqualTo: pointer.Int32(1),
@@ -142,7 +142,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "ThreadsPerWorker",
+					StructField: "ThreadsPerProcess",
 					Int32Validation: &cr.Int32Validation{
 						Default:              1,
 						GreaterThanOrEqualTo: pointer.Int32(1),
@@ -945,7 +945,7 @@ func validateAutoscaling(api *userconfig.API) error {
 	predictor := api.Predictor
 
 	if autoscaling.TargetReplicaConcurrency == nil {
-		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(predictor.WorkersPerReplica * predictor.ThreadsPerWorker))
+		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(predictor.ProcessesPerReplica * predictor.ThreadsPerProcess))
 	}
 
 	if *autoscaling.TargetReplicaConcurrency > float64(autoscaling.MaxReplicaConcurrency) {
@@ -966,9 +966,9 @@ func validateAutoscaling(api *userconfig.API) error {
 
 	if api.Compute.Inf > 0 {
 		numNeuronCores := api.Compute.Inf * consts.NeuronCoresPerInf
-		workersPerReplica := int64(predictor.WorkersPerReplica)
-		if !libmath.IsDivisibleByInt64(numNeuronCores, workersPerReplica) {
-			return ErrorInvalidNumberOfInfWorkers(workersPerReplica, api.Compute.Inf, numNeuronCores)
+		processesPerReplica := int64(predictor.ProcessesPerReplica)
+		if !libmath.IsDivisibleByInt64(numNeuronCores, processesPerReplica) {
+			return ErrorInvalidNumberOfInfProcesses(processesPerReplica, api.Compute.Inf, numNeuronCores)
 		}
 	}
 

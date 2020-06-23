@@ -617,21 +617,21 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				},
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_WORKERS_PER_REPLICA",
-				Value: s.Int32(api.Predictor.WorkersPerReplica),
+				Name:  "CORTEX_PROCESSES_PER_REPLICA",
+				Value: s.Int32(api.Predictor.ProcessesPerReplica),
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_THREADS_PER_WORKER",
-				Value: s.Int32(api.Predictor.ThreadsPerWorker),
+				Name:  "CORTEX_THREADS_PER_PROCESS",
+				Value: s.Int32(api.Predictor.ThreadsPerProcess),
 			},
 			kcore.EnvVar{
 				Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
 				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
 			},
 			kcore.EnvVar{
-				Name: "CORTEX_MAX_WORKER_CONCURRENCY",
-				// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
-				Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Predictor.WorkersPerReplica)))),
+				Name: "CORTEX_MAX_PROCESS_CONCURRENCY",
+				// add 1 because it was required to achieve the target concurrency for 1 process, 1 thread
+				Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Predictor.ProcessesPerReplica)))),
 			},
 			kcore.EnvVar{
 				Name:  "CORTEX_SO_MAX_CONN",
@@ -703,7 +703,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf / int64(api.Predictor.WorkersPerReplica)),
+					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf / int64(api.Predictor.ProcessesPerReplica)),
 				},
 				kcore.EnvVar{
 					Name:  "NEURON_RTD_ADDRESS",
@@ -716,8 +716,8 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			if container == _tfServingContainerName {
 				envVars = append(envVars,
 					kcore.EnvVar{
-						Name:  "TF_WORKERS",
-						Value: s.Int32(api.Predictor.WorkersPerReplica),
+						Name:  "TF_PROCESSES",
+						Value: s.Int32(api.Predictor.ProcessesPerReplica),
 					},
 					kcore.EnvVar{
 						Name:  "CORTEX_TF_BASE_SERVING_PORT",
@@ -760,7 +760,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 	}
 
 	if api.Compute.Inf > 0 {
-		numPorts := api.Predictor.WorkersPerReplica
+		numPorts := api.Predictor.ProcessesPerReplica
 		for i := int32(1); i < numPorts; i++ {
 			ports = append(ports, kcore.ContainerPort{
 				ContainerPort: _tfBaseServingPortInt32 + i,

@@ -52,8 +52,8 @@ type Predictor struct {
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
-	WorkersPerReplica      int32                  `json:"workers_per_replica" yaml:"workers_per_replica"`
-	ThreadsPerWorker       int32                  `json:"threads_per_worker" yaml:"threads_per_worker"`
+	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
+	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
@@ -177,8 +177,8 @@ func (api *API) ToK8sAnnotations() map[string]string {
 		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
 		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
 		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
-		WorkersPerReplicaAnnotationKey:            s.Int32(api.Predictor.WorkersPerReplica),
-		ThreadsPerWorkerAnnotationKey:             s.Int32(api.Predictor.ThreadsPerWorker),
+		ProcessesPerReplicaAnnotationKey:          s.Int32(api.Predictor.ProcessesPerReplica),
+		ThreadsPerProcessAnnotationKey:            s.Int32(api.Predictor.ThreadsPerProcess),
 		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*api.Autoscaling.TargetReplicaConcurrency),
 		MaxReplicaConcurrencyAnnotationKey:        s.Int64(api.Autoscaling.MaxReplicaConcurrency),
 		WindowAnnotationKey:                       api.Autoscaling.Window.String(),
@@ -331,8 +331,8 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
-	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(predictor.WorkersPerReplica)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(predictor.ThreadsPerWorker)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(predictor.ThreadsPerProcess)))
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&predictor.Config)
