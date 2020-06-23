@@ -14,9 +14,9 @@
 
 
 class Model:
-    def __init__(self, name, model, base_path, signature_key=None):
+    def __init__(self, name, model_path, base_path, signature_key=None):
         self.name = name
-        self.model = model
+        self.model_path = model_path
         self.base_path = base_path
         self.signature_key = signature_key
 

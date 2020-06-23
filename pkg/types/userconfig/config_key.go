@@ -31,7 +31,7 @@ const (
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"
-	ModelKey                  = "model"
+	ModelPathKey              = "model_path"
 	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
