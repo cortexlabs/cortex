@@ -333,17 +333,17 @@ func (predictor *Predictor) UserStr() string {
 	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(predictor.WorkersPerReplica)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(predictor.ThreadsPerWorker)))
-	if predictor.PythonPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
+	if len(predictor.Config) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
+		d, _ := yaml.Marshal(&predictor.Config)
+		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
 	if predictor.TensorFlowServingImage != "" {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", TensorFlowServingImageKey, predictor.TensorFlowServingImage))
 	}
-	if len(predictor.Config) > 0 {
-		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
-		d, _ := yaml.Marshal(&predictor.Config)
-		sb.WriteString(s.Indent(string(d), "  "))
+	if predictor.PythonPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
 	if len(predictor.Env) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
