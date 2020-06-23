@@ -79,10 +79,10 @@ const (
 	// K8s annotation
 	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
 	APIGatewayAnnotationKey                   = "networking.cortex.dev/api-gateway"
+	ProcessesPerReplicaAnnotationKey          = "predictor.cortex.dev/processes-per-replica"
+	ThreadsPerProcessAnnotationKey            = "predictor.cortex.dev/threads-per-process"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
-	ProcessesPerReplicaAnnotationKey          = "autoscaling.cortex.dev/processes-per-replica"
-	ThreadsPerProcessAnnotationKey            = "autoscaling.cortex.dev/threads-per-process"
 	TargetReplicaConcurrencyAnnotationKey     = "autoscaling.cortex.dev/target-replica-concurrency"
 	MaxReplicaConcurrencyAnnotationKey        = "autoscaling.cortex.dev/max-replica-concurrency"
 	WindowAnnotationKey                       = "autoscaling.cortex.dev/window"

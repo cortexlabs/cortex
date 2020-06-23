@@ -176,10 +176,10 @@ func (api *API) ToK8sAnnotations() map[string]string {
 	return map[string]string{
 		EndpointAnnotationKey:                     *api.Networking.Endpoint,
 		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
-		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
-		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
 		ProcessesPerReplicaAnnotationKey:          s.Int32(api.Predictor.ProcessesPerReplica),
 		ThreadsPerProcessAnnotationKey:            s.Int32(api.Predictor.ThreadsPerProcess),
+		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
+		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
 		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*api.Autoscaling.TargetReplicaConcurrency),
 		MaxReplicaConcurrencyAnnotationKey:        s.Int64(api.Autoscaling.MaxReplicaConcurrency),
 		WindowAnnotationKey:                       api.Autoscaling.Window.String(),
