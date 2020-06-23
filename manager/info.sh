@@ -39,7 +39,7 @@ operator_endpoint=$(get_operator_endpoint)
 api_load_balancer_endpoint=$(get_api_load_balancer_endpoint)
 api_gateway_endpoint=$(get_api_gateway_endpoint)
 
-# before modifying this, search for this prefix
-echo "operator endpoint:          $operator_endpoint"
-echo "api load balancer endpoint: $api_load_balancer_endpoint"
-echo "api gateway endpoint:       $api_gateway_endpoint"
+echo -e "\033[1mendpoints:\033[0m"
+echo "operator:          $operator_endpoint"  # before modifying this, search for this prefix
+echo "api load balancer: $api_load_balancer_endpoint"
+echo "api gateway:       $api_gateway_endpoint"

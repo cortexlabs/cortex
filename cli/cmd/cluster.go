@@ -430,8 +430,8 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	var operatorEndpoint string
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
-		if strings.HasPrefix(line, "operator endpoint: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator endpoint: "))
+		if strings.HasPrefix(line, "operator: ") {
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
