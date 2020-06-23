@@ -47,6 +47,8 @@ type API struct {
 type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
+	WorkersPerReplica      int32                  `json:"workers_per_replica" yaml:"workers_per_replica"`
+	ThreadsPerWorker       int32                  `json:"threads_per_worker" yaml:"threads_per_worker"`
 	Model                  *string                `json:"model" yaml:"model"`
 	Models                 []*ModelResource       `json:"models" yaml:"models"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
@@ -83,8 +85,6 @@ type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	WorkersPerReplica            int32         `json:"workers_per_replica" yaml:"workers_per_replica"`
-	ThreadsPerWorker             int32         `json:"threads_per_worker" yaml:"threads_per_worker"`
 	TargetReplicaConcurrency     *float64      `json:"target_replica_concurrency" yaml:"target_replica_concurrency"`
 	MaxReplicaConcurrency        int64         `json:"max_replica_concurrency" yaml:"max_replica_concurrency"`
 	Window                       time.Duration `json:"window" yaml:"window"`
@@ -177,8 +177,8 @@ func (api *API) ToK8sAnnotations() map[string]string {
 		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
 		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
 		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
-		WorkersPerReplicaAnnotationKey:            s.Int32(api.Autoscaling.WorkersPerReplica),
-		ThreadsPerWorkerAnnotationKey:             s.Int32(api.Autoscaling.ThreadsPerWorker),
+		WorkersPerReplicaAnnotationKey:            s.Int32(api.Predictor.WorkersPerReplica),
+		ThreadsPerWorkerAnnotationKey:             s.Int32(api.Predictor.ThreadsPerWorker),
 		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*api.Autoscaling.TargetReplicaConcurrency),
 		MaxReplicaConcurrencyAnnotationKey:        s.Int64(api.Autoscaling.MaxReplicaConcurrency),
 		WindowAnnotationKey:                       api.Autoscaling.Window.String(),
@@ -213,18 +213,6 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 		return nil, err
 	}
 	a.MaxReplicas = maxReplicas
-
-	workersPerReplica, err := k8s.ParseInt32Annotation(k8sObj, WorkersPerReplicaAnnotationKey)
-	if err != nil {
-		return nil, err
-	}
-	a.WorkersPerReplica = workersPerReplica
-
-	threadsPerWorker, err := k8s.ParseInt32Annotation(k8sObj, ThreadsPerWorkerAnnotationKey)
-	if err != nil {
-		return nil, err
-	}
-	a.ThreadsPerWorker = threadsPerWorker
 
 	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(k8sObj, TargetReplicaConcurrencyAnnotationKey)
 	if err != nil {
@@ -331,6 +319,8 @@ func (predictor *Predictor) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(predictor.WorkersPerReplica)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(predictor.ThreadsPerWorker)))
 	if predictor.Model != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
 	}
@@ -442,8 +432,6 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(autoscaling.WorkersPerReplica)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(autoscaling.ThreadsPerWorker)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetReplicaConcurrencyKey, s.Float64(*autoscaling.TargetReplicaConcurrency)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicaConcurrencyKey, s.Int64(autoscaling.MaxReplicaConcurrency)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))

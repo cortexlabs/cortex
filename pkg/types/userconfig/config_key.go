@@ -31,6 +31,8 @@ const (
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"
+	WorkersPerReplicaKey      = "workers_per_replica"
+	ThreadsPerWorkerKey       = "threads_per_worker"
 	ModelKey                  = "model"
 	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
@@ -60,8 +62,6 @@ const (
 	MinReplicasKey                  = "min_replicas"
 	MaxReplicasKey                  = "max_replicas"
 	InitReplicasKey                 = "init_replicas"
-	WorkersPerReplicaKey            = "workers_per_replica"
-	ThreadsPerWorkerKey             = "threads_per_worker"
 	TargetReplicaConcurrencyKey     = "target_replica_concurrency"
 	MaxReplicaConcurrencyKey        = "max_replica_concurrency"
 	WindowKey                       = "window"
