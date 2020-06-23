@@ -47,13 +47,13 @@ type API struct {
 type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
-	WorkersPerReplica      int32                  `json:"workers_per_replica" yaml:"workers_per_replica"`
-	ThreadsPerWorker       int32                  `json:"threads_per_worker" yaml:"threads_per_worker"`
 	Model                  *string                `json:"model" yaml:"model"`
 	Models                 []*ModelResource       `json:"models" yaml:"models"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
+	WorkersPerReplica      int32                  `json:"workers_per_replica" yaml:"workers_per_replica"`
+	ThreadsPerWorker       int32                  `json:"threads_per_worker" yaml:"threads_per_worker"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
@@ -319,8 +319,6 @@ func (predictor *Predictor) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(predictor.WorkersPerReplica)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(predictor.ThreadsPerWorker)))
 	if predictor.Model != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
 	}
@@ -333,6 +331,8 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(predictor.WorkersPerReplica)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(predictor.ThreadsPerWorker)))
 	if predictor.PythonPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}

@@ -105,21 +105,6 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "WorkersPerReplica",
-					Int32Validation: &cr.Int32Validation{
-						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-						LessThanOrEqualTo:    pointer.Int32(20),
-					},
-				},
-				{
-					StructField: "ThreadsPerWorker",
-					Int32Validation: &cr.Int32Validation{
-						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-					},
-				},
-				{
 					StructField:         "Model",
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
@@ -146,6 +131,21 @@ func predictorValidation() *cr.StructFieldValidation {
 						Required:           false,
 						AllowEmpty:         true,
 						DockerImageOrEmpty: true,
+					},
+				},
+				{
+					StructField: "WorkersPerReplica",
+					Int32Validation: &cr.Int32Validation{
+						Default:              1,
+						GreaterThanOrEqualTo: pointer.Int32(1),
+						LessThanOrEqualTo:    pointer.Int32(20),
+					},
+				},
+				{
+					StructField: "ThreadsPerWorker",
+					Int32Validation: &cr.Int32Validation{
+						Default:              1,
+						GreaterThanOrEqualTo: pointer.Int32(1),
 					},
 				},
 				{

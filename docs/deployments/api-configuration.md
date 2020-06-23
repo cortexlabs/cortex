@@ -60,8 +60,6 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
-    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
-    threads_per_worker: <int>  # the number of threads per worker (default: 1)
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'models' must be provided)
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     models:  # use this when multiple models per API are desired (either this or 'model' must be provided)
@@ -69,6 +67,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
         model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
+    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
+    threads_per_worker: <int>  # the number of threads per worker (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
@@ -113,14 +113,14 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
-    threads_per_worker: <int>  # the number of threads per worker (default: 1)
     model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (either this or 'models' must be provided)
     models:  # use this when multiple models per API are desired (either this or 'model' must be provided)
       - name: <string> # unique name for the model (e.g. iris-classifier) (required)
         model: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
+    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
+    threads_per_worker: <int>  # the number of threads per worker (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-gpu or cortexlabs/onnx-predictor-cpu based on compute)
