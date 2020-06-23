@@ -126,7 +126,7 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 	ignoreFns := []files.IgnoreFn{
 		files.IgnoreSpecificFiles(files.UserRelToAbsPath(configPath)),
 		files.IgnoreCortexDebug,
-		files.IgnoreHiddenFilesExceptDotEnv,
+		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,
 		files.IgnorePythonGeneratedFiles,
 	}

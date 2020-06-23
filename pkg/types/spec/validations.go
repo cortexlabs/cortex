@@ -870,7 +870,7 @@ func GetTFServingExportFromLocalPath(path string) (string, error) {
 	if err := files.CheckDir(path); err != nil {
 		return "", err
 	}
-	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFilesExceptDotEnv, files.IgnoreHiddenFolders)
+	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return "", err
 	}
@@ -907,7 +907,7 @@ func GetTFServingExportFromLocalPath(path string) (string, error) {
 }
 
 func IsValidTensorFlowLocalDirectory(path string) (bool, error) {
-	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFilesExceptDotEnv, files.IgnoreHiddenFolders)
+	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return false, err
 	}

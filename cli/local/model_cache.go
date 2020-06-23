@@ -255,7 +255,7 @@ func localModelHash(modelPath string) (string, error) {
 	var err error
 	modelHash := ""
 	if files.IsDir(modelPath) {
-		modelHash, err = files.HashDirectory(modelPath, files.IgnoreHiddenFilesExceptDotEnv, files.IgnoreHiddenFolders)
+		modelHash, err = files.HashDirectory(modelPath, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 		if err != nil {
 			return "", err
 		}

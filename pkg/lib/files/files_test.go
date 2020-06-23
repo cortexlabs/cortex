@@ -209,7 +209,7 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, filesList, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFilesExceptDotEnv)
+	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
@@ -226,7 +226,7 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFilesExceptDotEnv, IgnoreHiddenFolders)
+	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles, IgnoreHiddenFolders)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
@@ -242,7 +242,7 @@ func TestListDirRecursive(t *testing.T) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, filesListRecursive)
 
-	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFilesExceptDotEnv, IgnoreDir3, IgnorePythonGeneratedFiles)
+	filesListRecursive, err = ListDirRecursive(tmpDir, false, IgnoreHiddenFiles, IgnoreDir3, IgnorePythonGeneratedFiles)
 	expected = []string{
 		filepath.Join(tmpDir, "1.txt"),
 		filepath.Join(tmpDir, "2.py"),
