@@ -83,7 +83,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			return err
 		}
 
-		if !didPrintWarning && api.LocalPort != nil {
+		if !didPrintWarning && api.Networking.LocalPort != nil {
 			fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
 			didPrintWarning = true
 		}
@@ -158,7 +158,7 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclie
 
 		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService)
 		for endpoint := range endpoints {
-			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Endpoint, "/") && virtualService.GetLabels()["apiName"] != api.Name {
+			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Networking.Endpoint, "/") && virtualService.GetLabels()["apiName"] != api.Name {
 				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.GetLabels()["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
 			}
 		}
@@ -171,7 +171,7 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	endpoints := make(map[string][]userconfig.API)
 
 	for _, api := range apis {
-		endpoints[*api.Endpoint] = append(endpoints[*api.Endpoint], api)
+		endpoints[*api.Networking.Endpoint] = append(endpoints[*api.Networking.Endpoint], api)
 	}
 
 	for endpoint := range endpoints {

@@ -31,8 +31,6 @@ import (
 
 type API struct {
 	Name           string          `json:"name" yaml:"name"`
-	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
-	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking     *Networking     `json:"networking" yaml:"networking"`
@@ -69,6 +67,8 @@ type Monitoring struct {
 }
 
 type Networking struct {
+	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
+	LocalPort  *int           `json:"local_port" yaml:"local_port"`
 	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
 }
 
@@ -287,16 +287,13 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 
-	if provider == types.LocalProviderType && api.LocalPort != nil {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))
-	}
-
-	if provider != types.LocalProviderType && api.Endpoint != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
-	}
-
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
+
+	if api.Networking != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
+		sb.WriteString(s.Indent(api.Networking.UserStr(provider), "  "))
+	}
 
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
@@ -307,11 +304,6 @@ func (api *API) UserStr(provider types.ProviderType) string {
 		if api.Monitoring != nil {
 			sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
 			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
-		}
-
-		if api.Networking != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
-			sb.WriteString(s.Indent(api.Networking.UserStr(), "  "))
 		}
 
 		if api.Autoscaling != nil {
@@ -382,9 +374,17 @@ func (monitoring *Monitoring) UserStr() string {
 	return sb.String()
 }
 
-func (networking *Networking) UserStr() string {
+func (networking *Networking) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
+	if provider == types.LocalProviderType && networking.LocalPort != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *networking.LocalPort))
+	}
+	if provider == types.AWSProviderType && networking.Endpoint != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
+	}
+	if provider == types.AWSProviderType {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
+	}
 	return sb.String()
 }
 

@@ -505,8 +505,8 @@ func ValidateAPI(
 	providerType types.ProviderType,
 	awsClient *aws.Client,
 ) error {
-	if providerType == types.AWSProviderType && api.Endpoint == nil {
-		api.Endpoint = pointer.String("/" + api.Name)
+	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
+		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
 	if err := validatePredictor(api, projectFiles, providerType, awsClient); err != nil {
