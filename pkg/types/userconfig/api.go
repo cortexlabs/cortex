@@ -174,6 +174,7 @@ func IdentifyAPI(filePath string, name string, index int) string {
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
 	return map[string]string{
+		EndpointAnnotationKey:                     *api.Networking.Endpoint,
 		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
 		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
 		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
