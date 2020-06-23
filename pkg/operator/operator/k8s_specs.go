@@ -261,9 +261,9 @@ func tfDownloadArgs(api *spec.API) string {
 			itemName = fmt.Sprintf("model %s", model.Name)
 		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:                 model.Model,
+			From:                 model.ModelPath,
 			To:                   path.Join(rootModelPath, model.Name),
-			Unzip:                strings.HasSuffix(model.Model, ".zip"),
+			Unzip:                strings.HasSuffix(model.ModelPath, ".zip"),
 			ItemName:             itemName,
 			TFModelVersionRename: path.Join(rootModelPath, model.Name, "1"),
 		})
@@ -531,7 +531,7 @@ func onnxDownloadArgs(api *spec.API) string {
 			itemName = fmt.Sprintf("model %s", model.Name)
 		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:     model.Model,
+			From:     model.ModelPath,
 			To:       path.Join(rootModelPath, model.Name),
 			ItemName: itemName,
 		})
@@ -562,7 +562,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Gateways:    []string{"apis-gateway"},
 		ServiceName: k8sName(api.Name),
 		ServicePort: _defaultPortInt32,
-		Path:        *api.Endpoint,
+		Path:        *api.Networking.Endpoint,
 		Rewrite:     pointer.String("predict"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{

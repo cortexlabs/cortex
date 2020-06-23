@@ -19,8 +19,6 @@ package userconfig
 const (
 	// API
 	NameKey           = "name"
-	EndpointKey       = "endpoint"
-	LocalPortKey      = "local_port"
 	PredictorKey      = "predictor"
 	MonitoringKey     = "monitoring"
 	NetworkingKey     = "networking"
@@ -31,9 +29,9 @@ const (
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"
+	ModelPathKey              = "model_path"
 	ProcessesPerReplicaKey    = "processes_per_replica"
 	ThreadsPerProcessKey      = "threads_per_process"
-	ModelKey                  = "model"
 	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
@@ -51,6 +49,8 @@ const (
 
 	// Networking
 	APIGatewayKey = "api_gateway"
+	EndpointKey   = "endpoint"
+	LocalPortKey  = "local_port"
 
 	// Compute
 	CPUKey = "cpu"
@@ -77,6 +77,7 @@ const (
 	MaxUnavailableKey = "max_unavailable"
 
 	// K8s annotation
+	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
 	APIGatewayAnnotationKey                   = "networking.cortex.dev/api-gateway"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"

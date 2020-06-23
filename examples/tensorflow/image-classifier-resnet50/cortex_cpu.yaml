@@ -4,9 +4,9 @@
   predictor:
     type: tensorflow
     path: predictor.py
+    model_path: s3://cortex-examples/tensorflow/resnet50
     processes_per_replica: 4
     threads_per_process: 16
-    model: s3://cortex-examples/tensorflow/resnet50
     config:
       classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
       input_shape: [224, 224]

@@ -40,8 +40,8 @@ class Predictor:
                 self.models += [
                     Model(
                         name=model["name"],
-                        model=model["model"],
-                        base_path=self._compute_model_basepath(model["model"], model["name"]),
+                        model_path=model["model_path"],
+                        base_path=self._compute_model_basepath(model["model_path"], model["name"]),
                         signature_key=model.get("signature_key"),
                     )
                 ]
@@ -156,10 +156,10 @@ class Predictor:
 
         return impl
 
-    def _compute_model_basepath(self, model_source, model_name):
+    def _compute_model_basepath(self, model_path, model_name):
         base_path = os.path.join(self.model_dir, model_name)
         if self.type == "onnx":
-            base_path = os.path.join(base_path, os.path.basename(model_source))
+            base_path = os.path.join(base_path, os.path.basename(model_path))
         return base_path
 
 

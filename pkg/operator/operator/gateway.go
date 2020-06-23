@@ -158,5 +158,5 @@ func updateAPIGatewayK8s(prevVirtualService *istioclientnetworking.VirtualServic
 		return err
 	}
 
-	return updateAPIGateway(prevEndpoint, prevAPIGatewayType, *newAPI.Endpoint, newAPI.Networking.APIGateway)
+	return updateAPIGateway(prevEndpoint, prevAPIGatewayType, *newAPI.Networking.Endpoint, newAPI.Networking.APIGateway)
 }

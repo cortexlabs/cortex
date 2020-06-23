@@ -99,7 +99,7 @@ func ErrorDuplicateEndpointInOneDeploy(apis []userconfig.API) error {
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpointInOneDeploy,
-		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Endpoint), s.StrsAnd(names)),
+		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Networking.Endpoint), s.StrsAnd(names)),
 	})
 }
 
@@ -241,10 +241,10 @@ func ErrorInvalidTensorFlowModelPath() error {
 	})
 }
 
-func ErrorMissingModel(singleModelField string, multiModelField string, predictorType userconfig.PredictorType) error {
+func ErrorMissingModel(predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingModel,
-		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, singleModelField, userconfig.PredictorKey, multiModelField),
+		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
 	})
 }
 
