@@ -205,7 +205,7 @@ func TestZip(t *testing.T) {
 			{
 				Source:    tmpDir,
 				Dest:      "/",
-				IgnoreFns: []files.IgnoreFn{files.IgnoreHiddenFiles},
+				IgnoreFns: []files.IgnoreFn{files.IgnoreHiddenFilesExceptDotEnv},
 			},
 		},
 	}
@@ -227,7 +227,7 @@ func TestZip(t *testing.T) {
 		Dirs: []DirInput{
 			{
 				Source:    filepath.Join(tmpDir, "3"),
-				IgnoreFns: []files.IgnoreFn{files.IgnoreHiddenFiles},
+				IgnoreFns: []files.IgnoreFn{files.IgnoreHiddenFilesExceptDotEnv},
 				Dest:      "test3",
 				Flatten:   true,
 			},

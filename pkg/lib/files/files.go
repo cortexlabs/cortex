@@ -455,7 +455,7 @@ func IsFilePathPython(path string) bool {
 // IgnoreFn if passed a dir, returning true will ignore all subdirs of dir
 type IgnoreFn func(string, os.FileInfo) (bool, error)
 
-func IgnoreHiddenFiles(path string, fi os.FileInfo) (bool, error) {
+func IgnoreHiddenFilesExceptDotEnv(path string, fi os.FileInfo) (bool, error) {
 	if !fi.IsDir() && strings.HasPrefix(fi.Name(), ".") && fi.Name() != ".env" {
 		return true, nil
 	}
