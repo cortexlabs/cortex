@@ -22,12 +22,12 @@ import base64
 @click.argument("img_url", type=str, envvar="IMG_URL")
 @click.argument("endpoint", type=str, envvar="ENDPOINT")
 @click.option(
-    "--workers",
-    "-w",
+    "--processes",
+    "-p",
     type=int,
     default=1,
     show_default=True,
-    help="Number of workers for prediction requests.",
+    help="Number of processes for prediction requests.",
 )
 @click.option(
     "--threads",
@@ -35,7 +35,7 @@ import base64
     type=int,
     default=1,
     show_default=True,
-    help="Number of threads per worker for prediction requests.",
+    help="Number of threads per process for prediction requests.",
 )
 @click.option(
     "--samples",
@@ -60,7 +60,7 @@ import base64
     show_default=True,
     help="Number of images sent for inference in one request.",
 )
-def main(img_url, endpoint, workers, threads, samples, time_based, batch_size):
+def main(img_url, endpoint, processes, threads, samples, time_based, batch_size):
     # get the image in bytes representation
     image = get_url_image(img_url)
     image_bytes = image_to_jpeg_bytes(image)
@@ -73,9 +73,9 @@ def main(img_url, endpoint, workers, threads, samples, time_based, batch_size):
     print("Starting the inference throughput test...")
     results = []
     start = time.time()
-    with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=processes) as executor:
         results = executor_submitter(
-            executor, workers, process_worker, threads, data, endpoint, samples, time_based
+            executor, processes, process_worker, threads, data, endpoint, samples, time_based
         )
     end = time.time()
     elapsed = end - start
