@@ -14,7 +14,6 @@
 
 import boto3
 import sys
-import traceback
 import os
 
 
