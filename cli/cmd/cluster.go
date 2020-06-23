@@ -430,8 +430,8 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	var operatorEndpoint string
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
-		if strings.HasPrefix(line, "operator endpoint: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator endpoint: "))
+		if strings.HasPrefix(line, "operator: ") {
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
@@ -625,7 +625,7 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 	if prevEnv == nil {
 		shouldWriteEnv = true
 		fmt.Println()
-	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || *prevEnv.AWSAccessKeyID != awsCreds.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != awsCreds.AWSSecretAccessKey {
+	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || !awsCreds.ContainsCreds(*prevEnv.AWSAccessKeyID, *prevEnv.AWSSecretAccessKey) {
 		if disallowPrompt {
 			fmt.Print(fmt.Sprintf("\nfound an existing environment named \"%s\"; overwriting it to connect to this cluster\n", _flagClusterEnv))
 			shouldWriteEnv = true
