@@ -51,7 +51,7 @@ RUN test "${SLIM}" = "true" || ( \
             libpng-dev \
             libsndfile1 \
         && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
-        && pip install --no-cache-dir \
+        && pip install --no-cache-dir --find-links https://download.pytorch.org/whl/torch_stable.html \
             cloudpickle==1.4.1 \
             Cython==0.29.17 \
             joblib==0.14.1 \
@@ -69,8 +69,8 @@ RUN test "${SLIM}" = "true" || ( \
             sympy==1.5.1 \
             tensorflow-cpu==2.1.0 \
             tensorflow-hub==0.8.0 \
-            https://download.pytorch.org/whl/cpu/torch-1.5.0%2Bcpu-cp36-cp36m-linux_x86_64.whl \
-            https://download.pytorch.org/whl/cpu/torchvision-0.6.0%2Bcpu-cp36-cp36m-linux_x86_64.whl \
+            torch==1.5.1+cpu \
+            torchvision==0.6.1+cpu \
             xgboost==1.0.2 \
     )
 
