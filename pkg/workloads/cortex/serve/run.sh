@@ -21,18 +21,27 @@ mkdir -p /mnt/requests
 
 cd /mnt/project
 
-# If the container restarted, ensure that it is not perceived as ready
+# if the container restarted, ensure that it is not perceived as ready
 rm -rf /mnt/workspace/api_readiness.txt
 
-# Allow for the liveness check to pass until the API is running
+# allow for the liveness check to pass until the API is running
 echo "9999999999" > /mnt/workspace/api_liveness.txt
 
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
+# ensure predictor print() statements are always flushed
+export PYTHONUNBUFFERED=TRUE
 
 if [ "$CORTEX_PROVIDER" != "local" ]; then
     sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
     sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
     sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
+fi
+
+# export environment variables
+if [ -f "/mnt/project/.env" ]; then
+    set -a
+    source /mnt/project/.env
+    set +a
 fi
 
 # execute script if present in project's directory
@@ -62,7 +71,5 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-# Ensure predictor print() statements are always flushed
-export PYTHONUNBUFFERED=TRUE
-
+# run webserver
 /opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py
