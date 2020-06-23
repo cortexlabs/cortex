@@ -40,7 +40,7 @@ class Predictor:
                 self.models += [
                     Model(
                         name=model["name"],
-                        model=model["model_path"],
+                        model_path=model["model_path"],
                         base_path=self._compute_model_basepath(model["model_path"], model["name"]),
                         signature_key=model.get("signature_key"),
                     )
