@@ -22,8 +22,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batch"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/mux"
 )
 
@@ -39,7 +41,7 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub := batch.Submission{}
+	sub := batchapi.Submission{}
 
 	err = json.Unmarshal(bodyBytes, &sub)
 	if err != nil {
@@ -47,7 +49,7 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobSpec, err := batch.SubmitJob(vars["apiName"], sub)
+	jobSpec, err := batchapi.SubmitJob(vars["apiName"], sub)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -108,7 +110,7 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 func BatchDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := batch.DeleteJob(vars["apiName"], vars["jobID"])
+	err := batchapi.DeleteJob(vars["apiName"], vars["jobID"])
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -126,11 +128,29 @@ func BatchGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobStatus, err := batch.GetJobStatus(vars["apiName"], vars["jobID"], pods)
+	jobSpec, err := batchapi.DownloadJobSpec(vars["apiName"], vars["jobID"])
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	respond(w, jobStatus)
+	jobStatus, err := batchapi.GetJobStatus(vars["apiName"], vars["jobID"], pods)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	spec, err := cloud.DownloadAPISpec(jobSpec.APIName, jobSpec.APIName)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	response := schema.JobResponse{
+		JobSpec:   *jobSpec,
+		JobStatus: *jobStatus,
+		APISpec:   *spec,
+	}
+
+	respond(w, response)
 }

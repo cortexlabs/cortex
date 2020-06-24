@@ -78,9 +78,9 @@ func getInit() {
 }
 
 var _getCmd = &cobra.Command{
-	Use:   "get [API_NAME]",
+	Use:   "get [API_NAME] [JOB_ID]",
 	Short: "get information about apis",
-	Args:  cobra.RangeArgs(0, 1),
+	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
 		if len(args) == 1 || wasEnvFlagProvided() {
@@ -192,7 +192,7 @@ func getAPIsInAllEnvironments() (string, error) {
 		}
 	} else {
 		if len(allBatchAPIs) > 0 {
-			t2 := batchTable(allBatchAPIs, allBatchAPIEnvs)
+			t2 := batchAPIsTable(allBatchAPIs, allBatchAPIEnvs)
 			out += t2.MustFormat()
 		}
 
@@ -360,13 +360,13 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 	return out, nil
 }
 
-func batchTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
+func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(batchAPIs))
 
 	var totalFailed int
 
 	for i, api := range batchAPIs {
-		lastUpdated := time.Unix(api.API.LastUpdated, 0)
+		lastUpdated := time.Unix(api.Spec.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := ""
 		requested := 0
@@ -385,7 +385,7 @@ func batchTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
 
 		rows = append(rows, []interface{}{
 			envNames[i],
-			api.API.Name,
+			api.Spec.Name,
 			len(api.Jobs),
 			latestJobID,
 			requested,
@@ -406,6 +406,111 @@ func batchTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
 		},
 		Rows: rows,
 	}
+}
+
+func batchAPITable(batchAPI schema.BatchAPI) string {
+	rows := make([][]interface{}, 0, len(batchAPI.Jobs))
+
+	totalFailed := 0
+	for _, job := range batchAPI.Jobs {
+		totalFailed += job.JobStats.Failed
+
+		rows = append(rows, []interface{}{
+			job.JobID,
+			job.Status.String(),
+			fmt.Sprintf("%d/%d", job.JobStats.TotalCompleted, job.Total),
+			job.JobStats.Failed,
+			libtime.SinceStr(&job.StartTime),
+		})
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "job id"},
+			{Title: "status"},
+			{Title: "progress"}, // (completed/total), only show when status is running
+			{Title: "failed", Hidden: totalFailed == 0},
+			{Title: "start time"},
+		},
+		Rows: rows,
+	}
+
+	out := t.MustFormat()
+	out += "\n"
+	out += titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
+	return out
+}
+
+func jobStats(job schema.JobResponse) (string, error) {
+
+	totalFailed := job.JobStatus.JobStats.Failed
+
+	out := ""
+
+	{
+		out += titleStr("job stats")
+		rows := make([][]interface{}, 1)
+
+		rows = append(rows, []interface{}{
+			job.JobSpec.ID,
+			job.JobSpec.Status.String(),
+			fmt.Sprintf("%d/%d", job.JobStatus.JobStats.TotalCompleted, job.JobSpec.TotalPartitions),
+			job.JobStatus.JobStats.Failed,
+			libtime.SinceStr(&job.JobSpec.StartTime),
+		})
+
+		t := table.Table{
+			Headers: []table.Header{
+				{Title: "job id"},
+				{Title: "status"},
+				{Title: "progress"}, // (completed/total), only show when status is running
+				{Title: "failed", Hidden: totalFailed == 0},
+				{Title: "start time"},
+			},
+			Rows: rows,
+		}
+
+		out := t.MustFormat()
+		out += "\n"
+	}
+
+	// TODO only if job status is running or in progress
+	{
+		out += titleStr("worker stats")
+		rows := make([][]interface{}, 1)
+
+		rows = append(rows, []interface{}{
+			job.JobSpec.Parallelism,
+			job.JobStatus.WorkerStats.Initializing + job.JobStatus.WorkerStats.Pending,
+			job.JobStatus.WorkerStats.Ready,
+			job.JobStatus.WorkerStats.TotalFailed(),
+			job.JobStatus.WorkerStats.Succeeded,
+		})
+
+		t := table.Table{
+			Headers: []table.Header{
+				{Title: "requested"},
+				{Title: "pending"},
+				{Title: "running"},
+				{Title: "failed"},
+				{Title: "complete"},
+			},
+			Rows: rows,
+		}
+
+		out := t.MustFormat()
+		out += "\n"
+	}
+
+	jobSpecStr, err := json.Pretty(job.JobSpec)
+	if err != nil {
+		return "", err // TODO
+	}
+
+	out += titleStr("job spec") + jobSpecStr
+
+	// out += batchAPI.Spec.UserStr(types.AWSProviderType)
+	return out, nil
 }
 
 func apiTable(syncAPIs []schema.SyncAPI, envNames []string) table.Table {

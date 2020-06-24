@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package batch
+package batchapi
 
 import (
 	"encoding/json"
@@ -216,6 +216,14 @@ type JobSpec struct {
 	StartTime       time.Time      `json:"start_time"`
 	EndTime         *time.Time     `json:"end_time"`
 	LastUpdated     time.Time      `json:"last_updated"`
+}
+
+func (j JobSpec) S3Key() string {
+	return JobKey(j.APIName, j.ID)
+}
+
+func CommitToS3(j JobSpec) error {
+	return config.AWS.UploadJSONToS3(j, config.Cluster.Bucket, JobKey(j.APIName, j.ID))
 }
 
 func JobKey(apiName, jobID string) string {
@@ -466,6 +474,7 @@ func DeleteJob(apiName, jobID string) error {
 	return nil
 }
 
+// What happens if key doesn't exist?
 func DownloadJobSpec(apiName, jobID string) (*JobSpec, error) {
 	jobSpec := JobSpec{}
 	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, JobKey(apiName, jobID))

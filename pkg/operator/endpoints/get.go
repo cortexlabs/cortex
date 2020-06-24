@@ -26,7 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batch"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -113,7 +113,7 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		batchAPIsMap[apiName] = &schema.BatchAPI{
-			API: *api,
+			Spec: *api,
 		}
 	}
 
@@ -124,7 +124,7 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		}
 
 		jobID := job.Labels["jobID"]
-		status, err := batch.GetJobStatus(apiName, jobID, pods)
+		status, err := batchapi.GetJobStatus(apiName, jobID, pods)
 		if err != nil {
 			respondError(w, r, err)
 			return
@@ -243,7 +243,7 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 	jobStatuses := make([]status.JobStatus, len(jobs))
 	for _, job := range jobs {
 		jobID := job.Labels["jobID"]
-		status, err := batch.GetJobStatus(apiName, jobID, allBatchAPIPods)
+		status, err := batchapi.GetJobStatus(apiName, jobID, allBatchAPIPods)
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +253,7 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 
 	return &schema.GetAPIResponse{
 		BatchAPI: &schema.BatchAPI{
-			API:  *api,
+			Spec: *api,
 			Jobs: jobStatuses,
 		},
 	}, nil

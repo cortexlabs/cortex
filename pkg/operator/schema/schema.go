@@ -17,6 +17,7 @@ limitations under the License.
 package schema
 
 import (
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -70,8 +71,14 @@ type GetAPIResponse struct {
 }
 
 type BatchAPI struct {
-	API  spec.API           `json:"api"`
+	Spec spec.API           `json:"spec"`
 	Jobs []status.JobStatus `json:"jobs"`
+}
+
+type JobResponse struct {
+	APISpec   spec.API         `json:"api_spec"`
+	JobStatus status.JobStatus `json:"job"`
+	JobSpec   batchapi.JobSpec `json:"job_spec"`
 }
 
 type DeleteResponse struct {

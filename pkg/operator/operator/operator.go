@@ -25,13 +25,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batch"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 func cleanupJobs() error {
@@ -47,10 +50,44 @@ func cleanupJobs() error {
 
 	// delete if enqueue liveness failed
 
-	jobMap := map[string]kbatch.Job{}
-
+	k8sjobMap := map[string]kbatch.Job{}
+	jobIDSetK8s := strset.Set{}
 	for _, job := range jobs {
-		jobMap[job.Labels["jobID"]] = job
+		k8sjobMap[job.Labels["jobID"]] = job
+		jobIDSetK8s.Add(job.Labels["jobID"])
+	}
+
+	queueURLMap := map[string]string{}
+	jobIDSetQueueURL := strset.Set{}
+	for _, queueURL := range queues {
+		_, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+		jobIDSetQueueURL.Add(jobID)
+		queueURLMap[jobID] = queueURL
+	}
+
+	for jobID := range strset.Difference(jobIDSetK8s, jobIDSetQueueURL) {
+		_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(map[string]string{"jobID": jobID}).String(),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s) {
+		queueURL := queueURLMap[jobID]
+		apiName, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+		jobSpec, err := batchapi.DownloadJobSpec(apiName, jobID)
+		if err != nil {
+			batchapi.DeleteJob(apiName, jobID)
+			fmt.Println(err.Error())
+		}
+
+		if jobSpec.Status == status.JobEnqueuing {
+			if time.Now().Sub(jobSpec.LastUpdated) > time.Second*60 {
+				batchapi.DeleteJob(apiName, jobID)
+			}
+		}
 	}
 
 	for _, queueURL := range queues {
@@ -59,7 +96,20 @@ func cleanupJobs() error {
 			fmt.Println(err.Error()) // TODO
 		}
 
+		apiName, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+		jobSpec, err := batchapi.DownloadJobSpec(apiName, jobID)
+		if err != nil {
+			batchapi.DeleteJob(apiName, jobID)
+			fmt.Println(err.Error())
+		}
+
+		k8sjob := k8sjobMap[jobID]
 		if metrics.InQueue+metrics.NotVisible == 0 {
+			if int(k8sjob.Status.Failed) == jobSpec.Parallelism {
+				batchapi.DeleteJob(apiName, jobID)
+
+			}
+
 			_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
 				QueueUrl: aws.String(queueURL),
 			})
@@ -70,11 +120,9 @@ func cleanupJobs() error {
 			// delete job
 		}
 
-		apiName, jobID := cloud.IdentifiersFromQueueURL(queueURL)
-
-		if _, ok := jobMap[jobID]; !ok {
+		if _, ok := k8sjobMap[jobID]; !ok {
 			// check jobspec status
-			jobSpec, err := batch.DownloadJobSpec(apiName, jobID)
+			jobSpec, err := batchapi.DownloadJobSpec(apiName, jobID)
 			if err != nil {
 				fmt.Println(err.Error()) // TODO
 			}
@@ -98,7 +146,7 @@ func cleanupJobs() error {
 
 		debug.Pp(queueMetrics)
 		// if queueMetrics.InQueue+queueMetrics.NotVisible == 0 {
-		// 	batch.DeleteJob(job.Labels["apiName"], job.Labels["jobID"])
+		// 	batchapi.DeleteJob(job.Labels["apiName"], job.Labels["jobID"])
 		// }
 	}
 	if len(jobs) == 0 {
