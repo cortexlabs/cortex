@@ -11,7 +11,7 @@
 
 * **Multi framework:** deploy TensorFlow, PyTorch, scikit-learn, and other models.
 * **Autoscaling:** automatically scale APIs to handle production workloads.
-* **ML instances:** run inference on G4, P2, M5, C5 and other AWS instance types.
+* **ML instances:** run inference on G4, P2, Inf1, M5, C5 and other AWS instance types.
 * **Spot instances:** save money with spot instances.
 * **Multi-model APIs:** deploy multiple models in a single API.
 * **Rolling updates:** update deployed APIs with no downtime.
@@ -139,7 +139,8 @@ Cortex manages its own Kubernetes cluster so that end-to-end functionality like 
 
 ## Examples
 
-<!-- CORTEX_VERSION_README_MINOR x3 -->
+<!-- CORTEX_VERSION_README_MINOR x4 -->
 * [Image classification](https://github.com/cortexlabs/cortex/tree/0.18/examples/tensorflow/image-classifier): deploy an Inception model to classify images.
 * [Search completion](https://github.com/cortexlabs/cortex/tree/0.18/examples/pytorch/search-completer): deploy Facebook's RoBERTa model to complete search terms.
 * [Text generation](https://github.com/cortexlabs/cortex/tree/0.18/examples/pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
+* See [all examples](https://github.com/cortexlabs/cortex/tree/0.18/examples)
