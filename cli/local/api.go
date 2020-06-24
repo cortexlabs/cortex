@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -113,10 +114,25 @@ func writeAPISpec(apiSpec *spec.API) error {
 }
 
 func areAPIsEqual(a1, a2 *spec.API) bool {
-	if a1 != nil && a2 != nil {
-		return strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) && a1.ID == a2.ID && a1.Compute.Equals(a2.Compute)
+	if a1 == nil && a2 == nil {
+		return true
 	}
-	return a1 == nil && a2 == nil
+	if a1 == nil || a2 == nil {
+		return false
+	}
+	if a1.ID != a2.ID {
+		return false
+	}
+	if !pointer.AreIntsEqual(a1.Networking.LocalPort, a2.Networking.LocalPort) {
+		return false
+	}
+	if !a1.Compute.Equals(a2.Compute) {
+		return false
+	}
+	if !strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) {
+		return false
+	}
+	return true
 }
 
 func DeleteAPI(apiName string) error {
