@@ -47,8 +47,8 @@ Usage: throughput_test.py [OPTIONS] IMG_URL ENDPOINT
   with CPU, GPU or Inferentia devices.
 
 Options:
-  -w, --workers INTEGER     Number of workers for prediction requests.  [default: 1]
-  -t, --threads INTEGER     Number of threads per worker for prediction requests.  [default: 1]
+  -w, --processes INTEGER   Number of processes for prediction requests.  [default: 1]
+  -t, --threads INTEGER     Number of threads per process for prediction requests.  [default: 1]
   -s, --samples INTEGER     Number of samples to run per thread.  [default: 10]
   -i, --time-based FLOAT    How long the thread making predictions will run for in seconds.
                             If set, -s option will be ignored.
@@ -71,9 +71,9 @@ export IMG_URL=https://i.imgur.com/213xcvs.jpg # this is the cat image shown in 
 
 Then, deploy each API one at a time and check the results:
 
-1. Running `python throughput_test.py -i 30 -w 4 -t 48` with the [cortex_inf.yaml](cortex_inf.yaml) API running on an `inf1.2xlarge` instance will get **~510 inferences/sec** with an average latency of **80 ms**.
-1. Running `python throughput_test.py -i 30 -w 4 -t 2` with the [cortex_cpu.yaml](cortex_cpu.yaml) API running on an `c5.xlarge` instance will get **~16.2 inferences/sec** with an average latency of **200 ms**.
-1. Running `python throughput_test.py -i 30 -w 4 -t 24` with the [cortex_gpu.yaml](cortex_gpu.yaml) API running on an `g4dn.xlarge` instance will get **~125 inferences/sec** with an average latency of **85 ms**. Optimizing the model with TensorRT to use FP16 on TF-serving only seems to achieve a 10% performance improvement - one thing to consider is that the TensorRT engines hadn't been built beforehand, so this might have affected the results negatively.
+1. Running `python throughput_test.py -i 30 -p 4 -t 48` with the [cortex_inf.yaml](cortex_inf.yaml) API running on an `inf1.2xlarge` instance will get **~510 inferences/sec** with an average latency of **80 ms**.
+1. Running `python throughput_test.py -i 30 -p 4 -t 2` with the [cortex_cpu.yaml](cortex_cpu.yaml) API running on an `c5.xlarge` instance will get **~16.2 inferences/sec** with an average latency of **200 ms**.
+1. Running `python throughput_test.py -i 30 -p 4 -t 24` with the [cortex_gpu.yaml](cortex_gpu.yaml) API running on an `g4dn.xlarge` instance will get **~125 inferences/sec** with an average latency of **85 ms**. Optimizing the model with TensorRT to use FP16 on TF-serving only seems to achieve a 10% performance improvement - one thing to consider is that the TensorRT engines hadn't been built beforehand, so this might have affected the results negatively.
 
 *Note: `inf1.xlarge` isn't used because the major bottleneck with `inf` instances for this example is with the CPU, and `inf1.2xlarge` has twice the amount of CPU cores for same number of Inferentia ASICs (which is 1), which translates to almost double the throughput.*
 

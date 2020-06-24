@@ -15,6 +15,7 @@
 * [Predictor implementation](deployments/predictors.md)
 * [API configuration](deployments/api-configuration.md)
 * [API deployment](deployments/deployment.md)
+* [Parellelism](deployments/parallelism.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Networking](deployments/networking.md)
 * [Compute](deployments/compute.md)
