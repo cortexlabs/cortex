@@ -34,6 +34,7 @@ const (
 	ErrIncompatibleSpotInstanceTypeMemory     = "clusterconfig.incompatible_spot_instance_type_memory"
 	ErrIncompatibleSpotInstanceTypeCPU        = "clusterconfig.incompatible_spot_instance_type_cpu"
 	ErrIncompatibleSpotInstanceTypeGPU        = "clusterconfig.incompatible_spot_instance_type_gpu"
+	ErrIncompatibleSpotInstanceTypeInf        = "clusterconfig.incompatible_spot_instance_type_inf"
 	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
 	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
 	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
@@ -101,6 +102,13 @@ func ErrorIncompatibleSpotInstanceTypeGPU(target aws.InstanceMetadata, suggested
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncompatibleSpotInstanceTypeGPU,
 		Message: fmt.Sprintf("all instances must have at least as much GPU as %s (%s has %d GPU, but %s only has %d GPU)", target.Type, target.Type, target.GPU, suggested.Type, suggested.GPU),
+	})
+}
+
+func ErrorIncompatibleSpotInstanceTypeInf(suggested aws.InstanceMetadata) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIncompatibleSpotInstanceTypeInf,
+		Message: fmt.Sprintf("all instances must have at least 1 Inferentia chip, but %s doesn't have any", suggested.Type),
 	})
 }
 

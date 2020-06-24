@@ -29,7 +29,7 @@ class ONNXClient:
         Args:
             models ([Model]): List of models deployed with ONNX container.
         """
-        self._model = models
+        self._models = models
         self._model_names = get_model_names(models)
 
         self._sessions = {}

@@ -18,7 +18,7 @@ Now let's take a sample image like this one.
 
 Export the endpoint & the image's URL by running
 ```bash
-export ENDPOINT=your-api-endpoint
+export ENDPOINT=<API endpoint>
 export IMAGE_URL=https://i.imgur.com/JJLfFxB.png
 ```
 

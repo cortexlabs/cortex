@@ -70,7 +70,7 @@ var _predictCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			apiEndpoint = urls.Join(apiRes.BaseURL, *apiRes.API.Endpoint)
+			apiEndpoint = urls.Join(apiRes.BaseURL, *apiRes.API.Networking.Endpoint)
 
 		} else {
 			apiRes, err = local.GetAPI(apiName)
