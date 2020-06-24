@@ -31,8 +31,6 @@ import (
 
 type API struct {
 	Name           string          `json:"name" yaml:"name"`
-	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
-	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking     *Networking     `json:"networking" yaml:"networking"`
@@ -47,7 +45,7 @@ type API struct {
 type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
-	Model                  *string                `json:"model" yaml:"model"`
+	ModelPath              *string                `json:"model_path" yaml:"model_path"`
 	Models                 []*ModelResource       `json:"models" yaml:"models"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
@@ -59,7 +57,7 @@ type Predictor struct {
 
 type ModelResource struct {
 	Name         string  `json:"name" yaml:"name"`
-	Model        string  `json:"model" yaml:"model"`
+	ModelPath    string  `json:"model_path" yaml:"model_path"`
 	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
 }
 
@@ -69,6 +67,8 @@ type Monitoring struct {
 }
 
 type Networking struct {
+	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
+	LocalPort  *int           `json:"local_port" yaml:"local_port"`
 	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
 }
 
@@ -76,6 +76,7 @@ type Compute struct {
 	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
 	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
+	Inf int64         `json:"inf" yaml:"inf"`
 }
 
 type Autoscaling struct {
@@ -116,10 +117,8 @@ func (api *API) ModelNames() []string {
 }
 
 func (api *API) ApplyDefaultDockerPaths() {
-	usesGPU := false
-	if api.Compute.GPU > 0 {
-		usesGPU = true
-	}
+	usesGPU := api.Compute.GPU > 0
+	usesInf := api.Compute.Inf > 0
 
 	predictor := api.Predictor
 	switch predictor.Type {
@@ -127,6 +126,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.Image == "" {
 			if usesGPU {
 				predictor.Image = consts.DefaultImagePythonPredictorGPU
+			} else if usesInf {
+				predictor.Image = consts.DefaultImagePythonPredictorInf
 			} else {
 				predictor.Image = consts.DefaultImagePythonPredictorCPU
 			}
@@ -138,6 +139,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.TensorFlowServingImage == "" {
 			if usesGPU {
 				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
+			} else if usesInf {
+				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingInf
 			} else {
 				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
 			}
@@ -171,6 +174,7 @@ func IdentifyAPI(filePath string, name string, index int) string {
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
 	return map[string]string{
+		EndpointAnnotationKey:                     *api.Networking.Endpoint,
 		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
 		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
 		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
@@ -284,16 +288,13 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 
-	if provider == types.LocalProviderType && api.LocalPort != nil {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))
-	}
-
-	if provider != types.LocalProviderType && api.Endpoint != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
-	}
-
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
+
+	if api.Networking != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
+		sb.WriteString(s.Indent(api.Networking.UserStr(provider), "  "))
+	}
 
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
@@ -304,11 +305,6 @@ func (api *API) UserStr(provider types.ProviderType) string {
 		if api.Monitoring != nil {
 			sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
 			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
-		}
-
-		if api.Networking != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
-			sb.WriteString(s.Indent(api.Networking.UserStr(), "  "))
 		}
 
 		if api.Autoscaling != nil {
@@ -328,10 +324,10 @@ func (predictor *Predictor) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
-	if predictor.Model != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
+	if predictor.ModelPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
 	}
-	if predictor.Model == nil && len(predictor.Models) > 0 {
+	if predictor.ModelPath == nil && len(predictor.Models) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
 		for _, model := range predictor.Models {
 			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
@@ -363,7 +359,7 @@ func (predictor *Predictor) UserStr() string {
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsKey, model.Model))
+	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelPathKey, model.ModelPath))
 	if model.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
 	}
@@ -379,9 +375,17 @@ func (monitoring *Monitoring) UserStr() string {
 	return sb.String()
 }
 
-func (networking *Networking) UserStr() string {
+func (networking *Networking) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
+	if provider == types.LocalProviderType && networking.LocalPort != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *networking.LocalPort))
+	}
+	if provider == types.AWSProviderType && networking.Endpoint != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
+	}
+	if provider == types.AWSProviderType {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
+	}
 	return sb.String()
 }
 
@@ -394,6 +398,9 @@ func (compute *Compute) UserStr() string {
 	}
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
+	}
+	if compute.Inf > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", InfKey, s.Int64(compute.Inf)))
 	}
 	if compute.Mem == nil {
 		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", MemKey))

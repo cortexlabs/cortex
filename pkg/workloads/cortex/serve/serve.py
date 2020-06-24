@@ -36,7 +36,7 @@ from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API, get_spec
 from cortex.lib.log import cx_logger
-from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
 
 if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
@@ -251,14 +251,29 @@ def start_fn():
     provider = os.environ["CORTEX_PROVIDER"]
     spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
+
     model_dir = os.getenv("CORTEX_MODEL_DIR")
-    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", "9000")
+    tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
     if provider == "local":
         storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
     else:
         storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+
+    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
+    if has_multiple_servers:
+        with FileLock("/run/used_ports.json.lock"):
+            with open("/run/used_ports.json", "r+") as f:
+                used_ports = json.load(f)
+                for port in used_ports.keys():
+                    if not used_ports[port]:
+                        tf_serving_port = port
+                        used_ports[port] = True
+                        break
+                f.seek(0)
+                json.dump(used_ports, f)
+                f.truncate()
 
     try:
         raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)

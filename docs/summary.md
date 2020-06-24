@@ -19,6 +19,7 @@
 * [Networking](deployments/networking.md)
 * [Compute](deployments/compute.md)
 * [Using GPUs](deployments/gpus.md)
+* [Using Inferentia](deployments/inferentia.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)

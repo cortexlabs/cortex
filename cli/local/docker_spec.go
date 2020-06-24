@@ -111,8 +111,8 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 
 func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 	portBinding := nat.PortBinding{}
-	if api.LocalPort != nil {
-		portBinding.HostPort = s.Int(*api.LocalPort)
+	if api.Networking.LocalPort != nil {
+		portBinding.HostPort = s.Int(*api.Networking.LocalPort)
 	}
 
 	runtime := ""
@@ -180,8 +180,8 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 
 func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 	portBinding := nat.PortBinding{}
-	if api.LocalPort != nil {
-		portBinding.HostPort = s.Int(*api.LocalPort)
+	if api.Networking.LocalPort != nil {
+		portBinding.HostPort = s.Int(*api.Networking.LocalPort)
 	}
 
 	runtime := ""
@@ -330,8 +330,8 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	tfContainerHost := containerInfo.NetworkSettings.Networks["bridge"].IPAddress
 
 	portBinding := nat.PortBinding{}
-	if api.LocalPort != nil {
-		portBinding.HostPort = fmt.Sprintf("%d", *api.LocalPort)
+	if api.Networking.LocalPort != nil {
+		portBinding.HostPort = fmt.Sprintf("%d", *api.Networking.LocalPort)
 	}
 	apiHostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
@@ -357,7 +357,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Tty:   true,
 		Env: append(
 			getAPIEnv(api, awsClient),
-			"CORTEX_TF_SERVING_PORT="+_tfServingPortStr,
+			"CORTEX_TF_BASE_SERVING_PORT="+_tfServingPortStr,
 			"CORTEX_TF_SERVING_HOST="+tfContainerHost,
 		),
 		ExposedPorts: nat.PortSet{

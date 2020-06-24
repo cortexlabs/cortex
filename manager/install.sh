@@ -38,7 +38,6 @@ function ensure_eks() {
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
     python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
-
     eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
 
     if [ "$CORTEX_SPOT" == "True" ]; then
@@ -216,6 +215,8 @@ function main() {
   if [ "$arg1" != "--update" ]; then
     if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
       envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
+    elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+      envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
     else
       envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
     fi
@@ -248,6 +249,12 @@ function main() {
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
     envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
+    echo "✓"
+  fi
+
+  if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+    echo -n "￮ configuring inf support "
+    envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
 

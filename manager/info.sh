@@ -14,16 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -eo pipefail
 
 function get_operator_endpoint() {
-  set -eo pipefail
   kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
-function get_apis_endpoint() {
-  set -eo pipefail
+function get_api_load_balancer_endpoint() {
   kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+}
+
+function get_api_gateway_endpoint() {
+  aws apigatewayv2 get-apis --region $CORTEX_REGION | jq ".Items[] | select(.Name == \"${CORTEX_CLUSTER_NAME}\") | .ApiEndpoint" | tr -d '"'
 }
 
 if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
@@ -34,8 +36,10 @@ fi
 eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
 operator_endpoint=$(get_operator_endpoint)
-apis_endpoint=$(get_apis_endpoint)
+api_load_balancer_endpoint=$(get_api_load_balancer_endpoint)
+api_gateway_endpoint=$(get_api_gateway_endpoint)
 
-# before modifying this, search for this prefix
-echo "operator endpoint: $operator_endpoint"
-echo "apis endpoint:     $apis_endpoint"
+echo -e "\033[1mendpoints:\033[0m"
+echo "operator:          $operator_endpoint"  # before modifying this, search for this prefix
+echo "api load balancer: $api_load_balancer_endpoint"
+echo "api gateway:       $api_gateway_endpoint"

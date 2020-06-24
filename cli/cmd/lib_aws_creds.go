@@ -251,3 +251,14 @@ func getAWSCredentials(userClusterConfigPath string, envName string, disallowPro
 
 	return awsCreds, nil
 }
+
+// Returns true if the provided credentials match either the operator or the CLI credentials
+func (awsCreds *AWSCredentials) ContainsCreds(accessKeyID string, secretAccessKey string) bool {
+	if awsCreds.AWSAccessKeyID == accessKeyID && awsCreds.AWSSecretAccessKey == secretAccessKey {
+		return true
+	}
+	if awsCreds.CortexAWSAccessKeyID == accessKeyID && awsCreds.CortexAWSSecretAccessKey == secretAccessKey {
+		return true
+	}
+	return false
+}

@@ -149,6 +149,11 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 		return nil, err
 	}
 
+	dotEnvPath := path.Join(projectRoot, ".env")
+	if files.IsFile(dotEnvPath) {
+		projectPaths = append(projectPaths, dotEnvPath)
+	}
+
 	return projectPaths, nil
 }
 
