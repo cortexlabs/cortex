@@ -5,7 +5,7 @@ We have plans to support a batch interface to Cortex APIs ([#523](https://github
 _Note: this is experimental. Also, this behavior can be implemented outside of Cortex, e.g. in your backend server if you have one._
 
 <!-- CORTEX_VERSION_MINOR x2 -->
-This example assumes you have deployed an iris-classifier API, e.g. [examples/sklearn/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/sklearn/iris-classifier) or [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/iris-classifier).
+This example assumes you have deployed an iris-classifier API, e.g. [examples/sklearn/iris-classifier](https://github.com/cortexlabs/cortex/tree/0.18/examples/sklearn/iris-classifier) or [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/0.18/examples/tensorflow/iris-classifier).
 
 Create a new directory (outside of the iris example directory) with the files listed below, and run `cortex deploy` in that directory to deploy the batch API. Run `python test.py http://***.elb.us-west-2.amazonaws.com/iris-classifier-batch` to submit a batch of requests to the batch api (replace `***` with your actual endpoint). You can still send individual requests to the prediction API (bypassing the batch API) if you'd like.
 

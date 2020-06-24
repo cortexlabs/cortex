@@ -16,7 +16,7 @@
 
 set -eo pipefail
 
-export CORTEX_VERSION=master
+export CORTEX_VERSION=0.18.0
 EKSCTL_TIMEOUT=45m
 
 arg1="$1"

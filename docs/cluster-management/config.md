@@ -47,7 +47,7 @@ instance_volume_type: gp2
 
 # whether the subnets used for EC2 instances should be public or private (default: "public")
 # if "public", instances will be assigned public IP addresses; if "private", instances won't have public IPs and a NAT gateway will be created to allow outgoing network requests
-# see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
+# see https://docs.cortex.dev/v/0.18/miscellaneous/security#private-cluster for more information
 subnet_visibility: public  # must be "public" or "private"
 
 # whether to include a NAT gateway with the cluster (a NAT gateway is necessary when using private subnets)
@@ -56,12 +56,12 @@ nat_gateway: none  # must be "none", "single", or "highly_available" (highly_ava
 
 # whether the API load balancer should be internet-facing or internal (default: "internet-facing")
 # note: if using "internal", APIs will still be accessible via the public API Gateway endpoint unless you also disable API Gateway in your API's configuration (if you do that, you must configure VPC Peering to connect to your APIs)
-# see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
+# see https://docs.cortex.dev/v/0.18/miscellaneous/security#private-cluster for more information
 api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # whether the operator load balancer should be internet-facing or internal (default: "internet-facing")
-# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/guides/vpc-peering)
-# see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
+# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/0.18/guides/vpc-peering)
+# see https://docs.cortex.dev/v/0.18/miscellaneous/security#private-cluster for more information
 operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # CloudWatch log group for cortex (default: <cluster_name>)
@@ -71,10 +71,10 @@ log_group: cortex
 tags:  # <string>: <string> map of key/value pairs
 
 # whether to use spot instances in the cluster (default: false)
-# see https://docs.cortex.dev/v/master/cluster-management/spot-instances for additional details on spot configuration
+# see https://docs.cortex.dev/v/0.18/cluster-management/spot-instances for additional details on spot configuration
 spot: false
 
-# see https://docs.cortex.dev/v/master/guides/custom-domain for instructions on how to set up a custom domain
+# see https://docs.cortex.dev/v/0.18/guides/custom-domain for instructions on how to set up a custom domain
 ssl_certificate_arn:
 ```
 
@@ -85,19 +85,19 @@ The docker images used by the Cortex cluster can also be overridden, although th
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 # docker image paths
-image_operator: cortexlabs/operator:master
-image_manager: cortexlabs/manager:master
-image_downloader: cortexlabs/downloader:master
-image_request_monitor: cortexlabs/request-monitor:master
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
-image_metrics_server: cortexlabs/metrics-server:master
-image_inferentia: cortexlabs/inferentia:master
-image_neuron_rtd: cortexlabs/neuron-rtd:master
-image_nvidia: cortexlabs/nvidia:master
-image_fluentd: cortexlabs/fluentd:master
-image_statsd: cortexlabs/statsd:master
-image_istio_proxy: cortexlabs/istio-proxy:master
-image_istio_pilot: cortexlabs/istio-pilot:master
-image_istio_citadel: cortexlabs/istio-citadel:master
-image_istio_galley: cortexlabs/istio-galley:master
+image_operator: cortexlabs/operator:0.18.0
+image_manager: cortexlabs/manager:0.18.0
+image_downloader: cortexlabs/downloader:0.18.0
+image_request_monitor: cortexlabs/request-monitor:0.18.0
+image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.18.0
+image_metrics_server: cortexlabs/metrics-server:0.18.0
+image_inferentia: cortexlabs/inferentia:0.18.0
+image_neuron_rtd: cortexlabs/neuron-rtd:0.18.0
+image_nvidia: cortexlabs/nvidia:0.18.0
+image_fluentd: cortexlabs/fluentd:0.18.0
+image_statsd: cortexlabs/statsd:0.18.0
+image_istio_proxy: cortexlabs/istio-proxy:0.18.0
+image_istio_pilot: cortexlabs/istio-pilot:0.18.0
+image_istio_citadel: cortexlabs/istio-citadel:0.18.0
+image_istio_galley: cortexlabs/istio-galley:0.18.0
 ```

@@ -77,10 +77,10 @@ The `payload` parameter is parsed according to the `Content-Type` header in the 
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-Many of the [examples](https://github.com/cortexlabs/cortex/tree/master/examples) use the Python Predictor, including all of the PyTorch examples.
+Many of the [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples) use the Python Predictor, including all of the PyTorch examples.
 
 <!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/pytorch/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/iris-classifier):
+Here is the Predictor for [examples/pytorch/iris-classifier](https://github.com/cortexlabs/cortex/tree/0.18/examples/pytorch/iris-classifier):
 
 ```python
 import re
@@ -189,7 +189,7 @@ torchvision==0.4.2
 ```
 
 <!-- CORTEX_VERSION_MINOR x3 -->
-The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-inf/Dockerfile) (for Inferentia).
+The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.18/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.18/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.18/images/python-predictor-inf/Dockerfile) (for Inferentia).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 
@@ -224,7 +224,7 @@ class TensorFlowPredictor:
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
+Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/0.18/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "iris-classifier")`). See the [multi model guide](../guides/multi-model.md#tensorflow-predictor) for more information.
 
@@ -235,10 +235,10 @@ The `payload` parameter is parsed according to the `Content-Type` header in the 
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-Most of the examples in [examples/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow) use the TensorFlow Predictor.
+Most of the examples in [examples/tensorflow](https://github.com/cortexlabs/cortex/tree/0.18/examples/tensorflow) use the TensorFlow Predictor.
 
 <!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/iris-classifier):
+Here is the Predictor for [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/0.18/examples/tensorflow/iris-classifier):
 
 ```python
 labels = ["setosa", "versicolor", "virginica"]
@@ -272,7 +272,7 @@ tensorflow==2.1.0
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-The pre-installed system packages are listed in [images/tensorflow-predictor/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/tensorflow-predictor/Dockerfile).
+The pre-installed system packages are listed in [images/tensorflow-predictor/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.18/images/tensorflow-predictor/Dockerfile).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 
@@ -307,7 +307,7 @@ class ONNXPredictor:
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
+Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/0.18/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "iris-classifier")`). See the [multi model guide](../guides/multi-model.md#onnx-predictor) for more information.
 
@@ -318,7 +318,7 @@ The `payload` parameter is parsed according to the `Content-Type` header in the 
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-[examples/onnx/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/onnx/iris-classifier) uses the ONNX Predictor:
+[examples/onnx/iris-classifier](https://github.com/cortexlabs/cortex/tree/0.18/examples/onnx/iris-classifier) uses the ONNX Predictor:
 
 ```python
 labels = ["setosa", "versicolor", "virginica"]
@@ -356,7 +356,7 @@ requests==2.23.0
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-cpu/Dockerfile) (for CPU) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-gpu/Dockerfile) (for GPU).
+The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.18/images/onnx-predictor-cpu/Dockerfile) (for CPU) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.18/images/onnx-predictor-gpu/Dockerfile) (for GPU).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 
