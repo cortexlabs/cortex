@@ -50,9 +50,6 @@ type LocalModelCache struct {
 func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
 	var buf bytes.Buffer
 	buf.WriteString(apiConfig.Name)
-	if apiConfig.Networking.LocalPort != nil {
-		buf.WriteString(s.Obj(*apiConfig.Networking.LocalPort))
-	}
 	buf.WriteString(s.Obj(apiConfig.Predictor))
 	buf.WriteString(s.Obj(apiConfig.Monitoring))
 	buf.WriteString(deploymentID)
