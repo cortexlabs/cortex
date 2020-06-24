@@ -13,6 +13,8 @@ Reference the section below which corresponds to your Predictor type: [Python](#
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
+    processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
+    threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/python-predictor-cpu or cortexlabs/python-predictor-gpu based on compute)
@@ -33,9 +35,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
-    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
-    threads_per_worker: <int>  # the number of threads per worker (default: 1)
-    target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: workers_per_replica * threads_per_worker)
+    target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: processes_per_replica * threads_per_process)
     max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
     window: <duration>  # the time over which to average the API's concurrency (default: 60s)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
@@ -49,7 +49,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -65,6 +65,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
+    processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
+    threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
@@ -86,9 +88,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
-    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
-    threads_per_worker: <int>  # the number of threads per worker (default: 1)
-    target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: workers_per_replica * threads_per_worker)
+    target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: processes_per_replica * threads_per_process)
     max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
     window: <duration>  # the time over which to average the API's concurrency (default: 60s)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
@@ -102,7 +102,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
 
 ## ONNX Predictor
 
@@ -117,6 +117,8 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
+    processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
+    threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-gpu or cortexlabs/onnx-predictor-cpu based on compute)
@@ -136,9 +138,7 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     min_replicas: <int>  # minimum number of replicas (default: 1)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
-    workers_per_replica: <int>  # the number of parallel serving workers to run on each replica (default: 1)
-    threads_per_worker: <int>  # the number of threads per worker (default: 1)
-    target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: workers_per_replica * threads_per_worker)
+    target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: processes_per_replica * threads_per_process)
     max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
     window: <duration>  # the time over which to average the API's concurrency (default: 60s)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
@@ -152,4 +152,4 @@ See additional documentation for [autoscaling](autoscaling.md), [compute](comput
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).

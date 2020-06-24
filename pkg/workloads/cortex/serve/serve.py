@@ -51,7 +51,7 @@ API_SUMMARY_MESSAGE = (
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 
 
-request_thread_pool = ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_WORKER"]))
+request_thread_pool = ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_PROCESS"]))
 loop = asyncio.get_event_loop()
 loop.set_default_executor(request_thread_pool)
 

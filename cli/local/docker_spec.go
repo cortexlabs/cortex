@@ -19,6 +19,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 
@@ -88,9 +89,10 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_MODELS="+strings.Join(api.ModelNames(), ","),
 		"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", filepath.Base(api.Key)),
 		"CORTEX_PROJECT_DIR="+_projectDir,
-		"CORTEX_WORKERS_PER_REPLICA=1",
-		"CORTEX_THREADS_PER_WORKER=1",
-		"CORTEX_MAX_WORKER_CONCURRENCY=1000",
+		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
+		"CORTEX_THREADS_PER_PROCESS="+s.Int32(api.Predictor.ThreadsPerProcess),
+		// add 1 because it was required to achieve the target concurrency for 1 process, 1 thread
+		"CORTEX_MAX_PROCESS_CONCURRENCY="+s.Int64(1+int64(math.Round(float64(consts.DefaultMaxReplicaConcurrency)/float64(api.Predictor.ProcessesPerReplica)))),
 		"CORTEX_SO_MAX_CONN=1000",
 		"AWS_REGION="+awsClient.Region,
 	)
