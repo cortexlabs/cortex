@@ -337,7 +337,7 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 
 	apiEndpoint := syncAPI.BaseURL
 	if env.Provider == types.AWSProviderType {
-		apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Endpoint)
+		apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Networking.Endpoint)
 		if syncAPI.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
 			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
 		}

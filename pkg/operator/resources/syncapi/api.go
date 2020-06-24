@@ -28,10 +28,10 @@ import (
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
@@ -57,7 +57,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = cloud.AddAPIToAPIGateway(*api.Endpoint, api.Networking.APIGateway)
+		err = cloud.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
@@ -193,10 +193,10 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *kunstructured.Unstructured, error) {
+func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *istioclientnetworking.VirtualService, error) {
 	var deployment *kapps.Deployment
 	var service *kcore.Service
-	var virtualService *kunstructured.Unstructured
+	var virtualService *istioclientnetworking.VirtualService
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -219,7 +219,7 @@ func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Servi
 	return deployment, service, virtualService, err
 }
 
-func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevService *kcore.Service, prevVirtualService *kunstructured.Unstructured) error {
+func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevService *kcore.Service, prevVirtualService *istioclientnetworking.VirtualService) error {
 	return parallel.RunFirstErr(
 		func() error {
 			return applyK8sDeployment(api, prevDeployment)
@@ -291,7 +291,7 @@ func applyK8sService(api *spec.API, prevService *kcore.Service) error {
 	return err
 }
 
-func applyK8sVirtualService(api *spec.API, prevVirtualService *kunstructured.Unstructured) error {
+func applyK8sVirtualService(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
 	newVirtualService := virtualServiceSpec(api)
 
 	if prevVirtualService == nil {

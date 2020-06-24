@@ -48,10 +48,11 @@ mkdir my-api && cd my-api && touch Dockerfile
 
 Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
-<!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
+<!-- CORTEX_VERSION_BRANCH_STABLE x6 -->
 * Python Predictor (CPU): `cortexlabs/python-predictor-cpu-slim:master`
 * Python Predictor (GPU): `cortexlabs/python-predictor-gpu-slim:master`
-* TensorFlow Predictor (CPU and GPU): `cortexlabs/tensorflow-predictor-slim:master`
+* Python Predictor (Inferentia): `cortexlabs/python-predictor-inf-slim:master`
+* TensorFlow Predictor (CPU, GPU, Inferentia): `cortexlabs/tensorflow-predictor-slim:master`
 * ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu-slim:master`
 * ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu-slim:master`
 

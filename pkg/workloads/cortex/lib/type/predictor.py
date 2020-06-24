@@ -40,8 +40,8 @@ class Predictor:
                 self.models += [
                     Model(
                         name=model["name"],
-                        model=model["model"],
-                        base_path=self._compute_model_basepath(model["model"], model["name"]),
+                        model_path=model["model_path"],
+                        base_path=self._compute_model_basepath(model["model_path"], model["name"]),
                         signature_key=model.get("signature_key"),
                     )
                 ]
@@ -156,10 +156,10 @@ class Predictor:
 
         return impl
 
-    def _compute_model_basepath(self, model_source, model_name):
+    def _compute_model_basepath(self, model_path, model_name):
         base_path = os.path.join(self.model_dir, model_name)
         if self.type == "onnx":
-            base_path = os.path.join(base_path, os.path.basename(model_source))
+            base_path = os.path.join(base_path, os.path.basename(model_path))
         return base_path
 
 
@@ -251,6 +251,16 @@ def _validate_required_fn_args(impl, func_signature):
         seen_args.append(arg_name)
 
 
+def uses_neuron_savedmodel():
+    return os.getenv("CORTEX_ACTIVE_NEURON") != None
+
+
+def get_expected_dir_structure():
+    if uses_neuron_savedmodel():
+        return neuron_tf_expected_dir_structure
+    return tf_expected_dir_structure
+
+
 tf_expected_dir_structure = """tensorflow model directories must have the following structure:
   1523423423/ (version prefix, usually a timestamp)
   ├── saved_model.pb
@@ -259,6 +269,10 @@ tf_expected_dir_structure = """tensorflow model directories must have the follow
       ├── variables.data-00000-of-00003
       ├── variables.data-00001-of-00003
       └── variables.data-00002-of-...`"""
+
+neuron_tf_expected_dir_structure = """neuron tensorflow model directories must have the following structure:
+  1523423423/ (version prefix, usually a timestamp)
+  └── saved_model.pb`"""
 
 
 def validate_model_dir(model_dir):
@@ -269,30 +283,31 @@ def validate_model_dir(model_dir):
             break
 
     if version is None:
-        cx_logger().error(tf_expected_dir_structure)
+        cx_logger().error(get_expected_dir_structure())
         raise UserException("no top-level version folder found")
 
     if not os.path.isdir(os.path.join(model_dir, version)):
-        cx_logger().error(tf_expected_dir_structure)
+        cx_logger().error(get_expected_dir_structure())
         raise UserException("no top-level version folder found")
 
     if not os.path.isfile(os.path.join(model_dir, version, "saved_model.pb")):
-        cx_logger().error(tf_expected_dir_structure)
+        cx_logger().error(get_expected_dir_structure())
         raise UserException('expected a "saved_model.pb" file')
 
-    if not os.path.isdir(os.path.join(model_dir, version, "variables")):
+    if not uses_neuron_savedmodel():
+        if not os.path.isdir(os.path.join(model_dir, version, "variables")):
+            cx_logger().error(tf_expected_dir_structure)
+            raise UserException('expected a "variables" directory')
+
+        if not os.path.isfile(os.path.join(model_dir, version, "variables", "variables.index")):
+            cx_logger().error(tf_expected_dir_structure)
+            raise UserException('expected a "variables/variables.index" file')
+
+        for file_name in os.listdir(os.path.join(model_dir, version, "variables")):
+            if file_name.startswith("variables.data-00000-of"):
+                return
+
         cx_logger().error(tf_expected_dir_structure)
-        raise UserException('expected a "variables" directory')
-
-    if not os.path.isfile(os.path.join(model_dir, version, "variables", "variables.index")):
-        cx_logger().error(tf_expected_dir_structure)
-        raise UserException('expected a "variables/variables.index" file')
-
-    for file_name in os.listdir(os.path.join(model_dir, version, "variables")):
-        if file_name.startswith("variables.data-00000-of"):
-            return
-
-    cx_logger().error(tf_expected_dir_structure)
-    raise UserException(
-        'expected at least one variables data file, starting with "variables.data-00000-of-"'
-    )
+        raise UserException(
+            'expected at least one variables data file, starting with "variables.data-00000-of-"'
+        )

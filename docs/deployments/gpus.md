@@ -6,14 +6,14 @@ To use GPUs:
 
 1. Make sure your AWS account is subscribed to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM).
 2. You may need to [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
-3. Set instance type to an AWS GPU instance (e.g. g4dn.xlarge) when installing Cortex.
+3. Set instance type to an AWS GPU instance (e.g. `g4dn.xlarge`) when installing Cortex.
 4. Set the `gpu` field in the `compute` configuration for your API. One unit of GPU corresponds to one virtual GPU. Fractional requests are not allowed.
 
 ## Tips
 
-### If using `workers_per_replica` > 1, TensorFlow-based models, and Python Predictor
+### If using `processes_per_replica` > 1, TensorFlow-based models, and Python Predictor
 
-When using `workers_per_replica` > 1 with TensorFlow-based models (including Keras) in the Python Predictor, loading the model in separate processes at the same time will throw a `CUDA_ERROR_OUT_OF_MEMORY: out of memory` error. This is because the first process that loads the model will allocate all of the GPU's memory and leave none to other processes. To prevent this from happening, the per-process GPU memory usage can be limited. There are two methods:
+When using `processes_per_replica` > 1 with TensorFlow-based models (including Keras) in the Python Predictor, loading the model in separate processes at the same time will throw a `CUDA_ERROR_OUT_OF_MEMORY: out of memory` error. This is because the first process that loads the model will allocate all of the GPU's memory and leave none to other processes. To prevent this from happening, the per-process GPU memory usage can be limited. There are two methods:
 
 1\) Configure the model to allocate only as much memory as it requires, via [tf.config.experimental.set_memory_growth()](https://www.tensorflow.org/api_docs/python/tf/config/experimental/set_memory_growth):
 

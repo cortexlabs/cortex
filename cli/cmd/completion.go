@@ -75,7 +75,8 @@ to enable cortex shell completion:
 
 Note: this will also add the "cx" alias for cortex for convenience
 `,
-	Args: cobra.ExactArgs(1),
+	Args:      cobra.ExactArgs(1),
+	ValidArgs: []string{"bash", "zsh"},
 	Run: func(cmd *cobra.Command, args []string) {
 		switch args[0] {
 		case "bash":

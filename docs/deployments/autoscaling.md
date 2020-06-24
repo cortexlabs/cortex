@@ -4,21 +4,13 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Cortex autoscales your web services on a per-API basis based on your configuration.
 
-## Replica Parallelism
-
-* `workers_per_replica` (default: 1): Each replica runs a web server with `workers_per_replica` workers, each of which runs in it's own process. For APIs running with multiple CPUs per replica, using 1-3 workers per unit of CPU generally leads to optimal throughput. For example, if `cpu` is 2, a value between 2 and 6 `workers_per_replica` is reasonable. The optimal number will vary based on the workload and the CPU request for the API.
-
-* `threads_per_worker` (default: 1): Each worker uses a thread pool of size `threads_per_worker` to process requests. For applications that are not CPU intensive such as high I/O (e.g. downloading files) or GPU-based inference, increasing the number of threads per worker can increase throughput. For CPU-bound applications such as running your model inference on a CPU, using 1 thread per worker is recommended to avoid unnecessary context switching. Some applications are not thread-safe, and therefore must be run with 1 thread per worker.
-
-`workers_per_replica` * `threads_per_worker` represents the number of requests that your replica can work in parallel. For example, if `workers_per_replica` is 2 and `threads_per_worker` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, 1 would be waiting for a thread to become available, and the concurrency for the replica would be 5. If the replica was hit with 3 concurrent requests, all three would begin processing immediately, and the replica concurrency would be 3.
-
 ## Autoscaling Replicas
 
 * `min_replicas`: The lower bound on how many replicas can be running for an API.
 
 * `max_replicas`: The upper bound on how many replicas can be running for an API.
 
-* `target_replica_concurrency` (default: `workers_per_replica` * `threads_per_worker`): This is the desired number of in-flight requests per replica, and is the metric which the autoscaler uses to make scaling decisions.
+* `target_replica_concurrency` (default: `processes_per_replica` * `threads_per_process`): This is the desired number of in-flight requests per replica, and is the metric which the autoscaler uses to make scaling decisions.
 
   Replica concurrency is simply how many requests have been sent to a replica and have not yet been responded to (also referred to as in-flight requests). Therefore, it includes requests which are currently being processed and requests which are waiting in the replica's queue.
 
@@ -26,11 +18,11 @@ Cortex autoscales your web services on a per-API basis based on your configurati
 
   `desired replicas = sum(in-flight requests accross all replicas) / target_replica_concurrency`
 
-  For example, setting `target_replica_concurrency` to `workers_per_replica` * `threads_per_worker` (the default) causes the cluster to adjust the number of replicas so that on average, requests are immediately processed without waiting in a queue, and workers/threads are never idle.
+  For example, setting `target_replica_concurrency` to `processes_per_replica` * `threads_per_process` (the default) causes the cluster to adjust the number of replicas so that on average, requests are immediately processed without waiting in a queue, and processes/threads are never idle.
 
-* `max_replica_concurrency` (default: 1024): This is the maximum number of in-flight requests per replica before requests are rejected with HTTP error code 503. `max_replica_concurrency` includes requests that are currently being processed as well as requests that are waiting in the replica's queue (a replica can actively process `workers_per_replica` * `threads_per_worker` requests concurrently, and will hold any additional requests in a local queue). Decreasing `max_replica_concurrency` and configuring the client to retry when it receives 503 responses will improve queue fairness by preventing requests from sitting in long queues.
+* `max_replica_concurrency` (default: 1024): This is the maximum number of in-flight requests per replica before requests are rejected with HTTP error code 503. `max_replica_concurrency` includes requests that are currently being processed as well as requests that are waiting in the replica's queue (a replica can actively process `processes_per_replica` * `threads_per_process` requests concurrently, and will hold any additional requests in a local queue). Decreasing `max_replica_concurrency` and configuring the client to retry when it receives 503 responses will improve queue fairness by preventing requests from sitting in long queues.
 
-  *Note (if `workers_per_replica` > 1): In reality, there is a queue per worker; for most purposes thinking of it as a per-replica queue will be sufficient, although in some cases the distinction is relevant. Because requests are randomly assigned to workers within a replica (which leads to unbalanced worker queues), clients may receive 503 responses before reaching `max_replica_concurrency`. For example, if you set `workers_per_replica: 2` and `max_replica_concurrency: 100`, each worker will be allowed to handle 50 requests concurrently. If your replica receives 90 requests that take the same amount of time to process, there is a 24.6% possibility that more than 50 requests are routed to 1 worker, and each request that is routed to that worker above 50 is responded to with a 503. To address this, it is recommended to implement client retries for 503 errors, or to increase `max_replica_concurrency` to minimize the probability of getting 503 responses.*
+  *Note (if `processes_per_replica` > 1): In reality, there is a queue per process; for most purposes thinking of it as a per-replica queue will be sufficient, although in some cases the distinction is relevant. Because requests are randomly assigned to processes within a replica (which leads to unbalanced process queues), clients may receive 503 responses before reaching `max_replica_concurrency`. For example, if you set `processes_per_replica: 2` and `max_replica_concurrency: 100`, each process will be allowed to handle 50 requests concurrently. If your replica receives 90 requests that take the same amount of time to process, there is a 24.6% possibility that more than 50 requests are routed to 1 process, and each request that is routed to that process above 50 is responded to with a 503. To address this, it is recommended to implement client retries for 503 errors, or to increase `max_replica_concurrency` to minimize the probability of getting 503 responses.*
 
 * `window` (default: 60s): The time over which to average the API wide in-flight requests (which is the sum of in-flight requests in each replica). The longer the window, the slower the autoscaler will react to changes in API wide in-flight requests, since it is averaged over the `window`. API wide in-flight requests is calculated every 10 seconds, so `window` must be a multiple of 10 seconds.
 

@@ -30,16 +30,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _cmdStr string
+var (
+	_cmdStr string
 
-var _configFileExts = []string{"yaml", "yml"}
+	_configFileExts = []string{"yaml", "yml"}
 
-var _localDir string
-var _cliConfigPath string
-var _clientIDPath string
-var _emailPath string
-var _debugPath string
-var _cwd string
+	_localDir      string
+	_cliConfigPath string
+	_clientIDPath  string
+	_emailPath     string
+	_debugPath     string
+	_cwd           string
+	_homeDir       string
+)
 
 type commandType int
 
@@ -61,6 +64,7 @@ func init() {
 		err := errors.Wrap(err, "unable to determine home directory")
 		exit.Error(err)
 	}
+	_homeDir = s.EnsureSuffix(homeDir, "/")
 
 	_localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(_localDir, os.ModePerm)
@@ -121,7 +125,7 @@ func initTelemetry() {
 var _rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
-	Short:   "machine learning model serving infrastructure",
+	Short:   "build machine learning apis",
 }
 
 func Execute() {

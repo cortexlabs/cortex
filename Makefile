@@ -175,8 +175,10 @@ test-examples:
 ci-build-images:
 	@./build/build-image.sh images/python-predictor-cpu python-predictor-cpu --include-slim
 	@./build/build-image.sh images/python-predictor-gpu python-predictor-gpu --include-slim
+	@./build/build-image.sh images/python-predictor-inf python-predictor-inf --include-slim
 	@./build/build-image.sh images/tensorflow-serving-cpu tensorflow-serving-cpu
 	@./build/build-image.sh images/tensorflow-serving-gpu tensorflow-serving-gpu
+	@./build/build-image.sh images/tensorflow-serving-inf tensorflow-serving-inf
 	@./build/build-image.sh images/tensorflow-predictor tensorflow-predictor --include-slim
 	@./build/build-image.sh images/onnx-predictor-cpu onnx-predictor-cpu --include-slim
 	@./build/build-image.sh images/onnx-predictor-gpu onnx-predictor-gpu --include-slim
@@ -186,6 +188,8 @@ ci-build-images:
 	@./build/build-image.sh images/request-monitor request-monitor
 	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
 	@./build/build-image.sh images/metrics-server metrics-server
+	@./build/build-image.sh images/inferentia inferentia
+	@./build/build-image.sh images/neuron-rtd neuron-rtd
 	@./build/build-image.sh images/nvidia nvidia
 	@./build/build-image.sh images/fluentd fluentd
 	@./build/build-image.sh images/statsd statsd
@@ -197,8 +201,10 @@ ci-build-images:
 ci-push-images:
 	@./build/push-image.sh python-predictor-cpu --include-slim
 	@./build/push-image.sh python-predictor-gpu --include-slim
+	@./build/push-image.sh python-predictor-inf --include-slim
 	@./build/push-image.sh tensorflow-serving-cpu
 	@./build/push-image.sh tensorflow-serving-gpu
+	@./build/push-image.sh tensorflow-serving-inf
 	@./build/push-image.sh tensorflow-predictor --include-slim
 	@./build/push-image.sh onnx-predictor-cpu --include-slim
 	@./build/push-image.sh onnx-predictor-gpu --include-slim
@@ -208,6 +214,8 @@ ci-push-images:
 	@./build/push-image.sh request-monitor
 	@./build/push-image.sh cluster-autoscaler
 	@./build/push-image.sh metrics-server
+	@./build/push-image.sh inferentia
+	@./build/push-image.sh neuron-rtd
 	@./build/push-image.sh nvidia
 	@./build/push-image.sh fluentd
 	@./build/push-image.sh statsd

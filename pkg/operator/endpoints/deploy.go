@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -69,8 +69,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		ConfigFilePath: configPath,
 	}
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
-	debug.Pp(apiConfigs)
-	debug.Pp(err)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -78,6 +76,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	err = operator.ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		respondError(w, r, err)
 		return
 	}

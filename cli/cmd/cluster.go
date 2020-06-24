@@ -430,8 +430,8 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	var operatorEndpoint string
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
-		if strings.HasPrefix(line, "operator endpoint: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator endpoint: "))
+		if strings.HasPrefix(line, "operator: ") {
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
@@ -533,7 +533,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 		{Title: "cost per hour"},
 	}
 
-	rows := [][]interface{}{}
+	var rows [][]interface{}
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 	rows = append(rows, []interface{}{fmt.Sprintf("%d %s for your apis", numAPIInstances, s.PluralS("instance", numAPIInstances)), s.DollarsAndTenthsOfCents(totalAPIInstancePrice) + " total"})
 	rows = append(rows, []interface{}{fmt.Sprintf("%d %dgb ebs %s for your apis", numAPIInstances, clusterConfig.InstanceVolumeSize, s.PluralS("volume", numAPIInstances)), s.DollarsAndTenthsOfCents(apiEBSPrice*float64(numAPIInstances)) + " total"})
@@ -587,7 +587,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "GPU (free / total)", Hidden: !doesClusterHaveGPUs},
 	}
 
-	rows := [][]interface{}{}
+	var rows [][]interface{}
 	for _, nodeInfo := range infoResponse.NodeInfos {
 		lifecycle := "on-demand"
 		if nodeInfo.IsSpot {
@@ -625,7 +625,7 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 	if prevEnv == nil {
 		shouldWriteEnv = true
 		fmt.Println()
-	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || *prevEnv.AWSAccessKeyID != awsCreds.AWSAccessKeyID || *prevEnv.AWSSecretAccessKey != awsCreds.AWSSecretAccessKey {
+	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || !awsCreds.ContainsCreds(*prevEnv.AWSAccessKeyID, *prevEnv.AWSSecretAccessKey) {
 		if disallowPrompt {
 			fmt.Print(fmt.Sprintf("\nfound an existing environment named \"%s\"; overwriting it to connect to this cluster\n", _flagClusterEnv))
 			shouldWriteEnv = true
@@ -675,7 +675,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 
 	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 
-	fmt.Println("syncing cluster configuration ..." + "\n")
+	fmt.Print("syncing cluster configuration ...\n\n")
 	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)

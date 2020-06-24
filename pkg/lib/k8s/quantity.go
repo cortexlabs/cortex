@@ -118,6 +118,15 @@ func SplitInTwo(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Q
 	return q1, q2
 }
 
+func SplitInThree(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Quantity, *kresource.Quantity) {
+	milliValue := quantity.MilliValue()
+	thirdMilliValue := milliValue / 3
+	q1 := kresource.NewMilliQuantity(milliValue-2*thirdMilliValue, kresource.DecimalSI)
+	q2 := kresource.NewMilliQuantity(thirdMilliValue, kresource.DecimalSI)
+	q3 := kresource.NewMilliQuantity(thirdMilliValue, kresource.DecimalSI)
+	return q1, q2, q3
+}
+
 func (quantity *Quantity) Sub(q2 kresource.Quantity) {
 	quantity.Quantity.Sub(q2)
 	quantity.UserString = ""

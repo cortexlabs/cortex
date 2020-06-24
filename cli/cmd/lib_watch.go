@@ -73,6 +73,9 @@ func rerun(f func() (string, error)) {
 			nextStrSlice := strings.Split(nextStr, "\n")
 
 			terminalWidth := getTerminalWidth()
+			if terminalWidth <= 0 {
+				exit.Error(ErrorNoTerminalWidth())
+			}
 
 			nextNumLines := 0
 			for _, strLine := range nextStrSlice {
