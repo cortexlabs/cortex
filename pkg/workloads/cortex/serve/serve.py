@@ -51,10 +51,9 @@ API_SUMMARY_MESSAGE = (
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 
 
+request_thread_pool = ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_PROCESS"]))
 loop = asyncio.get_event_loop()
-loop.set_default_executor(
-    ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_WORKER"]))
-)
+loop.set_default_executor(request_thread_pool)
 
 app = FastAPI()
 
@@ -239,7 +238,15 @@ def get_summary():
     return response
 
 
+# this exists so that the user's __init__() can be executed by the request thread pool, which helps
+# to avoid errors that occur when the user's __init__() function must be called by the same thread
+# which executes predict(). This only avoids errors if threads_per_worker == 1
 def start():
+    future = request_thread_pool.submit(start_fn)
+    return future.result()
+
+
+def start_fn():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     provider = os.environ["CORTEX_PROVIDER"]
     spec_path = os.environ["CORTEX_API_SPEC"]

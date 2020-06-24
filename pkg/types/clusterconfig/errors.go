@@ -112,10 +112,10 @@ func ErrorIncompatibleSpotInstanceTypeInf(suggested aws.InstanceMetadata) error 
 	})
 }
 
-func ErrorSpotPriceGreaterThanTargetOnDemand(suggestedSpotPrice float64, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
+func ErrorSpotPriceGreaterThanTargetOnDemand(spotPrice float64, target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpotPriceGreaterThanTargetOnDemand,
-		Message: fmt.Sprintf("%s will not be allocated because its current spot price is $%g which is greater than %s's on-demand price of $%g", suggested.Type, suggestedSpotPrice, target.Type, target.Price),
+		Message: fmt.Sprintf("%s will not be allocated because its current spot price is $%g which is greater than %s's on-demand price of $%g", suggested.Type, spotPrice, target.Type, target.Price),
 	})
 }
 
@@ -136,7 +136,7 @@ func ErrorInstanceTypeNotSupported(instanceType string) error {
 func ErrorConfiguredWhenSpotIsNotEnabled(configKey string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConfiguredWhenSpotIsNotEnabled,
-		Message: fmt.Sprintf("%s cannot be specified unless spot is enabled", configKey),
+		Message: fmt.Sprintf("%s cannot be specified unless spot is enabled (to enable spot instances, set `%s: true` in your cluster configuration file)", configKey, SpotKey),
 	})
 }
 

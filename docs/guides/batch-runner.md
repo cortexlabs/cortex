@@ -37,10 +37,10 @@ class PythonPredictor:
         batches = payload
 
         # Increasing max_workers will increase how many replicas will be used for the batch request.
-        # Assuming default values for target_replica_concurrency, workers_per_replica, and threads_per_worker
+        # Assuming default values for target_replica_concurrency, processes_per_replica, and threads_per_process
         # in your prediction API, the number of replicas created will be equal to max_workers.
         # If you have changed these values, the number of replicas created will be equal to max_workers / target_replica_concurrency
-        # (note that the default value of target_replica_concurrency is workers_per_replica * threads_per_worker).
+        # (note that the default value of target_replica_concurrency is processes_per_replica * threads_per_process).
         # If max_workers starts to get large, you will also want to set the inference API's max_replica_concurrency to avoid long and imbalanced queue lengths
         # Here are the autoscaling docs: https://docs.cortex.dev/deployments/autoscaling
         with ThreadPoolExecutor(max_workers=5) as executor:
@@ -92,7 +92,7 @@ class PythonPredictor:
       endpoint: http://***.elb.us-west-2.amazonaws.com/iris-classifier
   autoscaling:
     max_replicas: 1  # this API may need to autoscale depending on how many batch requests, but disable it to start
-    threads_per_worker: 1  # set this to the number of batch requests you'd like to be able to be able to work on at a time
+    threads_per_process: 1  # set this to the number of batch requests you'd like to be able to be able to work on at a time
                            # once that number is exceeded, they will be queued, which may be ok
                            # setting this too high may lead to out of memory errors
   compute:

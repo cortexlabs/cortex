@@ -91,10 +91,10 @@ func (cs ClusterState) TableString() string {
 	t := table.Table{
 		Headers: []table.Header{
 			{
-				Title: "CloudFormation Stack name",
+				Title: "cloudformation stack name",
 			},
 			{
-				Title: "Status",
+				Title: "status",
 			},
 		},
 		Rows: rows,

@@ -35,7 +35,6 @@ class API:
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
-        self.endpoint = kwargs["endpoint"]
         self.predictor = Predictor(provider, model_dir, cache_dir, **kwargs["predictor"])
         self.monitoring = None
         if kwargs.get("monitoring") is not None:

@@ -74,6 +74,15 @@ var _deployCmd = &cobra.Command{
 		}
 
 		configPath := getConfigPath(args)
+
+		deployDir := s.EnsureSuffix(filepath.Dir(files.UserRelToAbsPath(configPath)), "/")
+		if deployDir == _homeDir {
+			exit.Error(ErrorDeployFromTopLevelDir("home", env.Provider))
+		}
+		if deployDir == "/" {
+			exit.Error(ErrorDeployFromTopLevelDir("root", env.Provider))
+		}
+
 		var deployResponse schema.DeployResponse
 		if env.Provider == types.AWSProviderType {
 			deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
@@ -147,6 +156,11 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
 	if err != nil {
 		return nil, err
+	}
+
+	dotEnvPath := path.Join(projectRoot, ".env")
+	if files.IsFile(dotEnvPath) {
+		projectPaths = append(projectPaths, dotEnvPath)
 	}
 
 	return projectPaths, nil

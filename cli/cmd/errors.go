@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -79,6 +80,8 @@ const (
 	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
 	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported          = "cli.shell_completion_not_supported"
+	ErrNoTerminalWidth                      = "cli.no_terminal_width"
+	ErrDeployFromTopLevelDir                = "cli.deploy_from_top_level_dir"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -334,6 +337,24 @@ func ErrorClusterAccessConfigOrPromptsRequired() error {
 func ErrorShellCompletionNotSupported(shell string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShellCompletionNotSupported,
-		Message: fmt.Sprintf("shell completion for %s is not supported", shell),
+		Message: fmt.Sprintf("shell completion for %s is not supported (only bash and zsh are supported)", shell),
+	})
+}
+
+func ErrorNoTerminalWidth() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoTerminalWidth,
+		Message: "unable to determine terminal width; please re-run the command without the `--watch` flag",
+	})
+}
+
+func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.ProviderType) error {
+	targetStr := "cluster"
+	if providerType == types.LocalProviderType {
+		targetStr = "API container"
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDeployFromTopLevelDir,
+		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/deployments/predictors#project-files); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor),
 	})
 }

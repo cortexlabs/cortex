@@ -84,8 +84,7 @@ var _predictCmd = &cobra.Command{
 
 		var apiEndpoint string
 		if env.Provider == types.AWSProviderType {
-			apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Endpoint)
-
+			apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Networking.Endpoint)
 		} else {
 			apiEndpoint = syncAPI.BaseURL
 		}

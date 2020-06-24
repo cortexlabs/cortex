@@ -61,7 +61,7 @@ const (
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
-	ErrInvalidNumberOfInfWorkers            = "spec.invalid_number_of_inf_workers"
+	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 )
 
@@ -99,7 +99,7 @@ func ErrorDuplicateEndpointInOneDeploy(apis []userconfig.API) error {
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpointInOneDeploy,
-		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Endpoint), s.StrsAnd(names)),
+		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Networking.Endpoint), s.StrsAnd(names)),
 	})
 }
 
@@ -241,10 +241,10 @@ func ErrorInvalidTensorFlowModelPath() error {
 	})
 }
 
-func ErrorMissingModel(singleModelField string, multiModelField string, predictorType userconfig.PredictorType) error {
+func ErrorMissingModel(predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingModel,
-		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, singleModelField, userconfig.PredictorKey, multiModelField),
+		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
 	})
 }
 
@@ -325,11 +325,11 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	})
 }
 
-func ErrorInvalidNumberOfInfWorkers(workersPerReplica int64, numInf int64, numNeuronCores int64) error {
-	acceptableWorkers := libmath.FactorsInt64(numNeuronCores)
+func ErrorInvalidNumberOfInfProcesses(processesPerReplica int64, numInf int64, numNeuronCores int64) error {
+	acceptableProcesses := libmath.FactorsInt64(numNeuronCores)
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNumberOfInfWorkers,
-		Message: fmt.Sprintf("cannot evenly distribute %d Inferentia %s (%d NeuronCores total) over %d worker(s) - acceptable numbers of workers are %s", numInf, s.PluralS("ASIC", numInf), numNeuronCores, workersPerReplica, s.UserStrsOr(acceptableWorkers)),
+		Kind:    ErrInvalidNumberOfInfProcesses,
+		Message: fmt.Sprintf("cannot evenly distribute %d Inferentia %s (%d NeuronCores total) over %d processes - acceptable numbers of processes are %s", numInf, s.PluralS("ASIC", numInf), numNeuronCores, processesPerReplica, s.UserStrsOr(acceptableProcesses)),
 	})
 }
 

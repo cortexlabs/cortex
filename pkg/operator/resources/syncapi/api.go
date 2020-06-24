@@ -60,7 +60,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = cloud.AddAPIToAPIGateway(*api.Endpoint, api.Networking.APIGateway)
+		err = cloud.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
