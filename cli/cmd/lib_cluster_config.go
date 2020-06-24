@@ -169,6 +169,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string, disallowPr
 
 	err = clusterConfig.Validate(awsClient)
 	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
 		}
@@ -234,6 +235,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 
 	err = userClusterConfig.Validate(awsClient)
 	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
 		}

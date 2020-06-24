@@ -41,6 +41,7 @@ var (
 	_emailPath     string
 	_debugPath     string
 	_cwd           string
+	_homeDir       string
 )
 
 type commandType int
@@ -63,6 +64,7 @@ func init() {
 		err := errors.Wrap(err, "unable to determine home directory")
 		exit.Error(err)
 	}
+	_homeDir = s.EnsureSuffix(homeDir, "/")
 
 	_localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(_localDir, os.ModePerm)

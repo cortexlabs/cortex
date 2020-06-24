@@ -75,7 +75,7 @@ func ErrorAuthInvalid() error {
 func ErrorAuthOtherAccount() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthOtherAccount,
-		Message: "AWS account associated with CLI AWS credentials differs from account associated with cluster AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
+		Message: "the AWS account associated with your CLI's AWS credentials differs from the AWS account associated with your cluster's AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
 	})
 }
 
