@@ -238,6 +238,7 @@ function main() {
   echo "✓"
 
   echo -n "￮ configuring logging "
+  export CORTEX_TAGS_JSON=$(echo $CORTEX_TAGS  | jq -sR '[split(",")[] | rtrimstr("\n") | split("=") | {(.[0]): .[1]} ] | add' | tr -d '\n' )
   envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
