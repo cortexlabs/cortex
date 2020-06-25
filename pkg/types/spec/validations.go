@@ -95,6 +95,21 @@ func predictorValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
 				{
+					StructField: "BatchSize",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						Required:             false,
+						GreaterThanOrEqualTo: pointer.Int32(2),
+						LessThanOrEqualTo:    pointer.Int32(1024),
+					},
+				},
+				{
+					StructField: "BatchTimeout",
+					Float64PtrValidation: &cr.Float64PtrValidation{
+						Required:    false,
+						GreaterThan: pointer.Float64(0),
+					},
+				},
+				{
 					StructField: "PythonPath",
 					StringPtrValidation: &cr.StringPtrValidation{
 						AllowEmpty: true,
@@ -154,20 +169,6 @@ func predictorValidation() *cr.StructFieldValidation {
 				{
 					StructField:         "SignatureKey",
 					StringPtrValidation: &cr.StringPtrValidation{},
-				},
-				{
-					StructField: "BatchSize",
-					Int32PtrValidation: &cr.Int32PtrValidation{
-						Required:             false,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-					},
-				},
-				{
-					StructField: "BatchTimeout",
-					Float64PtrValidation: &cr.Float64PtrValidation{
-						Required:    false,
-						GreaterThan: pointer.Float64(0),
-					},
 				},
 				multiModelValidation(),
 			},
