@@ -26,12 +26,12 @@ metadata:
   name: fluentd
   namespace: default
 rules:
-  - apiGroups: [""]
-    resources:
-      - namespaces
-      - pods
-      - pods/logs
-    verbs: [get, list, watch]
+- apiGroups: [""]
+  resources:
+    - namespaces
+    - pods
+    - pods/logs
+  verbs: [get, list, watch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -39,9 +39,9 @@ metadata:
   name: fluentd
   namespace: default
 subjects:
-  - kind: ServiceAccount
-    name: fluentd
-    namespace: default
+- kind: ServiceAccount
+  name: fluentd
+  namespace: default
 roleRef:
   kind: ClusterRole
   name: fluentd
@@ -143,9 +143,9 @@ data:
       <match **>
         @type cloudwatch_logs
         region "#{ENV['AWS_REGION']}"
+        log_group_aws_tags ${CORTEX_TAGS_JSON}
         log_group_name_key group_name
         log_stream_name_key stream_name
-        log_group_aws_tags ${CORTEX_TAGS_JSON}
         remove_log_stream_name_key true
         remove_log_group_name_key true
         auto_create_stream true
@@ -162,19 +162,20 @@ data:
       @type null
     </match>
 ---
+
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: fluentd
   namespace: default
 spec:
-  selector:
-    matchLabels:
-      app: fluentd
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: fluentd
   template:
     metadata:
       labels:
@@ -185,62 +186,62 @@ spec:
       initContainers:
         - name: copy-fluentd-config
           image: busybox
-          command: ["sh", "-c", "cp /config-volume/* /etc/fluentd"]
+          command: ['sh', '-c', 'cp /config-volume/* /etc/fluentd']
           volumeMounts:
             - name: config-volume
               mountPath: /config-volume
             - name: config
               mountPath: /etc/fluentd
       containers:
-        - name: fluentd
-          image: $CORTEX_IMAGE_FLUENTD
-          imagePullPolicy: Always
-          env:
-            - name: AWS_REGION
-              value: $CORTEX_REGION
-            - name: LOG_GROUP_NAME
-              value: $CORTEX_LOG_GROUP
-            - name: K8S_NODE_NAME # used by fluentd to avoid a k8s query
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          envFrom:
-            - secretRef:
-                name: aws-credentials
-          resources:
-            requests:
-              cpu: 200m
-              memory: 200Mi
-            limits:
-              memory: 200Mi
-          volumeMounts:
-            - name: varlog
-              mountPath: /var/log
-            - name: varlibdockercontainers
-              mountPath: /var/lib/docker/containers
-              readOnly: true
-            - name: config
-              mountPath: /fluentd/etc
+      - name: fluentd
+        image: $CORTEX_IMAGE_FLUENTD
+        imagePullPolicy: Always
+        env:
+        - name: AWS_REGION
+          value: $CORTEX_REGION
+        - name: LOG_GROUP_NAME
+          value: $CORTEX_LOG_GROUP
+        - name: K8S_NODE_NAME  # used by fluentd to avoid a k8s query
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        envFrom:
+        - secretRef:
+            name: aws-credentials
+        resources:
+          requests:
+            cpu: 200m
+            memory: 200Mi
+          limits:
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: config
+          mountPath: /fluentd/etc
       tolerations:
-        - key: aws.amazon.com/infa
-          operator: Exists
-          effect: NoSchedule
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
-        - key: workload
-          operator: Exists
-          effect: NoSchedule
+      - key: aws.amazon.com/infa
+        operator: Exists
+        effect: NoSchedule
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: workload
+        operator: Exists
+        effect: NoSchedule
       terminationGracePeriodSeconds: 30
       volumes:
-        - name: varlog
-          hostPath:
-            path: /var/log
-        - name: varlibdockercontainers
-          hostPath:
-            path: /var/lib/docker/containers
-        - name: config
-          emptyDir: {}
-        - name: config-volume
-          configMap:
-            name: fluentd
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: config
+        emptyDir: {}
+      - name: config-volume
+        configMap:
+          name: fluentd
