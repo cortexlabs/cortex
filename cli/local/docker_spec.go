@@ -39,17 +39,16 @@ import (
 )
 
 const (
-	_apiContainerName             = "api"
-	_tfServingContainerName       = "serve"
-	_defaultPortStr               = "8888"
-	_tfServingPortStr             = "9000"
-	_tfServingEmptyModelConfig    = "/etc/tfs/model_config_server.conf"
-	_tfServingBatchConfig         = "/etc/tfs/batch_config.conf"
-	_tfServingDefaultBatchThreads = int32(1)
-	_projectDir                   = "/mnt/project"
-	_cacheDir                     = "/mnt/cache"
-	_modelDir                     = "/mnt/model"
-	_workspaceDir                 = "/mnt/workspace"
+	_apiContainerName          = "api"
+	_tfServingContainerName    = "serve"
+	_defaultPortStr            = "8888"
+	_tfServingPortStr          = "9000"
+	_tfServingEmptyModelConfig = "/etc/tfs/model_config_server.conf"
+	_tfServingBatchConfig      = "/etc/tfs/batch_config.conf"
+	_projectDir                = "/mnt/project"
+	_cacheDir                  = "/mnt/cache"
+	_modelDir                  = "/mnt/model"
+	_workspaceDir              = "/mnt/workspace"
 )
 
 type ModelCaches []*spec.LocalModelCache
@@ -301,16 +300,12 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		"--port=" + _tfServingPortStr,
 		"--model_config_file=" + _tfServingEmptyModelConfig,
 	}
+
 	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
-		tfNumBatchedThreads := _tfServingDefaultBatchThreads
-		// TODO check if we can get the same non-nil autoscaling field just like for the AWS provider
-		if api.Autoscaling != nil {
-			tfNumBatchedThreads = api.Autoscaling.WorkersPerReplica
-		}
 		tfServingContainerEnvVars = append(tfServingContainerEnvVars,
 			"TF_BATCH_SIZE="+s.Int32(*api.Predictor.BatchSize),
 			"TF_BATCH_TIMEOUT_MICROS="+s.Int64(int64(*api.Predictor.BatchTimeout*1000000)),
-			"TF_NUM_BATCHED_THREADS="+s.Int32(tfNumBatchedThreads),
+			"TF_NUM_BATCHED_THREADS="+s.Int32(api.Predictor.ProcessesPerReplica),
 		)
 		tfServingContainerArgs = append(tfServingContainerArgs,
 			"--enable_batching",

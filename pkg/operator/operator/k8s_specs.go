@@ -697,24 +697,25 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			)
 		}
 	}
-    if container == _tfServingContainerName {
-        if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+
+	if container == _tfServingContainerName {
+		if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
 			envVars = append(envVars,
-			kcore.EnvVar{
-				Name:  "TF_BATCH_SIZE",
-				Value: s.Int32(*api.Predictor.BatchSize),
-			},
-			kcore.EnvVar{
-				Name:  "TF_BATCH_TIMEOUT_MICROS",
-				Value: s.Int64(int64(*api.Predictor.BatchTimeout * 1000000)),
-			},
-			kcore.EnvVar{
-				Name:  "TF_NUM_BATCHED_THREADS",
-				Value: s.Int32(api.Autoscaling.WorkersPerReplica),
-			},
-		)
-	    }
-    }
+				kcore.EnvVar{
+					Name:  "TF_BATCH_SIZE",
+					Value: s.Int32(*api.Predictor.BatchSize),
+				},
+				kcore.EnvVar{
+					Name:  "TF_BATCH_TIMEOUT_MICROS",
+					Value: s.Int64(int64(*api.Predictor.BatchTimeout * 1000000)),
+				},
+				kcore.EnvVar{
+					Name:  "TF_NUM_BATCHED_THREADS",
+					Value: s.Int32(api.Predictor.ProcessesPerReplica),
+				},
+			)
+		}
+	}
 
 	if api.Compute.Inf > 0 {
 		if (api.Predictor.Type == userconfig.PythonPredictorType && container == _apiContainerName) ||
@@ -787,18 +788,19 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		}
 	}
 
-// TODO fix the args
-tfServingContainerArgs = append(tfServingContainerArgs,
+	if api.Compute.Inf == 0 {
+		// the entrypoint is different for Inferentia-based APIs
+		args = append(args,
+			"--port="+_tfBaseServingPortStr,
+			"--model_config_file="+_tfServingEmptyModelConfig,
+		)
+	}
+
+	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+		args = append(args,
 			"--enable_batching",
 			"--batching_parameters_file="+_tfServingBatchConfig,
 		)
-
-	if api.Compute.Inf == 0 {
-		// the entrypoint is different for Inferentia-based APIs
-		args = []string{
-			"--port=" + _tfBaseServingPortStr,
-			"--model_config_file=" + _tfServingEmptyModelConfig,
-		}
 	}
 
 	var probeHandler kcore.Handler

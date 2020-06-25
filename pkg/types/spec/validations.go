@@ -621,7 +621,9 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	return nil
 }
 
-func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateTensorFlowPredictor(api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	predictor := api.Predictor
+
 	if predictor.BatchSize != nil && predictor.BatchTimeout == nil {
 		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchSizeKey, userconfig.BatchTimeoutKey)
 	}
@@ -629,7 +631,7 @@ func validateTensorFlowPredictor(predictor *userconfig.Predictor, providerType t
 		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchTimeoutKey, userconfig.BatchSizeKey)
 	}
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
-		return ErrorMissingModel(userconfig.ModelPathKey, userconfig.ModelsKey, predictor.Type)
+		return ErrorMissingModel(predictor.Type)
 	} else if predictor.ModelPath != nil && len(predictor.Models) > 0 {
 		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
 	} else if predictor.ModelPath != nil {
@@ -741,7 +743,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	}
 
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
-		return ErrorMissingModel(userconfig.ModelPathKey, userconfig.ModelsKey, predictor.Type)
+		return ErrorMissingModel(predictor.Type)
 	} else if predictor.ModelPath != nil && len(predictor.Models) > 0 {
 		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
 	} else if predictor.ModelPath != nil {
