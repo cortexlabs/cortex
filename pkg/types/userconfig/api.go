@@ -314,8 +314,10 @@ func (api *API) UserStr(provider types.ProviderType) string {
 
 func (predictor *Predictor) UserStr() string {
 	var sb strings.Builder
+
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
+
 	if predictor.ModelPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
 	}
@@ -328,8 +330,16 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
+	if predictor.BatchSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", BatchSizeKey, *predictor.BatchSize))
+	}
+	if predictor.BatchTimeout != nil {
+		sb.WriteString(fmt.Sprintf("%s: %f\n", BatchTimeoutKey, *predictor.BatchTimeout))
+	}
+
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(predictor.ThreadsPerProcess)))
+
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&predictor.Config)
@@ -346,12 +356,6 @@ func (predictor *Predictor) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
 		d, _ := yaml.Marshal(&predictor.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
-	}
-	if predictor.BatchSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", BatchSizeKey, *predictor.BatchSize))
-	}
-	if predictor.BatchTimeout != nil {
-		sb.WriteString(fmt.Sprintf("%s: %f\n", BatchTimeoutKey, *predictor.BatchTimeout))
 	}
 	return sb.String()
 }
