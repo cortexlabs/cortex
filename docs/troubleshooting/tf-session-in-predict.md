@@ -10,7 +10,7 @@ The error you may see if the default graph is not set (as a consequence of `__in
 TypeError: Cannot interpret feed_dict key as Tensor: Tensor Tensor("Placeholder:0", shape=(1, ?), dtype=int32) is not an element of this graph.
 ```
 
-To avoid this error, you can set the default graph and session before running the prediction in the `predict()` method:
+To avoid this error, you can set the default graph before running the prediction in the `predict()` method:
 
 ```python
 
