@@ -14,9 +14,12 @@ The response type of the predictor can vary depending on your requirements, see 
 
 ## Project files
 
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api configuration file (e.g. `cortex.yaml`) are excluded. You may also add a `.cortexignore` file at the root of the project directory, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
+Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api configuration file (e.g. `cortex.yaml`) are excluded.
 
-For example, if this is your project directory:
+The following files can also be added at the root of the project's directory:
+
+* `.cortexignore` file, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
+* `.env` file, which exports environment variables that can be used in the predictor. Each line of this file must follow the `VARIABLE=value` format.
 
 ```text
 ./iris-classifier/
@@ -132,6 +135,7 @@ boto3==1.13.7
 cloudpickle==1.4.1
 Cython==0.29.17
 dill==0.3.1.1
+fastapi==0.54.1
 joblib==0.14.1
 Keras==2.3.1
 msgpack==1.0.0
@@ -156,8 +160,38 @@ torchvision==0.6.0
 xgboost==1.0.2
 ```
 
-<!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU) or [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU).
+For Inferentia-equipped APIs, the list is slightly different:
+
+```text
+boto3==1.13.7
+cloudpickle==1.3.0
+Cython==0.29.17
+dill==0.3.1.1
+fastapi==0.54.1
+joblib==0.14.1
+msgpack==1.0.0
+neuron-cc==1.0.9410.0+6008239556
+nltk==3.4.5
+np-utils==0.5.12.1
+numpy==1.16.5
+opencv-python==4.2.0.32
+pandas==1.0.3
+Pillow==6.2.2
+pyyaml==5.3.1
+requests==2.23.0
+scikit-image==0.16.2
+scikit-learn==0.22.2.post1
+scipy==1.3.2
+six==1.14.0
+statsmodels==0.11.1
+sympy==1.5.1
+tensorflow-neuron==1.15.0.1.0.1333.0
+torch-neuron==1.0.825.0
+torchvision==0.4.2
+```
+
+<!-- CORTEX_VERSION_MINOR x3 -->
+The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-inf/Dockerfile) (for Inferentia).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 
@@ -228,6 +262,7 @@ The following Python packages are pre-installed in TensorFlow Predictors and can
 ```text
 boto3==1.13.7
 dill==0.3.1.1
+fastapi==0.54.1
 msgpack==1.0.0
 numpy==1.18.4
 opencv-python==4.2.0.34
@@ -314,6 +349,7 @@ The following Python packages are pre-installed in ONNX Predictors and can be us
 ```text
 boto3==1.13.7
 dill==0.3.1.1
+fastapi==0.54.1
 msgpack==1.0.0
 numpy==1.18.4
 onnxruntime==1.2.0

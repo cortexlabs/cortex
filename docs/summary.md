@@ -15,10 +15,12 @@
 * [Predictor implementation](deployments/predictors.md)
 * [API configuration](deployments/api-configuration.md)
 * [API deployment](deployments/deployment.md)
+* [Parellelism](deployments/parallelism.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Networking](deployments/networking.md)
 * [Compute](deployments/compute.md)
 * [Using GPUs](deployments/gpus.md)
+* [Using Inferentia](deployments/inferentia.md)
 * [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
@@ -45,6 +47,7 @@
 
 * [API is stuck updating](troubleshooting/stuck-updating.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
+* [TF session in predict()](troubleshooting/tf-session-in-predict.md)
 
 ## Guides
 

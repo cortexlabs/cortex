@@ -17,9 +17,11 @@ limitations under the License.
 package local
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -65,6 +67,7 @@ func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileLis
 
 	err = ValidateLocalAPIs(apiConfigs, projectFiles, awsClient)
 	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		return schema.DeployResponse{}, err
 	}
 

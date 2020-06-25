@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -45,6 +46,7 @@ const (
 	ErrDirIsEmpty                           = "spec.dir_is_empty"
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
 	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
+	ErrInvalidNeuronTensorFlowDir           = "operator.invalid_neuron_tensorflow_dir"
 	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
 	ErrMissingModel                         = "spec.missing_model"
 	ErrInvalidONNXModelPath                 = "spec.invalid_onnx_model_path"
@@ -54,9 +56,13 @@ const (
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
+	ErrUnsupportedLocalComputeResource      = "spec.unsupported_local_compute_resource"
 	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
+	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
+	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
+	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 )
 
 func ErrorMalformedConfig() error {
@@ -93,7 +99,7 @@ func ErrorDuplicateEndpointInOneDeploy(apis []userconfig.API) error {
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpointInOneDeploy,
-		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Endpoint), s.StrsAnd(names)),
+		Message: fmt.Sprintf("endpoint %s must be unique across apis (defined in %s)", s.UserStr(*apis[0].Networking.Endpoint), s.StrsAnd(names)),
 	})
 }
 
@@ -215,6 +221,19 @@ func ErrorInvalidTensorFlowDir(path string) error {
 	})
 }
 
+var _neuronTfExpectedStructMessage = `For Neuron TensorFlow models, the path must contain a directory with the following structure:
+1523423423/ (Version prefix, usually a timestamp)
+└── saved_model.pb`
+
+func ErrorInvalidNeuronTensorFlowDir(path string) error {
+	message := "invalid Neuron TensorFlow export directory.\n"
+	message += _neuronTfExpectedStructMessage
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidNeuronTensorFlowDir,
+		Message: message,
+	})
+}
+
 func ErrorInvalidTensorFlowModelPath() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowModelPath,
@@ -222,10 +241,10 @@ func ErrorInvalidTensorFlowModelPath() error {
 	})
 }
 
-func ErrorMissingModel(singleModelField string, multiModelField string, predictorType userconfig.PredictorType) error {
+func ErrorMissingModel(predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingModel,
-		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, singleModelField, userconfig.PredictorKey, multiModelField),
+		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
 	})
 }
 
@@ -271,6 +290,13 @@ func ErrorLocalModelPathNotSupportedByAWSProvider() error {
 	})
 }
 
+func ErrorUnsupportedLocalComputeResource(resourceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnsupportedLocalComputeResource,
+		Message: fmt.Sprintf("%s compute resources cannot be used locally", resourceType),
+	})
+}
+
 func ErrorRegistryInDifferentRegion(registryRegion string, awsClientRegion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryInDifferentRegion,
@@ -289,5 +315,27 @@ func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotAccessECRWithAnonymousAWSCreds,
 		Message: fmt.Sprintf("cannot access ECR with anonymous aws credentials; run `cortex env configure local` to specify AWS credentials with access to ECR"),
+	})
+}
+
+func ErrorComputeResourceConflict(resourceA, resourceB string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrComputeResourceConflict,
+		Message: fmt.Sprintf("%s and %s resources cannot be used together", resourceA, resourceB),
+	})
+}
+
+func ErrorInvalidNumberOfInfProcesses(processesPerReplica int64, numInf int64, numNeuronCores int64) error {
+	acceptableProcesses := libmath.FactorsInt64(numNeuronCores)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidNumberOfInfProcesses,
+		Message: fmt.Sprintf("cannot evenly distribute %d Inferentia %s (%d NeuronCores total) over %d processes - acceptable numbers of processes are %s", numInf, s.PluralS("ASIC", numInf), numNeuronCores, processesPerReplica, s.UserStrsOr(acceptableProcesses)),
+	})
+}
+
+func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidNumberOfInfs,
+		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
 	})
 }

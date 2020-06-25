@@ -98,11 +98,11 @@ The following template is based on the [tensorflow/multi-model-classifier](https
     path: predictor.py
     models:
       - name: iris
-        model: s3://cortex-examples/tensorflow/iris-classifier/nn
+        model_path: s3://cortex-examples/tensorflow/iris-classifier/nn
       - name: inception
-        model: s3://cortex-examples/tensorflow/image-classifier/inception
+        model_path: s3://cortex-examples/tensorflow/image-classifier/inception
       - name: resnet50
-        model: s3://cortex-examples/tensorflow/multi-model-classifier/resnet50
+        model_path: s3://cortex-examples/tensorflow/multi-model-classifier/resnet50
       ...
 ```
 
@@ -180,11 +180,11 @@ The following template is based on the [onnx/multi-model-classifier](https://git
     path: predictor.py
     models:
       - name: resnet50
-        model: s3://cortex-examples/onnx/resnet50/resnet50-v2-7.onnx
+        model_path: s3://cortex-examples/onnx/resnet50/resnet50-v2-7.onnx
       - name: mobilenet
-        model: s3://cortex-examples/onnx/mobilenet/mobilenetv2-7.onnx
+        model_path: s3://cortex-examples/onnx/mobilenet/mobilenetv2-7.onnx
       - name: shufflenet
-        model: s3://cortex-examples/onnx/shufflenet/shufflenet-v2-10.onnx
+        model_path: s3://cortex-examples/onnx/shufflenet/shufflenet-v2-10.onnx
       ...
 ```
 

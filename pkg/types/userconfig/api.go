@@ -31,8 +31,6 @@ import (
 
 type API struct {
 	Name           string          `json:"name" yaml:"name"`
-	Endpoint       *string         `json:"endpoint" yaml:"endpoint"`
-	LocalPort      *int            `json:"local_port" yaml:"local_port"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking     *Networking     `json:"networking" yaml:"networking"`
@@ -47,11 +45,13 @@ type API struct {
 type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
-	Model                  *string                `json:"model" yaml:"model"`
+	ModelPath              *string                `json:"model_path" yaml:"model_path"`
 	Models                 []*ModelResource       `json:"models" yaml:"models"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
+	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
+	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
@@ -63,7 +63,7 @@ type Predictor struct {
 
 type ModelResource struct {
 	Name         string  `json:"name" yaml:"name"`
-	Model        string  `json:"model" yaml:"model"`
+	ModelPath    string  `json:"model_path" yaml:"model_path"`
 	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
 }
 
@@ -73,6 +73,8 @@ type Monitoring struct {
 }
 
 type Networking struct {
+	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
+	LocalPort  *int           `json:"local_port" yaml:"local_port"`
 	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
 }
 
@@ -80,14 +82,13 @@ type Compute struct {
 	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
 	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
+	Inf int64         `json:"inf" yaml:"inf"`
 }
 
 type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	WorkersPerReplica            int32         `json:"workers_per_replica" yaml:"workers_per_replica"`
-	ThreadsPerWorker             int32         `json:"threads_per_worker" yaml:"threads_per_worker"`
 	TargetReplicaConcurrency     *float64      `json:"target_replica_concurrency" yaml:"target_replica_concurrency"`
 	MaxReplicaConcurrency        int64         `json:"max_replica_concurrency" yaml:"max_replica_concurrency"`
 	Window                       time.Duration `json:"window" yaml:"window"`
@@ -120,10 +121,8 @@ func (api *API) ModelNames() []string {
 }
 
 func (api *API) ApplyDefaultDockerPaths() {
-	usesGPU := false
-	if api.Compute.GPU > 0 {
-		usesGPU = true
-	}
+	usesGPU := api.Compute.GPU > 0
+	usesInf := api.Compute.Inf > 0
 
 	predictor := api.Predictor
 	switch predictor.Type {
@@ -131,6 +130,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.Image == "" {
 			if usesGPU {
 				predictor.Image = consts.DefaultImagePythonPredictorGPU
+			} else if usesInf {
+				predictor.Image = consts.DefaultImagePythonPredictorInf
 			} else {
 				predictor.Image = consts.DefaultImagePythonPredictorCPU
 			}
@@ -142,6 +143,8 @@ func (api *API) ApplyDefaultDockerPaths() {
 		if predictor.TensorFlowServingImage == "" {
 			if usesGPU {
 				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
+			} else if usesInf {
+				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingInf
 			} else {
 				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
 			}
@@ -175,11 +178,12 @@ func IdentifyAPI(filePath string, name string, index int) string {
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
 	return map[string]string{
+		EndpointAnnotationKey:                     *api.Networking.Endpoint,
 		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
+		ProcessesPerReplicaAnnotationKey:          s.Int32(api.Predictor.ProcessesPerReplica),
+		ThreadsPerProcessAnnotationKey:            s.Int32(api.Predictor.ThreadsPerProcess),
 		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
 		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
-		WorkersPerReplicaAnnotationKey:            s.Int32(api.Autoscaling.WorkersPerReplica),
-		ThreadsPerWorkerAnnotationKey:             s.Int32(api.Autoscaling.ThreadsPerWorker),
 		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*api.Autoscaling.TargetReplicaConcurrency),
 		MaxReplicaConcurrencyAnnotationKey:        s.Int64(api.Autoscaling.MaxReplicaConcurrency),
 		WindowAnnotationKey:                       api.Autoscaling.Window.String(),
@@ -214,18 +218,6 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 		return nil, err
 	}
 	a.MaxReplicas = maxReplicas
-
-	workersPerReplica, err := k8s.ParseInt32Annotation(k8sObj, WorkersPerReplicaAnnotationKey)
-	if err != nil {
-		return nil, err
-	}
-	a.WorkersPerReplica = workersPerReplica
-
-	threadsPerWorker, err := k8s.ParseInt32Annotation(k8sObj, ThreadsPerWorkerAnnotationKey)
-	if err != nil {
-		return nil, err
-	}
-	a.ThreadsPerWorker = threadsPerWorker
 
 	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(k8sObj, TargetReplicaConcurrencyAnnotationKey)
 	if err != nil {
@@ -288,16 +280,13 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 
-	if provider == types.LocalProviderType && api.LocalPort != nil {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *api.LocalPort))
-	}
-
-	if provider != types.LocalProviderType && api.Endpoint != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *api.Endpoint))
-	}
-
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
+
+	if api.Networking != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
+		sb.WriteString(s.Indent(api.Networking.UserStr(provider), "  "))
+	}
 
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
@@ -308,11 +297,6 @@ func (api *API) UserStr(provider types.ProviderType) string {
 		if api.Monitoring != nil {
 			sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
 			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
-		}
-
-		if api.Networking != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
-			sb.WriteString(s.Indent(api.Networking.UserStr(), "  "))
 		}
 
 		if api.Autoscaling != nil {
@@ -332,10 +316,10 @@ func (predictor *Predictor) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
-	if predictor.Model != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelKey, *predictor.Model))
+	if predictor.ModelPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
 	}
-	if predictor.Model == nil && len(predictor.Models) > 0 {
+	if predictor.ModelPath == nil && len(predictor.Models) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
 		for _, model := range predictor.Models {
 			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
@@ -344,17 +328,19 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
-	if predictor.PythonPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(predictor.ThreadsPerProcess)))
+	if len(predictor.Config) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
+		d, _ := yaml.Marshal(&predictor.Config)
+		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
 	if predictor.TensorFlowServingImage != "" {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", TensorFlowServingImageKey, predictor.TensorFlowServingImage))
 	}
-	if len(predictor.Config) > 0 {
-		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
-		d, _ := yaml.Marshal(&predictor.Config)
-		sb.WriteString(s.Indent(string(d), "  "))
+	if predictor.PythonPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
 	if len(predictor.Env) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
@@ -373,7 +359,7 @@ func (predictor *Predictor) UserStr() string {
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelsKey, model.Model))
+	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelPathKey, model.ModelPath))
 	if model.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
 	}
@@ -389,9 +375,17 @@ func (monitoring *Monitoring) UserStr() string {
 	return sb.String()
 }
 
-func (networking *Networking) UserStr() string {
+func (networking *Networking) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
+	if provider == types.LocalProviderType && networking.LocalPort != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *networking.LocalPort))
+	}
+	if provider == types.AWSProviderType && networking.Endpoint != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
+	}
+	if provider == types.AWSProviderType {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
+	}
 	return sb.String()
 }
 
@@ -404,6 +398,9 @@ func (compute *Compute) UserStr() string {
 	}
 	if compute.GPU > 0 {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
+	}
+	if compute.Inf > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", InfKey, s.Int64(compute.Inf)))
 	}
 	if compute.Mem == nil {
 		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", MemKey))
@@ -446,8 +443,6 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", WorkersPerReplicaKey, s.Int32(autoscaling.WorkersPerReplica)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerWorkerKey, s.Int32(autoscaling.ThreadsPerWorker)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetReplicaConcurrencyKey, s.Float64(*autoscaling.TargetReplicaConcurrency)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicaConcurrencyKey, s.Int64(autoscaling.MaxReplicaConcurrency)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
