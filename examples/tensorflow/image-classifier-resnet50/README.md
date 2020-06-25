@@ -29,7 +29,7 @@ Check that your API is live by running `cortex get image-classifier-resnet50`, a
 ```bash
 $ curl <API endpoint> -X POST -H "Content-Type: application/json" -d @sample.json
 
-["tabby", "Egyptian_cat", "tiger_cat", "tiger", "plastic_bag"]
+[["tabby", "Egyptian_cat", "tiger_cat", "tiger", "plastic_bag"]]
 ```
 
 The following image is embedded in [sample.json](sample.json):
