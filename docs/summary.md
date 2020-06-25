@@ -47,7 +47,7 @@
 
 * [API is stuck updating](troubleshooting/stuck-updating.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
-* [TF session called in predict method](troubleshooting/tf-session-in-predict-method.md)
+* [TF session in predict()](troubleshooting/tf-session-in-predict.md)
 
 ## Guides
 
