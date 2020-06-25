@@ -54,7 +54,9 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCa
 		localModelCaches[i].TargetPath = apiSpec.Predictor.Models[i].Name
 	}
 
-	fmt.Println("") // Newline to group all of the model information
+	if len(localModelCaches) > 0 {
+		fmt.Println("") // Newline to group all of the model information
+	}
 
 	return localModelCaches, nil
 }
