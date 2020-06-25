@@ -54,6 +54,10 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCa
 		localModelCaches[i].TargetPath = apiSpec.Predictor.Models[i].Name
 	}
 
+	if len(localModelCaches) > 0 {
+		fmt.Println("") // Newline to group all of the model information
+	}
+
 	return localModelCaches, nil
 }
 
@@ -127,8 +131,6 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("") // Newline to group all of the model information
 
 	localModelCache.HostPath = modelDir
 
