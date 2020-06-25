@@ -630,6 +630,9 @@ func validateTensorFlowPredictor(api *userconfig.API, providerType types.Provide
 	if predictor.BatchTimeout != nil && predictor.BatchSize == nil {
 		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchTimeoutKey, userconfig.BatchSizeKey)
 	}
+	if predictor.BatchSize != nil && *predictor.BatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
+		return ErrorInsufficientConcurrencyLevel(*predictor.BatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
+	}
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(predictor.Type)
 	} else if predictor.ModelPath != nil && len(predictor.Models) > 0 {

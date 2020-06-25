@@ -63,6 +63,7 @@ const (
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
+	ErrInsufficientConcurrencyLevel         = "spec.insufficient_concurrency_level"
 )
 
 func ErrorMalformedConfig() error {
@@ -337,5 +338,15 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfInfs,
 		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
+	})
+}
+
+func ErrorInsufficientConcurrencyLevel(batchSize, processesPerReplica, threadsPerProcess int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInsufficientConcurrencyLevel,
+		Message: fmt.Sprintf(
+			"batch size %d cannot be smaller than the concurrency level of %s %d * %s %d = %d",
+			batchSize, userconfig.ProcessesPerReplicaKey, processesPerReplica, userconfig.ThreadsPerProcessKey, threadsPerProcess, processesPerReplica*threadsPerProcess,
+		),
 	})
 }
