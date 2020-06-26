@@ -143,9 +143,9 @@ data:
       <match **>
         @type cloudwatch_logs
         region "#{ENV['AWS_REGION']}"
-        log_group_aws_tags ${CORTEX_TAGS_JSON}
         log_group_name_key group_name
         log_stream_name_key stream_name
+        log_group_aws_tags ${CORTEX_TAGS_JSON}
         remove_log_stream_name_key true
         remove_log_group_name_key true
         auto_create_stream true
@@ -169,6 +169,9 @@ metadata:
   name: fluentd
   namespace: default
 spec:
+  selector:
+    matchLabels:
+      app: fluentd
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
