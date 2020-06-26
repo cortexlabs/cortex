@@ -1,10 +1,10 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 import os
+import sys
 import click
 import concurrent.futures
 import requests
-import signal
 import json
 import time
 import itertools
@@ -12,14 +12,16 @@ import cv2
 import numpy as np
 import base64
 
+from validator_collection import checkers
+
 
 @click.command(
     help=(
-        "Program for testing the throughput of Resnet50 model on "
+        "Program for testing the throughput of ML models on "
         "instances equipped with CPU, GPU or Inferentia ASIC devices."
     )
 )
-@click.argument("img_url", type=str, envvar="IMG_URL")
+@click.argument("payload", type=str, envvar="PAYLOAD")
 @click.argument("endpoint", type=str, envvar="ENDPOINT")
 @click.option(
     "--processes",
@@ -52,23 +54,36 @@ import base64
     default=0.0,
     help="How long the thread making predictions will run for in seconds. If set, -s option will be ignored.",
 )
-@click.option(
-    "--batch-size",
-    "-b",
-    type=int,
-    default=1,
-    show_default=True,
-    help="Number of images sent for inference in one request.",
-)
-def main(img_url, endpoint, processes, threads, samples, time_based, batch_size):
-    # get the image in bytes representation
-    image = get_url_image(img_url)
-    image_bytes = image_to_jpeg_bytes(image)
+def main(payload, endpoint, processes, threads, samples, time_based):
+    file_type = None
+    if checkers.is_url(payload):
+        if payload.lower().endswith(".json"):
+            file_type = "json"
+            payload_data = requests.get(payload).json()
+        elif payload.lower().endswith(".png") or payload.lower().endswith(".jpg"):
+            file_type = "img"
+            payload_data = get_url_image(payload)
+    elif checkers.is_file(payload):
+        if payload.lower().endswith(".json"):
+            file_type = "json"
+            with open(payload, "r") as f:
+                payload_data = json.load(f)
+        elif payload.lower().endswith(".png") or payload.lower().endswith(".jpg"):
+            file_type = "img"
+            payload_data = cv2.imread(payload, cv2.IMREAD_COLOR)
+    else:
+        print(f"'{payload}' isn't an URL resource, nor is it a local file")
+        sys.exit(1)
 
-    # encode image
-    image_enc = base64.b64encode(image_bytes).decode("utf-8")
-    images_enc = [image_enc for i in range(batch_size)]
-    data = json.dumps({"imgs": images_enc})
+    if file_type is None:
+        print(f"'{payload}' doesn't point to an image (jpg or png) or to a json file")
+        sys.exit(1)
+    if file_type in ["png", "jpg"]:
+        image_bytes = image_to_jpeg_bytes(payload_data)
+        image_enc = base64.b64encode(image_bytes).decode("utf-8")
+        data = json.dumps({"img": image_enc})
+    if file_type == "json":
+        data = payload_data
 
     print("Starting the inference throughput test...")
     results = []
@@ -80,7 +95,7 @@ def main(img_url, endpoint, processes, threads, samples, time_based, batch_size)
     end = time.time()
     elapsed = end - start
 
-    total_requests = sum(results) * batch_size
+    total_requests = sum(results)
 
     print(f"A total of {total_requests} requests have been served in {elapsed} seconds")
     print(f"Avg number of inferences/sec is {total_requests / elapsed}")
