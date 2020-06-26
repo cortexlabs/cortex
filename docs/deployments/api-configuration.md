@@ -66,7 +66,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
     batch_size: <int> # the number of samples that will be propagated through the model in one go (default: 1)
-    batch_timeout: <float> # the amount of time in seconds to wait before executing a batch that hasn't been filled
+    batch_timeout: <float> # the amount of time in seconds to wait before executing a batch that hasn't been filled (default: 0.1s)
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
