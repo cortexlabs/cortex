@@ -15,14 +15,9 @@ import base64
 from validator_collection import checkers
 
 
-@click.command(
-    help=(
-        "Program for testing the throughput of ML models on "
-        "instances equipped with CPU, GPU or Inferentia ASIC devices."
-    )
-)
-@click.argument("payload", type=str, envvar="PAYLOAD")
+@click.command(help="Program for testing the throughput of Cortex-deployed APIs.")
 @click.argument("endpoint", type=str, envvar="ENDPOINT")
+@click.argument("payload", type=str, envvar="PAYLOAD")
 @click.option(
     "--processes",
     "-p",
@@ -60,7 +55,7 @@ def main(payload, endpoint, processes, threads, samples, time_based):
         if payload.lower().endswith(".json"):
             file_type = "json"
             payload_data = requests.get(payload).json()
-        elif payload.lower().endswith(".png") or payload.lower().endswith(".jpg"):
+        elif payload.lower().endswith(".jpg"):
             file_type = "img"
             payload_data = get_url_image(payload)
     elif checkers.is_file(payload):
@@ -68,7 +63,7 @@ def main(payload, endpoint, processes, threads, samples, time_based):
             file_type = "json"
             with open(payload, "r") as f:
                 payload_data = json.load(f)
-        elif payload.lower().endswith(".png") or payload.lower().endswith(".jpg"):
+        elif payload.lower().endswith(".jpg"):
             file_type = "img"
             payload_data = cv2.imread(payload, cv2.IMREAD_COLOR)
     else:
@@ -76,9 +71,9 @@ def main(payload, endpoint, processes, threads, samples, time_based):
         sys.exit(1)
 
     if file_type is None:
-        print(f"'{payload}' doesn't point to an image (jpg or png) or to a json file")
+        print(f"'{payload}' doesn't point to a jpg image or to a json file")
         sys.exit(1)
-    if file_type in ["png", "jpg"]:
+    if file_type == "jpg":
         image_bytes = image_to_jpeg_bytes(payload_data)
         image_enc = base64.b64encode(image_bytes).decode("utf-8")
         data = json.dumps({"img": image_enc})
