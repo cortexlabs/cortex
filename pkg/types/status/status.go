@@ -33,6 +33,7 @@ type SubReplicaCounts struct {
 	Pending      int32 `json:"pending"`
 	Initializing int32 `json:"initializing"`
 	Ready        int32 `json:"ready"`
+	ErrImagePull int32 `json:"err_image_pull"`
 	Terminating  int32 `json:"terminating"`
 	Failed       int32 `json:"failed"`
 	Killed       int32 `json:"killed"`

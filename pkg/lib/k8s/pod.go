@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,7 @@ const (
 	PodStatusPending      PodStatus = "Pending"
 	PodStatusInitializing PodStatus = "Initializing"
 	PodStatusRunning      PodStatus = "Running"
+	PodStatusErrImagePull PodStatus = "Image pull error"
 	PodStatusTerminating  PodStatus = "Terminating"
 	PodStatusSucceeded    PodStatus = "Succeeded"
 	PodStatusFailed       PodStatus = "Failed"
@@ -58,6 +60,9 @@ var _killStatuses = map[int32]bool{
 	130: true, // SIGINT
 	129: true, // SIGHUP
 }
+
+// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/images/types.go#L27
+var _imagePullErrorStrings = strset.New("ErrImagePull", "ImagePullBackOff", "RegistryUnavailable")
 
 type PodSpec struct {
 	Name        string
@@ -144,11 +149,15 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 
 	switch pod.Status.Phase {
 	case kcore.PodPending:
-		pendingPodStatus := PodStatusFromContainerStatuses(pod.Status.InitContainerStatuses)
-		if pendingPodStatus == PodStatusRunning {
+		initPodStatus := PodStatusFromContainerStatuses(pod.Status.InitContainerStatuses)
+		if initPodStatus == PodStatusRunning {
 			return PodStatusInitializing
 		}
-		return pendingPodStatus
+		allPodStatus := PodStatusFromContainerStatuses(append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...))
+		if allPodStatus == PodStatusErrImagePull {
+			return PodStatusErrImagePull
+		}
+		return initPodStatus
 	case kcore.PodSucceeded:
 		return PodStatusSucceeded
 	case kcore.PodFailed:
@@ -230,6 +239,8 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 			} else {
 				numFailed++
 			}
+		} else if containerStatus.State.Waiting != nil && _imagePullErrorStrings.Has(containerStatus.State.Waiting.Reason) {
+			return PodStatusErrImagePull
 		} else {
 			// either containerStatus.State.Waiting != nil or all containerStatus.States are nil (which implies waiting)
 			numWaiting++
