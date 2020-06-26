@@ -72,7 +72,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	if err != nil {
 		return "", err
 	} else if deployedResource == nil {
-		return "", ErrorAPINotDeployed(deployedResource.Name)
+		return "", ErrorAPINotDeployed(apiName)
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {

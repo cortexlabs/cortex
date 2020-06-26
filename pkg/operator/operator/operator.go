@@ -20,10 +20,13 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
+	ocron "github.com/cortexlabs/cortex/pkg/operator/cron"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func Init() error {
@@ -40,14 +43,15 @@ func Init() error {
 	}
 
 	for _, deployment := range deployments {
-		// TODO only apply sync_api resource kind
-		if err := syncapi.UpdateAutoscalerCron(&deployment); err != nil {
-			return err
+		if userconfig.KindFromString(deployment.Labels["apiKind"]) == userconfig.SyncAPIKind {
+			if err := syncapi.UpdateAutoscalerCron(&deployment); err != nil {
+				return err
+			}
 		}
 	}
 
-	cron.Run(deleteEvictedPods, cronErrHandler("delete evicted pods"), 12*time.Hour)
-	cron.Run(operatorTelemetry, cronErrHandler("operator telemetry"), 1*time.Hour)
+	cron.Run(deleteEvictedPods, ocron.ErrorHandler("delete evicted pods"), 12*time.Hour)
+	cron.Run(operatorTelemetry, ocron.ErrorHandler("operator telemetry"), 1*time.Hour)
 
 	return nil
 }

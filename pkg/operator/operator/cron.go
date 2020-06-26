@@ -160,11 +160,3 @@ func clusterFixedPrice() float64 {
 
 	return eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
 }
-
-func cronErrHandler(cronName string) func(error) {
-	return func(err error) {
-		err = errors.Wrap(err, cronName+" cron failed")
-		telemetry.Error(err)
-		errors.PrintError(err)
-	}
-}

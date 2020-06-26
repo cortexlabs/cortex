@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	ocron "github.com/cortexlabs/cortex/pkg/operator/cron"
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -104,7 +105,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
-	prevDeployment, err := config.K8s.GetDeployment(k8sName(apiName))
+	prevDeployment, err := config.K8s.GetDeployment(ok8s.Name(apiName))
 	if err != nil {
 		return "", err
 	} else if prevDeployment == nil {
@@ -145,7 +146,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(k8sName(apiName))
+	virtualService, vsErr := config.K8s.GetVirtualService(ok8s.Name(apiName))
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -209,12 +210,12 @@ func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Servi
 		},
 		func() error {
 			var err error
-			service, err = config.K8s.GetService(k8sName(apiConfig.Name))
+			service, err = config.K8s.GetService(ok8s.Name(apiConfig.Name))
 			return err
 		},
 		func() error {
 			var err error
-			virtualService, err = config.K8s.GetVirtualService(k8sName(apiConfig.Name))
+			virtualService, err = config.K8s.GetVirtualService(ok8s.Name(apiConfig.Name))
 			return err
 		},
 	)
@@ -246,7 +247,7 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 		}
 	} else if prevDeployment.Status.ReadyReplicas == 0 {
 		// Delete deployment if it never became ready
-		config.K8s.DeleteDeployment(k8sName(api.Name))
+		config.K8s.DeleteDeployment(ok8s.Name(api.Name))
 		_, err := config.K8s.CreateDeployment(newDeployment)
 		if err != nil {
 			return err
@@ -277,7 +278,7 @@ func UpdateAutoscalerCron(deployment *kapps.Deployment) error {
 		return err
 	}
 
-	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
+	_autoscalerCrons[apiName] = cron.Run(autoscaler, ocron.ErrorHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
 
 	return nil
 }
@@ -314,15 +315,15 @@ func deleteK8sResources(apiName string) error {
 				delete(_autoscalerCrons, apiName)
 			}
 
-			_, err := config.K8s.DeleteDeployment(k8sName(apiName))
+			_, err := config.K8s.DeleteDeployment(ok8s.Name(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteService(k8sName(apiName))
+			_, err := config.K8s.DeleteService(ok8s.Name(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(k8sName(apiName))
+			_, err := config.K8s.DeleteVirtualService(ok8s.Name(apiName))
 			return err
 		},
 	)
@@ -396,7 +397,7 @@ func extractCortexAnnotations(obj kmeta.Object) map[string]string {
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {
-	deployment, err := config.K8s.GetDeployment(k8sName(apiName))
+	deployment, err := config.K8s.GetDeployment(ok8s.Name(apiName))
 	if err != nil {
 		return false, err
 	}
