@@ -43,7 +43,9 @@ This example deploys models that we have built and uploaded to a public S3 bucke
 Run the following command to install the dependencies required for the [generate_resnet50_models.ipynb](generate_resnet50_models.ipynb) notebook:
 
 ```bash
-pip install neuron-cc==1.0.9410.0+6008239556 torch-neuron==1.0.825.0
+pip install --extra-index-url=https://pip.repos.neuron.amazonaws.com \
+ neuron-cc==1.0.9410.0+6008239556 \
+ torch-neuron==1.0.825.0
 ```
 
 Also, `torchvision` has to be installed, but without any dependencies:
