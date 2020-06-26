@@ -345,8 +345,8 @@ func ErrorInsufficientConcurrencyLevel(batchSize, processesPerReplica, threadsPe
 	return errors.WithStack(&errors.Error{
 		Kind: ErrInsufficientConcurrencyLevel,
 		Message: fmt.Sprintf(
-			"batch size %d cannot be smaller than the concurrency level of %s %d * %s %d = %d",
-			batchSize, userconfig.ProcessesPerReplicaKey, processesPerReplica, userconfig.ThreadsPerProcessKey, threadsPerProcess, processesPerReplica*threadsPerProcess,
+			"batch size %d cannot be smaller than the concurrency level of %d %s * %d %s = %d",
+			batchSize, processesPerReplica, userconfig.ProcessesPerReplicaKey, threadsPerProcess, userconfig.ThreadsPerProcessKey, processesPerReplica*threadsPerProcess,
 		),
 	})
 }
