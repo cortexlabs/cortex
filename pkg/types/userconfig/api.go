@@ -47,18 +47,16 @@ type Predictor struct {
 	Path                   string                 `json:"path" yaml:"path"`
 	ModelPath              *string                `json:"model_path" yaml:"model_path"`
 	Models                 []*ModelResource       `json:"models" yaml:"models"`
+	BatchSize              *int32                 `json:"batch_size" yaml:"batch_size"`
+	BatchTimeout           *float64               `json:"batch_timeout" yaml:"batch_timeout"` // measured in seconds
+	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
+	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
-	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
-	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
-	BatchSize              *int32                 `json:"batch_size" yaml:"batch_size"`
-
-	// measured in seconds
-	BatchTimeout *float64 `json:"batch_timeout" yaml:"batch_timeout"`
 }
 
 type ModelResource struct {

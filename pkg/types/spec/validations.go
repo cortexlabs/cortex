@@ -625,13 +625,13 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 func validateTensorFlowPredictor(api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
 
-	if predictor.BatchSize != nil && predictor.BatchTimeout == nil {
-		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchSizeKey, userconfig.BatchTimeoutKey)
+	if predictor.BatchSize == nil {
+		predictor.BatchSize = &consts.DefaultBatchSize
 	}
-	if predictor.BatchTimeout != nil && predictor.BatchSize == nil {
-		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchTimeoutKey, userconfig.BatchSizeKey)
+	if predictor.BatchTimeout == nil {
+		predictor.BatchTimeout = &consts.DefaultBatchTimeout
 	}
-	if predictor.BatchSize != nil && *predictor.BatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
+	if *predictor.BatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
 		return ErrorInsufficientConcurrencyLevel(*predictor.BatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
 	}
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
