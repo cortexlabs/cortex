@@ -17,19 +17,12 @@ limitations under the License.
 package operator
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 const (
-	ErrCortexInstallationBroken    = "operator.cortex_installation_broken"
-	ErrLoadBalancerInitializing    = "operator.load_balancer_initializing"
-	ErrMalformedConfig             = "operator.malformed_config"
-	ErrNoAPIs                      = "operator.no_apis"
-	ErrAPIUpdating                 = "operator.api_updating"
-	ErrAPINotDeployed              = "operator.api_not_deployed"
-	ErrNoAvailableNodeComputeLimit = "operator.no_available_node_compute_limit"
+	ErrCortexInstallationBroken = "operator.cortex_installation_broken"
+	ErrLoadBalancerInitializing = "operator.load_balancer_initializing"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -43,30 +36,5 @@ func ErrorLoadBalancerInitializing() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrLoadBalancerInitializing,
 		Message: "load balancer is still initializing",
-	})
-}
-
-func ErrorAPIUpdating(apiName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPIUpdating,
-		Message: fmt.Sprintf("%s is updating (override with --force)", apiName),
-	})
-}
-
-func ErrorAPINotDeployed(apiName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPINotDeployed,
-		Message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
-	})
-}
-
-func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr string) error {
-	message := fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances only have %s %s available", resource, reqStr, resource, maxStr, resource)
-	if maxStr == "0" {
-		message = fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances don't have any %s", resource, reqStr, resource, resource)
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoAvailableNodeComputeLimit,
-		Message: message,
 	})
 }

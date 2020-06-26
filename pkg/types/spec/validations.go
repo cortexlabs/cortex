@@ -47,25 +47,40 @@ import (
 
 var AutoscalingTickInterval = 10 * time.Second
 
-func apiValidation(provider types.ProviderType) *cr.StructValidation {
+func apiValidation(provider types.ProviderType, kind userconfig.Kind) *cr.StructValidation {
+	structFieldValidations := []*cr.StructFieldValidation{}
+	structFieldValidations = append(resourceStructValidations,
+		predictorValidation(),
+		monitoringValidation(),
+		networkingValidation(),
+		computeValidation(provider),
+		autoscalingValidation(provider),
+		updateStrategyValidation(provider),
+	)
 	return &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "Name",
-				StringValidation: &cr.StringValidation{
-					Required:  true,
-					DNS1035:   true,
-					MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
-				},
-			},
-			predictorValidation(),
-			monitoringValidation(),
-			networkingValidation(),
-			computeValidation(provider),
-			autoscalingValidation(provider),
-			updateStrategyValidation(provider),
-		},
+		StructFieldValidations: structFieldValidations,
 	}
+}
+
+var resourceStructValidations = []*cr.StructFieldValidation{
+	{
+		StructField: "Name",
+		StringValidation: &cr.StringValidation{
+			Required:  true,
+			DNS1035:   true,
+			MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
+		},
+	},
+	{
+		StructField: "Kind",
+		StringValidation: &cr.StringValidation{
+			Required:      true,
+			AllowedValues: userconfig.KindStrings(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return userconfig.KindFromString(str), nil
+		},
+	},
 }
 
 func predictorValidation() *cr.StructFieldValidation {
@@ -467,6 +482,11 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
+var resourceStructValidation = cr.StructValidation{
+	AllowExtraFields:       true,
+	StructFieldValidations: resourceStructValidations,
+}
+
 func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectFiles ProjectFiles, filePath string) ([]userconfig.API, error) {
 	var err error
 
@@ -479,13 +499,27 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 	if !ok {
 		return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
 	}
+
 	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
 		api := userconfig.API{}
-		errs := cr.Struct(&api, data, apiValidation(provider))
+		var resourceStruct userconfig.Resource
+		errs := cr.Struct(&resourceStruct, data, &resourceStructValidation)
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
-			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			kindString, _ := data[userconfig.KindKey].(string)
+			kind := userconfig.KindFromString(kindString)
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+		}
+
+		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct.Kind))
+
+		if errors.HasError(errs) {
+			name, _ := data[userconfig.NameKey].(string)
+			kindString, _ := data[userconfig.KindKey].(string)
+			kind := userconfig.KindFromString(kindString)
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 		api.Index = i

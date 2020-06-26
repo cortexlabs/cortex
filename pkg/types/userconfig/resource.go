@@ -14,23 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package endpoints
+package userconfig
 
-import (
-	"net/http"
-
-	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/gorilla/mux"
-)
-
-func Delete(w http.ResponseWriter, r *http.Request) {
-	apiName := mux.Vars(r)["apiName"]
-	keepCache := getOptionalBoolQParam("keepCache", false, r)
-
-	response, err := resources.DeleteAPI(apiName, keepCache)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-	respond(w, response)
+type Resource struct {
+	Name string `json:"name" yaml:"name"`
+	Kind Kind   `json:"kind" yaml:"kind"`
 }

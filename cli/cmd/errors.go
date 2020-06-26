@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -47,6 +48,7 @@ func getCloudFormationURL(clusterName, region string) string {
 const (
 	ErrInvalidProvider                      = "cli.invalid_provider"
 	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
+	ErrCommandNotSupportedForKind           = "cli.command_not_supported_for_kind"
 	ErrEnvironmentNotFound                  = "cli.environment_not_found"
 	ErrOperatorEndpointInLocalEnvironment   = "cli.operator_endpoint_in_local_environment"
 	ErrOperatorConfigFromLocalEnvironment   = "cli.operater_config_from_local_environment"
@@ -92,6 +94,13 @@ func ErrorNotSupportedInLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotSupportedInLocalEnvironment,
 		Message: "this command is not supported in local environment",
+	})
+}
+
+func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCommandNotSupportedForKind,
+		Message: fmt.Sprintf("the `%s` command is not supported for %s kind", command, kind),
 	})
 }
 

@@ -19,6 +19,7 @@ package userconfig
 const (
 	// API
 	NameKey           = "name"
+	KindKey           = "kind"
 	PredictorKey      = "predictor"
 	MonitoringKey     = "monitoring"
 	NetworkingKey     = "networking"

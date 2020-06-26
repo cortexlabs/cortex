@@ -30,16 +30,15 @@ import (
 )
 
 type API struct {
-	Name           string          `json:"name" yaml:"name"`
+	Resource
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking     *Networking     `json:"networking" yaml:"networking"`
 	Compute        *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
-
-	Index    int    `json:"index" yaml:"-"`
-	FilePath string `json:"file_path" yaml:"-"`
+	Index          int             `json:"index" yaml:"-"`
+	FilePath       string          `json:"file_path" yaml:"-"`
 }
 
 type Predictor struct {
@@ -102,7 +101,7 @@ type UpdateStrategy struct {
 }
 
 func (api *API) Identify() string {
-	return IdentifyAPI(api.FilePath, api.Name, api.Index)
+	return IdentifyAPI(api.FilePath, api.Name, api.Kind, api.Index)
 }
 
 func (api *API) ModelNames() []string {
@@ -156,7 +155,7 @@ func (api *API) ApplyDefaultDockerPaths() {
 	}
 }
 
-func IdentifyAPI(filePath string, name string, index int) string {
+func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 	str := ""
 
 	if filePath != "" {
@@ -164,11 +163,15 @@ func IdentifyAPI(filePath string, name string, index int) string {
 	}
 
 	if name != "" {
-		return str + name
+		str += name
+		if kind != UnknownKind {
+			str += " (" + kind.String() + ")"
+		}
+		return str
 	} else if index >= 0 {
-		return str + "api at " + s.Index(index)
+		return str + "resource at " + s.Index(index)
 	}
-	return str + "api"
+	return str + "resource"
 }
 
 // InitReplicas was left out deliberately
@@ -275,6 +278,7 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
 
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))

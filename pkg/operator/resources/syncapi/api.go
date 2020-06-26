@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package syncapi
 
 import (
 	"fmt"
@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -58,7 +59,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = addAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
+		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
@@ -84,7 +85,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		if err := updateAPIGatewayK8s(prevVirtualService, api); err != nil {
+		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
 			return nil, "", err
 		}
 		return api, fmt.Sprintf("updating %s", api.Name), nil
@@ -102,11 +103,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
-	prevDeployment, err := config.K8s.GetDeployment(k8sName(apiName))
+	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
 	if err != nil {
 		return "", err
 	} else if prevDeployment == nil {
-		return "", ErrorAPINotDeployed(apiName)
+		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
 	isUpdating, err := isAPIUpdating(prevDeployment)
@@ -123,7 +124,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api, err := DownloadAPISpec(apiName, apiID)
+	api, err := operator.DownloadAPISpec(apiName, apiID)
 	if err != nil {
 		return "", err
 	}
@@ -143,7 +144,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(k8sName(apiName))
+	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -162,7 +163,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		},
 		// delete API from API Gateway
 		func() error {
-			err := removeAPIFromAPIGatewayK8s(virtualService)
+			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
 			if err != nil {
 				return err
 			}
@@ -202,17 +203,17 @@ func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Servi
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(k8sName(apiConfig.Name))
+			deployment, err = config.K8s.GetDeployment(operator.K8sName(apiConfig.Name))
 			return err
 		},
 		func() error {
 			var err error
-			service, err = config.K8s.GetService(k8sName(apiConfig.Name))
+			service, err = config.K8s.GetService(operator.K8sName(apiConfig.Name))
 			return err
 		},
 		func() error {
 			var err error
-			virtualService, err = config.K8s.GetVirtualService(k8sName(apiConfig.Name))
+			virtualService, err = config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 			return err
 		},
 	)
@@ -244,7 +245,7 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 		}
 	} else if prevDeployment.Status.ReadyReplicas == 0 {
 		// Delete deployment if it never became ready
-		config.K8s.DeleteDeployment(k8sName(api.Name))
+		config.K8s.DeleteDeployment(operator.K8sName(api.Name))
 		_, err := config.K8s.CreateDeployment(newDeployment)
 		if err != nil {
 			return err
@@ -256,14 +257,14 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 		}
 	}
 
-	if err := updateAutoscalerCron(newDeployment); err != nil {
+	if err := UpdateAutoscalerCron(newDeployment); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func updateAutoscalerCron(deployment *kapps.Deployment) error {
+func UpdateAutoscalerCron(deployment *kapps.Deployment) error {
 	apiName := deployment.Labels["apiName"]
 
 	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
@@ -275,7 +276,7 @@ func updateAutoscalerCron(deployment *kapps.Deployment) error {
 		return err
 	}
 
-	_autoscalerCrons[apiName] = cron.Run(autoscaler, cronErrHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
+	_autoscalerCrons[apiName] = cron.Run(autoscaler, operator.ErrorHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
 
 	return nil
 }
@@ -312,15 +313,15 @@ func deleteK8sResources(apiName string) error {
 				delete(_autoscalerCrons, apiName)
 			}
 
-			_, err := config.K8s.DeleteDeployment(k8sName(apiName))
+			_, err := config.K8s.DeleteDeployment(operator.K8sName(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteService(k8sName(apiName))
+			_, err := config.K8s.DeleteService(operator.K8sName(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(k8sName(apiName))
+			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
 			return err
 		},
 	)
@@ -329,6 +330,15 @@ func deleteK8sResources(apiName string) error {
 func deleteS3Resources(apiName string) error {
 	prefix := filepath.Join("apis", apiName)
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+}
+
+func IsAPIUpdating(apiName string) (bool, error) {
+	deployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
+	if err != nil {
+		return false, err
+	}
+
+	return isAPIUpdating(deployment)
 }
 
 // returns true if min_replicas are not ready and no updated replicas have errored
@@ -385,7 +395,7 @@ func extractCortexAnnotations(obj kmeta.Object) map[string]string {
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {
-	deployment, err := config.K8s.GetDeployment(k8sName(apiName))
+	deployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
 	if err != nil {
 		return false, err
 	}
@@ -397,65 +407,5 @@ func APIBaseURL(api *spec.API) (string, error) {
 	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
 		return *config.Cluster.APIGateway.ApiEndpoint, nil
 	}
-	return APILoadBalancerURL()
-}
-
-// APILoadBalancerURL returns http endpoint of cluster ingress elb
-func APILoadBalancerURL() (string, error) {
-	service, err := config.K8sIstio.GetService("ingressgateway-apis")
-	if err != nil {
-		return "", err
-	}
-	if service == nil {
-		return "", ErrorCortexInstallationBroken()
-	}
-	if len(service.Status.LoadBalancer.Ingress) == 0 {
-		return "", ErrorLoadBalancerInitializing()
-	}
-	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
-}
-
-func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
-	s3Key := spec.Key(apiName, apiID)
-	var api spec.API
-
-	if err := config.AWS.ReadMsgpackFromS3(&api, config.Cluster.Bucket, s3Key); err != nil {
-		return nil, err
-	}
-
-	return &api, nil
-}
-
-func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
-	apis := make([]spec.API, len(apiNames))
-	fns := make([]func() error, len(apiNames))
-
-	for i := range apiNames {
-		localIdx := i
-		fns[i] = func() error {
-			api, err := DownloadAPISpec(apiNames[localIdx], apiIDs[localIdx])
-			if err != nil {
-				return err
-			}
-			apis[localIdx] = *api
-			return nil
-		}
-	}
-
-	if len(fns) > 0 {
-		err := parallel.RunFirstErr(fns[0], fns[1:]...)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return apis, nil
-}
-
-func GetEndpointFromVirtualService(virtualService *istioclientnetworking.VirtualService) (string, error) {
-	endpoints := k8s.ExtractVirtualServiceEndpoints(virtualService)
-	if len(endpoints) != 1 {
-		return "", errors.ErrorUnexpected("expected 1 endpoint, but got", endpoints)
-	}
-	return endpoints.GetOne(), nil
+	return operator.APILoadBalancerURL()
 }
