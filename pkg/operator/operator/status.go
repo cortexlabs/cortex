@@ -147,6 +147,8 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 		subCounts.Initializing++
 	case k8s.PodStatusRunning:
 		subCounts.Initializing++
+	case k8s.PodStatusErrImagePull:
+		subCounts.ErrImagePull++
 	case k8s.PodStatusTerminating:
 		subCounts.Terminating++
 	case k8s.PodStatusFailed:
@@ -163,6 +165,10 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code {
 	if counts.Updated.Ready >= counts.Requested {
 		return status.Live
+	}
+
+	if counts.Updated.ErrImagePull > 0 {
+		return status.ErrorImagePull
 	}
 
 	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {

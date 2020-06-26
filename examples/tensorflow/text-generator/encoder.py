@@ -2,7 +2,6 @@
 
 # This file includes code which was modified from https://github.com/openai/gpt-2
 
-import boto3
 import json
 import regex
 from functools import lru_cache

@@ -124,7 +124,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					Int32Validation: &cr.Int32Validation{
 						Default:              1,
 						GreaterThanOrEqualTo: pointer.Int32(1),
-						LessThanOrEqualTo:    pointer.Int32(20),
+						LessThanOrEqualTo:    pointer.Int32(100),
 					},
 				},
 				{
