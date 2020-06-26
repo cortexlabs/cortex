@@ -19,31 +19,23 @@ def get_url_image(url_image):
     return image
 
 
-def decode_images(images):
+def decode_image(image):
     """
-    Decodes the images from the payload.
+    Decode the image from the payload.
     """
-    output = []
-    for image in images:
-        img = base64.b64decode(image)
-        jpg_as_np = np.frombuffer(img, dtype=np.uint8)
-        img = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
-        output.append(img)
-
-    return output
+    img = base64.b64decode(image)
+    jpg_as_np = np.frombuffer(img, dtype=np.uint8)
+    img = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
+    return img
 
 
-def prepare_images(images, input_shape, input_key):
+def prepare_image(image, input_shape, input_key):
     """
-    Prepares images for the TFS client.
+    Prepares an image for the TFS client.
     """
-    output = []
-    for image in images:
-        img = cv2.resize(image, input_shape, interpolation=cv2.INTER_NEAREST)
-        img = {input_key: img[np.newaxis, ...]}
-        output.append(img)
-
-    return output
+    img = cv2.resize(image, input_shape, interpolation=cv2.INTER_NEAREST)
+    img = {input_key: img[np.newaxis, ...]}
+    return img
 
 
 class TensorFlowPredictor:
@@ -60,26 +52,22 @@ class TensorFlowPredictor:
     def predict(self, payload):
         # preprocess image
         payload_keys = payload.keys()
-        if "imgs" in payload_keys:
-            imgs = payload["imgs"]
-            imgs = decode_images(imgs)
+        if "img" in payload_keys:
+            img = payload["img"]
+            img = decode_image(img)
         elif "url" in payload_keys:
-            imgs = [get_url_image(payload["url"])]
+            img = get_url_image(payload["url"])
         else:
             return None
-        prepared_imgs = prepare_images(imgs, self.input_shape, self.input_key)
+        img = prepare_image(img, self.input_shape, self.input_key)
 
-        # batch sized images
-        top5_list_imgs = []
-        for img in prepared_imgs:
-            # predict
-            results = self.client.predict(img)["output"]
-            results = np.argsort(results)
+        # predict
+        results = self.client.predict(img)["output"]
+        results = np.argsort(results)
 
-            # Lookup and print the top 5 labels
-            top5_idx = results[-5:]
-            top5_labels = [self.idx2label[idx] for idx in top5_idx]
-            top5_labels = top5_labels[::-1]
-            top5_list_imgs.append(top5_labels)
+        # Lookup and print the top 5 labels
+        top5_idx = results[-5:]
+        top5_labels = [self.idx2label[idx] for idx in top5_idx]
+        top5_labels = top5_labels[::-1]
 
-        return top5_list_imgs
+        return top5_labels
