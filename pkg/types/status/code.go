@@ -22,6 +22,7 @@ const (
 	Unknown Code = iota
 	Stalled
 	Error
+	ErrorImagePull
 	OOM
 	Live
 	Updating
@@ -31,6 +32,7 @@ var _codes = []string{
 	"status_unknown",
 	"status_stalled",
 	"status_error",
+	"status_error_image_pull",
 	"status_oom",
 	"status_live",
 	"status_updating",
@@ -42,6 +44,7 @@ var _codeMessages = []string{
 	"unknown",               // Unknown
 	"compute unavailable",   // Stalled
 	"error",                 // Error
+	"error (image pull)",    // Live
 	"error (out of memory)", // OOM
 	"live",                  // Live
 	"updating",              // Updating
