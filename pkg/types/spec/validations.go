@@ -512,7 +512,9 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 		errs := cr.Struct(&resourceStruct, data, &resourceStructValidation)
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
-			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			kindString, _ := data[userconfig.KindKey].(string)
+			kind := userconfig.KindFromString(kindString)
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 
@@ -520,7 +522,9 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
-			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
+			kindString, _ := data[userconfig.KindKey].(string)
+			kind := userconfig.KindFromString(kindString)
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 		api.Index = i

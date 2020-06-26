@@ -98,10 +98,6 @@ func (api *API) SubtractModelIDs(apis ...*API) []string {
 	return modelIDs.Slice()
 }
 
-// func (api *API) Identify() string {
-// 	return userconfig.IdentifyAPI(api.FilePath, api., api.Index)
-// }
-
 func Key(apiName string, apiID string) string {
 	return filepath.Join(
 		"apis",

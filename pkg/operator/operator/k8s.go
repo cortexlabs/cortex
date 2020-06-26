@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package k8s
+package operator
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"

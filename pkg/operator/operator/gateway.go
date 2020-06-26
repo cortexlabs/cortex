@@ -20,7 +20,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -50,7 +49,7 @@ func AddAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayTyp
 	}
 
 	if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
-		loadBalancerURL, err := ok8s.APILoadBalancerURL()
+		loadBalancerURL, err := APILoadBalancerURL()
 		if err != nil {
 			return err
 		}
@@ -140,7 +139,7 @@ func RemoveAPIFromAPIGatewayK8s(virtualService *istioclientnetworking.VirtualSer
 		return err
 	}
 
-	endpoint, err := ok8s.GetEndpointFromVirtualService(virtualService)
+	endpoint, err := GetEndpointFromVirtualService(virtualService)
 	if err != nil {
 		return err
 	}
@@ -154,7 +153,7 @@ func UpdateAPIGatewayK8s(prevVirtualService *istioclientnetworking.VirtualServic
 		return err
 	}
 
-	prevEndpoint, err := ok8s.GetEndpointFromVirtualService(prevVirtualService)
+	prevEndpoint, err := GetEndpointFromVirtualService(prevVirtualService)
 	if err != nil {
 		return err
 	}

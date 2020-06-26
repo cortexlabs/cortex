@@ -27,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -408,5 +407,5 @@ func APIBaseURL(api *spec.API) (string, error) {
 	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
 		return *config.Cluster.APIGateway.ApiEndpoint, nil
 	}
-	return ok8s.APILoadBalancerURL()
+	return operator.APILoadBalancerURL()
 }

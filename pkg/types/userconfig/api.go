@@ -101,7 +101,7 @@ type UpdateStrategy struct {
 }
 
 func (api *API) Identify() string {
-	return IdentifyAPI(api.FilePath, api.Resource.Identify(), api.Index)
+	return IdentifyAPI(api.FilePath, api.Name, api.Kind, api.Index)
 }
 
 func (api *API) ModelNames() []string {
@@ -155,19 +155,23 @@ func (api *API) ApplyDefaultDockerPaths() {
 	}
 }
 
-func IdentifyAPI(filePath string, resourceIdentity string, index int) string {
+func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 	str := ""
 
 	if filePath != "" {
 		str += filePath + ": "
 	}
 
-	if resourceIdentity != "" {
-		return str + resourceIdentity
+	if name != "" {
+		str += name
+		if kind != UnknownKind {
+			str += " (" + kind.String() + ")"
+		}
+		return str
 	} else if index >= 0 {
-		return str + " at " + s.Index(index)
+		return str + "resource at " + s.Index(index)
 	}
-	return str
+	return str + "resource"
 }
 
 // InitReplicas was left out deliberately

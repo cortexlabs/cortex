@@ -27,6 +27,17 @@ import (
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
+	deployedResource, err := resources.FindDeployedResourceByName(apiName)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	if deployedResource == nil {
+		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
+		return
+	}
+
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -35,7 +46,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	err = resources.StreamLogs(apiName, socket)
+	err = resources.StreamLogs(*deployedResource, socket)
 	if err != nil {
 		respondError(w, r, err)
 		return

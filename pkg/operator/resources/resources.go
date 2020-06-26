@@ -17,12 +17,20 @@ limitations under the License.
 package resources
 
 import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/websocket"
 )
@@ -48,7 +56,56 @@ func IsResourceUpdating(resource userconfig.Resource) (bool, error) {
 		return syncapi.IsAPIUpdating(resource.Name)
 	}
 
-	return false, ErrorKindNotSupported(resource.Kind)
+	return false, ErrorOperationNotSupportedForKind(resource.Kind)
+}
+
+func DeployAPI(projectBytes []byte, configPath string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
+	projectID := hash.Bytes(projectBytes)
+	projectKey := spec.ProjectKey(projectID)
+	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	projectFiles := ProjectFiles{
+		ProjectByteMap: projectFileMap,
+		ConfigFilePath: configPath,
+	}
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ValidateClusterAPIs(apiConfigs, projectFiles)
+	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+		return nil, err
+	}
+
+	isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
+	if err != nil {
+		return nil, err
+	}
+	if !isProjectUploaded {
+		if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+			return nil, err
+		}
+	}
+
+	results := make([]schema.DeployResult, len(apiConfigs))
+	for i, apiConfig := range apiConfigs {
+		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
+		results[i].Message = msg
+		if err != nil {
+			results[i].Error = errors.Message(err)
+		} else {
+			results[i].API = *api
+		}
+	}
+
+	return &schema.DeployResponse{
+		Results: results,
+	}, nil
 }
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
@@ -65,7 +122,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return syncapi.UpdateAPI(apiConfig, projectID, force)
 	}
 
-	return nil, "", errors.Wrap(ErrorKindNotSupported(apiConfig.Kind), apiConfig.Identify()) // unexpected
+	return nil, "", errors.Wrap(ErrorOperationNotSupportedForKind(apiConfig.Kind)) // unexpected
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
@@ -80,7 +137,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return syncapi.RefreshAPI(apiName, force)
 	}
 
-	return "", errors.Wrap(ErrorKindNotSupported(deployedResource.Kind), deployedResource.Identify()) // unexpected
+	return "", errors.Wrap(ErrorOperationNotSupportedForKind(deployedResource.Kind)) // unexpected
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
@@ -97,21 +154,89 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func StreamLogs(apiName string, socket *websocket.Conn) error {
-	deployedResource, err := FindDeployedResourceByName(apiName)
-	if err != nil {
-		return err
-	}
-
-	if deployedResource == nil {
-		return ErrorAPINotDeployed(apiName)
-	}
-
+func StreamLogs(deployedResource userconfig.Resource, socket *websocket.Conn) error {
 	if deployedResource.Kind == userconfig.SyncAPIKind {
-		syncapi.ReadLogs(apiName, socket)
+		syncapi.ReadLogs(deployedResource.Name, socket)
 	} else {
-		return errors.Wrap(ErrorKindNotSupported(deployedResource.Kind), deployedResource.Identify())
+		return errors.Wrap(ErrorOperationNotSupportedForKind(deployedResource.Kind)) // unexpected
 	}
 
 	return nil
+}
+
+func GetAPIs() (*schema.GetAPIsResponse, error) {
+	statuses, err := syncapi.GetAllStatuses()
+	if err != nil {
+		return nil, err
+	}
+
+	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
+	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	allMetrics, err := syncapi.GetMultipleMetrics(apis)
+	if err != nil {
+		return nil, err
+	}
+
+	syncAPIs := make([]schema.SyncAPI, len(apis))
+
+	for i, api := range apis {
+		syncAPIs[i] = schema.SyncAPI{
+			Spec:    api,
+			Status:  statuses[i],
+			Metrics: allMetrics[i],
+		}
+	}
+
+	return &schema.GetAPIsResponse{
+		SyncAPIs: syncAPIs,
+	}, nil
+}
+
+func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
+
+	status, err := syncapi.GetStatus(apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics, err := syncapi.GetMetrics(api)
+	if err != nil {
+		return nil, err
+	}
+
+	baseURL, err := syncapi.APIBaseURL(api)
+	if err != nil {
+		return nil, err
+	}
+
+	return &schema.GetAPIResponse{
+		SyncAPI: &schema.SyncAPI{
+			Spec:         *api,
+			Status:       *status,
+			Metrics:      *metrics,
+			BaseURL:      baseURL,
+			DashboardURL: syncapi.DashboardURL(),
+		},
+	}, nil
+}
+
+func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
+	apiNames := make([]string, len(statuses))
+	apiIDs := make([]string, len(statuses))
+
+	for i, status := range statuses {
+		apiNames[i] = status.APIName
+		apiIDs[i] = status.APIID
+	}
+
+	return apiNames, apiIDs
 }

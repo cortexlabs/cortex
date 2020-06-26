@@ -19,94 +19,28 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/gorilla/mux"
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
-	statuses, err := syncapi.GetAllStatuses()
+	response, err := resources.GetAPIs()
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	allMetrics, err := syncapi.GetMultipleMetrics(apis)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	syncAPIs := make([]schema.SyncAPI, len(apis))
-
-	for i, api := range apis {
-		syncAPIs[i] = schema.SyncAPI{
-			Spec:    api,
-			Status:  statuses[i],
-			Metrics: allMetrics[i],
-		}
-	}
-
-	respond(w, schema.GetAPIsResponse{
-		SyncAPIs: syncAPIs,
-	})
+	respond(w, response)
 }
 
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	status, err := syncapi.GetStatus(apiName)
+	response, err := resources.GetAPI(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	metrics, err := syncapi.GetMetrics(api)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	baseURL, err := syncapi.APIBaseURL(api)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	respond(w, schema.GetAPIResponse{
-		SyncAPI: &schema.SyncAPI{
-			Spec:         *api,
-			Status:       *status,
-			Metrics:      *metrics,
-			BaseURL:      baseURL,
-			DashboardURL: syncapi.DashboardURL(),
-		},
-	})
-}
-
-func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
-	apiNames := make([]string, len(statuses))
-	apiIDs := make([]string, len(statuses))
-
-	for i, status := range statuses {
-		apiNames[i] = status.APIName
-		apiIDs[i] = status.APIID
-	}
-
-	return apiNames, apiIDs
+	respond(w, response)
 }

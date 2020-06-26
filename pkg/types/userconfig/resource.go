@@ -20,7 +20,3 @@ type Resource struct {
 	Name string `json:"name" yaml:"name"`
 	Kind Kind   `json:"kind" yaml:"kind"`
 }
-
-func (resource *Resource) Identify() string {
-	return resource.Name + " (" + resource.Kind.String() + ")"
-}
