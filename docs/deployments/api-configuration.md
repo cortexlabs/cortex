@@ -10,7 +10,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
@@ -56,7 +56,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
@@ -110,7 +110,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made  endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
+  kind: sync_api  # must be "sync_api", create a synchronous API that holds on to the request and responds only after a prediction has been made
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
