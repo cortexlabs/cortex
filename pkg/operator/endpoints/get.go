@@ -19,9 +19,12 @@ package endpoints
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
@@ -266,6 +269,7 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 
 	}
 
+	jobIDSet := strset.New()
 	jobStatuses := make([]status.JobStatus, len(jobs))
 	for _, job := range jobs {
 		jobID := job.Labels["jobID"]
@@ -273,8 +277,16 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-
+		jobIDSet.Add(jobID)
 		jobStatuses = append(jobStatuses, *status)
+	}
+
+	if len(job) < 10 {
+		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.APIJobPrefix(apiName), false, pointer.Int64(10))
+		if err != nil {
+			return nil, err // TODO
+		}
+		if jobID strings.Split(*objects[0].Key, "/")[-1]
 	}
 
 	return &schema.GetAPIResponse{

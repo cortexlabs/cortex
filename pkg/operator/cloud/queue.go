@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/metrics"
 )
 
 func QueueNamePrefix() string {
@@ -66,19 +67,6 @@ func IdentifiersFromQueueURL(queueURL string) (string, string) {
 	return apiName, jobID
 }
 
-type QueueMetrics struct {
-	InQueue    int `json:"in_queue"`
-	NotVisible int `json:"not_visible"`
-}
-
-func (q QueueMetrics) IsEmpty() bool {
-	return q.TotalInQueue() == 0
-}
-
-func (q QueueMetrics) TotalInQueue() int {
-	return q.InQueue + q.NotVisible
-}
-
 func ListQueues() ([]string, error) {
 	queuePrefix := QueueNamePrefix()
 
@@ -96,7 +84,7 @@ func ListQueues() ([]string, error) {
 	return aws.StringValueSlice(output.QueueUrls), nil
 }
 
-func GetQueueMetrics(apiName, jobID string) (*QueueMetrics, error) {
+func GetQueueMetrics(apiName, jobID string) (*metrics.QueueMetrics, error) {
 	queueURL, err := QueueURL(apiName, jobID)
 	if err != nil {
 		return nil, err
@@ -104,7 +92,7 @@ func GetQueueMetrics(apiName, jobID string) (*QueueMetrics, error) {
 	return GetQueueMetricsFromURL(queueURL)
 }
 
-func GetQueueMetricsFromURL(queueURL string) (*QueueMetrics, error) {
+func GetQueueMetricsFromURL(queueURL string) (*metrics.QueueMetrics, error) {
 	output, err := config.AWS.SQS().GetQueueAttributes(&sqs.GetQueueAttributesInput{
 		AttributeNames: aws.StringSlice([]string{"ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"}),
 		QueueUrl:       aws.String(queueURL),
@@ -115,7 +103,7 @@ func GetQueueMetricsFromURL(queueURL string) (*QueueMetrics, error) {
 
 	debug.Pp(output)
 
-	metrics := QueueMetrics{}
+	metrics := metrics.QueueMetrics{}
 	parsedInt, ok := s.ParseInt(*output.Attributes["ApproximateNumberOfMessages"])
 	if ok {
 		metrics.InQueue = parsedInt

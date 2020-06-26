@@ -37,7 +37,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -245,19 +244,20 @@ type Submission struct {
 }
 
 type JobSpec struct {
-	ID              string              `json:"job_id"`
-	APIID           string              `json:"api_id"`
-	APIName         string              `json:"api_name"`
-	SQSUrl          string              `json:"sqs_url"`
-	Config          interface{}         `json:"config"`
-	Parallelism     int                 `json:"parallelism"`
-	Status          status.JobCode      `json:"status"`
-	TotalPartitions int                 `json:"total_partitions"`
-	StartTime       time.Time           `json:"start_time"`
-	EndTime         *time.Time          `json:"end_time"`
-	LastUpdated     time.Time           `json:"last_updated"`
-	Metrics         *metrics.JobMetrics `json:"metrics"`
-	QueueMetrics    *cloud.QueueMetrics `json:"queue_metrics"`
+	ID              string                `json:"job_id"`
+	APIID           string                `json:"api_id"`
+	APIName         string                `json:"api_name"`
+	SQSUrl          string                `json:"sqs_url"`
+	Config          interface{}           `json:"config"`
+	Parallelism     int                   `json:"parallelism"`
+	Status          status.JobCode        `json:"status"`
+	TotalPartitions int                   `json:"total_partitions"`
+	StartTime       time.Time             `json:"start_time"`
+	EndTime         *time.Time            `json:"end_time"`
+	LastUpdated     time.Time             `json:"last_updated"`
+	Metrics         *metrics.JobMetrics   `json:"metrics"`
+	QueueMetrics    *metrics.QueueMetrics `json:"queue_metrics"`
+	WorkerStats     *metrics.WorkerStats  `json:"worker_stats"`
 }
 
 func (j JobSpec) S3Key() string {
@@ -269,8 +269,12 @@ func CommitToS3(j JobSpec) error {
 	return config.AWS.UploadJSONToS3(j, config.Cluster.Bucket, JobKey(j.APIName, j.ID))
 }
 
+func APIJobPrefix(apiName string) string {
+	return filepath.Join("jobs", apiName, consts.CortexVersion)
+}
+
 func JobKey(apiName, jobID string) string {
-	return filepath.Join("jobs", apiName, consts.CortexVersion, jobID)
+	return filepath.Join(APIJobPrefix(apiName), jobID)
 }
 
 func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
@@ -294,19 +298,25 @@ func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
 
 	jobID := MonotonicallyDecreasingJobID()
 
+	tags := map[string]string{
+		"apiName": apiSpec.Name,
+		"apiID":   apiSpec.ID,
+		"jobID":   jobID,
+	}
+
+	for key, value := range config.Cluster.Tags {
+		tags[key] = value
+	}
+
 	output, err := config.AWS.SQS().CreateQueue(
 		&sqs.CreateQueueInput{
 			Attributes: map[string]*string{
 				"FifoQueue":                 aws.String("true"),
 				"ContentBasedDeduplication": aws.String("true"),
+				"VisibilityTimeout":         aws.String("90"),
 			},
 			QueueName: aws.String("cortex" + "-" + apiName + "-" + jobID + ".fifo"),
-			Tags: map[string]*string{
-				clusterconfig.ClusterNameTag: &config.Cluster.ClusterName,
-				"apiName":                    &apiSpec.Name,
-				"apiID":                      &apiSpec.ID,
-				"jobID":                      &jobID,
-			},
+			Tags:      aws.StringMap(tags),
 		},
 	)
 	if err != nil {

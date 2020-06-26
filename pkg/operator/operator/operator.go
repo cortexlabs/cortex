@@ -141,6 +141,11 @@ func cleanupJobs() error {
 					}
 					jobSpec.Metrics = partitionMetrics
 					jobSpec.QueueMetrics = queueMetrics
+					jobSpec.WorkerStats = &status.WorkerStats{
+						Active:    int(job.Status.Active),
+						Failed:    int(job.Status.Failed),
+						Succeeded: int(job.Status.Succeeded),
+					}
 					err := batchapi.CommitToS3(*jobSpec)
 					if err != nil {
 						// TODO
@@ -160,6 +165,11 @@ func cleanupJobs() error {
 					jobSpec.Status = status.JobIncomplete
 					jobSpec.Metrics = partitionMetrics
 					jobSpec.QueueMetrics = queueMetrics
+					jobSpec.WorkerStats = &status.WorkerStats{
+						Active:    int(job.Status.Active),
+						Failed:    int(job.Status.Failed),
+						Succeeded: int(job.Status.Succeeded),
+					}
 					err := batchapi.CommitToS3(*jobSpec)
 					if err != nil {
 						// TODO

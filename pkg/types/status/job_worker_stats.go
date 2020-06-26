@@ -16,22 +16,8 @@ limitations under the License.
 
 package status
 
-import (
-	"time"
-
-	"github.com/cortexlabs/cortex/pkg/types/metrics"
-)
-
-type JobStatus struct {
-	APIName     string
-	JobID       string
-	Parallelism int
-	Status      JobCode
-	Total       int
-	InQueue     int
-	InProgress  int
-	JobStats    *metrics.JobStats
-	StartTime   time.Time
-	EndTime     *time.Time
-	WorkerStats *SubReplicaCounts
+type WorkerStats struct {
+	Active    int `json:"active"`
+	Succeeded int `json:"succeeded"`
+	Failed    int `json:"failed"`
 }

@@ -60,13 +60,14 @@ class Ticker:
         self.func = func
         self.args = args
         self.kwargs = kwargs
-        self.prev_val = None
+        self.kwargs["interval"] = interval
+        self.kwargs["accumulator"] = kwargs.get("accumulator")
 
     def start(self):
         self.timer = threading.Timer(self.interval, self.start)
         self.timer.start()
-        self.kwargs["prev_val"] = self.prev_val
-        self.prev_val = self.func(*self.args, **self.kwargs)
+        self.kwargs["accumulator"] = self.accumulator
+        self.accumulator = self.func(*self.args, **self.kwargs)
 
     def stop(self):
         self.timer.cancel()
@@ -110,10 +111,10 @@ def renew_message_visibility(queue_url, receipt_handle, interval, **kwargs):
     local_cache["sqs"].change_message_visibility(
         QueueUrl=queue_url,
         ReceiptHandle=receipt_handle,
-        VisibilityTimeout=kwargs["prev_val"] + interval,
+        VisibilityTimeout=kwargs["accumulator"] + interval,
     )
 
-    return kwargs["prev_val"] + interval
+    return kwargs["accumulator"] + interval
 
 
 def get_api_spec(provider, storage, cache_dir, api_spec_path):
@@ -154,6 +155,7 @@ def sqs_loop():
             MaxNumberOfMessages=1,
             MessageAttributeNames=["All"],
             WaitTimeSeconds=1,
+            VisibilityTimeout=90,
         )
 
         if response.get("Messages") is None or len(response["Messages"]) == 0:
@@ -161,6 +163,16 @@ def sqs_loop():
             break
 
         start_time = time.time()
+
+        renewer = Ticker(
+            60,
+            renew_message_visibility,
+            queue_url,
+            response["Messages"][0]["ReceiptHandle"],
+            accumulator=0,
+        )
+
+        renewer.start()
         try:
             local_cache["predictor_impl"].predict(payload=response["Messages"][0]["Body"])
             local_cache["api"].post_metrics(
@@ -171,6 +183,7 @@ def sqs_loop():
                 [failed_counter_metric(), time_per_partition_metric(time.time() - start_time)]
             )
         finally:
+            renewer.stop()
             local_cache["sqs"].delete_message(
                 QueueUrl=queue_url, ReceiptHandle=response["Messages"][0]["ReceiptHandle"]
             )
