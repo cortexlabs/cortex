@@ -49,8 +49,7 @@ var AutoscalingTickInterval = 10 * time.Second
 
 func apiValidation(provider types.ProviderType, kind userconfig.Kind) *cr.StructValidation {
 	structFieldValidations := []*cr.StructFieldValidation{}
-	structFieldValidations = append(structFieldValidations, resourceStructValidations...)
-	structFieldValidations = append(structFieldValidations,
+	structFieldValidations = append(resourceStructValidations,
 		predictorValidation(),
 		monitoringValidation(),
 		networkingValidation(),
@@ -483,12 +482,12 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
-type kindStruct struct {
+type resourceStruct struct {
 	Name string          `json:"name" yaml:"name"`
 	Kind userconfig.Kind `json:"kind" yaml:"kind"`
 }
 
-var kindStructValidation = cr.StructValidation{
+var resourceStructValidation = cr.StructValidation{
 	AllowExtraFields:       true,
 	StructFieldValidations: resourceStructValidations,
 }
@@ -509,15 +508,15 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
 		api := userconfig.API{}
-		var kindStruct kindStruct
-		errs := cr.Struct(&kindStruct, data, &kindStructValidation)
+		var resourceStruct resourceStruct
+		errs := cr.Struct(&resourceStruct, data, &resourceStructValidation)
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 
-		errs = cr.Struct(&api, data, apiValidation(provider, kindStruct.Kind))
+		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct.Kind))
 
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)

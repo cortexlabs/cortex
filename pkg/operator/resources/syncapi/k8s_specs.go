@@ -30,7 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -192,7 +192,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 	)
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           ok8s.Name(api.Name),
+		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
@@ -357,7 +357,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	)
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           ok8s.Name(api.Name),
+		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
@@ -447,7 +447,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           ok8s.Name(api.Name),
+		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
@@ -553,7 +553,7 @@ func onnxDownloadArgs(api *spec.API) string {
 
 func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
-		Name:        ok8s.Name(api.Name),
+		Name:        operator.K8sName(api.Name),
 		Port:        _defaultPortInt32,
 		TargetPort:  _defaultPortInt32,
 		Annotations: api.ToK8sAnnotations(),
@@ -570,9 +570,9 @@ func serviceSpec(api *spec.API) *kcore.Service {
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:        ok8s.Name(api.Name),
+		Name:        operator.K8sName(api.Name),
 		Gateways:    []string{"apis-gateway"},
-		ServiceName: ok8s.Name(api.Name),
+		ServiceName: operator.K8sName(api.Name),
 		ServicePort: _defaultPortInt32,
 		Path:        *api.Networking.Endpoint,
 		Rewrite:     pointer.String("predict"),

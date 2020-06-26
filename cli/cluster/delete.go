@@ -28,7 +28,7 @@ import (
 
 func Delete(operatorConfig OperatorConfig, apiName string, keepCache bool, force bool) (schema.DeleteResponse, error) {
 	if !force {
-		readyReplicas := getReadyReplicasOrNil(operatorConfig, apiName)
+		readyReplicas := getReadySyncReplicasOrNil(operatorConfig, apiName)
 		if readyReplicas != nil && *readyReplicas > 2 {
 			prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete %s (which has %d live replicas)?", apiName, *readyReplicas), "", "")
 		}
@@ -53,7 +53,7 @@ func Delete(operatorConfig OperatorConfig, apiName string, keepCache bool, force
 	return deleteRes, nil
 }
 
-func getReadyReplicasOrNil(operatorConfig OperatorConfig, apiName string) *int32 {
+func getReadySyncReplicasOrNil(operatorConfig OperatorConfig, apiName string) *int32 {
 	httpRes, err := HTTPGet(operatorConfig, "/get/"+apiName)
 	if err != nil {
 		return nil
@@ -61,6 +61,10 @@ func getReadyReplicasOrNil(operatorConfig OperatorConfig, apiName string) *int32
 
 	var apiRes schema.GetAPIResponse
 	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
+		return nil
+	}
+
+	if apiRes.SyncAPI == nil {
 		return nil
 	}
 

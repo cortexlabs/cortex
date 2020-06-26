@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -64,7 +63,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectFiles := operator.ProjectFiles{
+	projectFiles := resources.ProjectFiles{
 		ProjectByteMap: projectFileMap,
 		ConfigFilePath: configPath,
 	}
@@ -74,7 +73,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = operator.ValidateClusterAPIs(apiConfigs, projectFiles)
+	err = resources.ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		respondError(w, r, err)

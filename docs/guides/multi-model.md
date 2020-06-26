@@ -16,7 +16,7 @@ The following template is based on the [pytorch/multi-model-text-analyzer](https
 
 ```yaml
 - name: multi-model-text-analyzer
-  kind: sync_api
+  kind: SyncAPI
   predictor:
     type: python
     path: predictor.py
@@ -94,7 +94,7 @@ The following template is based on the [tensorflow/multi-model-classifier](https
 
 ```yaml
 - name: multi-model-classifier
-  kind: sync_api
+  kind: SyncAPI
   predictor:
     type: tensorflow
     path: predictor.py
@@ -177,7 +177,7 @@ The following template is based on the [onnx/multi-model-classifier](https://git
 
 ```yaml
 - name: multi-model-classifier
-  kind: sync_api
+  kind: SyncAPI
   predictor:
     type: onnx
     path: predictor.py

@@ -23,7 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
@@ -39,7 +39,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(ok8s.Name(apiName))
+			deployment, err = config.K8s.GetDeployment(operator.K8sName(apiName))
 			return err
 		},
 		func() error {

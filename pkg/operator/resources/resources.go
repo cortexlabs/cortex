@@ -20,14 +20,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/gorilla/websocket"
 )
 
 func FindDeployedResourceByName(resourceName string) (*userconfig.Resource, error) {
-	virtualService, err := config.K8s.GetVirtualService(ok8s.Name(resourceName))
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +38,8 @@ func FindDeployedResourceByName(resourceName string) (*userconfig.Resource, erro
 	}
 
 	return &userconfig.Resource{
-		Name: virtualService.GetLabels()["apiName"],
-		Kind: userconfig.KindFromString(virtualService.GetLabels()["apiKind"]),
+		Name: virtualService.Labels["apiName"],
+		Kind: userconfig.KindFromString(virtualService.Labels["apiKind"]),
 	}, nil
 }
 
@@ -91,6 +92,25 @@ func DeleteAPI(apiName string, keepCache bool) error {
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func StreamLogs(apiName string, socket *websocket.Conn) error {
+	deployedResource, err := FindDeployedResourceByName(apiName)
+	if err != nil {
+		return err
+	}
+
+	if deployedResource == nil {
+		return ErrorAPINotDeployed(apiName)
+	}
+
+	if deployedResource.Kind == userconfig.SyncAPIKind {
+		syncapi.ReadLogs(apiName, socket)
+	} else {
+		return errors.Wrap(ErrorKindNotSupported(deployedResource.Kind), deployedResource.Identify())
 	}
 
 	return nil

@@ -19,7 +19,7 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/cloud"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -34,7 +34,7 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := cloud.DownloadAPISpecs(apiNames, apiIDs)
+	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -70,7 +70,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api, err := cloud.DownloadAPISpec(status.APIName, status.APIID)
+	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
 		respondError(w, r, err)
 		return

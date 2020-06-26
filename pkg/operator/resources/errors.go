@@ -24,23 +24,16 @@ import (
 )
 
 const (
-	ErrKindNotSupported              = "resources.kind_not_supported"
-	ErrAPIUpdating                   = "resources.api_updating"
+	ErrOperationNotSupportedForKind  = "resources.operation_not_supported_for_kind"
 	ErrAPINotDeployed                = "resources.api_not_deployed"
 	ErrCannotChangeTypeOfDeployedAPI = "resources.cannot_change_kind_of_deployed_api"
+	ErrNoAvailableNodeComputeLimit   = "resources.no_available_node_compute_limit"
 )
 
-func ErrorKindNotSupported(kind userconfig.Kind) error {
+func ErrorOperationNotSupportedForKind(kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrKindNotSupported,
-		Message: fmt.Sprintf("%s kind is not supported", kind.String()),
-	})
-}
-
-func ErrorAPIUpdating(apiName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPIUpdating,
-		Message: fmt.Sprintf("%s is updating (override with --force)", apiName),
+		Kind:    ErrOperationNotSupportedForKind,
+		Message: fmt.Sprintf("this operation is not supported for %s kind", kind),
 	})
 }
 
@@ -55,5 +48,16 @@ func ErrorCannotChangeKindOfDeployedAPI(name string, newKind, prevKind userconfi
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotChangeTypeOfDeployedAPI,
 		Message: fmt.Sprintf("cannot change the kind of %s to %s because it has already been deployed with kind %s; please delete it with `cortex delete %s` and redeploy to change the kind", name, newKind.String(), prevKind.String(), name),
+	})
+}
+
+func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr string) error {
+	message := fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances only have %s %s available", resource, reqStr, resource, maxStr, resource)
+	if maxStr == "0" {
+		message = fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances don't have any %s", resource, reqStr, resource, resource)
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoAvailableNodeComputeLimit,
+		Message: message,
 	})
 }

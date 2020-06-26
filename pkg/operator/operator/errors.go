@@ -17,22 +17,24 @@ limitations under the License.
 package operator
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 const (
-	ErrNoAvailableNodeComputeLimit = "operator.no_available_node_compute_limit"
+	ErrCortexInstallationBroken = "operator.cortex_installation_broken"
+	ErrLoadBalancerInitializing = "operators.load_balancer_initializing"
 )
 
-func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr string) error {
-	message := fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances only have %s %s available", resource, reqStr, resource, maxStr, resource)
-	if maxStr == "0" {
-		message = fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances don't have any %s", resource, reqStr, resource, resource)
-	}
+func ErrorCortexInstallationBroken() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoAvailableNodeComputeLimit,
-		Message: message,
+		Kind:    ErrCortexInstallationBroken,
+		Message: "cortex is out of date or not installed properly; run `cortex cluster configure` to repair, or spin down your cluster with `cortex cluster down` and create a new one with `cortex cluster up`",
+	})
+}
+
+func ErrorLoadBalancerInitializing() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrLoadBalancerInitializing,
+		Message: "load balancer is still initializing",
 	})
 }

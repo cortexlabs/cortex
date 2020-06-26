@@ -101,7 +101,7 @@ type UpdateStrategy struct {
 }
 
 func (api *API) Identify() string {
-	return IdentifyAPI(api.FilePath, api.Name, api.Index)
+	return IdentifyAPI(api.FilePath, api.Resource.Identify(), api.Index)
 }
 
 func (api *API) ModelNames() []string {

@@ -23,7 +23,7 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
-func Name(apiName string) string {
+func K8sName(apiName string) string {
 	return "api-" + apiName
 }
 
