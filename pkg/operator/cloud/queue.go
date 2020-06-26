@@ -27,22 +27,31 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
+func QueueNamePrefix() string {
+	return "cortex-"
+}
+
 func QueuePrefix() (string, error) {
 	operatorAccountID, _, err := config.AWS.GetCachedAccountID()
 	if err != nil {
 		return "", err // TODO
 	}
 
-	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/cortex", config.AWS.Region, operatorAccountID), nil
+	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", config.AWS.Region, operatorAccountID, QueueNamePrefix()), nil
+}
+
+func QueueName(apiName, jobID string) string {
+	queuePrefix := QueueNamePrefix()
+
+	return queuePrefix + apiName + "-" + jobID + ".fifo"
 }
 
 func QueueURL(apiName, jobID string) (string, error) {
-	queuePrefix, err := QueuePrefix()
+	prefix, err := QueuePrefix()
 	if err != nil {
-		return "", nil // TODO
+		return "", err // TODO
 	}
-
-	return queuePrefix + "-" + "apiName" + "-" + jobID + ".fifo", nil
+	return prefix + apiName + "-" + jobID + ".fifo", nil
 }
 
 func IdentifiersFromQueueURL(queueURL string) (string, string) {
@@ -52,7 +61,7 @@ func IdentifiersFromQueueURL(queueURL string) (string, string) {
 	apiAndJobSplit := strings.Split(apiAndJob, "-")
 	jobID := apiAndJobSplit[len(apiAndJobSplit)-1]
 	apiNamesplit := apiAndJobSplit[:len(apiAndJobSplit)-1]
-	apiName := strings.Join(apiNamesplit[1:], "-")
+	apiName := strings.Join(apiNamesplit, "-")
 
 	return apiName, jobID
 }
@@ -62,11 +71,18 @@ type QueueMetrics struct {
 	NotVisible int `json:"not_visible"`
 }
 
+func (q QueueMetrics) IsEmpty() bool {
+	return q.TotalInQueue() == 0
+}
+
+func (q QueueMetrics) TotalInQueue() int {
+	return q.InQueue + q.NotVisible
+}
+
 func ListQueues() ([]string, error) {
-	queuePrefix, err := QueuePrefix()
-	if err != nil {
-		return nil, err // TODO
-	}
+	queuePrefix := QueueNamePrefix()
+
+	debug.Pp(queuePrefix)
 
 	output, err := config.AWS.SQS().ListQueues(
 		&sqs.ListQueuesInput{
@@ -83,9 +99,8 @@ func ListQueues() ([]string, error) {
 func GetQueueMetrics(apiName, jobID string) (*QueueMetrics, error) {
 	queueURL, err := QueueURL(apiName, jobID)
 	if err != nil {
-		return nil, err // TODO
+		return nil, err
 	}
-
 	return GetQueueMetricsFromURL(queueURL)
 }
 

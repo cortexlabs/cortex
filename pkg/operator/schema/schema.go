@@ -71,8 +71,9 @@ type GetAPIResponse struct {
 }
 
 type BatchAPI struct {
-	Spec spec.API           `json:"spec"`
-	Jobs []status.JobStatus `json:"jobs"`
+	Spec    spec.API           `json:"spec"`
+	Jobs    []status.JobStatus `json:"jobs"`
+	BaseURL string             `json:"base_url"`
 }
 
 type JobResponse struct {

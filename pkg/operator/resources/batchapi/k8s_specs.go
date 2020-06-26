@@ -19,7 +19,6 @@ package batchapi
 import (
 	"encoding/base64"
 	"fmt"
-	"math"
 	"path"
 	"strings"
 
@@ -234,7 +233,7 @@ func tensorflowPredictorSpec(api *spec.API, prevDeployment *kapps.Deployment) *k
 }
 
 func tfDownloadArgs(api *spec.API) string {
-	tensorflowModel := *api.Predictor.Model
+	tensorflowModel := *api.Predictor.ModelPath
 
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
@@ -568,7 +567,7 @@ func onnxDownloadArgs(api *spec.API) string {
 				HideUnzippingLog: true,
 			},
 			{
-				From:     *api.Predictor.Model,
+				From:     *api.Predictor.ModelPath,
 				To:       path.Join(_emptyDirMountPath, "model"),
 				ItemName: "the model",
 			},
@@ -631,25 +630,12 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 			},
 		},
 		kcore.EnvVar{
-			Name:  "CORTEX_WORKERS_PER_REPLICA",
-			Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+			Name:  "CORTEX_PROCESSES_PER_REPLICA",
+			Value: s.Int32(api.Predictor.ProcessesPerReplica),
 		},
 		kcore.EnvVar{
-			Name:  "CORTEX_THREADS_PER_WORKER",
-			Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-		},
-		kcore.EnvVar{
-			Name: "CORTEX_MAX_WORKER_CONCURRENCY",
-			// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
-			Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Autoscaling.WorkersPerReplica)))),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_SO_MAX_CONN",
-			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
+			Name:  "CORTEX_THREADS_PER_PROCESS",
+			Value: s.Int32(api.Predictor.ThreadsPerProcess),
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_SERVING_PORT",

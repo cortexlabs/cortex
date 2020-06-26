@@ -18,7 +18,6 @@ package resources
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
@@ -77,7 +76,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	if err != nil {
 		return "", err
 	} else if deployedResource == nil {
-		return "", ErrorAPINotDeployed(deployedResource.Name)
+		return "", ErrorAPINotDeployed(apiName)
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
@@ -88,15 +87,16 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
-	err := parallel.RunFirstErr(
-		func() error {
-			return syncapi.DeleteAPI(apiName, keepCache)
-		},
-	)
-
+	deployedResource, err := FindDeployedResourceByName(apiName)
 	if err != nil {
 		return err
+	} else if deployedResource == nil {
+		return ErrorAPINotDeployed(apiName)
 	}
 
-	return nil
+	if deployedResource.Kind == userconfig.SyncAPIKind {
+		return syncapi.DeleteAPI(apiName, keepCache)
+	} else {
+		return batchapi.DeleteAPI(apiName, keepCache) // TODO
+	}
 }

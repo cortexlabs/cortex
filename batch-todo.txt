@@ -1,17 +1,20 @@
+DONE
 - create virtual service for batch api
 - initialize batch endpoint cache based on virtual services
 - use fifo-queue
 - tag fifo-queue
 - delete fifo-queue when batch job gets deleted
-- run a background thread in python worker to periodically renew lock on a message because we don't know how long a message will take
 - fluentd
 
 - delete old fifo-queues (job doesn't exist)
 - write completion spec summary after job is done
-- delete queues on cluster down
+
+
+TODO
 
 - secure batch endpoints??
-- rename workers_per_replica to processes?
+- run a background thread in python worker to periodically renew lock on a message because we don't know how long a message will take
+- delete queues on cluster down
 
 
 status scenarios:

@@ -147,11 +147,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = CreateLogGroupIfNotFound(awsClient, clusterConfig.LogGroup)
-		if err != nil {
-			exit.Error(err)
-		}
-		err = awsClient.TagLogGroup(clusterConfig.LogGroup, clusterConfig.Tags)
+		err = CreateLogGroupIfNotFound(awsClient, clusterConfig.LogGroup, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -734,14 +730,14 @@ func CreateBucketIfNotFound(awsClient *aws.Client, bucket string) error {
 	return nil
 }
 
-func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
+func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tagMap map[string]string) error {
 	logGroupFound, err := awsClient.DoesLogGroupExist(logGroup)
 	if err != nil {
 		return err
 	}
 	if !logGroupFound {
 		fmt.Print("￮ creating a new cloudwatch log group: ", logGroup)
-		err = awsClient.CreateLogGroup(logGroup)
+		err = awsClient.CreateLogGroup(logGroup, tagMap)
 		if err != nil {
 			return err
 		}

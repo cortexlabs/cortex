@@ -23,7 +23,9 @@ const (
 	JobEnqueuing
 	JobFailed
 	JobRunning
-	JobComplete
+	JobSucceeded
+	JobIncomplete
+	JobStopped
 )
 
 var _jobCodes = []string{
@@ -31,20 +33,24 @@ var _jobCodes = []string{
 	"status_enqueuing",
 	"status_failed",
 	"status_running",
-	"status_complete",
+	"status_succeeded",
+	"status_incomplete",
+	"status_stopped",
 }
 
-var _ = [1]int{}[int(JobComplete)-(len(_jobCodes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(JobStopped)-(len(_jobCodes)-1)] // Ensure list length matches
 
 var _jobCodeMessages = []string{
-	"unknown",   // JobUnknown
-	"enqueuing", // Job
-	"failed",    // Failed
-	"running",   // Running
-	"complete",  // Complete
+	"unknown",    // JobUnknown
+	"enqueuing",  // Job
+	"failed",     // Failed
+	"running",    // Running
+	"succeeded",  // Succeeded
+	"incomplete", // Incomplete
+	"stopped",    // Stopped
 }
 
-var _ = [1]int{}[int(JobComplete)-(len(_jobCodeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(JobStopped)-(len(_jobCodeMessages)-1)] // Ensure list length matches
 
 func (code JobCode) String() string {
 	if int(code) < 0 || int(code) >= len(_jobCodes) {

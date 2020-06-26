@@ -19,8 +19,10 @@ package cluster
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -62,6 +64,12 @@ func getReadyReplicasOrNil(operatorConfig OperatorConfig, apiName string) *int32
 	var apiRes schema.GetAPIResponse
 	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
 		return nil
+	}
+
+	debug.Pp(apiRes)
+
+	if apiRes.SyncAPI == nil {
+		return pointer.Int32(0)
 	}
 
 	totalReady := apiRes.SyncAPI.Status.Updated.Ready + apiRes.SyncAPI.Status.Stale.Ready

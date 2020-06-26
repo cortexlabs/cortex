@@ -573,7 +573,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Gateways:    []string{"apis-gateway"},
 		ServiceName: k8sName(api.Name),
 		ServicePort: _defaultPortInt32,
-		ExactPath:   *api.Networking.Endpoint,
+		ExactPath:   api.Networking.Endpoint,
 		Rewrite:     pointer.String("predict"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{

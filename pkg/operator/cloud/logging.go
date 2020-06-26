@@ -26,8 +26,29 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
+func LogGroupNameForJob(apiName string, jobID string) string {
+	return fmt.Sprintf("%s/%s.%s", config.Cluster.LogGroup, apiName, jobID)
+}
+
+func CreateLogGroupForJob(apiName string, jobID string) error {
+	tags := map[string]string{
+		"apiName": apiName,
+		"jobID":   jobID,
+	}
+
+	for key, value := range config.Cluster.Tags {
+		tags[key] = value
+	}
+
+	_, err := config.AWS.CloudWatchLogs().CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
+		LogGroupName: aws.String(LogGroupNameForJob(apiName, jobID)),
+		Tags:         aws.StringMap(tags),
+	})
+
+	return err
+}
+
 func WriteToJobLogGroup(apiName string, jobID string, logLine string, logLines ...string) error {
-	logGroupName := fmt.Sprintf("%s/%s.%s", config.Cluster.LogGroup, apiName, jobID)
 
 	logLines = slices.PrependStr(logLine, logLines)
 
@@ -41,13 +62,13 @@ func WriteToJobLogGroup(apiName string, jobID string, logLine string, logLines .
 	}
 
 	_, err := config.AWS.CloudWatchLogs().PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
-		LogGroupName:  aws.String(logGroupName),
+		LogGroupName:  aws.String(LogGroupNameForJob(apiName, jobID)),
 		LogStreamName: aws.String("operator"),
 		LogEvents:     inputLogEvents,
 	},
 	)
-
 	if err != nil {
+		fmt.Println(err.Error())
 		return err // TODO
 	}
 

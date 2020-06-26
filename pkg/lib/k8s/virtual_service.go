@@ -45,16 +45,20 @@ type VirtualServiceSpec struct {
 }
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
-	var matchType *istionetworking.StringMatch
+	var stringMatch *istionetworking.StringMatch
 	// 		uriMap["prefix"] = urls.CanonicalizeEndpoint(*spec.PrefixPath)
 
 	if spec.ExactPath != nil {
-		matchType = &istionetworking.StringMatch_Exact{
-			Exact: urls.CanonicalizeEndpoint(*spec.ExactPath),
+		stringMatch = &istionetworking.StringMatch{
+			MatchType: &istionetworking.StringMatch_Exact{
+				Exact: urls.CanonicalizeEndpoint(*spec.ExactPath),
+			},
 		}
 	} else {
-		matchType = &istionetworking.StringMatch_Exact{
-			Exact: urls.CanonicalizeEndpoint(*spec.PrefixPath),
+		stringMatch = &istionetworking.StringMatch{
+			MatchType: &istionetworking.StringMatch_Prefix{
+				Prefix: urls.CanonicalizeEndpoint(*spec.PrefixPath),
+			},
 		}
 	}
 
@@ -72,9 +76,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 				{
 					Match: []*istionetworking.HTTPMatchRequest{
 						{
-							Uri: &istionetworking.StringMatch{
-								MatchType: matchType,
-							},
+							Uri: stringMatch,
 						},
 					},
 					Route: []*istionetworking.HTTPRouteDestination{
@@ -92,8 +94,16 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 		},
 	}
 
+	var path string
+
+	if spec.ExactPath != nil {
+		path = *spec.ExactPath
+	} else {
+		path = *spec.PrefixPath
+	}
+
 	// TODO what happens if rewrite path == PrefixPath or ExactPath?
-	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(spec.Path) {
+	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(path) {
 		virtualService.Spec.Http[0].Rewrite = &istionetworking.HTTPRewrite{
 			Uri: urls.CanonicalizeEndpoint(*spec.Rewrite),
 		}

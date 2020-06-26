@@ -28,7 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 )
 
-func GetMetrics(jobSpec *JobSpec) (*metrics.JobMetrics, error) {
+func GetJobMetrics(jobSpec *JobSpec) (*metrics.JobMetrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
 	realTimeEnd := time.Now().Truncate(time.Second)
 	realTimeStart := realTimeEnd.Truncate(time.Minute)

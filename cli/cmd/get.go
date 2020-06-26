@@ -301,7 +301,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		if apiRes.SyncAPI != nil {
 			return syncAPITable(apiRes.SyncAPI, env)
 		} else {
-
+			return batchAPITable(*apiRes.BatchAPI), nil
 		}
 	} else {
 		apiRes, err = local.GetAPI(apiName)
@@ -388,8 +388,6 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 			api.Spec.Name,
 			len(api.Jobs),
 			latestJobID,
-			requested,
-			failed,
 			libtime.SinceStr(&lastUpdated),
 		})
 	}
@@ -400,8 +398,6 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 			{Title: _titleAPI},
 			{Title: _titleJobCount},
 			{Title: _titleLatestJobID},
-			{Title: _titleRequested},
-			{Title: _titleFailed, Hidden: totalFailed == 0},
 			{Title: _titleLastupdated},
 		},
 		Rows: rows,
@@ -435,8 +431,15 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 		Rows: rows,
 	}
 
+	apiEndpoint := urls.Join(batchAPI.BaseURL, *batchAPI.Spec.Networking.Endpoint)
+	if batchAPI.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
+	}
+
 	out := t.MustFormat()
+	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 	out += "\n"
+
 	out += titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
 	return out
 }

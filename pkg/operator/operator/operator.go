@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -42,6 +40,8 @@ func cleanupJobs() error {
 	if err != nil {
 		fmt.Println(err.Error()) // TODO
 	}
+
+	debug.Pp(queues)
 
 	jobs, err := config.K8s.ListJobs(nil)
 	if err != nil {
@@ -74,86 +74,109 @@ func cleanupJobs() error {
 		}
 	}
 
+	debug.Pp(jobIDSetQueueURL)
+	debug.Pp(jobIDSetK8s)
 	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s) {
 		queueURL := queueURLMap[jobID]
 		apiName, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+		debug.Pp(apiName)
+		debug.Pp(jobID)
+
 		jobSpec, err := batchapi.DownloadJobSpec(apiName, jobID)
 		if err != nil {
 			batchapi.DeleteJob(apiName, jobID)
 			fmt.Println(err.Error())
+			continue
 		}
 
-		if jobSpec.Status == status.JobEnqueuing {
-			if time.Now().Sub(jobSpec.LastUpdated) > time.Second*60 {
-				batchapi.DeleteJob(apiName, jobID)
+		if jobSpec.Status == status.JobEnqueuing && time.Now().Sub(jobSpec.LastUpdated) > time.Second*60 {
+			jobSpec.Status = status.JobFailed
+			batchapi.CommitToS3(*jobSpec)
+			err := batchapi.DeleteJob(apiName, jobID)
+			if err != nil {
+				fmt.Println("here")
+			}
+		}
+
+		if jobSpec.Status != status.JobEnqueuing {
+			err := batchapi.DeleteJob(apiName, jobID)
+			if err != nil {
+				fmt.Println(err.Error())
 			}
 		}
 	}
 
-	for _, queueURL := range queues {
-		metrics, err := cloud.GetQueueMetricsFromURL(queueURL)
-		if err != nil {
-			fmt.Println(err.Error()) // TODO
-		}
-
+	for jobID := range strset.Union(jobIDSetQueueURL, jobIDSetK8s) {
+		queueURL := queueURLMap[jobID]
+		job := k8sjobMap[jobID]
 		apiName, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+
 		jobSpec, err := batchapi.DownloadJobSpec(apiName, jobID)
 		if err != nil {
 			batchapi.DeleteJob(apiName, jobID)
 			fmt.Println(err.Error())
+			continue
 		}
 
-		k8sjob := k8sjobMap[jobID]
-		if metrics.InQueue+metrics.NotVisible == 0 {
-			if int(k8sjob.Status.Failed) == jobSpec.Parallelism {
-				batchapi.DeleteJob(apiName, jobID)
-
-			}
-
-			_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
-				QueueUrl: aws.String(queueURL),
-			})
-			if err != nil {
-				fmt.Println(err.Error()) // TODO
-			}
-
-			// delete job
-		}
-
-		if _, ok := k8sjobMap[jobID]; !ok {
-			// check jobspec status
-			jobSpec, err := batchapi.DownloadJobSpec(apiName, jobID)
-			if err != nil {
-				fmt.Println(err.Error()) // TODO
-			}
-
-			if jobSpec.Status == status.JobEnqueuing && jobSpec.LastUpdated.Sub(time.Now()) > 2*time.Minute {
-				// TODO write timeout status to job spec
-				// push job spec message to cloud watch
-
-				// delete queue
-			}
-		}
-	}
-
-	errs := []error{}
-	for _, job := range jobs {
-		// if job.Status.Active == 0 {
-		queueMetrics, err := cloud.GetQueueMetrics(job.Labels["apiName"], job.Labels["jobID"])
+		queueMetrics, err := cloud.GetQueueMetricsFromURL(queueURL)
 		if err != nil {
-			errs = append(errs, err)
+			batchapi.DeleteJob(apiName, jobID) // TODO
+			fmt.Println(err.Error())
+			continue
+		}
+		partitionMetrics, err := batchapi.GetJobMetrics(jobSpec)
+		if err != nil {
+			batchapi.DeleteJob(apiName, jobID) // TODO
+			fmt.Println(err.Error())
+			continue
 		}
 
-		debug.Pp(queueMetrics)
-		// if queueMetrics.InQueue+queueMetrics.NotVisible == 0 {
-		// 	batchapi.DeleteJob(job.Labels["apiName"], job.Labels["jobID"])
-		// }
-	}
-	if len(jobs) == 0 {
-		fmt.Println("empty")
+		if queueMetrics.IsEmpty() {
+			if job.Annotations["cortex/to-delete"] == "true" {
+				if partitionMetrics.JobStats.Failed+partitionMetrics.JobStats.Succeeded == jobSpec.TotalPartitions {
+					if partitionMetrics.JobStats.Succeeded == jobSpec.TotalPartitions {
+						jobSpec.Status = status.JobSucceeded
+					} else {
+						jobSpec.Status = status.JobFailed
+					}
+					jobSpec.Metrics = partitionMetrics
+					jobSpec.QueueMetrics = queueMetrics
+					err := batchapi.CommitToS3(*jobSpec)
+					if err != nil {
+						// TODO
+					}
+					batchapi.DeleteJob(apiName, jobID) // TODO
+				}
+			} else {
+				if job.Annotations == nil {
+					job.Annotations = map[string]string{}
+				}
+				job.Annotations["cortex/to-delete"] = "true"
+				config.K8s.UpdateJob(&job)
+			}
+		} else {
+			if int(job.Status.Active) == 0 {
+				if job.Annotations["cortex/to-delete"] == "true" {
+					jobSpec.Status = status.JobIncomplete
+					jobSpec.Metrics = partitionMetrics
+					jobSpec.QueueMetrics = queueMetrics
+					err := batchapi.CommitToS3(*jobSpec)
+					if err != nil {
+						// TODO
+					}
+					batchapi.DeleteJob(apiName, jobID) // TODO
+				} else {
+					if job.Annotations == nil {
+						job.Annotations = map[string]string{}
+					}
+					job.Annotations["cortex/to-delete"] = "true"
+					config.K8s.UpdateJob(&job)
+				}
+			}
+		}
 	}
 
-	return errors.FirstError(errs...)
+	return nil
 }
 
 func Init() error {

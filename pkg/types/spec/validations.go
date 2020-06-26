@@ -58,20 +58,6 @@ func apiValidation(provider types.ProviderType, kind userconfig.Kind) *cr.Struct
 
 	if kind == userconfig.SyncAPIKind {
 		structFieldValidations = append(structFieldValidations,
-			&cr.StructFieldValidation{
-				StructField: "LocalPort",
-				IntPtrValidation: &cr.IntPtrValidation{
-					GreaterThan:       pointer.Int(0),
-					LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "Endpoint",
-				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: urls.ValidateEndpoint,
-					MaxLength: 1000, // no particular reason other than it works
-				},
-			},
 			monitoringValidation(),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),

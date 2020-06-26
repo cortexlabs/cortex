@@ -32,17 +32,17 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kapps "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
-	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
 	var deployments []kapps.Deployment
 	var jobs []kbatch.Job
 	var pods []kcore.Pod
-	var virtualServices []kunstructured.Unstructured
+	var virtualServices []istioclientnetworking.VirtualService
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -93,10 +93,17 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 	syncAPIs := make([]schema.SyncAPI, len(apis))
 
 	for i, api := range apis {
+		baseURL, err := syncapi.APIBaseURL(&api)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+
 		syncAPIs[i] = schema.SyncAPI{
 			Spec:    api,
 			Status:  statuses[i],
 			Metrics: allMetrics[i],
+			BaseURL: baseURL,
 		}
 	}
 
@@ -112,8 +119,16 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, err)
 			return
 		}
+
+		baseURL, err := syncapi.APIBaseURL(api)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+
 		batchAPIsMap[apiName] = &schema.BatchAPI{
-			Spec: *api,
+			Spec:    *api,
+			BaseURL: baseURL,
 		}
 	}
 
@@ -160,6 +175,11 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 	resource, err := resources.FindDeployedResourceByName(apiName)
 	if err != nil {
 		respondError(w, r, err)
+		return
+	}
+
+	if resource == nil {
+		respondError(w, r, resources.ErrorAPINotDeployed(apiName)) // TODO return error when not find in FindDeployedResourceByName?
 		return
 	}
 
@@ -240,6 +260,12 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 		return nil, err
 	}
 
+	baseURL, err := syncapi.APIBaseURL(api)
+	if err != nil {
+		return nil, err
+
+	}
+
 	jobStatuses := make([]status.JobStatus, len(jobs))
 	for _, job := range jobs {
 		jobID := job.Labels["jobID"]
@@ -253,8 +279,9 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 
 	return &schema.GetAPIResponse{
 		BatchAPI: &schema.BatchAPI{
-			Spec: *api,
-			Jobs: jobStatuses,
+			Spec:    *api,
+			Jobs:    jobStatuses,
+			BaseURL: baseURL,
 		},
 	}, nil
 }
