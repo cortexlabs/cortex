@@ -306,7 +306,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Cmd: []string{
 			"--port=" + _tfServingPortStr,
 			"--model_config_file=" + _tfServingEmptyModelConfig,
-			"--enable_batching",
+			"--enable_batching=true",
 			"--batching_parameters_file=" + _tfServingBatchConfig,
 		},
 		ExposedPorts: nat.PortSet{

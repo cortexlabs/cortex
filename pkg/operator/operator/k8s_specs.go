@@ -749,6 +749,14 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 						Name:  "TF_EMPTY_MODEL_CONFIG",
 						Value: _tfServingEmptyModelConfig,
 					},
+					kcore.EnvVar{
+						Name:  "TF_ENABLE_BATCHING",
+						Value: "true",
+					},
+					kcore.EnvVar{
+						Name:  "TF_BATCHING_CONFIG",
+						Value: _tfServingBatchConfig,
+					},
 				)
 			}
 			if container == _apiContainerName {
@@ -791,13 +799,10 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		args = append(args,
 			"--port="+_tfBaseServingPortStr,
 			"--model_config_file="+_tfServingEmptyModelConfig,
+			"--enable_batching=true",
+			"--batching_parameters_file="+_tfServingBatchConfig,
 		)
 	}
-
-	args = append(args,
-		"--enable_batching",
-		"--batching_parameters_file="+_tfServingBatchConfig,
-	)
 
 	var probeHandler kcore.Handler
 	if len(ports) == 1 {
