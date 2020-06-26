@@ -47,5 +47,5 @@ func (status *Status) Message() string {
 }
 
 func (src *SubReplicaCounts) TotalFailed() int32 {
-	return src.Failed + src.Killed + src.KilledOOM + src.Stalled
+	return src.Failed + src.ErrImagePull + src.Killed + src.KilledOOM + src.Stalled
 }
