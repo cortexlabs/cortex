@@ -42,7 +42,8 @@ import tensorflow.neuron as tfn
 tfn.saved_model.compile(
     model_dir,
     compiled_model_dir,
-    compiler_args=["--num-neuroncores", "1"]
+    batch_size,
+    compiler_args=["--num-neuroncores", "1"],
 )
 ```
 
@@ -52,6 +53,7 @@ Here is an example of compiling a PyTorch model for Inferentia:
 import torch_neuron, torch
 
 model.eval()
+example_input = torch.zeros([batch_size] + input_shape, dtype=torch.float32)
 model_neuron = torch.neuron.trace(
     model,
     example_inputs=[example_input],
