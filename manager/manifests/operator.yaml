@@ -99,6 +99,8 @@ spec:
   ports:
   - port: 8888
     name: http
+  selector:
+    workloadID: operator
 
 ---
 
