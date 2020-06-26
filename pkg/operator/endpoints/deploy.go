@@ -48,7 +48,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := resources.DeployAPI(projectBytes, configPath, configBytes, force)
+	response, err := resources.Deploy(projectBytes, configPath, configBytes, force)
 	if err != nil {
 		respondError(w, r, err)
 		return

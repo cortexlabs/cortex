@@ -27,7 +27,7 @@ import (
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	deployedResource, err := resources.FindDeployedResourceByName(apiName)
+	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return

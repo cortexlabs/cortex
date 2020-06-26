@@ -36,7 +36,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func FindDeployedResourceByName(resourceName string) (*userconfig.Resource, error) {
+func GetDeployedResourceByName(resourceName string) (*userconfig.Resource, error) {
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func IsResourceUpdating(resource userconfig.Resource) (bool, error) {
 	return false, ErrorOperationNotSupportedForKind(resource.Kind)
 }
 
-func DeployAPI(projectBytes []byte, configPath string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
+func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
 	projectID := hash.Bytes(projectBytes)
 	projectKey := spec.ProjectKey(projectID)
 	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
@@ -110,7 +110,7 @@ func DeployAPI(projectBytes []byte, configPath string, configBytes []byte, force
 }
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
-	deployedResource, err := FindDeployedResourceByName(apiConfig.Name)
+	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
 	}
@@ -127,7 +127,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
-	deployedResource, err := FindDeployedResourceByName(apiName)
+	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
 		return "", err
 	} else if deployedResource == nil {
@@ -142,7 +142,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
-	deployedResource, err := FindDeployedResourceByName(apiName)
+	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 }
 
 func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
-	deployedResource, err := FindDeployedResourceByName(apiName)
+	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
 		return nil, err
 	} else if deployedResource == nil {

@@ -482,11 +482,6 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
-type resourceStruct struct {
-	Name string          `json:"name" yaml:"name"`
-	Kind userconfig.Kind `json:"kind" yaml:"kind"`
-}
-
 var resourceStructValidation = cr.StructValidation{
 	AllowExtraFields:       true,
 	StructFieldValidations: resourceStructValidations,
@@ -508,7 +503,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 	apis := make([]userconfig.API, len(configDataSlice))
 	for i, data := range configDataSlice {
 		api := userconfig.API{}
-		var resourceStruct resourceStruct
+		var resourceStruct userconfig.Resource
 		errs := cr.Struct(&resourceStruct, data, &resourceStructValidation)
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
