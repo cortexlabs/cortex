@@ -107,7 +107,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	if err != nil {
 		return "", err
 	} else if prevDeployment == nil {
-		return "", ErrorAPINotDeployed(apiName)
+		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
 	isUpdating, err := isAPIUpdating(prevDeployment)

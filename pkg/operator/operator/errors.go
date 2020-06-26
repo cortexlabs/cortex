@@ -22,7 +22,7 @@ import (
 
 const (
 	ErrCortexInstallationBroken = "operator.cortex_installation_broken"
-	ErrLoadBalancerInitializing = "operators.load_balancer_initializing"
+	ErrLoadBalancerInitializing = "operator.load_balancer_initializing"
 )
 
 func ErrorCortexInstallationBroken() error {

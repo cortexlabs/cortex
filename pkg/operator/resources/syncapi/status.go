@@ -20,6 +20,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -53,7 +54,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	}
 
 	if deployment == nil {
-		return nil, ErrorAPINotDeployed(apiName)
+		return nil, errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
 	return apiStatus(deployment, pods)

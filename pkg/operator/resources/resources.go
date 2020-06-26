@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -122,7 +123,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return syncapi.UpdateAPI(apiConfig, projectID, force)
 	}
 
-	return nil, "", errors.Wrap(ErrorOperationNotSupportedForKind(apiConfig.Kind)) // unexpected
+	return nil, "", ErrorOperationNotSupportedForKind(apiConfig.Kind) // unexpected
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
@@ -137,28 +138,50 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return syncapi.RefreshAPI(apiName, force)
 	}
 
-	return "", errors.Wrap(ErrorOperationNotSupportedForKind(deployedResource.Kind)) // unexpected
+	return "", ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
 }
 
-func DeleteAPI(apiName string, keepCache bool) error {
-	err := parallel.RunFirstErr(
-		func() error {
-			return syncapi.DeleteAPI(apiName, keepCache)
-		},
-	)
-
+func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
+	deployedResource, err := FindDeployedResourceByName(apiName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	if deployedResource == nil {
+		// Delete anyways just to be sure everything is deleted
+		go func() {
+			err := parallel.RunFirstErr(
+				func() error {
+					return syncapi.DeleteAPI(apiName, keepCache)
+				},
+			)
+			if err != nil {
+				telemetry.Error(err)
+			}
+		}()
+
+		return nil, ErrorAPINotDeployed(apiName)
+	}
+
+	if deployedResource.Kind == userconfig.SyncAPIKind {
+		err := syncapi.DeleteAPI(apiName, keepCache)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+	}
+
+	return &schema.DeleteResponse{
+		Message: fmt.Sprintf("deleting %s", apiName),
+	}, nil
 }
 
 func StreamLogs(deployedResource userconfig.Resource, socket *websocket.Conn) error {
 	if deployedResource.Kind == userconfig.SyncAPIKind {
 		syncapi.ReadLogs(deployedResource.Name, socket)
 	} else {
-		return errors.Wrap(ErrorOperationNotSupportedForKind(deployedResource.Kind)) // unexpected
+		return ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
 	}
 
 	return nil
@@ -197,6 +220,16 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 }
 
 func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
+	deployedResource, err := FindDeployedResourceByName(apiName)
+	if err != nil {
+		return nil, err
+	} else if deployedResource == nil {
+		return nil, ErrorAPINotDeployed(apiName)
+	}
+
+	if deployedResource.Kind != userconfig.SyncAPIKind {
+		return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+	}
 
 	status, err := syncapi.GetStatus(apiName)
 	if err != nil {
