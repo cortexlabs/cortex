@@ -46,6 +46,7 @@
 ## Troubleshooting
 
 * [API is stuck updating](troubleshooting/stuck-updating.md)
+* [404/503 API responses](troubleshooting/api-request-errors.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 * [TF session in predict()](troubleshooting/tf-session-in-predict.md)
 

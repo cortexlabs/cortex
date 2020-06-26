@@ -13,8 +13,8 @@
 # limitations under the License.
 
 # Sources:
-  # https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml
-  # https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml
+# https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml
+# https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml
 
 apiVersion: v1
 data:
@@ -106,12 +106,12 @@ spec:
             name: cwagentstatsdconfig
       terminationGracePeriodSeconds: 60
       tolerations:
-      - key: aws.amazon.com/infa
-        operator: Exists
-        effect: NoSchedule
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
-      - key: workload
-        operator: Exists
-        effect: NoSchedule
+        - key: aws.amazon.com/infa
+          operator: Exists
+          effect: NoSchedule
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+        - key: workload
+          operator: Exists
+          effect: NoSchedule

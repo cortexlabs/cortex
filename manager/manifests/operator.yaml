@@ -19,23 +19,21 @@ metadata:
   namespace: default
 
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: operator
   namespace: default
 subjects:
-- kind: ServiceAccount
-  name: operator
-  namespace: default
+  - kind: ServiceAccount
+    name: operator
+    namespace: default
 roleRef:
   kind: ClusterRole
   name: cluster-admin
   apiGroup: rbac.authorization.k8s.io
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -55,28 +53,28 @@ spec:
     spec:
       serviceAccountName: operator
       containers:
-      - name: operator
-        image: $CORTEX_IMAGE_OPERATOR
-        imagePullPolicy: Always
-        resources:
-          requests:
-            cpu: 200m
-            memory: 128Mi
-          limits:
-            cpu: 2000m
-            memory: 1024Mi
-        ports:
-          - containerPort: 8888
-        envFrom:
-          - secretRef:
-              name: aws-credentials
-          - configMapRef:
-              name: env-vars
-        volumeMounts:
-          - name: cluster-config
-            mountPath: /configs/cluster
-          - name: docker-client
-            mountPath: /var/run/docker.sock
+        - name: operator
+          image: $CORTEX_IMAGE_OPERATOR
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 200m
+              memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
+          ports:
+            - containerPort: 8888
+          envFrom:
+            - secretRef:
+                name: aws-credentials
+            - configMapRef:
+                name: env-vars
+          volumeMounts:
+            - name: cluster-config
+              mountPath: /configs/cluster
+            - name: docker-client
+              mountPath: /var/run/docker.sock
       volumes:
         - name: cluster-config
           configMap:
@@ -87,7 +85,6 @@ spec:
             type: Socket
 
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -97,13 +94,10 @@ spec:
   selector:
     workloadID: operator
   ports:
-  - port: 8888
-    name: http
-  selector:
-    workloadID: operator
+    - port: 8888
+      name: http
 
 ---
-
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
@@ -113,25 +107,24 @@ spec:
   selector:
     istio: ingressgateway-operator
   servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-    - "*"
-  - port:
-      number: 443
-      name: https
-      protocol: HTTPS
-    hosts:
-    - "*"
-    tls:
-      mode: SIMPLE
-      serverCertificate: /etc/istio/customgateway-certs/tls.crt
-      privateKey: /etc/istio/customgateway-certs/tls.key
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "*"
+      tls:
+        mode: SIMPLE
+        serverCertificate: /etc/istio/customgateway-certs/tls.crt
+        privateKey: /etc/istio/customgateway-certs/tls.key
 
 ---
-
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
@@ -139,12 +132,12 @@ metadata:
   namespace: default
 spec:
   hosts:
-  - "*"
+    - "*"
   gateways:
-  - operator-gateway
+    - operator-gateway
   http:
-  - route:
-    - destination:
-        host: operator
-        port:
-          number: 8888
+    - route:
+        - destination:
+            host: operator
+            port:
+              number: 8888

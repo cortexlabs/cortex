@@ -29,25 +29,25 @@ spec:
       nodeSelector:
         workload: "true"
       tolerations:
-      - key: workload
-        value: "true"
-        operator: Equal
-        effect: NoSchedule
+        - key: workload
+          value: "true"
+          operator: Equal
+          effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:
-      - name: python-predictor-cpu
-        image: $CORTEX_IMAGE_PYTHON_PREDICTOR_CPU
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
-      - name: tensorflow-serving-cpu
-        image: $CORTEX_IMAGE_TENSORFLOW_SERVING_CPU
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
-      - name: tensorflow-predictor
-        image: $CORTEX_IMAGE_TENSORFLOW_PREDICTOR
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
-      - name: downloader
-        image: $CORTEX_IMAGE_DOWNLOADER
-        command: [ "/bin/sh" ]
-        args: [ "-c", "sleep 1000000" ]
+        - name: python-predictor-cpu
+          image: $CORTEX_IMAGE_PYTHON_PREDICTOR_CPU
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]
+        - name: tensorflow-serving-cpu
+          image: $CORTEX_IMAGE_TENSORFLOW_SERVING_CPU
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]
+        - name: tensorflow-predictor
+          image: $CORTEX_IMAGE_TENSORFLOW_PREDICTOR
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]
+        - name: downloader
+          image: $CORTEX_IMAGE_DOWNLOADER
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 1000000"]

@@ -124,8 +124,8 @@ func InstanceTelemetry() error {
 	var totalInstancePrice float64
 	var totalInstancePriceIfOnDemand float64
 	for _, info := range instanceInfos {
-		totalInstancePrice += ((info.Price + apiEBSPrice) * float64(info.Count))
-		totalInstancePriceIfOnDemand += ((info.OnDemandPrice + apiEBSPrice) * float64(info.Count))
+		totalInstancePrice += (info.Price + apiEBSPrice) * float64(info.Count)
+		totalInstancePriceIfOnDemand += (info.OnDemandPrice + apiEBSPrice) * float64(info.Count)
 	}
 
 	fixedPrice := clusterFixedPrice()
