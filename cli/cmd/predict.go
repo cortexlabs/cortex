@@ -77,7 +77,7 @@ var _predictCmd = &cobra.Command{
 		}
 
 		if apiRes.SyncAPI == nil {
-			exit.Error(ErrorUnableToGetResource(), apiName) // unexpected
+			exit.Error(ErrorUnableToGetAPI(), apiName) // unexpected
 		}
 
 		syncAPI := apiRes.SyncAPI

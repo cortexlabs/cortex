@@ -48,7 +48,7 @@ func getCloudFormationURL(clusterName, region string) string {
 const (
 	ErrInvalidProvider                      = "cli.invalid_provider"
 	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
-	ErrUnableToGetResource                  = "cli.unable_to_get_resource"
+	ErrUnableToGetAPI                       = "cli.unable_to_get_api"
 	ErrCommandNotSupportedForKind           = "cli.command_not_supported_for_kind"
 	ErrEnvironmentNotFound                  = "cli.environment_not_found"
 	ErrOperatorEndpointInLocalEnvironment   = "cli.operator_endpoint_in_local_environment"
@@ -98,17 +98,17 @@ func ErrorNotSupportedInLocalEnvironment() error {
 	})
 }
 
-func ErrorUnableToGetResource() error {
+func ErrorUnableToGetAPI() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrUnableToGetResource,
-		Message: "unable to get resource",
+		Kind:    ErrUnableToGetAPI,
+		Message: "unable to get api",
 	})
 }
 
 func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCommandNotSupportedForKind,
-		Message: fmt.Sprintf("`%s` is not supported for resources of kind %s", command, kind.String()),
+		Message: fmt.Sprintf("`%s` is not supported for API of kind %s", command, kind.String()),
 	})
 }
 
