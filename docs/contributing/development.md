@@ -12,6 +12,8 @@ Unless your internet connection is very fast or you will only be working on the 
 4. kubectl
 5. aws-cli
 
+Also, please use the VS Code [yaml extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) and enable auto-formatting for YAML files.
+
 ### Go
 
 To install Go on linux, run:

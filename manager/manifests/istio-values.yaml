@@ -43,28 +43,28 @@ gateways:
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
       service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: ${CORTEX_TAGS}
     type: LoadBalancer
-    externalTrafficPolicy: Local  # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
+    externalTrafficPolicy: Local # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
     ports:
-    - port: 80
-      targetPort: 80
-      name: http2
-    - port: 443
-      name: https
-    - port: 31400
-      name: tcp
-    - port: 15011
-      targetPort: 15011
-      name: tcp-pilot-grpc-tls
-    - port: 8060
-      targetPort: 8060
-      name: tcp-citadel-grpc-tls
+      - port: 80
+        targetPort: 80
+        name: http2
+      - port: 443
+        name: https
+      - port: 31400
+        name: tcp
+      - port: 15011
+        targetPort: 15011
+        name: tcp-pilot-grpc-tls
+      - port: 8060
+        targetPort: 8060
+        name: tcp-citadel-grpc-tls
     secretVolumes:
-    - name: customgateway-certs
-      secretName: istio-customgateway-certs
-      mountPath: /etc/istio/customgateway-certs
-    - name: customgateway-ca-certs
-      secretName: istio-customgateway-ca-certs
-      mountPath: /etc/istio/customgateway-ca-certs
+      - name: customgateway-certs
+        secretName: istio-customgateway-certs
+        mountPath: /etc/istio/customgateway-certs
+      - name: customgateway-ca-certs
+        secretName: istio-customgateway-ca-certs
+        mountPath: /etc/istio/customgateway-ca-certs
   ingressgateway-apis:
     namespace: istio-system
     enabled: true
@@ -88,29 +88,29 @@ gateways:
       ${CORTEX_SSL_CERTIFICATE_ANNOTATION}
       service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
     type: LoadBalancer
-    externalTrafficPolicy: Local  # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
+    externalTrafficPolicy: Local # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
     ports:
-    - port: 80
-      targetPort: 80
-      name: http2
-    - port: 443
-      targetPort: 80
-      name: https
-    - port: 31400
-      name: tcp
-    - port: 15011
-      targetPort: 15011
-      name: tcp-pilot-grpc-tls
-    - port: 8060
-      targetPort: 8060
-      name: tcp-citadel-grpc-tls
+      - port: 80
+        targetPort: 80
+        name: http2
+      - port: 443
+        targetPort: 80
+        name: https
+      - port: 31400
+        name: tcp
+      - port: 15011
+        targetPort: 15011
+        name: tcp-pilot-grpc-tls
+      - port: 8060
+        targetPort: 8060
+        name: tcp-citadel-grpc-tls
     secretVolumes:
-    - name: customgateway-certs
-      secretName: istio-customgateway-certs
-      mountPath: /etc/istio/customgateway-certs
-    - name: customgateway-ca-certs
-      secretName: istio-customgateway-ca-certs
-      mountPath: /etc/istio/customgateway-ca-certs
+      - name: customgateway-certs
+        secretName: istio-customgateway-certs
+        mountPath: /etc/istio/customgateway-certs
+      - name: customgateway-ca-certs
+        secretName: istio-customgateway-ca-certs
+        mountPath: /etc/istio/customgateway-ca-certs
 
 sidecarInjectorWebhook:
   enabled: false

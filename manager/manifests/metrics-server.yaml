@@ -23,12 +23,11 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
 rules:
-- apiGroups: ["metrics.k8s.io"]
-  resources: ["pods", "nodes"]
-  verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list", "watch"]
 
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -38,12 +37,11 @@ roleRef:
   kind: ClusterRole
   name: system:auth-delegator
 subjects:
-- kind: ServiceAccount
-  name: metrics-server
-  namespace: kube-system
+  - kind: ServiceAccount
+    name: metrics-server
+    namespace: kube-system
 
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
@@ -54,12 +52,11 @@ roleRef:
   kind: Role
   name: extension-apiserver-authentication-reader
 subjects:
-- kind: ServiceAccount
-  name: metrics-server
-  namespace: kube-system
+  - kind: ServiceAccount
+    name: metrics-server
+    namespace: kube-system
 
 ---
-
 apiVersion: apiregistration.k8s.io/v1beta1
 kind: APIService
 metadata:
@@ -75,7 +72,6 @@ spec:
   versionPriority: 100
 
 ---
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -101,22 +97,21 @@ spec:
     spec:
       serviceAccountName: metrics-server
       volumes:
-      # mount in tmp so we can safely use from-scratch images and/or read-only containers
-      - name: tmp-dir
-        emptyDir: {}
-      containers:
-      - name: metrics-server
-        image: $CORTEX_IMAGE_METRICS_SERVER
-        imagePullPolicy: Always
-        volumeMounts:
+        # mount in tmp so we can safely use from-scratch images and/or read-only containers
         - name: tmp-dir
-          mountPath: /tmp
-        resources:
-          requests:
-            cpu: 100m
-            memory: 200Mi
+          emptyDir: {}
+      containers:
+        - name: metrics-server
+          image: $CORTEX_IMAGE_METRICS_SERVER
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 100m
+              memory: 200Mi
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -129,28 +124,27 @@ spec:
   selector:
     k8s-app: metrics-server
   ports:
-  - port: 443
-    protocol: TCP
-    targetPort: 443
+    - port: 443
+      protocol: TCP
+      targetPort: 443
 
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: system:metrics-server
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  - nodes
-  - nodes/stats
-  - namespaces
-  verbs:
-  - get
-  - list
-  - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - nodes
+      - nodes/stats
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -161,6 +155,6 @@ roleRef:
   kind: ClusterRole
   name: system:metrics-server
 subjects:
-- kind: ServiceAccount
-  name: metrics-server
-  namespace: kube-system
+  - kind: ServiceAccount
+    name: metrics-server
+    namespace: kube-system
