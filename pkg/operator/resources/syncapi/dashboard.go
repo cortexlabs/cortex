@@ -86,6 +86,8 @@ func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName s
 	// bottom right widget
 	latencyWidgetP99 := aws.MetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, apiName), "p99 response time (ms)", "p99", 60, config.AWS.Region)
 
+	// TODO add metrics here: avg in-flight requests per replica + number of replicas
+
 	// append new API metrics widgets to existing widgets
 	dashboard.Widgets = append(dashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetP50, latencyWidgetP99)
 
