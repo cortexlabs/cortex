@@ -5,8 +5,6 @@
 
 # Build machine learning APIs
 
-<br>
-
 Cortex makes deploying, scaling, and managing machine learning systems in production simple. We believe that developers in any organization should be able to add natural language processing, computer vision, and other machine learning capabilities to their applications without having to worry about infrastructure.
 
 <br>
