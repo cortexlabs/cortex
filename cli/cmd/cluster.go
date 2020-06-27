@@ -161,7 +161,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createOrClearAPIGateway(awsClient, clusterConfig.ClusterName)
+		err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -788,8 +788,8 @@ func createOrClearDashboard(awsClient *aws.Client, dashboardName string) error {
 	return nil
 }
 
-// createOrClearAPIGateway creates an API gateway for the cluster (or clears an existing one if it already exists)
-func createOrClearAPIGateway(awsClient *aws.Client, clusterName string) error {
+// createOrReplaceAPIGateway creates an API gateway for the cluster (or clears an existing one if it already exists)
+func createOrReplaceAPIGateway(awsClient *aws.Client, clusterName string, tags map[string]string) error {
 	fmt.Print("￮ creating api gateway: ", clusterName)
 
 	_, err := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterName)
@@ -804,7 +804,6 @@ func createOrClearAPIGateway(awsClient *aws.Client, clusterName string) error {
 		return errors.Append(err, fmt.Sprintf("\n\nunable to delete existing api gateway with tag %s=%s; please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis", clusterconfig.ClusterNameTag, clusterName, awsClient.Region))
 	}
 
-	tags := map[string]string{clusterconfig.ClusterNameTag: clusterName}
 	_, err = awsClient.CreateAPIGateway(clusterName, tags)
 	if err != nil {
 		fmt.Print("\n\n")
