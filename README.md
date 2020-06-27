@@ -57,4 +57,4 @@ Deploy one of our [example APIs](https://github.com/cortexlabs/cortex/tree/0.18/
 
 ### Learn more
 
-Check out our [docs](https://docs.cortex.dev) and join our community on [Gitter](https://gitter.im/cortexlabs/cortex).
+Check out our [docs](https://docs.cortex.dev) and join our [community](https://gitter.im/cortexlabs/cortex).
