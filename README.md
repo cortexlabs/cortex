@@ -1,6 +1,8 @@
 <!-- Delete on release branches -->
 <img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='64'>
 
+<br>
+
 # Build machine learning APIs
 
 <!-- Delete on release branches -->
