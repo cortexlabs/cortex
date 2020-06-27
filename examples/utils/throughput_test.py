@@ -56,7 +56,7 @@ def main(payload, endpoint, processes, threads, samples, time_based):
             file_type = "json"
             payload_data = requests.get(payload).json()
         elif payload.lower().endswith(".jpg"):
-            file_type = "img"
+            file_type = "jpg"
             payload_data = get_url_image(payload)
     elif checkers.is_file(payload):
         if payload.lower().endswith(".json"):
@@ -64,7 +64,7 @@ def main(payload, endpoint, processes, threads, samples, time_based):
             with open(payload, "r") as f:
                 payload_data = json.load(f)
         elif payload.lower().endswith(".jpg"):
-            file_type = "img"
+            file_type = "jpg"
             payload_data = cv2.imread(payload, cv2.IMREAD_COLOR)
     else:
         print(f"'{payload}' isn't an URL resource, nor is it a local file")
