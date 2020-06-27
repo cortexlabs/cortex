@@ -13,6 +13,8 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 <br>
 
+## Key features
+
 ### Deploy
 
 * Run Cortex locally or as a production cluster on your AWS account.
