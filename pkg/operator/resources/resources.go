@@ -17,17 +17,36 @@ limitations under the License.
 package resources
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/gorilla/websocket"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	kapps "k8s.io/api/apps/v1"
+	kbatch "k8s.io/api/batch/v1"
+	kcore "k8s.io/api/core/v1"
 )
 
-func FindDeployedResourceByName(resourceName string) (*userconfig.Resource, error) {
-	virtualService, err := config.K8s.GetVirtualService(ok8s.Name(resourceName))
+func GetDeployedResourceByName(resourceName string) (*userconfig.Resource, error) {
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +56,8 @@ func FindDeployedResourceByName(resourceName string) (*userconfig.Resource, erro
 	}
 
 	return &userconfig.Resource{
-		Name: virtualService.GetLabels()["apiName"],
-		Kind: userconfig.KindFromString(virtualService.GetLabels()["apiKind"]),
+		Name: virtualService.Labels["apiName"],
+		Kind: userconfig.KindFromString(virtualService.Labels["apiKind"]),
 	}, nil
 }
 
@@ -47,11 +66,60 @@ func IsResourceUpdating(resource userconfig.Resource) (bool, error) {
 		return syncapi.IsAPIUpdating(resource.Name)
 	}
 
-	return false, ErrorKindNotSupported(resource.Kind)
+	return false, ErrorOperationNotSupportedForKind(resource.Kind)
+}
+
+func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
+	projectID := hash.Bytes(projectBytes)
+	projectKey := spec.ProjectKey(projectID)
+	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	projectFiles := ProjectFiles{
+		ProjectByteMap: projectFileMap,
+		ConfigFilePath: configPath,
+	}
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ValidateClusterAPIs(apiConfigs, projectFiles)
+	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+		return nil, err
+	}
+
+	isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
+	if err != nil {
+		return nil, err
+	}
+	if !isProjectUploaded {
+		if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+			return nil, err
+		}
+	}
+
+	results := make([]schema.DeployResult, len(apiConfigs))
+	for i, apiConfig := range apiConfigs {
+		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
+		results[i].Message = msg
+		if err != nil {
+			results[i].Error = errors.Message(err)
+		} else {
+			results[i].API = *api
+		}
+	}
+
+	return &schema.DeployResponse{
+		Results: results,
+	}, nil
 }
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
-	deployedResource, err := FindDeployedResourceByName(apiConfig.Name)
+	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
 	}
@@ -60,43 +128,339 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
-	if apiConfig.Kind == userconfig.SyncAPIKind {
+	switch apiConfig.Kind {
+	case userconfig.SyncAPIKind:
 		return syncapi.UpdateAPI(apiConfig, projectID, force)
-	}
-
-	if apiConfig.Kind == userconfig.BatchAPIKind {
+	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, projectID)
+	default:
+		return nil, "", ErrorOperationNotSupportedForKind(apiConfig.Kind) // unexpected
 	}
-
-	return nil, "", errors.Wrap(ErrorKindNotSupported(apiConfig.Kind), apiConfig.Identify()) // unexpected
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
-	deployedResource, err := FindDeployedResourceByName(apiName)
+	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
 		return "", err
 	} else if deployedResource == nil {
 		return "", ErrorAPINotDeployed(apiName)
 	}
 
-	if deployedResource.Kind == userconfig.SyncAPIKind {
+	switch deployedResource.Kind {
+	case userconfig.SyncAPIKind:
 		return syncapi.RefreshAPI(apiName, force)
+	default:
+		return "", ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
 	}
-
-	return "", errors.Wrap(ErrorKindNotSupported(deployedResource.Kind), deployedResource.Identify()) // unexpected
 }
 
-func DeleteAPI(apiName string, keepCache bool) error {
-	deployedResource, err := FindDeployedResourceByName(apiName)
+func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
+	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
-		return err
-	} else if deployedResource == nil {
-		return ErrorAPINotDeployed(apiName)
+		return nil, err
+	}
+
+	if deployedResource == nil {
+		// Delete anyways just to be sure everything is deleted
+		go func() {
+			err := parallel.RunFirstErr(
+				func() error {
+					return syncapi.DeleteAPI(apiName, keepCache)
+				},
+				func() error {
+					return batchapi.DeleteAPI(apiName, keepCache)
+				},
+			)
+			if err != nil {
+				telemetry.Error(err)
+			}
+		}()
+
+		return nil, ErrorAPINotDeployed(apiName)
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
-		return syncapi.DeleteAPI(apiName, keepCache)
+		err := syncapi.DeleteAPI(apiName, keepCache)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		return batchapi.DeleteAPI(apiName, keepCache) // TODO
+		return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
 	}
+
+	return &schema.DeleteResponse{
+		Message: fmt.Sprintf("deleting %s", apiName),
+	}, nil
+}
+
+func StreamLogs(deployedResource userconfig.Resource, socket *websocket.Conn) error {
+	if deployedResource.Kind == userconfig.SyncAPIKind {
+		syncapi.ReadLogs(deployedResource.Name, socket)
+	} else {
+		return ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+	}
+
+	return nil
+}
+
+func GetAPIs() (*schema.GetAPIsResponse, error) {
+	var deployments []kapps.Deployment
+	var jobs []kbatch.Job
+	var pods []kcore.Pod
+	var virtualServices []istioclientnetworking.VirtualService
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
+			return err
+		},
+		func() error {
+			var err error
+			pods, err = config.K8s.ListPodsWithLabelKeys("apiName")
+			return err
+		},
+		func() error {
+			var err error
+			jobs, err = config.K8s.ListJobsWithLabelKeys("apiName")
+			return err
+		},
+		func() error {
+			var err error
+			virtualServices, err = config.K8s.ListVirtualServicesByLabel("apiKind", "batch_api")
+			return err
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	statuses, err := syncapi.GetAllStatuses(deployments, pods)
+	if err != nil {
+		return nil, err
+	}
+
+	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
+	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	if err != nil {
+		return nil, err
+
+	}
+
+	allMetrics, err := syncapi.GetMultipleMetrics(apis)
+	if err != nil {
+		return nil, err
+
+	}
+
+	syncAPIs := make([]schema.SyncAPI, len(apis))
+
+	for i, api := range apis {
+		baseURL, err := syncapi.APIBaseURL(&api)
+		if err != nil {
+			return nil, err
+
+		}
+
+		syncAPIs[i] = schema.SyncAPI{
+			Spec:    api,
+			Status:  statuses[i],
+			Metrics: allMetrics[i],
+			BaseURL: baseURL,
+		}
+	}
+
+	batchAPIsMap := map[string]*schema.BatchAPI{}
+
+	fmt.Println(len(virtualServices))
+
+	for _, virtualService := range virtualServices {
+		apiName := virtualService.GetLabels()["apiName"]
+		apiID := virtualService.GetLabels()["apiID"]
+		api, err := operator.DownloadAPISpec(apiName, apiID)
+		if err != nil {
+			return nil, err
+
+		}
+
+		baseURL, err := syncapi.APIBaseURL(api)
+		if err != nil {
+			return nil, err
+
+		}
+
+		batchAPIsMap[apiName] = &schema.BatchAPI{
+			Spec:    *api,
+			BaseURL: baseURL,
+		}
+	}
+
+	for _, job := range jobs {
+		apiName := job.Labels["apiName"]
+		if _, ok := batchAPIsMap[apiName]; !ok {
+			continue
+		}
+
+		jobID := job.Labels["jobID"]
+		status, err := batchapi.GetJobStatus(apiName, jobID, pods)
+		if err != nil {
+			return nil, err
+
+		}
+
+		jobsForAPI := batchAPIsMap[apiName].Jobs
+		jobsForAPI = append(jobsForAPI, *status)
+
+		batchAPIsMap[apiName].Jobs = jobsForAPI
+	}
+
+	debug.Pp(batchAPIsMap)
+
+	batchAPIList := make([]schema.BatchAPI, len(batchAPIsMap))
+
+	i := 0
+	for _, batchAPI := range batchAPIsMap {
+		batchAPIList[i] = *batchAPI
+		i++
+	}
+
+	debug.Pp(batchAPIList)
+
+	return &schema.GetAPIsResponse{
+		BatchAPIs: batchAPIList,
+		SyncAPIs:  syncAPIs,
+	}, nil
+}
+
+func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
+	deployedResource, err := GetDeployedResourceByName(apiName)
+	if err != nil {
+		return nil, err
+	} else if deployedResource == nil {
+		return nil, ErrorAPINotDeployed(apiName)
+	}
+
+	switch deployedResource.Kind {
+	case userconfig.SyncAPIKind:
+		return getSyncAPI(apiName)
+	case userconfig.BatchAPIKind:
+		return getBatchAPI(apiName)
+	default:
+		return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+	}
+}
+
+func getSyncAPI(apiName string) (*schema.GetAPIResponse, error) {
+	status, err := syncapi.GetStatus(apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	if err != nil {
+		return nil, err
+
+	}
+
+	metrics, err := syncapi.GetMetrics(api)
+	if err != nil {
+		return nil, err
+
+	}
+
+	baseURL, err := syncapi.APIBaseURL(api)
+	if err != nil {
+		return nil, err
+
+	}
+
+	return &schema.GetAPIResponse{
+		SyncAPI: &schema.SyncAPI{
+			Spec:         *api,
+			Status:       *status,
+			Metrics:      *metrics,
+			BaseURL:      baseURL,
+			DashboardURL: syncapi.DashboardURL(),
+		},
+	}, nil
+}
+
+func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+	if err != nil {
+		return nil, err // TODO
+	}
+	apiID := virtualService.GetLabels()["apiID"]
+	api, err := operator.DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		return nil, err
+	}
+
+	jobs, err := config.K8s.ListJobsByLabel("apiName", apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	allBatchAPIPods, err := config.K8s.ListPodsByLabel("apiKind", userconfig.BatchAPIKind.String())
+	if err != nil {
+		return nil, err
+	}
+
+	baseURL, err := syncapi.APIBaseURL(api)
+	if err != nil {
+		return nil, err
+
+	}
+
+	jobIDSet := strset.New()
+	jobStatuses := make([]status.JobStatus, len(jobs))
+	for _, job := range jobs {
+		jobID := job.Labels["jobID"]
+		status, err := batchapi.GetJobStatus(apiName, jobID, allBatchAPIPods)
+		if err != nil {
+			return nil, err
+		}
+		jobIDSet.Add(jobID)
+		jobStatuses = append(jobStatuses, *status)
+	}
+
+	if len(jobStatuses) < 10 {
+		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.APIJobPrefix(apiName), false, pointer.Int64(20))
+		if err != nil {
+			return nil, err // TODO
+		}
+		for _, s3Obj := range objects {
+			pathSplit := strings.Split(*s3Obj.Key, "/")
+			jobID := pathSplit[len(pathSplit)-1]
+			if jobIDSet.Has(jobID) {
+				continue
+			}
+
+			status, err := batchapi.GetJobStatus(apiName, jobID, allBatchAPIPods)
+			if err != nil {
+				return nil, err
+			}
+			jobStatuses = append(jobStatuses, *status)
+		}
+	}
+
+	return &schema.GetAPIResponse{
+		BatchAPI: &schema.BatchAPI{
+			Spec:    *api,
+			Jobs:    jobStatuses,
+			BaseURL: baseURL,
+		},
+	}, nil
+}
+
+func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
+	apiNames := make([]string, len(statuses))
+	apiIDs := make([]string, len(statuses))
+
+	for i, status := range statuses {
+		apiNames[i] = status.APIName
+		apiIDs[i] = status.APIID
+	}
+
+	return apiNames, apiIDs
 }

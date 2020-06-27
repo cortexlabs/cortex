@@ -26,8 +26,8 @@ const (
 
 var _kinds = []string{
 	"unknown",
-	"sync_api",
-	"batch_api",
+	"SyncAPI",
+	"BatchAPI",
 }
 
 func KindFromString(s string) Kind {

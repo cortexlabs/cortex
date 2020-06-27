@@ -20,12 +20,19 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
@@ -36,9 +43,29 @@ func main() {
 		exit.Error(err)
 	}
 
-	if err := operator.Init(); err != nil {
-		exit.Error(err)
+	telemetry.Event("operator.init")
+
+	_, err := operator.UpdateMemoryCapacityConfigMap()
+	if err != nil {
+		exit.Error(errors.Wrap(err, "init"))
 	}
+
+	deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
+	if err != nil {
+		exit.Error(errors.Wrap(err, "init"))
+	}
+
+	for _, deployment := range deployments {
+		if userconfig.KindFromString(deployment.Labels["apiKind"]) == userconfig.SyncAPIKind {
+			if err := syncapi.UpdateAutoscalerCron(&deployment); err != nil {
+				exit.Error(errors.Wrap(err, "init"))
+			}
+		}
+	}
+
+	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), 12*time.Hour)
+	cron.Run(operator.InstanceTelemetry, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
+	cron.Run(batchapi.CleanupJobs, operator.ErrorHandler("job cleanup"), 10*time.Second)
 
 	router := mux.NewRouter()
 

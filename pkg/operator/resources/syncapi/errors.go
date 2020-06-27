@@ -23,20 +23,12 @@ import (
 )
 
 const (
-	ErrAPIUpdating    = "syncapi.api_updating"
-	ErrAPINotDeployed = "syncapi.api_not_deployed"
+	ErrAPIUpdating = "syncapi.api_updating"
 )
 
 func ErrorAPIUpdating(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIUpdating,
 		Message: fmt.Sprintf("%s is updating (override with --force)", apiName),
-	})
-}
-
-func ErrorAPINotDeployed(apiName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPINotDeployed,
-		Message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
 	})
 }

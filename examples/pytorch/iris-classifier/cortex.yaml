@@ -1,7 +1,7 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 - name: iris-classifier
-  kind: batch_api
+  kind: BatchAPI
   predictor:
     type: python
     path: predictor.py
@@ -10,8 +10,6 @@
     env:
       BATCH: "true"
       AWS_REGION: us-west-2
-
-
 # - name: text-generator
 #   kind: sync
 #   predictor:

@@ -22,8 +22,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/mux"
@@ -140,7 +140,7 @@ func BatchGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	spec, err := cloud.DownloadAPISpec(jobSpec.APIName, jobSpec.APIName)
+	spec, err := operator.DownloadAPISpec(jobSpec.APIName, jobSpec.APIName)
 	if err != nil {
 		respondError(w, r, err)
 		return

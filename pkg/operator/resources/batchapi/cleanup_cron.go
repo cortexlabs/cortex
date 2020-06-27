@@ -14,29 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package batchapi
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
-func cleanupJobs() error {
-	queues, err := cloud.ListQueues()
+func CleanupJobs() error {
+	queues, err := operator.ListQueues()
 	if err != nil {
 		fmt.Println(err.Error()) // TODO
 	}
@@ -60,7 +55,7 @@ func cleanupJobs() error {
 	queueURLMap := map[string]string{}
 	jobIDSetQueueURL := strset.Set{}
 	for _, queueURL := range queues {
-		_, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+		_, jobID := operator.IdentifiersFromQueueURL(queueURL)
 		jobIDSetQueueURL.Add(jobID)
 		queueURLMap[jobID] = queueURL
 	}
@@ -78,28 +73,28 @@ func cleanupJobs() error {
 	debug.Pp(jobIDSetK8s)
 	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s) {
 		queueURL := queueURLMap[jobID]
-		apiName, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+		apiName, jobID := operator.IdentifiersFromQueueURL(queueURL)
 		debug.Pp(apiName)
 		debug.Pp(jobID)
 
-		jobSpec, err := batchapi.DownloadJobSpec(apiName, jobID)
+		jobSpec, err := DownloadJobSpec(apiName, jobID)
 		if err != nil {
-			batchapi.DeleteJob(apiName, jobID)
+			DeleteJob(apiName, jobID)
 			fmt.Println(err.Error())
 			continue
 		}
 
 		if jobSpec.Status == status.JobEnqueuing && time.Now().Sub(jobSpec.LastUpdated) > time.Second*60 {
 			jobSpec.Status = status.JobFailed
-			batchapi.CommitToS3(*jobSpec)
-			err := batchapi.DeleteJob(apiName, jobID)
+			CommitToS3(*jobSpec)
+			err := DeleteJob(apiName, jobID)
 			if err != nil {
 				fmt.Println("here")
 			}
 		}
 
 		if jobSpec.Status != status.JobEnqueuing {
-			err := batchapi.DeleteJob(apiName, jobID)
+			err := DeleteJob(apiName, jobID)
 			if err != nil {
 				fmt.Println(err.Error())
 			}
@@ -109,24 +104,24 @@ func cleanupJobs() error {
 	for jobID := range strset.Union(jobIDSetQueueURL, jobIDSetK8s) {
 		queueURL := queueURLMap[jobID]
 		job := k8sjobMap[jobID]
-		apiName, jobID := cloud.IdentifiersFromQueueURL(queueURL)
+		apiName, jobID := operator.IdentifiersFromQueueURL(queueURL)
 
-		jobSpec, err := batchapi.DownloadJobSpec(apiName, jobID)
+		jobSpec, err := DownloadJobSpec(apiName, jobID)
 		if err != nil {
-			batchapi.DeleteJob(apiName, jobID)
+			DeleteJob(apiName, jobID)
 			fmt.Println(err.Error())
 			continue
 		}
 
-		queueMetrics, err := cloud.GetQueueMetricsFromURL(queueURL)
+		queueMetrics, err := operator.GetQueueMetricsFromURL(queueURL)
 		if err != nil {
-			batchapi.DeleteJob(apiName, jobID) // TODO
+			DeleteJob(apiName, jobID) // TODO
 			fmt.Println(err.Error())
 			continue
 		}
-		partitionMetrics, err := batchapi.GetJobMetrics(jobSpec)
+		partitionMetrics, err := GetJobMetrics(jobSpec)
 		if err != nil {
-			batchapi.DeleteJob(apiName, jobID) // TODO
+			DeleteJob(apiName, jobID) // TODO
 			fmt.Println(err.Error())
 			continue
 		}
@@ -146,11 +141,11 @@ func cleanupJobs() error {
 						Failed:    int(job.Status.Failed),
 						Succeeded: int(job.Status.Succeeded),
 					}
-					err := batchapi.CommitToS3(*jobSpec)
+					err := CommitToS3(*jobSpec)
 					if err != nil {
 						// TODO
 					}
-					batchapi.DeleteJob(apiName, jobID) // TODO
+					DeleteJob(apiName, jobID) // TODO
 				}
 			} else {
 				if job.Annotations == nil {
@@ -170,11 +165,11 @@ func cleanupJobs() error {
 						Failed:    int(job.Status.Failed),
 						Succeeded: int(job.Status.Succeeded),
 					}
-					err := batchapi.CommitToS3(*jobSpec)
+					err := CommitToS3(*jobSpec)
 					if err != nil {
 						// TODO
 					}
-					batchapi.DeleteJob(apiName, jobID) // TODO
+					DeleteJob(apiName, jobID) // TODO
 				} else {
 					if job.Annotations == nil {
 						job.Annotations = map[string]string{}
@@ -185,33 +180,6 @@ func cleanupJobs() error {
 			}
 		}
 	}
-
-	return nil
-}
-
-func Init() error {
-	telemetry.Event("operator.init")
-
-	_, err := updateMemoryCapacityConfigMap()
-	if err != nil {
-		return errors.Wrap(err, "init")
-	}
-
-	deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
-	if err != nil {
-		return err
-	}
-
-	for _, deployment := range deployments {
-		// TODO only apply sync_api resource kind
-		if err := syncapi.UpdateAutoscalerCron(&deployment); err != nil {
-			return err
-		}
-	}
-
-	cron.Run(deleteEvictedPods, cronErrHandler("delete evicted pods"), 12*time.Hour)
-	cron.Run(operatorTelemetry, cronErrHandler("operator telemetry"), 1*time.Hour)
-	cron.Run(cleanupJobs, cronErrHandler("operator telemetry"), 10*time.Second)
 
 	return nil
 }

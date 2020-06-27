@@ -28,7 +28,7 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func deleteEvictedPods() error {
+func DeleteEvictedPods() error {
 	failedPods, err := config.K8s.ListPods(&kmeta.ListOptions{
 		FieldSelector: "status.phase=Failed",
 	})
@@ -60,7 +60,7 @@ type instanceInfo struct {
 	Count         int32   `json:"count" yaml:"count"`
 }
 
-func operatorTelemetry() error {
+func InstanceTelemetry() error {
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
 		return err
@@ -124,8 +124,8 @@ func operatorTelemetry() error {
 	var totalInstancePrice float64
 	var totalInstancePriceIfOnDemand float64
 	for _, info := range instanceInfos {
-		totalInstancePrice += ((info.Price + apiEBSPrice) * float64(info.Count))
-		totalInstancePriceIfOnDemand += ((info.OnDemandPrice + apiEBSPrice) * float64(info.Count))
+		totalInstancePrice += (info.Price + apiEBSPrice) * float64(info.Count)
+		totalInstancePriceIfOnDemand += (info.OnDemandPrice + apiEBSPrice) * float64(info.Count)
 	}
 
 	fixedPrice := clusterFixedPrice()
@@ -161,7 +161,7 @@ func clusterFixedPrice() float64 {
 	return eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
 }
 
-func cronErrHandler(cronName string) func(error) {
+func ErrorHandler(cronName string) func(error) {
 	return func(err error) {
 		err = errors.Wrap(err, cronName+" cron failed")
 		telemetry.Error(err)

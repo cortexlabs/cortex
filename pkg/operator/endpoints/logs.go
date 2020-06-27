@@ -20,7 +20,6 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
@@ -28,11 +27,13 @@ import (
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	isDeployed, err := syncapi.IsAPIDeployed(apiName)
+	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
-	} else if !isDeployed {
+	}
+
+	if deployedResource == nil {
 		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
 		return
 	}
@@ -45,5 +46,9 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	syncapi.ReadLogs(apiName, socket)
+	err = resources.StreamLogs(*deployedResource, socket)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
 }

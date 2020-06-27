@@ -23,10 +23,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -264,12 +262,4 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 	avg = avg / float64(len(values))
 
 	return &avg, nil
-}
-
-func cronErrHandler(cronName string) func(error) {
-	return func(err error) {
-		err = errors.Wrap(err, cronName+" cron failed")
-		telemetry.Error(err)
-		errors.PrintError(err)
-	}
 }

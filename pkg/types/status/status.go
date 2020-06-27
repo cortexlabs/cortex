@@ -33,6 +33,7 @@ type SubReplicaCounts struct {
 	Pending      int32 `json:"pending"`
 	Initializing int32 `json:"initializing"`
 	Ready        int32 `json:"ready"`
+	ErrImagePull int32 `json:"err_image_pull"`
 	Terminating  int32 `json:"terminating"`
 	Failed       int32 `json:"failed"`
 	Killed       int32 `json:"killed"`
@@ -47,5 +48,5 @@ func (status *Status) Message() string {
 }
 
 func (src *SubReplicaCounts) TotalFailed() int32 {
-	return src.Failed + src.Killed + src.KilledOOM + src.Stalled
+	return src.Failed + src.ErrImagePull + src.Killed + src.KilledOOM + src.Stalled
 }

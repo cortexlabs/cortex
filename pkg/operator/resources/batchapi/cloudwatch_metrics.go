@@ -26,9 +26,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func GetJobMetrics(jobSpec *JobSpec) (*metrics.JobMetrics, error) {
+func GetJobMetrics(jobSpec *spec.JobSpec) (*metrics.JobMetrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
 	realTimeEnd := time.Now().Truncate(time.Second)
 	realTimeStart := realTimeEnd.Truncate(time.Minute)
@@ -59,7 +60,7 @@ func GetJobMetrics(jobSpec *JobSpec) (*metrics.JobMetrics, error) {
 	return &mergedMetrics, nil
 }
 
-func getMetricsFunc(jobSpec *JobSpec, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.JobMetrics) func() error {
+func getMetricsFunc(jobSpec *spec.JobSpec, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.JobMetrics) func() error {
 	return func() error {
 		metricDataResults, err := queryMetrics(jobSpec, period, startTime, endTime)
 		if err != nil {
@@ -75,7 +76,7 @@ func getMetricsFunc(jobSpec *JobSpec, period int64, startTime *time.Time, endTim
 	}
 }
 
-func queryMetrics(jobSpec *JobSpec, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
+func queryMetrics(jobSpec *spec.JobSpec, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
 	allMetrics := getNetworkStatsDef(jobSpec, period)
 
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
@@ -122,7 +123,7 @@ func extractJobStats(metricsDataResults []*cloudwatch.MetricDataResult) (*metric
 	return &jobStats, nil
 }
 
-func getAPIDimensions(jobSpec *JobSpec) []*cloudwatch.Dimension {
+func getAPIDimensions(jobSpec *spec.JobSpec) []*cloudwatch.Dimension {
 	return []*cloudwatch.Dimension{
 		{
 			Name:  aws.String("APIName"),
@@ -135,7 +136,7 @@ func getAPIDimensions(jobSpec *JobSpec) []*cloudwatch.Dimension {
 	}
 }
 
-func getAPIDimensionsCounter(jobSpec *JobSpec) []*cloudwatch.Dimension {
+func getAPIDimensionsCounter(jobSpec *spec.JobSpec) []*cloudwatch.Dimension {
 	return append(
 		getAPIDimensions(jobSpec),
 		&cloudwatch.Dimension{
@@ -145,7 +146,7 @@ func getAPIDimensionsCounter(jobSpec *JobSpec) []*cloudwatch.Dimension {
 	)
 }
 
-func getAPIDimensionsHistogram(jobSpec *JobSpec) []*cloudwatch.Dimension {
+func getAPIDimensionsHistogram(jobSpec *spec.JobSpec) []*cloudwatch.Dimension {
 	return append(
 		getAPIDimensions(jobSpec),
 		&cloudwatch.Dimension{
@@ -155,7 +156,7 @@ func getAPIDimensionsHistogram(jobSpec *JobSpec) []*cloudwatch.Dimension {
 	)
 }
 
-func getNetworkStatsDef(jobSpec *JobSpec, period int64) []*cloudwatch.MetricDataQuery {
+func getNetworkStatsDef(jobSpec *spec.JobSpec, period int64) []*cloudwatch.MetricDataQuery {
 	return []*cloudwatch.MetricDataQuery{
 		{
 			Id:    aws.String("succeeded"),

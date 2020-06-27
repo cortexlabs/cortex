@@ -34,10 +34,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/cloud"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
-	"github.com/cortexlabs/cortex/pkg/types/metrics"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -97,7 +95,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		err = cloud.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
+		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
@@ -113,7 +111,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		if err := cloud.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
+		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
 			go deleteK8sResources(api.Name) // Delete k8s if update fails?
 			return nil, "", err
 		}
@@ -124,7 +122,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(ok8s.Name(apiName))
+	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -149,7 +147,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			return nil
 		},
 		func() error {
-			err := cloud.RemoveAPIFromAPIGatewayK8s(virtualService)
+			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
 			if err != nil {
 				return err
 			}
@@ -243,28 +241,7 @@ type Submission struct {
 	JobConfig   interface{}       `json:"config"`
 }
 
-type JobSpec struct {
-	ID              string                `json:"job_id"`
-	APIID           string                `json:"api_id"`
-	APIName         string                `json:"api_name"`
-	SQSUrl          string                `json:"sqs_url"`
-	Config          interface{}           `json:"config"`
-	Parallelism     int                   `json:"parallelism"`
-	Status          status.JobCode        `json:"status"`
-	TotalPartitions int                   `json:"total_partitions"`
-	StartTime       time.Time             `json:"start_time"`
-	EndTime         *time.Time            `json:"end_time"`
-	LastUpdated     time.Time             `json:"last_updated"`
-	Metrics         *metrics.JobMetrics   `json:"metrics"`
-	QueueMetrics    *metrics.QueueMetrics `json:"queue_metrics"`
-	WorkerStats     *metrics.WorkerStats  `json:"worker_stats"`
-}
-
-func (j JobSpec) S3Key() string {
-	return JobKey(j.APIName, j.ID)
-}
-
-func CommitToS3(j JobSpec) error {
+func CommitToS3(j spec.JobSpec) error {
 	j.LastUpdated = time.Now()
 	return config.AWS.UploadJSONToS3(j, config.Cluster.Bucket, JobKey(j.APIName, j.ID))
 }
@@ -277,7 +254,7 @@ func JobKey(apiName, jobID string) string {
 	return filepath.Join(APIJobPrefix(apiName), jobID)
 }
 
-func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
+func SubmitJob(apiName string, submission Submission) (*spec.JobSpec, error) {
 	// submission validation
 	if len(submission.Items) == 0 {
 		fmt.Println("here")
@@ -291,7 +268,7 @@ func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
 
 	apiID := virtualService.GetLabels()["apiID"]
 
-	apiSpec, err := cloud.DownloadAPISpec(apiName, apiID)
+	apiSpec, err := operator.DownloadAPISpec(apiName, apiID)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +300,7 @@ func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
 		return nil, errors.Wrap(err) // TODO
 	}
 
-	jobSpec := JobSpec{
+	jobSpec := spec.JobSpec{
 		ID:          jobID,
 		APIID:       apiSpec.ID,
 		APIName:     apiSpec.Name,
@@ -351,7 +328,7 @@ func SubmitJob(apiName string, submission Submission) (*JobSpec, error) {
 }
 
 type ThreadSafeJobSpec struct {
-	JobSpec
+	spec.JobSpec
 	mux sync.Mutex
 }
 
@@ -392,7 +369,7 @@ func (t *ThreadSafeJobSpec) PushToS3() error {
 	return nil
 }
 
-func UploadJobSpec(jobSpec *JobSpec) error {
+func UploadJobSpec(jobSpec *spec.JobSpec) error {
 	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, JobKey(jobSpec.APIName, jobSpec.ID))
 	if err != nil {
 		return err // TODO
@@ -413,28 +390,28 @@ func DeployJob(jobSpec *ThreadSafeJobSpec, submission *Submission) {
 	livenessCron := cron.Run(jobSpec.UpdateLiveness, cronErrHandler(fmt.Sprintf("failed liveness check", jobSpec.ID, jobSpec.APIName)), 10*time.Second)
 	defer livenessCron.Cancel()
 
-	err := cloud.CreateLogGroupForJob(jobSpec.APIName, jobSpec.ID)
+	err := operator.CreateLogGroupForJob(jobSpec.APIName, jobSpec.ID)
 	if err != nil {
 		fmt.Println(err.Error()) // TODO
 		jobSpec.Status = status.JobFailed
 		jobSpec.PushToS3()
 	}
 
-	cloud.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "started enqueueing partitions")
+	operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "started enqueueing partitions")
 
 	err = Enqueue(jobSpec, submission)
 	if err != nil {
-		cloud.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
+		operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
 		fmt.Println(err.Error()) // TODO
 		jobSpec.Status = status.JobFailed
 		jobSpec.PushToS3()
 	}
 
-	cloud.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "completed enqueueing partitions")
+	operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "completed enqueueing partitions")
 
 	err = ApplyK8sJob(jobSpec)
 	if err != nil {
-		cloud.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
+		operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
 		fmt.Println(err.Error()) // TODO
 		jobSpec.Status = status.JobFailed
 		jobSpec.PushToS3()
@@ -473,7 +450,7 @@ func Enqueue(jobSpec *ThreadSafeJobSpec, submission *Submission) error {
 }
 
 func ApplyK8sJob(jobSpec *ThreadSafeJobSpec) error {
-	apiSpec, err := cloud.DownloadAPISpec(jobSpec.APIName, jobSpec.APIID)
+	apiSpec, err := operator.DownloadAPISpec(jobSpec.APIName, jobSpec.APIID)
 	if err != nil {
 		return err // TODO
 	}
@@ -517,7 +494,7 @@ func DeleteJob(apiName, jobID string) error {
 		return err
 	}
 
-	queueURL, err := cloud.QueueURL(apiName, jobID)
+	queueURL, err := operator.QueueURL(apiName, jobID)
 	if err != nil {
 		return err
 	}
@@ -534,8 +511,8 @@ func DeleteJob(apiName, jobID string) error {
 }
 
 // What happens if key doesn't exist?
-func DownloadJobSpec(apiName, jobID string) (*JobSpec, error) {
-	jobSpec := JobSpec{}
+func DownloadJobSpec(apiName, jobID string) (*spec.JobSpec, error) {
+	jobSpec := spec.JobSpec{}
 	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, JobKey(apiName, jobID))
 	if err != nil {
 		return nil, err // TODO
@@ -562,7 +539,7 @@ func GetJobStatus(apiName, jobID string, allRunningPods []kcore.Pod) (*status.Jo
 		jobStatus.Total = jobSpec.TotalPartitions
 	}
 
-	queueMetrics, err := cloud.GetQueueMetrics(apiName, jobID)
+	queueMetrics, err := operator.GetQueueMetrics(apiName, jobID)
 	if err != nil {
 		return nil, err // TODO
 	}

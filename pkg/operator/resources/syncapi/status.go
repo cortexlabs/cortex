@@ -20,10 +20,11 @@ import (
 	"sort"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
@@ -39,7 +40,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(ok8s.Name(apiName))
+			deployment, err = config.K8s.GetDeployment(operator.K8sName(apiName))
 			return err
 		},
 		func() error {
@@ -53,7 +54,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	}
 
 	if deployment == nil {
-		return nil, ErrorAPINotDeployed(apiName)
+		return nil, errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
 	return apiStatus(deployment, pods)
@@ -129,6 +130,8 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 		subCounts.Initializing++
 	case k8s.PodStatusRunning:
 		subCounts.Initializing++
+	case k8s.PodStatusErrImagePull:
+		subCounts.ErrImagePull++
 	case k8s.PodStatusTerminating:
 		subCounts.Terminating++
 	case k8s.PodStatusFailed:
@@ -145,6 +148,10 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code {
 	if counts.Updated.Ready >= counts.Requested {
 		return status.Live
+	}
+
+	if counts.Updated.ErrImagePull > 0 {
+		return status.ErrorImagePull
 	}
 
 	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
