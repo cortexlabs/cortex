@@ -26,7 +26,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 ### Scale
 
-* Automatically scale APIs to handle production traffic.
+* Autoscale APIs to handle production traffic.
 * Reduce your cloud infrastructure spend with spot instances.
 * Maximize resource utilization by deploying multiple models per API.
 
