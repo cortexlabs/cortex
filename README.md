@@ -14,15 +14,18 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 ## Deploy
 
 * Deploy TensorFlow, PyTorch, scikit-learn, and other models as web APIs.
-* Define a preprocessing and postprocessing steps in Python.
+* Define preprocessing and postprocessing steps in Python.
 * Run Cortex locally on any machine or as a production cluster on AWS.
 
+<br>
 
 ## Manage
 
 * Update APIs with no downtime.
 * Stream logs from deployed models to your CLI.
 * Track API performance and predictions.
+
+<br>
 
 ## Scale
 
@@ -37,6 +40,8 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 <!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13_2.gif)
 
+<br>
+
 ## Get started
 
 <!-- CORTEX_VERSION_README_MINOR -->
@@ -44,6 +49,6 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.18/get-cli.sh)"
 ```
 
-Deploy a pre-built [image classification](https://github.com/cortexlabs/cortex/tree/0.18/examples/tensorflow/image-classifier), [text generation](https://github.com/cortexlabs/cortex/tree/0.18/examples/pytorch/text-generator), or other [example](https://github.com/cortexlabs/cortex/tree/0.18/examples) APIs or bring your own models to build custom APIs.
+Deploy one of our [pre-built APIs](https://github.com/cortexlabs/cortex/tree/0.18/examples) like [text generation](https://github.com/cortexlabs/cortex/tree/0.18/examples/pytorch/text-generator) and [image classification](https://github.com/cortexlabs/cortex/tree/0.18/examples/tensorflow/image-classifier), or bring your own models to build custom APIs.
 
 Check out our [docs](https://docs.cortex.dev) and join our community on [Gitter](https://gitter.im/cortexlabs/cortex) to learn more.
