@@ -46,14 +46,14 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 ### Install
 
-<!-- CORTEX_VERSION_README_MINOR X 4 -->
+<!-- CORTEX_VERSION_README_MINOR X 2 -->
 ```bash
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.18/get-cli.sh)"
 ```
 
 ### Build
 
-Deploy [text generation](https://github.com/cortexlabs/cortex/tree/0.18/examples/pytorch/text-generator), [image classification](https://github.com/cortexlabs/cortex/tree/0.18/examples/tensorflow/image-classifier), and other [example APIs](https://github.com/cortexlabs/cortex/tree/0.18/examples), or bring your own models to build custom APIs.
+Deploy one of our [example APIs](https://github.com/cortexlabs/cortex/tree/0.18/examples) or bring your own models to build custom APIs.
 
 ### Learn more
 
