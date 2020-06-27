@@ -7,21 +7,19 @@
 
 Cortex makes deploying, scaling, and managing machine learning systems in production simple. We believe that developers in any organization should be able to add natural language processing, computer vision, and other machine learning capabilities to their applications without having to worry about infrastructure.
 
-<br>
-
-## Deploy
+### Deploy
 
 * Run Cortex locally or as a production cluster on your AWS account.
 * Deploy TensorFlow, PyTorch, scikit-learn, and other models as web APIs.
 * Define preprocessing and postprocessing steps in Python.
 
-## Manage
+### Manage
 
 * Update APIs with no downtime.
 * Track API performance and predictions.
 * Stream logs from deployed models to your CLI.
 
-## Scale
+### Scale
 
 * Automatically scale APIs to handle production traffic.
 * Reduce your cloud infrastructure spend with spot instances.
