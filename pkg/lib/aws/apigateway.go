@@ -25,6 +25,34 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
+// CreateAPIGateway Creates a new API Gateway with the default stage
+func (c *Client) CreateAPIGateway(name string, tags map[string]string) (string, error) {
+	createAPIResponse, err := c.APIGatewayV2().CreateApi(&apigatewayv2.CreateApiInput{
+		Name:         aws.String(name),
+		ProtocolType: aws.String(apigatewayv2.ProtocolTypeHttp),
+		Tags:         aws.StringMap(tags),
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create api gateway")
+	}
+	if createAPIResponse.ApiId == nil {
+		return "", errors.ErrorUnexpected("failed to create api gateway")
+	}
+
+	_, err = c.APIGatewayV2().CreateStage(&apigatewayv2.CreateStageInput{
+		ApiId:      createAPIResponse.ApiId,
+		AutoDeploy: aws.Bool(true),
+		StageName:  aws.String("$default"),
+		Tags:       aws.StringMap(tags),
+	})
+	if err != nil {
+		_ = c.DeleteAPIGateway(*createAPIResponse.ApiId) // best effort cleanup
+		return "", errors.Wrap(err, "failed to create $default api gateway stage")
+	}
+
+	return *createAPIResponse.ApiId, nil
+}
+
 // GetVPCLinkByTag Gets a VPC Link by tag (returns nil if there are no matches)
 func (c *Client) GetVPCLinkByTag(tagName string, tagValue string) (*apigatewayv2.VpcLink, error) {
 	var nextToken *string
@@ -111,20 +139,30 @@ func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (*apigat
 		return nil, nil
 	}
 
-	// Delete mappings in case user added a custom domain name (otherwise this will block API Gateway deletion)
-	err = c.DeleteAPIGatewayMappings(*apiGateway.ApiId)
+	err = c.DeleteAPIGateway(*apiGateway.ApiId)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = c.APIGatewayV2().DeleteApi(&apigatewayv2.DeleteApiInput{
-		ApiId: apiGateway.ApiId,
-	})
+	return apiGateway, nil
+}
+
+// DeleteAPIGateway Deletes an API Gateway by ID (returns an error if the API Gateway does not exist)
+func (c *Client) DeleteAPIGateway(apiGatewayID string) error {
+	// Delete mappings in case user added a custom domain name (otherwise this will block API Gateway deletion)
+	err := c.DeleteAPIGatewayMappings(apiGatewayID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to delete api gateway "+*apiGateway.ApiId)
+		return err
 	}
 
-	return apiGateway, nil
+	_, err = c.APIGatewayV2().DeleteApi(&apigatewayv2.DeleteApiInput{
+		ApiId: aws.String(apiGatewayID),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to delete api gateway "+apiGatewayID)
+	}
+
+	return nil
 }
 
 // DeleteAPIGatewayMappingsForDomainName deletes all API mappings that point to the provided api gateway from the provided domain name

@@ -25,7 +25,7 @@ function get_api_load_balancer_endpoint() {
 }
 
 function get_api_gateway_endpoint() {
-  aws apigatewayv2 get-apis --region $CORTEX_REGION | jq ".Items[] | select(.Name == \"${CORTEX_CLUSTER_NAME}\") | .ApiEndpoint" | tr -d '"'
+  python get_api_gateway_endpoint.py
 }
 
 if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then

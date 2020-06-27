@@ -138,7 +138,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = CreateBucketIfNotFound(awsClient, clusterConfig.Bucket)
+		err = createBucketIfNotFound(awsClient, clusterConfig.Bucket)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -147,7 +147,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = CreateLogGroupIfNotFound(awsClient, clusterConfig.LogGroup)
+		err = createLogGroupIfNotFound(awsClient, clusterConfig.LogGroup)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -156,16 +156,25 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createDashboard(awsClient, clusterConfig.ClusterName)
+		err = createOrClearDashboard(awsClient, clusterConfig.ClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = createOrClearAPIGateway(awsClient, clusterConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
+			_, _ = awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
+			_, _ = awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
+			_, _ = awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
+			_, _ = awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
 			helpStr := "\nDebugging tips (may or may not apply to this error):"
 			helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
@@ -323,11 +332,11 @@ var _downCmd = &cobra.Command{
 		_, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if errAPIGateway != nil {
-			fmt.Print("\n\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/apis\n")
+			fmt.Printf("\n\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis\n", *accessConfig.Region)
 			errors.PrintError(errAPIGateway)
 		}
 		if errVPCLink != nil {
-			fmt.Print("\n\nunable to delete cortex's vpc link (see error below); if it still exists after the cluster has been deleted, please delete it manually via the api gateway console: https://console.aws.amazon.com/apigateway/main/vpc-links\n")
+			fmt.Printf("\n\nunable to delete cortex's vpc link (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/vpc-links\n", *accessConfig.Region)
 			errors.PrintError(errVPCLink)
 		}
 		if errAPIGateway == nil && errVPCLink == nil {
@@ -339,7 +348,7 @@ var _downCmd = &cobra.Command{
 		fmt.Print("￮ deleting dashboard ")
 		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
 		if err != nil {
-			fmt.Print("\n\nunable to delete cortex's api dashboard (see error below); if it still exists after the cluster has been deleted, please delete it manually via the cloudwatch console: https://console.aws.amazon.com/cloudwatch/home#dashboards:\n")
+			fmt.Printf("\n\nunable to delete cortex's api dashboard (see error below); if it still exists after the cluster has been deleted, please delete it via the cloudwatch console: https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:\n", *accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
@@ -716,7 +725,7 @@ func getCloudFormationURLWithAccessConfig(accessConfig *clusterconfig.AccessConf
 	return getCloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)
 }
 
-func CreateBucketIfNotFound(awsClient *aws.Client, bucket string) error {
+func createBucketIfNotFound(awsClient *aws.Client, bucket string) error {
 	bucketFound, err := awsClient.DoesBucketExist(bucket)
 	if err != nil {
 		return err
@@ -725,6 +734,7 @@ func CreateBucketIfNotFound(awsClient *aws.Client, bucket string) error {
 		fmt.Print("￮ creating a new s3 bucket: ", bucket)
 		err = awsClient.CreateBucket(bucket)
 		if err != nil {
+			fmt.Print("\n\n")
 			return err
 		}
 		fmt.Println(" ✓")
@@ -734,7 +744,7 @@ func CreateBucketIfNotFound(awsClient *aws.Client, bucket string) error {
 	return nil
 }
 
-func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
+func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 	logGroupFound, err := awsClient.DoesLogGroupExist(logGroup)
 	if err != nil {
 		return err
@@ -743,6 +753,7 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 		fmt.Print("￮ creating a new cloudwatch log group: ", logGroup)
 		err = awsClient.CreateLogGroup(logGroup)
 		if err != nil {
+			fmt.Print("\n\n")
 			return err
 		}
 		fmt.Println(" ✓")
@@ -753,8 +764,8 @@ func CreateLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 	return nil
 }
 
-// createDashboard creates a new dashboard (or clears an existing one if it already exists)
-func createDashboard(awsClient *aws.Client, dashboardName string) error {
+// createOrClearDashboard creates a new dashboard (or clears an existing one if it already exists)
+func createOrClearDashboard(awsClient *aws.Client, dashboardName string) error {
 	dashboardFound, err := awsClient.DoesDashboardExist(dashboardName)
 	if err != nil {
 		return err
@@ -768,10 +779,38 @@ func createDashboard(awsClient *aws.Client, dashboardName string) error {
 
 	err = awsClient.CreateDashboard(dashboardName, consts.DashboardTitle)
 	if err != nil {
+		fmt.Print("\n\n")
 		return err
 	}
 
 	fmt.Println(" ✓")
 
+	return nil
+}
+
+// createOrClearAPIGateway creates an API gateway for the cluster (or clears an existing one if it already exists)
+func createOrClearAPIGateway(awsClient *aws.Client, clusterName string) error {
+	fmt.Print("￮ creating api gateway: ", clusterName)
+
+	_, err := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterName)
+	if err != nil {
+		fmt.Print("\n\n")
+		return errors.Append(err, fmt.Sprintf("\n\nunable to delete existing vpc link with tag %s=%s; please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/vpc-links", clusterconfig.ClusterNameTag, clusterName, awsClient.Region))
+	}
+
+	_, err = awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterName)
+	if err != nil {
+		fmt.Print("\n\n")
+		return errors.Append(err, fmt.Sprintf("\n\nunable to delete existing api gateway with tag %s=%s; please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis", clusterconfig.ClusterNameTag, clusterName, awsClient.Region))
+	}
+
+	tags := map[string]string{clusterconfig.ClusterNameTag: clusterName}
+	_, err = awsClient.CreateAPIGateway(clusterName, tags)
+	if err != nil {
+		fmt.Print("\n\n")
+		return err
+	}
+
+	fmt.Println(" ✓")
 	return nil
 }
