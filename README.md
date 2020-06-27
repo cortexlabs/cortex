@@ -45,7 +45,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.18/get-cli.sh)"
 ```
 
-See our [installation guide](https://docs.cortex.dev/install) for more details, deploy one of our [example APIs](https://github.com/cortexlabs/cortex/tree/0.18/examples), or bring your own models to build [custom APIs](https://docs.cortex.dev/deployments/exporting).
+See our [installation guide](https://docs.cortex.dev/install) for more details, deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples), or bring your own models to build [custom APIs](https://docs.cortex.dev/deployments/exporting).
 
 ### Learn more
 
