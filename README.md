@@ -21,7 +21,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 ### Manage
 
 * Update APIs with no downtime.
-* Track API performance and predictions.
+* Monitor API performance and track predictions.
 * Stream logs from deployed models to your CLI.
 
 ### Scale
