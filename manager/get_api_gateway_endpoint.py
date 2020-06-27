@@ -18,7 +18,8 @@ import os
 
 def get_api_gateway_endpoint():
     cluster_name = os.environ["CORTEX_CLUSTER_NAME"]
-    client_apigateway = boto3.client("apigatewayv2", region_name=os.environ["CORTEX_REGION"])
+    region = os.environ["CORTEX_REGION"]
+    client_apigateway = boto3.client("apigatewayv2", region_name=region)
 
     paginator = client_apigateway.get_paginator("get_apis")
     for api_gateway_page in paginator.paginate():
@@ -27,7 +28,7 @@ def get_api_gateway_endpoint():
                 return api_gateway["ApiEndpoint"]
 
     raise Exception(
-        f"Could not find api gateway with tag cortex.dev/cluster-name={cluster_name} in {os.environ['CORTEX_REGION']}"
+        f"Could not find api gateway with tag cortex.dev/cluster-name={cluster_name} in {region}"
     )
 
 
