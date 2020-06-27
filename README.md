@@ -15,15 +15,11 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 * Deploy TensorFlow, PyTorch, scikit-learn, and other models as web APIs.
 * Define preprocessing and postprocessing steps in Python.
 
-<br>
-
 ## Manage
 
 * Update APIs with no downtime.
 * Track API performance and predictions.
 * Stream logs from deployed models to your CLI.
-
-<br>
 
 ## Scale
 
