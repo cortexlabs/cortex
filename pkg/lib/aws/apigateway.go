@@ -46,7 +46,7 @@ func (c *Client) CreateAPIGateway(name string, tags map[string]string) (string, 
 		Tags:       aws.StringMap(tags),
 	})
 	if err != nil {
-		_ = c.DeleteAPIGateway(*createAPIResponse.ApiId) // best effort cleanup
+		c.DeleteAPIGateway(*createAPIResponse.ApiId) // best effort cleanup
 		return "", errors.Wrap(err, "failed to create $default api gateway stage")
 	}
 

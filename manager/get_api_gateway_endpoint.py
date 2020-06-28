@@ -28,7 +28,7 @@ def get_api_gateway_endpoint():
                 return api_gateway["ApiEndpoint"]
 
     raise Exception(
-        f"Could not find api gateway with tag cortex.dev/cluster-name={cluster_name} in {region}"
+        f"your cluster's api gateway (in {region} with tag cortex.dev/cluster-name={cluster_name}) does not exist"
     )
 
 
