@@ -82,7 +82,7 @@ func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName s
 	// top right widget
 	inFlightTotalWidget := aws.MetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, apiName), "total in-flight requests", "Sum", 10, config.AWS.Region)
 	// middle left widget
-	inFlightPerReplicaWidget := aws.MetricWidget(1, highestY+8, 11, 6, inFlightMetric(dashboardName, apiName), "avg in-flight requests/replica", "Average", 10, config.AWS.Region)
+	inFlightPerReplicaWidget := aws.MetricWidget(1, highestY+8, 11, 6, inFlightMetric(dashboardName, apiName), "avg in-flight requests per replica", "Average", 10, config.AWS.Region)
 	// middle right widget
 	// setting the period to 10 seconds because the publishing frequency of the request monitor is 10 seconds
 	totalReplicasWidget := aws.MetricWidget(12, highestY+8, 11, 6, inFlightMetric(dashboardName, apiName), "active replicas", "SampleCount", 10, config.AWS.Region)
