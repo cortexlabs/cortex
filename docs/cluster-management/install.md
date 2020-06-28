@@ -9,7 +9,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
 ```
 
-You must also have [Docker](https://docs.docker.com/install) installed to run Cortex locally or to create a cluster on AWS.
+You must have [Docker](https://docs.docker.com/install) installed to run Cortex locally or to create a cluster on AWS.
 
 ## Deploy an example
 
