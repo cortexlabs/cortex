@@ -67,7 +67,7 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
 fi
 
 # CORTEX_VERSION x1
-export EXPECTED_CORTEX_VERSION=0.18.0
+export EXPECTED_CORTEX_VERSION=master
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     if [ "$CORTEX_PROVIDER" == "local" ]; then
