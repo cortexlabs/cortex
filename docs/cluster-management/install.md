@@ -56,7 +56,7 @@ cortex cluster up
 cortex env default aws
 ```
 
-You can now run the same commands shown above to deploy the Iris classifier to AWS (if you didn't set the default CLI environment, add `--env aws` to the `cortex` commands).
+You can now run the same commands shown above to deploy the iris classifier to AWS (if you didn't set the default CLI environment, add `--env aws` to the `cortex` commands).
 
 ## Next steps
 
