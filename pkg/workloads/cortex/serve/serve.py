@@ -32,17 +32,11 @@ from starlette.responses import Response
 from starlette.background import BackgroundTasks
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API, get_spec
 from cortex.lib.log import cx_logger
 from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
-
-if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
-    errMsg = f"your Cortex operator version ({os.environ['CORTEX_VERSION']}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your predictor image by modifying the `image` field in your API configuration file (e.g. cortex.yaml) and re-running `cortex deploy`, or update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update"
-    raise ValueError(errMsg)
-
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
@@ -285,7 +279,7 @@ def start_fn():
             **raw_api_spec,
         )
         client = api.predictor.initialize_client(
-            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port,
+            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
