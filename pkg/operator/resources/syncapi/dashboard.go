@@ -80,16 +80,19 @@ func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName s
 	// top left widget
 	statCodeWidget := aws.MetricWidget(1, highestY+2, 11, 6, statusCodeMetric(dashboardName, apiName), "responses per minute", "Sum", 60, config.AWS.Region)
 	// top right widget
-	inFlightWidget := aws.MetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, apiName), "total in-flight requests", "Sum", 10, config.AWS.Region)
-	// bottem left widget
-	latencyWidgetP50 := aws.MetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, apiName), "median response time (ms)", "p50", 60, config.AWS.Region)
+	inFlightTotalWidget := aws.MetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, apiName), "total in-flight requests", "Sum", 10, config.AWS.Region)
+	// middle left widget
+	inFlightPerReplicaWidget := aws.MetricWidget(1, highestY+8, 11, 6, inFlightMetric(dashboardName, apiName), "in-flight requests per replica", "Average", 10, config.AWS.Region)
+	// middle right widget
+	// setting the period to 10 seconds because the publishing frequency of the request monitor is 10 seconds
+	totalReplicasWidget := aws.MetricWidget(12, highestY+8, 11, 6, inFlightMetric(dashboardName, apiName), "active replicas", "SampleCount", 10, config.AWS.Region)
+	// bottom left widget
+	latencyWidgetP50 := aws.MetricWidget(1, highestY+14, 11, 6, latencyMetric(dashboardName, apiName), "median response time (ms)", "p50", 60, config.AWS.Region)
 	// bottom right widget
-	latencyWidgetP99 := aws.MetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, apiName), "p99 response time (ms)", "p99", 60, config.AWS.Region)
-
-	// TODO add metrics here: avg in-flight requests per replica + number of replicas
+	latencyWidgetP99 := aws.MetricWidget(12, highestY+14, 11, 6, latencyMetric(dashboardName, apiName), "p99 response time (ms)", "p99", 60, config.AWS.Region)
 
 	// append new API metrics widgets to existing widgets
-	dashboard.Widgets = append(dashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetP50, latencyWidgetP99)
+	dashboard.Widgets = append(dashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightTotalWidget, inFlightPerReplicaWidget, totalReplicasWidget, latencyWidgetP50, latencyWidgetP99)
 
 	return nil
 }
