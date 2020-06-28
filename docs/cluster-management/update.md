@@ -1,10 +1,5 @@
 # Update
 
-## Prerequisites
-
-1. [Docker](https://docs.docker.com/install)
-2. [AWS credentials](aws-credentials.md)
-
 ## Updating your cluster configuration
 
 See [cluster configuration](config.md) to learn how you can customize your cluster.
