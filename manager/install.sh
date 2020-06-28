@@ -163,18 +163,6 @@ function ensure_eks() {
 function main() {
   mkdir -p $CORTEX_CLUSTER_WORKSPACE
 
-  # create API Gateway
-  if [ "$arg1" != "--update" ]; then
-    create_api_output=$(aws apigatewayv2 create-api --tags $CORTEX_TAGS --region $CORTEX_REGION --name $CORTEX_CLUSTER_NAME --protocol-type HTTP)
-    api_id=$(echo $create_api_output | jq .ApiId | tr -d '"')
-    if [ "$api_id" = "" ] || [ "$api_id" = "null" ]; then
-      echo -e "unable to extract api gateway ID from create-api output:\n$create_api_output"
-      exit 1
-    fi
-    # create default stage; ignore error because default stage is supposed to be already created, but currently it isn't because of a possible bug in create-api
-    aws apigatewayv2 create-stage --region $CORTEX_REGION --tags $CORTEX_TAGS --api-id $api_id --auto-deploy --stage-name \$default &>/dev/null || true
-  fi
-
   # create cluster (if it doesn't already exist)
   ensure_eks
 
@@ -261,6 +249,7 @@ function main() {
   # add VPC Link integration to API Gateway
   if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -n "￮ creating api gateway vpc link integration "
+    api_id=$(python get_api_gateway_id.py)
     python create_gateway_integration.py $api_id $vpc_link_id
     echo "✓"
     echo -n "￮ waiting for api gateway vpc link integration "
