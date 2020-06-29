@@ -422,19 +422,19 @@ func Enqueue(jobSpec *ThreadSafeJobSpec, submission *Submission) error {
 	total := 0
 	startTime := time.Now()
 	for i, item := range submission.Items {
-		for k := 0; k < 100; k++ {
-			randomId := k8s.RandomName()
-			_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-				MessageDeduplicationId: aws.String(randomId),
-				QueueUrl:               aws.String(jobSpec.SQSUrl),
-				MessageBody:            aws.String(string(item)),
-				MessageGroupId:         aws.String(randomId),
-			})
-			if err != nil {
-				return errors.Wrap(errors.WithStack(err), fmt.Sprintf("item %d", i)) // TODO
-			}
-			total++
+		// for k := 0; k < 100; k++ {
+		randomId := k8s.RandomName()
+		_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
+			MessageDeduplicationId: aws.String(randomId),
+			QueueUrl:               aws.String(jobSpec.SQSUrl),
+			MessageBody:            aws.String(string(item)),
+			MessageGroupId:         aws.String(randomId),
+		})
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("item %d", i)) // TODO
 		}
+		total++
+		// }
 	}
 
 	debug.Pp(time.Now().Sub(startTime).Milliseconds())

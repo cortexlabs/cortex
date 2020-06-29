@@ -23,6 +23,7 @@ class PythonPredictor:
     def __init__(self, config):
         print(config)
         # download the model
+        raise Exception("hi")
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
 
         if os.environ.get("AWS_ACCESS_KEY_ID"):

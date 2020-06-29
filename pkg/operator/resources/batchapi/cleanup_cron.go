@@ -18,7 +18,6 @@ package batchapi
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -26,8 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 func CleanupJobs() error {
@@ -60,50 +57,51 @@ func CleanupJobs() error {
 		queueURLMap[jobID] = queueURL
 	}
 
-	for jobID := range strset.Difference(jobIDSetK8s, jobIDSetQueueURL) {
-		_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-			LabelSelector: klabels.SelectorFromSet(map[string]string{"jobID": jobID}).String(),
-		})
-		if err != nil {
-			return err
-		}
-	}
+	// for jobID := range strset.Difference(jobIDSetK8s, jobIDSetQueueURL) {
+	// 	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
+	// 		LabelSelector: klabels.SelectorFromSet(map[string]string{"jobID": jobID}).String(),
+	// 	})
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	debug.Pp(jobIDSetQueueURL)
 	debug.Pp(jobIDSetK8s)
-	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s) {
-		queueURL := queueURLMap[jobID]
-		apiName, jobID := operator.IdentifiersFromQueueURL(queueURL)
-		debug.Pp(apiName)
-		debug.Pp(jobID)
+	// for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s) {
+	// 	queueURL := queueURLMap[jobID]
+	// 	apiName, jobID := operator.IdentifiersFromQueueURL(queueURL)
+	// 	debug.Pp(apiName)
+	// 	debug.Pp(jobID)
 
-		jobSpec, err := DownloadJobSpec(apiName, jobID)
-		if err != nil {
-			DeleteJob(apiName, jobID)
-			fmt.Println(err.Error())
-			continue
-		}
+	// 	jobSpec, err := DownloadJobSpec(apiName, jobID)
+	// 	if err != nil {
+	// 		DeleteJob(apiName, jobID)
+	// 		fmt.Println(err.Error())
+	// 		continue
+	// 	}
 
-		if jobSpec.Status == status.JobEnqueuing && time.Now().Sub(jobSpec.LastUpdated) > time.Second*60 {
-			jobSpec.Status = status.JobFailed
-			CommitToS3(*jobSpec)
-			err := DeleteJob(apiName, jobID)
-			if err != nil {
-				fmt.Println("here")
-			}
-		}
+	// 	if jobSpec.Status == status.JobEnqueuing && time.Now().Sub(jobSpec.LastUpdated) > time.Second*60 {
+	// 		jobSpec.Status = status.JobFailed
+	// 		CommitToS3(*jobSpec)
+	// 		err := DeleteJob(apiName, jobID)
+	// 		if err != nil {
+	// 			fmt.Println("here")
+	// 		}
+	// 	}
 
-		if jobSpec.Status != status.JobEnqueuing {
-			err := DeleteJob(apiName, jobID)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-		}
-	}
+	// 	if jobSpec.Status != status.JobEnqueuing {
+	// 		err := DeleteJob(apiName, jobID)
+	// 		if err != nil {
+	// 			fmt.Println(err.Error())
+	// 		}
+	// 	}
+	// }
 
 	for jobID := range strset.Union(jobIDSetQueueURL, jobIDSetK8s) {
 		queueURL := queueURLMap[jobID]
 		job := k8sjobMap[jobID]
+		fmt.Println("")
 		apiName, jobID := operator.IdentifiersFromQueueURL(queueURL)
 
 		jobSpec, err := DownloadJobSpec(apiName, jobID)

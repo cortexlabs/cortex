@@ -44,7 +44,14 @@ func CreateLogGroupForJob(apiName string, jobID string) error {
 		LogGroupName: aws.String(LogGroupNameForJob(apiName, jobID)),
 		Tags:         aws.StringMap(tags),
 	})
+	if err != nil {
+		return err
+	}
 
+	_, err = config.AWS.CloudWatchLogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
+		LogGroupName:  aws.String(LogGroupNameForJob(apiName, jobID)),
+		LogStreamName: aws.String("operator"),
+	})
 	return err
 }
 

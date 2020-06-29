@@ -227,7 +227,7 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		},
 		func() error {
 			var err error
-			virtualServices, err = config.K8s.ListVirtualServicesByLabel("apiKind", "batch_api")
+			virtualServices, err = config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.BatchAPIKind.String())
 			return err
 		},
 	)
@@ -250,7 +250,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 	allMetrics, err := syncapi.GetMultipleMetrics(apis)
 	if err != nil {
 		return nil, err
-
 	}
 
 	syncAPIs := make([]schema.SyncAPI, len(apis))
