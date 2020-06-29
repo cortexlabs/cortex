@@ -2,11 +2,6 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## Prerequisites
-
-1. [Docker](https://docs.docker.com/install)
-2. [AWS credentials](aws-credentials.md)
-
 ## Updating your cluster configuration
 
 See [cluster configuration](config.md) to learn how you can customize your cluster.

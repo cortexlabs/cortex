@@ -25,12 +25,24 @@ def get_istio_api_gateway_elb_arn(client_elb):
             elb_tags = client_elb.describe_tags(ResourceArns=[elb_arn])["TagDescriptions"][0][
                 "Tags"
             ]
+
+            is_from_cluster = False
+            is_api_load_balancer = False
             for tag in elb_tags:
+                if (
+                    tag["Key"] == "cortex.dev/cluster-name"
+                    and tag["Value"] == os.environ["CORTEX_CLUSTER_NAME"]
+                ):
+                    is_from_cluster = True
                 if (
                     tag["Key"] == "kubernetes.io/service-name"
                     and tag["Value"] == "istio-system/ingressgateway-apis"
                 ):
-                    return elb_arn
+                    is_api_load_balancer = True
+
+            if is_from_cluster and is_api_load_balancer:
+                return elb_arn
+
     raise Exception("Could not find ingressgateway-apis ELB")
 
 

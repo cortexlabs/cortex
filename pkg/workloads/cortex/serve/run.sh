@@ -66,6 +66,18 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
     fi
 fi
 
+# CORTEX_VERSION x1
+export EXPECTED_CORTEX_VERSION=master
+
+if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
+    if [ "$CORTEX_PROVIDER" == "local" ]; then
+        echo "your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/cluster-management/update#upgrading-to-a-newer-version-of-cortex"
+    else
+        echo "your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update#upgrading-to-a-newer-version-of-cortex"
+    fi
+    exit 1
+fi
+
 # install pip packages
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
