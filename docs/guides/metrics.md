@@ -47,6 +47,8 @@ Shows the median response time for requests, over 1-minute periods (measured in 
 
 Shows the p99 response time for requests, over 1-minute periods (measured in milliseconds).
 
+---
+
 #### in-flight requests note
 
-The referenced widget is a *sum/average/sample count* over 10 second intervals because each replica reports its in-flight requests once per 10 seconds. This plot is only available for the last 3 hours (because second-granular data is aggregated to minute-granular data after 3 hours). To plot data older than 3 hours, instead sum over 1 minute, and divide the y-axis by 6 to determine the number of in-flight requests (since the metrics are reported every 10 seconds).
+*The referenced widget is a *sum/average/sample count* over 10 second intervals because each replica reports its in-flight requests once per 10 seconds. This plot is only available for the last 3 hours (because second-granular data is aggregated to minute-granular data after 3 hours). To plot data older than 3 hours, instead sum over 1 minute, and divide the y-axis by 6 to determine the number of in-flight requests (since the metrics are reported every 10 seconds).*
