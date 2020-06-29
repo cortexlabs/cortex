@@ -98,29 +98,30 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 	return &mem, nil
 }
 
-func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
-	memFromConfig := config.Cluster.InstanceMetadata.Memory
-	memFromNodes, err := getMemoryCapacityFromNodes()
+func updateMemoryCapacityConfigMap() (kresource.Quantity, error) {
+	awsAdvertisedMem := config.Cluster.InstanceMetadata.Memory
+
+	nodeMemCapacity, err := getMemoryCapacityFromNodes()
 	if err != nil {
-		return nil, err
+		return kresource.Quantity{}, err
 	}
 
-	memFromConfigMap, err := getMemoryCapacityFromConfigMap()
+	previousMinMem, err := getMemoryCapacityFromConfigMap()
 	if err != nil {
-		return nil, err
+		return kresource.Quantity{}, err
 	}
 
-	minMem := k8s.QuantityPtr(memFromConfig.DeepCopy())
+	minMem := awsAdvertisedMem
 
-	if memFromNodes != nil && minMem.Cmp(*memFromNodes) > 0 {
-		minMem = memFromNodes
+	if nodeMemCapacity != nil && minMem.Cmp(*nodeMemCapacity) > 0 {
+		minMem = *nodeMemCapacity
 	}
 
-	if memFromConfigMap != nil && minMem.Cmp(*memFromConfigMap) > 0 {
-		minMem = memFromConfigMap
+	if previousMinMem != nil && minMem.Cmp(*previousMinMem) > 0 {
+		minMem = *previousMinMem
 	}
 
-	if memFromConfigMap == nil || minMem.Cmp(*memFromConfigMap) != 0 {
+	if previousMinMem == nil || minMem.Cmp(*previousMinMem) < 0 {
 		configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
 			Name: _memConfigMapName,
 			Data: map[string]string{
@@ -130,7 +131,7 @@ func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 
 		_, err := config.K8s.ApplyConfigMap(configMap)
 		if err != nil {
-			return nil, err
+			return kresource.Quantity{}, err
 		}
 	}
 
