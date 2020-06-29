@@ -111,7 +111,6 @@ def transform_to_numpy(input_pyobj, input_metadata, model_name):
 
     try:
         for idx, dim in enumerate(target_shape):
-            # dynamic_axes implies that a given dimension can have any size
             if type(dim) is str:
                 target_shape[idx] = -1
             elif type(dim) is not int:
