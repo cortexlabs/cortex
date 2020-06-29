@@ -51,7 +51,7 @@ type CloudWatchDashboard struct {
 // 	   "stat":"Average",
 // 	   "region":"us-east-1",
 // 	   "title":"EC2 Instance CPU"
-// 		}
+// 	}
 //  }
 type CloudWatchWidget struct {
 	Type       string                 `json:"type"`
