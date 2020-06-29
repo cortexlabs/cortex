@@ -62,6 +62,22 @@ func apiValidation(provider types.ProviderType, kind userconfig.Kind) *cr.Struct
 	}
 }
 
+func apiSplitterValidation(name string) *cr.StructValidation {
+	structFieldValidations := []*cr.StructFieldValidation{}
+	structFieldValidations = append(resourceStructValidations,
+		&cr.StructFieldValidation{
+			StructField: "Endpoint",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Default: pointer.String(name),
+			},
+		},
+		multiAPIsValidation(),
+	)
+	return &cr.StructValidation{
+		StructFieldValidations: structFieldValidations,
+	}
+}
+
 var resourceStructValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Name",
@@ -81,6 +97,35 @@ var resourceStructValidations = []*cr.StructFieldValidation{
 			return userconfig.KindFromString(str), nil
 		},
 	},
+}
+
+func multiAPIsValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "APISplitterAPIs",
+		StructListValidation: &cr.StructListValidation{
+			Required:         true,
+			TreatNullAsEmpty: true,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Name",
+						StringValidation: &cr.StringValidation{
+							Required:   true,
+							AllowEmpty: false,
+						},
+					},
+					{
+						StructField: "Weight",
+						IntValidation: &cr.IntValidation{
+							Default:           100,
+							GreaterThan:       pointer.Int(0),
+							LessThanOrEqualTo: pointer.Int(100),
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func predictorValidation() *cr.StructFieldValidation {
@@ -564,6 +609,72 @@ func ValidateAPI(
 	}
 
 	return nil
+}
+
+func ExtractAPISplitterConfigs(configBytes []byte, provider types.ProviderType, projectFiles ProjectFiles, filePath string) ([]userconfig.APISplitter, []userconfig.API, error) {
+	var err error
+
+	configData, err := cr.ReadYAMLBytes(configBytes)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, filePath)
+	}
+
+	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
+	if !ok {
+		return nil, nil, errors.Wrap(ErrorMalformedConfig(), filePath)
+	}
+	fmt.Println("DATASPLCIE")
+	fmt.Println(configDataSlice)
+	apis := make([]userconfig.API, 0)
+	apiSplitters := make([]userconfig.APISplitter, 0)
+	for i, data := range configDataSlice {
+		var resourceStruct userconfig.Resource
+		errs := cr.Struct(&resourceStruct, data, &resourceStructValidation)
+		if errors.HasError(errs) {
+			name, _ := data[userconfig.NameKey].(string)
+			kindString, _ := data[userconfig.KindKey].(string)
+			kind := userconfig.KindFromString(kindString)
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
+			// CHANGE LINK!!!!!!!!!!!
+			return nil, nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+		}
+
+		if resourceStruct.Kind == userconfig.SyncAPIKind {
+			api := userconfig.API{}
+			errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct.Kind))
+
+			if errors.HasError(errs) {
+				name, _ := data[userconfig.NameKey].(string)
+				kindString, _ := data[userconfig.KindKey].(string)
+				kind := userconfig.KindFromString(kindString)
+				err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
+				return nil, nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			}
+			api.Index = i
+			api.FilePath = filePath
+
+			api.ApplyDefaultDockerPaths()
+
+			apis = append(apis, api)
+		}
+		fmt.Println(data)
+		if resourceStruct.Kind == userconfig.APISplitterKind {
+			apiSplitter := userconfig.APISplitter{}
+			errs = cr.Struct(&apiSplitter, data, apiSplitterValidation(resourceStruct.Name))
+			if errors.HasError(errs) {
+				name, _ := data[userconfig.NameKey].(string)
+				kindString, _ := data[userconfig.KindKey].(string)
+				kind := userconfig.KindFromString(kindString)
+				err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
+				// CHANGE LINK!!!!!
+				return nil, nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			}
+			apiSplitters = append(apiSplitters, apiSplitter)
+		}
+
+	}
+
+	return apiSplitters, apis, nil
 }
 
 func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerType types.ProviderType, awsClient *aws.Client) error {
@@ -1127,4 +1238,35 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 	}
 
 	return nil
+}
+
+func GetResourceKind(configBytes []byte, filePath string) (userconfig.Kind, error) {
+	var err error
+
+	configData, err := cr.ReadYAMLBytes(configBytes)
+	if err != nil {
+		return userconfig.UnknownKind, errors.Wrap(err, filePath)
+	}
+
+	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
+	if !ok {
+		return userconfig.UnknownKind, errors.Wrap(ErrorMalformedConfig(), filePath)
+	}
+	for i, data := range configDataSlice {
+		var resourceStruct userconfig.Resource
+		errs := cr.Struct(&resourceStruct, data, &resourceStructValidation)
+		if errors.HasError(errs) {
+			name, _ := data[userconfig.NameKey].(string)
+			kindString, _ := data[userconfig.KindKey].(string)
+			kind := userconfig.KindFromString(kindString)
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
+			// CHANGE LINK!!!!!!!!!!!
+			return userconfig.UnknownKind, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+		}
+		if resourceStruct.Kind == userconfig.APISplitterKind {
+			return userconfig.APISplitterKind, nil
+		}
+	}
+	return userconfig.SyncAPIKind, nil
+
 }

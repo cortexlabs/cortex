@@ -72,14 +72,8 @@ func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bo
 		ProjectByteMap: projectFileMap,
 		ConfigFilePath: configPath,
 	}
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	kind, err := spec.GetResourceKind(configBytes, configPath)
 	if err != nil {
-		return nil, err
-	}
-
-	err = ValidateClusterAPIs(apiConfigs, projectFiles)
-	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		return nil, err
 	}
 
@@ -93,20 +87,44 @@ func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bo
 		}
 	}
 
-	results := make([]schema.DeployResult, len(apiConfigs))
-	for i, apiConfig := range apiConfigs {
-		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
-		results[i].Message = msg
+	fmt.Println(kind)
+	if kind == userconfig.SyncAPIKind {
+		apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
 		if err != nil {
-			results[i].Error = errors.Message(err)
-		} else {
-			results[i].API = *api
+			return nil, err
 		}
+
+		err = ValidateClusterAPIs(apiConfigs, projectFiles)
+		if err != nil {
+			err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			return nil, err
+		}
+		results := make([]schema.DeployResult, len(apiConfigs))
+		for i, apiConfig := range apiConfigs {
+			api, msg, err := UpdateAPI(&apiConfig, projectID, force)
+			results[i].Message = msg
+			if err != nil {
+				results[i].Error = errors.Message(err)
+			} else {
+				results[i].API = *api
+			}
+		}
+
+		return &schema.DeployResponse{
+			Results: results,
+		}, nil
+
 	}
 
+	_, _, err = spec.ExtractAPISplitterConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	if err != nil {
+		return nil, err
+	}
+	// TODO correct response
 	return &schema.DeployResponse{
-		Results: results,
+		Results: nil,
 	}, nil
+
 }
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
