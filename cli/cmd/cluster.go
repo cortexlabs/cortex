@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -138,20 +139,12 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createBucketIfNotFound(awsClient, clusterConfig.Bucket)
-		if err != nil {
-			exit.Error(err)
-		}
-		err = awsClient.TagBucket(clusterConfig.Bucket, clusterConfig.Tags)
+		err = createBucketIfNotFound(awsClient, clusterConfig.Bucket, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		err = createLogGroupIfNotFound(awsClient, clusterConfig.LogGroup)
-		if err != nil {
-			exit.Error(err)
-		}
-		err = awsClient.TagLogGroup(clusterConfig.LogGroup, clusterConfig.Tags)
+		err = createLogGroupIfNotFound(awsClient, clusterConfig.LogGroup, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -725,7 +718,7 @@ func getCloudFormationURLWithAccessConfig(accessConfig *clusterconfig.AccessConf
 	return getCloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)
 }
 
-func createBucketIfNotFound(awsClient *aws.Client, bucket string) error {
+func createBucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {
 	bucketFound, err := awsClient.DoesBucketExist(bucket)
 	if err != nil {
 		return err
@@ -737,14 +730,30 @@ func createBucketIfNotFound(awsClient *aws.Client, bucket string) error {
 			fmt.Print("\n\n")
 			return err
 		}
-		fmt.Println(" ✓")
 	} else {
-		fmt.Println("￮ using existing s3 bucket:", bucket, "✓")
+		fmt.Print("￮ using existing s3 bucket:", bucket)
 	}
+
+	numTaggingAttempts := 0
+	for true {
+		numTaggingAttempts++
+		err = awsClient.TagBucket(bucket, tags)
+		if err != nil {
+			if aws.IsNoSuchBucketErr(err) && numTaggingAttempts < 10 {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			fmt.Print("\n\n")
+			return err
+		}
+		break
+	}
+
+	fmt.Println(" ✓")
 	return nil
 }
 
-func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
+func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[string]string) error {
 	logGroupFound, err := awsClient.DoesLogGroupExist(logGroup)
 	if err != nil {
 		return err
@@ -756,11 +765,26 @@ func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string) error {
 			fmt.Print("\n\n")
 			return err
 		}
-		fmt.Println(" ✓")
 	} else {
-		fmt.Println("￮ using existing cloudwatch log group:", logGroup, "✓")
+		fmt.Print("￮ using existing cloudwatch log group:", logGroup)
 	}
 
+	numTaggingAttempts := 0
+	for true {
+		numTaggingAttempts++
+		err = awsClient.TagLogGroup(logGroup, tags)
+		if err != nil {
+			if aws.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) && numTaggingAttempts < 10 {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			fmt.Print("\n\n")
+			return err
+		}
+		break
+	}
+
+	fmt.Println(" ✓")
 	return nil
 }
 
