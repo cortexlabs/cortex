@@ -105,3 +105,8 @@ type APISummary struct {
 	Message         string                     `json:"message"`
 	ModelSignatures map[string]InputSignatures `json:"model_signatures"`
 }
+
+type LogRequest struct {
+	userconfig.Resource
+	JobID string
+}

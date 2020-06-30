@@ -33,5 +33,5 @@ type JobStatus struct {
 	JobStats    *metrics.JobStats
 	StartTime   time.Time
 	EndTime     *time.Time
-	WorkerStats *SubReplicaCounts
+	WorkerStats *WorkerStats
 }

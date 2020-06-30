@@ -23,7 +23,6 @@ class PythonPredictor:
     def __init__(self, config):
         print(config)
         # download the model
-        raise Exception("hi")
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
 
         if os.environ.get("AWS_ACCESS_KEY_ID"):
@@ -43,7 +42,9 @@ class PythonPredictor:
 
     def predict(self, payload):
         # Convert the request to a tensor and pass it into the model
-        time.sleep(1)
+        print(time.asctime())
+        time.sleep(300)
+        print(time.asctime())
 
         # input_tensor = torch.FloatTensor(
         #     [

@@ -25,13 +25,14 @@ import math
 import asyncio
 from typing import Any
 
+import uuid
 import boto3
 
 from cortex import consts
 from cortex.lib import util
-from cortex.lib.type import API
+from cortex.lib.type import API, get_spec
 from cortex.lib.log import cx_logger
-from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
 
 if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
@@ -60,14 +61,12 @@ class Ticker:
         self.func = func
         self.args = args
         self.kwargs = kwargs
-        self.kwargs["interval"] = interval
-        self.kwargs["accumulator"] = kwargs.get("accumulator")
+        self.generator = self.func(*self.args, **self.kwargs)
 
     def start(self):
         self.timer = threading.Timer(self.interval, self.start)
         self.timer.start()
-        self.kwargs["accumulator"] = self.accumulator
-        self.accumulator = self.func(*self.args, **self.kwargs)
+        next(self.generator)
 
     def stop(self):
         self.timer.cancel()
@@ -107,14 +106,16 @@ def startup():
     update_api_liveness()
 
 
-def renew_message_visibility(queue_url, receipt_handle, interval, **kwargs):
-    local_cache["sqs"].change_message_visibility(
-        QueueUrl=queue_url,
-        ReceiptHandle=receipt_handle,
-        VisibilityTimeout=kwargs["accumulator"] + interval,
-    )
-
-    return kwargs["accumulator"] + interval
+def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval, *args, **kwargs):
+    new_timeout = initial_offset + interval
+    while True:
+        yield
+        print("resetting")
+        output = local_cache["sqs"].change_message_visibility(
+            QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
+        )
+        print(output)
+        new_timeout += interval
 
 
 def get_api_spec(provider, storage, cache_dir, api_spec_path):
@@ -149,15 +150,18 @@ def sqs_loop():
 
     while True:
         print("entering loop")
+        request_attempt = str(uuid.uuid4())
         response = local_cache["sqs"].receive_message(
             QueueUrl=queue_url,
             AttributeNames=["SentTimestamp"],
             MaxNumberOfMessages=1,
             MessageAttributeNames=["All"],
             WaitTimeSeconds=1,
-            VisibilityTimeout=90,
+            VisibilityTimeout=120,
+            ReceiveRequestAttemptId=request_attempt,
         )
 
+        print(response)
         if response.get("Messages") is None or len(response["Messages"]) == 0:
             print("no results")
             break
@@ -169,7 +173,8 @@ def sqs_loop():
             renew_message_visibility,
             queue_url,
             response["Messages"][0]["ReceiptHandle"],
-            accumulator=0,
+            120,
+            60,
         )
 
         renewer.start()
@@ -194,21 +199,37 @@ def start():
     provider = os.environ["CORTEX_PROVIDER"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     job_spec_path = os.environ["CORTEX_JOB_SPEC"]
-
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    model_dir = os.getenv("CORTEX_MODEL_DIR", None)
-    tf_serving_port = os.getenv("CORTEX_TF_SERVING_PORT", "9000")
+
+    model_dir = os.getenv("CORTEX_MODEL_DIR")
+    tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
-    if provider == "local":
-        storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
-    else:
-        storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+
+    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
+    if has_multiple_servers:
+        with FileLock("/run/used_ports.json.lock"):
+            with open("/run/used_ports.json", "r+") as f:
+                used_ports = json.load(f)
+                for port in used_ports.keys():
+                    if not used_ports[port]:
+                        tf_serving_port = port
+                        used_ports[port] = True
+                        break
+                f.seek(0)
+                json.dump(used_ports, f)
+                f.truncate()
 
     try:
-        raw_api_spec = get_api_spec(provider, storage, cache_dir, api_spec_path)
-        if raw_api_spec["predictor"].get("config") is None:
-            raw_api_spec["predictor"]["config"] = {}
+        raw_api_spec = get_spec(provider, storage, cache_dir, api_spec_path)
+        api = API(
+            provider=provider,
+            storage=storage,
+            model_dir=model_dir,
+            cache_dir=cache_dir,
+            **raw_api_spec,
+        )
 
         job_spec = get_job_spec(storage, cache_dir, job_spec_path)
         print(job_spec)
@@ -217,9 +238,8 @@ def start():
                 raw_api_spec["predictor"]["config"], job_spec["config"]
             )
 
-        api = API(provider=provider, storage=storage, cache_dir=cache_dir, **raw_api_spec)
         client = api.predictor.initialize_client(
-            model_dir, tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
@@ -231,7 +251,6 @@ def start():
         local_cache["predictor_impl"] = predictor_impl
         local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
         local_cache["sqs"] = boto3.client("sqs", region_name=os.environ["AWS_REGION"])
-
     except:
         cx_logger().exception("failed to start api")
         sys.exit(1)
@@ -242,3 +261,5 @@ def start():
 
 if __name__ == "__main__":
     start()
+
+# 69e2c3a88a3267b4

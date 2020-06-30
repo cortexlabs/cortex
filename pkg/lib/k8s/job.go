@@ -32,19 +32,18 @@ var _jobTypeMeta = kmeta.TypeMeta{
 }
 
 type JobSpec struct {
-	Name        string
-	PodSpec     PodSpec
-	Parallelism int
-	Labels      map[string]string
-	Annotations map[string]string
+	Name         string
+	PodSpec      PodSpec
+	Parallelism  int
+	BackoffLimit int
+	Labels       map[string]string
+	Annotations  map[string]string
 }
 
 func Job(spec *JobSpec) *kbatch.Job {
 	if spec.PodSpec.Name == "" {
 		spec.PodSpec.Name = spec.Name
 	}
-
-	backoffLimit := int32(0)
 
 	job := &kbatch.Job{
 		TypeMeta: _jobTypeMeta,
@@ -54,7 +53,7 @@ func Job(spec *JobSpec) *kbatch.Job {
 			Annotations: spec.Annotations,
 		},
 		Spec: kbatch.JobSpec{
-			BackoffLimit: &backoffLimit,
+			BackoffLimit: pointer.Int32(int32(spec.BackoffLimit)),
 			Parallelism:  pointer.Int32(int32(spec.Parallelism)),
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
@@ -126,11 +125,7 @@ func (c *Client) DeleteJobs(opts *kmeta.ListOptions) (bool, error) {
 		opts = &kmeta.ListOptions{}
 	}
 
-	pro := kmeta.DeletePropagationForeground
-
-	err := c.jobClient.DeleteCollection(&kmeta.DeleteOptions{
-		PropagationPolicy: &pro,
-	}, *opts)
+	err := c.jobClient.DeleteCollection(_deleteOpts, *opts)
 	if err != nil {
 		return false, errors.WithStack(err)
 	}

@@ -19,13 +19,17 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
+	jobID := mux.Vars(r)["jobID"]
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
@@ -38,6 +42,11 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if deployedResource.Kind == userconfig.BatchAPIKind && len(jobID) == 0 {
+		respondError(w, r, errors.ErrorUnexpected("job id not provided")) // TODO validate job id
+		return
+	}
+
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -46,7 +55,10 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	err = resources.StreamLogs(*deployedResource, socket)
+	err = resources.StreamLogs(schema.LogRequest{
+		Resource: *deployedResource,
+		JobID:    jobID,
+	}, socket)
 	if err != nil {
 		respondError(w, r, err)
 		return

@@ -128,6 +128,7 @@ func (api *API) ApplyDefaultDockerPaths() {
 			} else if usesInf {
 				predictor.Image = consts.DefaultImagePythonPredictorInf
 			} else {
+				fmt.Println(consts.DefaultImagePythonPredictorCPU)
 				predictor.Image = consts.DefaultImagePythonPredictorCPU
 			}
 		}

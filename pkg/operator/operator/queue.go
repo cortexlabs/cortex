@@ -22,7 +22,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
@@ -70,15 +72,13 @@ func IdentifiersFromQueueURL(queueURL string) (string, string) {
 func ListQueues() ([]string, error) {
 	queuePrefix := QueueNamePrefix()
 
-	debug.Pp(queuePrefix)
-
 	output, err := config.AWS.SQS().ListQueues(
 		&sqs.ListQueuesInput{
 			QueueNamePrefix: aws.String(queuePrefix),
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return aws.StringValueSlice(output.QueueUrls), nil
@@ -92,13 +92,38 @@ func GetQueueMetrics(apiName, jobID string) (*metrics.QueueMetrics, error) {
 	return GetQueueMetricsFromURL(queueURL)
 }
 
+func DoesQueueExist(apiName, jobID string) (bool, error) {
+	operatorAccountID, _, err := config.AWS.GetCachedAccountID()
+	if err != nil {
+		return false, err
+	}
+
+	queueName := QueueName(apiName, jobID) // ErrCodeQueueDoesNotExist
+
+	_, err = config.AWS.SQS().GetQueueUrl(
+		&sqs.GetQueueUrlInput{
+			QueueName:              aws.String(queueName),
+			QueueOwnerAWSAccountId: aws.String(operatorAccountID),
+		},
+	)
+	if err != nil {
+		if awslib.IsErrCode(err, sqs.ErrCodeQueueDoesNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 func GetQueueMetricsFromURL(queueURL string) (*metrics.QueueMetrics, error) {
+	debug.Pp(queueURL)
 	output, err := config.AWS.SQS().GetQueueAttributes(&sqs.GetQueueAttributesInput{
 		AttributeNames: aws.StringSlice([]string{"ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"}),
 		QueueUrl:       aws.String(queueURL),
 	})
 	if err != nil {
-		return nil, err // TODO
+		return nil, errors.WithStack(err) // TODO
 	}
 
 	debug.Pp(output)

@@ -40,6 +40,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -58,7 +59,7 @@ func MonotonicallyDecreasingJobID() string {
 
 func QueuesPerAPI(apiName string) ([]string, error) {
 	response, err := config.AWS.SQS().ListQueues(&sqs.ListQueuesInput{
-		QueueNamePrefix: aws.String(apiName),
+		QueueNamePrefix: aws.String("cortex" + "-" + apiName),
 	})
 
 	if err != nil {
@@ -342,7 +343,7 @@ func (t *ThreadSafeJobSpec) UpdateLiveness() error {
 	}
 
 	if jobSpec.Status != status.JobEnqueuing {
-		fmt.Println("not enqueueing")
+		fmt.Println("not enqueuing")
 		return nil
 	}
 
@@ -397,8 +398,10 @@ func DeployJob(jobSpec *ThreadSafeJobSpec, submission *Submission) {
 		jobSpec.PushToS3()
 	}
 
-	operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "started enqueueing partitions")
-
+	err = operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "started enqueueing partitions")
+	if err != nil {
+		fmt.Println(err.Error()) //  TODO
+	}
 	err = Enqueue(jobSpec, submission)
 	if err != nil {
 		operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
@@ -407,7 +410,10 @@ func DeployJob(jobSpec *ThreadSafeJobSpec, submission *Submission) {
 		jobSpec.PushToS3()
 	}
 
-	operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "completed enqueueing partitions")
+	err = operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "completed enqueueing partitions")
+	if err != nil {
+		fmt.Println(err.Error()) //  TODO
+	}
 
 	err = ApplyK8sJob(jobSpec)
 	if err != nil {
@@ -422,6 +428,7 @@ func Enqueue(jobSpec *ThreadSafeJobSpec, submission *Submission) error {
 	total := 0
 	startTime := time.Now()
 	for i, item := range submission.Items {
+		// TODO kill the goroutine? This should automatically error when the next enqueue message fails
 		// for k := 0; k < 100; k++ {
 		randomId := k8s.RandomName()
 		_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
@@ -458,9 +465,9 @@ func ApplyK8sJob(jobSpec *ThreadSafeJobSpec) error {
 	apiSpec.Predictor.Env["SQS_QUEUE_URL"] = jobSpec.SQSUrl // TODO
 	apiSpec.Predictor.Env["CORTEX_JOB_SPEC"] = "s3://" + config.Cluster.Bucket + "/" + JobKey(jobSpec.APIName, jobSpec.ID)
 	podSpec := PythonPodSpec(apiSpec)
-	for _, container := range podSpec.Containers {
+	for i, container := range podSpec.Containers {
 		if container.Name == _apiContainerName {
-			container.Env = append(container.Env, kcore.EnvVar{
+			podSpec.Containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_SQS_QUEUE",
 				Value: jobSpec.SQSUrl,
 			})
@@ -486,9 +493,23 @@ func DeleteQueue(queueURL string) error {
 	return err
 }
 
+func StopJob(apiName, jobID string) error {
+	jobSpec, err := DownloadJobSpec(apiName, jobID)
+	if err != nil {
+		return err
+	}
+
+	DeleteJob(apiName, jobID) // TODO best effort
+
+	jobSpec.Status = status.JobStopped
+	CommitToS3(*jobSpec) // TODO best effort
+
+	return nil
+}
+
 func DeleteJob(apiName, jobID string) error {
 	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": apiName}).String(),
+		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": apiName, "jobID": jobID}).String(),
 	})
 	if err != nil {
 		return err
@@ -521,7 +542,7 @@ func DownloadJobSpec(apiName, jobID string) (*spec.JobSpec, error) {
 	return &jobSpec, nil
 }
 
-func GetJobStatus(apiName, jobID string, allRunningPods []kcore.Pod) (*status.JobStatus, error) {
+func GetJobStatus(apiName, jobID string, k8sJob *kbatch.Job) (*status.JobStatus, error) {
 	jobSpec, err := DownloadJobSpec(apiName, jobID)
 	if err != nil {
 		return nil, err // TODO
@@ -535,98 +556,39 @@ func GetJobStatus(apiName, jobID string, allRunningPods []kcore.Pod) (*status.Jo
 		Parallelism: jobSpec.Parallelism,
 	}
 
+	if jobSpec.Status == status.JobEnqueuing {
+		return &jobStatus, nil
+	}
+
+	jobStatus.Total = jobSpec.TotalPartitions
+
+	if jobSpec.Status == status.JobRunning || jobSpec.Status == status.JobEnqueuing {
+		queueMetrics, err := operator.GetQueueMetrics(apiName, jobID)
+		if err != nil {
+			return nil, err // TODO
+		}
+
+		jobStatus.InQueue = queueMetrics.InQueue
+		jobStatus.InProgress = queueMetrics.NotVisible
+	}
+
 	if jobSpec.Status != status.JobEnqueuing {
-		jobStatus.Total = jobSpec.TotalPartitions
+
+		metrics, err := GetJobMetrics(jobSpec)
+		if err != nil {
+			return nil, err // TODO
+		}
+
+		jobSpec.Metrics = metrics
+
+		if jobSpec.WorkerStats != nil && k8sJob != nil {
+			jobSpec.WorkerStats = &status.WorkerStats{
+				Active:    int(k8sJob.Status.Active),
+				Failed:    int(k8sJob.Status.Failed),
+				Succeeded: int(k8sJob.Status.Succeeded),
+			}
+		}
 	}
-
-	queueMetrics, err := operator.GetQueueMetrics(apiName, jobID)
-	if err != nil {
-		return nil, err // TODO
-	}
-
-	jobStatus.InQueue = queueMetrics.InQueue
-	jobStatus.InProgress = queueMetrics.NotVisible
-
-	metrics, err := GetJobMetrics(jobSpec)
-	if err != nil {
-		return nil, err // TODO
-	}
-
-	jobStatus.JobStats = metrics.JobStats
-
-	counts := getReplicaCounts(jobID, allRunningPods)
-
-	jobStatus.WorkerStats = &counts
 
 	return &jobStatus, nil
-}
-
-const _stalledPodTimeout = 10 * time.Minute
-
-func getReplicaCounts(jobID string, allRunningPods []kcore.Pod) status.SubReplicaCounts {
-	counts := status.SubReplicaCounts{}
-
-	for _, pod := range allRunningPods {
-		if pod.Labels["jobID"] != jobID {
-			continue
-		}
-		addPodToReplicaCounts(&pod, &counts)
-	}
-
-	return counts
-}
-
-func addPodToReplicaCounts(pod *kcore.Pod, counts *status.SubReplicaCounts) {
-
-	if k8s.IsPodReady(pod) {
-		counts.Ready++
-		return
-	}
-
-	switch k8s.GetPodStatus(pod) {
-	case k8s.PodStatusPending:
-		if time.Since(pod.CreationTimestamp.Time) > _stalledPodTimeout {
-			counts.Stalled++
-		} else {
-			counts.Pending++
-		}
-	case k8s.PodStatusInitializing:
-		counts.Initializing++
-	case k8s.PodStatusRunning:
-		counts.Initializing++
-	case k8s.PodStatusTerminating:
-		counts.Terminating++
-	case k8s.PodStatusFailed:
-		counts.Failed++
-	case k8s.PodStatusKilled:
-		counts.Killed++
-	case k8s.PodStatusKilledOOM:
-		counts.KilledOOM++
-	default:
-		counts.Unknown++
-	}
-}
-
-func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code {
-	if counts.Updated.Ready >= counts.Requested {
-		return status.Live
-	}
-
-	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
-		return status.Error
-	}
-
-	if counts.Updated.KilledOOM > 0 {
-		return status.OOM
-	}
-
-	if counts.Updated.Stalled > 0 {
-		return status.Stalled
-	}
-
-	if counts.Updated.Ready >= minReplicas {
-		return status.Live
-	}
-
-	return status.Updating
 }

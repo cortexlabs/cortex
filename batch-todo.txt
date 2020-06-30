@@ -15,7 +15,8 @@ TODO
 - secure batch endpoints??
 - run a background thread in python worker to periodically renew lock on a message because we don't know how long a message will take
 - delete queues on cluster down
-
+- disable process per replica and workers per process workflows workflows
+- immutable files to the todo list
 
 status scenarios:
 - requests being enqueued by operator (async batch request?)

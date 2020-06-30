@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/mux"
+	kbatch "k8s.io/api/batch/v1"
 )
 
 func Batch(w http.ResponseWriter, r *http.Request) {
@@ -110,19 +111,21 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 func BatchDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := batchapi.DeleteJob(vars["apiName"], vars["jobID"])
+	err := batchapi.StopJob(vars["apiName"], vars["jobID"])
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	respond(w, "ok")
+	respond(w, schema.DeleteResponse{
+		Message: fmt.Sprintf("deleted job %s", vars["jobID"]),
+	})
 }
 
 func BatchGet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	pods, err := config.K8s.ListPodsWithLabelKeys("jobID")
+	jobs, err := config.K8s.ListJobsWithLabelKeys("jobID", vars["jobID"])
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -134,7 +137,12 @@ func BatchGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobStatus, err := batchapi.GetJobStatus(vars["apiName"], vars["jobID"], pods)
+	var job *kbatch.Job
+	if len(jobs) > 0 {
+		job = &jobs[0]
+	}
+
+	jobStatus, err := batchapi.GetJobStatus(vars["apiName"], vars["jobID"], job)
 	if err != nil {
 		respondError(w, r, err)
 		return

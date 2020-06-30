@@ -179,12 +179,18 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 		return nil, ErrorAPINotDeployed(apiName)
 	}
 
-	if deployedResource.Kind == userconfig.SyncAPIKind {
+	switch deployedResource.Kind {
+	case userconfig.SyncAPIKind:
 		err := syncapi.DeleteAPI(apiName, keepCache)
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	case userconfig.BatchAPIKind:
+		err := batchapi.DeleteAPI(apiName, keepCache)
+		if err != nil {
+			return nil, err
+		}
+	default:
 		return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
 	}
 
@@ -193,11 +199,14 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	}, nil
 }
 
-func StreamLogs(deployedResource userconfig.Resource, socket *websocket.Conn) error {
-	if deployedResource.Kind == userconfig.SyncAPIKind {
-		syncapi.ReadLogs(deployedResource.Name, socket)
-	} else {
-		return ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+func StreamLogs(logRequest schema.LogRequest, socket *websocket.Conn) error {
+	switch logRequest.Kind {
+	case userconfig.SyncAPIKind:
+		syncapi.ReadLogs(logRequest.Name, socket)
+	case userconfig.BatchAPIKind:
+		batchapi.ReadLogs(logRequest, socket)
+	default:
+		return ErrorOperationNotSupportedForKind(logRequest.Kind) // unexpected
 	}
 
 	return nil
@@ -295,13 +304,14 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 	}
 
 	for _, job := range jobs {
+		// TODO jobs take a while to delete because it takes a while to terminate pods
 		apiName := job.Labels["apiName"]
 		if _, ok := batchAPIsMap[apiName]; !ok {
 			continue
 		}
 
 		jobID := job.Labels["jobID"]
-		status, err := batchapi.GetJobStatus(apiName, jobID, pods)
+		status, err := batchapi.GetJobStatus(apiName, jobID, &job)
 		if err != nil {
 			return nil, err
 
@@ -400,11 +410,6 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 		return nil, err
 	}
 
-	allBatchAPIPods, err := config.K8s.ListPodsByLabel("apiKind", userconfig.BatchAPIKind.String())
-	if err != nil {
-		return nil, err
-	}
-
 	baseURL, err := syncapi.APIBaseURL(api)
 	if err != nil {
 		return nil, err
@@ -412,10 +417,11 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 	}
 
 	jobIDSet := strset.New()
-	jobStatuses := make([]status.JobStatus, len(jobs))
+	jobStatuses := make([]status.JobStatus, 0, len(jobs))
 	for _, job := range jobs {
 		jobID := job.Labels["jobID"]
-		status, err := batchapi.GetJobStatus(apiName, jobID, allBatchAPIPods)
+		fmt.Println("running ", jobID)
+		status, err := batchapi.GetJobStatus(apiName, jobID, &job)
 		if err != nil {
 			return nil, err
 		}
@@ -430,12 +436,13 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 		}
 		for _, s3Obj := range objects {
 			pathSplit := strings.Split(*s3Obj.Key, "/")
+			fmt.Println(pathSplit)
 			jobID := pathSplit[len(pathSplit)-1]
 			if jobIDSet.Has(jobID) {
 				continue
 			}
-
-			status, err := batchapi.GetJobStatus(apiName, jobID, allBatchAPIPods)
+			fmt.Println("stopped ", jobID)
+			status, err := batchapi.GetJobStatus(apiName, jobID, nil)
 			if err != nil {
 				return nil, err
 			}

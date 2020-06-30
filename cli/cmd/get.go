@@ -111,6 +111,22 @@ var _getCmd = &cobra.Command{
 					return "", err
 				}
 				return out + apiTable, nil
+			} else if len(args) == 2 {
+				env, err := ReadOrConfigureEnv(_flagGetEnv)
+				if err != nil {
+					exit.Error(err)
+				}
+
+				out, err := envStringIfNotSpecified(_flagGetEnv)
+				if err != nil {
+					return "", err
+				}
+
+				apiTable, err := jobStats(env, args[0], args[1])
+				if err != nil {
+					return "", err
+				}
+				return out + apiTable, nil
 			}
 
 			if wasEnvFlagProvided() {
@@ -368,17 +384,18 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 	for i, api := range batchAPIs {
 		lastUpdated := time.Unix(api.Spec.LastUpdated, 0)
 		latestStartTime := time.Time{}
-		latestJobID := ""
+		latestJobID := "-"
 		requested := 0
 		failed := 0
 		for _, job := range api.Jobs {
-			if job.StartTime.After(latestStartTime) {
+			debug.Pp(job.JobID)
+			if job.StartTime.After(latestStartTime) && (job.Status == status.JobRunning || job.Status == status.JobEnqueuing) {
 				latestStartTime = job.StartTime
 				latestJobID = job.JobID
 			}
 
 			requested += job.Parallelism
-			failed += int(job.WorkerStats.Failed)
+			// failed += int(job.WorkerStats.Failed)
 		}
 
 		totalFailed += failed
@@ -407,15 +424,23 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 func batchAPITable(batchAPI schema.BatchAPI) string {
 	rows := make([][]interface{}, 0, len(batchAPI.Jobs))
 
+	debug.Pp(len(batchAPI.Jobs))
+
 	totalFailed := 0
 	for _, job := range batchAPI.Jobs {
-		totalFailed += job.JobStats.Failed
+		succeeded := 0
+		failed := 0
+		if job.JobStats != nil {
+			failed = job.JobStats.Failed
+			succeeded = job.JobStats.Succeeded
+			totalFailed += job.JobStats.Failed
+		}
 
 		rows = append(rows, []interface{}{
 			job.JobID,
 			job.Status.String(),
-			fmt.Sprintf("%d/%d", job.JobStats.TotalCompleted, job.Total),
-			job.JobStats.Failed,
+			fmt.Sprintf("%d/%d", succeeded, job.Total),
+			failed,
 			libtime.SinceStr(&job.StartTime),
 		})
 	}
@@ -444,7 +469,12 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 	return out
 }
 
-func jobStats(job schema.JobResponse) (string, error) {
+func jobStats(env cliconfig.Environment, apiName string, jobID string) (string, error) {
+
+	job, err := cluster.GetJob(MustGetOperatorConfig(env.Name), apiName, jobID)
+	if err != nil {
+		return "", err
+	}
 
 	totalFailed := job.JobStatus.JobStats.Failed
 
@@ -477,26 +507,23 @@ func jobStats(job schema.JobResponse) (string, error) {
 		out += "\n"
 	}
 
-	// TODO only if job status is running or in progress
-	{
+	if job.JobSpec.Status == status.JobRunning {
 		out += titleStr("worker stats")
 		rows := make([][]interface{}, 1)
 
 		rows = append(rows, []interface{}{
 			job.JobSpec.Parallelism,
-			job.JobStatus.WorkerStats.Initializing + job.JobStatus.WorkerStats.Pending,
-			job.JobStatus.WorkerStats.Ready,
-			job.JobStatus.WorkerStats.TotalFailed(),
+			job.JobStatus.WorkerStats.Active,
+			job.JobStatus.WorkerStats.Failed,
 			job.JobStatus.WorkerStats.Succeeded,
 		})
 
 		t := table.Table{
 			Headers: []table.Header{
 				{Title: "requested"},
-				{Title: "pending"},
-				{Title: "running"},
+				{Title: "active"},
 				{Title: "failed"},
-				{Title: "complete"},
+				{Title: "succeeded"},
 			},
 			Rows: rows,
 		}

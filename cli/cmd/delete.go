@@ -43,9 +43,9 @@ func deleteInit() {
 }
 
 var _deleteCmd = &cobra.Command{
-	Use:   "delete API_NAME",
+	Use:   "delete API_NAME [JOB_ID]",
 	Short: "delete an api",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		env, err := ReadOrConfigureEnv(_flagDeleteEnv)
 		if err != nil {
@@ -61,9 +61,16 @@ var _deleteCmd = &cobra.Command{
 
 		var deleteResponse schema.DeleteResponse
 		if env.Provider == types.AWSProviderType {
-			deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagDeleteKeepCache, _flagDeleteForce)
-			if err != nil {
-				exit.Error(err)
+			if len(args) == 2 {
+				deleteResponse, err = cluster.DeleteJob(MustGetOperatorConfig(env.Name), args[0], args[1], _flagDeleteKeepCache, _flagDeleteForce)
+				if err != nil {
+					exit.Error(err)
+				}
+			} else {
+				deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagDeleteKeepCache, _flagDeleteForce)
+				if err != nil {
+					exit.Error(err)
+				}
 			}
 		} else {
 			// local only supports deploying 1 replica at a time so _flagDeleteForce will be ignored

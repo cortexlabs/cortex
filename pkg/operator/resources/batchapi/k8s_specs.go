@@ -372,7 +372,7 @@ func PythonPodSpec(api *spec.API) *kcore.PodSpec {
 	}
 
 	return &kcore.PodSpec{
-		RestartPolicy: "Always",
+		RestartPolicy: "Never",
 		InitContainers: []kcore.Container{
 			{
 				Name:            _downloaderInitContainerName,

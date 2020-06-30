@@ -90,7 +90,7 @@ func main() {
 	routerWithAuth.HandleFunc("/delete/{apiName}", endpoints.Delete).Methods("DELETE")
 	routerWithAuth.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
 	routerWithAuth.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
-	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
+	routerWithAuth.HandleFunc("/logs/{apiName}/{jobID}", endpoints.ReadLogs)
 
 	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		debug.Pp(r.RequestURI)

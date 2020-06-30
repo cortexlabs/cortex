@@ -17,14 +17,21 @@ limitations under the License.
 package operator
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
+
+type fluentdLog struct {
+	Log string `json:"log"`
+}
 
 func LogGroupNameForJob(apiName string, jobID string) string {
 	return fmt.Sprintf("%s/%s.%s", config.Cluster.LogGroup, apiName, jobID)
@@ -57,23 +64,42 @@ func CreateLogGroupForJob(apiName string, jobID string) error {
 
 func WriteToJobLogGroup(apiName string, jobID string, logLine string, logLines ...string) error {
 
+	logStreams, err := config.AWS.CloudWatchLogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+		LogGroupName:        aws.String(LogGroupNameForJob(apiName, jobID)),
+		LogStreamNamePrefix: aws.String("operator"),
+	})
+	if err != nil {
+		return err // TODO
+	}
+
+	if len(logStreams.LogStreams) == 0 {
+		return err
+	}
+
 	logLines = slices.PrependStr(logLine, logLines)
 
+	debug.Pp(logLines)
 	inputLogEvents := make([]*cloudwatchlogs.InputLogEvent, len(logLines))
-	curTime := time.Now().Unix()
+	curTime := libtime.ToMillis(time.Now())
 	for i, line := range logLines {
+		jsonBytes, err := json.Marshal(fluentdLog{Log: line})
+		if err != nil {
+			// TODO
+		}
 		inputLogEvents[i] = &cloudwatchlogs.InputLogEvent{
-			Message:   aws.String(line),
+			Message:   aws.String(string(jsonBytes)),
 			Timestamp: aws.Int64(curTime),
 		}
 	}
 
-	_, err := config.AWS.CloudWatchLogs().PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
+	output, err := config.AWS.CloudWatchLogs().PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
 		LogGroupName:  aws.String(LogGroupNameForJob(apiName, jobID)),
 		LogStreamName: aws.String("operator"),
 		LogEvents:     inputLogEvents,
+		SequenceToken: logStreams.LogStreams[0].UploadSequenceToken,
 	},
 	)
+	debug.Pp(output)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err // TODO
