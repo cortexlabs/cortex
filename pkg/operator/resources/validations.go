@@ -74,22 +74,30 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	}
 
 	didPrintWarning := false
-
+	apiSplitter := len(apisWithoutAPISplitter(apis))+1 == len(apis)
 	for i := range apis {
 		api := &apis[i]
-		if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
-			return err
-		}
-		if err := validateK8s(api, virtualServices, maxMem); err != nil {
-			return err
-		}
+		fmt.Println(api)
+		if api.Kind == userconfig.SyncAPIKind {
+			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
+				return err
+			}
+			if err := validateK8s(api, virtualServices, maxMem); err != nil {
+				return err
+			}
 
-		if !didPrintWarning && api.Networking.LocalPort != nil {
-			fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
-			didPrintWarning = true
+			if !didPrintWarning && api.Networking.LocalPort != nil {
+				fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
+				didPrintWarning = true
+			}
+		}
+		if api.Kind == userconfig.APISplitterKind {
+			isWeight100(api.APIs)
+			checkIfapisExist()
 		}
 	}
 
+	fmt.Println("all single api checks done")
 	dups := spec.FindDuplicateNames(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateName(dups)
@@ -228,4 +236,42 @@ func getValidationK8sResources() ([]istioclientnetworking.VirtualService, *kreso
 	)
 
 	return virtualServices, maxMem, err
+}
+
+func apisWithoutAPISplitter(apis []userconfig.API) []userconfig.API {
+	withoutAPISplitter := []userconfig.API{}
+	for _, api := range apis {
+		if api.Kind != userconfig.APISplitterKind {
+			withoutAPISplitter = append(withoutAPISplitter, api)
+		}
+
+	}
+	return withoutAPISplitter
+}
+
+func checkIfapisExist(apis []*userconfig.TrafficSplitter) (bool, error) {
+
+	// TO DOOOOOO
+	deployedAPIs, err := GetAPIs()
+	if err != nil {
+		return false, err
+	}
+	// OHHHH NO DOUBLE FOR LOOP
+	for _, api := range apis {
+		deployed := false
+		for _, deployedAPI := range deployedAPIs.SyncAPIs {
+			if api.Name == deployedAPI.Spec.Name {
+				deployed = true
+			}
+		}
+	}
+}
+
+func isWeight100(apis []*userconfig.TrafficSplitter) bool {
+
+	totalWeight := 0
+	for _, api := range apis {
+		totalWeight += api.Weight
+	}
+	return totalWeight == 100
 }

@@ -31,14 +31,16 @@ import (
 
 type API struct {
 	Resource
-	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
-	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
-	Networking     *Networking     `json:"networking" yaml:"networking"`
-	Compute        *Compute        `json:"compute" yaml:"compute"`
-	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
-	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
-	Index          int             `json:"index" yaml:"-"`
-	FilePath       string          `json:"file_path" yaml:"-"`
+	APIs           []*TrafficSplitter `json:"apis" yaml:"apis"`
+	Endpoint       string             `json:"endpoint" yaml:"endpoint"`
+	Predictor      *Predictor         `json:"predictor" yaml:"predictor"`
+	Monitoring     *Monitoring        `json:"monitoring" yaml:"monitoring"`
+	Networking     *Networking        `json:"networking" yaml:"networking"`
+	Compute        *Compute           `json:"compute" yaml:"compute"`
+	Autoscaling    *Autoscaling       `json:"autoscaling" yaml:"autoscaling"`
+	UpdateStrategy *UpdateStrategy    `json:"update_strategy" yaml:"update_strategy"`
+	Index          int                `json:"index" yaml:"-"`
+	FilePath       string             `json:"file_path" yaml:"-"`
 }
 
 type Predictor struct {
@@ -54,6 +56,11 @@ type Predictor struct {
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
+}
+
+type TrafficSplitter struct {
+	Name   string `json:"name" yaml:"name"`
+	Weight int    `json:"weight" yaml:"weight "`
 }
 
 type ModelResource struct {
