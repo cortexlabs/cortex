@@ -85,19 +85,19 @@ The docker images used by the Cortex cluster can also be overridden, although th
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 # docker image paths
-image_operator: cortexlabs/operator:0.18.0
-image_manager: cortexlabs/manager:0.18.0
-image_downloader: cortexlabs/downloader:0.18.0
-image_request_monitor: cortexlabs/request-monitor:0.18.0
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.18.0
-image_metrics_server: cortexlabs/metrics-server:0.18.0
-image_inferentia: cortexlabs/inferentia:0.18.0
-image_neuron_rtd: cortexlabs/neuron-rtd:0.18.0
-image_nvidia: cortexlabs/nvidia:0.18.0
-image_fluentd: cortexlabs/fluentd:0.18.0
-image_statsd: cortexlabs/statsd:0.18.0
-image_istio_proxy: cortexlabs/istio-proxy:0.18.0
-image_istio_pilot: cortexlabs/istio-pilot:0.18.0
-image_istio_citadel: cortexlabs/istio-citadel:0.18.0
-image_istio_galley: cortexlabs/istio-galley:0.18.0
+image_operator: cortexlabs/operator:0.18.1
+image_manager: cortexlabs/manager:0.18.1
+image_downloader: cortexlabs/downloader:0.18.1
+image_request_monitor: cortexlabs/request-monitor:0.18.1
+image_cluster_autoscaler: cortexlabs/cluster-autoscaler:0.18.1
+image_metrics_server: cortexlabs/metrics-server:0.18.1
+image_inferentia: cortexlabs/inferentia:0.18.1
+image_neuron_rtd: cortexlabs/neuron-rtd:0.18.1
+image_nvidia: cortexlabs/nvidia:0.18.1
+image_fluentd: cortexlabs/fluentd:0.18.1
+image_statsd: cortexlabs/statsd:0.18.1
+image_istio_proxy: cortexlabs/istio-proxy:0.18.1
+image_istio_pilot: cortexlabs/istio-pilot:0.18.1
+image_istio_citadel: cortexlabs/istio-citadel:0.18.1
+image_istio_galley: cortexlabs/istio-galley:0.18.1
 ```
