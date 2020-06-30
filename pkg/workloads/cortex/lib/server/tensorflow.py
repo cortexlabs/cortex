@@ -56,7 +56,7 @@ class TensorFlowServing:
         def log_loading_models():
             while not loaded_models.is_set():
                 time.sleep(2)
-                cx_logger().warn("model(s) still loading ...")
+                cx_logger().info("model(s) still loading ...")
 
         log_thread = threading.Thread(target=log_loading_models, daemon=True)
         log_thread.start()

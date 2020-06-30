@@ -64,25 +64,34 @@ var _predictCmd = &cobra.Command{
 		jsonPath := args[1]
 
 		var apiRes schema.GetAPIResponse
-		var apiEndpoint string
 		if env.Provider == types.AWSProviderType {
 			apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 			if err != nil {
 				exit.Error(err)
 			}
-			apiEndpoint = urls.Join(apiRes.BaseURL, *apiRes.API.Networking.Endpoint)
-
 		} else {
 			apiRes, err = local.GetAPI(apiName)
 			if err != nil {
 				exit.Error(err)
 			}
-			apiEndpoint = apiRes.BaseURL
 		}
 
-		totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
+		if apiRes.SyncAPI == nil {
+			exit.Error(errors.ErrorUnexpected("unable to get api", apiName)) // unexpected
+		}
+
+		syncAPI := apiRes.SyncAPI
+
+		var apiEndpoint string
+		if env.Provider == types.AWSProviderType {
+			apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Networking.Endpoint)
+		} else {
+			apiEndpoint = syncAPI.BaseURL
+		}
+
+		totalReady := syncAPI.Status.Updated.Ready + syncAPI.Status.Stale.Ready
 		if totalReady == 0 {
-			exit.Error(ErrorAPINotReady(apiName, apiRes.Status.Message()))
+			exit.Error(ErrorAPINotReady(apiName, syncAPI.Status.Message()))
 		}
 
 		predictResponse, err := makePredictRequest(apiEndpoint, jsonPath)

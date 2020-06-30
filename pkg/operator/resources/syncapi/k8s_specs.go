@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package syncapi
 
 import (
 	"encoding/base64"
@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -192,22 +193,25 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 	)
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           k8sName(api.Name),
+		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
+			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":      api.Name,
+				"apiKind":      api.Kind.String(),
 				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
 			},
@@ -354,22 +358,25 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	)
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           k8sName(api.Name),
+		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
+			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":      api.Name,
+				"apiKind":      api.Kind.String(),
 				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
 			},
@@ -441,22 +448,25 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           k8sName(api.Name),
+		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
+			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":      api.Name,
+				"apiKind":      api.Kind.String(),
 				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
 			},
@@ -544,30 +554,33 @@ func onnxDownloadArgs(api *spec.API) string {
 
 func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
-		Name:        k8sName(api.Name),
+		Name:        operator.K8sName(api.Name),
 		Port:        _defaultPortInt32,
 		TargetPort:  _defaultPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 	})
 }
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:        k8sName(api.Name),
+		Name:        operator.K8sName(api.Name),
 		Gateways:    []string{"apis-gateway"},
-		ServiceName: k8sName(api.Name),
+		ServiceName: operator.K8sName(api.Name),
 		ServicePort: _defaultPortInt32,
 		Path:        *api.Networking.Endpoint,
 		Rewrite:     pointer.String("predict"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 	})
 }
@@ -624,10 +637,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			kcore.EnvVar{
 				Name:  "CORTEX_THREADS_PER_PROCESS",
 				Value: s.Int32(api.Predictor.ThreadsPerProcess),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
 			},
 			kcore.EnvVar{
 				Name: "CORTEX_MAX_PROCESS_CONCURRENCY",
@@ -887,10 +896,6 @@ func requestMonitorContainer(api *spec.API) *kcore.Container {
 			},
 		},
 	}
-}
-
-func k8sName(apiName string) string {
-	return "api-" + apiName
 }
 
 var _apiLivenessProbe = &kcore.Probe{

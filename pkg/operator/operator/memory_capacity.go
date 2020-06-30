@@ -27,32 +27,6 @@ import (
 const _memConfigMapName = "cortex-instance-memory"
 const _memConfigMapKey = "capacity"
 
-/*
-CPU Reservations:
-
-FluentD 200
-StatsD 100
-KubeProxy 100
-AWS cni 10
-Reserved (150 + 150) see eks.yaml for details
-*/
-var _cortexCPUReserve = kresource.MustParse("710m")
-
-/*
-Memory Reservations:
-
-FluentD 200
-StatsD 100
-Reserved (300 + 300 + 200) see eks.yaml for details
-*/
-var _cortexMemReserve = kresource.MustParse("1100Mi")
-
-var _nvidiaCPUReserve = kresource.MustParse("100m")
-var _nvidiaMemReserve = kresource.MustParse("100Mi")
-
-var _inferentiaCPUReserve = kresource.MustParse("100m")
-var _inferentiaMemReserve = kresource.MustParse("100Mi")
-
 func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 	opts := kmeta.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(map[string]string{
@@ -98,29 +72,30 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 	return &mem, nil
 }
 
-func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
-	memFromConfig := config.Cluster.InstanceMetadata.Memory
-	memFromNodes, err := getMemoryCapacityFromNodes()
+func UpdateMemoryCapacityConfigMap() (kresource.Quantity, error) {
+	awsAdvertisedMem := config.Cluster.InstanceMetadata.Memory
+
+	nodeMemCapacity, err := getMemoryCapacityFromNodes()
 	if err != nil {
-		return nil, err
+		return kresource.Quantity{}, err
 	}
 
-	memFromConfigMap, err := getMemoryCapacityFromConfigMap()
+	previousMinMem, err := getMemoryCapacityFromConfigMap()
 	if err != nil {
-		return nil, err
+		return kresource.Quantity{}, err
 	}
 
-	minMem := k8s.QuantityPtr(memFromConfig.DeepCopy())
+	minMem := awsAdvertisedMem
 
-	if memFromNodes != nil && minMem.Cmp(*memFromNodes) > 0 {
-		minMem = memFromNodes
+	if nodeMemCapacity != nil && minMem.Cmp(*nodeMemCapacity) > 0 {
+		minMem = *nodeMemCapacity
 	}
 
-	if memFromConfigMap != nil && minMem.Cmp(*memFromConfigMap) > 0 {
-		minMem = memFromConfigMap
+	if previousMinMem != nil && minMem.Cmp(*previousMinMem) > 0 {
+		minMem = *previousMinMem
 	}
 
-	if memFromConfigMap == nil || minMem.Cmp(*memFromConfigMap) != 0 {
+	if previousMinMem == nil || minMem.Cmp(*previousMinMem) < 0 {
 		configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
 			Name: _memConfigMapName,
 			Data: map[string]string{
@@ -130,7 +105,7 @@ func updateMemoryCapacityConfigMap() (*kresource.Quantity, error) {
 
 		_, err := config.K8s.ApplyConfigMap(configMap)
 		if err != nil {
-			return nil, err
+			return kresource.Quantity{}, err
 		}
 	}
 

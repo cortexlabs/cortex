@@ -14,15 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package syncapi
 
 import (
 	"sort"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
@@ -38,7 +40,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(k8sName(apiName))
+			deployment, err = config.K8s.GetDeployment(operator.K8sName(apiName))
 			return err
 		},
 		func() error {
@@ -52,7 +54,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	}
 
 	if deployment == nil {
-		return nil, ErrorAPINotDeployed(apiName)
+		return nil, errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
 	return apiStatus(deployment, pods)

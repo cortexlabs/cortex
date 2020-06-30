@@ -14,23 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package endpoints
+package syncapi
 
 import (
-	"net/http"
+	"fmt"
 
-	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/gorilla/mux"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-func Delete(w http.ResponseWriter, r *http.Request) {
-	apiName := mux.Vars(r)["apiName"]
-	keepCache := getOptionalBoolQParam("keepCache", false, r)
+const (
+	ErrAPIUpdating = "syncapi.api_updating"
+)
 
-	response, err := resources.DeleteAPI(apiName, keepCache)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-	respond(w, response)
+func ErrorAPIUpdating(apiName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPIUpdating,
+		Message: fmt.Sprintf("%s is updating (override with --force)", apiName),
+	})
 }

@@ -19,83 +19,28 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/gorilla/mux"
 )
 
 func GetAPIs(w http.ResponseWriter, r *http.Request) {
-	statuses, err := operator.GetAllStatuses()
+	response, err := resources.GetAPIs()
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	allMetrics, err := operator.GetMultipleMetrics(apis)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	respond(w, schema.GetAPIsResponse{
-		APIs:       apis,
-		Statuses:   statuses,
-		AllMetrics: allMetrics,
-	})
+	respond(w, response)
 }
 
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	status, err := operator.GetStatus(apiName)
+	response, err := resources.GetAPI(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	metrics, err := operator.GetMetrics(api)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	baseURL, err := operator.APIBaseURL(api)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	respond(w, schema.GetAPIResponse{
-		API:          *api,
-		Status:       *status,
-		Metrics:      *metrics,
-		BaseURL:      baseURL,
-		DashboardURL: operator.DashboardURL(),
-	})
-}
-
-func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
-	apiNames := make([]string, len(statuses))
-	apiIDs := make([]string, len(statuses))
-
-	for i, status := range statuses {
-		apiNames[i] = status.APIName
-		apiIDs[i] = status.APIID
-	}
-
-	return apiNames, apiIDs
+	respond(w, response)
 }

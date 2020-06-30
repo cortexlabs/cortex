@@ -61,7 +61,9 @@ This example deploys models that we have built and uploaded to a public S3 bucke
 Run the following command to install the dependencies required for the [generate_resnet50_models.ipynb](generate_resnet50_models.ipynb) notebook:
 
 ```bash
-pip install neuron-cc==1.0.9410.0+6008239556 tensorflow-neuron==1.15.0.1.0.1333.0
+pip install --extra-index-url=https://pip.repos.neuron.amazonaws.com \
+  neuron-cc==1.0.9410.0+6008239556 \
+  tensorflow-neuron==1.15.0.1.0.1333.0
 ```
 
 The [generate_resnet50_models.ipynb](generate_resnet50_models.ipynb) notebook will generate 2 SavedModels. One will be saved in the `resnet50` directory which can be run on GPU or on CPU and another in the `resnet50_neuron` directory which can only be run on `inf1` instances.

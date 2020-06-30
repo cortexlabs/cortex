@@ -13,15 +13,6 @@
 # limitations under the License.
 
 # Source: https://github.com/NVIDIA/k8s-device-plugin/blob/1.0.0-beta5/nvidia-device-plugin.yml
-
-apiVersion: scheduling.k8s.io/v1
-kind: PriorityClass
-metadata:
-  name: nvidia
-value: 1000
-globalDefault: false
-description: "This priority class should be used for nvidia daemonset only."
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -44,39 +35,38 @@ spec:
       labels:
         name: nvidia-device-plugin-ds
     spec:
-      priorityClassName: nvidia
       tolerations:
-      # This toleration is deprecated. Kept here for backward compatibility
-      # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
-      - key: CriticalAddonsOnly
-        operator: Exists
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
-      - key: workload
-        operator: Exists
-        effect: NoSchedule
+        # This toleration is deprecated. Kept here for backward compatibility
+        # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+        - key: workload
+          operator: Exists
+          effect: NoSchedule
       # Mark this pod as a critical add-on; when enabled, the critical add-on
       # scheduler reserves resources for critical add-on pods so that they can
       # be rescheduled after a failure.
       # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
       priorityClassName: "system-node-critical"
       containers:
-      - image: $CORTEX_IMAGE_NVIDIA
-        name: nvidia-device-plugin-ctr
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop: ["ALL"]
-        volumeMounts:
-          - name: device-plugin
-            mountPath: /var/lib/kubelet/device-plugins
-        resources: # https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/device-plugins/nvidia-gpu/daemonset.yaml#L44
-          requests:
-            cpu: 100m
-            memory: 100Mi
-          limits:
-            memory: 100Mi
+        - image: $CORTEX_IMAGE_NVIDIA
+          name: nvidia-device-plugin-ctr
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+          resources: # https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/device-plugins/nvidia-gpu/daemonset.yaml#L44
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              memory: 100Mi
       nodeSelector:
         workload: "true"
       volumes:

@@ -19,7 +19,7 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
@@ -27,12 +27,14 @@ import (
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
-	isDeployed, err := operator.IsAPIDeployed(apiName)
+	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
-	} else if !isDeployed {
-		respondError(w, r, operator.ErrorAPINotDeployed(apiName))
+	}
+
+	if deployedResource == nil {
+		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
 		return
 	}
 
@@ -44,5 +46,9 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	operator.ReadLogs(apiName, socket)
+	err = resources.StreamLogs(*deployedResource, socket)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
 }

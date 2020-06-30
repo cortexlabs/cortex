@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package resources
 
 import (
 	"fmt"
@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -102,7 +103,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	return nil
 }
 
-func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem *kresource.Quantity) error {
+func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem kresource.Quantity) error {
 	if err := validateK8sCompute(api.Compute, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
@@ -114,7 +115,33 @@ func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.Vi
 	return nil
 }
 
-func validateK8sCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
+/*
+CPU Reservations:
+
+FluentD 200
+StatsD 100
+KubeProxy 100
+AWS cni 10
+Reserved (150 + 150) see eks.yaml for details
+*/
+var _cortexCPUReserve = kresource.MustParse("710m")
+
+/*
+Memory Reservations:
+
+FluentD 200
+StatsD 100
+Reserved (300 + 300 + 200) see eks.yaml for details
+*/
+var _cortexMemReserve = kresource.MustParse("1100Mi")
+
+var _nvidiaCPUReserve = kresource.MustParse("100m")
+var _nvidiaMemReserve = kresource.MustParse("100Mi")
+
+var _inferentiaCPUReserve = kresource.MustParse("100m")
+var _inferentiaMemReserve = kresource.MustParse("100Mi")
+
+func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -158,8 +185,8 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclie
 
 		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService)
 		for endpoint := range endpoints {
-			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Networking.Endpoint, "/") && virtualService.GetLabels()["apiName"] != api.Name {
-				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.GetLabels()["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
+			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Networking.Endpoint, "/") && virtualService.Labels["apiName"] != api.Name {
+				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.Labels["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
 			}
 		}
 	}
@@ -183,9 +210,9 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	return nil
 }
 
-func getValidationK8sResources() ([]istioclientnetworking.VirtualService, *kresource.Quantity, error) {
+func getValidationK8sResources() ([]istioclientnetworking.VirtualService, kresource.Quantity, error) {
 	var virtualServices []istioclientnetworking.VirtualService
-	var maxMem *kresource.Quantity
+	var maxMem kresource.Quantity
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -195,7 +222,7 @@ func getValidationK8sResources() ([]istioclientnetworking.VirtualService, *kreso
 		},
 		func() error {
 			var err error
-			maxMem, err = updateMemoryCapacityConfigMap()
+			maxMem, err = operator.UpdateMemoryCapacityConfigMap()
 			return err
 		},
 	)
