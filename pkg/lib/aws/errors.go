@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -43,15 +44,11 @@ func IsNotFoundErr(err error) bool {
 }
 
 func IsNoSuchKeyErr(err error) bool {
-	return IsErrCode(err, "NoSuchKey")
+	return IsErrCode(err, s3.ErrCodeNoSuchKey)
 }
 
 func IsNoSuchBucketErr(err error) bool {
-	return IsErrCode(err, "NoSuchBucket")
-}
-
-func IsForbiddenErr(err error) bool {
-	return IsErrCode(err, "Forbidden")
+	return IsErrCode(err, s3.ErrCodeNoSuchBucket)
 }
 
 func IsGenericNotFoundErr(err error) bool {

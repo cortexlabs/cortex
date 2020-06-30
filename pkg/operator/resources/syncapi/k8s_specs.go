@@ -638,10 +638,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: s.Int32(api.Predictor.ThreadsPerProcess),
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-			},
-			kcore.EnvVar{
 				Name: "CORTEX_MAX_PROCESS_CONCURRENCY",
 				// add 1 because it was required to achieve the target concurrency for 1 process, 1 thread
 				Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Predictor.ProcessesPerReplica)))),
