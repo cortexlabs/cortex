@@ -734,23 +734,21 @@ func createBucketIfNotFound(awsClient *aws.Client, bucket string, tags map[strin
 		fmt.Print("￮ using existing s3 bucket:", bucket)
 	}
 
-	numTaggingAttempts := 0
-	for true {
-		numTaggingAttempts++
+	// retry since it's possible that it takes some time for the new bucket to be registered by AWS
+	for i := 0; i < 10; i++ {
 		err = awsClient.TagBucket(bucket, tags)
-		if err != nil {
-			if aws.IsNoSuchBucketErr(err) && numTaggingAttempts < 10 {
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			fmt.Print("\n\n")
-			return err
+		if err == nil {
+			fmt.Println(" ✓")
+			return nil
 		}
-		break
+		if !aws.IsNoSuchBucketErr(err) {
+			break
+		}
+		time.Sleep(1 * time.Second)
 	}
 
-	fmt.Println(" ✓")
-	return nil
+	fmt.Print("\n\n")
+	return err
 }
 
 func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[string]string) error {
@@ -769,23 +767,21 @@ func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[s
 		fmt.Print("￮ using existing cloudwatch log group:", logGroup)
 	}
 
-	numTaggingAttempts := 0
-	for true {
-		numTaggingAttempts++
+	// retry since it's possible that it takes some time for the new log group to be registered by AWS
+	for i := 0; i < 10; i++ {
 		err = awsClient.TagLogGroup(logGroup, tags)
-		if err != nil {
-			if aws.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) && numTaggingAttempts < 10 {
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			fmt.Print("\n\n")
-			return err
+		if err == nil {
+			fmt.Println(" ✓")
+			return nil
 		}
-		break
+		if !aws.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
+			break
+		}
+		time.Sleep(1 * time.Second)
 	}
 
-	fmt.Println(" ✓")
-	return nil
+	fmt.Print("\n\n")
+	return err
 }
 
 // createOrClearDashboard creates a new dashboard (or clears an existing one if it already exists)
