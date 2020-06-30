@@ -6,8 +6,8 @@ This example implements a text generator system based on GPT-2 model.
 
 There are 2 Cortex APIs available in this example:
 
-1. [cortex.yaml](cortex.yaml) - to be used with GPU instances.
-1. [cortex_gpu.yaml](cortex_gpu.yaml) - to be used with GPU instances. The batch size for this API is set to X.
+1. [cortex.yaml](cortex.yaml) - standard deployment for GPT-2 model.
+1. [cortex_batch_sized.yaml](cortex_batch_sized.yaml) - GPT-2 model deployed with a batch size > 1. The input/output doesn't suffer modifications.
 
 To deploy an API, run:
 
@@ -24,7 +24,7 @@ cortex deploy cortex_batch_sized.yaml
 cortex deploy
 ```
 
-## Verifying your API
+## Making predictions
 
 Check that your API is live by running `cortex get text-generator`, and copy the example `curl` command that's shown. After the API is live, run the `curl` command, e.g.
 
