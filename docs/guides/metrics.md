@@ -1,4 +1,4 @@
-# Plot in-flight requests
+# View API metrics
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
@@ -25,19 +25,19 @@ Shows the number of 2XX, 4XX, and 5XX responses per minute.
 
 Shows the total number of in-flight requests.
 
-The following [note](#in-flight-requests-note) applies to this widget.
+The [note](#note-regarding-metric-intervals) below applies to this plot.
 
-**avg in-flights requests per replica**
+**avg in-flight requests per replica**
 
 Shows the average number of in-flight requests per replica.
 
-The following [note](#in-flight-requests-note) applies to this widget.
+The [note](#note-regarding-metric-intervals) below applies to this plot.
 
 **active replicas**
 
 Shows the number of active replicas.
 
-The following [note](#in-flight-requests-note) applies to this widget.
+The [note](#note-regarding-metric-intervals) below applies to this plot.
 
 **median response time**
 
@@ -49,6 +49,6 @@ Shows the p99 response time for requests, over 1-minute periods (measured in mil
 
 ---
 
-#### in-flight requests note
+#### note regarding metric intervals
 
-*The referenced widget is a *sum/average/sample count* over 10 second intervals because each replica reports its in-flight requests once per 10 seconds. This plot is only available for the last 3 hours (because second-granular data is aggregated to minute-granular data after 3 hours). To plot data older than 3 hours, instead sum over 1 minute, and divide the y-axis by 6 to determine the number of in-flight requests (since the metrics are reported every 10 seconds).*
+The referenced widget is aggregated over 10 second intervals because each replica reports its in-flight requests once per 10 seconds. This plot is only available for the last 3 hours (because second-granular data is aggregated to minute-granular data after 3 hours). To plot data older than 3 hours, instead change the period to 1 minute, and divide the y-axis by 6 to (since the metrics are reported every 10 seconds).*
