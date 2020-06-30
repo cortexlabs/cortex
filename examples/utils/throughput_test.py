@@ -78,7 +78,7 @@ def main(payload, endpoint, processes, threads, samples, time_based):
         image_enc = base64.b64encode(image_bytes).decode("utf-8")
         data = json.dumps({"img": image_enc})
     if file_type == "json":
-        data = payload_data
+        data = json.dumps(payload_data)
 
     print("Starting the inference throughput test...")
     results = []
