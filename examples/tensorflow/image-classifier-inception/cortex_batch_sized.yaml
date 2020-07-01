@@ -12,5 +12,5 @@
   monitoring:
     model_type: classification
   compute:
-    cpu: 3
+    cpu: 1
     gpu: 1

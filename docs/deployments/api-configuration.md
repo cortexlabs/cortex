@@ -67,7 +67,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
-    batch_size: <int> # the number of samples that will be propagated through the model in one go
+    batch_size: <int> # the number of samples that will be propagated transparently through the model in one go
     batch_timeout: <float> # the amount of time in seconds to wait before executing a batch that hasn't been filled
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
