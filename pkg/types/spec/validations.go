@@ -113,7 +113,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					StructField: "BatchSize",
 					Int32PtrValidation: &cr.Int32PtrValidation{
 						Required:             false,
-						GreaterThanOrEqualTo: pointer.Int32(1),
+						GreaterThanOrEqualTo: pointer.Int32(2),
 						LessThanOrEqualTo:    pointer.Int32(1024),
 					},
 				},
