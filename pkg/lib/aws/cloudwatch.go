@@ -253,6 +253,9 @@ func (grid *CloudWatchWidgetGrid) FillNewGridHorizontally(xOrigin, yOrigin, widg
 
 // FillNewGridVertically fills the CloudWatch Dashboard grid from top to bottom, column by column
 func (grid *CloudWatchWidgetGrid) FillNewGridVertically(xOrigin, yOrigin, widgetHeight, widgetWidth, numRows int) error {
+	if yOrigin+numRows*widgetHeight > DashboardMaxHeightUnits {
+		return ErrorDashboardHeightOutOfRange(yOrigin + numRows*widgetHeight)
+	}
 	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
 		return ErrorDashboardHeightOutOfRange(widgetHeight)
 	}
