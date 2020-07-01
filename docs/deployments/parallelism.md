@@ -38,9 +38,9 @@ with graph.as_default():
 
 When optimizing for maximum throughput, a good rule of thumb is to follow these steps:
 
-1. Find the maximum throughput of one API replica when the `batch_size` is not set (aka it's indirectly set to 1).
+1. Find the maximum throughput of one API replica when the `batch_size` is not set (same as if `batch_size` were set to 1).
 1. Determine the highest `batch_timeout` with which you are still comfortable for your application. Keep in mind that the batch timeout is not the only component of the overall latency - the inference on the batch also has to take place.
-1. Multiply the maximum throughput you got with `batch_timeout`. The result is a number which you can assign it to `batch_size`. If the model fails operating with that batch size (when it runs out of video or RAM memory), then reduce it to a level that's still works. Reduce `batch_timeout` by as many times as you had to reduce `batch_size` from its initial calculation.
+1. Multiply the maximum throughput you got with `batch_timeout`. The result is a number which you can assign to `batch_size`. If the model fails operating with that batch size (when it runs out of video or RAM memory), then reduce it to a level that's still works. Reduce `batch_timeout` by as many times as you had to reduce `batch_size` from its initial calculation.
 
 <!-- CORTEX_VERSION_MINOR x1 -->
 A batching example for the TensorFlow Predictor that has been benchmarked is found in [ResNet50 in TensorFlow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/image-classifier-resnet50#throughput-test).

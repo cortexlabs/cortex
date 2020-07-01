@@ -7,7 +7,7 @@
     path: predictor.py
     model_path: s3://cortex-examples/tensorflow/image-classifier/inception
     batch_size: 2
-    batch_timeout: 1.0
+    batch_timeout: 0.2
     threads_per_process: 2
   monitoring:
     model_type: classification
