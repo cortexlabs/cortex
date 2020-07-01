@@ -758,14 +758,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 						Name:  "TF_EMPTY_MODEL_CONFIG",
 						Value: _tfServingEmptyModelConfig,
 					},
-					kcore.EnvVar{
-						Name:  "TF_ENABLE_BATCHING",
-						Value: "true",
-					},
-					kcore.EnvVar{
-						Name:  "TF_BATCHING_CONFIG",
-						Value: _tfServingBatchConfig,
-					},
 				)
 			}
 			if container == _apiContainerName {
@@ -787,7 +779,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 }
 
 func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
-	var args []string
+	var cmdArgs []string
 	ports := []kcore.ContainerPort{
 		{
 			ContainerPort: _tfBaseServingPortInt32,
@@ -805,12 +797,16 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 
 	if api.Compute.Inf == 0 {
 		// the entrypoint is different for Inferentia-based APIs
-		args = append(args,
+		cmdArgs = append(cmdArgs,
 			"--port="+_tfBaseServingPortStr,
 			"--model_config_file="+_tfServingEmptyModelConfig,
-			"--enable_batching=true",
-			"--batching_parameters_file="+_tfServingBatchConfig,
 		)
+		if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+			cmdArgs = append(cmdArgs,
+				"--enable_batching=true",
+				"--batching_parameters_file="+_tfServingBatchConfig,
+			)
+		}
 	}
 
 	var probeHandler kcore.Handler
@@ -834,7 +830,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		Name:            _tfServingContainerName,
 		Image:           api.Predictor.TensorFlowServingImage,
 		ImagePullPolicy: kcore.PullAlways,
-		Args:            args,
+		Args:            cmdArgs,
 		Env:             getEnvVars(api, _tfServingContainerName),
 		EnvFrom:         _baseEnvVars,
 		VolumeMounts:    volumeMounts,

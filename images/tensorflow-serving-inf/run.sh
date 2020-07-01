@@ -25,12 +25,13 @@ if [[ -n ${TF_BATCH_SIZE} &&  -n ${TF_BATCH_TIMEOUT_MICROS} ]]; then
     echo "max_batch_size { value: ${TF_BATCH_SIZE} }" > /etc/tfs/batch_config.conf
     echo "batch_timeout_micros { value: ${TF_BATCH_TIMEOUT_MICROS} }" >> /etc/tfs/batch_config.conf
     echo "num_batch_threads { value: ${TF_NUM_BATCHED_THREADS} }" >> /etc/tfs/batch_config.conf
+    cmd_args="--enable_batching=true --batching_parameters_file=/etc/tfs/batch_config.conf"
 fi
 
 # spin up multiple process to handle different NCGs
 for i in $(seq 1 $TF_PROCESSES); do
     echo -e "\n\n" >> /tmp/supervisord.conf
-    process=$i port=$((CORTEX_TF_BASE_SERVING_PORT+i-1)) envsubst < /tmp/template.conf >> /tmp/supervisord.conf
+    process=$i port=$((CORTEX_TF_BASE_SERVING_PORT+i-1)) cmd_args= envsubst < /tmp/template.conf >> /tmp/supervisord.conf
 done
 
 mv /tmp/supervisord.conf /etc/supervisor/conf.d/supervisord.conf

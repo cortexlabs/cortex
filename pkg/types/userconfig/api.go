@@ -332,11 +332,10 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
-	if predictor.Type == TensorFlowPredictorType {
+	if predictor.Type == TensorFlowPredictorType &&
+		predictor.BatchSize != nil && predictor.BatchTimeout != nil {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", BatchSizeKey, *predictor.BatchSize))
-		if *predictor.BatchSize > 1 {
-			sb.WriteString(fmt.Sprintf("%s: %f\n", BatchTimeoutKey, *predictor.BatchTimeout))
-		}
+		sb.WriteString(fmt.Sprintf("%s: %f\n", BatchTimeoutKey, *predictor.BatchTimeout))
 	}
 
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))

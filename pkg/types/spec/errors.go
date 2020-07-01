@@ -63,7 +63,7 @@ const (
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
-	ErrInsufficientConcurrencyLevel         = "spec.insufficient_concurrency_level"
+	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
 )
 
 func ErrorMalformedConfig() error {
@@ -341,12 +341,12 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	})
 }
 
-func ErrorInsufficientConcurrencyLevel(batchSize, processesPerReplica, threadsPerProcess int32) error {
+func ErrorInsufficientBatchConcurrencyLevel() error {
 	return errors.WithStack(&errors.Error{
-		Kind: ErrInsufficientConcurrencyLevel,
+		Kind: ErrInsufficientBatchConcurrencyLevel,
 		Message: fmt.Sprintf(
-			"batch size %d cannot be smaller than the concurrency level of %d %s * %d %s = %d",
-			batchSize, processesPerReplica, userconfig.ProcessesPerReplicaKey, threadsPerProcess, userconfig.ThreadsPerProcessKey, processesPerReplica*threadsPerProcess,
+			"%s cannot be smaller than %s * %s",
+			userconfig.BatchSizeKey, userconfig.ProcessesPerReplicaKey, userconfig.ThreadsPerProcessKey,
 		),
 	})
 }

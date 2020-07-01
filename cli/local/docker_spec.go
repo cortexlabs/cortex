@@ -295,20 +295,28 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Mounts:    mounts,
 	}
 
+	envVars := []string{}
+	cmdArgs := []string{
+		"--port=" + _tfServingPortStr,
+		"--model_config_file=" + _tfServingEmptyModelConfig,
+	}
+	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+		envVars = append(envVars,
+			"TF_BATCH_SIZE="+s.Int32(*api.Predictor.BatchSize),
+			"TF_BATCH_TIMEOUT_MICROS="+s.Int64(int64(*api.Predictor.BatchTimeout*1000000)),
+			"TF_NUM_BATCHED_THREADS="+s.Int32(api.Predictor.ProcessesPerReplica),
+		)
+		cmdArgs = append(cmdArgs,
+			"--enable_batching=true",
+			"--batching_parameters_file="+_tfServingBatchConfig,
+		)
+	}
+
 	serveContainerConfig := &container.Config{
 		Image: api.Predictor.TensorFlowServingImage,
 		Tty:   true,
-		Env: []string{
-			"TF_BATCH_SIZE=" + s.Int32(*api.Predictor.BatchSize),
-			"TF_BATCH_TIMEOUT_MICROS=" + s.Int64(int64(*api.Predictor.BatchTimeout*1000000)),
-			"TF_NUM_BATCHED_THREADS=" + s.Int32(api.Predictor.ProcessesPerReplica),
-		},
-		Cmd: []string{
-			"--port=" + _tfServingPortStr,
-			"--model_config_file=" + _tfServingEmptyModelConfig,
-			"--enable_batching=true",
-			"--batching_parameters_file=" + _tfServingBatchConfig,
-		},
+		Env:   envVars,
+		Cmd:   cmdArgs,
 		ExposedPorts: nat.PortSet{
 			_tfServingPortStr + "/tcp": struct{}{},
 		},
