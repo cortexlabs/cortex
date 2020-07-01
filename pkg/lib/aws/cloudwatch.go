@@ -233,14 +233,14 @@ func TextWidget(x int, y int, width int, height int, markdown string) CloudWatch
 
 // FillNewGridHorizontally fills the CloudWatch Dashboard grid from left to right, row by row
 func (grid *CloudWatchWidgetGrid) FillNewGridHorizontally(xOrigin, yOrigin, widgetHeight, widgetWidth, numColumns int) error {
-	if xOrigin+numColumns*widgetWidth > DashboardMaxWidthUnits {
-		return ErrorDashboardWidthOutOfRange(xOrigin + numColumns*widgetWidth)
-	}
 	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
 		return ErrorDashboardHeightOutOfRange(widgetHeight)
 	}
 	if widgetWidth < 1 || widgetWidth > DashboardMaxWidthUnits {
 		return ErrorDashboardWidthOutOfRange(widgetWidth)
+	}
+	if xOrigin+numColumns*widgetWidth > DashboardMaxWidthUnits {
+		return ErrorDashboardWidthOutOfRange(xOrigin + numColumns*widgetWidth)
 	}
 	grid.XOrigin = xOrigin
 	grid.YOrigin = yOrigin
@@ -253,14 +253,14 @@ func (grid *CloudWatchWidgetGrid) FillNewGridHorizontally(xOrigin, yOrigin, widg
 
 // FillNewGridVertically fills the CloudWatch Dashboard grid from top to bottom, column by column
 func (grid *CloudWatchWidgetGrid) FillNewGridVertically(xOrigin, yOrigin, widgetHeight, widgetWidth, numRows int) error {
-	if yOrigin+numRows*widgetHeight > DashboardMaxHeightUnits {
-		return ErrorDashboardHeightOutOfRange(yOrigin + numRows*widgetHeight)
-	}
 	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
 		return ErrorDashboardHeightOutOfRange(widgetHeight)
 	}
 	if widgetWidth < 1 || widgetWidth > DashboardMaxWidthUnits {
 		return ErrorDashboardWidthOutOfRange(widgetWidth)
+	}
+	if yOrigin+numRows*widgetHeight > DashboardMaxHeightUnits {
+		return ErrorDashboardHeightOutOfRange(yOrigin + numRows*widgetHeight)
 	}
 	grid.XOrigin = xOrigin
 	grid.YOrigin = yOrigin
