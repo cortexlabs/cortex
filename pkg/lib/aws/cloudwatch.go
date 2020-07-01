@@ -66,6 +66,7 @@ type CloudWatchWidgetGrid struct {
 	XOrigin      int                `json:"x_origin"`
 	YOrigin      int                `json:"y_origin"`
 	NumColumns   int                `json:"num_columns"`
+	NumRows      int                `json:"num_rows"`
 	WidgetHeight int                `json:"widget_height"`
 	WidgetWidth  int                `json:"widget_width"`
 	Widgets      []CloudWatchWidget `json:"widgets"`
@@ -230,30 +231,75 @@ func TextWidget(x int, y int, width int, height int, markdown string) CloudWatch
 	return CloudWatchWidget{Type: "text", X: x, Y: y, Width: width, Height: height, Properties: map[string]interface{}{"markdown": markdown}}
 }
 
-func (grid *CloudWatchWidgetGrid) Init(xOrigin, yOrigin, widgetHeight, widgetWidth, numColumns int) {
+// FillNewGridHorizontally fills the CloudWatch Dashboard grid from left to right, row by row
+func (grid *CloudWatchWidgetGrid) FillNewGridHorizontally(xOrigin, yOrigin, widgetHeight, widgetWidth, numColumns int) error {
+	if xOrigin+numColumns*widgetWidth > DashboardMaxWidthUnits {
+		return ErrorDashboardWidthOutOfRange(xOrigin + numColumns*widgetWidth)
+	}
+	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
+		return ErrorDashboardHeightOutOfRange(widgetHeight)
+	}
+	if widgetWidth < 1 || widgetWidth > DashboardMaxWidthUnits {
+		return ErrorDashboardWidthOutOfRange(widgetWidth)
+	}
 	grid.XOrigin = xOrigin
 	grid.YOrigin = yOrigin
 	grid.WidgetHeight = widgetHeight
 	grid.WidgetWidth = widgetWidth
 	grid.NumColumns = numColumns
 	grid.Widgets = make([]CloudWatchWidget, 0)
+	return nil
 }
 
-// Fills the CloudWatch Dashboard grid from left to right, row by row
+// FillNewGridVertically fills the CloudWatch Dashboard grid from top to bottom, column by column
+func (grid *CloudWatchWidgetGrid) FillNewGridVertically(xOrigin, yOrigin, widgetHeight, widgetWidth, numRows int) error {
+	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
+		return ErrorDashboardHeightOutOfRange(widgetHeight)
+	}
+	if widgetWidth < 1 || widgetWidth > DashboardMaxWidthUnits {
+		return ErrorDashboardWidthOutOfRange(widgetWidth)
+	}
+	grid.XOrigin = xOrigin
+	grid.YOrigin = yOrigin
+	grid.WidgetHeight = widgetHeight
+	grid.WidgetWidth = widgetWidth
+	grid.NumRows = numRows
+	grid.Widgets = make([]CloudWatchWidget, 0)
+	return nil
+}
+
+// AddWidget adds a widget to the configured grid
 func (grid *CloudWatchWidgetGrid) AddWidget(
 	metric []interface{},
 	title string,
 	stat string,
 	period int,
 	region string,
-) {
-	currentRow := len(grid.Widgets) / grid.NumColumns
-	currentColumn := len(grid.Widgets) - currentRow*grid.NumColumns
+) error {
+	var currentColumn, currentRow int
+	if grid.NumColumns > 0 {
+		currentRow = len(grid.Widgets) / grid.NumColumns
+		currentColumn = len(grid.Widgets) - currentRow*grid.NumColumns
+	}
+	if grid.NumRows > 0 {
+		currentColumn = len(grid.Widgets) / grid.NumRows
+		currentRow = len(grid.Widgets) - currentColumn*grid.NumRows
+	}
+	x := grid.XOrigin + currentColumn*grid.WidgetWidth
+	y := grid.YOrigin + currentRow*grid.WidgetHeight
+
+	if x+grid.WidgetWidth > DashboardMaxWidthUnits {
+		return ErrorDashboardWidthOutOfRange(x + grid.WidgetWidth)
+	}
+	if y+grid.WidgetHeight > DashboardMaxHeightUnits {
+		return ErrorDashboardHeightOutOfRange(y + grid.WidgetHeight)
+	}
+
 	grid.Widgets = append(grid.Widgets,
 		CloudWatchWidget{
 			Type:   "metric",
-			X:      grid.XOrigin + currentColumn*grid.WidgetWidth,
-			Y:      grid.YOrigin + currentRow*grid.WidgetHeight,
+			X:      x,
+			Y:      y,
 			Width:  grid.WidgetWidth,
 			Height: grid.WidgetHeight,
 			Properties: map[string]interface{}{
@@ -266,6 +312,13 @@ func (grid *CloudWatchWidgetGrid) AddWidget(
 			},
 		},
 	)
+
+	return nil
+}
+
+// GetWidgets gets the list of CloudWatchWidget widgets
+func (grid *CloudWatchWidgetGrid) GetWidgets() []CloudWatchWidget {
+	return grid.Widgets
 }
 
 // HighestY returns the largest Y coordinate of a widget on the dashboard (i.e. the lowest widget)

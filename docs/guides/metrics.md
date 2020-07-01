@@ -15,11 +15,19 @@ aws   image-classifier-resnet50   live     2            2           1h          
 
 The `cortex get API_NAME` command also provides a link to a CloudWatch Metrics dashboard containing this information:
 
-![dashboard](https://user-images.githubusercontent.com/26958764/85961727-1aea4000-b9b5-11ea-9cad-c3b2b5cb83fd.png)
+![dashboard](https://user-images.githubusercontent.com/808475/86186297-8cc5a500-baed-11ea-885f-d5c301b049eb.png)
 
 **responses per minute**
 
 Shows the number of 2XX, 4XX, and 5XX responses per minute.
+
+**median response time**
+
+Shows the median response time for requests, over 1-minute periods (measured in milliseconds).
+
+**p99 response time**
+
+Shows the p99 response time for requests, over 1-minute periods (measured in milliseconds).
 
 **total in-flight requests**
 
@@ -38,14 +46,6 @@ The [note](#note-regarding-metric-intervals) below applies to this plot.
 Shows the number of active replicas.
 
 The [note](#note-regarding-metric-intervals) below applies to this plot.
-
-**median response time**
-
-Shows the median response time for requests, over 1-minute periods (measured in milliseconds).
-
-**p99 response time**
-
-Shows the p99 response time for requests, over 1-minute periods (measured in milliseconds).
 
 ---
 

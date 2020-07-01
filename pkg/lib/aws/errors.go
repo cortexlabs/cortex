@@ -37,6 +37,8 @@ const (
 	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
 	ErrReadCredentials              = "aws.read_credentials"
 	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
+	ErrDashboardWidthOutOfRange     = "aws.dashboard_width_ouf_of_range"
+	ErrDashboardHeightOutOfRange    = "aws.dashboard_height_out_of_range"
 )
 
 func IsNotFoundErr(err error) bool {
@@ -151,5 +153,19 @@ func ErrorECRExtractingCredentials() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrECRExtractingCredentials,
 		Message: "unable to extract ECR credentials",
+	})
+}
+
+func ErrorDashboardWidthOutOfRange(width int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDashboardWidthOutOfRange,
+		Message: fmt.Sprintf("dashboard width %d out of range; acceptable values are %d-%d", width, DashboardMinWidthUnits, DashboardMaxWidthUnits),
+	})
+}
+
+func ErrorDashboardHeightOutOfRange(height int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDashboardHeightOutOfRange,
+		Message: fmt.Sprintf("dashboard height %d out of range; acceptable values are %d-%d", height, DashboardMinHeightUnits, DashboardMaxHeightUnits),
 	})
 }

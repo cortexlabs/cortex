@@ -79,18 +79,24 @@ func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName s
 	dashboard.Widgets = append(dashboard.Widgets, aws.TextWidget(1, highestY+1, 22, 1, "## "+apiName))
 
 	var grid aws.CloudWatchWidgetGrid
-	grid.Init(1, highestY+2, 6, 11, 2)
+	err = grid.FillNewGridVertically(1, highestY+2, 6, 11, 3)
+	if err != nil {
+		return nil
+	}
 
+	// first grid column
 	grid.AddWidget(statusCodeMetric(dashboardName, apiName), "responses per minute", "Sum", 60, config.AWS.Region)
+	grid.AddWidget(latencyMetric(dashboardName, apiName), "median response time (ms)", "p50", 60, config.AWS.Region)
+	grid.AddWidget(latencyMetric(dashboardName, apiName), "p99 response time (ms)", "p99", 60, config.AWS.Region)
+
+	// second grid column
 	grid.AddWidget(inFlightMetric(dashboardName, apiName), "total in-flight requests", "Sum", 10, config.AWS.Region)
 	grid.AddWidget(inFlightMetric(dashboardName, apiName), "avg in-flight requests per replica", "Average", 10, config.AWS.Region)
 	// setting the period to 10 seconds because the publishing frequency of the request monitor is 10 seconds
 	grid.AddWidget(inFlightMetric(dashboardName, apiName), "active replicas", "SampleCount", 10, config.AWS.Region)
-	grid.AddWidget(latencyMetric(dashboardName, apiName), "median response time (ms)", "p50", 60, config.AWS.Region)
-	grid.AddWidget(latencyMetric(dashboardName, apiName), "p99 response time (ms)", "p99", 60, config.AWS.Region)
 
 	// append new API metrics widgets to existing widgets
-	dashboard.Widgets = append(dashboard.Widgets, grid.Widgets...)
+	dashboard.Widgets = append(dashboard.Widgets, grid.GetWidgets()...)
 
 	return nil
 }
