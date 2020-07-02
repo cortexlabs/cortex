@@ -41,7 +41,8 @@ import (
 )
 
 const (
-	DefaultPortInt32, DefaultPortStr = int32(8888), "8888"
+	DefaultPortInt32 = int32(8888)
+	DefaultPortStr   = "8888"
 )
 
 const (
