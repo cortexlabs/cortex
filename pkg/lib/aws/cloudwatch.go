@@ -25,6 +25,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
+var (
+	_dashboardMinWidthUnits  = 1
+	_dashboardMaxWidthUnits  = 24
+	_dashboardMinHeightUnits = 1
+	_dashboardMaxHeightUnits = 1000
+)
+
 type CloudWatchDashboard struct {
 	Start          string             `json:"start"`
 	PeriodOverride string             `json:"periodOverride"`
@@ -233,13 +240,13 @@ func TextWidget(x int, y int, width int, height int, markdown string) CloudWatch
 
 // NewHorizontalGrid sets a CloudWatch Dashboard grid to be filled from left to right, row by row
 func NewHorizontalGrid(xOrigin, yOrigin, widgetHeight, widgetWidth, numColumns int) (*CloudWatchWidgetGrid, error) {
-	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
+	if widgetHeight < 1 || widgetHeight > _dashboardMaxHeightUnits {
 		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(widgetHeight)
 	}
-	if widgetWidth < 1 || widgetWidth > DashboardMaxWidthUnits {
+	if widgetWidth < 1 || widgetWidth > _dashboardMaxWidthUnits {
 		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(widgetWidth)
 	}
-	if xOrigin+numColumns*widgetWidth > DashboardMaxWidthUnits {
+	if xOrigin+numColumns*widgetWidth > _dashboardMaxWidthUnits {
 		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(xOrigin + numColumns*widgetWidth)
 	}
 	return &CloudWatchWidgetGrid{
@@ -254,13 +261,13 @@ func NewHorizontalGrid(xOrigin, yOrigin, widgetHeight, widgetWidth, numColumns i
 
 // NewVerticalGrid sets a CloudWatch Dashboard grid to be filled from top to bottom, column by column
 func NewVerticalGrid(xOrigin, yOrigin, widgetHeight, widgetWidth, numRows int) (*CloudWatchWidgetGrid, error) {
-	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
+	if widgetHeight < 1 || widgetHeight > _dashboardMaxHeightUnits {
 		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(widgetHeight)
 	}
-	if widgetWidth < 1 || widgetWidth > DashboardMaxWidthUnits {
+	if widgetWidth < 1 || widgetWidth > _dashboardMaxWidthUnits {
 		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(widgetWidth)
 	}
-	if yOrigin+numRows*widgetHeight > DashboardMaxHeightUnits {
+	if yOrigin+numRows*widgetHeight > _dashboardMaxHeightUnits {
 		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(yOrigin + numRows*widgetHeight)
 	}
 	return &CloudWatchWidgetGrid{
@@ -293,10 +300,10 @@ func (grid *CloudWatchWidgetGrid) AddWidget(
 	x := grid.XOrigin + currentColumn*grid.WidgetWidth
 	y := grid.YOrigin + currentRow*grid.WidgetHeight
 
-	if x+grid.WidgetWidth > DashboardMaxWidthUnits {
+	if x+grid.WidgetWidth > _dashboardMaxWidthUnits {
 		return ErrorDashboardWidthOutOfRange(x + grid.WidgetWidth)
 	}
-	if y+grid.WidgetHeight > DashboardMaxHeightUnits {
+	if y+grid.WidgetHeight > _dashboardMaxHeightUnits {
 		return ErrorDashboardHeightOutOfRange(y + grid.WidgetHeight)
 	}
 

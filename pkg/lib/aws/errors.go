@@ -159,13 +159,13 @@ func ErrorECRExtractingCredentials() error {
 func ErrorDashboardWidthOutOfRange(width int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDashboardWidthOutOfRange,
-		Message: fmt.Sprintf("dashboard width %d out of range; width must be between %d and %d", width, DashboardMinWidthUnits, DashboardMaxWidthUnits),
+		Message: fmt.Sprintf("dashboard width %d out of range; width must be between %d and %d", width, _dashboardMinWidthUnits, _dashboardMaxWidthUnits),
 	})
 }
 
 func ErrorDashboardHeightOutOfRange(height int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDashboardHeightOutOfRange,
-		Message: fmt.Sprintf("dashboard height %d out of range; height must be between %d and %d", height, DashboardMinHeightUnits, DashboardMaxHeightUnits),
+		Message: fmt.Sprintf("dashboard height %d out of range; height must be between %d and %d", height, _dashboardMinHeightUnits, _dashboardMaxHeightUnits),
 	})
 }
