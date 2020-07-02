@@ -78,8 +78,7 @@ func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName s
 	// create widget for title
 	dashboard.Widgets = append(dashboard.Widgets, aws.TextWidget(1, highestY+1, 22, 1, "## "+apiName))
 
-	var grid aws.CloudWatchWidgetGrid
-	err = grid.FillNewGridVertically(1, highestY+2, 6, 11, 3)
+	grid, err := aws.NewVerticalGrid(1, highestY+2, 6, 11, 3)
 	if err != nil {
 		return nil
 	}

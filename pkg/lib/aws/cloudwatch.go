@@ -231,44 +231,46 @@ func TextWidget(x int, y int, width int, height int, markdown string) CloudWatch
 	return CloudWatchWidget{Type: "text", X: x, Y: y, Width: width, Height: height, Properties: map[string]interface{}{"markdown": markdown}}
 }
 
-// FillNewGridHorizontally fills the CloudWatch Dashboard grid from left to right, row by row
-func (grid *CloudWatchWidgetGrid) FillNewGridHorizontally(xOrigin, yOrigin, widgetHeight, widgetWidth, numColumns int) error {
+// NewHorizontalGrid sets a CloudWatch Dashboard grid to be filled from left to right, row by row
+func NewHorizontalGrid(xOrigin, yOrigin, widgetHeight, widgetWidth, numColumns int) (*CloudWatchWidgetGrid, error) {
 	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
-		return ErrorDashboardHeightOutOfRange(widgetHeight)
+		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(widgetHeight)
 	}
 	if widgetWidth < 1 || widgetWidth > DashboardMaxWidthUnits {
-		return ErrorDashboardWidthOutOfRange(widgetWidth)
+		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(widgetWidth)
 	}
 	if xOrigin+numColumns*widgetWidth > DashboardMaxWidthUnits {
-		return ErrorDashboardWidthOutOfRange(xOrigin + numColumns*widgetWidth)
+		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(xOrigin + numColumns*widgetWidth)
 	}
-	grid.XOrigin = xOrigin
-	grid.YOrigin = yOrigin
-	grid.WidgetHeight = widgetHeight
-	grid.WidgetWidth = widgetWidth
-	grid.NumColumns = numColumns
-	grid.Widgets = make([]CloudWatchWidget, 0)
-	return nil
+	return &CloudWatchWidgetGrid{
+		XOrigin:      xOrigin,
+		YOrigin:      yOrigin,
+		WidgetHeight: widgetHeight,
+		WidgetWidth:  widgetWidth,
+		NumColumns:   numColumns,
+		Widgets:      make([]CloudWatchWidget, 0),
+	}, nil
 }
 
-// FillNewGridVertically fills the CloudWatch Dashboard grid from top to bottom, column by column
-func (grid *CloudWatchWidgetGrid) FillNewGridVertically(xOrigin, yOrigin, widgetHeight, widgetWidth, numRows int) error {
+// NewVerticalGrid sets a CloudWatch Dashboard grid to be filled from top to bottom, column by column
+func NewVerticalGrid(xOrigin, yOrigin, widgetHeight, widgetWidth, numRows int) (*CloudWatchWidgetGrid, error) {
 	if widgetHeight < 1 || widgetHeight > DashboardMaxHeightUnits {
-		return ErrorDashboardHeightOutOfRange(widgetHeight)
+		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(widgetHeight)
 	}
 	if widgetWidth < 1 || widgetWidth > DashboardMaxWidthUnits {
-		return ErrorDashboardWidthOutOfRange(widgetWidth)
+		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(widgetWidth)
 	}
 	if yOrigin+numRows*widgetHeight > DashboardMaxHeightUnits {
-		return ErrorDashboardHeightOutOfRange(yOrigin + numRows*widgetHeight)
+		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(yOrigin + numRows*widgetHeight)
 	}
-	grid.XOrigin = xOrigin
-	grid.YOrigin = yOrigin
-	grid.WidgetHeight = widgetHeight
-	grid.WidgetWidth = widgetWidth
-	grid.NumRows = numRows
-	grid.Widgets = make([]CloudWatchWidget, 0)
-	return nil
+	return &CloudWatchWidgetGrid{
+		XOrigin:      xOrigin,
+		YOrigin:      yOrigin,
+		WidgetHeight: widgetHeight,
+		WidgetWidth:  widgetWidth,
+		NumRows:      numRows,
+		Widgets:      make([]CloudWatchWidget, 0),
+	}, nil
 }
 
 // AddWidget adds a widget to the configured grid
