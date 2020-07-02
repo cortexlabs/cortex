@@ -70,15 +70,14 @@ type GetAPIResponse struct {
 }
 
 type BatchAPI struct {
-	Spec    spec.API           `json:"spec"`
-	Jobs    []status.JobStatus `json:"jobs"`
-	BaseURL string             `json:"base_url"`
+	APISpec     spec.API           `json:"api_spec"`
+	JobStatuses []status.JobStatus `json:"job_statuses"`
+	BaseURL     string             `json:"base_url"`
 }
 
 type JobResponse struct {
 	APISpec   spec.API         `json:"api_spec"`
-	JobStatus status.JobStatus `json:"job"`
-	JobSpec   spec.JobSpec     `json:"job_spec"`
+	JobStatus status.JobStatus `json:"job_status"`
 }
 
 type DeleteResponse struct {

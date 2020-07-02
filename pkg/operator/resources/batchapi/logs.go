@@ -86,7 +86,8 @@ func (c *eventCache) Add(eventID string) {
 
 func ReadLogs(logRequest schema.LogRequest, socket *websocket.Conn) {
 	debug.Pp(logRequest)
-	spec, err := DownloadJobSpec(logRequest.Name, logRequest.JobID)
+	jobID := spec.JobID{APIName: logRequest.Name, ID: logRequest.JobID}
+	jobStatus, err := GetJobStatus(jobID)
 	if err != nil {
 		writeAndCloseSocket(socket, "error: "+errors.Message(err))
 	}
@@ -94,11 +95,14 @@ func ReadLogs(logRequest schema.LogRequest, socket *websocket.Conn) {
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
 
-	debug.Pp(spec)
-	if spec.Status == status.JobEnqueuing || spec.Status == status.JobRunning {
+	if jobStatus.Status.IsInProgressPhase() {
 		go streamFromCloudWatch(logRequest, podCheckCancel, socket)
 	} else {
-		go fetchLogsFromCloudWatch(spec, podCheckCancel, socket)
+		if err != nil {
+			writeAndCloseSocket(socket, "error: "+errors.Message(err))
+		}
+		debug.Pp(jobStatus)
+		go fetchLogsFromCloudWatch(jobStatus, podCheckCancel, socket)
 	}
 
 	pumpStdin(socket)
@@ -115,8 +119,8 @@ func pumpStdin(socket *websocket.Conn) {
 	}
 }
 
-func fetchLogsFromCloudWatch(jobSpec *spec.JobSpec, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := operator.LogGroupNameForJob(jobSpec.APIName, jobSpec.ID)
+func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
+	logGroupName := operator.LogGroupNameForJob(jobStatus.JobID)
 
 	newLogStreamNames, err := getLogStreams(logGroupName)
 	if err != nil {
@@ -132,8 +136,8 @@ func fetchLogsFromCloudWatch(jobSpec *spec.JobSpec, podCheckCancel chan struct{}
 
 	config.AWS.CloudWatchLogs().FilterLogEventsPages(&cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName: aws.String(logGroupName),
-		StartTime:    aws.Int64(libtime.ToMillis(jobSpec.StartTime)),
-		EndTime:      aws.Int64(libtime.ToMillis(*jobSpec.EndTime)),
+		StartTime:    aws.Int64(libtime.ToMillis(jobStatus.StartTime)),
+		EndTime:      aws.Int64(libtime.ToMillis(*jobStatus.EndTime)),
 	}, func(logEventsOutput *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
 		select {
 		case <-podCheckCancel:
@@ -156,7 +160,7 @@ func fetchLogsFromCloudWatch(jobSpec *spec.JobSpec, podCheckCancel chan struct{}
 }
 
 func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := operator.LogGroupNameForJob(logRequest.Name, logRequest.JobID)
+	logGroupName := operator.LogGroupNameForJob(spec.JobID{APIName: logRequest.Name, ID: logRequest.JobID})
 	eventCache := newEventCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}
 	lastJobRefresh := time.Time{}

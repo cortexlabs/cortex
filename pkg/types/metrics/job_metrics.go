@@ -17,12 +17,6 @@ limitations under the License.
 package metrics
 
 type JobMetrics struct {
-	APIName  string    `json:"api_name"`
-	JobID    string    `json:"job_id"`
-	JobStats *JobStats `json:"job_stats"`
-}
-
-type JobStats struct {
 	Succeeded               int      `json:"succeeded"`
 	Failed                  int      `json:"failed"`
 	AverageTimePerPartition *float64 `json:"average_time_per_partition"`
@@ -30,30 +24,15 @@ type JobStats struct {
 }
 
 func (left JobMetrics) Merge(right JobMetrics) JobMetrics {
-	var mergedJobStats *JobStats
-
-	switch {
-	case left.JobStats != nil && right.JobStats != nil:
-		merged := (*left.JobStats).Merge(*right.JobStats)
-		mergedJobStats = &merged
-	case left.JobStats != nil:
-		mergedJobStats = left.JobStats
-	case right.JobStats != nil:
-		mergedJobStats = right.JobStats
-	}
-
-	return JobMetrics{
-		APIName:  left.APIName,
-		JobID:    left.JobID,
-		JobStats: mergedJobStats,
-	}
+	newJobMetrics := JobMetrics{}
+	newJobMetrics.MergeInPlace(left)
+	newJobMetrics.MergeInPlace(right)
+	return newJobMetrics
 }
 
-func (left JobStats) Merge(right JobStats) JobStats {
-	return JobStats{
-		AverageTimePerPartition: mergeAvg(left.AverageTimePerPartition, left.TotalCompleted, right.AverageTimePerPartition, right.TotalCompleted),
-		Succeeded:               left.Succeeded + right.Succeeded,
-		Failed:                  left.Failed + right.Failed,
-		TotalCompleted:          left.TotalCompleted + right.TotalCompleted,
-	}
+func (left *JobMetrics) MergeInPlace(right JobMetrics) {
+	left.AverageTimePerPartition = mergeAvg(left.AverageTimePerPartition, left.TotalCompleted, right.AverageTimePerPartition, right.TotalCompleted)
+	left.Succeeded = left.Succeeded + right.Succeeded
+	left.Failed = left.Failed + right.Failed
+	left.TotalCompleted = left.TotalCompleted + right.TotalCompleted
 }

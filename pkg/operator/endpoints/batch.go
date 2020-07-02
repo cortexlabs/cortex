@@ -22,12 +22,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/gorilla/mux"
-	kbatch "k8s.io/api/batch/v1"
 )
 
 func Batch(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +110,7 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 func BatchDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := batchapi.StopJob(vars["apiName"], vars["jobID"])
+	err := batchapi.StopJob(spec.JobID{APIName: vars["apiName"], ID: vars["jobID"]})
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -124,38 +123,21 @@ func BatchDelete(w http.ResponseWriter, r *http.Request) {
 
 func BatchGet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	jobID := spec.JobID{APIName: vars["apiName"], ID: vars["jobID"]}
 
-	jobs, err := config.K8s.ListJobsWithLabelKeys("jobID", vars["jobID"])
+	jobStatus, err := batchapi.GetJobStatus(jobID)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	jobSpec, err := batchapi.DownloadJobSpec(vars["apiName"], vars["jobID"])
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	var job *kbatch.Job
-	if len(jobs) > 0 {
-		job = &jobs[0]
-	}
-
-	jobStatus, err := batchapi.GetJobStatus(vars["apiName"], vars["jobID"], job)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	spec, err := operator.DownloadAPISpec(jobSpec.APIName, jobSpec.APIName)
+	spec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
 	response := schema.JobResponse{
-		JobSpec:   *jobSpec,
 		JobStatus: *jobStatus,
 		APISpec:   *spec,
 	}

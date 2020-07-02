@@ -30,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
@@ -65,7 +64,7 @@ func main() {
 
 	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), 12*time.Hour)
 	cron.Run(operator.InstanceTelemetry, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
-	cron.Run(batchapi.CleanupJobs, operator.ErrorHandler("job cleanup"), 10*time.Second)
+	// cron.Run(batchapi.CleanupJobs, operator.ErrorHandler("job cleanup"), 10*time.Second)
 
 	router := mux.NewRouter()
 

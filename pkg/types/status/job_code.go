@@ -21,9 +21,10 @@ type JobCode int
 const (
 	JobUnknown JobCode = iota
 	JobEnqueuing
-	JobFailed
 	JobRunning
+	JobFailed
 	JobSucceeded
+	JobErrored
 	JobIncomplete
 	JobStopped
 )
@@ -31,11 +32,20 @@ const (
 var _jobCodes = []string{
 	"status_unknown",
 	"status_enqueuing",
-	"status_failed",
 	"status_running",
+	"status_failed",
 	"status_succeeded",
+	"status_errored",
 	"status_incomplete",
 	"status_stopped",
+}
+
+func (code JobCode) IsInProgressPhase() bool {
+	return code == JobEnqueuing || code == JobRunning
+}
+
+func (code JobCode) IsCompletedPhase() bool {
+	return code == JobFailed || code == JobSucceeded || code == JobErrored || code == JobIncomplete || code == JobStopped
 }
 
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodes)-1)] // Ensure list length matches
@@ -43,9 +53,10 @@ var _ = [1]int{}[int(JobStopped)-(len(_jobCodes)-1)] // Ensure list length match
 var _jobCodeMessages = []string{
 	"unknown",    // JobUnknown
 	"enqueuing",  // Job
-	"failed",     // Failed
 	"running",    // Running
+	"failed",     // Failed
 	"succeeded",  // Succeeded
+	"errored",    // Errored
 	"incomplete", // Incomplete
 	"stopped",    // Stopped
 }
@@ -54,14 +65,44 @@ var _ = [1]int{}[int(JobStopped)-(len(_jobCodeMessages)-1)] // Ensure list lengt
 
 func (code JobCode) String() string {
 	if int(code) < 0 || int(code) >= len(_jobCodes) {
-		return _jobCodes[Unknown]
+		return _jobCodes[JobUnknown]
 	}
 	return _jobCodes[code]
 }
 
 func (code JobCode) Message() string {
 	if int(code) < 0 || int(code) >= len(_jobCodeMessages) {
-		return _jobCodeMessages[Unknown]
+		return _jobCodeMessages[JobUnknown]
 	}
 	return _jobCodeMessages[code]
+}
+
+// MarshalText satisfies TextMarshaler
+func (code JobCode) MarshalText() ([]byte, error) {
+	return []byte(code.String()), nil
+}
+
+// UnmarshalText satisfies TextUnmarshaler
+func (code *JobCode) UnmarshalText(text []byte) error {
+	enum := string(text)
+	for i := 0; i < len(_jobCodes); i++ {
+		if enum == _jobCodes[i] {
+			*code = JobCode(i)
+			return nil
+		}
+	}
+
+	*code = JobUnknown
+	return nil
+}
+
+// UnmarshalBinary satisfies BinaryUnmarshaler
+// Needed for msgpack
+func (code *JobCode) UnmarshalBinary(data []byte) error {
+	return code.UnmarshalText(data)
+}
+
+// MarshalBinary satisfies BinaryMarshaler
+func (code JobCode) MarshalBinary() ([]byte, error) {
+	return []byte(code.String()), nil
 }

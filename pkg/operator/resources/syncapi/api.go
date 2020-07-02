@@ -16,12 +16,10 @@ package syncapi
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -30,7 +28,6 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
@@ -372,23 +369,7 @@ func areAPIsEqual(d1, d2 *kapps.Deployment) bool {
 		d1.Labels["apiName"] == d2.Labels["apiName"] &&
 		d1.Labels["apiID"] == d2.Labels["apiID"] &&
 		d1.Labels["deploymentID"] == d2.Labels["deploymentID"] &&
-		doCortexAnnotationsMatch(d1, d2)
-}
-
-func doCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {
-	cortexAnnotations1 := extractCortexAnnotations(obj1)
-	cortexAnnotations2 := extractCortexAnnotations(obj2)
-	return maps.StrMapsEqual(cortexAnnotations1, cortexAnnotations2)
-}
-
-func extractCortexAnnotations(obj kmeta.Object) map[string]string {
-	cortexAnnotations := make(map[string]string)
-	for key, value := range obj.GetAnnotations() {
-		if strings.Contains(key, "cortex.dev/") {
-			cortexAnnotations[key] = value
-		}
-	}
-	return cortexAnnotations
+		operator.DoCortexAnnotationsMatch(d1, d2)
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {

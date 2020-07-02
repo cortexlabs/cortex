@@ -31,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -174,7 +173,6 @@ func getAPIsInAllEnvironments() (string, error) {
 		var err error
 		if env.Provider == types.AWSProviderType {
 			apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
-			debug.Pp(apisRes)
 		} else {
 			apisRes, err = local.GetAPIs()
 		}
@@ -381,29 +379,25 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 
 	var totalFailed int
 
-	for i, api := range batchAPIs {
-		lastUpdated := time.Unix(api.Spec.LastUpdated, 0)
+	for i, batchAPI := range batchAPIs {
+		lastUpdated := time.Unix(batchAPI.APISpec.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := "-"
-		requested := 0
 		failed := 0
-		for _, job := range api.Jobs {
-			debug.Pp(job.JobID)
+		for _, job := range batchAPI.JobStatuses {
 			if job.StartTime.After(latestStartTime) && (job.Status == status.JobRunning || job.Status == status.JobEnqueuing) {
 				latestStartTime = job.StartTime
-				latestJobID = job.JobID
+				latestJobID = job.ID
 			}
 
-			requested += job.Parallelism
-			// failed += int(job.WorkerStats.Failed)
 		}
 
 		totalFailed += failed
 
 		rows = append(rows, []interface{}{
 			envNames[i],
-			api.Spec.Name,
-			len(api.Jobs),
+			batchAPI.APISpec.Name,
+			len(batchAPI.JobStatuses),
 			latestJobID,
 			libtime.SinceStr(&lastUpdated),
 		})
@@ -422,75 +416,30 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 }
 
 func batchAPITable(batchAPI schema.BatchAPI) string {
-	rows := make([][]interface{}, 0, len(batchAPI.Jobs))
-
-	debug.Pp(len(batchAPI.Jobs))
-
-	totalFailed := 0
-	for _, job := range batchAPI.Jobs {
-		succeeded := 0
-		failed := 0
-		if job.JobStats != nil {
-			failed = job.JobStats.Failed
-			succeeded = job.JobStats.Succeeded
-			totalFailed += job.JobStats.Failed
-		}
-
-		rows = append(rows, []interface{}{
-			job.JobID,
-			job.Status.String(),
-			fmt.Sprintf("%d/%d", succeeded, job.Total),
-			failed,
-			libtime.SinceStr(&job.StartTime),
-		})
-	}
-
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "job id"},
-			{Title: "status"},
-			{Title: "progress"}, // (completed/total), only show when status is running
-			{Title: "failed", Hidden: totalFailed == 0},
-			{Title: "start time"},
-		},
-		Rows: rows,
-	}
-
-	apiEndpoint := urls.Join(batchAPI.BaseURL, *batchAPI.Spec.Networking.Endpoint)
-	if batchAPI.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
-	}
-
-	out := t.MustFormat()
-	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
-	out += "\n"
-
-	out += titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
-	return out
-}
-
-func jobStats(env cliconfig.Environment, apiName string, jobID string) (string, error) {
-
-	job, err := cluster.GetJob(MustGetOperatorConfig(env.Name), apiName, jobID)
-	if err != nil {
-		return "", err
-	}
-
-	totalFailed := job.JobStatus.JobStats.Failed
+	rows := make([][]interface{}, 0, len(batchAPI.JobStatuses))
 
 	out := ""
+	if len(batchAPI.JobStatuses) == 0 {
+		out = console.Bold("no submitted jobs\n")
+	} else {
+		totalFailed := 0
+		for _, job := range batchAPI.JobStatuses {
+			succeeded := 0
+			failed := 0
 
-	{
-		out += titleStr("job stats")
-		rows := make([][]interface{}, 1)
-
-		rows = append(rows, []interface{}{
-			job.JobSpec.ID,
-			job.JobSpec.Status.String(),
-			fmt.Sprintf("%d/%d", job.JobStatus.JobStats.TotalCompleted, job.JobSpec.TotalPartitions),
-			job.JobStatus.JobStats.Failed,
-			libtime.SinceStr(&job.JobSpec.StartTime),
-		})
+			if job.Metrics != nil {
+				failed = job.Metrics.Failed
+				succeeded = job.Metrics.Succeeded
+				totalFailed += failed
+			}
+			rows = append(rows, []interface{}{
+				job.ID,
+				job.Status.Message(),
+				fmt.Sprintf("%d/%d", succeeded, job.TotalPartitions),
+				failed,
+				libtime.SinceStr(&job.StartTime),
+			})
+		}
 
 		t := table.Table{
 			Headers: []table.Header{
@@ -503,19 +452,72 @@ func jobStats(env cliconfig.Environment, apiName string, jobID string) (string, 
 			Rows: rows,
 		}
 
-		out := t.MustFormat()
-		out += "\n"
+		out += t.MustFormat()
 	}
 
-	if job.JobSpec.Status == status.JobRunning {
-		out += titleStr("worker stats")
-		rows := make([][]interface{}, 1)
+	apiEndpoint := urls.Join(batchAPI.BaseURL, *batchAPI.APISpec.Networking.Endpoint)
+	if batchAPI.APISpec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
+	}
 
+	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
+	out += "\n"
+
+	out += titleStr("batch api configuration") + batchAPI.APISpec.UserStr(types.AWSProviderType)
+	return out
+}
+
+func jobStats(env cliconfig.Environment, apiName string, jobID string) (string, error) {
+	resp, err := cluster.GetJob(MustGetOperatorConfig(env.Name), apiName, jobID)
+	if err != nil {
+		return "", err
+	}
+
+	out := ""
+
+	{
+		rows := make([][]interface{}, 0, 1)
+		avgTime := "-"
+		if resp.JobStatus.Metrics.AverageTimePerPartition != nil {
+			avgTime = fmt.Sprintf("%.6g s", *resp.JobStatus.Metrics.AverageTimePerPartition)
+		}
+
+		totalFailed := 0
 		rows = append(rows, []interface{}{
-			job.JobSpec.Parallelism,
-			job.JobStatus.WorkerStats.Active,
-			job.JobStatus.WorkerStats.Failed,
-			job.JobStatus.WorkerStats.Succeeded,
+			resp.JobStatus.ID,
+			resp.JobStatus.Status.Message(),
+			resp.JobStatus.TotalPartitions,
+			resp.JobStatus.Metrics.Succeeded,
+			resp.JobStatus.Metrics.Failed,
+			avgTime,
+			resp.JobStatus.StartTime.Format(time.RFC3339),
+		})
+
+		t := table.Table{
+			Headers: []table.Header{
+				{Title: "job id"},
+				{Title: "status"},
+				{Title: "total"},
+				{Title: "succeeded"},
+				{Title: "failed", Hidden: totalFailed == 0},
+				{Title: "avg per batch"},
+				{Title: "start time"},
+			},
+			Rows: rows,
+		}
+
+		out = t.MustFormat() + "\n"
+	}
+
+	if resp.JobStatus.WorkerCounts == nil {
+		out += console.Bold("worker stats not available")
+	} else {
+		rows := make([][]interface{}, 0, 1)
+		rows = append(rows, []interface{}{
+			resp.JobStatus.Parallelism,
+			resp.JobStatus.WorkerCounts.Active,
+			resp.JobStatus.WorkerCounts.Failed,
+			resp.JobStatus.WorkerCounts.Succeeded,
 		})
 
 		t := table.Table{
@@ -528,18 +530,16 @@ func jobStats(env cliconfig.Environment, apiName string, jobID string) (string, 
 			Rows: rows,
 		}
 
-		out := t.MustFormat()
-		out += "\n"
+		out += t.MustFormat()
 	}
 
-	jobSpecStr, err := json.Pretty(job.JobSpec)
+	jobSpecStr, err := json.Pretty(resp.JobStatus.Job)
 	if err != nil {
 		return "", err // TODO
 	}
 
-	out += titleStr("job spec") + jobSpecStr
+	out += titleStr("job configuration") + jobSpecStr
 
-	// out += batchAPI.Spec.UserStr(types.AWSProviderType)
 	return out, nil
 }
 

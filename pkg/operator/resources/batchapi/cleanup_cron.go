@@ -18,12 +18,16 @@ package batchapi
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
 )
@@ -31,19 +35,13 @@ import (
 func CleanupJobs() error {
 	queues, err := operator.ListQueues()
 	if err != nil {
-		fmt.Println(err.Error()) // TODO
-	}
-
-	if len(queues) < 20 {
-		return nil
+		return err
 	}
 
 	jobs, err := config.K8s.ListJobs(nil)
 	if err != nil {
-		fmt.Println(err.Error()) // TODO
+		return err
 	}
-
-	// delete if enqueue liveness failed
 
 	k8sjobMap := map[string]kbatch.Job{}
 	jobIDSetK8s := strset.Set{}
@@ -55,155 +53,159 @@ func CleanupJobs() error {
 	queueURLMap := map[string]string{}
 	jobIDSetQueueURL := strset.Set{}
 	for _, queueURL := range queues {
-		_, jobID := operator.IdentifiersFromQueueURL(queueURL)
-		jobIDSetQueueURL.Add(jobID)
-		queueURLMap[jobID] = queueURL
+		jobID := operator.IdentifierFromQueueURL(queueURL)
+		jobIDSetQueueURL.Add(jobID.ID)
+		queueURLMap[jobID.ID] = queueURL
 	}
 
-	for jobID := range strset.Difference(jobIDSetK8s, jobIDSetQueueURL) {
-		fmt.Println("Only job: " + jobID)
-		fmt.Println(queues)
-		fmt.Println("delete jobs")
-		apiName := k8sjobMap[jobID].Labels["apiName"]
-		_, err := operator.DoesQueueExist(apiName, jobID) // double check queue existence because newly created queues take atleast 30 seconds to be listed in operator.ListQueues()
+	for id := range strset.Difference(jobIDSetK8s, jobIDSetQueueURL) {
+		apiName := k8sjobMap[id].Labels["apiName"]
+		jobID := spec.JobID{APIName: apiName, ID: id}
+		err := handleK8sJobWithoutQueue(jobID)
 		if err != nil {
-			// TODO
+			fmt.Println(err.Error())
+			telemetry.Error(err)
 		}
-		// queueURL, err := operator.QueueURL(apiName, jobID)
-		metrics, _ := operator.GetQueueMetrics(apiName, jobID)
-		debug.Pp(metrics)
-		// _, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-		// 	LabelSelector: klabels.SelectorFromSet(map[string]string{"jobID": jobID}).String(),
-		// })
-		// if err != nil {
-		// 	return err
-		// }
 	}
 
 	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s) {
-		fmt.Println("Only queue")
 		queueURL := queueURLMap[jobID]
-		apiName, jobID := operator.IdentifiersFromQueueURL(queueURL)
-		debug.Pp(apiName)
-		debug.Pp(jobID)
-
-		jobSpec, err := DownloadJobSpec(apiName, jobID)
+		err := handleQueueWithoutK8sJob(queueURL)
 		if err != nil {
-			// DeleteJob(apiName, jobID)
-			fmt.Println("failed to download job spec")
 			fmt.Println(err.Error())
-			continue
-		}
-		debug.Pp(jobSpec)
-		if jobSpec.Status == status.JobEnqueuing && time.Now().Sub(jobSpec.LastUpdated) > time.Second*60 {
-			jobSpec.Status = status.JobFailed
-			CommitToS3(*jobSpec)
-			fmt.Println("stale")
-			// err := DeleteJob(apiName, jobID)
-			if err != nil {
-				fmt.Println("here")
-			}
-		}
-
-		if jobSpec.Status != status.JobEnqueuing {
-			fmt.Println("status")
-			// err := DeleteJob(apiName, jobID)
-			// if err != nil {
-			// 	fmt.Println(err.Error())
-			// }
+			telemetry.Error(err)
 		}
 	}
 
 	for jobID := range strset.Intersection(jobIDSetQueueURL, jobIDSetK8s) {
 		queueURL := queueURLMap[jobID]
-		//job := k8sjobMap[jobID]
-		fmt.Println(queueURL)
-		apiName, jobID := operator.IdentifiersFromQueueURL(queueURL)
-
-		jobSpec, err := DownloadJobSpec(apiName, jobID)
+		k8sJob := k8sjobMap[jobID]
+		err := handleQueueAndK8sJobPresent(queueURL, &k8sJob)
 		if err != nil {
-			fmt.Println("jobSpec")
-			//DeleteJob(apiName, jobID)
 			fmt.Println(err.Error())
-			continue
-		}
-		debug.Pp(jobSpec)
-
-		queueMetrics, err := operator.GetQueueMetricsFromURL(queueURL)
-		if err != nil {
-			fmt.Println("queueMetrics")
-			// DeleteJob(apiName, jobID) // TODO
-			fmt.Println(err.Error())
-			continue
-		}
-		partitionMetrics, err := GetJobMetrics(jobSpec)
-		if err != nil {
-			fmt.Println("partitionMetrics")
-			// DeleteJob(apiName, jobID) // TODO
-			fmt.Println(err.Error())
-			continue
-			fmt.Println(partitionMetrics)
-		}
-
-		if queueMetrics.IsEmpty() {
-			fmt.Println("here empty " + jobID)
-			// if job.Annotations["cortex/to-delete"] == "true" {
-			// 	if partitionMetrics.JobStats.Failed+partitionMetrics.JobStats.Succeeded == jobSpec.TotalPartitions {
-			// 		if partitionMetrics.JobStats.Succeeded == jobSpec.TotalPartitions {
-			// 			jobSpec.Status = status.JobSucceeded
-			// 		} else {
-			// 			jobSpec.Status = status.JobFailed
-			// 		}
-			// 		jobSpec.Metrics = partitionMetrics
-			// 		jobSpec.QueueMetrics = queueMetrics
-			// 		jobSpec.WorkerStats = &status.WorkerStats{
-			// 			Active:    int(job.Status.Active),
-			// 			Failed:    int(job.Status.Failed),
-			// 			Succeeded: int(job.Status.Succeeded),
-			// 		}
-			// 		jobSpec.EndTime = pointer.Time(time.Now())
-			// 		err := CommitToS3(*jobSpec)
-			// 		if err != nil {
-			// 			// TODO
-			// 		}
-			// 		DeleteJob(apiName, jobID) // TODO
-			// 	}
-			// } else {
-			// 	if job.Annotations == nil {
-			// 		job.Annotations = map[string]string{}
-			// 	}
-			// 	job.Annotations["cortex/to-delete"] = "true"
-			// 	config.K8s.UpdateJob(&job)
-			// }
-		} else {
-			fmt.Println("here not empty" + jobID)
-
-			// if int(job.Status.Active) == 0 {
-			// 	if job.Annotations["cortex/to-delete"] == "true" {
-			// 		jobSpec.Status = status.JobIncomplete
-			// 		jobSpec.Metrics = partitionMetrics
-			// 		jobSpec.QueueMetrics = queueMetrics
-			// 		jobSpec.WorkerStats = &status.WorkerStats{
-			// 			Active:    int(job.Status.Active),
-			// 			Failed:    int(job.Status.Failed),
-			// 			Succeeded: int(job.Status.Succeeded),
-			// 		}
-			// 		jobSpec.EndTime = pointer.Time(time.Now())
-			// 		err := CommitToS3(*jobSpec)
-			// 		if err != nil {
-			// 			// TODO
-			// 		}
-			// 		DeleteJob(apiName, jobID) // TODO
-			// 	} else {
-			// 		if job.Annotations == nil {
-			// 			job.Annotations = map[string]string{}
-			// 		}
-			// 		job.Annotations["cortex/to-delete"] = "true"
-			// 		config.K8s.UpdateJob(&job)
-			// 	}
-			// }
+			telemetry.Error(err)
 		}
 	}
 
+	return nil
+}
+
+func handleK8sJobWithoutQueue(jobID spec.JobID) error {
+	fmt.Println("handleK8sJobWithoutQueue")
+	queueURL, err := operator.QueueURL(jobID)
+	if err != nil {
+		return err
+	}
+	queueExists, err := operator.DoesQueueExist(queueURL) // double check queue existence because newly created queues take at least 30 seconds to be listed in operator.ListQueues()
+	if err != nil {
+		return err
+	}
+
+	if !queueExists {
+		err := errors.FirstError(
+			operator.WriteToJobLogGroup(jobID, fmt.Sprintf("terminating job %s because sqs queue with url %s was not found", jobID.UserString(), queueURL)),
+			SetErroredStatus(jobID),
+			DeleteJob(jobID),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func handleQueueWithoutK8sJob(queueURL string) error {
+	fmt.Println("handleQueueWithoutK8sJob")
+
+	jobID := operator.IdentifierFromQueueURL(queueURL)
+
+	jobState, err := GetJobState(jobID)
+	if err != nil {
+		return err
+	}
+
+	jobStatusCode := jobState.GetStatusCode()
+	if jobStatusCode == status.JobEnqueuing && time.Now().Sub(jobState.GetLastUpdated()) > time.Second*60 {
+		err := errors.FirstError(
+			operator.WriteToJobLogGroup(jobID, fmt.Sprintf("terminating job %s because liveness check failed", jobID.UserString(), queueURL)),
+			SetErroredStatus(jobID),
+			// DeleteJob(jobID),
+		)
+		if err != nil {
+			return err
+		}
+	} else if jobStatusCode != status.JobRunning {
+		DeleteQueue(queueURL) // queues take a while to delete, swallow this error
+	}
+
+	return nil
+}
+
+func handleQueueAndK8sJobPresent(queueURL string, k8sJob *kbatch.Job) error {
+	fmt.Println("handleQueueAndK8sJobPresent")
+
+	fmt.Println(queueURL)
+	jobID := operator.IdentifierFromQueueURL(queueURL)
+
+	queueMetrics, err := operator.GetQueueMetricsFromURL(queueURL)
+	if err != nil {
+		return err // TODO
+
+	}
+	jobMetrics, err := GetRealTimeJobMetrics(jobID)
+	if err != nil {
+		return err // TODO
+	}
+
+	if queueMetrics.IsEmpty() {
+		// The deletion is delayed to give time for cloudwatch metrics to settle to determine if job succeeded or failed
+		if k8sJob.Annotations["cortex/to-delete"] == "true" {
+			if jobMetrics.Failed != 0 {
+				return errors.FirstError(
+					SetFailedStatus(jobID),
+					DeleteJob(jobID),
+				)
+			} else {
+				return errors.FirstError(
+					SetSucceededStatus(jobID),
+					DeleteJob(jobID),
+				)
+			}
+		} else {
+			if k8sJob.Annotations == nil {
+				k8sJob.Annotations = map[string]string{}
+			}
+			k8sJob.Annotations["cortex/to-delete"] = "true"
+			_, err := config.K8s.UpdateJob(k8sJob)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		if int(k8sJob.Status.Active) == 0 {
+			pods, _ := config.K8s.ListPodsByLabel("jobID", jobID.ID)
+			for _, pod := range pods {
+				podStatus := k8s.GetPodStatus(&pod)
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					if containerStatus.LastTerminationState.Terminated != nil {
+						exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+						reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
+						operator.WriteToJobLogGroup(jobID, fmt.Sprintf("a worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+
+					} else if containerStatus.State.Terminated != nil {
+						exitCode := containerStatus.State.Terminated.ExitCode
+						reason := strings.ToLower(containerStatus.State.Terminated.Reason)
+						operator.WriteToJobLogGroup(jobID, fmt.Sprintf("a worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+					}
+				}
+			}
+			return errors.FirstError(
+				nil,
+				SetIncompleteStatus(jobID),
+				DeleteJob(jobID),
+			)
+		}
+	}
 	return nil
 }

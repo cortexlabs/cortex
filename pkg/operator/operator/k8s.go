@@ -17,10 +17,12 @@ limitations under the License.
 package operator
 
 import (
+	"strings"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func K8sName(apiName string) string {
@@ -50,4 +52,20 @@ func GetEndpointFromVirtualService(virtualService *istioclientnetworking.Virtual
 	}
 
 	return endpoints.GetOne(), nil
+}
+
+func DoCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {
+	cortexAnnotations1 := extractCortexAnnotations(obj1)
+	cortexAnnotations2 := extractCortexAnnotations(obj2)
+	return maps.StrMapsEqual(cortexAnnotations1, cortexAnnotations2)
+}
+
+func extractCortexAnnotations(obj kmeta.Object) map[string]string {
+	cortexAnnotations := make(map[string]string)
+	for key, value := range obj.GetAnnotations() {
+		if strings.Contains(key, "cortex.dev/") {
+			cortexAnnotations[key] = value
+		}
+	}
+	return cortexAnnotations
 }

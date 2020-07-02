@@ -17,25 +17,44 @@ limitations under the License.
 package spec
 
 import (
+	"fmt"
+	"path/filepath"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/types/metrics"
-	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/consts"
 )
 
-type JobSpec struct {
-	ID              string                `json:"job_id"`
-	APIID           string                `json:"api_id"`
-	APIName         string                `json:"api_name"`
-	SQSUrl          string                `json:"sqs_url"`
-	Config          interface{}           `json:"config"`
-	Parallelism     int                   `json:"parallelism"`
-	Status          status.JobCode        `json:"status"`
-	TotalPartitions int                   `json:"total_partitions"`
-	StartTime       time.Time             `json:"start_time"`
-	EndTime         *time.Time            `json:"end_time"`
-	LastUpdated     time.Time             `json:"last_updated"`
-	Metrics         *metrics.JobMetrics   `json:"metrics"`
-	QueueMetrics    *metrics.QueueMetrics `json:"queue_metrics"`
-	WorkerStats     *status.WorkerStats   `json:"worker_stats"`
+type JobID struct {
+	ID      string `json:"job_id"`
+	APIName string `json:"api_name"`
+}
+
+func (j JobID) UserString() string {
+	return fmt.Sprintf("%s (api %s)", j.ID, j.APIName)
+}
+
+func (j JobID) K8sName() string {
+	return fmt.Sprintf("%s-%s", j.APIName, j.ID)
+}
+
+type Job struct {
+	JobID
+	APIID           string      `json:"api_id"`
+	SQSUrl          string      `json:"sqs_url"`
+	Config          interface{} `json:"config"`
+	Parallelism     int         `json:"parallelism"`
+	TotalPartitions int         `json:"total_partitions"`
+	Created         time.Time   `json:"created_time"`
+}
+
+func APIJobPrefix(apiName string) string {
+	return filepath.Join("jobs", apiName, consts.CortexVersion)
+}
+
+func JobSpecPrefix(jobID JobID) string {
+	return filepath.Join(APIJobPrefix(jobID.APIName), jobID.ID)
+}
+
+func JobSpecKey(jobID JobID) string {
+	return filepath.Join(JobSpecPrefix(jobID), "spec.json")
 }

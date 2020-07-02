@@ -28,6 +28,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 func QueueNamePrefix() string {
@@ -43,30 +44,37 @@ func QueuePrefix() (string, error) {
 	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", config.AWS.Region, operatorAccountID, QueueNamePrefix()), nil
 }
 
-func QueueName(apiName, jobID string) string {
+func QueueName(jobID spec.JobID) string {
 	queuePrefix := QueueNamePrefix()
 
-	return queuePrefix + apiName + "-" + jobID + ".fifo"
+	return queuePrefix + jobID.APIName + "-" + jobID.ID + ".fifo"
 }
 
-func QueueURL(apiName, jobID string) (string, error) {
+func QueueURL(jobID spec.JobID) (string, error) {
 	prefix, err := QueuePrefix()
 	if err != nil {
 		return "", err // TODO
 	}
-	return prefix + apiName + "-" + jobID + ".fifo", nil
+	return prefix + jobID.APIName + "-" + jobID.ID + ".fifo", nil
 }
 
-func IdentifiersFromQueueURL(queueURL string) (string, string) {
+func QueueNameFromURL(queueURL string) string {
 	split := strings.Split(queueURL, "/")
 	queueName := split[len(split)-1]
-	apiAndJob := queueName[len("cortex-") : len(queueName)-len(".fifo")]
-	apiAndJobSplit := strings.Split(apiAndJob, "-")
-	jobID := apiAndJobSplit[len(apiAndJobSplit)-1]
-	apiNamesplit := apiAndJobSplit[:len(apiAndJobSplit)-1]
+	return queueName
+}
+
+func IdentifierFromQueueURL(queueURL string) spec.JobID {
+	queueName := QueueNameFromURL(queueURL)
+	apiNameJobIDConcat := queueName[len("cortex-") : len(queueName)-len(".fifo")]
+	underscoreSplit := strings.Split(apiNameJobIDConcat, "-")
+
+	jobID := underscoreSplit[len(underscoreSplit)-1]
+
+	apiNamesplit := underscoreSplit[:len(underscoreSplit)-1]
 	apiName := strings.Join(apiNamesplit, "-")
 
-	return apiName, jobID
+	return spec.JobID{APIName: apiName, ID: jobID}
 }
 
 func ListQueues() ([]string, error) {
@@ -84,25 +92,23 @@ func ListQueues() ([]string, error) {
 	return aws.StringValueSlice(output.QueueUrls), nil
 }
 
-func GetQueueMetrics(apiName, jobID string) (*metrics.QueueMetrics, error) {
-	queueURL, err := QueueURL(apiName, jobID)
+func GetQueueMetrics(jobID spec.JobID) (*metrics.QueueMetrics, error) {
+	queueURL, err := QueueURL(jobID)
 	if err != nil {
 		return nil, err
 	}
 	return GetQueueMetricsFromURL(queueURL)
 }
 
-func DoesQueueExist(apiName, jobID string) (bool, error) {
+func DoesQueueExist(queueURL string) (bool, error) {
 	operatorAccountID, _, err := config.AWS.GetCachedAccountID()
 	if err != nil {
 		return false, err
 	}
 
-	queueName := QueueName(apiName, jobID) // ErrCodeQueueDoesNotExist
-
 	_, err = config.AWS.SQS().GetQueueUrl(
 		&sqs.GetQueueUrlInput{
-			QueueName:              aws.String(queueName),
+			QueueName:              aws.String(QueueNameFromURL(queueURL)),
 			QueueOwnerAWSAccountId: aws.String(operatorAccountID),
 		},
 	)

@@ -37,10 +37,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -78,12 +76,12 @@ func QueuesPerAPI(apiName string) ([]string, error) {
 
 // func GetLatestAPISpec
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
-	prevVirtualService, err := getK8sResources(apiConfig.Name)
+	prevVirtualService, err := getVirtualService(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "") // TODO deployment id
+	api := spec.GetAPISpec(apiConfig, projectID, "") // Deployment ID not needed for BatchAPI spec
 
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
@@ -98,10 +96,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
-			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-	} else {
+		return api, fmt.Sprintf("creating %s", api.Name), nil
+	}
+
+	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -116,9 +116,16 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			go deleteK8sResources(api.Name) // Delete k8s if update fails?
 			return nil, "", err
 		}
+		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
 
-	return api, "", nil
+	return api, fmt.Sprintf("%s is up to date", api.Name), nil
+}
+
+func areAPIsEqual(v1, v2 *istioclientnetworking.VirtualService) bool {
+	return v1.Labels["apiName"] == v2.Labels["apiName"] &&
+		v1.Labels["apiID"] == v2.Labels["apiID"] &&
+		operator.DoCortexAnnotationsMatch(v1, v2)
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
@@ -164,7 +171,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 }
 
 // TODO Remove
-func getK8sResources(apiName string) (*istioclientnetworking.VirtualService, error) {
+func getVirtualService(apiName string) (*istioclientnetworking.VirtualService, error) {
 	virtualService, err := config.K8s.GetVirtualService(K8sName(apiName))
 	return virtualService, err
 }
@@ -227,6 +234,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		ServicePort: _defaultPortInt32,
 		PrefixPath:  api.Networking.Endpoint, // TODO is endpoint always populated?
 		Rewrite:     pointer.String(filepath.Join("batch", api.Name)),
+		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -242,11 +250,6 @@ type Submission struct {
 	JobConfig   interface{}       `json:"config"`
 }
 
-func CommitToS3(j spec.JobSpec) error {
-	j.LastUpdated = time.Now()
-	return config.AWS.UploadJSONToS3(j, config.Cluster.Bucket, JobKey(j.APIName, j.ID))
-}
-
 func APIJobPrefix(apiName string) string {
 	return filepath.Join("jobs", apiName, consts.CortexVersion)
 }
@@ -255,17 +258,18 @@ func JobKey(apiName, jobID string) string {
 	return filepath.Join(APIJobPrefix(apiName), jobID)
 }
 
-func SubmitJob(apiName string, submission Submission) (*spec.JobSpec, error) {
+func SubmitJob(apiName string, submission Submission) (*spec.Job, error) {
 	// submission validation
 	if len(submission.Items) == 0 {
 		fmt.Println("here")
 		// throw error here
 	}
 
-	virtualService, err := getK8sResources(apiName)
+	virtualService, err := getVirtualService(apiName)
 	if err != nil {
 		return nil, err
 	}
+	// TODO what happens if virtualService is nil
 
 	apiID := virtualService.GetLabels()["apiID"]
 
@@ -301,77 +305,31 @@ func SubmitJob(apiName string, submission Submission) (*spec.JobSpec, error) {
 		return nil, errors.Wrap(err) // TODO
 	}
 
-	jobSpec := spec.JobSpec{
-		ID:          jobID,
+	jobSpec := spec.Job{
+		JobID: spec.JobID{
+			APIName: apiSpec.Name,
+			ID:      jobID,
+		},
 		APIID:       apiSpec.ID,
-		APIName:     apiSpec.Name,
 		SQSUrl:      *output.QueueUrl,
 		Config:      submission.JobConfig,
 		Parallelism: submission.Parallelism,
-		LastUpdated: time.Now(),
-		StartTime:   time.Now(),
-		Status:      status.JobEnqueuing,
+		Created:     time.Now(),
 	}
 
-	err = config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, JobKey(apiName, jobID))
+	err = SetEnqueuingStatus(&jobSpec)
 	if err != nil {
 		DeleteQueue(*output.QueueUrl)
 		return nil, err
 	}
 
-	t := ThreadSafeJobSpec{
-		JobSpec: jobSpec,
-	}
-
-	go DeployJob(&t, &submission)
+	go DeployJob(&jobSpec, &submission)
 
 	return &jobSpec, nil
 }
 
-type ThreadSafeJobSpec struct {
-	spec.JobSpec
-	mux sync.Mutex
-}
-
-func (t *ThreadSafeJobSpec) UpdateLiveness() error {
-	fmt.Println("UpdateLiveness")
-	t.mux.Lock()
-	defer t.mux.Unlock()
-	jobSpec, err := DownloadJobSpec(t.APIName, t.ID)
-	if err != nil {
-		return err // TODO
-	}
-
-	if jobSpec.Status != status.JobEnqueuing {
-		fmt.Println("not enqueuing")
-		return nil
-	}
-
-	jobSpec.LastUpdated = time.Now()
-
-	err = UploadJobSpec(jobSpec)
-	if err != nil {
-		return err // TODO
-	}
-
-	return nil
-}
-
-func (t *ThreadSafeJobSpec) PushToS3() error {
-	t.mux.Lock()
-	defer t.mux.Unlock()
-
-	t.LastUpdated = time.Now()
-	err := UploadJobSpec(&t.JobSpec)
-	if err != nil {
-		return err // TODO
-	}
-
-	return nil
-}
-
-func UploadJobSpec(jobSpec *spec.JobSpec) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, JobKey(jobSpec.APIName, jobSpec.ID))
+func UploadJobSpec(jobSpec *spec.Job) error {
+	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, spec.JobSpecKey(jobSpec.JobID))
 	if err != nil {
 		return err // TODO
 	}
@@ -387,44 +345,54 @@ func cronErrHandler(cronName string) func(error) { // TODO what happens if liven
 	}
 }
 
-func DeployJob(jobSpec *ThreadSafeJobSpec, submission *Submission) {
-	livenessCron := cron.Run(jobSpec.UpdateLiveness, cronErrHandler(fmt.Sprintf("failed liveness check", jobSpec.ID, jobSpec.APIName)), 10*time.Second)
+func DeployJob(jobSpec *spec.Job, submission *Submission) {
+	livenessUpdater := func() error {
+		return UpdateLiveness(jobSpec.JobID)
+	}
+
+	livenessCron := cron.Run(livenessUpdater, cronErrHandler(fmt.Sprintf("failed liveness check", jobSpec.ID, jobSpec.APIName)), 10*time.Second)
 	defer livenessCron.Cancel()
 
-	err := operator.CreateLogGroupForJob(jobSpec.APIName, jobSpec.ID)
+	err := operator.CreateLogGroupForJob(jobSpec.JobID)
 	if err != nil {
 		fmt.Println(err.Error()) // TODO
-		jobSpec.Status = status.JobFailed
-		jobSpec.PushToS3()
+		SetErroredStatus(jobSpec.JobID)
+		DeleteJob(jobSpec.JobID)
 	}
 
-	err = operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "started enqueueing partitions")
+	err = operator.WriteToJobLogGroup(jobSpec.JobID, "started enqueueing partitions")
 	if err != nil {
 		fmt.Println(err.Error()) //  TODO
 	}
+
 	err = Enqueue(jobSpec, submission)
 	if err != nil {
-		operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
-		fmt.Println(err.Error()) // TODO
-		jobSpec.Status = status.JobFailed
-		jobSpec.PushToS3()
+		fmt.Println("failed to enqueue")
+		operator.WriteToJobLogGroup(jobSpec.JobID, err.Error())
+		SetErroredStatus(jobSpec.JobID)
+		DeleteJob(jobSpec.JobID)
 	}
 
-	err = operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, "completed enqueueing partitions")
+	err = operator.WriteToJobLogGroup(jobSpec.JobID, "completed enqueueing partitions")
 	if err != nil {
 		fmt.Println(err.Error()) //  TODO
+	}
+
+	err = SetRunningStatus(jobSpec)
+	if err != nil {
+		// TODO here
 	}
 
 	err = ApplyK8sJob(jobSpec)
 	if err != nil {
-		operator.WriteToJobLogGroup(jobSpec.APIName, jobSpec.ID, err.Error())
-		fmt.Println(err.Error()) // TODO
-		jobSpec.Status = status.JobFailed
-		jobSpec.PushToS3()
+		fmt.Println("DeployJob")
+		operator.WriteToJobLogGroup(jobSpec.JobID, err.Error())
+		SetErroredStatus(jobSpec.JobID)
+		DeleteJob(jobSpec.JobID)
 	}
 }
 
-func Enqueue(jobSpec *ThreadSafeJobSpec, submission *Submission) error {
+func Enqueue(jobSpec *spec.Job, submission *Submission) error {
 	total := 0
 	startTime := time.Now()
 	for i, item := range submission.Items {
@@ -447,8 +415,7 @@ func Enqueue(jobSpec *ThreadSafeJobSpec, submission *Submission) error {
 	debug.Pp(time.Now().Sub(startTime).Milliseconds())
 
 	jobSpec.TotalPartitions = total
-	jobSpec.Status = status.JobRunning
-	err := jobSpec.PushToS3()
+	err := SetRunningStatus(jobSpec)
 	if err != nil {
 		return err
 	}
@@ -456,14 +423,14 @@ func Enqueue(jobSpec *ThreadSafeJobSpec, submission *Submission) error {
 	return nil
 }
 
-func ApplyK8sJob(jobSpec *ThreadSafeJobSpec) error {
+func ApplyK8sJob(jobSpec *spec.Job) error {
 	apiSpec, err := operator.DownloadAPISpec(jobSpec.APIName, jobSpec.APIID)
 	if err != nil {
 		return err // TODO
 	}
 
 	apiSpec.Predictor.Env["SQS_QUEUE_URL"] = jobSpec.SQSUrl // TODO
-	apiSpec.Predictor.Env["CORTEX_JOB_SPEC"] = "s3://" + config.Cluster.Bucket + "/" + JobKey(jobSpec.APIName, jobSpec.ID)
+	apiSpec.Predictor.Env["CORTEX_JOB_SPEC"] = "s3://" + config.Cluster.Bucket + "/" + spec.JobSpecKey(jobSpec.JobID)
 	podSpec := PythonPodSpec(apiSpec)
 	for i, container := range podSpec.Containers {
 		if container.Name == _apiContainerName {
@@ -493,29 +460,23 @@ func DeleteQueue(queueURL string) error {
 	return err
 }
 
-func StopJob(apiName, jobID string) error {
-	jobSpec, err := DownloadJobSpec(apiName, jobID)
-	if err != nil {
-		return err
-	}
-
-	DeleteJob(apiName, jobID) // TODO best effort
-
-	jobSpec.Status = status.JobStopped
-	CommitToS3(*jobSpec) // TODO best effort
-
+func StopJob(jobID spec.JobID) error {
+	return errors.FirstError(
+		SetStoppedStatus(jobID),
+		DeleteJob(jobID),
+	)
 	return nil
 }
 
-func DeleteJob(apiName, jobID string) error {
+func DeleteJob(jobID spec.JobID) error {
 	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": apiName, "jobID": jobID}).String(),
+		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": jobID.APIName, "jobID": jobID.ID}).String(),
 	})
 	if err != nil {
 		return err
 	}
 
-	queueURL, err := operator.QueueURL(apiName, jobID)
+	queueURL, err := operator.QueueURL(jobID)
 	if err != nil {
 		return err
 	}
@@ -531,64 +492,13 @@ func DeleteJob(apiName, jobID string) error {
 	return nil
 }
 
-// What happens if key doesn't exist?
-func DownloadJobSpec(apiName, jobID string) (*spec.JobSpec, error) {
-	jobSpec := spec.JobSpec{}
-	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, JobKey(apiName, jobID))
-	if err != nil {
-		return nil, err // TODO
-	}
+// TODO What happens if key doesn't exist?
+// func DownloadJobSpec(apiName, jobID string) (*spec.Job, error) {
+// 	jobSpec := spec.Job{}
+// 	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, JobKey(apiName, jobID))
+// 	if err != nil {
+// 		return nil, err // TODO
+// 	}
 
-	return &jobSpec, nil
-}
-
-func GetJobStatus(apiName, jobID string, k8sJob *kbatch.Job) (*status.JobStatus, error) {
-	jobSpec, err := DownloadJobSpec(apiName, jobID)
-	if err != nil {
-		return nil, err // TODO
-	}
-
-	jobStatus := status.JobStatus{
-		APIName:     apiName,
-		JobID:       jobID,
-		Status:      jobSpec.Status,
-		StartTime:   jobSpec.StartTime,
-		Parallelism: jobSpec.Parallelism,
-	}
-
-	if jobSpec.Status == status.JobEnqueuing {
-		return &jobStatus, nil
-	}
-
-	jobStatus.Total = jobSpec.TotalPartitions
-
-	if jobSpec.Status == status.JobRunning || jobSpec.Status == status.JobEnqueuing {
-		queueMetrics, err := operator.GetQueueMetrics(apiName, jobID)
-		if err != nil {
-			return nil, err // TODO
-		}
-
-		jobStatus.InQueue = queueMetrics.InQueue
-		jobStatus.InProgress = queueMetrics.NotVisible
-	}
-
-	if jobSpec.Status != status.JobEnqueuing {
-
-		metrics, err := GetJobMetrics(jobSpec)
-		if err != nil {
-			return nil, err // TODO
-		}
-
-		jobSpec.Metrics = metrics
-
-		if jobSpec.WorkerStats != nil && k8sJob != nil {
-			jobSpec.WorkerStats = &status.WorkerStats{
-				Active:    int(k8sJob.Status.Active),
-				Failed:    int(k8sJob.Status.Failed),
-				Succeeded: int(k8sJob.Status.Succeeded),
-			}
-		}
-	}
-
-	return &jobStatus, nil
-}
+// 	return &jobSpec, nil
+// }

@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -298,8 +297,9 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		}
 
 		batchAPIsMap[apiName] = &schema.BatchAPI{
-			Spec:    *api,
-			BaseURL: baseURL,
+			APISpec:     *api,
+			BaseURL:     baseURL,
+			JobStatuses: []status.JobStatus{},
 		}
 	}
 
@@ -311,16 +311,12 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		}
 
 		jobID := job.Labels["jobID"]
-		status, err := batchapi.GetJobStatus(apiName, jobID, &job)
+		jobStatus, err := batchapi.GetJobStatusFromK8sJob(spec.JobID{APIName: apiName, ID: jobID}, &job)
 		if err != nil {
 			return nil, err
-
 		}
 
-		jobsForAPI := batchAPIsMap[apiName].Jobs
-		jobsForAPI = append(jobsForAPI, *status)
-
-		batchAPIsMap[apiName].Jobs = jobsForAPI
+		batchAPIsMap[apiName].JobStatuses = append(batchAPIsMap[apiName].JobStatuses, *jobStatus)
 	}
 
 	debug.Pp(batchAPIsMap)
@@ -421,40 +417,39 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 	for _, job := range jobs {
 		jobID := job.Labels["jobID"]
 		fmt.Println("running ", jobID)
-		status, err := batchapi.GetJobStatus(apiName, jobID, &job)
+		jobStatus, err := batchapi.GetJobStatusFromK8sJob(spec.JobID{APIName: apiName, ID: jobID}, &job)
 		if err != nil {
 			return nil, err
 		}
 		jobIDSet.Add(jobID)
-		jobStatuses = append(jobStatuses, *status)
+		jobStatuses = append(jobStatuses, *jobStatus)
 	}
 
 	if len(jobStatuses) < 10 {
-		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.APIJobPrefix(apiName), false, pointer.Int64(20))
+		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.APIJobPrefix(apiName), false, nil)
 		if err != nil {
 			return nil, err // TODO
 		}
 		for _, s3Obj := range objects {
 			pathSplit := strings.Split(*s3Obj.Key, "/")
-			fmt.Println(pathSplit)
-			jobID := pathSplit[len(pathSplit)-1]
+			jobID := pathSplit[len(pathSplit)-2]
 			if jobIDSet.Has(jobID) {
 				continue
 			}
-			fmt.Println("stopped ", jobID)
-			status, err := batchapi.GetJobStatus(apiName, jobID, nil)
+			jobIDSet.Add(jobID)
+			jobStatus, err := batchapi.GetJobStatus(spec.JobID{APIName: apiName, ID: jobID})
 			if err != nil {
 				return nil, err
 			}
-			jobStatuses = append(jobStatuses, *status)
+			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 	}
 
 	return &schema.GetAPIResponse{
 		BatchAPI: &schema.BatchAPI{
-			Spec:    *api,
-			Jobs:    jobStatuses,
-			BaseURL: baseURL,
+			APISpec:     *api,
+			JobStatuses: jobStatuses,
+			BaseURL:     baseURL,
 		},
 	}, nil
 }

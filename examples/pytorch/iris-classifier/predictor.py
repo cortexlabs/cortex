@@ -42,8 +42,16 @@ class PythonPredictor:
 
     def predict(self, payload):
         # Convert the request to a tensor and pass it into the model
+        print(payload)
+        print(type(payload))
+        print(payload == "a")
+        print(payload + "b")
+        if payload == "a":
+            print("reached here")
+            raise Exception("hi")
+
         print(time.asctime())
-        time.sleep(300)
+        time.sleep(30)
         print(time.asctime())
 
         # input_tensor = torch.FloatTensor(

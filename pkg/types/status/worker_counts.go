@@ -16,8 +16,18 @@ limitations under the License.
 
 package status
 
-type WorkerStats struct {
+import kbatch "k8s.io/api/batch/v1"
+
+type WorkerCounts struct {
 	Active    int `json:"active"`
 	Succeeded int `json:"succeeded"`
 	Failed    int `json:"failed"`
+}
+
+func ExtractWorkerCounts(job *kbatch.Job) WorkerCounts {
+	return WorkerCounts{
+		Active:    int(job.Status.Active),
+		Succeeded: int(job.Status.Succeeded),
+		Failed:    int(job.Status.Failed),
+	}
 }

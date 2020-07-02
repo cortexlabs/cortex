@@ -14,20 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package status
+package batchapi
 
 import (
-	"time"
+	"fmt"
 
-	"github.com/cortexlabs/cortex/pkg/types/metrics"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-type JobStatus struct {
-	spec.Job
-	StartTime    time.Time           `json:"start_time"`
-	EndTime      *time.Time          `json:"end_time"`
-	Status       JobCode             `json:"status"`
-	Metrics      *metrics.JobMetrics `json:"metrics"`
-	WorkerCounts *WorkerCounts       `json:"worker_counts"`
+const (
+	ErrJobNotFound     = "batchapi.job_spec_not_found"
+	ErrMissingJobState = "batchapi.missing_job_state"
+	ErrAPINotDeployed  = "batchapi.api_not_deployed"
+)
+
+func ErrorJobSpecNotFound() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJobNotFound,
+		Message: fmt.Sprintf("unable to find job specification file"),
+	})
+}
+
+// TODO remove
+func ErrorMissingJobState() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMissingJobState,
+		Message: fmt.Sprintf("missing job state"),
+	})
 }

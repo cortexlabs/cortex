@@ -111,6 +111,7 @@ def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval
     while True:
         yield
         print("resetting")
+        # todo silence this error (this could fail if done out of order)
         output = local_cache["sqs"].change_message_visibility(
             QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
         )
@@ -179,7 +180,8 @@ def sqs_loop():
 
         renewer.start()
         try:
-            local_cache["predictor_impl"].predict(payload=response["Messages"][0]["Body"])
+            payload = json.loads(response["Messages"][0]["Body"])
+            local_cache["predictor_impl"].predict(payload=payload)
             local_cache["api"].post_metrics(
                 [success_counter_metric(), time_per_partition_metric(time.time() - start_time)]
             )
