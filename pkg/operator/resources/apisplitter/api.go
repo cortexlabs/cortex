@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package syncapi
+package apisplitter
 
 import (
 	"fmt"
@@ -59,15 +59,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-		if err != nil {
-			go deleteK8sResources(api.Name)
-			return nil, "", err
-		}
-		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
-		if err != nil {
-			errors.PrintError(err)
-		}
+
 		return api, fmt.Sprintf("creating %s", api.Name), nil
 	}
 
@@ -195,22 +187,22 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *istioclientnetworking.VirtualService, error) {
-	var deployment *kapps.Deployment
-	var service *kcore.Service
+func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualService, error) {
+	// var deployment *kapps.Deployment
+	// var service *kcore.Service
 	var virtualService *istioclientnetworking.VirtualService
 
 	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployment, err = config.K8s.GetDeployment(operator.K8sName(apiConfig.Name))
-			return err
-		},
-		func() error {
-			var err error
-			service, err = config.K8s.GetService(operator.K8sName(apiConfig.Name))
-			return err
-		},
+		// func() error {
+		// 	var err error
+		// 	deployment, err = config.K8s.GetDeployment(operator.K8sName(apiConfig.Name))
+		// 	return err
+		// },
+		// func() error {
+		// 	var err error
+		// 	service, err = config.K8s.GetService(operator.K8sName(apiConfig.Name))
+		// 	return err
+		// },
 		func() error {
 			var err error
 			virtualService, err = config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
@@ -218,17 +210,17 @@ func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Servi
 		},
 	)
 
-	return deployment, service, virtualService, err
+	return virtualService, err
 }
 
 func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevService *kcore.Service, prevVirtualService *istioclientnetworking.VirtualService) error {
 	return parallel.RunFirstErr(
-		func() error {
-			return applyK8sDeployment(api, prevDeployment)
-		},
-		func() error {
-			return applyK8sService(api, prevService)
-		},
+		// func() error {
+		// 	return applyK8sDeployment(api, prevDeployment)
+		// },
+		// func() error {
+		// 	return applyK8sService(api, prevService)
+		// },
 		func() error {
 			return applyK8sVirtualService(api, prevVirtualService)
 		},
@@ -236,6 +228,7 @@ func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevServ
 }
 
 func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
+
 	newDeployment := deploymentSpec(api, prevDeployment)
 
 	if prevDeployment == nil {
@@ -293,8 +286,17 @@ func applyK8sService(api *spec.API, prevService *kcore.Service) error {
 	return err
 }
 
-func applyK8sVirtualService(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
-	newVirtualService := virtualServiceSpec(api)
+func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
+	services := []string{}
+	weights := []int32{}
+	for _, api := range trafficsplitter.APIs {
+		service, _ := config.K8s.GetService("api-" + api.Name)
+		services = append(services, service.GetName())
+		weights = append(weights, int32(api.Weight))
+	}
+	fmt.Println(services)
+	fmt.Println(weights)
+	newVirtualService := virtualServiceSpec(trafficsplitter, services, weights)
 
 	if prevVirtualService == nil {
 		_, err := config.K8s.CreateVirtualService(newVirtualService)

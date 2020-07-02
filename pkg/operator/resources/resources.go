@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/apisplitter"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -121,6 +122,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 
 	if apiConfig.Kind == userconfig.SyncAPIKind {
 		return syncapi.UpdateAPI(apiConfig, projectID, force)
+	}
+	if apiConfig.Kind == userconfig.APISplitterKind {
+		return apisplitter.UpdateAPI(apiConfig, projectID, force)
 	}
 
 	return nil, "", ErrorOperationNotSupportedForKind(apiConfig.Kind) // unexpected

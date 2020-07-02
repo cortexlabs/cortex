@@ -572,7 +572,8 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        operator.K8sName(api.Name),
 		Gateways:    []string{"apis-gateway"},
-		ServiceName: operator.K8sName(api.Name),
+		ServiceName: []string{operator.K8sName(api.Name)},
+		Weights:     []int32{100},
 		ServicePort: _defaultPortInt32,
 		Path:        *api.Networking.Endpoint,
 		Rewrite:     pointer.String("predict"),

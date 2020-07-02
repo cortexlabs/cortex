@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package syncapi
+package apisplitter
 
 import (
 	"encoding/base64"
@@ -568,18 +568,20 @@ func serviceSpec(api *spec.API) *kcore.Service {
 	})
 }
 
-func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
+func virtualServiceSpec(trafficsplitter *spec.API, services []string, weights []int32) *istioclientnetworking.VirtualService {
+
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:        operator.K8sName(api.Name),
+		Name:        trafficsplitter.Name,
 		Gateways:    []string{"apis-gateway"},
-		ServiceName: operator.K8sName(api.Name),
+		ServiceName: services,
+		Weights:     weights,
 		ServicePort: _defaultPortInt32,
-		Path:        *api.Networking.Endpoint,
+		Path:        trafficsplitter.Endpoint,
 		Rewrite:     pointer.String("predict"),
-		Annotations: api.ToK8sAnnotations(),
+		Annotations: map[string]string{},
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiKind": api.Kind.String(),
+			"apiName": trafficsplitter.Name,
+			"apiKind": trafficsplitter.Kind.String(),
 		},
 	})
 }
