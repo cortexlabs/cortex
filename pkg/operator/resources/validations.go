@@ -74,7 +74,8 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	}
 
 	didPrintWarning := false
-	apiSplitter := len(apisWithoutAPISplitter(apis))+1 == len(apis)
+
+	withoutAPISplitter := apisWithoutAPISplitter(apis)
 	for i := range apis {
 		api := &apis[i]
 		fmt.Println(api)
@@ -92,18 +93,24 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			}
 		}
 		if api.Kind == userconfig.APISplitterKind {
-			isWeight100(api.APIs)
-			checkIfapisExist()
+			_, err = isWeight100(api.APIs)
+			if err != nil {
+				return err
+			}
+			_, err = checkIfAPIExist(api.APIs, withoutAPISplitter)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	fmt.Println("all single api checks done")
-	dups := spec.FindDuplicateNames(apis)
+	dups := spec.FindDuplicateNames(withoutAPISplitter)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateName(dups)
 	}
 
-	dups = findDuplicateEndpoints(apis)
+	dups = findDuplicateEndpoints(withoutAPISplitter)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateEndpointInOneDeploy(dups)
 	}
@@ -206,7 +213,13 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	endpoints := make(map[string][]userconfig.API)
 
 	for _, api := range apis {
-		endpoints[*api.Networking.Endpoint] = append(endpoints[*api.Networking.Endpoint], api)
+		if api.Kind == userconfig.SyncAPIKind {
+			endpoints[*api.Networking.Endpoint] = append(endpoints[*api.Networking.Endpoint], api)
+		}
+		if api.Kind == userconfig.APISplitterKind {
+			endpoints[api.Endpoint] = append(endpoints[api.Endpoint], api)
+		}
+
 	}
 
 	for endpoint := range endpoints {
@@ -249,29 +262,47 @@ func apisWithoutAPISplitter(apis []userconfig.API) []userconfig.API {
 	return withoutAPISplitter
 }
 
-func checkIfapisExist(apis []*userconfig.TrafficSplitter) (bool, error) {
+func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []userconfig.API) (bool, error) {
 
 	// TO DOOOOOO
 	deployedAPIs, err := GetAPIs()
 	if err != nil {
 		return false, err
 	}
+
+	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
 	// OHHHH NO DOUBLE FOR LOOP
-	for _, api := range apis {
+	for _, trafficSplitAPI := range trafficSplitterAPIs {
 		deployed := false
+		//check if already deployed
 		for _, deployedAPI := range deployedAPIs.SyncAPIs {
-			if api.Name == deployedAPI.Spec.Name {
+			if trafficSplitAPI.Name == deployedAPI.Spec.Name {
 				deployed = true
 			}
 		}
+		// check defined apis
+		for _, definedAPI := range apis {
+			if trafficSplitAPI.Name == definedAPI.Name {
+				deployed = true
+			}
+		}
+		if deployed == false {
+			return false, fmt.Errorf("unable to find apis specified in apisplitter")
+		}
 	}
+	return true, nil
+
 }
 
-func isWeight100(apis []*userconfig.TrafficSplitter) bool {
+func isWeight100(apis []*userconfig.TrafficSplitter) (bool, error) {
 
 	totalWeight := 0
 	for _, api := range apis {
 		totalWeight += api.Weight
 	}
-	return totalWeight == 100
+	if totalWeight == 100 {
+		return true, nil
+	}
+	fmt.Println(totalWeight)
+	return false, fmt.Errorf("api splitter weights added up to %d instead of 100", totalWeight)
 }
