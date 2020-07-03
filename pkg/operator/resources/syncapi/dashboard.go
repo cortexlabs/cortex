@@ -95,7 +95,7 @@ func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName s
 	grid.AddWidget(inFlightMetric(dashboardName, apiName), "active replicas", "SampleCount", 10, config.AWS.Region)
 
 	// append new API metrics widgets to existing widgets
-	dashboard.Widgets = append(dashboard.Widgets, grid.GetWidgets()...)
+	dashboard.Widgets = append(dashboard.Widgets, grid.Widgets...)
 
 	return nil
 }

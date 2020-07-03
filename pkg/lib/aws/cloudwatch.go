@@ -328,11 +328,6 @@ func (grid *CloudWatchWidgetGrid) AddWidget(
 	return nil
 }
 
-// GetWidgets gets the list of CloudWatchWidget widgets
-func (grid *CloudWatchWidgetGrid) GetWidgets() []CloudWatchWidget {
-	return grid.Widgets
-}
-
 // HighestY returns the largest Y coordinate of a widget on the dashboard (i.e. the lowest widget)
 func HighestY(dashboard *CloudWatchDashboard) (int, error) {
 	highestY := 0
