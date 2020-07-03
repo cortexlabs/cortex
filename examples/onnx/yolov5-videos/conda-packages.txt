@@ -1,0 +1,2 @@
+conda-forge::ffmpeg
+conda-forge::youtube-dl
