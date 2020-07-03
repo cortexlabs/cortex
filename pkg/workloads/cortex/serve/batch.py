@@ -25,7 +25,6 @@ import math
 import asyncio
 from typing import Any
 
-import uuid
 import boto3
 
 from cortex import consts
@@ -143,15 +142,12 @@ def get_job_spec(storage, cache_dir, job_spec_path):
 
 
 def sqs_loop():
-    queue_url = os.environ.get("SQS_QUEUE_URL")
+    queue_url = local_cache["job"]["sqs_url"]
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
 
-    print(queue_url)
-
     while True:
         print("entering loop")
-        request_attempt = str(uuid.uuid4())
         response = local_cache["sqs"].receive_message(
             QueueUrl=queue_url,
             AttributeNames=["SentTimestamp"],
@@ -159,7 +155,6 @@ def sqs_loop():
             MessageAttributeNames=["All"],
             WaitTimeSeconds=1,
             VisibilityTimeout=120,
-            ReceiveRequestAttemptId=request_attempt,
         )
 
         print(response)

@@ -32,14 +32,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
@@ -172,7 +170,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 
 // TODO Remove
 func getVirtualService(apiName string) (*istioclientnetworking.VirtualService, error) {
-	virtualService, err := config.K8s.GetVirtualService(K8sName(apiName))
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
 	return virtualService, err
 }
 
@@ -198,7 +196,7 @@ func deleteK8sResources(apiName string) error {
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(K8sName(apiName))
+			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
 			return err
 		},
 	)
@@ -218,29 +216,11 @@ func deleteS3Resources(apiName string) error {
 }
 
 func IsAPIDeployed(apiName string) (bool, error) {
-	virtualService, err := config.K8s.GetVirtualService(K8sName(apiName))
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
 	if err != nil {
 		return false, err
 	}
 	return virtualService != nil, nil
-}
-
-// TODO rename
-func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
-	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:        K8sName(api.Name),
-		Gateways:    []string{"apis-gateway"},
-		ServiceName: "operator",
-		ServicePort: _defaultPortInt32,
-		PrefixPath:  api.Networking.Endpoint, // TODO is endpoint always populated?
-		Rewrite:     pointer.String(filepath.Join("batch", api.Name)),
-		Annotations: api.ToK8sAnnotations(),
-		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiID":   api.ID,
-			"apiKind": api.Kind.String(),
-		},
-	})
 }
 
 // TODO add yaml
@@ -409,7 +389,6 @@ func Enqueue(jobSpec *spec.Job, submission *Submission) error {
 			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("item %d", i)) // TODO
 		}
 		total++
-		// }
 	}
 
 	debug.Pp(time.Now().Sub(startTime).Milliseconds())
@@ -428,21 +407,7 @@ func ApplyK8sJob(jobSpec *spec.Job) error {
 	if err != nil {
 		return err // TODO
 	}
-
-	apiSpec.Predictor.Env["SQS_QUEUE_URL"] = jobSpec.SQSUrl // TODO
-	apiSpec.Predictor.Env["CORTEX_JOB_SPEC"] = "s3://" + config.Cluster.Bucket + "/" + spec.JobSpecKey(jobSpec.JobID)
-	podSpec := PythonPodSpec(apiSpec)
-	for i, container := range podSpec.Containers {
-		if container.Name == _apiContainerName {
-			podSpec.Containers[i].Env = append(container.Env, kcore.EnvVar{
-				Name:  "CORTEX_SQS_QUEUE",
-				Value: jobSpec.SQSUrl,
-			})
-		}
-	}
-
-	job := PythonJobSpec(apiSpec, jobSpec.ID, podSpec, jobSpec.Parallelism)
-	job.Labels["jobID"] = jobSpec.ID
+	job := k8sJobSpec(apiSpec, jobSpec)
 
 	_, err = config.K8s.CreateJob(job)
 	if err != nil {
@@ -491,14 +456,3 @@ func DeleteJob(jobID spec.JobID) error {
 
 	return nil
 }
-
-// TODO What happens if key doesn't exist?
-// func DownloadJobSpec(apiName, jobID string) (*spec.Job, error) {
-// 	jobSpec := spec.Job{}
-// 	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, JobKey(apiName, jobID))
-// 	if err != nil {
-// 		return nil, err // TODO
-// 	}
-
-// 	return &jobSpec, nil
-// }

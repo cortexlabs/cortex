@@ -66,6 +66,24 @@ func (c *Client) CreateLogGroup(logGroup string, tagMap map[string]string) error
 	return nil
 }
 
+func (c *Client) TagLogGroup(logGroup string, tagMap map[string]string) error {
+	tags := map[string]*string{}
+	for key, value := range tagMap {
+		tags[key] = aws.String(value)
+	}
+
+	_, err := c.CloudWatchLogs().TagLogGroup(&cloudwatchlogs.TagLogGroupInput{
+		LogGroupName: aws.String(logGroup),
+		Tags:         tags,
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "failed to add tags to log group", logGroup)
+	}
+
+	return nil
+}
+
 // NewDashboard creates a new dashboard object with title
 func (c *Client) NewDashboard(title string) *CloudWatchDashboard {
 	return &CloudWatchDashboard{
