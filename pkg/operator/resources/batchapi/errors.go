@@ -23,22 +23,12 @@ import (
 )
 
 const (
-	ErrJobNotFound     = "batchapi.job_spec_not_found"
-	ErrMissingJobState = "batchapi.missing_job_state"
-	ErrAPINotDeployed  = "batchapi.api_not_deployed"
+	ErrJobNotFound = "batchapi.job_spec_not_found"
 )
 
 func ErrorJobSpecNotFound() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJobNotFound,
 		Message: fmt.Sprintf("unable to find job specification file"),
-	})
-}
-
-// TODO remove
-func ErrorMissingJobState() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMissingJobState,
-		Message: fmt.Sprintf("missing job state"),
 	})
 }

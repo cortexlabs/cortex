@@ -52,14 +52,15 @@ func GetAPI(operatorConfig OperatorConfig, apiName string) (schema.GetAPIRespons
 }
 
 func GetJob(operatorConfig OperatorConfig, apiName string, jobName string) (schema.JobResponse, error) {
-	httpRes, err := HTTPGet(operatorConfig, path.Join("/batch", apiName, jobName))
+	endpoint := path.Join("/batch", apiName, jobName)
+	httpRes, err := HTTPGet(operatorConfig, endpoint)
 	if err != nil {
 		return schema.JobResponse{}, err
 	}
 
 	var jobRes schema.JobResponse
 	if err = json.Unmarshal(httpRes, &jobRes); err != nil {
-		return schema.JobResponse{}, errors.Wrap(err, path.Join("/batch", apiName, jobName), string(httpRes))
+		return schema.JobResponse{}, errors.Wrap(err, endpoint, string(httpRes))
 	}
 
 	return jobRes, nil

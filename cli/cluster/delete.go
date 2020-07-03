@@ -27,34 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
-func DeleteJob(operatorConfig OperatorConfig, apiName string, jobID string, keepCache bool, force bool) (schema.DeleteResponse, error) {
-	if !force {
-		readyReplicas := getReadySyncAPIReplicasOrNil(operatorConfig, apiName)
-		if readyReplicas != nil && *readyReplicas > 2 {
-			prompt.YesOrExit(fmt.Sprintf("are you sure you want to delete %s (which has %d live replicas)?", apiName, *readyReplicas), "", "")
-		}
-	}
-
-	params := map[string]string{
-		"apiName":   apiName,
-		"jobID":     jobID,
-		"keepCache": s.Bool(keepCache),
-	}
-
-	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch", apiName, jobID), params)
-	if err != nil {
-		return schema.DeleteResponse{}, err
-	}
-
-	var deleteRes schema.DeleteResponse
-	err = json.Unmarshal(httpRes, &deleteRes)
-	if err != nil {
-		return schema.DeleteResponse{}, errors.Wrap(err, string(httpRes))
-	}
-
-	return deleteRes, nil
-}
-
 func Delete(operatorConfig OperatorConfig, apiName string, keepCache bool, force bool) (schema.DeleteResponse, error) {
 	if !force {
 		readyReplicas := getReadySyncAPIReplicasOrNil(operatorConfig, apiName)
@@ -99,4 +71,25 @@ func getReadySyncAPIReplicasOrNil(operatorConfig OperatorConfig, apiName string)
 
 	totalReady := apiRes.SyncAPI.Status.Updated.Ready + apiRes.SyncAPI.Status.Stale.Ready
 	return &totalReady
+}
+
+func DeleteJob(operatorConfig OperatorConfig, apiName string, jobID string, keepCache bool, force bool) (schema.DeleteResponse, error) {
+	params := map[string]string{
+		"apiName":   apiName,
+		"jobID":     jobID,
+		"keepCache": s.Bool(keepCache),
+	}
+
+	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch", apiName, jobID), params)
+	if err != nil {
+		return schema.DeleteResponse{}, err
+	}
+
+	var deleteRes schema.DeleteResponse
+	err = json.Unmarshal(httpRes, &deleteRes)
+	if err != nil {
+		return schema.DeleteResponse{}, errors.Wrap(err, string(httpRes))
+	}
+
+	return deleteRes, nil
 }

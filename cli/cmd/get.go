@@ -17,34 +17,22 @@ limitations under the License.
 package cmd
 
 import (
-	"crypto/tls"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
-	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/cortex/pkg/types/metrics"
-	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -94,34 +82,26 @@ var _getCmd = &cobra.Command{
 		}
 
 		rerun(func() (string, error) {
+			env, err := ReadOrConfigureEnv(_flagGetEnv)
+			if err != nil {
+				exit.Error(err)
+			}
+
+			debug.Pp(env)
+
+			out, err := envStringIfNotSpecified(_flagGetEnv)
+			if err != nil {
+				return "", err
+			}
+
 			if len(args) == 1 {
-				env, err := ReadOrConfigureEnv(_flagGetEnv)
-				if err != nil {
-					exit.Error(err)
-				}
-
-				out, err := envStringIfNotSpecified(_flagGetEnv)
-				if err != nil {
-					return "", err
-				}
-
 				apiTable, err := getAPI(env, args[0])
 				if err != nil {
 					return "", err
 				}
 				return out + apiTable, nil
 			} else if len(args) == 2 {
-				env, err := ReadOrConfigureEnv(_flagGetEnv)
-				if err != nil {
-					exit.Error(err)
-				}
-
-				out, err := envStringIfNotSpecified(_flagGetEnv)
-				if err != nil {
-					return "", err
-				}
-
-				apiTable, err := jobStats(env, args[0], args[1])
+				apiTable, err := getJob(env, args[0], args[1])
 				if err != nil {
 					return "", err
 				}
@@ -139,15 +119,14 @@ var _getCmd = &cobra.Command{
 					return "", err
 				}
 
-				apiTable, err := getAPIs(env, false)
+				apiTable, err := getAPIsByEnv(env, false)
 				if err != nil {
 					return "", err
 				}
 				return out + apiTable, nil
 			}
 
-			out, err := getAPIsInAllEnvironments()
-
+			out, err = getAPIsInAllEnvironments()
 			if err != nil {
 				return "", err
 			}
@@ -164,7 +143,7 @@ func getAPIsInAllEnvironments() (string, error) {
 	}
 
 	var allSyncAPIs []schema.SyncAPI
-	var allEnvs []string
+	var allSyncAPIEnvs []string
 	var allBatchAPIs []schema.BatchAPI
 	var allBatchAPIEnvs []string
 	errorsMap := map[string]error{}
@@ -183,7 +162,7 @@ func getAPIsInAllEnvironments() (string, error) {
 			}
 
 			for range apisRes.SyncAPIs {
-				allEnvs = append(allEnvs, env.Name)
+				allSyncAPIEnvs = append(allSyncAPIEnvs, env.Name)
 			}
 
 			allSyncAPIs = append(allSyncAPIs, apisRes.SyncAPIs...)
@@ -206,13 +185,13 @@ func getAPIsInAllEnvironments() (string, error) {
 		}
 	} else {
 		if len(allBatchAPIs) > 0 {
-			t2 := batchAPIsTable(allBatchAPIs, allBatchAPIEnvs)
-			out += t2.MustFormat()
+			t := batchAPIsTable(allBatchAPIs, allBatchAPIEnvs)
+			out += t.MustFormat()
 		}
 
 		if len(allSyncAPIs) > 0 {
-			t := apiTable(allSyncAPIs, allEnvs)
-			if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
+			t := syncAPIsTable(allSyncAPIs, allSyncAPIEnvs)
+			if strset.New(allSyncAPIEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
 				hideReplicaCountColumns(&t)
 			}
 			out += t.MustFormat()
@@ -243,7 +222,8 @@ func hideReplicaCountColumns(t *table.Table) {
 	t.FindHeaderByTitle(_titleFailed).Hidden = true
 }
 
-func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
+// TODO support apis by env
+func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 	var apisRes schema.GetAPIsResponse
 	var err error
 
@@ -259,7 +239,7 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(apisRes.SyncAPIs) == 0 {
+	if len(apisRes.SyncAPIs) == 0 && len(apisRes.BatchAPIs) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
@@ -268,7 +248,7 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 		envNames = append(envNames, env.Name)
 	}
 
-	t := apiTable(apisRes.SyncAPIs, envNames)
+	t := syncAPIsTable(apisRes.SyncAPIs, envNames)
 
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
@@ -329,480 +309,6 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	}
 
 	return "", nil // TODO
-}
-
-func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, error) {
-	var out string
-
-	t := apiTable([]schema.SyncAPI{*syncAPI}, []string{env.Name})
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	t.FindHeaderByTitle(_titleAPI).Hidden = true
-
-	out += t.MustFormat()
-
-	if env.Provider != types.LocalProviderType && syncAPI.Spec.Monitoring != nil {
-		switch syncAPI.Spec.Monitoring.ModelType {
-		case userconfig.ClassificationModelType:
-			out += "\n" + classificationMetricsStr(&syncAPI.Metrics)
-		case userconfig.RegressionModelType:
-			out += "\n" + regressionMetricsStr(&syncAPI.Metrics)
-		}
-	}
-
-	apiEndpoint := syncAPI.BaseURL
-	if env.Provider == types.AWSProviderType {
-		apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Networking.Endpoint)
-		if syncAPI.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
-		}
-	}
-
-	if syncAPI.DashboardURL != "" {
-		out += "\n" + console.Bold("metrics dashboard: ") + syncAPI.DashboardURL + "\n"
-	}
-
-	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
-
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
-
-	if syncAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || syncAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(&syncAPI.Status, apiEndpoint)
-	}
-
-	out += titleStr("configuration") + strings.TrimSpace(syncAPI.Spec.UserStr(env.Provider))
-
-	return out, nil
-}
-
-func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
-	rows := make([][]interface{}, 0, len(batchAPIs))
-
-	var totalFailed int
-
-	for i, batchAPI := range batchAPIs {
-		lastUpdated := time.Unix(batchAPI.APISpec.LastUpdated, 0)
-		latestStartTime := time.Time{}
-		latestJobID := "-"
-		failed := 0
-		for _, job := range batchAPI.JobStatuses {
-			if job.StartTime.After(latestStartTime) && (job.Status == status.JobRunning || job.Status == status.JobEnqueuing) {
-				latestStartTime = job.StartTime
-				latestJobID = job.ID
-			}
-
-		}
-
-		totalFailed += failed
-
-		rows = append(rows, []interface{}{
-			envNames[i],
-			batchAPI.APISpec.Name,
-			len(batchAPI.JobStatuses),
-			latestJobID,
-			libtime.SinceStr(&lastUpdated),
-		})
-	}
-
-	return table.Table{
-		Headers: []table.Header{
-			{Title: _titleEnvironment},
-			{Title: _titleAPI},
-			{Title: _titleJobCount},
-			{Title: _titleLatestJobID},
-			{Title: _titleLastupdated},
-		},
-		Rows: rows,
-	}
-}
-
-func batchAPITable(batchAPI schema.BatchAPI) string {
-	rows := make([][]interface{}, 0, len(batchAPI.JobStatuses))
-
-	out := ""
-	if len(batchAPI.JobStatuses) == 0 {
-		out = console.Bold("no submitted jobs\n")
-	} else {
-		totalFailed := 0
-		for _, job := range batchAPI.JobStatuses {
-			succeeded := 0
-			failed := 0
-
-			if job.Metrics != nil {
-				failed = job.Metrics.Failed
-				succeeded = job.Metrics.Succeeded
-				totalFailed += failed
-			}
-			rows = append(rows, []interface{}{
-				job.ID,
-				job.Status.Message(),
-				fmt.Sprintf("%d/%d", succeeded, job.TotalPartitions),
-				failed,
-				libtime.SinceStr(&job.StartTime),
-			})
-		}
-
-		t := table.Table{
-			Headers: []table.Header{
-				{Title: "job id"},
-				{Title: "status"},
-				{Title: "progress"}, // (completed/total), only show when status is running
-				{Title: "failed", Hidden: totalFailed == 0},
-				{Title: "start time"},
-			},
-			Rows: rows,
-		}
-
-		out += t.MustFormat()
-	}
-
-	apiEndpoint := urls.Join(batchAPI.BaseURL, *batchAPI.APISpec.Networking.Endpoint)
-	if batchAPI.APISpec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
-	}
-
-	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
-	out += "\n"
-
-	out += titleStr("batch api configuration") + batchAPI.APISpec.UserStr(types.AWSProviderType)
-	return out
-}
-
-func jobStats(env cliconfig.Environment, apiName string, jobID string) (string, error) {
-	resp, err := cluster.GetJob(MustGetOperatorConfig(env.Name), apiName, jobID)
-	if err != nil {
-		return "", err
-	}
-
-	out := ""
-
-	{
-		rows := make([][]interface{}, 0, 1)
-		avgTime := "-"
-		if resp.JobStatus.Metrics.AverageTimePerPartition != nil {
-			avgTime = fmt.Sprintf("%.6g s", *resp.JobStatus.Metrics.AverageTimePerPartition)
-		}
-
-		totalFailed := 0
-		rows = append(rows, []interface{}{
-			resp.JobStatus.ID,
-			resp.JobStatus.Status.Message(),
-			resp.JobStatus.TotalPartitions,
-			resp.JobStatus.Metrics.Succeeded,
-			resp.JobStatus.Metrics.Failed,
-			avgTime,
-			resp.JobStatus.StartTime.Format(time.RFC3339),
-		})
-
-		t := table.Table{
-			Headers: []table.Header{
-				{Title: "job id"},
-				{Title: "status"},
-				{Title: "total"},
-				{Title: "succeeded"},
-				{Title: "failed", Hidden: totalFailed == 0},
-				{Title: "avg per batch"},
-				{Title: "start time"},
-			},
-			Rows: rows,
-		}
-
-		out = t.MustFormat() + "\n"
-	}
-
-	if resp.JobStatus.WorkerCounts == nil {
-		out += console.Bold("worker stats not available")
-	} else {
-		rows := make([][]interface{}, 0, 1)
-		rows = append(rows, []interface{}{
-			resp.JobStatus.Parallelism,
-			resp.JobStatus.WorkerCounts.Active,
-			resp.JobStatus.WorkerCounts.Failed,
-			resp.JobStatus.WorkerCounts.Succeeded,
-		})
-
-		t := table.Table{
-			Headers: []table.Header{
-				{Title: "requested"},
-				{Title: "active"},
-				{Title: "failed"},
-				{Title: "succeeded"},
-			},
-			Rows: rows,
-		}
-
-		out += t.MustFormat()
-	}
-
-	jobSpecStr, err := json.Pretty(resp.JobStatus.Job)
-	if err != nil {
-		return "", err // TODO
-	}
-
-	out += titleStr("job configuration") + jobSpecStr
-
-	return out, nil
-}
-
-func apiTable(syncAPIs []schema.SyncAPI, envNames []string) table.Table {
-	rows := make([][]interface{}, 0, len(syncAPIs))
-
-	var totalFailed int32
-	var totalStale int32
-	var total4XX int
-	var total5XX int
-
-	for i, syncAPI := range syncAPIs {
-		lastUpdated := time.Unix(syncAPI.Spec.LastUpdated, 0)
-		rows = append(rows, []interface{}{
-			envNames[i],
-			syncAPI.Spec.Name,
-			syncAPI.Status.Message(),
-			syncAPI.Status.Updated.Ready,
-			syncAPI.Status.Stale.Ready,
-			syncAPI.Status.Requested,
-			syncAPI.Status.Updated.TotalFailed(),
-			libtime.SinceStr(&lastUpdated),
-			latencyStr(&syncAPI.Metrics),
-			code2XXStr(&syncAPI.Metrics),
-			code4XXStr(&syncAPI.Metrics),
-			code5XXStr(&syncAPI.Metrics),
-		})
-
-		totalFailed += syncAPI.Status.Updated.TotalFailed()
-		totalStale += syncAPI.Status.Stale.Ready
-
-		if syncAPI.Metrics.NetworkStats != nil {
-			total4XX += syncAPI.Metrics.NetworkStats.Code4XX
-			total5XX += syncAPI.Metrics.NetworkStats.Code5XX
-		}
-	}
-
-	return table.Table{
-		Headers: []table.Header{
-			{Title: _titleEnvironment},
-			{Title: _titleAPI},
-			{Title: _titleStatus},
-			{Title: _titleUpToDate},
-			{Title: _titleStale, Hidden: totalStale == 0},
-			{Title: _titleRequested},
-			{Title: _titleFailed, Hidden: totalFailed == 0},
-			{Title: _titleLastupdated},
-			{Title: _titleAvgRequest},
-			{Title: _title2XX},
-			{Title: _title4XX, Hidden: total4XX == 0},
-			{Title: _title5XX, Hidden: total5XX == 0},
-		},
-		Rows: rows,
-	}
-}
-
-func latencyStr(metrics *metrics.Metrics) string {
-	if metrics.NetworkStats == nil || metrics.NetworkStats.Latency == nil {
-		return "-"
-	}
-	if *metrics.NetworkStats.Latency < 1000 {
-		return fmt.Sprintf("%.6g ms", *metrics.NetworkStats.Latency)
-	}
-	return fmt.Sprintf("%.6g s", (*metrics.NetworkStats.Latency)/1000)
-}
-
-func code2XXStr(metrics *metrics.Metrics) string {
-	if metrics.NetworkStats == nil || metrics.NetworkStats.Code2XX == 0 {
-		return "-"
-	}
-	return s.Int(metrics.NetworkStats.Code2XX)
-}
-
-func code4XXStr(metrics *metrics.Metrics) string {
-	if metrics.NetworkStats == nil || metrics.NetworkStats.Code4XX == 0 {
-		return "-"
-	}
-	return s.Int(metrics.NetworkStats.Code4XX)
-}
-
-func code5XXStr(metrics *metrics.Metrics) string {
-	if metrics.NetworkStats == nil || metrics.NetworkStats.Code5XX == 0 {
-		return "-"
-	}
-	return s.Int(metrics.NetworkStats.Code5XX)
-}
-
-func regressionMetricsStr(metrics *metrics.Metrics) string {
-	minStr := "-"
-	maxStr := "-"
-	avgStr := "-"
-
-	if metrics.RegressionStats != nil {
-		if metrics.RegressionStats.Min != nil {
-			minStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Min)
-		}
-
-		if metrics.RegressionStats.Max != nil {
-			maxStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Max)
-		}
-
-		if metrics.RegressionStats.Avg != nil {
-			avgStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Avg)
-		}
-	}
-
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "min", MaxWidth: 10},
-			{Title: "max", MaxWidth: 10},
-			{Title: "avg", MaxWidth: 10},
-		},
-		Rows: [][]interface{}{{minStr, maxStr, avgStr}},
-	}
-
-	return t.MustFormat()
-}
-
-func classificationMetricsStr(metrics *metrics.Metrics) string {
-	classList := make([]string, 0, len(metrics.ClassDistribution))
-	for inputName := range metrics.ClassDistribution {
-		classList = append(classList, inputName)
-	}
-	sort.Strings(classList)
-
-	rows := make([][]interface{}, len(classList))
-	for rowNum, className := range classList {
-		rows[rowNum] = []interface{}{
-			className,
-			metrics.ClassDistribution[className],
-		}
-	}
-
-	if len(classList) == 0 {
-		rows = append(rows, []interface{}{
-			"-",
-			"-",
-		})
-	}
-
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "class", MaxWidth: 40},
-			{Title: "count", MaxWidth: 20},
-		},
-		Rows: rows,
-	}
-
-	out := t.MustFormat()
-
-	if len(classList) == consts.MaxClassesPerMonitoringRequest {
-		out += fmt.Sprintf("\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard\n", consts.MaxClassesPerMonitoringRequest)
-	}
-	return out
-}
-
-func describeModelInput(status *status.Status, apiEndpoint string) string {
-	if status.Updated.Ready+status.Stale.Ready == 0 {
-		return "the model's input schema will be available when the api is live\n"
-	}
-
-	apiSummary, err := getAPISummary(apiEndpoint)
-	if err != nil {
-		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
-	}
-
-	numRows := 0
-	for _, inputSignatures := range apiSummary.ModelSignatures {
-		numRows += len(inputSignatures)
-	}
-
-	usesDefaultModel := false
-	rows := make([][]interface{}, numRows)
-	rowNum := 0
-	for modelName, inputSignatures := range apiSummary.ModelSignatures {
-		for inputName, inputSignature := range inputSignatures {
-			shapeStr := make([]string, len(inputSignature.Shape))
-			for idx, dim := range inputSignature.Shape {
-				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
-			}
-			rows[rowNum] = []interface{}{
-				modelName,
-				inputName,
-				inputSignature.Type,
-				"(" + strings.Join(shapeStr, ", ") + ")",
-			}
-			rowNum++
-		}
-		if modelName == consts.SingleModelName {
-			usesDefaultModel = true
-		}
-	}
-
-	inputTitle := "input"
-	if usesDefaultModel {
-		inputTitle = "model input"
-	}
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "model name", MaxWidth: 32, Hidden: usesDefaultModel},
-			{Title: inputTitle, MaxWidth: 32},
-			{Title: "type", MaxWidth: 10},
-			{Title: "shape", MaxWidth: 20},
-		},
-		Rows: rows,
-	}
-
-	return t.MustFormat()
-}
-
-func makeRequest(request *http.Request) (http.Header, []byte, error) {
-	client := http.Client{
-		Timeout: 600 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		bodyBytes, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, _errStrRead)
-		}
-		return nil, nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
-	}
-
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, _errStrRead)
-	}
-	return response.Header, bodyBytes, nil
-}
-
-func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	_, response, err := makeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var apiSummary schema.APISummary
-	err = json.DecodeWithNumber(response, &apiSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
-
-	for _, inputSignatures := range apiSummary.ModelSignatures {
-		for _, inputSignature := range inputSignatures {
-			inputSignature.Shape = cast.JSONNumbers(inputSignature.Shape)
-		}
-	}
-
-	return &apiSummary, nil
 }
 
 func titleStr(title string) string {

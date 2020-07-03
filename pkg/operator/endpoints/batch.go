@@ -48,7 +48,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
-		respondError(w, r, resources.ErrorOperationNotSupportedForKind(deployedResource.Kind))
+		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.BatchAPIKind))
 		return
 	}
 
@@ -106,7 +106,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
-		respondError(w, r, resources.ErrorOperationNotSupportedForKind(deployedResource.Kind))
+		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.BatchAPIKind))
 		return
 	}
 

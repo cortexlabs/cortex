@@ -60,14 +60,6 @@ func GetDeployedResourceByName(resourceName string) (*userconfig.Resource, error
 	}, nil
 }
 
-func IsResourceUpdating(resource userconfig.Resource) (bool, error) {
-	if resource.Kind == userconfig.SyncAPIKind {
-		return syncapi.IsAPIUpdating(resource.Name)
-	}
-
-	return false, ErrorOperationNotSupportedForKind(resource.Kind)
-}
-
 func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
 	projectID := hash.Bytes(projectBytes)
 	projectKey := spec.ProjectKey(projectID)
@@ -133,7 +125,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, projectID)
 	default:
-		return nil, "", ErrorOperationNotSupportedForKind(apiConfig.Kind) // unexpected
+		return nil, "", ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 }
 
@@ -149,7 +141,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	case userconfig.SyncAPIKind:
 		return syncapi.RefreshAPI(apiName, force)
 	default:
-		return "", ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+		return "", ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind)
 	}
 }
 
@@ -190,7 +182,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			return nil, err
 		}
 	default:
-		return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+		return nil, ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 
 	return &schema.DeleteResponse{
@@ -205,7 +197,7 @@ func StreamLogs(logRequest schema.LogRequest, socket *websocket.Conn) error {
 	case userconfig.BatchAPIKind:
 		batchapi.ReadLogs(logRequest, socket)
 	default:
-		return ErrorOperationNotSupportedForKind(logRequest.Kind) // unexpected
+		return ErrorOperationNotSupportedForKind(logRequest.Resource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 
 	return nil
@@ -351,7 +343,7 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 	case userconfig.BatchAPIKind:
 		return getBatchAPI(apiName)
 	default:
-		return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+		return nil, ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 }
 

@@ -44,7 +44,7 @@ func deleteInit() {
 
 var _deleteCmd = &cobra.Command{
 	Use:   "delete API_NAME [JOB_ID]",
-	Short: "delete an api",
+	Short: "delete an api or stop a job",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		env, err := ReadOrConfigureEnv(_flagDeleteEnv)

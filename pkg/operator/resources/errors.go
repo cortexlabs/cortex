@@ -20,6 +20,8 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -30,10 +32,17 @@ const (
 	ErrNoAvailableNodeComputeLimit   = "resources.no_available_node_compute_limit"
 )
 
-func ErrorOperationNotSupportedForKind(kind userconfig.Kind) error {
+func ErrorOperationNotSupportedForKind(resource userconfig.Resource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
+	supportedKindsSlice := append(make([]string, 0, 1+len(supportedKinds)), supportedKind.String())
+	for _, kind := range supportedKinds {
+		supportedKindsSlice = append(supportedKindsSlice, kind.String())
+	}
+
+	msg := fmt.Sprintf("for %s %s", s.StrsOr(supportedKindsSlice), s.PluralS(userconfig.KindKey, len(supportedKindsSlice)))
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperationNotSupportedForKind,
-		Message: fmt.Sprintf("this operation is not supported for %s kind", kind),
+		Message: fmt.Sprintf("this operation is only allowed %s and is not supported for %s of kind %s", msg, resource.Name, resource.Kind),
 	})
 }
 
