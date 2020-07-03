@@ -94,6 +94,10 @@ func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bo
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		return nil, err
 	}
+
+	//order apiconfigs first syncAPIs then TrafficSplit
+	apiConfigs = append(ApisWithoutAPISplitter(apiConfigs), ApisWithoutSyncAPI(apiConfigs)...)
+
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
 		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
@@ -168,6 +172,11 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
+		err := syncapi.DeleteAPI(apiName, keepCache)
+		if err != nil {
+			return nil, err
+		}
+	if deployedResource.Kind == userconfig.TrafficSplitter {
 		err := syncapi.DeleteAPI(apiName, keepCache)
 		if err != nil {
 			return nil, err

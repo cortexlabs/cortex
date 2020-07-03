@@ -19,6 +19,7 @@ package apisplitter
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
@@ -39,58 +40,43 @@ import (
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
-	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
+	prevVirtualService, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
 	}
+	fmt.Println("LOOOADBALANNNNCER")
+	fmt.Println(operator.APILoadBalancerURL())
+	api := spec.GetAPISpec(apiConfig, projectID, "")
 
-	deploymentID := k8s.RandomName()
-	if prevDeployment != nil && prevDeployment.Labels["deploymentID"] != "" {
-		deploymentID = prevDeployment.Labels["deploymentID"]
-	}
-
-	api := spec.GetAPISpec(apiConfig, projectID, deploymentID)
-
-	if prevDeployment == nil {
+	if prevVirtualService == nil {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
-		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
+		if err := applyK8sResources(api, prevVirtualService); err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
 
 		return api, fmt.Sprintf("creating %s", api.Name), nil
 	}
-
-	if !areAPIsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
-		isUpdating, err := isAPIUpdating(prevDeployment)
-		if err != nil {
-			return nil, "", err
-		}
-		if isUpdating && !force {
-			return nil, "", ErrorAPIUpdating(api.Name)
-		}
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
-			return nil, "", errors.Wrap(err, "upload api spec")
-		}
-		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
-			return nil, "", err
-		}
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
-			return nil, "", err
-		}
-		return api, fmt.Sprintf("updating %s", api.Name), nil
-	}
-
-	// deployment didn't change
-	isUpdating, err := isAPIUpdating(prevDeployment)
+	services, weight := getServicesWeightsTrafficSplitter(api)
 	if err != nil {
 		return nil, "", err
 	}
-	if isUpdating {
-		return api, fmt.Sprintf("%s is already updating", api.Name), nil
+
+	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api, services, weight)) {
+		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+			return nil, "", errors.Wrap(err, "upload api spec")
+		}
+		if err := applyK8sResources(api, prevVirtualService); err != nil {
+			return nil, "", err
+		}
+		// if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
+		// 	return nil, "", err
+		// }
+		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
+
 	return api, fmt.Sprintf("%s is up to date", api.Name), nil
 }
 
@@ -136,7 +122,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
+	virtualService, vsErr := config.K8s.GetVirtualService(apiName)
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -205,7 +191,7 @@ func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualS
 		// },
 		func() error {
 			var err error
-			virtualService, err = config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
+			virtualService, err = config.K8s.GetVirtualService(apiConfig.Name)
 			return err
 		},
 	)
@@ -213,7 +199,7 @@ func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualS
 	return virtualService, err
 }
 
-func applyK8sResources(api *spec.API, prevDeployment *kapps.Deployment, prevService *kcore.Service, prevVirtualService *istioclientnetworking.VirtualService) error {
+func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
 	return parallel.RunFirstErr(
 		// func() error {
 		// 	return applyK8sDeployment(api, prevDeployment)
@@ -287,15 +273,9 @@ func applyK8sService(api *spec.API, prevService *kcore.Service) error {
 }
 
 func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
-	services := []string{}
-	weights := []int32{}
-	for _, api := range trafficsplitter.APIs {
-		service, _ := config.K8s.GetService("api-" + api.Name)
-		services = append(services, service.GetName())
-		weights = append(weights, int32(api.Weight))
-	}
-	fmt.Println(services)
-	fmt.Println(weights)
+
+	services, weights := getServicesWeightsTrafficSplitter(trafficsplitter)
+
 	newVirtualService := virtualServiceSpec(trafficsplitter, services, weights)
 
 	if prevVirtualService == nil {
@@ -305,6 +285,17 @@ func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istio
 
 	_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
 	return err
+}
+
+func getServicesWeightsTrafficSplitter(trafficsplitter *spec.API) ([]string, []int32) {
+	services := []string{}
+	weights := []int32{}
+	for _, api := range trafficsplitter.APIs {
+		services = append(services, "api-"+api.Name)
+		weights = append(weights, int32(api.Weight))
+	}
+	return services, weights
+
 }
 
 func deleteK8sResources(apiName string) error {
@@ -371,13 +362,8 @@ func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
 
-func areAPIsEqual(d1, d2 *kapps.Deployment) bool {
-	return k8s.PodComputesEqual(&d1.Spec.Template.Spec, &d2.Spec.Template.Spec) &&
-		k8s.DeploymentStrategiesMatch(d1.Spec.Strategy, d2.Spec.Strategy) &&
-		d1.Labels["apiName"] == d2.Labels["apiName"] &&
-		d1.Labels["apiID"] == d2.Labels["apiID"] &&
-		d1.Labels["deploymentID"] == d2.Labels["deploymentID"] &&
-		doCortexAnnotationsMatch(d1, d2)
+func areVirtualServiceEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
+	return reflect.DeepEqual(vs1, vs2)
 }
 
 func doCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {

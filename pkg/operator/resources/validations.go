@@ -75,7 +75,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 	didPrintWarning := false
 
-	withoutAPISplitter := apisWithoutAPISplitter(apis)
+	withoutAPISplitter := ApisWithoutAPISplitter(apis)
 	for i := range apis {
 		api := &apis[i]
 		fmt.Println(api)
@@ -251,7 +251,7 @@ func getValidationK8sResources() ([]istioclientnetworking.VirtualService, *kreso
 	return virtualServices, maxMem, err
 }
 
-func apisWithoutAPISplitter(apis []userconfig.API) []userconfig.API {
+func ApisWithoutAPISplitter(apis []userconfig.API) []userconfig.API {
 	withoutAPISplitter := []userconfig.API{}
 	for _, api := range apis {
 		if api.Kind != userconfig.APISplitterKind {
@@ -260,6 +260,17 @@ func apisWithoutAPISplitter(apis []userconfig.API) []userconfig.API {
 
 	}
 	return withoutAPISplitter
+}
+
+func ApisWithoutSyncAPI(apis []userconfig.API) []userconfig.API {
+	withoutSyncAPI := []userconfig.API{}
+	for _, api := range apis {
+		if api.Kind != userconfig.SyncAPIKind {
+			withoutSyncAPI = append(withoutSyncAPI, api)
+		}
+
+	}
+	return withoutSyncAPI
 }
 
 func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []userconfig.API) (bool, error) {

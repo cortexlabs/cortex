@@ -569,7 +569,6 @@ func serviceSpec(api *spec.API) *kcore.Service {
 }
 
 func virtualServiceSpec(trafficsplitter *spec.API, services []string, weights []int32) *istioclientnetworking.VirtualService {
-
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        trafficsplitter.Name,
 		Gateways:    []string{"apis-gateway"},
