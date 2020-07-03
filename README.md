@@ -1,10 +1,11 @@
 <!-- Delete on release branches -->
 <img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='64'>
 
+<!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 [install](https://docs.cortex.dev/install) • [docs](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
-# Build machine learning APIs
+# API platform for machine learning engineers
 
 Cortex makes deploying, scaling, and managing machine learning systems in production simple. We believe that developers in any organization should be able to add natural language processing, computer vision, and other machine learning capabilities to their applications without having to worry about infrastructure.
 
@@ -43,11 +44,12 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 ### Install
 
-<!-- CORTEX_VERSION_README_MINOR X 3 -->
+<!-- CORTEX_VERSION_README_MINOR -->
 ```bash
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.18/get-cli.sh)"
 ```
 
+<!-- CORTEX_VERSION_README_MINOR -->
 See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples) or bring your own models to build [custom APIs](https://docs.cortex.dev/deployments/exporting).
 
 ### Learn more
