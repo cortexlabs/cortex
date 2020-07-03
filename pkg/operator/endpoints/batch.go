@@ -23,15 +23,34 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
-func Batch(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("here")
+func SubmitJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+
+	apiName := vars["apiName"]
+
+	deployedResource, err := resources.GetDeployedResourceByName(apiName)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	if deployedResource == nil {
+		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
+		return
+	}
+
+	if deployedResource.Kind == userconfig.SyncAPIKind {
+		respondError(w, r, resources.ErrorOperationNotSupportedForKind(deployedResource.Kind))
+		return
+	}
 
 	rw := http.MaxBytesReader(w, r.Body, 32<<10)
 
@@ -41,7 +60,7 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub := batchapi.Submission{}
+	sub := userconfig.JobSubmission{}
 
 	err = json.Unmarshal(bodyBytes, &sub)
 	if err != nil {
@@ -49,65 +68,16 @@ func Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobSpec, err := batchapi.SubmitJob(vars["apiName"], sub)
+	jobSpec, err := batchapi.SubmitJob(apiName, sub)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
 	respond(w, jobSpec)
-
-	// debug.Pp(sub)
-
-	// objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, filepath.Join("apis", sub.APIName), false, pointer.Int64(1))
-	// if err != nil {
-	// 	respondError(w, r, err)
-	// 	return
-	// }
-
-	// apiSpec := spec.API{}
-	// err = config.AWS.ReadMsgpackFromS3(&apiSpec, config.Cluster.Bucket, *objects[0].Key)
-	// if err != nil {
-	// 	respondError(w, r, err)
-	// 	return
-	// }
-
-	// debug.Pp(apiSpec)
-
-	// output, err := config.AWS.SQS().CreateQueue(
-	// 	&sqs.CreateQueueInput{
-	// 		QueueName: aws.String("batch"),
-	// 	},
-	// )
-
-	// debug.Pp(output)
-	// if err != nil {
-	// 	debug.Pp(err.Error())
-	// 	return
-	// }
-
-	// for _, item := range sub.Items {
-	// 	_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-	// 		QueueUrl:    output.QueueUrl,
-	// 		MessageBody: aws.String(item),
-	// 	})
-	// 	if err != nil {
-	// 		respondError(w, r, err)
-	// 		return
-	// 	}
-	// }
-
-	// apiSpec.Predictor.Env["SQS_QUEUE_URL"] = *output.QueueUrl
-
-	// _, err = config.K8s.CreateJob(operator.PythonJobSpec(&apiSpec, sub.Parallelism))
-	// if err != nil {
-	// 	respondError(w, r, err)
-	// 	return
-	// }
-
 }
 
-func BatchDelete(w http.ResponseWriter, r *http.Request) {
+func DeleteJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	err := batchapi.StopJob(spec.JobID{APIName: vars["apiName"], ID: vars["jobID"]})
@@ -121,9 +91,26 @@ func BatchDelete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func BatchGet(w http.ResponseWriter, r *http.Request) {
+func GetJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	jobID := spec.JobID{APIName: vars["apiName"], ID: vars["jobID"]}
+	apiName := vars["apiName"]
+	deployedResource, err := resources.GetDeployedResourceByName(apiName)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	if deployedResource == nil {
+		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
+		return
+	}
+
+	if deployedResource.Kind == userconfig.SyncAPIKind {
+		respondError(w, r, resources.ErrorOperationNotSupportedForKind(deployedResource.Kind))
+		return
+	}
+
+	jobID := spec.JobID{APIName: apiName, ID: vars["jobID"]}
 
 	jobStatus, err := batchapi.GetJobStatus(jobID)
 	if err != nil {

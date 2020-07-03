@@ -426,7 +426,7 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 	}
 
 	if len(jobStatuses) < 10 {
-		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.APIJobPrefix(apiName), false, nil)
+		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.JobsPrefix(apiName), false, nil)
 		if err != nil {
 			return nil, err // TODO
 		}

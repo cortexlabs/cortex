@@ -17,16 +17,26 @@ limitations under the License.
 package userconfig
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 const (
 	ErrUnknownAPIGatewayType = "errors.unknown_api_gateway_type"
+	ErrConflictingFields     = "errors.conflicting_fields"
 )
 
 func ErrorUnknownAPIGatewayType() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnknownAPIGatewayType,
 		Message: "unknown api gateway type",
+	})
+}
+
+func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConflictingFields,
+		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
 	})
 }

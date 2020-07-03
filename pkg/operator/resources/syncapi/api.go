@@ -372,14 +372,6 @@ func areAPIsEqual(d1, d2 *kapps.Deployment) bool {
 		operator.DoCortexAnnotationsMatch(d1, d2)
 }
 
-func IsAPIDeployed(apiName string) (bool, error) {
-	deployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
-	if err != nil {
-		return false, err
-	}
-	return deployment != nil, nil
-}
-
 // APIBaseURL returns BaseURL of the API without resource endpoint
 func APIBaseURL(api *spec.API) (string, error) {
 	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {

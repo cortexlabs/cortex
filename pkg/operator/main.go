@@ -17,13 +17,11 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -71,10 +69,9 @@ func main() {
 	routerWithoutAuth := router.NewRoute().Subrouter()
 	routerWithoutAuth.Use(endpoints.PanicMiddleware)
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.Batch).Methods("POST") // TODO blacklist /batch*endpoints in cortex.yaml endpoint configuration
-	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.Batch).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.BatchGet).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.BatchDelete).Methods("DELETE")
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitJob).Methods("POST") // TODO blacklist /batch*endpoints in cortex.yaml endpoint configuration
+	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.GetJob).Methods("GET")
+	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.DeleteJob).Methods("DELETE")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 
@@ -89,13 +86,8 @@ func main() {
 	routerWithAuth.HandleFunc("/delete/{apiName}", endpoints.Delete).Methods("DELETE")
 	routerWithAuth.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
 	routerWithAuth.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
+	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 	routerWithAuth.HandleFunc("/logs/{apiName}/{jobID}", endpoints.ReadLogs)
-
-	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		debug.Pp(r.RequestURI)
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode("ok")
-	})
 
 	log.Print("Running on port " + _operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))

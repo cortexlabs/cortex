@@ -93,4 +93,9 @@ const (
 	MaxUpscaleFactorAnnotationKey             = "autoscaling.cortex.dev/max-upscale-factor"
 	DownscaleToleranceAnnotationKey           = "autoscaling.cortex.dev/downscale-tolerance"
 	UpscaleToleranceAnnotationKey             = "autoscaling.cortex.dev/upscale-tolerance"
+
+	// Job Submission
+	ItemsKey            = "items"
+	ParallelismKey      = "parallelism"
+	BatchesPerWorkerKey = "batches_per_worker"
 )

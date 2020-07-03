@@ -17,8 +17,10 @@ limitations under the License.
 package batchapi
 
 import (
+	"fmt"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -30,7 +32,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-func k8sJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
+func k8sJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
 		return tensorFlowPredictorJobSpec(api, job)
@@ -39,11 +41,11 @@ func k8sJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
 	case userconfig.PythonPredictorType:
 		return pythonPredictorJobSpec(api, job)
 	default:
-		return nil // unexpected
+		return nil, nil // unexpected
 	}
 }
 
-func pythonPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
+func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	containers, volumes := operator.PythonPredictorContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
@@ -54,9 +56,14 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
 		}
 	}
 
+	parallelism, err := GetParallelism(job)
+	if err != nil {
+		return nil, err
+	}
+
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobID.K8sName(),
-		Parallelism: job.Parallelism,
+		Parallelism: parallelism,
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -85,10 +92,10 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
 				ServiceAccountName: "default",
 			},
 		},
-	})
+	}), nil
 }
 
-func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
+func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	containers, volumes := operator.TensorFlowPredictorContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
@@ -99,9 +106,13 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
 		}
 	}
 
+	parallelism, err := GetParallelism(job)
+	if err != nil {
+		return nil, err
+	}
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobID.K8sName(),
-		Parallelism: job.Parallelism,
+		Parallelism: parallelism,
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -130,10 +141,10 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
 				ServiceAccountName: "default",
 			},
 		},
-	})
+	}), nil
 }
 
-func onnxPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
+func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	containers := operator.ONNXPredictorContainers(api)
 
 	for i, container := range containers {
@@ -145,9 +156,13 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
 		}
 	}
 
+	parallelism, err := GetParallelism(job)
+	if err != nil {
+		return nil, err
+	}
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobID.K8sName(),
-		Parallelism: job.Parallelism,
+		Parallelism: parallelism,
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -176,7 +191,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) *kbatch.Job {
 				ServiceAccountName: "default",
 			},
 		},
-	})
+	}), nil
 }
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
@@ -194,4 +209,16 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiKind": api.Kind.String(),
 		},
 	})
+}
+
+func GetParallelism(job *spec.Job) (int, error) {
+	if job.Parallelism != nil {
+		return *job.Parallelism, nil
+	}
+
+	if job.BatchesPerWorker != nil {
+		return job.TotalPartitions / (*job.BatchesPerWorker), nil
+	}
+
+	return 0, errors.ErrorUnexpected(fmt.Sprintf("%s and %s are both not specified", userconfig.ParallelismKey, userconfig.BatchesPerWorkerKey))
 }

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type JobID struct {
@@ -39,12 +40,11 @@ func (j JobID) K8sName() string {
 
 type Job struct {
 	JobID
-	APIID           string      `json:"api_id"`
-	SQSUrl          string      `json:"sqs_url"`
-	Config          interface{} `json:"config"`
-	Parallelism     int         `json:"parallelism"`
-	TotalPartitions int         `json:"total_partitions"`
-	Created         time.Time   `json:"created_time"`
+	userconfig.JobSpec
+	APIID           string    `json:"api_id"`
+	SQSUrl          string    `json:"sqs_url"`
+	TotalPartitions int       `json:"total_partitions"`
+	Created         time.Time `json:"created_time"`
 }
 
 func APIJobPrefix(apiName string) string {
