@@ -17,6 +17,8 @@ limitations under the License.
 package operator
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -149,11 +151,13 @@ func RemoveAPIFromAPIGatewayK8s(virtualService *istioclientnetworking.VirtualSer
 
 func UpdateAPIGatewayK8s(prevVirtualService *istioclientnetworking.VirtualService, newAPI *spec.API) error {
 	prevAPIGatewayType, err := userconfig.APIGatewayFromAnnotations(prevVirtualService)
+	fmt.Println(prevAPIGatewayType)
 	if err != nil {
 		return err
 	}
 
 	prevEndpoint, err := GetEndpointFromVirtualService(prevVirtualService)
+	fmt.Println(prevEndpoint)
 	if err != nil {
 		return err
 	}

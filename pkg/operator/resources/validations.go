@@ -217,9 +217,8 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 			endpoints[*api.Networking.Endpoint] = append(endpoints[*api.Networking.Endpoint], api)
 		}
 		if api.Kind == userconfig.APISplitterKind {
-			endpoints[api.Endpoint] = append(endpoints[api.Endpoint], api)
+			endpoints[*api.Networking.Endpoint] = append(endpoints[*api.Networking.Endpoint], api)
 		}
-
 	}
 
 	for endpoint := range endpoints {

@@ -32,7 +32,6 @@ import (
 type API struct {
 	Resource
 	APIs           []*TrafficSplitter `json:"apis" yaml:"apis"`
-	Endpoint       string             `json:"endpoint" yaml:"endpoint"`
 	Predictor      *Predictor         `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring        `json:"monitoring" yaml:"monitoring"`
 	Networking     *Networking        `json:"networking" yaml:"networking"`
@@ -203,6 +202,8 @@ func (api *API) ToK8sAnnotations() map[string]string {
 }
 
 func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
+	fmt.Println(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
+	fmt.Println(APIGatewayAnnotationKey)
 	apiGatewayType := APIGatewayTypeFromString(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
 	if apiGatewayType == UnknownAPIGatewayType {
 		return UnknownAPIGatewayType, ErrorUnknownAPIGatewayType()

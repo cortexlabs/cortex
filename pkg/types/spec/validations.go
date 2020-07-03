@@ -49,28 +49,22 @@ var AutoscalingTickInterval = 10 * time.Second
 
 func apiValidation(provider types.ProviderType, resource userconfig.Resource) *cr.StructValidation {
 	structFieldValidations := []*cr.StructFieldValidation{}
-	structFieldValidations = append(resourceStructValidations,
-		predictorValidation(),
-		networkingValidation(),
-		computeValidation(provider),
-	)
+	structFieldValidations = append(resourceStructValidations)
 
 	if resource.Kind == userconfig.SyncAPIKind {
 		structFieldValidations = append(structFieldValidations,
+			predictorValidation(),
+			networkingValidation(),
+			computeValidation(provider),
 			monitoringValidation(),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
 		)
 	}
 	if resource.Kind == userconfig.APISplitterKind {
-		structFieldValidations = append(resourceStructValidations,
-			&cr.StructFieldValidation{
-				StructField: "Endpoint",
-				StringValidation: &cr.StringValidation{
-					Default: resource.Name,
-				},
-			},
+		structFieldValidations = append(structFieldValidations,
 			multiAPIsValidation(),
+			networkingValidationNoLocal(),
 		)
 	}
 	return &cr.StructValidation{
@@ -121,6 +115,33 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 							GreaterThan:       pointer.Int(0),
 							LessThanOrEqualTo: pointer.Int(100),
 						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func networkingValidationNoLocal() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Networking",
+		StructValidation: &cr.StructValidation{
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Endpoint",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Validator: urls.ValidateEndpoint,
+						MaxLength: 1000, // no particular reason other than it works
+					},
+				},
+				{
+					StructField: "APIGateway",
+					StringValidation: &cr.StringValidation{
+						AllowedValues: userconfig.APIGatewayTypeStrings(),
+						Default:       userconfig.PublicAPIGatewayType.String(),
+					},
+					Parser: func(str string) (interface{}, error) {
+						return userconfig.APIGatewayTypeFromString(str), nil
 					},
 				},
 			},

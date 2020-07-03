@@ -45,12 +45,17 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return nil, "", err
 	}
 	fmt.Println("LOOOADBALANNNNCER")
-	fmt.Println(operator.APILoadBalancerURL())
-	api := spec.GetAPISpec(apiConfig, projectID, "")
 
+	api := spec.GetAPISpec(apiConfig, projectID, "")
+	fmt.Println(APIBaseURL(api))
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
+		}
+		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
+		if err != nil {
+			go deleteK8sResources(api.Name)
+			return nil, "", err
 		}
 		if err := applyK8sResources(api, prevVirtualService); err != nil {
 			go deleteK8sResources(api.Name)
@@ -63,6 +68,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	if err != nil {
 		return nil, "", err
 	}
+	fmt.Println(prevVirtualService)
 
 	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api, services, weight)) {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
@@ -71,58 +77,18 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := applyK8sResources(api, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		// if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
-		// 	return nil, "", err
-		// }
+		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
+			return nil, "", err
+		}
 		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
 
 	return api, fmt.Sprintf("%s is up to date", api.Name), nil
 }
 
-func RefreshAPI(apiName string, force bool) (string, error) {
-	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
-	if err != nil {
-		return "", err
-	} else if prevDeployment == nil {
-		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
-	}
-
-	isUpdating, err := isAPIUpdating(prevDeployment)
-	if err != nil {
-		return "", err
-	}
-
-	if isUpdating && !force {
-		return "", ErrorAPIUpdating(apiName)
-	}
-
-	apiID, err := k8s.GetLabel(prevDeployment, "apiID")
-	if err != nil {
-		return "", err
-	}
-
-	api, err := operator.DownloadAPISpec(apiName, apiID)
-	if err != nil {
-		return "", err
-	}
-
-	api = spec.GetAPISpec(api.API, api.ProjectID, k8s.RandomName())
-
-	if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
-		return "", errors.Wrap(err, "upload api spec")
-	}
-
-	if err := applyK8sDeployment(api, prevDeployment); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("updating %s", api.Name), nil
-}
-
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(apiName)
+	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -144,23 +110,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
 			if err != nil {
 				return err
-			}
-			return nil
-		},
-		// delete api from cloudwatch
-		func() error {
-			statuses, err := GetAllStatuses()
-			if err != nil {
-				return errors.Wrap(err, "failed to get API Statuses")
-			}
-			//extract all api names from statuses
-			allAPINames := make([]string, len(statuses))
-			for i, stat := range statuses {
-				allAPINames[i] = stat.APIName
-			}
-			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
-			if err != nil {
-				return errors.Wrap(err, "failed to delete API from dashboard")
 			}
 			return nil
 		},
@@ -191,7 +140,7 @@ func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualS
 		// },
 		func() error {
 			var err error
-			virtualService, err = config.K8s.GetVirtualService(apiConfig.Name)
+			virtualService, err = config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 			return err
 		},
 	)
@@ -301,20 +250,7 @@ func getServicesWeightsTrafficSplitter(trafficsplitter *spec.API) ([]string, []i
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
-				autoscalerCron.Cancel()
-				delete(_autoscalerCrons, apiName)
-			}
-
-			_, err := config.K8s.DeleteDeployment(operator.K8sName(apiName))
-			return err
-		},
-		func() error {
-			_, err := config.K8s.DeleteService(operator.K8sName(apiName))
-			return err
-		},
-		func() error {
-			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
+			_, err := config.K8s.DeleteVirtualService(apiName)
 			return err
 		},
 	)
