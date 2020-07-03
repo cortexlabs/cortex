@@ -87,7 +87,9 @@ def main():
         host="0.0.0.0",
         port=int(os.environ["CORTEX_SERVING_PORT"]),
         workers=int(os.environ["CORTEX_PROCESSES_PER_REPLICA"]),
-        limit_concurrency=int(os.environ["CORTEX_MAX_PROCESS_CONCURRENCY"]),
+        limit_concurrency=int(
+            os.environ["CORTEX_MAX_PROCESS_CONCURRENCY"]
+        ),  # this is a per process limit
         backlog=int(os.environ["CORTEX_SO_MAX_CONN"]),
         log_config=log_config,
         log_level="info",

@@ -118,7 +118,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	return nil
 }
 
-func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem *kresource.Quantity) error {
+func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem kresource.Quantity) error {
 	if err := validateK8sCompute(api.Compute, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
@@ -156,7 +156,7 @@ var _nvidiaMemReserve = kresource.MustParse("100Mi")
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
-func validateK8sCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
+func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -230,9 +230,9 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	return nil
 }
 
-func getValidationK8sResources() ([]istioclientnetworking.VirtualService, *kresource.Quantity, error) {
+func getValidationK8sResources() ([]istioclientnetworking.VirtualService, kresource.Quantity, error) {
 	var virtualServices []istioclientnetworking.VirtualService
-	var maxMem *kresource.Quantity
+	var maxMem kresource.Quantity
 
 	err := parallel.RunFirstErr(
 		func() error {
