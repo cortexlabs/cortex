@@ -170,7 +170,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 
 		return nil, ErrorAPINotDeployed(apiName)
 	}
-
+	fmt.Println(deployedResource.Kind)
 	if deployedResource.Kind == userconfig.SyncAPIKind {
 		err := syncapi.DeleteAPI(apiName, keepCache)
 		if err != nil {
@@ -241,39 +241,70 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 		return nil, ErrorAPINotDeployed(apiName)
 	}
 
-	if deployedResource.Kind != userconfig.SyncAPIKind {
-		return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
+	if deployedResource.Kind == userconfig.SyncAPIKind {
+
+		status, err := syncapi.GetStatus(apiName)
+		if err != nil {
+			return nil, err
+		}
+
+		api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+		if err != nil {
+			return nil, err
+		}
+
+		metrics, err := syncapi.GetMetrics(api)
+		if err != nil {
+			return nil, err
+		}
+
+		baseURL, err := syncapi.APIBaseURL(api)
+		if err != nil {
+			return nil, err
+		}
+
+		return &schema.GetAPIResponse{
+			SyncAPI: &schema.SyncAPI{
+				Spec:         *api,
+				Status:       *status,
+				Metrics:      *metrics,
+				BaseURL:      baseURL,
+				DashboardURL: syncapi.DashboardURL(),
+			},
+		}, nil
+
 	}
 
-	status, err := syncapi.GetStatus(apiName)
-	if err != nil {
-		return nil, err
+	if deployedResource.Kind == userconfig.APISplitterKind {
+		fmt.Println(deployedResource)
+		status, err := apisplitter.GetStatus(apiName)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println(status)
+		api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println(api)
+
+		baseURL, err := apisplitter.APIBaseURL(api)
+		if err != nil {
+			return nil, err
+		}
+
+		return &schema.GetAPIResponse{
+			APISplitter: &schema.APISplitter{
+				Spec:    *api,
+				Status:  *status,
+				BaseURL: baseURL,
+			},
+		}, nil
+
 	}
 
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
-	if err != nil {
-		return nil, err
-	}
+	return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
 
-	metrics, err := syncapi.GetMetrics(api)
-	if err != nil {
-		return nil, err
-	}
-
-	baseURL, err := syncapi.APIBaseURL(api)
-	if err != nil {
-		return nil, err
-	}
-
-	return &schema.GetAPIResponse{
-		SyncAPI: &schema.SyncAPI{
-			Spec:         *api,
-			Status:       *status,
-			Metrics:      *metrics,
-			BaseURL:      baseURL,
-			DashboardURL: syncapi.DashboardURL(),
-		},
-	}, nil
 }
 
 func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {

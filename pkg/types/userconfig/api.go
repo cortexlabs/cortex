@@ -285,11 +285,23 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 
 func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
+
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
 
-	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
-	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
+	if api.Kind == APISplitterKind {
+		//add APIs to constants
+		sb.WriteString(fmt.Sprintf("%s:\n", "APIs"))
+		for _, api := range api.APIs {
+			sb.WriteString(s.Indent(api.UserStr(), "  "))
+		}
+	}
+
+	if api.Kind == SyncAPIKind {
+		sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
+		sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
+
+	}
 
 	if api.Networking != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
@@ -317,6 +329,14 @@ func (api *API) UserStr(provider types.ProviderType) string {
 			sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
 		}
 	}
+	return sb.String()
+}
+
+func (api *TrafficSplitter) UserStr() string {
+	var sb strings.Builder
+	// ADD KEY TO CONSTS
+	sb.WriteString(fmt.Sprintf("%s: %s\n", "Name", api.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", "Weight", s.Int(api.Weight)))
 	return sb.String()
 }
 

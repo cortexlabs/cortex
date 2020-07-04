@@ -44,6 +44,7 @@ func virtualServiceSpec(trafficsplitter *spec.API, services []string, weights []
 		Labels: map[string]string{
 			"apiName": trafficsplitter.Name,
 			"apiKind": trafficsplitter.Kind.String(),
+			"apiID":   trafficsplitter.ID,
 		},
 	})
 }

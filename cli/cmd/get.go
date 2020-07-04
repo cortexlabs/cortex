@@ -292,7 +292,41 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			return "", err
 		}
 	}
-	return syncAPITable(apiRes.SyncAPI, env)
+	if apiRes.SyncAPI != nil {
+		return syncAPITable(apiRes.SyncAPI, env)
+	}
+	if apiRes.APISplitter != nil {
+		return apiSplitterTable(apiRes.APISplitter, env)
+	}
+	//need to create some error
+	return "", nil
+
+}
+
+func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment) (string, error) {
+	var out string
+
+	// t := apiTable([]schema.APISplitter{*apiSplitter}, []string{env.Name})
+	// t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+	// t.FindHeaderByTitle(_titleAPI).Hidden = true
+
+	// out += t.MustFormat()
+
+	apiEndpoint := apiSplitter.BaseURL
+	if env.Provider == types.AWSProviderType {
+		apiEndpoint = urls.Join(apiSplitter.BaseURL, *apiSplitter.Spec.Networking.Endpoint)
+		if apiSplitter.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
+		}
+	}
+
+	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
+
+	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
+
+	out += titleStr("configuration") + strings.TrimSpace(apiSplitter.Spec.UserStr(env.Provider))
+
+	return out, nil
 }
 
 func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, error) {

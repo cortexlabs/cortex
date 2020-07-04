@@ -22,11 +22,10 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 )
@@ -34,55 +33,31 @@ import (
 const _stalledPodTimeout = 10 * time.Minute
 
 func GetStatus(apiName string) (*status.Status, error) {
-	var deployment *kapps.Deployment
-	var pods []kcore.Pod
+	var virtualService *istioclientnetworking.VirtualService
 
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployment, err = config.K8s.GetDeployment(operator.K8sName(apiName))
-			return err
-		},
-		func() error {
-			var err error
-			pods, err = config.K8s.ListPodsByLabel("apiName", apiName)
-			return err
-		},
-	)
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
 	if err != nil {
 		return nil, err
 	}
 
-	if deployment == nil {
-		return nil, errors.ErrorUnexpected("unable to find deployment", apiName)
+	if virtualService == nil {
+		return nil, errors.ErrorUnexpected("unable to find trafficsplitter", apiName)
 	}
 
-	return apiStatus(deployment, pods)
+	return trafficSplitterStatus(virtualService)
 }
 
 func GetAllStatuses() ([]status.Status, error) {
-	var deployments []kapps.Deployment
-	var pods []kcore.Pod
+	var virtualServices []istioclientnetworking.VirtualService
 
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
-			return err
-		},
-		func() error {
-			var err error
-			pods, err = config.K8s.ListPodsWithLabelKeys("apiName")
-			return err
-		},
-	)
+	virtualServices, err := config.K8s.ListVirtualServicesWithLabelKeys("apiName")
 	if err != nil {
 		return nil, err
 	}
 
-	statuses := make([]status.Status, len(deployments))
-	for i, deployment := range deployments {
-		status, err := apiStatus(&deployment, pods)
+	statuses := make([]status.Status, len(virtualServices))
+	for i, virtualService := range virtualServices {
+		status, err := trafficSplitterStatus(&virtualService)
 		if err != nil {
 			return nil, err
 		}
@@ -96,19 +71,16 @@ func GetAllStatuses() ([]status.Status, error) {
 	return statuses, nil
 }
 
-func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Status, error) {
-	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
-	if err != nil {
-		return nil, err
-	}
+func trafficSplitterStatus(virtualService *istioclientnetworking.VirtualService) (*status.Status, error) {
 
-	status := &status.Status{}
-	status.APIName = deployment.Labels["apiName"]
-	status.APIID = deployment.Labels["apiID"]
-	status.ReplicaCounts = getReplicaCounts(deployment, allPods)
-	status.Code = getStatusCode(&status.ReplicaCounts, autoscalingSpec.MinReplicas)
+	statusResponse := &status.Status{}
+	statusResponse.APIName = virtualService.Labels["apiName"]
+	statusResponse.APIID = virtualService.Labels["apiID"]
+	// if virtual service deploy the trafficsplitter is actice
+	// maybe need to check if backends are active
+	statusResponse.Code = status.Live
 
-	return status, nil
+	return statusResponse, nil
 }
 
 func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.ReplicaCounts {

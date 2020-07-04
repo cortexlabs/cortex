@@ -69,7 +69,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return nil, "", err
 	}
 	fmt.Println(prevVirtualService)
-
+	fmt.Println(virtualServiceSpec(api, services, weight))
 	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api, services, weight)) {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
@@ -123,8 +123,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 }
 
 func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualService, error) {
-	// var deployment *kapps.Deployment
-	// var service *kcore.Service
 	var virtualService *istioclientnetworking.VirtualService
 
 	err := parallel.RunFirstErr(
@@ -150,75 +148,10 @@ func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualS
 
 func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
 	return parallel.RunFirstErr(
-		// func() error {
-		// 	return applyK8sDeployment(api, prevDeployment)
-		// },
-		// func() error {
-		// 	return applyK8sService(api, prevService)
-		// },
 		func() error {
 			return applyK8sVirtualService(api, prevVirtualService)
 		},
 	)
-}
-
-func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
-
-	newDeployment := deploymentSpec(api, prevDeployment)
-
-	if prevDeployment == nil {
-		_, err := config.K8s.CreateDeployment(newDeployment)
-		if err != nil {
-			return err
-		}
-	} else if prevDeployment.Status.ReadyReplicas == 0 {
-		// Delete deployment if it never became ready
-		config.K8s.DeleteDeployment(operator.K8sName(api.Name))
-		_, err := config.K8s.CreateDeployment(newDeployment)
-		if err != nil {
-			return err
-		}
-	} else {
-		_, err := config.K8s.UpdateDeployment(newDeployment)
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := UpdateAutoscalerCron(newDeployment); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func UpdateAutoscalerCron(deployment *kapps.Deployment) error {
-	apiName := deployment.Labels["apiName"]
-
-	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
-		prevAutoscalerCron.Cancel()
-	}
-
-	autoscaler, err := autoscaleFn(deployment)
-	if err != nil {
-		return err
-	}
-
-	_autoscalerCrons[apiName] = cron.Run(autoscaler, operator.ErrorHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
-
-	return nil
-}
-
-func applyK8sService(api *spec.API, prevService *kcore.Service) error {
-	newService := serviceSpec(api)
-
-	if prevService == nil {
-		_, err := config.K8s.CreateService(newService)
-		return err
-	}
-
-	_, err := config.K8s.UpdateService(prevService, newService)
-	return err
 }
 
 func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {

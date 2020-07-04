@@ -63,8 +63,15 @@ type SyncAPI struct {
 	DashboardURL string          `json:"dashboard_url"`
 }
 
+type APISplitter struct {
+	Spec    spec.API      `json:"spec"`
+	Status  status.Status `json:"status"`
+	BaseURL string        `json:"base_url"`
+}
+
 type GetAPIResponse struct {
-	SyncAPI *SyncAPI `json:"sync_api"`
+	SyncAPI     *SyncAPI     `json:"sync_api"`
+	APISplitter *APISplitter `json:"api_splitter"`
 }
 
 type DeleteResponse struct {
