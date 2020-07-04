@@ -202,34 +202,62 @@ func StreamLogs(deployedResource userconfig.Resource, socket *websocket.Conn) er
 }
 
 func GetAPIs() (*schema.GetAPIsResponse, error) {
-	statuses, err := syncapi.GetAllStatuses()
+
+	// get all syncAPIS
+	syncAPIstatuses, err := syncapi.GetAllStatuses()
 	if err != nil {
 		return nil, err
 	}
 
-	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	syncAPIapiNames, syncAPIapiIDs := namesAndIDsFromStatuses(syncAPIstatuses)
+	fmt.Println("SYNVAPIS")
+	fmt.Println(syncAPIapiNames)
+	fmt.Println(syncAPIapiIDs)
+	syncAPIapis, err := operator.DownloadAPISpecs(syncAPIapiNames, syncAPIapiIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	allMetrics, err := syncapi.GetMultipleMetrics(apis)
+	allMetrics, err := syncapi.GetMultipleMetrics(syncAPIapis)
 	if err != nil {
 		return nil, err
 	}
 
-	syncAPIs := make([]schema.SyncAPI, len(apis))
-
-	for i, api := range apis {
-		syncAPIs[i] = schema.SyncAPI{
+	syncAPIs := []schema.SyncAPI{}
+	for i, api := range syncAPIapis {
+		syncAPIs = append(syncAPIs, schema.SyncAPI{
 			Spec:    api,
-			Status:  statuses[i],
+			Status:  syncAPIstatuses[i],
 			Metrics: allMetrics[i],
-		}
+		})
+	}
+
+	// get all apiSplitters
+	apiSplitterstatuses, err := apisplitter.GetAllStatuses()
+	if err != nil {
+		return nil, err
+	}
+
+	apiSplitterapiNames, apiSplitterapiIDs := namesAndIDsFromStatuses(apiSplitterstatuses)
+	fmt.Println("APISPLIRTRER")
+	fmt.Println(apiSplitterapiNames)
+	fmt.Println(apiSplitterapiIDs)
+	apiSplitterapis, err := operator.DownloadAPISpecs(apiSplitterapiNames, apiSplitterapiIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	apiSplitter := []schema.APISplitter{}
+	for i, api := range apiSplitterapis {
+		apiSplitter = append(apiSplitter, schema.APISplitter{
+			Spec:   api,
+			Status: apiSplitterstatuses[i],
+		})
 	}
 
 	return &schema.GetAPIsResponse{
-		SyncAPIs: syncAPIs,
+		SyncAPIs:    syncAPIs,
+		APISplitter: apiSplitter,
 	}, nil
 }
 

@@ -50,7 +50,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 func GetAllStatuses() ([]status.Status, error) {
 	var virtualServices []istioclientnetworking.VirtualService
 
-	virtualServices, err := config.K8s.ListVirtualServicesWithLabelKeys("apiName")
+	virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", "APISplitter")
 	if err != nil {
 		return nil, err
 	}

@@ -44,10 +44,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	if err != nil {
 		return nil, "", err
 	}
-	fmt.Println("LOOOADBALANNNNCER")
 
 	api := spec.GetAPISpec(apiConfig, projectID, "")
-	fmt.Println(APIBaseURL(api))
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
