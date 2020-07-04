@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
@@ -75,11 +74,11 @@ var _deployCmd = &cobra.Command{
 
 		configPath := getConfigPath(args)
 
-		deployDir := s.EnsureSuffix(filepath.Dir(files.UserRelToAbsPath(configPath)), "/")
-		if deployDir == _homeDir {
+		projectRoot := files.Dir(configPath)
+		if projectRoot == _homeDir {
 			exit.Error(ErrorDeployFromTopLevelDir("home", env.Provider))
 		}
-		if deployDir == "/" {
+		if projectRoot == "/" {
 			exit.Error(ErrorDeployFromTopLevelDir("root", env.Provider))
 		}
 
@@ -100,8 +99,7 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			absoluteConfigPath := files.RelToAbsPath(configPath, _cwd)
-			deployResponse, err = local.Deploy(env, absoluteConfigPath, projectFiles)
+			deployResponse, err = local.Deploy(env, configPath, projectFiles)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -111,6 +109,7 @@ var _deployCmd = &cobra.Command{
 	},
 }
 
+// Returns absolute path
 func getConfigPath(args []string) string {
 	var configPath string
 
@@ -126,14 +125,14 @@ func getConfigPath(args []string) string {
 		}
 	}
 
-	return configPath
+	return files.RelToAbsPath(configPath, _cwd)
 }
 
 func findProjectFiles(provider types.ProviderType, configPath string) ([]string, error) {
-	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
+	projectRoot := files.Dir(configPath)
 
 	ignoreFns := []files.IgnoreFn{
-		files.IgnoreSpecificFiles(files.UserRelToAbsPath(configPath)),
+		files.IgnoreSpecificFiles(configPath),
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,
 		files.IgnoreHiddenFolders,
@@ -176,7 +175,7 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 		"config": configBytes,
 	}
 
-	projectRoot := filepath.Dir(files.UserRelToAbsPath(configPath))
+	projectRoot := files.Dir(configPath)
 
 	projectPaths, err := findProjectFiles(provider, configPath)
 	if err != nil {
@@ -185,7 +184,7 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 
 	canSkipPromptMsg := "you can skip this prompt next time with `cortex deploy --yes`\n"
 	rootDirMsg := "this directory"
-	if s.EnsureSuffix(projectRoot, "/") != _cwd {
+	if projectRoot != _cwd {
 		rootDirMsg = fmt.Sprintf("./%s", files.DirPathRelativeToCWD(projectRoot))
 	}
 

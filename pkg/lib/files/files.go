@@ -142,6 +142,10 @@ func WriteFile(data []byte, path string) error {
 	return nil
 }
 
+func IsAbs(path string) bool {
+	return strings.HasPrefix(path, "/") || strings.HasPrefix(path, "~/")
+}
+
 // e.g. ~/path -> /home/ubuntu/path
 // returns original path if there was an error
 func EscapeTilde(path string) (string, error) {
@@ -199,7 +203,7 @@ func TrimDirPrefix(fullPath string, dirPath string) string {
 }
 
 func RelToAbsPath(relativePath string, baseDir string) string {
-	if !filepath.IsAbs(relativePath) {
+	if !IsAbs(relativePath) {
 		relativePath = filepath.Join(baseDir, relativePath)
 	}
 	return filepath.Clean(relativePath)
@@ -214,21 +218,29 @@ func UserRelToAbsPath(relativePath string) string {
 }
 
 func PathRelativeToCWD(absPath string) string {
-	if !strings.HasPrefix(absPath, "/") {
-		return absPath
-	}
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		return absPath
 	}
+	return PathRelativeToDir(absPath, cwd)
+}
 
-	cwd = s.EnsureSuffix(cwd, "/")
-	return strings.TrimPrefix(absPath, cwd)
+func PathRelativeToDir(absPath string, dir string) string {
+	if !IsAbs(absPath) {
+		return absPath
+	}
+	absPath, _ = EscapeTilde(absPath)
+	dir, _ = EscapeTilde(dir)
+	dir = s.EnsureSuffix(dir, "/")
+	return strings.TrimPrefix(absPath, dir)
 }
 
 func DirPathRelativeToCWD(absPath string) string {
 	return s.EnsureSuffix(PathRelativeToCWD(absPath), "/")
+}
+
+func DirPathRelativeToDir(absPath string, dir string) string {
+	return s.EnsureSuffix(PathRelativeToDir(absPath, dir), "/")
 }
 
 func IsFileOrDir(path string) bool {
@@ -651,6 +663,11 @@ func getTreeBranch(dir string, cachedTrees map[string]treeprint.Tree) treeprint.
 	branch := parentBranch.AddBranch(lastDir)
 	cachedTrees[dir] = branch
 	return branch
+}
+
+// Return the path to the directory containing the provided path (with a trailing slash)
+func Dir(path string) string {
+	return s.EnsureSuffix(filepath.Dir(path), "/")
 }
 
 func DirPaths(paths []string, addTrailingSlash bool) []string {

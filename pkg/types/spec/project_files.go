@@ -17,7 +17,14 @@ limitations under the License.
 package spec
 
 type ProjectFiles interface {
-	GetConfigFilePath() string
-	GetAllPaths() []string
+	// Return all paths in the project, relative to the root
+	AllPaths() []string
+	// Return the contents of a file, given the path (relative to the root)
 	GetFile(string) ([]byte, error)
+	// Return whether the project contains a file path (relative to the root)
+	HasFile(string) bool
+	// Return whether the project contains a directory path (relative to the root)
+	HasDir(string) bool
+	// Return the absolute path to the root of the project directory (should only be used in local environment)
+	ProjectDir() string
 }

@@ -666,7 +666,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 
 		if api.Predictor.PythonPath != nil {
 			envVars = append(envVars, kcore.EnvVar{
-				Name:  "PYTHON_PATH",
+				Name:  "CORTEX_PYTHON_PATH",
 				Value: path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath),
 			})
 		}

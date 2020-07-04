@@ -97,6 +97,10 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"AWS_REGION="+awsClient.Region,
 	)
 
+	if api.Predictor.PythonPath != nil {
+		envs = append(envs, "CORTEX_PYTHON_PATH="+filepath.Join(_projectDir, *api.Predictor.PythonPath))
+	}
+
 	if awsAccessKeyID := awsClient.AccessKeyID(); awsAccessKeyID != nil {
 		envs = append(envs, "AWS_ACCESS_KEY_ID="+*awsAccessKeyID)
 	}
