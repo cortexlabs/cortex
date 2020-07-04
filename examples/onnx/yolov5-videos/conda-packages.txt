@@ -1,2 +1,3 @@
 conda-forge::ffmpeg
 conda-forge::youtube-dl
+conda-forge::matplotlib
