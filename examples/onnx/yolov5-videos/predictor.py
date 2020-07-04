@@ -33,9 +33,7 @@ def frame_reader(path: Path, size: Tuple[int, int]) -> Iterable[np.ndarray]:
     # letterbox frames to fixed size
     process = (
         ffmpeg.input(path)
-        .filter(
-            "scale", size=f"{width}:{height}", force_original_aspect_ratio="decrease"
-        )
+        .filter("scale", size=f"{width}:{height}", force_original_aspect_ratio="decrease")
         # Negative values for x and y center the padded video
         .filter("pad", height=height, width=width, x=-1, y=-1)
         .output("pipe:", format="rawvideo", pix_fmt="rgb24")
@@ -55,9 +53,7 @@ class FrameWriter:
     def __init__(self, path: Path, size: Tuple[int, int]):
         width, height = size
         self.process = (
-            ffmpeg.input(
-                "pipe:", format="rawvideo", pix_fmt="rgb24", s=f"{width}x{height}"
-            )
+            ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", s=f"{width}x{height}")
             .output(path, pix_fmt="yuv420p")
             .overwrite_output()
             .run_async(pipe_stdin=True)
