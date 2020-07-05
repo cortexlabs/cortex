@@ -62,6 +62,12 @@ class FrameWriter:
     def write(self, frame: np.ndarray):
         self.process.stdin.write(frame.astype(np.uint8).tobytes())
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
+
     def __del__(self):
         self.process.stdin.close()
         self.process.wait()
@@ -160,9 +166,8 @@ class ONNXPredictor:
     def predict(self, payload):
         in_path = download_from_youtube(payload["url"], self.input_size[1])
         out_path = f"{uuid.uuid1()}.mp4"
-        writer = FrameWriter(out_path, size=self.input_size)
 
-        try:
+        with FrameWriter(out_path, size=self.input_size) as writer:
             for frame in frame_reader(in_path, size=self.input_size):
                 x = (frame.astype(np.float32) / 255).transpose(2, 0, 1)
                 # 4 output tensors, the last three are intermediate values and
@@ -171,11 +176,11 @@ class ONNXPredictor:
                 boxes, class_ids, confidence = self.postprocess(output)
                 overlay_boxes(frame, boxes, class_ids, self.labels, self.color_map)
                 writer.write(frame)
-        finally:
-            # We delete the writer manually to close the opened file
-            del writer
-            os.remove(in_path)
 
-        # We cant remove out_path, so the deployment will run out of diskmemory
-        # sooner or later
-        return FileResponse(out_path)
+        with open(out_path, "rb") as f:
+            output_bytes = f.read()
+
+        os.remove(in_path)
+        os.remove(out_path)
+
+        return output_bytes
