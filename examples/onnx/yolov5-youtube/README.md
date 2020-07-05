@@ -6,30 +6,6 @@ In can be used to run inference on youtube videos and returns the annotated vide
 
 The example can be run on both CPU and on GPU hardware.
 
-## Exporting ONNX
-
-To export a custom model from the repo, use the [`model/export.py`](https://github.com/ultralytics/yolov5/blob/master/models/export.py) script.
-The only change we need to make is to change the line
-
-```
-model.model[-1].export = True  # set Detect() layer export=True
-```
-
-to
-
-```
-model.model[-1].export = False
-```
-
-Originally, the ultralytics repo does not export postprocessing steps of the model, e.g. the conversion from the raw CNN outputs to bounding boxes.
-With newer ONNX versions, these can be exported as part of the model making the deployment much easier.
-
-With this modified script, the ONNX graph used for this example has been exported using
-```
-python models/export.py --weights weights/yolov5s.pt --img 416 --batch 1
-```
-
-
 ## Sample Prediction
 
 Deploy the model by running:
@@ -40,7 +16,7 @@ cortex deploy
 
 And wait for it to become live by tracking its status with `cortex get --watch`.
 
-Once the API has been successfully deployed, export the API's endpoint for convenience. You can get the API's endpoint by running `cortex get youtube-yolov5`.
+Once the API has been successfully deployed, export the API's endpoint for convenience. You can get the API's endpoint by running `cortex get yolov5-youtube`.
 
 ```bash
 export ENDPOINT=your-api-endpoint
@@ -55,3 +31,27 @@ curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d @sample.json -
 ```
 
 After a few seconds, `curl` will save the resulting video `video.mp4` in the current working directory.
+
+
+## Exporting ONNX
+
+To export a custom model from the repo, use the [`model/export.py`](https://github.com/ultralytics/yolov5/blob/master/models/export.py) script.
+The only change we need to make is to change the line
+
+```bash
+model.model[-1].export = True  # set Detect() layer export=True
+```
+
+to
+
+```bash
+model.model[-1].export = False
+```
+
+Originally, the ultralytics repo does not export postprocessing steps of the model, e.g. the conversion from the raw CNN outputs to bounding boxes.
+With newer ONNX versions, these can be exported as part of the model making the deployment much easier.
+
+With this modified script, the ONNX graph used for this example has been exported using
+```bash
+python models/export.py --weights weights/yolov5s.pt --img 416 --batch 1
+```
