@@ -243,32 +243,19 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 	var syncAPITable table.Table
 	var out string
 	if len(apisRes.SyncAPIs) == 0 {
-		for _, apiSplitter := range apisRes.APISplitter {
-			apiSplitTable, err = apiSplitterTable(apiSplitter, env)
-			if err != nil {
-				return "nil", err
-			}
-			apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
-			out += apiSplitTable.MustFormat() + "\n"
-		}
-
+		apiSplitTable = apiSplitterListTable(apisRes.APISplitter, envNames)
+		apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
+		out = apiSplitTable.MustFormat()
 	} else if len(apisRes.APISplitter) == 0 {
 		syncAPITable = apiTable(apisRes.SyncAPIs, envNames)
 		syncAPITable.FindHeaderByTitle(_titleEnvironment).Hidden = true
 		out = syncAPITable.MustFormat()
 	} else {
-		for _, apiSplitter := range apisRes.APISplitter {
-			apiSplitTable, err = apiSplitterTable(apiSplitter, env)
-			if err != nil {
-				return "nil", err
-			}
-			apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
-			out += apiSplitTable.MustFormat() + "\n"
-		}
+		apiSplitTable = apiSplitterListTable(apisRes.APISplitter, envNames)
 		syncAPITable = apiTable(apisRes.SyncAPIs, envNames)
 		apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
 		syncAPITable.FindHeaderByTitle(_titleEnvironment).Hidden = true
-		out += syncAPITable.MustFormat() + "\n"
+		out = syncAPITable.MustFormat() + "\n" + apiSplitTable.MustFormat()
 	}
 
 	if env.Provider == types.LocalProviderType {
@@ -399,6 +386,30 @@ func apiSplitterTable(trafficSplitter schema.APISplitter, env cliconfig.Environm
 		},
 		Rows: rows,
 	}, nil
+}
+
+func apiSplitterListTable(trafficSplitter []schema.APISplitter, envNames []string) table.Table {
+	rows := make([][]interface{}, 0, len(trafficSplitter))
+
+	for i, splitAPI := range trafficSplitter {
+		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
+		rows = append(rows, []interface{}{
+			envNames[i],
+			splitAPI.Spec.Name,
+			splitAPI.Status.Message(),
+			libtime.SinceStr(&lastUpdated),
+		})
+	}
+
+	return table.Table{
+		Headers: []table.Header{
+			{Title: _titleEnvironment},
+			{Title: "api splitter"},
+			{Title: _titleStatus},
+			{Title: _titleLastupdated},
+		},
+		Rows: rows,
+	}
 }
 
 func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, error) {
