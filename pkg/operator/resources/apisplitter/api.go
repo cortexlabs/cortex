@@ -47,6 +47,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 
 	api := spec.GetAPISpec(apiConfig, projectID, "")
 	if prevVirtualService == nil {
+		fmt.Println("CREATING NEW VIRTUALS SERVICE TRAFFICSPLITTER")
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -69,6 +70,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	fmt.Println(prevVirtualService)
 	fmt.Println(virtualServiceSpec(api, services, weight))
 	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api, services, weight)) {
+		fmt.Println("UPDATING EXISTING VIRTUALS SERVICE TRAFFICSPLITTER")
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -80,7 +82,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
-
+	fmt.Println("SAME VIRTUALS SERVICE TRAFFICSPLITTER")
 	return api, fmt.Sprintf("%s is up to date", api.Name), nil
 }
 
@@ -200,7 +202,12 @@ func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
 }
 
 func areVirtualServiceEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
-	return reflect.DeepEqual(vs1, vs2)
+	return vs1.ObjectMeta.Name == vs2.ObjectMeta.Name &&
+		reflect.DeepEqual(vs1.ObjectMeta.Labels, vs2.ObjectMeta.Labels) &&
+		reflect.DeepEqual(vs1.ObjectMeta.Annotations, vs2.ObjectMeta.Annotations) &&
+		reflect.DeepEqual(vs1.Spec.Http, vs2.Spec.Http) &&
+		reflect.DeepEqual(vs1.Spec.Gateways, vs2.Spec.Gateways) &&
+		reflect.DeepEqual(vs1.Spec.Hosts, vs2.Spec.Hosts)
 }
 
 func doCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {
