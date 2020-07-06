@@ -107,7 +107,7 @@ def boxes_yolo_to_xyxy(boxes: np.ndarray):
 
 def overlay_boxes(frame, boxes, class_ids, label_map, color_map, line_thickness=None):
     tl = (
-        line_thickness or round(0.002 * (frame.shape[0] + frame.shape[1]) / 2) + 1
+        line_thickness or round(0.0005 * (frame.shape[0] + frame.shape[1]) / 2) + 1
     )  # line/font thickness
 
     for class_id, (x1, y1, x2, y2) in zip(class_ids, boxes.astype(np.int)):

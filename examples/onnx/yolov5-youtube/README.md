@@ -1,4 +1,4 @@
-# YoloV5 Detection model
+# YOLOv5 Detection model
 
 This example deploys a detection model trained using [ultralytics' yolo repo](https://github.com/ultralytics/yolov5) using ONNX.
 We'll use the `yolov5s` model as an example here.
@@ -30,7 +30,9 @@ To make a request to the model:
 curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d @sample.json --output video.mp4
 ```
 
-After a few seconds, `curl` will save the resulting video `video.mp4` in the current working directory.
+After a few seconds, `curl` will save the resulting video `video.mp4` in the current working directory. The following is a sample of what should be exported:
+
+![yolov5](https://user-images.githubusercontent.com/26958764/86545098-e0dce900-bf34-11ea-83a7-8fd544afa11c.gif)
 
 
 ## Exporting ONNX
