@@ -4,9 +4,6 @@ TODO
 - delete queues on cluster down
 - disable process per replica and workers per process workflows
 - environment variable to indicate which python file to run
-
-status scenarios:
-- request enqueuing has been completed by operator and pods are being initialized?
-- what happens if there isn't enough room for all of the pods to run?
-- one of the pod fails
-- all of the pods fails (items still in queue)
+- query params
+- try a really long enqueuing process
+- test what happens if you set endpoint to batch_rest??

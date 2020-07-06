@@ -25,6 +25,10 @@ type WorkerCounts struct {
 }
 
 func ExtractWorkerCounts(job *kbatch.Job) WorkerCounts {
+	if job == nil {
+		return WorkerCounts{}
+	}
+
 	return WorkerCounts{
 		Active:    int(job.Status.Active),
 		Succeeded: int(job.Status.Succeeded),

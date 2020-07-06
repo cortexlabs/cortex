@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -30,10 +31,10 @@ import (
 
 // Find retention period in https://aws.amazon.com/cloudwatch/faqs/
 
-func GetJobMetrics(jobID spec.JobID, startTime time.Time, endTime time.Time) (*metrics.JobMetrics, error) {
+func GetJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.JobMetrics, error) {
 	batchMetrics := metrics.JobMetrics{}
 
-	err := getMetricsFunc(&jobID, 60*60, &startTime, &endTime, &batchMetrics)()
+	err := getMetricsFunc(&jobKey, 60*60, &startTime, &endTime, &batchMetrics)()
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func GetJobMetrics(jobID spec.JobID, startTime time.Time, endTime time.Time) (*m
 	return &batchMetrics, nil
 }
 
-func GetRealTimeJobMetrics(jobID spec.JobID) (*metrics.JobMetrics, error) {
+func GetRealTimeJobMetrics(jobKey spec.JobKey) (*metrics.JobMetrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
 	realTimeEnd := time.Now().Truncate(time.Second)
 	realTimeStart := realTimeEnd.Truncate(time.Minute)
@@ -51,12 +52,12 @@ func GetRealTimeJobMetrics(jobID spec.JobID) (*metrics.JobMetrics, error) {
 	requestList := []func() error{}
 
 	if realTimeStart.Before(realTimeEnd) {
-		requestList = append(requestList, getMetricsFunc(&jobID, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
+		requestList = append(requestList, getMetricsFunc(&jobKey, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
 	}
 
 	batchEnd := realTimeStart
 	batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
-	requestList = append(requestList, getMetricsFunc(&jobID, 60*60, &batchStart, &batchEnd, &batchMetrics))
+	requestList = append(requestList, getMetricsFunc(&jobKey, 60*60, &batchStart, &batchEnd, &batchMetrics))
 
 	err := parallel.RunFirstErr(requestList[0], requestList[1:]...)
 	if err != nil {
@@ -67,9 +68,9 @@ func GetRealTimeJobMetrics(jobID spec.JobID) (*metrics.JobMetrics, error) {
 	return &mergedMetrics, nil
 }
 
-func getMetricsFunc(jobID *spec.JobID, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.JobMetrics) func() error {
+func getMetricsFunc(jobKey *spec.JobKey, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.JobMetrics) func() error {
 	return func() error {
-		metricDataResults, err := queryMetrics(jobID, period, startTime, endTime)
+		metricDataResults, err := queryMetrics(jobKey, period, startTime, endTime)
 		if err != nil {
 			return err
 		}
@@ -84,8 +85,8 @@ func getMetricsFunc(jobID *spec.JobID, period int64, startTime *time.Time, endTi
 	}
 }
 
-func queryMetrics(jobID *spec.JobID, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
-	allMetrics := getNetworkStatsDef(jobID, period)
+func queryMetrics(jobKey *spec.JobKey, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
+	allMetrics := batchMetricsDef(jobKey, period)
 
 	metricsDataQuery := cloudwatch.GetMetricDataInput{
 		EndTime:           endTime,
@@ -94,7 +95,7 @@ func queryMetrics(jobID *spec.JobID, period int64, startTime *time.Time, endTime
 	}
 	output, err := config.AWS.CloudWatch().GetMetricData(&metricsDataQuery)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return output.MetricDataResults, nil
 }
@@ -131,22 +132,22 @@ func extractJobStats(metricsDataResults []*cloudwatch.MetricDataResult) (*metric
 	return &jobStats, nil
 }
 
-func getAPIDimensions(jobID *spec.JobID) []*cloudwatch.Dimension {
+func getAPIDimensions(jobKey *spec.JobKey) []*cloudwatch.Dimension {
 	return []*cloudwatch.Dimension{
 		{
 			Name:  aws.String("APIName"),
-			Value: aws.String(jobID.APIName),
+			Value: aws.String(jobKey.APIName),
 		},
 		{
 			Name:  aws.String("JobID"),
-			Value: aws.String(jobID.ID),
+			Value: aws.String(jobKey.ID),
 		},
 	}
 }
 
-func getAPIDimensionsCounter(jobID *spec.JobID) []*cloudwatch.Dimension {
+func getAPIDimensionsCounter(jobKey *spec.JobKey) []*cloudwatch.Dimension {
 	return append(
-		getAPIDimensions(jobID),
+		getAPIDimensions(jobKey),
 		&cloudwatch.Dimension{
 			Name:  aws.String("metric_type"),
 			Value: aws.String("counter"),
@@ -154,9 +155,9 @@ func getAPIDimensionsCounter(jobID *spec.JobID) []*cloudwatch.Dimension {
 	)
 }
 
-func getAPIDimensionsHistogram(jobID *spec.JobID) []*cloudwatch.Dimension {
+func getAPIDimensionsHistogram(jobKey *spec.JobKey) []*cloudwatch.Dimension {
 	return append(
-		getAPIDimensions(jobID),
+		getAPIDimensions(jobKey),
 		&cloudwatch.Dimension{
 			Name:  aws.String("metric_type"),
 			Value: aws.String("histogram"),
@@ -164,7 +165,7 @@ func getAPIDimensionsHistogram(jobID *spec.JobID) []*cloudwatch.Dimension {
 	)
 }
 
-func getNetworkStatsDef(jobID *spec.JobID, period int64) []*cloudwatch.MetricDataQuery {
+func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricDataQuery {
 	return []*cloudwatch.MetricDataQuery{
 		{
 			Id:    aws.String("succeeded"),
@@ -173,7 +174,7 @@ func getNetworkStatsDef(jobID *spec.JobID, period int64) []*cloudwatch.MetricDat
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("Succeeded"),
-					Dimensions: getAPIDimensionsCounter(jobID),
+					Dimensions: getAPIDimensionsCounter(jobKey),
 				},
 				Stat:   aws.String("Sum"),
 				Period: aws.Int64(period),
@@ -186,7 +187,7 @@ func getNetworkStatsDef(jobID *spec.JobID, period int64) []*cloudwatch.MetricDat
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("Failed"),
-					Dimensions: getAPIDimensionsCounter(jobID),
+					Dimensions: getAPIDimensionsCounter(jobKey),
 				},
 				Stat:   aws.String("Sum"),
 				Period: aws.Int64(period),
@@ -199,7 +200,7 @@ func getNetworkStatsDef(jobID *spec.JobID, period int64) []*cloudwatch.MetricDat
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("TimePerPartition"),
-					Dimensions: getAPIDimensionsHistogram(jobID),
+					Dimensions: getAPIDimensionsHistogram(jobKey),
 				},
 				Stat:   aws.String("Average"),
 				Period: aws.Int64(period),
@@ -212,7 +213,7 @@ func getNetworkStatsDef(jobID *spec.JobID, period int64) []*cloudwatch.MetricDat
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("TimePerPartition"),
-					Dimensions: getAPIDimensionsHistogram(jobID),
+					Dimensions: getAPIDimensionsHistogram(jobKey),
 				},
 				Stat:   aws.String("SampleCount"),
 				Period: aws.Int64(period),

@@ -18,6 +18,7 @@ package spec
 
 import (
 	"fmt"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -25,21 +26,31 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-type JobID struct {
+type JobKey struct {
 	ID      string `json:"job_id"`
 	APIName string `json:"api_name"`
 }
 
-func (j JobID) UserString() string {
+func (j JobKey) UserString() string {
 	return fmt.Sprintf("%s (api %s)", j.ID, j.APIName)
 }
 
-func (j JobID) K8sName() string {
+// e.g. /jobs/<api_name>/<job_id>/spec.json
+func (j JobKey) FileSpecKey() string {
+	return path.Join(j.PrefixKey(), "spec.json")
+}
+
+// e.g. /jobs/<api_name>/<job_id>
+func (j JobKey) PrefixKey() string {
+	return path.Join(APIJobPrefix(j.APIName), j.ID)
+}
+
+func (j JobKey) K8sName() string {
 	return fmt.Sprintf("%s-%s", j.APIName, j.ID)
 }
 
 type Job struct {
-	JobID
+	JobKey
 	userconfig.JobSpec
 	APIID           string    `json:"api_id"`
 	SQSUrl          string    `json:"sqs_url"`
@@ -49,12 +60,4 @@ type Job struct {
 
 func APIJobPrefix(apiName string) string {
 	return filepath.Join("jobs", apiName, consts.CortexVersion)
-}
-
-func JobSpecPrefix(jobID JobID) string {
-	return filepath.Join(APIJobPrefix(jobID.APIName), jobID.ID)
-}
-
-func JobSpecKey(jobID JobID) string {
-	return filepath.Join(JobSpecPrefix(jobID), "spec.json")
 }

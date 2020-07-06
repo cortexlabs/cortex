@@ -54,7 +54,7 @@ export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
 export PYTHONUNBUFFERED=TRUE
 
 if [ "$CORTEX_PROVIDER" != "local" ]; then
-    if [ "$CORTEX_SQS_QUEUE" == "" ]; then
+    if [ "$CORTEX_KIND" == "sync_api" ]; then
         sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
         sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
         sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
@@ -91,7 +91,7 @@ fi
 # Ensure predictor print() statements are always flushed
 export PYTHONUNBUFFERED=TRUE
 
-if [ "$CORTEX_SQS_QUEUE" == "" ]; then
+if [ "$CORTEX_KIND" == "sync_api" ]; then
     /opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py
 else
     /opt/conda/envs/env/bin/python /src/cortex/serve/batch.py

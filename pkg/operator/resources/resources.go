@@ -19,12 +19,14 @@ package resources
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
@@ -205,7 +207,7 @@ func StreamLogs(logRequest schema.LogRequest, socket *websocket.Conn) error {
 
 func GetAPIs() (*schema.GetAPIsResponse, error) {
 	var deployments []kapps.Deployment
-	var jobs []kbatch.Job
+	var k8sJobs []kbatch.Job
 	var pods []kcore.Pod
 	var virtualServices []istioclientnetworking.VirtualService
 
@@ -222,7 +224,7 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		},
 		func() error {
 			var err error
-			jobs, err = config.K8s.ListJobsWithLabelKeys("apiName")
+			k8sJobs, err = config.K8s.ListJobsWithLabelKeys("apiName")
 			return err
 		},
 		func() error {
@@ -295,20 +297,25 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		}
 	}
 
-	for _, job := range jobs {
-		// TODO jobs take a while to delete because it takes a while to terminate pods
-		apiName := job.Labels["apiName"]
-		if _, ok := batchAPIsMap[apiName]; !ok {
-			continue
-		}
+	k8sJobMap := map[string]*kbatch.Job{}
+	for _, job := range k8sJobs {
+		k8sJobMap[job.Labels["jobID"]] = &job
+	}
 
-		jobID := job.Labels["jobID"]
-		jobStatus, err := batchapi.GetJobStatusFromK8sJob(spec.JobID{APIName: apiName, ID: jobID}, &job)
+	inProgressJobIDs, err := batchapi.ListAllInProgressJobs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, jobKey := range inProgressJobIDs {
+		jobStatus, err := batchapi.GetJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
 		if err != nil {
 			return nil, err
 		}
 
-		batchAPIsMap[apiName].JobStatuses = append(batchAPIsMap[apiName].JobStatuses, *jobStatus)
+		if jobStatus.Status.IsInProgressPhase() {
+			batchAPIsMap[jobKey.APIName].JobStatuses = append(batchAPIsMap[jobKey.APIName].JobStatuses, *jobStatus)
+		}
 	}
 
 	debug.Pp(batchAPIsMap)
@@ -383,17 +390,23 @@ func getSyncAPI(apiName string) (*schema.GetAPIResponse, error) {
 }
 
 func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
+	startTime := time.Now()
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
 	if err != nil {
-		return nil, err // TODO
+		return nil, err
 	}
+
+	if virtualService != nil {
+		return nil, ErrorAPINotDeployed(apiName)
+	}
+
 	apiID := virtualService.GetLabels()["apiID"]
 	api, err := operator.DownloadAPISpec(apiName, apiID)
 	if err != nil {
 		return nil, err
 	}
 
-	jobs, err := config.K8s.ListJobsByLabel("apiName", apiName)
+	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", apiName)
 	if err != nil {
 		return nil, err
 	}
@@ -404,23 +417,35 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 
 	}
 
+	fmt.Println(time.Now().Sub(startTime).Milliseconds())
+
+	k8sJobMap := map[string]*kbatch.Job{}
+	for _, job := range k8sJobs {
+		k8sJobMap[job.Labels["jobID"]] = &job
+	}
+
+	inProgressJobIDs, err := batchapi.ListAllInProgressJobsByAPI(apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	jobStatuses := []status.JobStatus{}
 	jobIDSet := strset.New()
-	jobStatuses := make([]status.JobStatus, 0, len(jobs))
-	for _, job := range jobs {
-		jobID := job.Labels["jobID"]
-		fmt.Println("running ", jobID)
-		jobStatus, err := batchapi.GetJobStatusFromK8sJob(spec.JobID{APIName: apiName, ID: jobID}, &job)
+	for _, jobKey := range inProgressJobIDs {
+		jobStatus, err := batchapi.GetJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
 		if err != nil {
 			return nil, err
 		}
-		jobIDSet.Add(jobID)
+
 		jobStatuses = append(jobStatuses, *jobStatus)
+		jobIDSet.Add(jobKey.ID)
 	}
+	fmt.Println(time.Now().Sub(startTime).Milliseconds())
 
 	if len(jobStatuses) < 10 {
-		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.JobsPrefix(apiName), false, nil)
+		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.JobsPrefix(apiName), false, pointer.Int64(80))
 		if err != nil {
-			return nil, err // TODO
+			return nil, err
 		}
 		for _, s3Obj := range objects {
 			pathSplit := strings.Split(*s3Obj.Key, "/")
@@ -429,13 +454,15 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 				continue
 			}
 			jobIDSet.Add(jobID)
-			jobStatus, err := batchapi.GetJobStatus(spec.JobID{APIName: apiName, ID: jobID})
+
+			jobStatus, err := batchapi.GetJobStatus(spec.JobKey{APIName: apiName, ID: jobID})
 			if err != nil {
 				return nil, err
 			}
 			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 	}
+	fmt.Println(time.Now().Sub(startTime).Milliseconds())
 
 	return &schema.GetAPIResponse{
 		BatchAPI: &schema.BatchAPI{

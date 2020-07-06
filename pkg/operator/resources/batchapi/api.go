@@ -126,25 +126,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-// TODO Remove
-func getVirtualService(apiName string) (*istioclientnetworking.VirtualService, error) {
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
-	return virtualService, err
-}
-
-// TODO rename
-func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
-	newVirtualService := virtualServiceSpec(api)
-
-	if prevVirtualService == nil {
-		_, err := config.K8s.CreateVirtualService(newVirtualService)
-		return err
-	}
-
-	_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
-	return err
-}
-
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {

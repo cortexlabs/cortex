@@ -18,7 +18,7 @@ package batchapi
 
 import (
 	"fmt"
-	"path/filepath"
+	"path"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -51,7 +51,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + spec.JobSpecKey(job.JobID),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.FileSpecKey(),
 			})
 		}
 	}
@@ -62,7 +62,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	}
 
 	return k8s.Job(&k8s.JobSpec{
-		Name:        job.JobID.K8sName(),
+		Name:        job.JobKey.K8sName(),
 		Parallelism: parallelism,
 		Labels: map[string]string{
 			"apiName": api.Name,
@@ -101,7 +101,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + spec.JobSpecKey(job.JobID),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.FileSpecKey(),
 			})
 		}
 	}
@@ -111,7 +111,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 		return nil, err
 	}
 	return k8s.Job(&k8s.JobSpec{
-		Name:        job.JobID.K8sName(),
+		Name:        job.JobKey.K8sName(),
 		Parallelism: parallelism,
 		Labels: map[string]string{
 			"apiName": api.Name,
@@ -151,7 +151,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + spec.JobSpecKey(job.JobID),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.FileSpecKey(),
 			})
 		}
 	}
@@ -161,7 +161,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		return nil, err
 	}
 	return k8s.Job(&k8s.JobSpec{
-		Name:        job.JobID.K8sName(),
+		Name:        job.JobKey.K8sName(),
 		Parallelism: parallelism,
 		Labels: map[string]string{
 			"apiName": api.Name,
@@ -200,8 +200,8 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Gateways:    []string{"apis-gateway"},
 		ServiceName: "operator",
 		ServicePort: operator.DefaultPortInt32,
-		PrefixPath:  api.Networking.Endpoint, // TODO is endpoint always populated?
-		Rewrite:     pointer.String(filepath.Join("batch", api.Name)),
+		PrefixPath:  api.Networking.Endpoint,
+		Rewrite:     pointer.String(path.Join("batch_rest", api.Name)),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
@@ -221,4 +221,21 @@ func GetParallelism(job *spec.Job) (int, error) {
 	}
 
 	return 0, errors.ErrorUnexpected(fmt.Sprintf("%s and %s are both not specified", userconfig.ParallelismKey, userconfig.BatchesPerWorkerKey))
+}
+
+func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
+	newVirtualService := virtualServiceSpec(api)
+
+	if prevVirtualService == nil {
+		_, err := config.K8s.CreateVirtualService(newVirtualService)
+		return err
+	}
+
+	_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
+	return err
+}
+
+func getVirtualService(apiName string) (*istioclientnetworking.VirtualService, error) {
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+	return virtualService, err
 }

@@ -80,7 +80,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 func DeleteJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := batchapi.StopJob(spec.JobID{APIName: vars["apiName"], ID: vars["jobID"]})
+	err := batchapi.StopJob(spec.JobKey{APIName: vars["apiName"], ID: vars["jobID"]})
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -110,7 +110,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobID := spec.JobID{APIName: apiName, ID: vars["jobID"]}
+	jobID := spec.JobKey{APIName: apiName, ID: vars["jobID"]}
 
 	jobStatus, err := batchapi.GetJobStatus(jobID)
 	if err != nil {

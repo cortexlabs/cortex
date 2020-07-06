@@ -23,39 +23,39 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func QueueNamePrefix() string {
-	return "cortex-"
+func ClusterBasedQueueName() string {
+	return hash.String(config.Cluster.ClusterName)[:11] + "-"
 }
 
 func QueuePrefix() (string, error) {
 	operatorAccountID, _, err := config.AWS.GetCachedAccountID()
 	if err != nil {
-		return "", err // TODO
+		return "", errors.Wrap(err, "failed to construct queue url", "unable to get account id")
 	}
 
-	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", config.AWS.Region, operatorAccountID, QueueNamePrefix()), nil
+	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", config.AWS.Region, operatorAccountID, ClusterBasedQueueName()), nil
 }
 
-func QueueName(jobID spec.JobID) string {
-	queuePrefix := QueueNamePrefix()
+func QueueName(jobKey spec.JobKey) string {
+	queuePrefix := ClusterBasedQueueName()
 
-	return queuePrefix + jobID.APIName + "-" + jobID.ID + ".fifo"
+	return queuePrefix + jobKey.APIName + "-" + jobKey.ID + ".fifo"
 }
 
-func QueueURL(jobID spec.JobID) (string, error) {
+func QueueURL(jobKey spec.JobKey) (string, error) {
 	prefix, err := QueuePrefix()
 	if err != nil {
-		return "", err // TODO
+		return "", err
 	}
-	return prefix + jobID.APIName + "-" + jobID.ID + ".fifo", nil
+	return prefix + jobKey.APIName + "-" + jobKey.ID + ".fifo", nil
 }
 
 func QueueNameFromURL(queueURL string) string {
@@ -64,9 +64,9 @@ func QueueNameFromURL(queueURL string) string {
 	return queueName
 }
 
-func IdentifierFromQueueURL(queueURL string) spec.JobID {
+func IdentifierFromQueueURL(queueURL string) spec.JobKey {
 	queueName := QueueNameFromURL(queueURL)
-	apiNameJobIDConcat := queueName[len("cortex-") : len(queueName)-len(".fifo")]
+	apiNameJobIDConcat := queueName[len(ClusterBasedQueueName()) : len(queueName)-len(".fifo")]
 	underscoreSplit := strings.Split(apiNameJobIDConcat, "-")
 
 	jobID := underscoreSplit[len(underscoreSplit)-1]
@@ -74,11 +74,36 @@ func IdentifierFromQueueURL(queueURL string) spec.JobID {
 	apiNamesplit := underscoreSplit[:len(underscoreSplit)-1]
 	apiName := strings.Join(apiNamesplit, "-")
 
-	return spec.JobID{APIName: apiName, ID: jobID}
+	return spec.JobKey{APIName: apiName, ID: jobID}
+}
+
+func CreateQueue(apiName string, jobID string, tags map[string]string) (string, error) {
+	for key, value := range config.Cluster.Tags {
+		tags[key] = value
+	}
+
+	queueName := ClusterBasedQueueName() + apiName + "-" + jobID + ".fifo"
+
+	output, err := config.AWS.SQS().CreateQueue(
+		&sqs.CreateQueueInput{
+			Attributes: map[string]*string{
+				"FifoQueue":                 aws.String("true"),
+				"ContentBasedDeduplication": aws.String("true"),
+				"VisibilityTimeout":         aws.String("90"),
+			},
+			QueueName: aws.String(queueName),
+			Tags:      aws.StringMap(tags),
+		},
+	)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create sqs queue", queueName)
+	}
+
+	return *output.QueueUrl, nil
 }
 
 func ListQueues() ([]string, error) {
-	queuePrefix := QueueNamePrefix()
+	queuePrefix := ClusterBasedQueueName()
 
 	output, err := config.AWS.SQS().ListQueues(
 		&sqs.ListQueuesInput{
@@ -92,8 +117,8 @@ func ListQueues() ([]string, error) {
 	return aws.StringValueSlice(output.QueueUrls), nil
 }
 
-func GetQueueMetrics(jobID spec.JobID) (*metrics.QueueMetrics, error) {
-	queueURL, err := QueueURL(jobID)
+func GetQueueMetrics(jobKey spec.JobKey) (*metrics.QueueMetrics, error) {
+	queueURL, err := QueueURL(jobKey)
 	if err != nil {
 		return nil, err
 	}
@@ -106,9 +131,11 @@ func DoesQueueExist(queueURL string) (bool, error) {
 		return false, err
 	}
 
+	queueName := QueueNameFromURL(queueURL)
+
 	_, err = config.AWS.SQS().GetQueueUrl(
 		&sqs.GetQueueUrlInput{
-			QueueName:              aws.String(QueueNameFromURL(queueURL)),
+			QueueName:              aws.String(queueName),
 			QueueOwnerAWSAccountId: aws.String(operatorAccountID),
 		},
 	)
@@ -116,23 +143,20 @@ func DoesQueueExist(queueURL string) (bool, error) {
 		if awslib.IsErrCode(err, sqs.ErrCodeQueueDoesNotExist) {
 			return false, nil
 		}
-		return false, err
+		return false, errors.Wrap(err, "failed to check if queue exists", queueName)
 	}
 
 	return true, nil
 }
 
 func GetQueueMetricsFromURL(queueURL string) (*metrics.QueueMetrics, error) {
-	debug.Pp(queueURL)
 	output, err := config.AWS.SQS().GetQueueAttributes(&sqs.GetQueueAttributesInput{
 		AttributeNames: aws.StringSlice([]string{"ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"}),
 		QueueUrl:       aws.String(queueURL),
 	})
 	if err != nil {
-		return nil, errors.WithStack(err) // TODO
+		return nil, errors.Wrap(err, "failed to get queue metrics", queueURL)
 	}
-
-	debug.Pp(output)
 
 	metrics := metrics.QueueMetrics{}
 	parsedInt, ok := s.ParseInt(*output.Attributes["ApproximateNumberOfMessages"])

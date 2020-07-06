@@ -24,9 +24,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -72,116 +70,67 @@ func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, 
 		"jobID":   jobID,
 	}
 
-	for key, value := range config.Cluster.Tags {
-		tags[key] = value
-	}
-
-	output, err := config.AWS.SQS().CreateQueue(
-		&sqs.CreateQueueInput{
-			Attributes: map[string]*string{
-				"FifoQueue":                 aws.String("true"),
-				"ContentBasedDeduplication": aws.String("true"),
-				"VisibilityTimeout":         aws.String("90"),
-			},
-			QueueName: aws.String("cortex" + "-" + apiName + "-" + jobID + ".fifo"),
-			Tags:      aws.StringMap(tags),
-		},
-	)
+	queueURL, err := operator.CreateQueue(apiName, jobID, tags)
 	if err != nil {
-		return nil, errors.Wrap(err) // TODO
+		return nil, err
 	}
 
 	jobSpec := spec.Job{
 		JobSpec: submission.JobSpec,
-		JobID: spec.JobID{
+		JobKey: spec.JobKey{
 			APIName: apiSpec.Name,
 			ID:      jobID,
 		},
 		APIID:   apiSpec.ID,
-		SQSUrl:  *output.QueueUrl,
+		SQSUrl:  queueURL,
 		Created: time.Now(),
 	}
 
 	err = SetEnqueuingStatus(&jobSpec)
 	if err != nil {
-		DeleteQueue(*output.QueueUrl)
+		DeleteQueue(queueURL)
 		return nil, err
 	}
 
-	go DeployJob(&jobSpec, &submission)
+	go DeployJob(apiSpec, &jobSpec, &submission)
 
 	return &jobSpec, nil
 }
 
-func UploadJobSpec(jobSpec *spec.Job) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, spec.JobSpecKey(jobSpec.JobID))
+func DeployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobSubmission) {
+	err := operator.CreateLogGroupForJob(jobSpec.JobKey)
 	if err != nil {
-		return err // TODO
+		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
 
-	return nil
-}
-
-func cronErrHandler(cronName string) func(error) { // TODO what happens if liveness fails? Delete API?
-	return func(err error) {
-		err = errors.Wrap(err, cronName+" cron failed")
-		telemetry.Error(err)
-		errors.PrintError(err)
-	}
-}
-
-func DeployJob(jobSpec *spec.Job, submission *userconfig.JobSubmission) {
-	livenessUpdater := func() error {
-		return UpdateLiveness(jobSpec.JobID)
-	}
-
-	livenessCron := cron.Run(livenessUpdater, cronErrHandler(fmt.Sprintf("failed liveness check", jobSpec.ID, jobSpec.APIName)), 10*time.Second)
-	defer livenessCron.Cancel()
-
-	err := operator.CreateLogGroupForJob(jobSpec.JobID)
-	if err != nil {
-		fmt.Println(err.Error()) // TODO
-		SetErroredStatus(jobSpec.JobID)
-		DeleteJob(jobSpec.JobID)
-	}
-
-	err = operator.WriteToJobLogGroup(jobSpec.JobID, "started enqueueing partitions")
-	if err != nil {
-		fmt.Println(err.Error()) //  TODO
-	}
+	operator.WriteToJobLogGroup(jobSpec.JobKey, "started enqueueing batches to queue")
 
 	err = Enqueue(jobSpec, submission)
 	if err != nil {
-		fmt.Println("failed to enqueue")
-		operator.WriteToJobLogGroup(jobSpec.JobID, err.Error())
-		SetErroredStatus(jobSpec.JobID)
-		DeleteJob(jobSpec.JobID)
+		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
 
-	err = operator.WriteToJobLogGroup(jobSpec.JobID, "completed enqueueing partitions")
-	if err != nil {
-		fmt.Println(err.Error()) //  TODO
-	}
+	operator.WriteToJobLogGroup(jobSpec.JobKey, "completed enqueueing batches to queue")
 
 	err = SetRunningStatus(jobSpec)
 	if err != nil {
-		// TODO here
+		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
 
-	err = ApplyK8sJob(jobSpec)
+	err = ApplyK8sJob(apiSpec, jobSpec)
 	if err != nil {
-		fmt.Println("DeployJob")
-		operator.WriteToJobLogGroup(jobSpec.JobID, err.Error())
-		SetErroredStatus(jobSpec.JobID)
-		DeleteJob(jobSpec.JobID)
+		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
 }
 
-func ApplyK8sJob(jobSpec *spec.Job) error {
-	apiSpec, err := operator.DownloadAPISpec(jobSpec.APIName, jobSpec.APIID)
-	if err != nil {
-		return err // TODO
-	}
+func handleJobSubmissionError(jobKey spec.JobKey, err error) {
+	fmt.Println(err.Error())
+	operator.WriteToJobLogGroup(jobKey, err.Error())
+	SetErroredStatus(jobKey)
+	DeleteJobRuntimeResources(jobKey)
+}
+
+func ApplyK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {
 	job, err := k8sJobSpec(apiSpec, jobSpec)
 	if err != nil {
 		return err
@@ -195,15 +144,24 @@ func ApplyK8sJob(jobSpec *spec.Job) error {
 	return nil
 }
 
-func DeleteJob(jobID spec.JobID) error {
+func DeleteK8sJob(jobKey spec.JobKey) error {
 	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": jobID.APIName, "jobID": jobID.ID}).String(),
+		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID}).String(),
 	})
 	if err != nil {
 		return err
 	}
 
-	queueURL, err := operator.QueueURL(jobID)
+	return nil
+}
+
+func DeleteJobRuntimeResources(jobKey spec.JobKey) error {
+	err := DeleteK8sJob(jobKey)
+	if err != nil {
+		return err
+	}
+
+	queueURL, err := operator.QueueURL(jobKey)
 	if err != nil {
 		return err
 	}
@@ -219,10 +177,9 @@ func DeleteJob(jobID spec.JobID) error {
 	return nil
 }
 
-func StopJob(jobID spec.JobID) error {
+func StopJob(jobKey spec.JobKey) error {
 	return errors.FirstError(
-		SetStoppedStatus(jobID),
-		DeleteJob(jobID),
+		SetStoppedStatus(jobKey),
+		DeleteJobRuntimeResources(jobKey),
 	)
-	return nil
 }

@@ -22,9 +22,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -32,7 +34,7 @@ import (
 )
 
 func APIQueuePrefix(apiName string) string {
-	return operator.QueueNamePrefix() + "-" + apiName
+	return operator.ClusterBasedQueueName() + "-" + apiName
 }
 
 func QueuesPerAPI(apiName string) ([]string, error) {
@@ -54,23 +56,39 @@ func QueuesPerAPI(apiName string) ([]string, error) {
 	return queueNames, nil
 }
 
+func cronErrHandler(cronName string) func(error) {
+	return func(err error) {
+		err = errors.Wrap(err, cronName+" cron failed")
+		telemetry.Error(err)
+		errors.PrintError(err)
+	}
+}
+
 func Enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) error {
+	livenessUpdater := func() error {
+		return UpdateLiveness(jobSpec.JobKey)
+	}
+
+	livenessCron := cron.Run(livenessUpdater, cronErrHandler(fmt.Sprintf("liveness check for %s (api %s)", jobSpec.ID, jobSpec.APIName)), 20*time.Second)
+	defer livenessCron.Cancel()
+
 	total := 0
 	startTime := time.Now()
 	for i, item := range submission.Items {
-		// TODO kill the goroutine? This should automatically error when the next enqueue message fails
-		// for k := 0; k < 100; k++ {
-		randomId := k8s.RandomName()
+		randomID := k8s.RandomName()
 		_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-			MessageDeduplicationId: aws.String(randomId),
+			MessageDeduplicationId: aws.String(randomID),
 			QueueUrl:               aws.String(jobSpec.SQSUrl),
 			MessageBody:            aws.String(string(item)),
-			MessageGroupId:         aws.String(randomId),
+			MessageGroupId:         aws.String(randomID),
 		})
 		if err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("item %d", i)) // TODO
+			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("batch %d", i))
 		}
 		total++
+		if total%100 == 0 {
+			operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", total))
+		}
 	}
 
 	debug.Pp(time.Now().Sub(startTime).Milliseconds())

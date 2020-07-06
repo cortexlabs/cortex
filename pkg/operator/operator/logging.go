@@ -23,7 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -34,14 +34,14 @@ type fluentdLog struct {
 	Log string `json:"log"`
 }
 
-func LogGroupNameForJob(jobID spec.JobID) string {
-	return fmt.Sprintf("%s/%s.%s", config.Cluster.LogGroup, jobID.APIName, jobID.ID)
+func LogGroupNameForJob(jobKey spec.JobKey) string {
+	return fmt.Sprintf("%s/%s.%s", config.Cluster.LogGroup, jobKey.APIName, jobKey.ID)
 }
 
-func CreateLogGroupForJob(jobID spec.JobID) error {
+func CreateLogGroupForJob(jobKey spec.JobKey) error {
 	tags := map[string]string{
-		"apiName": jobID.APIName,
-		"jobID":   jobID.ID,
+		"apiName": jobKey.APIName,
+		"jobID":   jobKey.ID,
 	}
 
 	for key, value := range config.Cluster.Tags {
@@ -49,7 +49,7 @@ func CreateLogGroupForJob(jobID spec.JobID) error {
 	}
 
 	_, err := config.AWS.CloudWatchLogs().CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
-		LogGroupName: aws.String(LogGroupNameForJob(jobID)),
+		LogGroupName: aws.String(LogGroupNameForJob(jobKey)),
 		Tags:         aws.StringMap(tags),
 	})
 	if err != nil {
@@ -57,53 +57,46 @@ func CreateLogGroupForJob(jobID spec.JobID) error {
 	}
 
 	_, err = config.AWS.CloudWatchLogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
-		LogGroupName:  aws.String(LogGroupNameForJob(jobID)),
+		LogGroupName:  aws.String(LogGroupNameForJob(jobKey)),
 		LogStreamName: aws.String("operator"),
 	})
 	return err
 }
 
-func WriteToJobLogGroup(jobID spec.JobID, logLine string, logLines ...string) error {
-
+func WriteToJobLogGroup(jobKey spec.JobKey, logLine string, logLines ...string) error {
 	logStreams, err := config.AWS.CloudWatchLogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
-		LogGroupName:        aws.String(LogGroupNameForJob(jobID)),
+		LogGroupName:        aws.String(LogGroupNameForJob(jobKey)),
 		LogStreamNamePrefix: aws.String("operator"),
 	})
 	if err != nil {
-		return err // TODO
+		return errors.WithStack(err)
 	}
 
 	if len(logStreams.LogStreams) == 0 {
-		return err
+		return errors.ErrorUnexpected(fmt.Sprintf("unable to find log stream named '%s' in log group %s", "operator", LogGroupNameForJob(jobKey)))
 	}
 
 	logLines = slices.PrependStr(logLine, logLines)
 
-	debug.Pp(logLines)
 	inputLogEvents := make([]*cloudwatchlogs.InputLogEvent, len(logLines))
 	curTime := libtime.ToMillis(time.Now())
 	for i, line := range logLines {
-		jsonBytes, err := json.Marshal(fluentdLog{Log: line})
-		if err != nil {
-			// TODO
-		}
+		jsonBytes, _ := json.Marshal(fluentdLog{Log: line})
 		inputLogEvents[i] = &cloudwatchlogs.InputLogEvent{
 			Message:   aws.String(string(jsonBytes)),
 			Timestamp: aws.Int64(curTime),
 		}
 	}
 
-	output, err := config.AWS.CloudWatchLogs().PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
-		LogGroupName:  aws.String(LogGroupNameForJob(jobID)),
+	_, err = config.AWS.CloudWatchLogs().PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
+		LogGroupName:  aws.String(LogGroupNameForJob(jobKey)),
 		LogStreamName: aws.String("operator"),
 		LogEvents:     inputLogEvents,
 		SequenceToken: logStreams.LogStreams[0].UploadSequenceToken,
 	},
 	)
-	debug.Pp(output)
 	if err != nil {
-		fmt.Println(err.Error())
-		return err // TODO
+		return errors.WithStack(err)
 	}
 
 	return nil

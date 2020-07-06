@@ -20,15 +20,24 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 const (
-	ErrJobNotFound = "batchapi.job_spec_not_found"
+	ErrBatchAPINotDeployed = "batchapi.batch_api_not_deployed"
+	ErrJobNotFound         = "batchapi.job_not_found"
 )
 
-func ErrorJobSpecNotFound() error {
+func ErrorBatchAPINotDeployed(apiName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrBatchAPINotDeployed,
+		Message: fmt.Sprintf("BatchAPI api named '%s' is not deployed", apiName),
+	})
+}
+
+func ErrorJobNotFound(jobKey spec.JobKey) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJobNotFound,
-		Message: fmt.Sprintf("unable to find job specification file"),
+		Message: fmt.Sprintf("unable to find job %s", jobKey.UserString()),
 	})
 }

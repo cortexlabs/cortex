@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
@@ -62,16 +63,16 @@ func main() {
 
 	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), 12*time.Hour)
 	cron.Run(operator.InstanceTelemetry, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
-	// cron.Run(batchapi.CleanupJobs, operator.ErrorHandler("job cleanup"), 10*time.Second)
+	cron.Run(batchapi.CleanupJobs, operator.ErrorHandler("job cleanup"), 60*time.Second)
 
 	router := mux.NewRouter()
 
 	routerWithoutAuth := router.NewRoute().Subrouter()
 	routerWithoutAuth.Use(endpoints.PanicMiddleware)
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitJob).Methods("POST") // TODO blacklist /batch*endpoints in cortex.yaml endpoint configuration
-	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.GetJob).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.DeleteJob).Methods("DELETE")
+	routerWithoutAuth.HandleFunc("/batch_rest/{apiName}", endpoints.SubmitJob).Methods("POST") // TODO blacklist /batch*endpoints in cortex.yaml endpoint configuration
+	routerWithoutAuth.HandleFunc("/batch_rest/{apiName}/{jobID}", endpoints.GetJob).Methods("GET")
+	routerWithoutAuth.HandleFunc("/batch_rest/{apiName}/{jobID}", endpoints.DeleteJob).Methods("DELETE")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 

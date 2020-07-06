@@ -7,9 +7,6 @@
     path: predictor.py
     config:
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
-    env:
-      BATCH: "true"
-      AWS_REGION: us-west-2
 # - name: text-generator
 #   kind: sync
 #   predictor:

@@ -24,8 +24,8 @@ import (
 )
 
 type JobSpec struct {
-	Parallelism      *int        `json:"parallelism"`
-	BatchesPerWorker *int        `json:"batches_per_worker`
+	Parallelism      *int        `json:"parallelism,omitifempty"`
+	BatchesPerWorker *int        `json:"batches_per_worker,omitifempty"`
 	JobConfig        interface{} `json:"config"`
 }
 

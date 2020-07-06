@@ -43,7 +43,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if deployedResource.Kind == userconfig.BatchAPIKind && len(jobID) == 0 {
-		respondError(w, r, errors.ErrorUnexpected("job id not provided")) // TODO validate job id
+		respondError(w, r, errors.ErrorUnexpected("job id not provided"))
 		return
 	}
 

@@ -30,7 +30,6 @@ import (
 
 const (
 	ErrMalformedConfig                      = "spec.malformed_config"
-	ErrTypeKeyNotSpecified                  = "spec.type_key_not_specified"
 	ErrNoAPIs                               = "spec.no_apis"
 	ErrDuplicateName                        = "spec.duplicate_name"
 	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
@@ -73,13 +72,6 @@ func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
 		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
-	})
-}
-
-func ErrorTypeKeyNotSpecified() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrTypeKeyNotSpecified,
-		Message: fmt.Sprintf("type key is not specified"),
 	})
 }
 
@@ -332,14 +324,14 @@ func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
 func ErrorKindIsNotSupportedByProvider(kind userconfig.Kind, provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrKindIsNotSupportedByProvider,
-		Message: fmt.Sprintf("%s kind is not supported on %s provider", kind.String()),
+		Message: fmt.Sprintf("%s kind is not supported on %s provider", kind.String(), provider.String()),
 	})
 }
 
 func ErrorKeyIsNotSupportedWithKind(key string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrKeyIsNotSupportedWithKind,
-		Message: fmt.Sprintf("%s key is not supported for %s type", key, kind.String()),
+		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
 	})
 }
 

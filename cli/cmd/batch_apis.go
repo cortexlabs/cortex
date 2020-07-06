@@ -34,25 +34,24 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
+const (
+	_titleBatchAPI = "batch api"
+)
+
 func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(batchAPIs))
-
-	var totalFailed int
 
 	for i, batchAPI := range batchAPIs {
 		lastUpdated := time.Unix(batchAPI.APISpec.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := "-"
-		failed := 0
+
 		for _, job := range batchAPI.JobStatuses {
 			if job.StartTime.After(latestStartTime) && (job.Status == status.JobRunning || job.Status == status.JobEnqueuing) {
 				latestStartTime = job.StartTime
 				latestJobID = job.ID
 			}
-
 		}
-
-		totalFailed += failed
 
 		rows = append(rows, []interface{}{
 			envNames[i],
@@ -66,7 +65,7 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
-			{Title: _titleAPI},
+			{Title: _titleBatchAPI},
 			{Title: _titleJobCount},
 			{Title: _titleLatestJobID},
 			{Title: _titleLastupdated},
@@ -135,42 +134,45 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	out := ""
 
-	{
-		rows := make([][]interface{}, 0, 1)
+	jobStatusRow := []interface{}{
+		resp.JobStatus.ID,
+		resp.JobStatus.Status.Message(),
+	}
+
+	if resp.JobStatus.Metrics != nil {
 		avgTime := "-"
 		if resp.JobStatus.Metrics.AverageTimePerPartition != nil {
 			avgTime = fmt.Sprintf("%.6g s", *resp.JobStatus.Metrics.AverageTimePerPartition)
 		}
 
-		totalFailed := 0
-		rows = append(rows, []interface{}{
-			resp.JobStatus.ID,
-			resp.JobStatus.Status.Message(),
+		jobStatusRow = append(jobStatusRow,
 			resp.JobStatus.TotalPartitions,
 			resp.JobStatus.Metrics.Succeeded,
 			resp.JobStatus.Metrics.Failed,
 			avgTime,
-			resp.JobStatus.StartTime.Format(time.RFC3339),
-		})
+		)
+	} else {
+		jobStatusRow = append(jobStatusRow, "-", "-", "-", "-")
+	}
+	jobStatusRow = append(jobStatusRow, resp.JobStatus.StartTime.Format(time.RFC3339))
 
-		t := table.Table{
-			Headers: []table.Header{
-				{Title: "job id"},
-				{Title: "status"},
-				{Title: "total"},
-				{Title: "succeeded"},
-				{Title: "failed", Hidden: totalFailed == 0},
-				{Title: "avg per batch"},
-				{Title: "start time"},
-			},
-			Rows: rows,
-		}
-
-		out = t.MustFormat() + "\n"
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "job id"},
+			{Title: "status"},
+			{Title: "total"},
+			{Title: "succeeded"},
+			{Title: "failed"},
+			{Title: "avg per batch"},
+			{Title: "start time"},
+		},
+		Rows: [][]interface{}{jobStatusRow},
 	}
 
+	out = t.MustFormat() + "\n"
+
 	if resp.JobStatus.WorkerCounts == nil {
-		out += console.Bold("worker stats not available")
+		out += console.Bold("worker stats not available") + "\n"
 	} else {
 		rows := make([][]interface{}, 0, 1)
 		rows = append(rows, []interface{}{
@@ -195,7 +197,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	jobSpecStr, err := json.Pretty(resp.JobStatus.Job)
 	if err != nil {
-		return "", err // TODO
+		return "", err
 	}
 
 	out += titleStr("job configuration") + jobSpecStr

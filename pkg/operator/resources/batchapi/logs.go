@@ -86,8 +86,8 @@ func (c *eventCache) Add(eventID string) {
 
 func ReadLogs(logRequest schema.LogRequest, socket *websocket.Conn) {
 	debug.Pp(logRequest)
-	jobID := spec.JobID{APIName: logRequest.Name, ID: logRequest.JobID}
-	jobStatus, err := GetJobStatus(jobID)
+	jobKey := spec.JobKey{APIName: logRequest.Name, ID: logRequest.JobID}
+	jobStatus, err := GetJobStatus(jobKey)
 	if err != nil {
 		writeAndCloseSocket(socket, "error: "+errors.Message(err))
 	}
@@ -120,7 +120,7 @@ func pumpStdin(socket *websocket.Conn) {
 }
 
 func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := operator.LogGroupNameForJob(jobStatus.JobID)
+	logGroupName := operator.LogGroupNameForJob(jobStatus.JobKey)
 
 	newLogStreamNames, err := getLogStreams(logGroupName)
 	if err != nil {
@@ -160,7 +160,7 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 }
 
 func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := operator.LogGroupNameForJob(spec.JobID{APIName: logRequest.Name, ID: logRequest.JobID})
+	logGroupName := operator.LogGroupNameForJob(spec.JobKey{APIName: logRequest.Name, ID: logRequest.JobID})
 	eventCache := newEventCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}
 	lastJobRefresh := time.Time{}

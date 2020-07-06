@@ -222,7 +222,6 @@ func hideReplicaCountColumns(t *table.Table) {
 	t.FindHeaderByTitle(_titleFailed).Hidden = true
 }
 
-// TODO support apis by env
 func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 	var apisRes schema.GetAPIsResponse
 	var err error
@@ -243,19 +242,33 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		return console.Bold("no apis are deployed"), nil
 	}
 
-	envNames := []string{}
-	for range apisRes.SyncAPIs {
-		envNames = append(envNames, env.Name)
+	out := ""
+
+	if len(apisRes.BatchAPIs) > 0 {
+		envNames := []string{}
+		for range apisRes.BatchAPIs {
+			envNames = append(envNames, env.Name)
+		}
+
+		t := batchAPIsTable(apisRes.BatchAPIs, envNames)
+		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+
+		out += t.MustFormat()
 	}
 
-	t := syncAPIsTable(apisRes.SyncAPIs, envNames)
+	if len(apisRes.SyncAPIs) > 0 {
+		envNames := []string{}
+		for range apisRes.SyncAPIs {
+			envNames = append(envNames, env.Name)
+		}
 
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+		t := syncAPIsTable(apisRes.SyncAPIs, envNames)
+		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-	out := t.MustFormat()
+		out += t.MustFormat()
+	}
 
 	if env.Provider == types.LocalProviderType {
-		hideReplicaCountColumns(&t)
 		mismatchedVersionAPIsErrorMessage, _ := getLocalVersionMismatchedAPIsMessage()
 		if len(mismatchedVersionAPIsErrorMessage) > 0 {
 			out += "\n" + mismatchedVersionAPIsErrorMessage
@@ -294,21 +307,20 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		}
 		if apiRes.SyncAPI != nil {
 			return syncAPITable(apiRes.SyncAPI, env)
-		} else {
-			return batchAPITable(*apiRes.BatchAPI), nil
 		}
-	} else {
-		apiRes, err = local.GetAPI(apiName)
-		if err != nil {
-			// note: if modifying this string, search the codebase for it and change all occurrences
-			if strings.HasSuffix(errors.Message(err), "is not deployed") {
-				return console.Bold(errors.Message(err)), nil
-			}
-			return "", err
-		}
+		return batchAPITable(*apiRes.BatchAPI), nil
 	}
 
-	return "", nil // TODO
+	apiRes, err = local.GetAPI(apiName)
+	if err != nil {
+		// note: if modifying this string, search the codebase for it and change all occurrences
+		if strings.HasSuffix(errors.Message(err), "is not deployed") {
+			return console.Bold(errors.Message(err)), nil
+		}
+		return "", err
+	}
+
+	return "", nil
 }
 
 func titleStr(title string) string {

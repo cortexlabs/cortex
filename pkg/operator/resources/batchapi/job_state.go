@@ -18,28 +18,35 @@ package batchapi
 
 import (
 	"fmt"
+	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
 )
 
 var (
-	_lastUpdatedFile  = "last_updated"
-	_workerCountsFile = "worker_counts.json"
+	_lastUpdatedFile      = "last_updated"
+	_workerCountsFile     = "worker_counts.json"
+	_inProgressFilePrefix = "in_progress_jobs"
 )
 
 type JobState struct {
-	spec.JobID
+	spec.JobKey
+	Status         status.JobCode
 	Keys           []string
 	LastUpdatedMap map[string]time.Time
+	EndTime        *time.Time
 }
 
 func (j JobState) GetLastUpdated() time.Time {
@@ -55,9 +62,8 @@ func (j JobState) GetLastUpdated() time.Time {
 }
 
 // Doesn't assume only status files are present, order matters
-func (j JobState) GetStatusCode() status.JobCode {
-	fileSet := strset.FromSlice(j.Keys)
-	debug.Pp(fileSet)
+func getStatusCode(fileKeys []string) status.JobCode {
+	fileSet := strset.FromSlice(fileKeys)
 	if fileSet.Has(status.JobStopped.String()) {
 		return status.JobStopped
 	}
@@ -89,194 +95,275 @@ func (j JobState) GetStatusCode() status.JobCode {
 	return status.JobUnknown
 }
 
-func (j JobState) GetEndTime() *time.Time {
-	fmt.Println("hi GetEndTime")
-	if endTime, ok := j.LastUpdatedMap[_workerCountsFile]; ok {
-		return &endTime
-	}
-
-	status := j.GetStatusCode()
-	if status.IsCompletedPhase() {
-		if endTime, ok := j.LastUpdatedMap[status.String()]; ok {
-			return &endTime
-		}
-	}
-	fmt.Println("bye GetEndTime")
-	return nil
-}
-
-func GetJobState(jobID spec.JobID) (*JobState, error) {
-	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, spec.JobSpecPrefix(jobID), false, pointer.Int64(100))
+func GetJobState(jobKey spec.JobKey) (*JobState, error) {
+	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, jobKey.PrefixKey(), false, pointer.Int64(100))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to status", jobID.UserString())
+		return nil, errors.Wrap(err, "failed to get job state", jobKey.UserString())
 	}
 
-	jobState := JobState{
-		JobID:          jobID,
-		LastUpdatedMap: map[string]time.Time{},
-	}
+	keys := make([]string, 0, len(s3Objects))
+	lastUpdatedMap := map[string]time.Time{}
 
 	for _, s3Object := range s3Objects {
 		key := filepath.Base(*s3Object.Key)
-		jobState.Keys = append(jobState.Keys, key)
-		jobState.LastUpdatedMap[key] = *s3Object.LastModified
+		keys = append(keys, key)
+		lastUpdatedMap[key] = *s3Object.LastModified
 	}
-	debug.Pp(jobState)
 
-	return &jobState, nil
+	statusCode := getStatusCode(keys)
+
+	var jobEndTime *time.Time
+	if endTime, ok := lastUpdatedMap[_workerCountsFile]; ok {
+		jobEndTime = &endTime
+	}
+
+	if statusCode.IsCompletedPhase() {
+		if endTime, ok := lastUpdatedMap[statusCode.String()]; ok {
+			jobEndTime = &endTime
+		}
+	}
+
+	return &JobState{
+		JobKey:         jobKey,
+		Keys:           keys,
+		LastUpdatedMap: lastUpdatedMap,
+		Status:         statusCode,
+		EndTime:        jobEndTime,
+	}, nil
 }
 
-func UpdateLiveness(jobID spec.JobID) error {
-	s3Key := filepath.Join(spec.JobSpecPrefix(jobID), _lastUpdatedFile)
+func UpdateLiveness(jobKey spec.JobKey) error {
+	s3Key := path.Join(jobKey.PrefixKey(), _lastUpdatedFile)
 	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
 	if err != nil {
-		return errors.Wrap(err, "failed to update liveness", jobID.UserString())
+		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
 	}
 	return nil
 }
 
 func SetEnqueuingStatus(jobSpec *spec.Job) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, spec.JobSpecKey(jobSpec.JobID))
+	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.FileSpecKey())
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
-	err = config.AWS.UploadStringToS3("", config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobSpec.JobID), status.JobEnqueuing.String()))
+	err = UploadStatusFile(jobSpec.JobKey, status.JobEnqueuing)
 	if err != nil {
-		return err // TODO
+		return err
+	}
+
+	err = UploadInProgressFile(jobSpec.JobKey)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func SetRunningStatus(jobSpec *spec.Job) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, spec.JobSpecKey(jobSpec.JobID))
+	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.FileSpecKey())
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
-	err = config.AWS.UploadStringToS3("", config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobSpec.JobID), status.JobRunning.String()))
+	err = UploadStatusFile(jobSpec.JobKey, status.JobRunning)
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
 	return nil
 }
 
-func saveWorkerCounts(jobID spec.JobID) error {
-	job, err := config.K8s.GetJob(jobID.K8sName()) // TODO write empty worker file if job doesn't exist
+func saveWorkerCounts(jobKey spec.JobKey) error {
+	job, err := config.K8s.GetJob(jobKey.K8sName())
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
 	workerCounts := status.ExtractWorkerCounts(job)
 
-	err = config.AWS.UploadJSONToS3(workerCounts, config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobID), _workerCountsFile))
+	err = config.AWS.UploadJSONToS3(workerCounts, config.Cluster.Bucket, path.Join(jobKey.PrefixKey(), _workerCountsFile))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func SetStoppedStatus(jobID spec.JobID) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobID), status.JobStopped.String()))
+func SetStoppedStatus(jobKey spec.JobKey) error {
+	err := UploadStatusFile(jobKey, status.JobStopped)
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
-	err = saveWorkerCounts(jobID)
+	err = saveWorkerCounts(jobKey)
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
-	return nil
-}
-
-func SetSucceededStatus(jobID spec.JobID) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobID), status.JobSucceeded.String()))
+	err = DeleteInProgressFile(jobKey)
 	if err != nil {
-		return err // TODO
-	}
-
-	err = saveWorkerCounts(jobID)
-	if err != nil {
-		return err // TODO
+		return err
 	}
 
 	return nil
 }
 
-func SetFailedStatus(jobID spec.JobID) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobID), status.JobFailed.String()))
+func SetSucceededStatus(jobKey spec.JobKey) error {
+	err := UploadStatusFile(jobKey, status.JobSucceeded)
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
-	err = saveWorkerCounts(jobID)
+	err = saveWorkerCounts(jobKey)
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
-	return nil
-}
-
-func SetIncompleteStatus(jobID spec.JobID) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobID), status.JobIncomplete.String()))
+	err = DeleteInProgressFile(jobKey)
 	if err != nil {
-		return err // TODO
-	}
-
-	err = saveWorkerCounts(jobID)
-	if err != nil {
-		return err // TODO
+		return err
 	}
 
 	return nil
 }
 
-func SetErroredStatus(jobID spec.JobID) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobID), status.JobErrored.String()))
+func SetFailedStatus(jobKey spec.JobKey) error {
+	err := UploadStatusFile(jobKey, status.JobFailed)
 	if err != nil {
-		return err // TODO
+		return err
 	}
 
-	err = saveWorkerCounts(jobID)
+	err = saveWorkerCounts(jobKey)
 	if err != nil {
-		return err // TODO
+		return err
+	}
+
+	err = DeleteInProgressFile(jobKey)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func DownloadJobSpec(jobID spec.JobID) (*spec.Job, error) {
+func SetIncompleteStatus(jobKey spec.JobKey) error {
+	err := UploadStatusFile(jobKey, status.JobIncomplete)
+	if err != nil {
+		return err
+	}
+
+	err = saveWorkerCounts(jobKey)
+	if err != nil {
+		return err
+	}
+
+	err = DeleteInProgressFile(jobKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SetErroredStatus(jobKey spec.JobKey) error {
+	err := UploadStatusFile(jobKey, status.JobErrored)
+	if err != nil {
+		return err
+	}
+
+	err = saveWorkerCounts(jobKey)
+	if err != nil {
+		return err
+	}
+
+	err = DeleteInProgressFile(jobKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UploadStatusFile(jobKey spec.JobKey, status status.JobCode) error {
+	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.PrefixKey(), status.String()))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func UploadInProgressFile(jobKey spec.JobKey) error {
+	err := config.AWS.UploadJSONToS3("", config.Cluster.Bucket, path.Join(_inProgressFilePrefix, jobKey.APIName, jobKey.ID))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteInProgressFile(jobKey spec.JobKey) error {
+	err := config.AWS.DeleteS3Prefix(config.Cluster.Bucket, path.Join(_inProgressFilePrefix, jobKey.APIName, jobKey.ID), false)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ListAllInProgressJobs() ([]spec.JobKey, error) {
+	s3Objects, err := config.AWS.ListS3Dir(config.Cluster.Bucket, _inProgressFilePrefix, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return extractJobIDSFromS3ObjectList(s3Objects), nil
+}
+
+func ListAllInProgressJobsByAPI(apiName string) ([]spec.JobKey, error) {
+	s3Objects, err := config.AWS.ListS3Dir(config.Cluster.Bucket, path.Join(_inProgressFilePrefix, apiName), false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return extractJobIDSFromS3ObjectList(s3Objects), nil
+}
+
+func extractJobIDSFromS3ObjectList(s3Objects []*s3.Object) []spec.JobKey {
+	jobIDs := make([]spec.JobKey, 0, len(s3Objects))
+	for _, obj := range s3Objects {
+		s3PathSplit := strings.Split(*obj.Key, "/")
+		jobIDs = append(jobIDs, spec.JobKey{APIName: s3PathSplit[len(s3PathSplit)-2], ID: s3PathSplit[len(s3PathSplit)-1]})
+	}
+
+	return jobIDs
+}
+
+func DownloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
 	jobSpec := spec.Job{}
-	debug.Pp(spec.JobSpecKey(jobID))
-	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, spec.JobSpecKey(jobID))
+	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobSpec.FileSpecKey())
 	if err != nil {
-		return nil, err // TODO
+		return nil, ErrorJobNotFound(jobKey)
 	}
-
 	return &jobSpec, nil
 }
 
-func GetJobStatus(jobID spec.JobID) (*status.JobStatus, error) {
-	jobSpec, err := DownloadJobSpec(jobID)
+func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
+	fmt.Println("GetJobStatus")
+	jobSpec, err := DownloadJobSpec(jobKey)
 	if err != nil {
-		return nil, err // TODO what happens if jobSpec doesn't exist
+		return nil, err
 	}
 
 	startTime := jobSpec.Created
 
 	fmt.Println("GetJobStatus")
-	jobState, err := GetJobState(jobID)
+	jobState, err := GetJobState(jobKey)
 	if err != nil {
-		return nil, err // TODO
+		return nil, err
 	}
 
 	debug.Pp(jobState)
 
-	statusCode := jobState.GetStatusCode()
-	fmt.Println(fmt.Sprintf("status for %s is %s", jobID.ID, statusCode.String()))
+	statusCode := jobState.Status
+	fmt.Println(fmt.Sprintf("status for %s is %s", jobKey.ID, statusCode.String()))
 
 	jobStatus := status.JobStatus{
 		Job:       *jobSpec,
@@ -285,32 +372,39 @@ func GetJobStatus(jobID spec.JobID) (*status.JobStatus, error) {
 	}
 
 	if statusCode == status.JobRunning {
-		metrics, err := GetRealTimeJobMetrics(jobID)
+		metrics, err := GetRealTimeJobMetrics(jobKey)
 		if err != nil {
-			return nil, err // TODO
+			return nil, err
 		}
 		jobStatus.Metrics = metrics
 
-		k8sJob, err := config.K8s.GetJob(jobID.K8sName())
+		k8sJob, err := config.K8s.GetJob(jobKey.K8sName())
 		if err != nil {
-			return nil, err // TODO
+			return nil, err
 		}
+		if k8sJob == nil {
+			SetErroredStatus(jobKey)
+			operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("k8s job not found"))
+			DeleteJobRuntimeResources(jobKey)
+			jobStatus.Status = status.JobErrored
+		}
+
 		workerCounts := status.ExtractWorkerCounts(k8sJob)
 		jobStatus.WorkerCounts = &workerCounts
 	} else if statusCode.IsCompletedPhase() {
-		jobStatus.EndTime = jobState.GetEndTime()
+		jobStatus.EndTime = jobState.EndTime
 
-		metrics, err := GetJobMetrics(jobID, startTime, *jobStatus.EndTime)
+		metrics, err := GetJobMetrics(jobKey, startTime, *jobStatus.EndTime)
 		if err != nil {
-			return nil, err // TODO
+			return nil, err
 		}
 		jobStatus.Metrics = metrics
 
 		if _, ok := jobState.LastUpdatedMap[_workerCountsFile]; ok {
 			var workerCounts status.WorkerCounts
-			err = config.AWS.ReadJSONFromS3(&workerCounts, config.Cluster.Bucket, filepath.Join(spec.JobSpecPrefix(jobID), _workerCountsFile))
+			err = config.AWS.ReadJSONFromS3(&workerCounts, config.Cluster.Bucket, path.Join(jobKey.PrefixKey(), _workerCountsFile))
 			if err != nil {
-				return nil, err // TODO
+				return nil, err
 			}
 
 			jobStatus.WorkerCounts = &workerCounts
@@ -320,30 +414,30 @@ func GetJobStatus(jobID spec.JobID) (*status.JobStatus, error) {
 	return &jobStatus, nil
 }
 
-func GetJobStatusFromK8sJob(jobID spec.JobID, k8sJob *kbatch.Job) (*status.JobStatus, error) {
-	jobSpec, err := DownloadJobSpec(jobID)
+func GetJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job) (*status.JobStatus, error) {
+	jobSpec, err := DownloadJobSpec(jobKey)
 	if err != nil {
-		return nil, err // TODO what happens if jobSpec doesn't exist
+		return nil, err
 	}
 
 	startTime := jobSpec.Created
 
-	jobState, err := GetJobState(jobID)
+	jobState, err := GetJobState(jobKey)
 	if err != nil {
-		return nil, err // TODO
+		return nil, err
 	}
 
-	statusCode := jobState.GetStatusCode()
-	fmt.Println(fmt.Sprintf("status for %s is %s", jobID.ID, statusCode.String()))
+	statusCode := jobState.Status
+	fmt.Println(fmt.Sprintf("status for %s is %s", jobKey.ID, statusCode.String()))
 	jobStatus := status.JobStatus{
 		Job:       *jobSpec,
 		StartTime: startTime,
 		Status:    statusCode,
 	}
 
-	metrics, err := GetRealTimeJobMetrics(jobID)
+	metrics, err := GetRealTimeJobMetrics(jobKey)
 	if err != nil {
-		return nil, err // TODO
+		return nil, err
 	}
 	jobStatus.Metrics = metrics
 
