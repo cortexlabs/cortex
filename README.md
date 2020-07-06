@@ -35,6 +35,8 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 ## How it works
 
+Here's how to deploy a GPT-2 model for text generation. All of the code required for this is shown: `predictor.py` for implementing the inference API, and `cortex.yaml` for configuring the API.
+
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.18.gif)
 
 <br>
