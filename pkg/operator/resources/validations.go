@@ -101,6 +101,10 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err != nil {
 				return err
 			}
+			err = validateEndpointCollisions(api, virtualServices)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

@@ -176,8 +176,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-	if deployedResource.Kind == userconfig.APISplitterKind {
+	} else if deployedResource.Kind == userconfig.APISplitterKind {
 		err := apisplitter.DeleteAPI(apiName, keepCache)
 		if err != nil {
 			return nil, err
