@@ -2,11 +2,14 @@
 
 import json
 import os
+import io
 import uuid
 import utils
 
 import numpy as np
 from matplotlib import pyplot as plt
+
+from starlette.responses import StreamingResponse
 
 
 class ONNXPredictor:
@@ -54,9 +57,9 @@ class ONNXPredictor:
                 writer.write(frame)
 
         with open(out_path, "rb") as f:
-            output_bytes = f.read()
+            output_buf = io.BytesIO(f.read())
 
         os.remove(in_path)
         os.remove(out_path)
 
-        return output_bytes
+        return StreamingResponse(output_buf, media_type="video/mp4")
