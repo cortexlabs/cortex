@@ -239,7 +239,7 @@ def start():
                 raw_api_spec["predictor"]["config"], job_spec["config"]
             )
 
-        client = api.predictor.initialize_client(
+        api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
@@ -247,7 +247,6 @@ def start():
 
         local_cache["api"] = api
         local_cache["provider"] = provider
-        local_cache["client"] = client
         local_cache["job"] = job_spec
         local_cache["predictor_impl"] = predictor_impl
         local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args

@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kapps "k8s.io/api/apps/v1"
@@ -188,6 +189,56 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	}
 
 	return nil
+}
+
+func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.SyncAPI, error) {
+	statuses, err := GetAllStatuses(deployments, pods)
+	if err != nil {
+		return nil, err
+	}
+
+	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
+	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	if err != nil {
+		return nil, err
+
+	}
+
+	allMetrics, err := GetMultipleMetrics(apis)
+	if err != nil {
+		return nil, err
+	}
+
+	syncAPIs := make([]schema.SyncAPI, len(apis))
+
+	for i, api := range apis {
+		baseURL, err := APIBaseURL(&api)
+		if err != nil {
+			return nil, err
+
+		}
+
+		syncAPIs[i] = schema.SyncAPI{
+			Spec:    api,
+			Status:  statuses[i],
+			Metrics: allMetrics[i],
+			BaseURL: baseURL,
+		}
+	}
+
+	return syncAPIs, nil
+}
+
+func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
+	apiNames := make([]string, len(statuses))
+	apiIDs := make([]string, len(statuses))
+
+	for i, status := range statuses {
+		apiNames[i] = status.APIName
+		apiIDs[i] = status.APIID
+	}
+
+	return apiNames, apiIDs
 }
 
 func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {

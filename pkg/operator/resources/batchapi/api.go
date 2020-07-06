@@ -161,6 +161,63 @@ func deleteS3Resources(apiName string) error {
 	)
 }
 
+func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job) ([]schema.BatchAPI, error) {
+	batchAPIsMap := map[string]*schema.BatchAPI{}
+
+	for _, virtualService := range virtualServices {
+		apiName := virtualService.GetLabels()["apiName"]
+		apiID := virtualService.GetLabels()["apiID"]
+		api, err := operator.DownloadAPISpec(apiName, apiID)
+		if err != nil {
+			return nil, err
+
+		}
+
+		baseURL, err := syncapi.APIBaseURL(api)
+		if err != nil {
+			return nil, err
+
+		}
+
+		batchAPIsMap[apiName] = &schema.BatchAPI{
+			APISpec:     *api,
+			BaseURL:     baseURL,
+			JobStatuses: []status.JobStatus{},
+		}
+	}
+
+	k8sJobMap := map[string]*kbatch.Job{}
+	for _, job := range k8sJobs {
+		k8sJobMap[job.Labels["jobID"]] = &job
+	}
+
+	inProgressJobIDs, err := ListAllInProgressJobs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, jobKey := range inProgressJobIDs {
+		jobStatus, err := GetJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
+		if err != nil {
+			return nil, err
+		}
+
+		if jobStatus.Status.IsInProgressPhase() {
+			batchAPIsMap[jobKey.APIName].JobStatuses = append(batchAPIsMap[jobKey.APIName].JobStatuses, *jobStatus)
+		}
+	}
+
+	batchAPIList := make([]schema.BatchAPI, len(batchAPIsMap))
+
+	i := 0
+	for _, batchAPI := range batchAPIsMap {
+		batchAPIList[i] = *batchAPI
+		i++
+	}
+
+	return batchAPIList, nil
+}
+
 func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	startTime := time.Now()
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))

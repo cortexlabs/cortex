@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/websocket"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -232,96 +231,19 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		return nil, err
 	}
 
-	statuses, err := syncapi.GetAllStatuses(deployments, pods)
+	syncAPIList, err := syncapi.GetAllAPIs(pods, deployments)
 	if err != nil {
 		return nil, err
 	}
 
-	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	batchAPIList, err := batchapi.GetAllAPIs(virtualServices, k8sJobs)
 	if err != nil {
 		return nil, err
-
-	}
-
-	allMetrics, err := syncapi.GetMultipleMetrics(apis)
-	if err != nil {
-		return nil, err
-	}
-
-	syncAPIs := make([]schema.SyncAPI, len(apis))
-
-	for i, api := range apis {
-		baseURL, err := syncapi.APIBaseURL(&api)
-		if err != nil {
-			return nil, err
-
-		}
-
-		syncAPIs[i] = schema.SyncAPI{
-			Spec:    api,
-			Status:  statuses[i],
-			Metrics: allMetrics[i],
-			BaseURL: baseURL,
-		}
-	}
-
-	batchAPIsMap := map[string]*schema.BatchAPI{}
-
-	for _, virtualService := range virtualServices {
-		apiName := virtualService.GetLabels()["apiName"]
-		apiID := virtualService.GetLabels()["apiID"]
-		api, err := operator.DownloadAPISpec(apiName, apiID)
-		if err != nil {
-			return nil, err
-
-		}
-
-		baseURL, err := syncapi.APIBaseURL(api)
-		if err != nil {
-			return nil, err
-
-		}
-
-		batchAPIsMap[apiName] = &schema.BatchAPI{
-			APISpec:     *api,
-			BaseURL:     baseURL,
-			JobStatuses: []status.JobStatus{},
-		}
-	}
-
-	k8sJobMap := map[string]*kbatch.Job{}
-	for _, job := range k8sJobs {
-		k8sJobMap[job.Labels["jobID"]] = &job
-	}
-
-	inProgressJobIDs, err := batchapi.ListAllInProgressJobs()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, jobKey := range inProgressJobIDs {
-		jobStatus, err := batchapi.GetJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
-		if err != nil {
-			return nil, err
-		}
-
-		if jobStatus.Status.IsInProgressPhase() {
-			batchAPIsMap[jobKey.APIName].JobStatuses = append(batchAPIsMap[jobKey.APIName].JobStatuses, *jobStatus)
-		}
-	}
-
-	batchAPIList := make([]schema.BatchAPI, len(batchAPIsMap))
-
-	i := 0
-	for _, batchAPI := range batchAPIsMap {
-		batchAPIList[i] = *batchAPI
-		i++
 	}
 
 	return &schema.GetAPIsResponse{
 		BatchAPIs: batchAPIList,
-		SyncAPIs:  syncAPIs,
+		SyncAPIs:  syncAPIList,
 	}, nil
 }
 
@@ -341,16 +263,4 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 	default:
 		return nil, ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
-}
-
-func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
-	apiNames := make([]string, len(statuses))
-	apiIDs := make([]string, len(statuses))
-
-	for i, status := range statuses {
-		apiNames[i] = status.APIName
-		apiIDs[i] = status.APIID
-	}
-
-	return apiNames, apiIDs
 }
