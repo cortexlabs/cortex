@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -80,6 +81,8 @@ func CleanupJobs() error {
 			telemetry.Error(err)
 		}
 
+		debug.Pp(jobState)
+
 		if jobState.Status.IsCompletedPhase() {
 			if jobIDSetQueueURL.Has(jobKey.ID) {
 				DeleteQueue(queueURLMap[jobKey.ID])
@@ -106,20 +109,22 @@ func CleanupJobs() error {
 					errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), queueURL))
 				}
 			} else {
-				if jobState.Status == status.JobEnqueuing {
+				if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_lastUpdatedFile]) >= CleanupCronPeriod {
 					errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()))
 				}
 
-				if jobState.Status == status.JobRunning && !jobIDSetK8s.Has(jobKey.ID) {
-					errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobKey.UserString()))
-				}
-
-				k8sJob := k8sJobMap[jobKey.ID]
-				err := checkJobCompletion(jobKey, queueURLMap[jobKey.ID], &k8sJob)
-				if err != nil {
-					operator.WriteToJobLogGroup(jobKey, err.Error())
-					fmt.Println(err.Error())
-					telemetry.Error(err)
+				if jobState.Status == status.JobRunning {
+					if !jobIDSetK8s.Has(jobKey.ID) {
+						errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobKey.UserString()))
+					} else {
+						k8sJob := k8sJobMap[jobKey.ID]
+						err := checkJobCompletion(jobKey, queueURLMap[jobKey.ID], &k8sJob)
+						if err != nil {
+							operator.WriteToJobLogGroup(jobKey, err.Error())
+							fmt.Println(err.Error())
+							telemetry.Error(err)
+						}
+					}
 				}
 			}
 		} else {
@@ -127,10 +132,15 @@ func CleanupJobs() error {
 		}
 	}
 
-	unaccountedJobIDs := strset.Union(jobIDSetK8s, jobIDSetQueueURL)
-	unaccountedJobIDs.Subtract(inProgressJobIDSet)
-	for jobID := range unaccountedJobIDs {
-		DeleteJobRuntimeResources(inProgressIDMap[jobID])
+	for jobID := range strset.Difference(jobIDSetK8s, inProgressJobIDSet) {
+		DeleteJobRuntimeResources(
+			spec.JobKey{APIName: k8sJobMap[jobID].Labels["apiName"], ID: k8sJobMap[jobID].Labels["jobID"]},
+		)
+	}
+
+	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s, inProgressJobIDSet) {
+		jobKey := operator.IdentifierFromQueueURL(queueURLMap[jobID])
+		DeleteJobRuntimeResources(jobKey)
 	}
 
 	return nil
@@ -159,7 +169,7 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 			return err
 		}
 
-		if jobSpec.TotalPartitions == jobMetrics.TotalCompleted || k8sJob.Annotations["cortex/to-delete"] == "true" {
+		if jobSpec.TotalBatchCount == jobMetrics.TotalCompleted || k8sJob.Annotations["cortex/to-delete"] == "true" {
 			if jobMetrics.Failed != 0 {
 				return errors.FirstError(
 					SetFailedStatus(jobKey),

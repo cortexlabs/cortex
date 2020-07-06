@@ -396,7 +396,7 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 		return nil, err
 	}
 
-	if virtualService != nil {
+	if virtualService == nil {
 		return nil, ErrorAPINotDeployed(apiName)
 	}
 
@@ -440,10 +440,9 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 		jobStatuses = append(jobStatuses, *jobStatus)
 		jobIDSet.Add(jobKey.ID)
 	}
-	fmt.Println(time.Now().Sub(startTime).Milliseconds())
 
-	if len(jobStatuses) < 10 {
-		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.JobsPrefix(apiName), false, pointer.Int64(80))
+	if len(jobStatuses) < 5 {
+		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.JobsPrefix(apiName), false, pointer.Int64(40))
 		if err != nil {
 			return nil, err
 		}
@@ -460,9 +459,12 @@ func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
 				return nil, err
 			}
 			jobStatuses = append(jobStatuses, *jobStatus)
+
+			if len(jobStatuses) >= 5 {
+				break
+			}
 		}
 	}
-	fmt.Println(time.Now().Sub(startTime).Milliseconds())
 
 	return &schema.GetAPIResponse{
 		BatchAPI: &schema.BatchAPI{

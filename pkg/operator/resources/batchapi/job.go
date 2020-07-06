@@ -22,8 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -76,7 +74,7 @@ func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, 
 	}
 
 	jobSpec := spec.Job{
-		JobSpec: submission.JobSpec,
+		Job: submission.Job,
 		JobKey: spec.JobKey{
 			APIName: apiSpec.Name,
 			ID:      jobID,
@@ -101,20 +99,23 @@ func DeployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobS
 	err := operator.CreateLogGroupForJob(jobSpec.JobKey)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
+		return
 	}
 
-	operator.WriteToJobLogGroup(jobSpec.JobKey, "started enqueueing batches to queue")
+	operator.WriteToJobLogGroup(jobSpec.JobKey, "started enqueuing batches to queue")
 
 	err = Enqueue(jobSpec, submission)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
+		return
 	}
 
-	operator.WriteToJobLogGroup(jobSpec.JobKey, "completed enqueueing batches to queue")
+	operator.WriteToJobLogGroup(jobSpec.JobKey, "completed enqueuing batches to queue")
 
 	err = SetRunningStatus(jobSpec)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
+		return
 	}
 
 	err = ApplyK8sJob(apiSpec, jobSpec)
@@ -166,10 +167,7 @@ func DeleteJobRuntimeResources(jobKey spec.JobKey) error {
 		return err
 	}
 
-	fmt.Println(queueURL)
-	_, err = config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
-		QueueUrl: aws.String(queueURL),
-	})
+	err = DeleteQueue(queueURL)
 	if err != nil {
 		return err
 	}
@@ -178,6 +176,7 @@ func DeleteJobRuntimeResources(jobKey spec.JobKey) error {
 }
 
 func StopJob(jobKey spec.JobKey) error {
+	operator.WriteToJobLogGroup(jobKey, "request received to stop job; performing cleanup...")
 	return errors.FirstError(
 		SetStoppedStatus(jobKey),
 		DeleteJobRuntimeResources(jobKey),

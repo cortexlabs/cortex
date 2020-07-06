@@ -51,10 +51,10 @@ func (j JobKey) K8sName() string {
 
 type Job struct {
 	JobKey
-	userconfig.JobSpec
+	userconfig.Job
 	APIID           string    `json:"api_id"`
 	SQSUrl          string    `json:"sqs_url"`
-	TotalPartitions int       `json:"total_partitions"`
+	TotalBatchCount int       `json:"total_batch_count"`
 	Created         time.Time `json:"created_time"`
 }
 

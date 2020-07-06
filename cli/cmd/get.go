@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -86,8 +85,6 @@ var _getCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-
-			debug.Pp(env)
 
 			out, err := envStringIfNotSpecified(_flagGetEnv)
 			if err != nil {
@@ -194,6 +191,11 @@ func getAPIsInAllEnvironments() (string, error) {
 			if strset.New(allSyncAPIEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
 				hideReplicaCountColumns(&t)
 			}
+
+			if len(allBatchAPIs) > 0 {
+				out += "\n"
+			}
+
 			out += t.MustFormat()
 		}
 	}
@@ -265,6 +267,9 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		t := syncAPIsTable(apisRes.SyncAPIs, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
+		if len(apisRes.BatchAPIs) > 0 {
+			out += "\n"
+		}
 		out += t.MustFormat()
 	}
 

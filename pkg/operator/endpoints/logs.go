@@ -19,7 +19,6 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -42,8 +41,8 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if deployedResource.Kind == userconfig.BatchAPIKind && len(jobID) == 0 {
-		respondError(w, r, errors.ErrorUnexpected("job id not provided"))
+	if deployedResource.Kind == userconfig.BatchAPIKind && jobID == "" {
+		respondError(w, r, resources.ErrorJobIDRequired(*deployedResource))
 		return
 	}
 

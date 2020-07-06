@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	ErrUnknownAPIGatewayType = "errors.unknown_api_gateway_type"
-	ErrConflictingFields     = "errors.conflicting_fields"
+	ErrUnknownAPIGatewayType     = "userconfig.unknown_api_gateway_type"
+	ErrConflictingFields         = "userconfig.conflicting_fields"
+	ErrBatchItemSizeExceedsLimit = "userconfig.batch_item_size_exceeds_limit"
 )
 
 func ErrorUnknownAPIGatewayType() error {
@@ -38,5 +39,12 @@ func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
 		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+	})
+}
+
+func ErrorItemSizeExceedsLimit(size int, limit int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrBatchItemSizeExceedsLimit,
+		Message: fmt.Sprintf("batch item has size %d bytes which exceeds the limit %d", size, limit),
 	})
 }

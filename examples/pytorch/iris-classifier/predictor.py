@@ -43,9 +43,7 @@ class PythonPredictor:
     def predict(self, payload):
         # Convert the request to a tensor and pass it into the model
 
-        print(time.asctime())
-        time.sleep(30)
-        print(time.asctime())
+        print(payload)
 
         # input_tensor = torch.FloatTensor(
         #     [

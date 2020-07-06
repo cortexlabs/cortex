@@ -338,7 +338,7 @@ func extractJobIDSFromS3ObjectList(s3Objects []*s3.Object) []spec.JobKey {
 
 func DownloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
 	jobSpec := spec.Job{}
-	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobSpec.FileSpecKey())
+	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.FileSpecKey())
 	if err != nil {
 		return nil, ErrorJobNotFound(jobKey)
 	}
@@ -371,34 +371,42 @@ func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
 		Status:    statusCode,
 	}
 
-	if statusCode == status.JobRunning {
-		metrics, err := GetRealTimeJobMetrics(jobKey)
+	if statusCode.IsInProgressPhase() {
+		queueMetrics, err := operator.GetQueueMetrics(jobKey)
 		if err != nil {
 			return nil, err
 		}
-		jobStatus.Metrics = metrics
+		jobStatus.QueueMetrics = queueMetrics
 
-		k8sJob, err := config.K8s.GetJob(jobKey.K8sName())
-		if err != nil {
-			return nil, err
-		}
-		if k8sJob == nil {
-			SetErroredStatus(jobKey)
-			operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("k8s job not found"))
-			DeleteJobRuntimeResources(jobKey)
-			jobStatus.Status = status.JobErrored
-		}
+		if statusCode == status.JobRunning {
+			metrics, err := GetRealTimeJobMetrics(jobKey)
+			if err != nil {
+				return nil, err
+			}
+			jobStatus.BatchMetrics = metrics
 
-		workerCounts := status.ExtractWorkerCounts(k8sJob)
-		jobStatus.WorkerCounts = &workerCounts
-	} else if statusCode.IsCompletedPhase() {
+			k8sJob, err := config.K8s.GetJob(jobKey.K8sName())
+			if err != nil {
+				return nil, err
+			}
+			if k8sJob == nil {
+				SetErroredStatus(jobKey)
+				operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("k8s job not found"))
+				DeleteJobRuntimeResources(jobKey)
+				jobStatus.Status = status.JobErrored
+			}
+
+			workerCounts := status.ExtractWorkerCounts(k8sJob)
+			jobStatus.WorkerCounts = &workerCounts
+		}
+	} else {
 		jobStatus.EndTime = jobState.EndTime
 
 		metrics, err := GetJobMetrics(jobKey, startTime, *jobStatus.EndTime)
 		if err != nil {
 			return nil, err
 		}
-		jobStatus.Metrics = metrics
+		jobStatus.BatchMetrics = metrics
 
 		if _, ok := jobState.LastUpdatedMap[_workerCountsFile]; ok {
 			var workerCounts status.WorkerCounts
@@ -435,11 +443,17 @@ func GetJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job) (*status.Job
 		Status:    statusCode,
 	}
 
+	queueMetrics, err := operator.GetQueueMetrics(jobKey)
+	if err != nil {
+		return nil, err
+	}
+	jobStatus.QueueMetrics = queueMetrics
+
 	metrics, err := GetRealTimeJobMetrics(jobKey)
 	if err != nil {
 		return nil, err
 	}
-	jobStatus.Metrics = metrics
+	jobStatus.BatchMetrics = metrics
 
 	workerCounts := status.ExtractWorkerCounts(k8sJob)
 	jobStatus.WorkerCounts = &workerCounts

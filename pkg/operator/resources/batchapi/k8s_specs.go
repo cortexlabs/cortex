@@ -217,7 +217,7 @@ func GetParallelism(job *spec.Job) (int, error) {
 	}
 
 	if job.BatchesPerWorker != nil {
-		return job.TotalPartitions / (*job.BatchesPerWorker), nil
+		return job.TotalBatchCount / (*job.BatchesPerWorker), nil
 	}
 
 	return 0, errors.ErrorUnexpected(fmt.Sprintf("%s and %s are both not specified", userconfig.ParallelismKey, userconfig.BatchesPerWorkerKey))

@@ -86,15 +86,15 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 			succeeded := 0
 			failed := 0
 
-			if job.Metrics != nil {
-				failed = job.Metrics.Failed
-				succeeded = job.Metrics.Succeeded
+			if job.BatchMetrics != nil {
+				failed = job.BatchMetrics.Failed
+				succeeded = job.BatchMetrics.Succeeded
 				totalFailed += failed
 			}
 			rows = append(rows, []interface{}{
 				job.ID,
 				job.Status.Message(),
-				fmt.Sprintf("%d/%d", succeeded, job.TotalPartitions),
+				fmt.Sprintf("%d/%d", succeeded, job.TotalBatchCount),
 				failed,
 				libtime.SinceStr(&job.StartTime),
 			})
@@ -139,16 +139,16 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		resp.JobStatus.Status.Message(),
 	}
 
-	if resp.JobStatus.Metrics != nil {
+	if resp.JobStatus.BatchMetrics != nil {
 		avgTime := "-"
-		if resp.JobStatus.Metrics.AverageTimePerPartition != nil {
-			avgTime = fmt.Sprintf("%.6g s", *resp.JobStatus.Metrics.AverageTimePerPartition)
+		if resp.JobStatus.BatchMetrics.AverageTimePerPartition != nil {
+			avgTime = fmt.Sprintf("%.6g s", *resp.JobStatus.BatchMetrics.AverageTimePerPartition)
 		}
 
 		jobStatusRow = append(jobStatusRow,
-			resp.JobStatus.TotalPartitions,
-			resp.JobStatus.Metrics.Succeeded,
-			resp.JobStatus.Metrics.Failed,
+			resp.JobStatus.TotalBatchCount,
+			resp.JobStatus.BatchMetrics.Succeeded,
+			resp.JobStatus.BatchMetrics.Failed,
 			avgTime,
 		)
 	} else {

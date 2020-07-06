@@ -36,7 +36,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/websocket"
 	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
-	kbatch "k8s.io/api/batch/v1"
 )
 
 const (
@@ -168,7 +167,9 @@ func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan stru
 	logStreamNames := strset.New()
 	didShowFetchingMessage := false
 	didFetchLogs := false
-	var job *kbatch.Job
+	var jobSpec *spec.Job
+
+	jobKey := spec.JobKey{APIName: logRequest.Name, ID: logRequest.JobID}
 
 	timer := time.NewTimer(0)
 	defer timer.Stop()
@@ -178,9 +179,9 @@ func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan stru
 		case <-podCheckCancel:
 			return
 		case <-timer.C:
-			if job == nil || time.Since(lastJobRefresh) > _jobRefreshPeriod {
+			if jobSpec == nil || time.Since(lastJobRefresh) > _jobRefreshPeriod {
 				var err error
-				job, err = config.K8s.GetJob(logRequest.Name + "-" + logRequest.JobID)
+				jobSpec, err = DownloadJobSpec(jobKey)
 				if err != nil {
 					telemetry.Error(err)
 					writeAndCloseSocket(socket, "error: "+errors.Message(err))
@@ -189,7 +190,7 @@ func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan stru
 				lastJobRefresh = time.Now()
 			}
 
-			if job == nil {
+			if jobSpec == nil {
 				writeAndCloseSocket(socket, "\njob "+logRequest.JobID+" for api "+logRequest.Name+" not found")
 				continue
 			}
@@ -221,7 +222,7 @@ func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan stru
 			}
 
 			if !didFetchLogs {
-				lastLogTime = job.CreationTimestamp.Time
+				lastLogTime = jobSpec.Created
 				didFetchLogs = true
 			}
 

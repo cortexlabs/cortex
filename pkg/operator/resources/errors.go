@@ -30,6 +30,7 @@ const (
 	ErrAPINotDeployed                = "resources.api_not_deployed"
 	ErrCannotChangeTypeOfDeployedAPI = "resources.cannot_change_kind_of_deployed_api"
 	ErrNoAvailableNodeComputeLimit   = "resources.no_available_node_compute_limit"
+	ErrJobIDRequired                 = "resources.job_id_required"
 )
 
 func ErrorOperationNotSupportedForKind(resource userconfig.Resource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -68,5 +69,12 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		Message: message,
+	})
+}
+
+func ErrorJobIDRequired(resource userconfig.Resource) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJobIDRequired,
+		Message: fmt.Sprintf("job id is required to stream logs for %s; you can select a job id  from a list of job ids from `cortex get %s` and then use `cortex logs %s JOB_ID` to stream logs for that job", resource.UserString(), resource.Name, resource.Name),
 	})
 }

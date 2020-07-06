@@ -34,11 +34,6 @@ from cortex.lib.log import cx_logger
 from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
 
-if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
-    errMsg = f"your Cortex operator version ({os.environ['CORTEX_VERSION']}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your predictor image by modifying the `image` field in your API configuration file (e.g. cortex.yaml) and re-running `cortex deploy`, or update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update"
-    raise ValueError(errMsg)
-
-
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 
 

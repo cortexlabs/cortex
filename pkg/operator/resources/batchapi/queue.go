@@ -65,6 +65,11 @@ func cronErrHandler(cronName string) func(error) {
 }
 
 func Enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) error {
+	err := UpdateLiveness(jobSpec.JobKey)
+	if err != nil {
+		return err
+	}
+
 	livenessUpdater := func() error {
 		return UpdateLiveness(jobSpec.JobKey)
 	}
@@ -74,27 +79,37 @@ func Enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) error {
 
 	total := 0
 	startTime := time.Now()
-	for i, item := range submission.Items {
-		randomID := k8s.RandomName()
-		_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-			MessageDeduplicationId: aws.String(randomID),
-			QueueUrl:               aws.String(jobSpec.SQSUrl),
-			MessageBody:            aws.String(string(item)),
-			MessageGroupId:         aws.String(randomID),
-		})
-		if err != nil {
-			return errors.Wrap(errors.WithStack(err), fmt.Sprintf("batch %d", i))
-		}
-		total++
-		if total%100 == 0 {
-			operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", total))
+	for i, batch := range submission.Batches {
+		for k := 0; k < 2000; k++ {
+			randomID := k8s.RandomName()
+
+			for retry := 0; retry < 3; retry++ {
+				_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
+					MessageDeduplicationId: aws.String(randomID),
+					QueueUrl:               aws.String(jobSpec.SQSUrl),
+					MessageBody:            aws.String(string(batch)),
+					MessageGroupId:         aws.String(randomID),
+				})
+				if err != nil {
+					newErr := errors.Wrap(errors.WithStack(err), fmt.Sprintf("batch %d", i))
+					if retry == 2 {
+						return errors.Wrap(newErr, fmt.Sprintf("failed after retrying 3 times to enqueue batch %d", i))
+					}
+					operator.WriteToJobLogGroup(jobSpec.JobKey, newErr.Error())
+				}
+			}
+
+			total++
+			if total%100 == 0 {
+				operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", total))
+			}
 		}
 	}
 
 	debug.Pp(time.Now().Sub(startTime).Milliseconds())
 
-	jobSpec.TotalPartitions = total
-	err := SetRunningStatus(jobSpec)
+	jobSpec.TotalBatchCount = total
+	err = SetRunningStatus(jobSpec)
 	if err != nil {
 		return err
 	}
@@ -103,6 +118,7 @@ func Enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) error {
 }
 
 func DeleteQueue(queueURL string) error {
+	errors.PrintStacktrace(errors.ErrorUnexpected("unexpected"))
 	_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
 		QueueUrl: aws.String(queueURL),
 	})

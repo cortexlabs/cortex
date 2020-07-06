@@ -34,7 +34,16 @@ import (
 func GetJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.JobMetrics, error) {
 	batchMetrics := metrics.JobMetrics{}
 
-	err := getMetricsFunc(&jobKey, 60*60, &startTime, &endTime, &batchMetrics)()
+	if time.Now().Sub(endTime) < 2*time.Hour {
+		return GetRealTimeJobMetrics(jobKey)
+	}
+
+	minimumEndTime := time.Now()
+	if time.Now().Sub(endTime) > 2*time.Minute {
+		minimumEndTime = endTime.Add(2 * time.Minute)
+	}
+
+	err := getMetricsFunc(&jobKey, 60*60, &startTime, &minimumEndTime, &batchMetrics)()
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +83,7 @@ func getMetricsFunc(jobKey *spec.JobKey, period int64, startTime *time.Time, end
 		if err != nil {
 			return err
 		}
+
 		jobMetrics, err := extractJobStats(metricDataResults)
 		if err != nil {
 			return err

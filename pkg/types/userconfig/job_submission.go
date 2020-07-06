@@ -18,25 +18,34 @@ package userconfig
 
 import (
 	"encoding/json"
+	"fmt"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-type JobSpec struct {
+const _batchItemSizeLimit = 1024 * 256
+
+type Job struct {
 	Parallelism      *int        `json:"parallelism,omitifempty"`
 	BatchesPerWorker *int        `json:"batches_per_worker,omitifempty"`
 	JobConfig        interface{} `json:"config"`
 }
 
 type JobSubmission struct {
-	JobSpec
-	Items []json.RawMessage `json:"items"`
+	Job
+	Batches []json.RawMessage `json:"batches"`
 }
 
 func (submission *JobSubmission) Validate() error {
-	if len(submission.Items) == 0 {
-		return errors.Wrap(cr.ErrorTooFewElements(0), ItemsKey)
+	if len(submission.Batches) == 0 {
+		return errors.Wrap(cr.ErrorTooFewElements(0), BatchesKey)
+	}
+
+	for i, batch := range submission.Batches {
+		if len(batch) > _batchItemSizeLimit {
+			return errors.Wrap(ErrorItemSizeExceedsLimit(len(batch), _batchItemSizeLimit), fmt.Sprintf("element %d", i))
+		}
 	}
 
 	if submission.Parallelism != nil && *submission.Parallelism <= 0 {
