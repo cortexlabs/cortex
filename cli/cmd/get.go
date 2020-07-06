@@ -51,6 +51,7 @@ import (
 const (
 	_titleEnvironment = "env"
 	_titleAPI         = "api"
+	_titleAPISplitter = "api-splitter"
 	_titleStatus      = "status"
 	_titleUpToDate    = "up-to-date"
 	_titleStale       = "stale"
@@ -242,19 +243,32 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 	var syncAPITable table.Table
 	var out string
 	if len(apisRes.SyncAPIs) == 0 {
-		apiSplitTable = apiSplitterTable(apisRes.APISplitter, envNames)
-		apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
-		out = apiSplitTable.MustFormat()
+		for _, apiSplitter := range apisRes.APISplitter {
+			apiSplitTable, err = apiSplitterTable(apiSplitter, env)
+			if err != nil {
+				return "nil", err
+			}
+			apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
+			out += apiSplitTable.MustFormat() + "\n"
+		}
+
 	} else if len(apisRes.APISplitter) == 0 {
 		syncAPITable = apiTable(apisRes.SyncAPIs, envNames)
 		syncAPITable.FindHeaderByTitle(_titleEnvironment).Hidden = true
 		out = syncAPITable.MustFormat()
 	} else {
-		apiSplitTable = apiSplitterTable(apisRes.APISplitter, envNames)
+		for _, apiSplitter := range apisRes.APISplitter {
+			apiSplitTable, err = apiSplitterTable(apiSplitter, env)
+			if err != nil {
+				return "nil", err
+			}
+			apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
+			out += apiSplitTable.MustFormat() + "\n"
+		}
 		syncAPITable = apiTable(apisRes.SyncAPIs, envNames)
 		apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
 		syncAPITable.FindHeaderByTitle(_titleEnvironment).Hidden = true
-		out = syncAPITable.MustFormat() + "\n" + apiSplitTable.MustFormat()
+		out += syncAPITable.MustFormat() + "\n"
 	}
 
 	if env.Provider == types.LocalProviderType {
@@ -320,9 +334,15 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 func traficSplitterAPITable(apiSplitter *schema.APISplitter, env cliconfig.Environment) (string, error) {
 	var out string
 
-	t := apiSplitterTable([]schema.APISplitter{*apiSplitter}, []string{env.Name})
+	lastUpdated := time.Unix(apiSplitter.Spec.LastUpdated, 0)
+	out += console.Bold(apiSplitter.Spec.Name) + "\n\n"
+	out += console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated) + "\n\n"
+
+	t, err := apiSplitterTable(*apiSplitter, env)
+	if err != nil {
+		return "", err
+	}
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	t.FindHeaderByTitle(_titleAPI).Hidden = true
 
 	out += t.MustFormat()
 
@@ -343,28 +363,42 @@ func traficSplitterAPITable(apiSplitter *schema.APISplitter, env cliconfig.Envir
 	return out, nil
 }
 
-func apiSplitterTable(trafficSplitter []schema.APISplitter, envNames []string) table.Table {
-	rows := make([][]interface{}, 0, len(trafficSplitter))
+func apiSplitterTable(trafficSplitter schema.APISplitter, env cliconfig.Environment) (table.Table, error) {
+	rows := make([][]interface{}, 0, len(trafficSplitter.Spec.APIs))
 
-	for i, splitAPI := range trafficSplitter {
-		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
+	for _, api := range trafficSplitter.Spec.APIs {
+		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), api.Name)
+		if err != nil {
+			return table.Table{}, err
+		}
+		lastUpdated := time.Unix(apiRes.SyncAPI.Spec.LastUpdated, 0)
 		rows = append(rows, []interface{}{
-			envNames[i],
-			splitAPI.Spec.Name,
-			splitAPI.Status.Message(),
+			env.Name,
+			apiRes.SyncAPI.Spec.Name,
+			api.Weight,
+			apiRes.SyncAPI.Status.Message(),
+			apiRes.SyncAPI.Status.Requested,
 			libtime.SinceStr(&lastUpdated),
+			latencyStr(&apiRes.SyncAPI.Metrics),
+			code2XXStr(&apiRes.SyncAPI.Metrics),
+			code5XXStr(&apiRes.SyncAPI.Metrics),
 		})
 	}
 
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
-			{Title: "api splitter"},
+			{Title: "api"},
+			{Title: "weight"},
 			{Title: _titleStatus},
+			{Title: _titleRequested},
 			{Title: _titleLastupdated},
+			{Title: _titleAvgRequest},
+			{Title: _title2XX},
+			{Title: _title5XX},
 		},
 		Rows: rows,
-	}
+	}, nil
 }
 
 func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, error) {
