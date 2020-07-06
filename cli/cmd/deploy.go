@@ -74,8 +74,8 @@ var _deployCmd = &cobra.Command{
 		}
 
 		configPath := getConfigPath(args)
-		deployDir := s.EnsureSuffix(filepath.Dir(files.UserRelToAbsPath(configPath)), "/")
 
+		deployDir := s.EnsureSuffix(filepath.Dir(files.UserRelToAbsPath(configPath)), "/")
 		if deployDir == _homeDir {
 			exit.Error(ErrorDeployFromTopLevelDir("home", env.Provider))
 		}
