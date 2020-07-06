@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -111,9 +110,9 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			return nil
 		},
 		func() error {
-			queues, _ := QueuesPerAPI(apiName)
+			queues, _ := listQueuesPerAPI(apiName)
 			for _, queueURL := range queues {
-				DeleteQueue(queueURL)
+				deleteQueue(queueURL)
 			}
 			return nil
 		},
@@ -191,13 +190,13 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		k8sJobMap[job.Labels["jobID"]] = &job
 	}
 
-	inProgressJobIDs, err := ListAllInProgressJobs()
+	inProgressJobIDs, err := listAllInProgressJobs()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, jobKey := range inProgressJobIDs {
-		jobStatus, err := GetJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
+		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +218,6 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 }
 
 func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
-	startTime := time.Now()
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
 	if err != nil {
 		return nil, err
@@ -242,14 +240,12 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 
 	}
 
-	fmt.Println(time.Now().Sub(startTime).Milliseconds())
-
 	k8sJobMap := map[string]*kbatch.Job{}
 	for _, job := range k8sJobs {
 		k8sJobMap[job.Labels["jobID"]] = &job
 	}
 
-	inProgressJobIDs, err := ListAllInProgressJobsByAPI(apiName)
+	inProgressJobIDs, err := listAllInProgressJobsByAPI(apiName)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +253,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	jobStatuses := []status.JobStatus{}
 	jobIDSet := strset.New()
 	for _, jobKey := range inProgressJobIDs {
-		jobStatus, err := GetJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
+		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
 		if err != nil {
 			return nil, err
 		}

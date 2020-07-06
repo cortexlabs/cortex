@@ -23,7 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -84,7 +83,6 @@ func (c *eventCache) Add(eventID string) {
 }
 
 func ReadLogs(logRequest schema.LogRequest, socket *websocket.Conn) {
-	debug.Pp(logRequest)
 	jobKey := spec.JobKey{APIName: logRequest.Name, ID: logRequest.JobID}
 	jobStatus, err := GetJobStatus(jobKey)
 	if err != nil {
@@ -100,7 +98,6 @@ func ReadLogs(logRequest schema.LogRequest, socket *websocket.Conn) {
 		if err != nil {
 			writeAndCloseSocket(socket, "error: "+errors.Message(err))
 		}
-		debug.Pp(jobStatus)
 		go fetchLogsFromCloudWatch(jobStatus, podCheckCancel, socket)
 	}
 
@@ -181,7 +178,7 @@ func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan stru
 		case <-timer.C:
 			if jobSpec == nil || time.Since(lastJobRefresh) > _jobRefreshPeriod {
 				var err error
-				jobSpec, err = DownloadJobSpec(jobKey)
+				jobSpec, err = downloadJobSpec(jobKey)
 				if err != nil {
 					telemetry.Error(err)
 					writeAndCloseSocket(socket, "error: "+errors.Message(err))
@@ -191,7 +188,7 @@ func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan stru
 			}
 
 			if jobSpec == nil {
-				writeAndCloseSocket(socket, "\njob "+logRequest.JobID+" for api "+logRequest.Name+" not found")
+				writeAndCloseSocket(socket, "\njob "+logRequest.JobID+" (api "+logRequest.Name+") not found")
 				continue
 			}
 

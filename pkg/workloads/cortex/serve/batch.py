@@ -82,12 +82,8 @@ def failed_counter_metric():
     return {"MetricName": "Failed", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
 
 
-def time_per_partition_metric(total_time_seconds):
-    return {
-        "MetricName": "TimePerPartition",
-        "Dimensions": dimensions(),
-        "Value": total_time_seconds,
-    }
+def time_per_batch_metric(total_time_seconds):
+    return {"MetricName": "TimePerBatch", "Dimensions": dimensions(), "Value": total_time_seconds}
 
 
 def update_api_liveness():
@@ -184,12 +180,12 @@ def sqs_loop():
             payload = json.loads(response["Messages"][0]["Body"])
             local_cache["predictor_impl"].predict(build_predict_args(payload))
             local_cache["api"].post_metrics(
-                [success_counter_metric(), time_per_partition_metric(time.time() - start_time)]
+                [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
         except Exception as e:
             cx_logger().exception("failed to process batch")
             local_cache["api"].post_metrics(
-                [failed_counter_metric(), time_per_partition_metric(time.time() - start_time)]
+                [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
         finally:
             renewer.stop()

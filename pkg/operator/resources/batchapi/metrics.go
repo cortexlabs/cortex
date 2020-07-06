@@ -29,13 +29,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-// Find retention period in https://aws.amazon.com/cloudwatch/faqs/
+// Find data retention period at https://aws.amazon.com/cloudwatch/faqs/
 
-func GetJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.JobMetrics, error) {
+func getJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.JobMetrics, error) {
 	batchMetrics := metrics.JobMetrics{}
 
 	if time.Now().Sub(endTime) < 2*time.Hour {
-		return GetRealTimeJobMetrics(jobKey)
+		return getRealTimeJobMetrics(jobKey)
 	}
 
 	minimumEndTime := time.Now()
@@ -51,7 +51,7 @@ func GetJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (
 	return &batchMetrics, nil
 }
 
-func GetRealTimeJobMetrics(jobKey spec.JobKey) (*metrics.JobMetrics, error) {
+func getRealTimeJobMetrics(jobKey spec.JobKey) (*metrics.JobMetrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
 	realTimeEnd := time.Now().Truncate(time.Second)
 	realTimeStart := realTimeEnd.Truncate(time.Minute)
@@ -112,7 +112,7 @@ func queryMetrics(jobKey *spec.JobKey, period int64, startTime *time.Time, endTi
 
 func extractJobStats(metricsDataResults []*cloudwatch.MetricDataResult) (*metrics.JobMetrics, error) {
 	var jobStats metrics.JobMetrics
-	var partitionCounts []*float64
+	var batchCounts []*float64
 	var latencyAvgs []*float64
 
 	for _, metricData := range metricsDataResults {
@@ -125,24 +125,24 @@ func extractJobStats(metricsDataResults []*cloudwatch.MetricDataResult) (*metric
 			jobStats.Succeeded = slices.Float64PtrSumInt(metricData.Values...)
 		case *metricData.Label == "Failed":
 			jobStats.Failed = slices.Float64PtrSumInt(metricData.Values...)
-		case *metricData.Label == "AverageTimePerPartition":
+		case *metricData.Label == "AverageTimePerBatch":
 			latencyAvgs = metricData.Values
 		case *metricData.Label == "Total":
-			partitionCounts = metricData.Values
+			batchCounts = metricData.Values
 		}
 	}
 
-	avg, err := slices.Float64PtrAvg(latencyAvgs, partitionCounts)
+	avg, err := slices.Float64PtrAvg(latencyAvgs, batchCounts)
 	if err != nil {
 		return nil, err
 	}
-	jobStats.AverageTimePerPartition = avg
+	jobStats.AverageTimePerBatch = avg
 
 	jobStats.TotalCompleted = jobStats.Succeeded + jobStats.Failed
 	return &jobStats, nil
 }
 
-func getAPIDimensions(jobKey *spec.JobKey) []*cloudwatch.Dimension {
+func getJobDimensions(jobKey *spec.JobKey) []*cloudwatch.Dimension {
 	return []*cloudwatch.Dimension{
 		{
 			Name:  aws.String("APIName"),
@@ -155,9 +155,9 @@ func getAPIDimensions(jobKey *spec.JobKey) []*cloudwatch.Dimension {
 	}
 }
 
-func getAPIDimensionsCounter(jobKey *spec.JobKey) []*cloudwatch.Dimension {
+func getJobDimensionsCounter(jobKey *spec.JobKey) []*cloudwatch.Dimension {
 	return append(
-		getAPIDimensions(jobKey),
+		getJobDimensions(jobKey),
 		&cloudwatch.Dimension{
 			Name:  aws.String("metric_type"),
 			Value: aws.String("counter"),
@@ -165,9 +165,9 @@ func getAPIDimensionsCounter(jobKey *spec.JobKey) []*cloudwatch.Dimension {
 	)
 }
 
-func getAPIDimensionsHistogram(jobKey *spec.JobKey) []*cloudwatch.Dimension {
+func getJobDimensionsHistogram(jobKey *spec.JobKey) []*cloudwatch.Dimension {
 	return append(
-		getAPIDimensions(jobKey),
+		getJobDimensions(jobKey),
 		&cloudwatch.Dimension{
 			Name:  aws.String("metric_type"),
 			Value: aws.String("histogram"),
@@ -184,7 +184,7 @@ func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricData
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("Succeeded"),
-					Dimensions: getAPIDimensionsCounter(jobKey),
+					Dimensions: getJobDimensionsCounter(jobKey),
 				},
 				Stat:   aws.String("Sum"),
 				Period: aws.Int64(period),
@@ -197,20 +197,20 @@ func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricData
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
 					MetricName: aws.String("Failed"),
-					Dimensions: getAPIDimensionsCounter(jobKey),
+					Dimensions: getJobDimensionsCounter(jobKey),
 				},
 				Stat:   aws.String("Sum"),
 				Period: aws.Int64(period),
 			},
 		},
 		{
-			Id:    aws.String("average_time_per_partition"),
-			Label: aws.String("AverageTimePerPartition"),
+			Id:    aws.String("average_time_per_batch"),
+			Label: aws.String("AverageTimePerBatch"),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
-					MetricName: aws.String("TimePerPartition"),
-					Dimensions: getAPIDimensionsHistogram(jobKey),
+					MetricName: aws.String("TimePerBatch"),
+					Dimensions: getJobDimensionsHistogram(jobKey),
 				},
 				Stat:   aws.String("Average"),
 				Period: aws.Int64(period),
@@ -222,8 +222,8 @@ func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricData
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
 					Namespace:  aws.String(config.Cluster.LogGroup),
-					MetricName: aws.String("TimePerPartition"),
-					Dimensions: getAPIDimensionsHistogram(jobKey),
+					MetricName: aws.String("TimePerBatch"),
+					Dimensions: getJobDimensionsHistogram(jobKey),
 				},
 				Stat:   aws.String("SampleCount"),
 				Period: aws.Int64(period),

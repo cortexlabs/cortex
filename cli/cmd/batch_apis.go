@@ -141,8 +141,8 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	if resp.JobStatus.BatchMetrics != nil {
 		avgTime := "-"
-		if resp.JobStatus.BatchMetrics.AverageTimePerPartition != nil {
-			avgTime = fmt.Sprintf("%.6g s", *resp.JobStatus.BatchMetrics.AverageTimePerPartition)
+		if resp.JobStatus.BatchMetrics.AverageTimePerBatch != nil {
+			avgTime = fmt.Sprintf("%.6g s", *resp.JobStatus.BatchMetrics.AverageTimePerBatch)
 		}
 
 		jobStatusRow = append(jobStatusRow,

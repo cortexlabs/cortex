@@ -63,7 +63,7 @@ func main() {
 
 	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), 12*time.Hour)
 	cron.Run(operator.InstanceTelemetry, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
-	cron.Run(batchapi.CleanupJobs, operator.ErrorHandler("job cleanup"), 60*time.Second)
+	cron.Run(batchapi.ManageJobResources, operator.ErrorHandler("job cleanup"), batchapi.ManageJobResourcesCronPeriod)
 
 	router := mux.NewRouter()
 

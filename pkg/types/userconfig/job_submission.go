@@ -28,7 +28,7 @@ const _batchItemSizeLimit = 1024 * 256
 
 type Job struct {
 	Parallelism      *int        `json:"parallelism,omitifempty"`
-	BatchesPerWorker *int        `json:"batches_per_worker,omitifempty"` // TODO talk to david have it?, rename Parallelism as well
+	BatchesPerWorker *int        `json:"batches_per_worker,omitifempty"` // TODO talk to david have it?, rename Parallelism
 	JobConfig        interface{} `json:"config"`
 }
 

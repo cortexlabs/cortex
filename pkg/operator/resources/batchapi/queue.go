@@ -18,12 +18,12 @@ package batchapi
 
 import (
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -33,20 +33,22 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func APIQueuePrefix(apiName string) string {
+const (
+	_lastUpdatedFile = "last_updated"
+)
+
+func apiQueuePrefix(apiName string) string {
 	return operator.ClusterBasedQueueName() + "-" + apiName
 }
 
-func QueuesPerAPI(apiName string) ([]string, error) {
+func listQueuesPerAPI(apiName string) ([]string, error) {
 	response, err := config.AWS.SQS().ListQueues(&sqs.ListQueuesInput{
-		QueueNamePrefix: aws.String(APIQueuePrefix(apiName)),
+		QueueNamePrefix: aws.String(apiQueuePrefix(apiName)),
 	})
 
 	if err != nil {
 		return nil, err
 	}
-
-	debug.Pp(response)
 
 	queueNames := make([]string, len(response.QueueUrls))
 	for i := range queueNames {
@@ -64,61 +66,58 @@ func cronErrHandler(cronName string) func(error) {
 	}
 }
 
-func Enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) error {
-	err := UpdateLiveness(jobSpec.JobKey)
+func updateLiveness(jobKey spec.JobKey) error {
+	s3Key := path.Join(jobKey.PrefixKey(), _lastUpdatedFile)
+	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
 	}
-
-	livenessUpdater := func() error {
-		return UpdateLiveness(jobSpec.JobKey)
-	}
-
-	livenessCron := cron.Run(livenessUpdater, cronErrHandler(fmt.Sprintf("liveness check for %s (api %s)", jobSpec.ID, jobSpec.APIName)), 20*time.Second)
-	defer livenessCron.Cancel()
-
-	total := 0
-	startTime := time.Now()
-	for i, batch := range submission.Batches {
-		for k := 0; k < 2000; k++ {
-			randomID := k8s.RandomName()
-
-			for retry := 0; retry < 3; retry++ {
-				_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-					MessageDeduplicationId: aws.String(randomID),
-					QueueUrl:               aws.String(jobSpec.SQSUrl),
-					MessageBody:            aws.String(string(batch)),
-					MessageGroupId:         aws.String(randomID),
-				})
-				if err != nil {
-					newErr := errors.Wrap(errors.WithStack(err), fmt.Sprintf("batch %d", i))
-					if retry == 2 {
-						return errors.Wrap(newErr, fmt.Sprintf("failed after retrying 3 times to enqueue batch %d", i))
-					}
-					operator.WriteToJobLogGroup(jobSpec.JobKey, newErr.Error())
-				}
-			}
-
-			total++
-			if total%100 == 0 {
-				operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", total))
-			}
-		}
-	}
-
-	debug.Pp(time.Now().Sub(startTime).Milliseconds())
-
-	jobSpec.TotalBatchCount = total
-	err = SetRunningStatus(jobSpec)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func DeleteQueue(queueURL string) error {
-	errors.PrintStacktrace(errors.ErrorUnexpected("unexpected"))
+func enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) (int, error) {
+	err := updateLiveness(jobSpec.JobKey)
+	if err != nil {
+		return 0, err
+	}
+
+	livenessUpdater := func() error {
+		return updateLiveness(jobSpec.JobKey)
+	}
+
+	livenessCron := cron.Run(livenessUpdater, cronErrHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), 20*time.Second)
+	defer livenessCron.Cancel()
+
+	total := 0
+	for i, batch := range submission.Batches {
+		randomID := k8s.RandomName()
+
+		for retry := 0; retry < 3; retry++ {
+			_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
+				MessageDeduplicationId: aws.String(randomID),
+				QueueUrl:               aws.String(jobSpec.SQSUrl),
+				MessageBody:            aws.String(string(batch)),
+				MessageGroupId:         aws.String(randomID),
+			})
+			if err != nil {
+				newErr := errors.Wrap(errors.WithStack(err), fmt.Sprintf("batch %d", i))
+				if retry == 2 {
+					return 0, errors.Wrap(newErr, fmt.Sprintf("failed after retrying 3 times to enqueue batch %d", i))
+				}
+				operator.WriteToJobLogGroup(jobSpec.JobKey, newErr.Error())
+			}
+		}
+
+		total++
+		if total%100 == 0 {
+			operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", total))
+		}
+	}
+
+	return total, nil
+}
+
+func deleteQueue(queueURL string) error {
 	_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
 		QueueUrl: aws.String(queueURL),
 	})

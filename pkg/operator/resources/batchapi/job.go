@@ -34,7 +34,7 @@ import (
 var jobIDMutex = sync.Mutex{}
 
 // Job id creation optimized for listing the most recently created jobs in S3. S3 objects are listed in ascending UTF-8 binary order. This should work until the year 2262.
-func MonotonicallyDecreasingJobID() string {
+func monotonicallyDecreasingJobID() string {
 	jobIDMutex.Lock()
 	defer jobIDMutex.Unlock()
 
@@ -60,7 +60,7 @@ func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, 
 		return nil, err
 	}
 
-	jobID := MonotonicallyDecreasingJobID()
+	jobID := monotonicallyDecreasingJobID()
 
 	tags := map[string]string{
 		"apiName": apiSpec.Name,
@@ -84,18 +84,41 @@ func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, 
 		Created: time.Now(),
 	}
 
-	err = SetEnqueuingStatus(&jobSpec)
+	err = uploadJobSpec(&jobSpec)
 	if err != nil {
-		DeleteQueue(queueURL)
+		deleteQueue(queueURL)
 		return nil, err
 	}
 
-	go DeployJob(apiSpec, &jobSpec, &submission)
+	err = setEnqueuingStatus(jobSpec.JobKey)
+	if err != nil {
+		deleteQueue(queueURL)
+		return nil, err
+	}
+
+	go deployJob(apiSpec, &jobSpec, &submission)
 
 	return &jobSpec, nil
 }
 
-func DeployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobSubmission) {
+func downloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
+	jobSpec := spec.Job{}
+	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.FileSpecKey())
+	if err != nil {
+		return nil, ErrorJobNotFound(jobKey)
+	}
+	return &jobSpec, nil
+}
+
+func uploadJobSpec(jobSpec *spec.Job) error {
+	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.FileSpecKey())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobSubmission) {
 	err := operator.CreateLogGroupForJob(jobSpec.JobKey)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
@@ -104,7 +127,7 @@ func DeployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobS
 
 	operator.WriteToJobLogGroup(jobSpec.JobKey, "started enqueuing batches to queue")
 
-	err = Enqueue(jobSpec, submission)
+	totalBatches, err := enqueue(jobSpec, submission)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 		return
@@ -112,26 +135,36 @@ func DeployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobS
 
 	operator.WriteToJobLogGroup(jobSpec.JobKey, "completed enqueuing batches to queue")
 
-	err = SetRunningStatus(jobSpec)
+	jobSpec.TotalBatchCount = totalBatches
+
+	err = uploadJobSpec(jobSpec)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 		return
 	}
 
-	err = ApplyK8sJob(apiSpec, jobSpec)
+	err = setRunningStatus(jobSpec.JobKey)
+	if err != nil {
+		handleJobSubmissionError(jobSpec.JobKey, err)
+		return
+	}
+
+	err = applyK8sJob(apiSpec, jobSpec)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
 }
 
-func handleJobSubmissionError(jobKey spec.JobKey, err error) {
-	fmt.Println(err.Error())
-	operator.WriteToJobLogGroup(jobKey, err.Error())
-	SetErroredStatus(jobKey)
-	DeleteJobRuntimeResources(jobKey)
+func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
+	err := operator.WriteToJobLogGroup(jobKey, jobErr.Error())
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	setErroredStatus(jobKey)
+	deleteJobRuntimeResources(jobKey)
 }
 
-func ApplyK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {
+func applyK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {
 	job, err := k8sJobSpec(apiSpec, jobSpec)
 	if err != nil {
 		return err
@@ -145,7 +178,7 @@ func ApplyK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {
 	return nil
 }
 
-func DeleteK8sJob(jobKey spec.JobKey) error {
+func deleteK8sJob(jobKey spec.JobKey) error {
 	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID}).String(),
 	})
@@ -156,8 +189,8 @@ func DeleteK8sJob(jobKey spec.JobKey) error {
 	return nil
 }
 
-func DeleteJobRuntimeResources(jobKey spec.JobKey) error {
-	err := DeleteK8sJob(jobKey)
+func deleteJobRuntimeResources(jobKey spec.JobKey) error {
+	err := deleteK8sJob(jobKey)
 	if err != nil {
 		return err
 	}
@@ -167,7 +200,7 @@ func DeleteJobRuntimeResources(jobKey spec.JobKey) error {
 		return err
 	}
 
-	err = DeleteQueue(queueURL)
+	err = deleteQueue(queueURL)
 	if err != nil {
 		return err
 	}
@@ -178,7 +211,7 @@ func DeleteJobRuntimeResources(jobKey spec.JobKey) error {
 func StopJob(jobKey spec.JobKey) error {
 	operator.WriteToJobLogGroup(jobKey, "request received to stop job; performing cleanup...")
 	return errors.FirstError(
-		SetStoppedStatus(jobKey),
-		DeleteJobRuntimeResources(jobKey),
+		setStoppedStatus(jobKey),
+		deleteJobRuntimeResources(jobKey),
 	)
 }

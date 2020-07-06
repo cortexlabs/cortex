@@ -17,10 +17,10 @@ limitations under the License.
 package metrics
 
 type JobMetrics struct {
-	Succeeded               int      `json:"succeeded"`
-	Failed                  int      `json:"failed"`
-	AverageTimePerPartition *float64 `json:"average_time_per_partition"`
-	TotalCompleted          int      `json:"total_completed"`
+	Succeeded           int      `json:"succeeded"`
+	Failed              int      `json:"failed"`
+	AverageTimePerBatch *float64 `json:"average_time_per_batch"`
+	TotalCompleted      int      `json:"total_completed"`
 }
 
 func (left JobMetrics) Merge(right JobMetrics) JobMetrics {
@@ -31,7 +31,7 @@ func (left JobMetrics) Merge(right JobMetrics) JobMetrics {
 }
 
 func (left *JobMetrics) MergeInPlace(right JobMetrics) {
-	left.AverageTimePerPartition = mergeAvg(left.AverageTimePerPartition, left.TotalCompleted, right.AverageTimePerPartition, right.TotalCompleted)
+	left.AverageTimePerBatch = mergeAvg(left.AverageTimePerBatch, left.TotalCompleted, right.AverageTimePerBatch, right.TotalCompleted)
 	left.Succeeded = left.Succeeded + right.Succeeded
 	left.Failed = left.Failed + right.Failed
 	left.TotalCompleted = left.TotalCompleted + right.TotalCompleted

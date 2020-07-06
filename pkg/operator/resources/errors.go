@@ -39,11 +39,11 @@ func ErrorOperationNotSupportedForKind(resource userconfig.Resource, supportedKi
 		supportedKindsSlice = append(supportedKindsSlice, kind.String())
 	}
 
-	msg := fmt.Sprintf("for %s %s", s.StrsOr(supportedKindsSlice), s.PluralS(userconfig.KindKey, len(supportedKindsSlice)))
+	msg := fmt.Sprintf("%s %s", s.StrsOr(supportedKindsSlice), s.PluralS(userconfig.KindKey, len(supportedKindsSlice)))
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperationNotSupportedForKind,
-		Message: fmt.Sprintf("this operation is only allowed %s and is not supported for %s of kind %s", msg, resource.Name, resource.Kind),
+		Message: fmt.Sprintf("this operation is only allowed for %s and is not supported for %s of kind %s", msg, resource.Name, resource.Kind),
 	})
 }
 
@@ -75,6 +75,6 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 func ErrorJobIDRequired(resource userconfig.Resource) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJobIDRequired,
-		Message: fmt.Sprintf("job id is required to stream logs for %s; you can select a job id  from a list of job ids from `cortex get %s` and then use `cortex logs %s JOB_ID` to stream logs for that job", resource.UserString(), resource.Name, resource.Name),
+		Message: fmt.Sprintf("job id is required to stream logs for %s; you can select a job id from a list of job ids from `cortex get %s` and then use `cortex logs %s JOB_ID` to stream logs for that job", resource.UserString(), resource.Name, resource.Name),
 	})
 }

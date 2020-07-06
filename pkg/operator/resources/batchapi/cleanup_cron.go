@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -33,10 +32,10 @@ import (
 	kbatch "k8s.io/api/batch/v1"
 )
 
-const CleanupCronPeriod = 60 * time.Second
+const ManageJobResourcesCronPeriod = 60 * time.Second
 
-func CleanupJobs() error {
-	inProgressJobIDs, err := ListAllInProgressJobs()
+func ManageJobResources() error {
+	inProgressJobIDs, err := listAllInProgressJobs()
 	if err != nil {
 		return err
 	}
@@ -74,21 +73,18 @@ func CleanupJobs() error {
 	}
 
 	for _, jobKey := range inProgressJobIDs {
-		jobState, err := GetJobState(jobKey)
+		jobState, err := getJobState(jobKey)
 		if err != nil {
-			operator.WriteToJobLogGroup(jobKey, err.Error())
 			fmt.Println(err.Error())
 			telemetry.Error(err)
 		}
 
-		debug.Pp(jobState)
-
 		if jobState.Status.IsCompletedPhase() {
 			if jobIDSetQueueURL.Has(jobKey.ID) {
-				DeleteQueue(queueURLMap[jobKey.ID])
+				deleteQueue(queueURLMap[jobKey.ID])
 			}
 			if jobIDSetK8s.Has(jobKey.ID) {
-				DeleteK8sJob(jobKey)
+				deleteK8sJob(jobKey)
 			}
 		}
 
@@ -96,7 +92,6 @@ func CleanupJobs() error {
 			if !jobIDSetQueueURL.Has(jobKey.ID) {
 				queueURL, err := operator.QueueURL(jobKey)
 				if err != nil {
-					operator.WriteToJobLogGroup(jobKey, err.Error())
 					fmt.Println(err.Error())
 					telemetry.Error(err)
 				}
@@ -105,11 +100,11 @@ func CleanupJobs() error {
 					errorJobAndDelete(jobKey, err.Error(), fmt.Sprintf("terminating job %s; unable to verify if sqs queue with url %s exists", jobKey.UserString(), queueURL))
 				}
 
-				if !queueExists && time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) >= CleanupCronPeriod {
+				if !queueExists && time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) >= ManageJobResourcesCronPeriod {
 					errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), queueURL))
 				}
 			} else {
-				if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_lastUpdatedFile]) >= CleanupCronPeriod {
+				if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_lastUpdatedFile]) >= ManageJobResourcesCronPeriod {
 					errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()))
 				}
 
@@ -120,7 +115,6 @@ func CleanupJobs() error {
 						k8sJob := k8sJobMap[jobKey.ID]
 						err := checkJobCompletion(jobKey, queueURLMap[jobKey.ID], &k8sJob)
 						if err != nil {
-							operator.WriteToJobLogGroup(jobKey, err.Error())
 							fmt.Println(err.Error())
 							telemetry.Error(err)
 						}
@@ -128,19 +122,19 @@ func CleanupJobs() error {
 				}
 			}
 		} else {
-			DeleteInProgressFile(jobKey)
+			deleteInProgressFile(jobKey)
 		}
 	}
 
 	for jobID := range strset.Difference(jobIDSetK8s, inProgressJobIDSet) {
-		DeleteJobRuntimeResources(
+		deleteJobRuntimeResources(
 			spec.JobKey{APIName: k8sJobMap[jobID].Labels["apiName"], ID: k8sJobMap[jobID].Labels["jobID"]},
 		)
 	}
 
 	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s, inProgressJobIDSet) {
 		jobKey := operator.IdentifierFromQueueURL(queueURLMap[jobID])
-		DeleteJobRuntimeResources(jobKey)
+		deleteJobRuntimeResources(jobKey)
 	}
 
 	return nil
@@ -148,8 +142,8 @@ func CleanupJobs() error {
 
 func errorJobAndDelete(jobKey spec.JobKey, message string, messages ...string) {
 	operator.WriteToJobLogGroup(jobKey, message, messages...)
-	SetErroredStatus(jobKey)
-	DeleteJobRuntimeResources(jobKey)
+	setErroredStatus(jobKey)
+	deleteJobRuntimeResources(jobKey)
 }
 
 func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {
@@ -158,13 +152,13 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 		return err
 
 	}
-	jobMetrics, err := GetRealTimeJobMetrics(jobKey)
+	jobMetrics, err := getRealTimeJobMetrics(jobKey)
 	if err != nil {
 		return err
 	}
 
 	if queueMetrics.IsEmpty() {
-		jobSpec, err := DownloadJobSpec(jobKey)
+		jobSpec, err := downloadJobSpec(jobKey)
 		if err != nil {
 			return err
 		}
@@ -172,13 +166,13 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 		if jobSpec.TotalBatchCount == jobMetrics.TotalCompleted || k8sJob.Annotations["cortex/to-delete"] == "true" {
 			if jobMetrics.Failed != 0 {
 				return errors.FirstError(
-					SetFailedStatus(jobKey),
-					DeleteJobRuntimeResources(jobKey),
+					setFailedStatus(jobKey),
+					deleteJobRuntimeResources(jobKey),
 				)
 			}
 			return errors.FirstError(
-				SetSucceededStatus(jobKey),
-				DeleteJobRuntimeResources(jobKey),
+				setSucceededStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
 			)
 		}
 
@@ -210,8 +204,8 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 				}
 			}
 			return errors.FirstError(
-				SetIncompleteStatus(jobKey),
-				DeleteJobRuntimeResources(jobKey),
+				setIncompleteStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
 			)
 		}
 	}
