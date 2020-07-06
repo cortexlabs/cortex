@@ -62,7 +62,7 @@ const (
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
 	ErrKindIsNotSupportedByProvider         = "spec.kind_is_not_supported_by_provider"
-	ErrKeyIsNotSupportedWithKind            = "spec.key_is_not_supported_with_kind"
+	ErrKeyIsNotSupportedForKind             = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
@@ -328,9 +328,9 @@ func ErrorKindIsNotSupportedByProvider(kind userconfig.Kind, provider types.Prov
 	})
 }
 
-func ErrorKeyIsNotSupportedWithKind(key string, kind userconfig.Kind) error {
+func ErrorKeyIsNotSupportedForKind(key string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrKeyIsNotSupportedWithKind,
+		Kind:    ErrKeyIsNotSupportedForKind,
 		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
 	})
 }

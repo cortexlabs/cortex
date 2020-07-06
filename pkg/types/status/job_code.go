@@ -51,14 +51,14 @@ func (code JobCode) IsCompletedPhase() bool {
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodes)-1)] // Ensure list length matches
 
 var _jobCodeMessages = []string{
-	"unknown",    // JobUnknown
-	"enqueuing",  // Job
-	"running",    // Running
-	"failed",     // Failed
-	"succeeded",  // Succeeded
-	"errored",    // Errored
-	"incomplete", // Incomplete
-	"stopped",    // Stopped
+	"unknown",
+	"enqueuing",
+	"running",
+	"failed",
+	"succeeded",
+	"errored",
+	"incomplete",
+	"stopped",
 }
 
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodeMessages)-1)] // Ensure list length matches

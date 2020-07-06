@@ -26,6 +26,7 @@ import asyncio
 from typing import Any
 
 import boto3
+import botocore
 
 from cortex import consts
 from cortex.lib import util
@@ -49,7 +50,7 @@ local_cache = {
 }
 
 
-class Ticker:
+class PeriodicGeneratorRunner:
     def __init__(self, interval, func, *args, **kwargs):
         self.interval = interval
         self.func = func
@@ -100,16 +101,36 @@ def startup():
     update_api_liveness()
 
 
+def build_predict_args(payload):
+    args = {}
+
+    if "payload" in local_cache["predict_fn_args"]:
+        args["payload"] = payload
+    if "headers" in local_cache["predict_fn_args"]:
+        args["headers"] = None
+    if "query_params" in local_cache["predict_fn_args"]:
+        args["query_params"] = None
+    return args
+
+
 def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval, *args, **kwargs):
     new_timeout = initial_offset + interval
     while True:
         yield
-        print("resetting")
-        # todo silence this error (this could fail if done out of order)
-        output = local_cache["sqs"].change_message_visibility(
-            QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
-        )
-        print(output)
+        try:
+            local_cache["sqs"].change_message_visibility(
+                QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
+            )
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "InvalidParameterValue":
+                cx_logger().info(
+                    "failed to renew message visibility because message may have been deleted"
+                )
+            elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
+                cx_logger().info(
+                    "failed to renew message visibility because the queue was not found"
+                )
+
         new_timeout += interval
 
 
@@ -142,48 +163,37 @@ def sqs_loop():
     open("/mnt/workspace/api_readiness.txt", "a").close()
 
     while True:
-        print("entering loop")
         response = local_cache["sqs"].receive_message(
-            QueueUrl=queue_url,
-            AttributeNames=["SentTimestamp"],
-            MaxNumberOfMessages=1,
-            MessageAttributeNames=["All"],
-            WaitTimeSeconds=1,
-            VisibilityTimeout=120,
+            QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1, VisibilityTimeout=120
         )
 
-        print(response)
         if response.get("Messages") is None or len(response["Messages"]) == 0:
-            print("no results")
+            cx_logger().info("no batches left in queue, exiting...")
             break
+
+        receipt_handle = response["Messages"][0]["ReceiptHandle"]
 
         start_time = time.time()
 
-        renewer = Ticker(
-            60,
-            renew_message_visibility,
-            queue_url,
-            response["Messages"][0]["ReceiptHandle"],
-            120,
-            60,
+        renewer = PeriodicGeneratorRunner(
+            60, renew_message_visibility, queue_url, receipt_handle, 120, 60
         )
 
         renewer.start()
         try:
             payload = json.loads(response["Messages"][0]["Body"])
-            local_cache["predictor_impl"].predict(payload=payload)
+            local_cache["predictor_impl"].predict(build_predict_args(payload))
             local_cache["api"].post_metrics(
                 [success_counter_metric(), time_per_partition_metric(time.time() - start_time)]
             )
         except Exception as e:
+            cx_logger().exception("failed to process batch")
             local_cache["api"].post_metrics(
                 [failed_counter_metric(), time_per_partition_metric(time.time() - start_time)]
             )
         finally:
             renewer.stop()
-            local_cache["sqs"].delete_message(
-                QueueUrl=queue_url, ReceiptHandle=response["Messages"][0]["ReceiptHandle"]
-            )
+            local_cache["sqs"].delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
 
 def start():
@@ -224,7 +234,6 @@ def start():
         )
 
         job_spec = get_job_spec(storage, cache_dir, job_spec_path)
-        print(job_spec)
         if job_spec.get("config") is not None:
             raw_api_spec["predictor"]["config"] = util.merge_dicts_overwrite(
                 raw_api_spec["predictor"]["config"], job_spec["config"]
@@ -247,11 +256,10 @@ def start():
         cx_logger().exception("failed to start api")
         sys.exit(1)
 
-    print("starting sqs loop...")
+    cx_logger().info("polling for batches...")
     sqs_loop()
 
 
 if __name__ == "__main__":
     start()
 
-# 69e2c3a88a3267b4

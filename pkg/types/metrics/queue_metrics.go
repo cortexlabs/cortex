@@ -17,9 +17,8 @@ limitations under the License.
 package metrics
 
 type QueueMetrics struct {
-	InitialCount int `json:"total"`
-	InQueue      int `json:"in_queue"`
-	NotVisible   int `json:"not_visible"`
+	InQueue    int `json:"in_queue"`
+	NotVisible int `json:"not_visible"`
 }
 
 func (q QueueMetrics) IsEmpty() bool {

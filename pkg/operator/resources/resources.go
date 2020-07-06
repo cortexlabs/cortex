@@ -18,16 +18,11 @@ package resources
 
 import (
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -273,8 +268,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 
 	batchAPIsMap := map[string]*schema.BatchAPI{}
 
-	fmt.Println(len(virtualServices))
-
 	for _, virtualService := range virtualServices {
 		apiName := virtualService.GetLabels()["apiName"]
 		apiID := virtualService.GetLabels()["apiID"]
@@ -318,8 +311,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		}
 	}
 
-	debug.Pp(batchAPIsMap)
-
 	batchAPIList := make([]schema.BatchAPI, len(batchAPIsMap))
 
 	i := 0
@@ -327,8 +318,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		batchAPIList[i] = *batchAPI
 		i++
 	}
-
-	debug.Pp(batchAPIList)
 
 	return &schema.GetAPIsResponse{
 		BatchAPIs: batchAPIList,
@@ -346,133 +335,12 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 
 	switch deployedResource.Kind {
 	case userconfig.SyncAPIKind:
-		return getSyncAPI(apiName)
+		return syncapi.GetAPIByName(apiName)
 	case userconfig.BatchAPIKind:
-		return getBatchAPI(apiName)
+		return batchapi.GetAPIByName(apiName)
 	default:
 		return nil, ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
-}
-
-func getSyncAPI(apiName string) (*schema.GetAPIResponse, error) {
-	status, err := syncapi.GetStatus(apiName)
-	if err != nil {
-		return nil, err
-	}
-
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
-	if err != nil {
-		return nil, err
-
-	}
-
-	metrics, err := syncapi.GetMetrics(api)
-	if err != nil {
-		return nil, err
-
-	}
-
-	baseURL, err := syncapi.APIBaseURL(api)
-	if err != nil {
-		return nil, err
-
-	}
-
-	return &schema.GetAPIResponse{
-		SyncAPI: &schema.SyncAPI{
-			Spec:         *api,
-			Status:       *status,
-			Metrics:      *metrics,
-			BaseURL:      baseURL,
-			DashboardURL: syncapi.DashboardURL(),
-		},
-	}, nil
-}
-
-func getBatchAPI(apiName string) (*schema.GetAPIResponse, error) {
-	startTime := time.Now()
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
-	if err != nil {
-		return nil, err
-	}
-
-	if virtualService == nil {
-		return nil, ErrorAPINotDeployed(apiName)
-	}
-
-	apiID := virtualService.GetLabels()["apiID"]
-	api, err := operator.DownloadAPISpec(apiName, apiID)
-	if err != nil {
-		return nil, err
-	}
-
-	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", apiName)
-	if err != nil {
-		return nil, err
-	}
-
-	baseURL, err := syncapi.APIBaseURL(api)
-	if err != nil {
-		return nil, err
-
-	}
-
-	fmt.Println(time.Now().Sub(startTime).Milliseconds())
-
-	k8sJobMap := map[string]*kbatch.Job{}
-	for _, job := range k8sJobs {
-		k8sJobMap[job.Labels["jobID"]] = &job
-	}
-
-	inProgressJobIDs, err := batchapi.ListAllInProgressJobsByAPI(apiName)
-	if err != nil {
-		return nil, err
-	}
-
-	jobStatuses := []status.JobStatus{}
-	jobIDSet := strset.New()
-	for _, jobKey := range inProgressJobIDs {
-		jobStatus, err := batchapi.GetJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
-		if err != nil {
-			return nil, err
-		}
-
-		jobStatuses = append(jobStatuses, *jobStatus)
-		jobIDSet.Add(jobKey.ID)
-	}
-
-	if len(jobStatuses) < 5 {
-		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, batchapi.JobsPrefix(apiName), false, pointer.Int64(40))
-		if err != nil {
-			return nil, err
-		}
-		for _, s3Obj := range objects {
-			pathSplit := strings.Split(*s3Obj.Key, "/")
-			jobID := pathSplit[len(pathSplit)-2]
-			if jobIDSet.Has(jobID) {
-				continue
-			}
-			jobIDSet.Add(jobID)
-
-			jobStatus, err := batchapi.GetJobStatus(spec.JobKey{APIName: apiName, ID: jobID})
-			if err != nil {
-				return nil, err
-			}
-			jobStatuses = append(jobStatuses, *jobStatus)
-
-			if len(jobStatuses) >= 5 {
-				break
-			}
-		}
-	}
-
-	return &schema.GetAPIResponse{
-		BatchAPI: &schema.BatchAPI{
-			APISpec:     *api,
-			JobStatuses: jobStatuses,
-			BaseURL:     baseURL,
-		},
-	}, nil
 }
 
 func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {

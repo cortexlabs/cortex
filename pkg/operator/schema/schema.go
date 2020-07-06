@@ -107,5 +107,5 @@ type APISummary struct {
 
 type LogRequest struct {
 	userconfig.Resource
-	JobID string
+	JobID string `json:"job_id"`
 }

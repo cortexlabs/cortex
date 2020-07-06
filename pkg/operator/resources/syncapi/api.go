@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -187,6 +188,41 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	}
 
 	return nil
+}
+
+func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
+	status, err := GetStatus(apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	if err != nil {
+		return nil, err
+
+	}
+
+	metrics, err := GetMetrics(api)
+	if err != nil {
+		return nil, err
+
+	}
+
+	baseURL, err := APIBaseURL(api)
+	if err != nil {
+		return nil, err
+
+	}
+
+	return &schema.GetAPIResponse{
+		SyncAPI: &schema.SyncAPI{
+			Spec:         *api,
+			Status:       *status,
+			Metrics:      *metrics,
+			BaseURL:      baseURL,
+			DashboardURL: DashboardURL(),
+		},
+	}, nil
 }
 
 func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *istioclientnetworking.VirtualService, error) {

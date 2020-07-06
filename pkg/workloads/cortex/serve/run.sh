@@ -33,9 +33,6 @@ mkdir -p /mnt/requests
 
 cd /mnt/project
 
-printenv
-
-echo "HI"
 # if the container restarted, ensure that it is not perceived as ready
 rm -rf /mnt/workspace/api_readiness.txt
 

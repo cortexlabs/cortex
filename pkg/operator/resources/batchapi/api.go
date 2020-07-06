@@ -19,19 +19,26 @@ package batchapi
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	kbatch "k8s.io/api/batch/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
-// func GetLatestAPISpec
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
 	prevVirtualService, err := getVirtualService(apiConfig.Name)
 	if err != nil {
@@ -148,12 +155,90 @@ func deleteS3Resources(apiName string) error {
 			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 		},
 		func() error {
-			prefix := JobsPrefix(apiName)
+			prefix := spec.APIJobPrefix(apiName)
 			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 		},
 	)
 }
 
-func JobsPrefix(apiName string) string {
-	return filepath.Join("jobs", apiName)
+func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
+	startTime := time.Now()
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+	if err != nil {
+		return nil, err
+	}
+
+	apiID := virtualService.GetLabels()["apiID"]
+	api, err := operator.DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		return nil, err
+	}
+
+	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	baseURL, err := syncapi.APIBaseURL(api)
+	if err != nil {
+		return nil, err
+
+	}
+
+	fmt.Println(time.Now().Sub(startTime).Milliseconds())
+
+	k8sJobMap := map[string]*kbatch.Job{}
+	for _, job := range k8sJobs {
+		k8sJobMap[job.Labels["jobID"]] = &job
+	}
+
+	inProgressJobIDs, err := ListAllInProgressJobsByAPI(apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	jobStatuses := []status.JobStatus{}
+	jobIDSet := strset.New()
+	for _, jobKey := range inProgressJobIDs {
+		jobStatus, err := GetJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
+		if err != nil {
+			return nil, err
+		}
+
+		jobStatuses = append(jobStatuses, *jobStatus)
+		jobIDSet.Add(jobKey.ID)
+	}
+
+	if len(jobStatuses) < 5 {
+		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, spec.APIJobPrefix(apiName), false, pointer.Int64(40))
+		if err != nil {
+			return nil, err
+		}
+		for _, s3Obj := range objects {
+			pathSplit := strings.Split(*s3Obj.Key, "/")
+			jobID := pathSplit[len(pathSplit)-2]
+			if jobIDSet.Has(jobID) {
+				continue
+			}
+			jobIDSet.Add(jobID)
+
+			jobStatus, err := GetJobStatus(spec.JobKey{APIName: apiName, ID: jobID})
+			if err != nil {
+				return nil, err
+			}
+			jobStatuses = append(jobStatuses, *jobStatus)
+
+			if len(jobStatuses) >= 5 {
+				break
+			}
+		}
+	}
+
+	return &schema.GetAPIResponse{
+		BatchAPI: &schema.BatchAPI{
+			APISpec:     *api,
+			JobStatuses: jobStatuses,
+			BaseURL:     baseURL,
+		},
+	}, nil
 }

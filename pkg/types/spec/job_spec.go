@@ -35,12 +35,12 @@ func (j JobKey) UserString() string {
 	return fmt.Sprintf("%s (api %s)", j.ID, j.APIName)
 }
 
-// e.g. /jobs/<api_name>/<job_id>/spec.json
+// e.g. /jobs/<cortex version>/<api name>/<job id>/spec.json
 func (j JobKey) FileSpecKey() string {
 	return path.Join(j.PrefixKey(), "spec.json")
 }
 
-// e.g. /jobs/<api_name>/<job_id>
+// e.g. /jobs/<cortex version>/<api_name>/<job_id>
 func (j JobKey) PrefixKey() string {
 	return path.Join(APIJobPrefix(j.APIName), j.ID)
 }
