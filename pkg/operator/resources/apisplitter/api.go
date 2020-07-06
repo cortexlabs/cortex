@@ -192,36 +192,6 @@ func deleteS3Resources(apiName string) error {
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 }
 
-func IsAPIUpdating(apiName string) (bool, error) {
-	deployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
-	if err != nil {
-		return false, err
-	}
-
-	return isAPIUpdating(deployment)
-}
-
-// returns true if min_replicas are not ready and no updated replicas have errored
-func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
-	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
-	if err != nil {
-		return false, err
-	}
-
-	replicaCounts := getReplicaCounts(deployment, pods)
-
-	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
-	if err != nil {
-		return false, err
-	}
-
-	if replicaCounts.Updated.Ready < autoscalingSpec.MinReplicas && replicaCounts.Updated.TotalFailed() == 0 {
-		return true, nil
-	}
-
-	return false, nil
-}
-
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
 	return k8s.PodComputesEqual(&deployment.Spec.Template.Spec, &pod.Spec) &&
 		deployment.Spec.Template.Labels["apiName"] == pod.Labels["apiName"] &&
