@@ -28,8 +28,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 ## How it works
 
-<!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
-![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13_2.gif)
+![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.18.gif)
 
 <br>
 
