@@ -202,8 +202,7 @@ func (api *API) ToK8sAnnotations() map[string]string {
 }
 
 func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
-	fmt.Println(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
-	fmt.Println(APIGatewayAnnotationKey)
+
 	apiGatewayType := APIGatewayTypeFromString(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
 	if apiGatewayType == UnknownAPIGatewayType {
 		return UnknownAPIGatewayType, ErrorUnknownAPIGatewayType()
@@ -285,7 +284,6 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 
 func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
-
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
 
@@ -332,11 +330,11 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	return sb.String()
 }
 
-func (api *TrafficSplitter) UserStr() string {
+func (trafficSplitter *TrafficSplitter) UserStr() string {
 	var sb strings.Builder
 	// ADD KEY TO CONSTS
-	sb.WriteString(fmt.Sprintf("%s: %s\n", "Name", api.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", "Weight", s.Int(api.Weight)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", "Name", trafficSplitter.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", "Weight", s.Int(trafficSplitter.Weight)))
 	return sb.String()
 }
 

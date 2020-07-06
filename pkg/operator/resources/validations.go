@@ -78,7 +78,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	withoutAPISplitter := ApisWithoutAPISplitter(apis)
 	for i := range apis {
 		api := &apis[i]
-		fmt.Println(api)
 		if api.Kind == userconfig.SyncAPIKind {
 			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
 				return err
@@ -97,6 +96,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err != nil {
 				return err
 			}
+			//Change return values
 			_, err = checkIfAPIExist(api.APIs, withoutAPISplitter)
 			if err != nil {
 				return err
@@ -104,7 +104,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 	}
 
-	fmt.Println("all single api checks done")
 	dups := spec.FindDuplicateNames(withoutAPISplitter)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateName(dups)
@@ -261,6 +260,7 @@ func ApisWithoutAPISplitter(apis []userconfig.API) []userconfig.API {
 	return withoutAPISplitter
 }
 
+// ApisWithoutSyncAPI return all defined APIs in yaml without trafficsplitter
 func ApisWithoutSyncAPI(apis []userconfig.API) []userconfig.API {
 	withoutSyncAPI := []userconfig.API{}
 	for _, api := range apis {
@@ -272,9 +272,9 @@ func ApisWithoutSyncAPI(apis []userconfig.API) []userconfig.API {
 	return withoutSyncAPI
 }
 
+// checkIfAPIExist checks if refrenced apis in trafficsplitter are either defined in yaml or already deployed
 func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []userconfig.API) (bool, error) {
 
-	// TO DOOOOOO
 	deployedAPIs, err := GetAPIs()
 	if err != nil {
 		return false, err
@@ -304,6 +304,7 @@ func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []u
 
 }
 
+// isWeight100 checks if total weights add up to 100. It is assumed that values are between 0-100 because of spec checks
 func isWeight100(apis []*userconfig.TrafficSplitter) (bool, error) {
 
 	totalWeight := 0

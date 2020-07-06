@@ -571,7 +571,6 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 		api := userconfig.API{}
 		var resourceStruct userconfig.Resource
 		errs := cr.Struct(&resourceStruct, data, &resourceStructValidation)
-		fmt.Println(errs)
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			kindString, _ := data[userconfig.KindKey].(string)

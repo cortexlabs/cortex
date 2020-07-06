@@ -170,7 +170,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 
 		return nil, ErrorAPINotDeployed(apiName)
 	}
-	fmt.Println(deployedResource.Kind)
+
 	if deployedResource.Kind == userconfig.SyncAPIKind {
 		err := syncapi.DeleteAPI(apiName, keepCache)
 		if err != nil {
@@ -210,9 +210,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 	}
 
 	syncAPIapiNames, syncAPIapiIDs := namesAndIDsFromStatuses(syncAPIstatuses)
-	fmt.Println("SYNVAPIS")
-	fmt.Println(syncAPIapiNames)
-	fmt.Println(syncAPIapiIDs)
 	syncAPIapis, err := operator.DownloadAPISpecs(syncAPIapiNames, syncAPIapiIDs)
 	if err != nil {
 		return nil, err
@@ -239,9 +236,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 	}
 
 	apiSplitterapiNames, apiSplitterapiIDs := namesAndIDsFromStatuses(apiSplitterstatuses)
-	fmt.Println("APISPLIRTRER")
-	fmt.Println(apiSplitterapiNames)
-	fmt.Println(apiSplitterapiIDs)
 	apiSplitterapis, err := operator.DownloadAPISpecs(apiSplitterapiNames, apiSplitterapiIDs)
 	if err != nil {
 		return nil, err

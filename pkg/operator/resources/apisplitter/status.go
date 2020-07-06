@@ -21,13 +21,10 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	kapps "k8s.io/api/apps/v1"
-	kcore "k8s.io/api/core/v1"
 )
 
 const _stalledPodTimeout = 10 * time.Minute
@@ -81,85 +78,4 @@ func trafficSplitterStatus(virtualService *istioclientnetworking.VirtualService)
 	statusResponse.Code = status.Live
 
 	return statusResponse, nil
-}
-
-func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.ReplicaCounts {
-	counts := status.ReplicaCounts{}
-	counts.Requested = *deployment.Spec.Replicas
-
-	for _, pod := range pods {
-		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
-			continue
-		}
-		addPodToReplicaCounts(&pod, deployment, &counts)
-	}
-
-	return counts
-}
-
-func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts *status.ReplicaCounts) {
-	var subCounts *status.SubReplicaCounts
-	if isPodSpecLatest(deployment, pod) {
-		subCounts = &counts.Updated
-	} else {
-		subCounts = &counts.Stale
-	}
-
-	if k8s.IsPodReady(pod) {
-		subCounts.Ready++
-		return
-	}
-
-	switch k8s.GetPodStatus(pod) {
-	case k8s.PodStatusPending:
-		if time.Since(pod.CreationTimestamp.Time) > _stalledPodTimeout {
-			subCounts.Stalled++
-		} else {
-			subCounts.Pending++
-		}
-	case k8s.PodStatusInitializing:
-		subCounts.Initializing++
-	case k8s.PodStatusRunning:
-		subCounts.Initializing++
-	case k8s.PodStatusErrImagePull:
-		subCounts.ErrImagePull++
-	case k8s.PodStatusTerminating:
-		subCounts.Terminating++
-	case k8s.PodStatusFailed:
-		subCounts.Failed++
-	case k8s.PodStatusKilled:
-		subCounts.Killed++
-	case k8s.PodStatusKilledOOM:
-		subCounts.KilledOOM++
-	default:
-		subCounts.Unknown++
-	}
-}
-
-func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code {
-	if counts.Updated.Ready >= counts.Requested {
-		return status.Live
-	}
-
-	if counts.Updated.ErrImagePull > 0 {
-		return status.ErrorImagePull
-	}
-
-	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
-		return status.Error
-	}
-
-	if counts.Updated.KilledOOM > 0 {
-		return status.OOM
-	}
-
-	if counts.Updated.Stalled > 0 {
-		return status.Stalled
-	}
-
-	if counts.Updated.Ready >= minReplicas {
-		return status.Live
-	}
-
-	return status.Updating
 }
