@@ -37,6 +37,8 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 Implement your predictor in `predictor.py`, configure your deployment in `cortex.yaml`, and run `cortex deploy`.
 
+Here's how to deploy GPT-2 as a scalable text generation API:
+
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.18.gif)
 
 <br>
