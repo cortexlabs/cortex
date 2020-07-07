@@ -46,7 +46,6 @@ type VirtualServiceSpec struct {
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
 	var stringMatch *istionetworking.StringMatch
-	// 		uriMap["prefix"] = urls.CanonicalizeEndpoint(*spec.PrefixPath)
 
 	if spec.ExactPath != nil {
 		stringMatch = &istionetworking.StringMatch{

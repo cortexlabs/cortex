@@ -37,9 +37,7 @@ import (
 
 const (
 	_titleEnvironment = "env"
-	_titleAPI         = "api"
-	_titleJobCount    = "running jobs"
-	_titleLatestJobID = "latest job id"
+	_titleSyncAPI     = "sync api"
 	_titleStatus      = "status"
 	_titleUpToDate    = "up-to-date"
 	_titleStale       = "stale"
@@ -65,7 +63,7 @@ func getInit() {
 
 var _getCmd = &cobra.Command{
 	Use:   "get [API_NAME] [JOB_ID]",
-	Short: "get information about apis",
+	Short: "get information about apis or jobs",
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched

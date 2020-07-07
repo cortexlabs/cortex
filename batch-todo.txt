@@ -1,9 +1,0 @@
-TODO
-
-- secure batch endpoints??
-- delete queues on cluster down
-- disable process per replica and workers per process workflows
-- environment variable to indicate which python file to run
-- query params
-- try a really long enqueuing process
-- test what happens if you set endpoint to batch_rest??

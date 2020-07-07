@@ -36,7 +36,8 @@ from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
 
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
-
+INITIAL_MESSAGE_VISIBILITY = 120  # seconds
+MESSAGE_RENEWAL_PERIOD = 60  # seconds
 
 local_cache = {
     "api": None,
@@ -119,13 +120,13 @@ def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval
             )
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "InvalidParameterValue":
-                cx_logger().info(
-                    "failed to renew message visibility because message may have been deleted"
-                )
+                continue
             elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
                 cx_logger().info(
                     "failed to renew message visibility because the queue was not found"
                 )
+            else:
+                raise e
 
         new_timeout += interval
 
@@ -160,7 +161,10 @@ def sqs_loop():
 
     while True:
         response = local_cache["sqs"].receive_message(
-            QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1, VisibilityTimeout=120
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=1,
+            WaitTimeSeconds=1,
+            VisibilityTimeout=INITIAL_MESSAGE_VISIBILITY,
         )
 
         if response.get("Messages") is None or len(response["Messages"]) == 0:
@@ -172,7 +176,12 @@ def sqs_loop():
         start_time = time.time()
 
         renewer = PeriodicGeneratorRunner(
-            60, renew_message_visibility, queue_url, receipt_handle, 120, 60
+            MESSAGE_RENEWAL_PERIOD,
+            renew_message_visibility,
+            queue_url,
+            receipt_handle,
+            INITIAL_MESSAGE_VISIBILITY,
+            MESSAGE_RENEWAL_PERIOD,
         )
 
         renewer.start()
@@ -182,7 +191,7 @@ def sqs_loop():
             local_cache["api"].post_metrics(
                 [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
-        except Exception as e:
+        except Exception:
             cx_logger().exception("failed to process batch")
             local_cache["api"].post_metrics(
                 [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
@@ -235,7 +244,7 @@ def start():
                 raw_api_spec["predictor"]["config"], job_spec["config"]
             )
 
-        api.predictor.initialize_client(
+        client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
@@ -257,4 +266,3 @@ def start():
 
 if __name__ == "__main__":
     start()
-

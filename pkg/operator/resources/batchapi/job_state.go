@@ -63,16 +63,24 @@ func getStatusCode(fileKeys []string) status.JobCode {
 		return status.JobStopped
 	}
 
-	if fileSet.Has(status.JobIncomplete.String()) {
-		return status.JobIncomplete
+	if fileSet.Has(status.JobWorkerOOM.String()) {
+		return status.JobWorkerOOM
 	}
 
-	if fileSet.Has(status.JobFailed.String()) {
-		return status.JobFailed
+	if fileSet.Has(status.JobWorkerError.String()) {
+		return status.JobWorkerError
 	}
 
-	if fileSet.Has(status.JobErrored.String()) {
-		return status.JobErrored
+	if fileSet.Has(status.JobEnqueueFailed.String()) {
+		return status.JobEnqueueFailed
+	}
+
+	if fileSet.Has(status.JobUnexpectedError.String()) {
+		return status.JobUnexpectedError
+	}
+
+	if fileSet.Has(status.JobCompletedWithFailures.String()) {
+		return status.JobCompletedWithFailures
 	}
 
 	if fileSet.Has(status.JobSucceeded.String()) {
@@ -91,40 +99,85 @@ func getStatusCode(fileKeys []string) status.JobCode {
 }
 
 func getJobState(jobKey spec.JobKey) (*JobState, error) {
-	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, jobKey.PrefixKey(), false, pointer.Int64(100))
+	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, jobKey.PrefixKey(), false, pointer.Int64(10))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get job state", jobKey.UserString())
 	}
 
-	keys := make([]string, 0, len(s3Objects))
 	lastUpdatedMap := map[string]time.Time{}
 
 	for _, s3Object := range s3Objects {
-		key := filepath.Base(*s3Object.Key)
+		lastUpdatedMap[filepath.Base(*s3Object.Key)] = *s3Object.LastModified
+	}
+
+	jobState := getJobStateFromFiles(jobKey, lastUpdatedMap)
+	return &jobState, nil
+}
+
+func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time.Time) JobState {
+	keys := make([]string, 0, len(lastUpdatedFileMap))
+
+	for key := range lastUpdatedFileMap {
 		keys = append(keys, key)
-		lastUpdatedMap[key] = *s3Object.LastModified
 	}
 
 	statusCode := getStatusCode(keys)
 
 	var jobEndTime *time.Time
-	if endTime, ok := lastUpdatedMap[_workerCountsFile]; ok {
+	if endTime, ok := lastUpdatedFileMap[_workerCountsFile]; ok {
 		jobEndTime = &endTime
 	}
 
 	if statusCode.IsCompletedPhase() {
-		if endTime, ok := lastUpdatedMap[statusCode.String()]; ok {
+		if endTime, ok := lastUpdatedFileMap[statusCode.String()]; ok {
 			jobEndTime = &endTime
 		}
 	}
 
-	return &JobState{
+	return JobState{
 		JobKey:         jobKey,
 		Keys:           keys,
-		LastUpdatedMap: lastUpdatedMap,
+		LastUpdatedMap: lastUpdatedFileMap,
 		Status:         statusCode,
 		EndTime:        jobEndTime,
-	}, nil
+	}
+}
+
+func getMostRecentlySubmittedJobStates(apiName string, count int) ([]*JobState, error) {
+	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, spec.APIJobPrefix(apiName), false, pointer.Int64(int64(count*10))) // overshoot the number of files needed
+	if err != nil {
+		return nil, err
+	}
+
+	lastUpdatedMaps := map[string]map[string]time.Time{}
+
+	jobIDOrder := []string{}
+	for _, s3Object := range s3Objects {
+		fileName := filepath.Base(*s3Object.Key)
+		jobID := filepath.Base(filepath.Dir(*s3Object.Key))
+
+		if _, ok := lastUpdatedMaps[jobID]; !ok {
+			jobIDOrder = append(jobIDOrder, jobID)
+			lastUpdatedMaps[jobID] = map[string]time.Time{fileName: *s3Object.LastModified}
+		} else {
+			lastUpdatedMaps[jobID][fileName] = *s3Object.LastModified
+		}
+	}
+
+	jobStates := make([]*JobState, 0, count)
+
+	jobStateCount := 0
+	for _, jobID := range jobIDOrder {
+		jobState := getJobStateFromFiles(spec.JobKey{APIName: apiName, ID: jobID}, lastUpdatedMaps[jobID])
+		jobStates = append(jobStates, &jobState)
+
+		jobStateCount++
+		if jobStateCount == count {
+			break
+		}
+	}
+
+	return jobStates, nil
 }
 
 func setEnqueuingStatus(jobKey spec.JobKey) error {
@@ -202,8 +255,8 @@ func setSucceededStatus(jobKey spec.JobKey) error {
 	return nil
 }
 
-func setFailedStatus(jobKey spec.JobKey) error {
-	err := uploadStatusFile(jobKey, status.JobFailed)
+func setCompletedWithFailuresStatus(jobKey spec.JobKey) error {
+	err := uploadStatusFile(jobKey, status.JobCompletedWithFailures)
 	if err != nil {
 		return err
 	}
@@ -221,8 +274,8 @@ func setFailedStatus(jobKey spec.JobKey) error {
 	return nil
 }
 
-func setIncompleteStatus(jobKey spec.JobKey) error {
-	err := uploadStatusFile(jobKey, status.JobIncomplete)
+func setWorkerErrorStatus(jobKey spec.JobKey) error {
+	err := uploadStatusFile(jobKey, status.JobWorkerError)
 	if err != nil {
 		return err
 	}
@@ -240,8 +293,46 @@ func setIncompleteStatus(jobKey spec.JobKey) error {
 	return nil
 }
 
-func setErroredStatus(jobKey spec.JobKey) error {
-	err := uploadStatusFile(jobKey, status.JobErrored)
+func setWorkerOOMStatus(jobKey spec.JobKey) error {
+	err := uploadStatusFile(jobKey, status.JobWorkerOOM)
+	if err != nil {
+		return err
+	}
+
+	err = saveWorkerCounts(jobKey)
+	if err != nil {
+		return err
+	}
+
+	err = deleteInProgressFile(jobKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setEnqueueFailedStatus(jobKey spec.JobKey) error {
+	err := uploadStatusFile(jobKey, status.JobEnqueueFailed)
+	if err != nil {
+		return err
+	}
+
+	err = saveWorkerCounts(jobKey)
+	if err != nil {
+		return err
+	}
+
+	err = deleteInProgressFile(jobKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setUnexpectedErrorStatus(jobKey spec.JobKey) error {
+	err := uploadStatusFile(jobKey, status.JobUnexpectedError)
 	if err != nil {
 		return err
 	}
@@ -267,18 +358,15 @@ func uploadStatusFile(jobKey spec.JobKey, status status.JobCode) error {
 	return nil
 }
 
-func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
+func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job) (*status.JobStatus, error) {
+	jobKey := jobState.JobKey
+
 	jobSpec, err := downloadJobSpec(jobKey)
 	if err != nil {
 		return nil, err
 	}
 
 	startTime := jobSpec.Created
-
-	jobState, err := getJobState(jobKey)
-	if err != nil {
-		return nil, err
-	}
 
 	statusCode := jobState.Status
 
@@ -303,21 +391,19 @@ func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
 			}
 			jobStatus.BatchMetrics = metrics
 
-			k8sJob, err := config.K8s.GetJob(jobKey.K8sName())
-			if err != nil {
-				return nil, err
-			}
 			if k8sJob == nil {
-				setErroredStatus(jobKey)
-				operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("k8s job not found"))
+				setUnexpectedErrorStatus(jobKey)
+				operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("kubernetes job not found"))
 				deleteJobRuntimeResources(jobKey)
-				jobStatus.Status = status.JobErrored
+				jobStatus.Status = status.JobUnexpectedError
 			}
 
 			workerCounts := status.ExtractWorkerCounts(k8sJob)
 			jobStatus.WorkerCounts = &workerCounts
 		}
-	} else {
+	}
+
+	if statusCode.IsCompletedPhase() {
 		metrics, err := getJobMetrics(jobKey, startTime, *jobState.EndTime)
 		if err != nil {
 			return nil, err
@@ -338,41 +424,28 @@ func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
 	return &jobStatus, nil
 }
 
-func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job) (*status.JobStatus, error) {
-	jobSpec, err := downloadJobSpec(jobKey)
-	if err != nil {
-		return nil, err
-	}
-
-	startTime := jobSpec.Created
-
+func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
 	jobState, err := getJobState(jobKey)
 	if err != nil {
 		return nil, err
 	}
 
-	statusCode := jobState.Status
-
-	jobStatus := status.JobStatus{
-		Job:       *jobSpec,
-		StartTime: startTime,
-		Status:    statusCode,
+	var k8sJob *kbatch.Job
+	if jobState.Status == status.JobRunning {
+		k8sJob, err = config.K8s.GetJob(jobKey.K8sName())
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	queueMetrics, err := operator.GetQueueMetrics(jobKey)
+	return getJobStatusFromJobState(jobState, k8sJob)
+}
+
+func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job) (*status.JobStatus, error) {
+	jobState, err := getJobState(jobKey)
 	if err != nil {
 		return nil, err
 	}
-	jobStatus.QueueMetrics = queueMetrics
 
-	metrics, err := getRealTimeJobMetrics(jobKey)
-	if err != nil {
-		return nil, err
-	}
-	jobStatus.BatchMetrics = metrics
-
-	workerCounts := status.ExtractWorkerCounts(k8sJob)
-	jobStatus.WorkerCounts = &workerCounts
-
-	return &jobStatus, nil
+	return getJobStatusFromJobState(jobState, k8sJob)
 }

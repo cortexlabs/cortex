@@ -19,15 +19,12 @@ package batchapi
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -163,6 +160,11 @@ func deleteS3Resources(apiName string) error {
 func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job) ([]schema.BatchAPI, error) {
 	batchAPIsMap := map[string]*schema.BatchAPI{}
 
+	k8sJobMap := map[string]*kbatch.Job{}
+	for _, job := range k8sJobs {
+		k8sJobMap[job.Labels["jobID"]] = &job
+	}
+
 	for _, virtualService := range virtualServices {
 		apiName := virtualService.GetLabels()["apiName"]
 		apiID := virtualService.GetLabels()["apiID"]
@@ -172,22 +174,28 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 		}
 
-		baseURL, err := syncapi.APIBaseURL(api)
+		baseURL, err := operator.APIBaseURL(api)
 		if err != nil {
 			return nil, err
+		}
 
+		jobStates, err := getMostRecentlySubmittedJobStates(apiName, 1)
+
+		jobStatuses := []status.JobStatus{}
+		if len(jobStates) != 0 {
+			jobStatus, err := getJobStatusFromJobState(jobStates[0], k8sJobMap[jobStates[0].ID])
+			if err != nil {
+				return nil, err
+			}
+
+			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 
 		batchAPIsMap[apiName] = &schema.BatchAPI{
 			APISpec:     *api,
 			BaseURL:     baseURL,
-			JobStatuses: []status.JobStatus{},
+			JobStatuses: jobStatuses,
 		}
-	}
-
-	k8sJobMap := map[string]*kbatch.Job{}
-	for _, job := range k8sJobs {
-		k8sJobMap[job.Labels["jobID"]] = &job
 	}
 
 	inProgressJobIDs, err := listAllInProgressJobs()
@@ -196,6 +204,18 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	}
 
 	for _, jobKey := range inProgressJobIDs {
+		alreadyAdded := false
+		for _, jobStatus := range batchAPIsMap[jobKey.APIName].JobStatuses {
+			if jobStatus.ID == jobKey.ID {
+				alreadyAdded = true
+				break
+			}
+		}
+
+		if alreadyAdded {
+			continue
+		}
+
 		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
 		if err != nil {
 			return nil, err
@@ -234,7 +254,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 		return nil, err
 	}
 
-	baseURL, err := syncapi.APIBaseURL(api)
+	baseURL, err := operator.APIBaseURL(api)
 	if err != nil {
 		return nil, err
 
@@ -262,26 +282,24 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 		jobIDSet.Add(jobKey.ID)
 	}
 
-	if len(jobStatuses) < 5 {
-		objects, err := config.AWS.ListS3Prefix(*&config.Cluster.Bucket, spec.APIJobPrefix(apiName), false, pointer.Int64(40))
+	if len(jobStatuses) < 10 {
+		jobStates, err := getMostRecentlySubmittedJobStates(apiName, 10)
 		if err != nil {
 			return nil, err
 		}
-		for _, s3Obj := range objects {
-			pathSplit := strings.Split(*s3Obj.Key, "/")
-			jobID := pathSplit[len(pathSplit)-2]
-			if jobIDSet.Has(jobID) {
+		for _, jobState := range jobStates {
+			if jobIDSet.Has(jobState.ID) {
 				continue
 			}
-			jobIDSet.Add(jobID)
+			jobIDSet.Add(jobState.ID)
 
-			jobStatus, err := GetJobStatus(spec.JobKey{APIName: apiName, ID: jobID})
+			jobStatus, err := getJobStatusFromJobState(jobState, nil)
 			if err != nil {
 				return nil, err
 			}
 			jobStatuses = append(jobStatuses, *jobStatus)
 
-			if len(jobStatuses) >= 5 {
+			if len(jobStatuses) >= 10 {
 				break
 			}
 		}

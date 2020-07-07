@@ -52,20 +52,31 @@ func (t *Table) FindHeaderByTitle(title string) *Header {
 }
 
 type Opts struct {
-	Sort *bool // default is true
+	Sort       *bool // default is true
+	BoldHeader *bool // default is true
 }
 
 func mergeTableOptions(options ...*Opts) Opts {
 	mergedOpts := Opts{}
 
 	for _, opt := range options {
-		if opt != nil && opt.Sort != nil {
-			mergedOpts.Sort = opt.Sort
+		if opt != nil {
+			if opt.Sort != nil {
+				mergedOpts.Sort = opt.Sort
+			}
+
+			if opt.BoldHeader != nil {
+				mergedOpts.BoldHeader = opt.BoldHeader
+			}
 		}
 	}
 
 	if mergedOpts.Sort == nil {
 		mergedOpts.Sort = pointer.Bool(true)
+	}
+
+	if mergedOpts.BoldHeader == nil {
+		mergedOpts.BoldHeader = pointer.Bool(true)
 	}
 
 	return mergedOpts
@@ -158,7 +169,12 @@ func (t *Table) Format(opts ...*Opts) (string, error) {
 		if header.Hidden {
 			continue
 		}
-		headerStr += console.Bold(header.Title)
+
+		if mergedOpts.BoldHeader != nil && *mergedOpts.BoldHeader {
+			headerStr += console.Bold(header.Title)
+		} else {
+			headerStr += header.Title
+		}
 		if colNum != lastColIndex {
 			headerStr += strings.Repeat(" ", maxColWidths[colNum]+t.Spacing-len(header.Title))
 		}

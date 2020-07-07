@@ -52,7 +52,7 @@ func GetAPI(operatorConfig OperatorConfig, apiName string) (schema.GetAPIRespons
 }
 
 func GetJob(operatorConfig OperatorConfig, apiName string, jobName string) (schema.JobResponse, error) {
-	endpoint := path.Join("/batch_rest", apiName, jobName)
+	endpoint := path.Join("/batch", apiName, jobName)
 	httpRes, err := HTTPGet(operatorConfig, endpoint)
 	if err != nil {
 		return schema.JobResponse{}, err

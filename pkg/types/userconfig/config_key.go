@@ -96,6 +96,6 @@ const (
 
 	// Job Submission
 	BatchesKey          = "batches"
-	ParallelismKey      = "parallelism"
+	WorkersKey          = "workers"
 	BatchesPerWorkerKey = "batches_per_worker"
 )

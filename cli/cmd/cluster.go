@@ -347,6 +347,8 @@ var _downCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
+		DeleteQueues(*accessConfig.ClusterName, awsClient)
+
 		fmt.Println("￮ spinning down the cluster ...")
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
 		if err != nil {

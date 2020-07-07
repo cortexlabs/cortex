@@ -833,6 +833,14 @@ func APILoadBalancerURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
+// APIBaseURL returns BaseURL of the API without resource endpoint
+func APIBaseURL(api *spec.API) (string, error) {
+	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
+		return *config.Cluster.APIGateway.ApiEndpoint, nil
+	}
+	return APILoadBalancerURL()
+}
+
 func GetEndpointFromVirtualService(virtualService *istioclientnetworking.VirtualService) (string, error) {
 	endpoints := k8s.ExtractVirtualServiceEndpoints(virtualService)
 

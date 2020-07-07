@@ -47,7 +47,7 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 
 	t := syncAPIsTable([]schema.SyncAPI{*syncAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	t.FindHeaderByTitle(_titleAPI).Hidden = true
+	t.FindHeaderByTitle(_titleSyncAPI).Hidden = true
 
 	out += t.MustFormat()
 
@@ -122,7 +122,7 @@ func syncAPIsTable(syncAPIs []schema.SyncAPI, envNames []string) table.Table {
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
-			{Title: _titleAPI},
+			{Title: _titleSyncAPI},
 			{Title: _titleStatus},
 			{Title: _titleUpToDate},
 			{Title: _titleStale, Hidden: totalStale == 0},

@@ -95,21 +95,26 @@ func ManageJobResources() error {
 					fmt.Println(err.Error())
 					telemetry.Error(err)
 				}
-				queueExists, err := operator.DoesQueueExist(jobKey.ID) // double check queue existence because newly created queues take at least 30 seconds (anecdotal) to be listed
+				queueExists, err := operator.DoesQueueExist(jobKey.ID)
 				if err != nil {
-					errorJobAndDelete(jobKey, err.Error(), fmt.Sprintf("terminating job %s; unable to verify if sqs queue with url %s exists", jobKey.UserString(), queueURL))
+					queueExists = false
 				}
 
 				if !queueExists && time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) >= ManageJobResourcesCronPeriod {
+					// unexpected queue missing error
 					errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), queueURL))
 				}
 			} else {
 				if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_lastUpdatedFile]) >= ManageJobResourcesCronPeriod {
-					errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()))
+					operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()))
+					setEnqueueFailedStatus(jobKey)
+					deleteJobRuntimeResources(jobKey)
 				}
 
 				if jobState.Status == status.JobRunning {
+
 					if !jobIDSetK8s.Has(jobKey.ID) {
+						// unexpected k8s job missing
 						errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobKey.UserString()))
 					} else {
 						k8sJob := k8sJobMap[jobKey.ID]
@@ -142,7 +147,7 @@ func ManageJobResources() error {
 
 func errorJobAndDelete(jobKey spec.JobKey, message string, messages ...string) {
 	operator.WriteToJobLogGroup(jobKey, message, messages...)
-	setErroredStatus(jobKey)
+	setUnexpectedErrorStatus(jobKey)
 	deleteJobRuntimeResources(jobKey)
 }
 
@@ -166,7 +171,7 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 		if jobSpec.TotalBatchCount == jobMetrics.TotalCompleted || k8sJob.Annotations["cortex/to-delete"] == "true" {
 			if jobMetrics.Failed != 0 {
 				return errors.FirstError(
-					setFailedStatus(jobKey),
+					setCompletedWithFailuresStatus(jobKey),
 					deleteJobRuntimeResources(jobKey),
 				)
 			}
@@ -187,27 +192,34 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 		}
 	} else {
 		if int(k8sJob.Status.Active) == 0 {
-			pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
-			for _, pod := range pods {
-				podStatus := k8s.GetPodStatus(&pod)
-				for _, containerStatus := range pod.Status.ContainerStatuses {
-					if containerStatus.LastTerminationState.Terminated != nil {
-						exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-						reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-						operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("a worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
-
-					} else if containerStatus.State.Terminated != nil {
-						exitCode := containerStatus.State.Terminated.ExitCode
-						reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-						operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("a worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
-					}
-				}
-			}
-			return errors.FirstError(
-				setIncompleteStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
+			InvestigateJobFailure(jobKey, k8sJob)
 		}
 	}
 	return nil
+}
+
+func InvestigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) {
+	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
+	for _, pod := range pods {
+		if k8s.WasPodOOMKilled(&pod) {
+			operator.WriteToJobLogGroup(jobKey, "at least one worker was killed because it ran out of out of memory")
+			setWorkerOOMStatus(jobKey)
+			deleteJobRuntimeResources(jobKey)
+		} else {
+			podStatus := k8s.GetPodStatus(&pod)
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				if containerStatus.LastTerminationState.Terminated != nil {
+					exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+					reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
+					operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+				} else if containerStatus.State.Terminated != nil {
+					exitCode := containerStatus.State.Terminated.ExitCode
+					reason := strings.ToLower(containerStatus.State.Terminated.Reason)
+					operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+				}
+			}
+			setWorkerErrorStatus(jobKey)
+			deleteJobRuntimeResources(jobKey)
+		}
+	}
 }

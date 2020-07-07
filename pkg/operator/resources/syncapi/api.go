@@ -212,7 +212,7 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Sync
 	syncAPIs := make([]schema.SyncAPI, len(apis))
 
 	for i, api := range apis {
-		baseURL, err := APIBaseURL(&api)
+		baseURL, err := operator.APIBaseURL(&api)
 		if err != nil {
 			return nil, err
 
@@ -259,7 +259,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 
 	}
 
-	baseURL, err := APIBaseURL(api)
+	baseURL, err := operator.APIBaseURL(api)
 	if err != nil {
 		return nil, err
 
@@ -457,12 +457,4 @@ func areAPIsEqual(d1, d2 *kapps.Deployment) bool {
 		d1.Labels["apiID"] == d2.Labels["apiID"] &&
 		d1.Labels["deploymentID"] == d2.Labels["deploymentID"] &&
 		operator.DoCortexAnnotationsMatch(d1, d2)
-}
-
-// APIBaseURL returns BaseURL of the API without resource endpoint
-func APIBaseURL(api *spec.API) (string, error) {
-	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
-		return *config.Cluster.APIGateway.ApiEndpoint, nil
-	}
-	return operator.APILoadBalancerURL()
 }

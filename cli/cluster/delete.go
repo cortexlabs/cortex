@@ -80,7 +80,7 @@ func StopJob(operatorConfig OperatorConfig, apiName string, jobID string, keepCa
 		"keepCache": s.Bool(keepCache),
 	}
 
-	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch_rest", apiName, jobID), params)
+	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch", apiName, jobID), params)
 	if err != nil {
 		return schema.DeleteResponse{}, err
 	}

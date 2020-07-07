@@ -555,7 +555,7 @@ func ValidateAPI(
 
 	if api.Kind == userconfig.BatchAPIKind {
 		if providerType == types.LocalProviderType {
-			return errors.Wrap(ErrorKindIsNotSupportedByProvider(api.Kind, providerType), api.Identify(), userconfig.KindKey)
+			return errors.Wrap(ErrorKindIsNotSupportedByProvider(api.Kind, providerType), api.Identify())
 		}
 	}
 

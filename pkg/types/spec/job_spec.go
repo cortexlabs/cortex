@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -56,6 +57,18 @@ type Job struct {
 	SQSUrl          string    `json:"sqs_url"`
 	TotalBatchCount int       `json:"total_batch_count"`
 	Created         time.Time `json:"created_time"`
+}
+
+func (j Job) RequestedWorkers() (int, error) {
+	if j.Workers != nil {
+		return *j.Workers, nil
+	}
+
+	if j.BatchesPerWorker != nil && *j.BatchesPerWorker > 0 {
+		return j.TotalBatchCount / (*j.BatchesPerWorker), nil
+	}
+
+	return 0, errors.ErrorUnexpected(fmt.Sprintf("%s and %s are both not specified", userconfig.WorkersKey, userconfig.BatchesPerWorkerKey))
 }
 
 func APIJobPrefix(apiName string) string {

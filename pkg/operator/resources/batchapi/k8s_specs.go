@@ -17,10 +17,8 @@ limitations under the License.
 package batchapi
 
 import (
-	"fmt"
 	"path"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -56,7 +54,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		}
 	}
 
-	parallelism, err := GetParallelism(job)
+	parallelism, err := job.RequestedWorkers()
 	if err != nil {
 		return nil, err
 	}
@@ -106,10 +104,11 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 		}
 	}
 
-	parallelism, err := GetParallelism(job)
+	parallelism, err := job.RequestedWorkers()
 	if err != nil {
 		return nil, err
 	}
+
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
 		Parallelism: parallelism,
@@ -156,10 +155,11 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		}
 	}
 
-	parallelism, err := GetParallelism(job)
+	parallelism, err := job.RequestedWorkers()
 	if err != nil {
 		return nil, err
 	}
+
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
 		Parallelism: parallelism,
@@ -201,7 +201,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		ServiceName: "operator",
 		ServicePort: operator.DefaultPortInt32,
 		PrefixPath:  api.Networking.Endpoint,
-		Rewrite:     pointer.String(path.Join("batch_rest", api.Name)),
+		Rewrite:     pointer.String(path.Join("batch", api.Name)),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": api.Name,
@@ -209,18 +209,6 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiKind": api.Kind.String(),
 		},
 	})
-}
-
-func GetParallelism(job *spec.Job) (int, error) {
-	if job.Parallelism != nil {
-		return *job.Parallelism, nil
-	}
-
-	if job.BatchesPerWorker != nil {
-		return job.TotalBatchCount / (*job.BatchesPerWorker), nil
-	}
-
-	return 0, errors.ErrorUnexpected(fmt.Sprintf("%s and %s are both not specified", userconfig.ParallelismKey, userconfig.BatchesPerWorkerKey))
 }
 
 func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {

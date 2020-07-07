@@ -27,8 +27,8 @@ import (
 const _batchItemSizeLimit = 1024 * 256
 
 type Job struct {
-	Parallelism      *int        `json:"parallelism,omitifempty"`
-	BatchesPerWorker *int        `json:"batches_per_worker,omitifempty"` // TODO talk to david have it?, rename Parallelism
+	Workers          *int        `json:"parallelism,omitifempty"`
+	BatchesPerWorker *int        `json:"batches_per_worker,omitifempty"`
 	JobConfig        interface{} `json:"config"`
 }
 
@@ -48,16 +48,16 @@ func (submission *JobSubmission) Validate() error {
 		}
 	}
 
-	if submission.Parallelism != nil && *submission.Parallelism <= 0 {
-		return errors.Wrap(cr.ErrorMustBeGreaterThan(*submission.Parallelism, 0), ParallelismKey)
+	if submission.Workers != nil && *submission.Workers <= 0 {
+		return errors.Wrap(cr.ErrorMustBeGreaterThan(*submission.Workers, 0), WorkersKey)
 	}
 
 	if submission.BatchesPerWorker != nil && *submission.BatchesPerWorker <= 0 {
 		return errors.Wrap(cr.ErrorMustBeGreaterThan(*submission.BatchesPerWorker, 0), BatchesPerWorkerKey)
 	}
 
-	if (submission.Parallelism == nil) == (submission.BatchesPerWorker == nil) {
-		return errors.Wrap(ErrorConflictingFields(ParallelismKey, BatchesPerWorkerKey))
+	if (submission.Workers == nil) == (submission.BatchesPerWorker == nil) {
+		return errors.Wrap(ErrorConflictingFields(WorkersKey, BatchesPerWorkerKey))
 	}
 
 	return nil

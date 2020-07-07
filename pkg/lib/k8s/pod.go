@@ -142,6 +142,33 @@ func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 
 var _evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
 
+func WasPodOOMKilled(pod *kcore.Pod) bool {
+	if pod.Status.Reason == ReasonEvicted && _evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
+		return true
+	}
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		if containerStatus.LastTerminationState.Terminated != nil {
+			exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+			reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
+			if _killStatuses[exitCode] {
+				if strings.Contains(reason, "oom") {
+					return true
+				}
+			}
+		} else if containerStatus.State.Terminated != nil {
+			exitCode := containerStatus.State.Terminated.ExitCode
+			reason := strings.ToLower(containerStatus.State.Terminated.Reason)
+			if _killStatuses[exitCode] {
+				if strings.Contains(reason, "oom") {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 func GetPodStatus(pod *kcore.Pod) PodStatus {
 	if pod == nil {
 		return PodStatusUnknown

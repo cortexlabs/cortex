@@ -22,10 +22,12 @@ const (
 	JobUnknown JobCode = iota
 	JobEnqueuing
 	JobRunning
-	JobFailed
+	JobEnqueueFailed
+	JobCompletedWithFailures
 	JobSucceeded
-	JobErrored
-	JobIncomplete
+	JobUnexpectedError
+	JobWorkerError
+	JobWorkerOOM
 	JobStopped
 )
 
@@ -33,10 +35,12 @@ var _jobCodes = []string{
 	"status_unknown",
 	"status_enqueuing",
 	"status_running",
-	"status_failed",
+	"status_enqueue_failed",
+	"status_completed_with_failures",
 	"status_succeeded",
-	"status_errored",
-	"status_incomplete",
+	"status_unexpected_error",
+	"status_worker_error",
+	"status_worker_oom",
 	"status_stopped",
 }
 
@@ -45,7 +49,7 @@ func (code JobCode) IsInProgressPhase() bool {
 }
 
 func (code JobCode) IsCompletedPhase() bool {
-	return code == JobFailed || code == JobSucceeded || code == JobErrored || code == JobIncomplete || code == JobStopped
+	return code == JobEnqueueFailed || code == JobCompletedWithFailures || code == JobSucceeded || code == JobUnexpectedError || code == JobWorkerError || code == JobWorkerOOM || code == JobStopped
 }
 
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodes)-1)] // Ensure list length matches
@@ -54,10 +58,12 @@ var _jobCodeMessages = []string{
 	"unknown",
 	"enqueuing",
 	"running",
-	"failed",
+	"failed while enqueuing",
+	"completed with failures",
 	"succeeded",
-	"errored",
-	"incomplete",
+	"unexpected error",
+	"worker error",
+	"out of memory",
 	"stopped",
 }
 
