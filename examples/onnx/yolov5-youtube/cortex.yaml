@@ -1,0 +1,14 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+- name: yolov5-youtube
+  kind: SyncAPI
+  predictor:
+    type: onnx
+    path: predictor.py
+    model_path: s3://cortex-examples/onnx/yolov5-youtube/yolov5s.onnx
+    config:
+      iou_threshold: 0.5
+      confidence_threshold: 0.6
+  compute:
+    # GPU requirement is optional. Comment out next line to run on CPUs (albeit slower)
+    gpu: 1
