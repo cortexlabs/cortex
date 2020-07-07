@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-ENV PYTHONPATH="/src:${PYTHONPATH}"
+ENV PYTHONPATH="${PYTHONPATH}:/src"
 
 RUN apt-get update -qq && apt-get install -y -q \
         curl \
