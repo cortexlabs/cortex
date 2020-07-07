@@ -35,9 +35,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 ## How it works
 
-* Implement your predictor in `predictor.py`.
-* Configure your deployment in `cortex.yaml`.
-* Run `cortex deploy`.
+Implement your predictor in `predictor.py`, configure your deployment in `cortex.yaml`, and run `cortex deploy`.
 
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.18.gif)
 
