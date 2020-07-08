@@ -383,6 +383,13 @@ $ curl http://***.amazonaws.com/my-api \
 ```
 
 ```bash
+# payload parameter is a bytes object
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type:" \
+    -d @sample.txt
+```
+
+```bash
 # payload parameter is a starlette.datastructures.FormData object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: multipart/form" \
@@ -393,6 +400,13 @@ $ curl http://***.amazonaws.com/my-api \
 # payload parameter is a starlette.datastructures.FormData object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    -d @file.txt
+```
+
+```bash
+# payload parameter is a starlette.datastructures.FormData object
+$ curl http://***.amazonaws.com/my-api \
+    -X POST \
     -d @file.txt
 ```
 
