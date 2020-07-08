@@ -44,7 +44,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 
 	api := spec.GetAPISpec(apiConfig, projectID, "")
 	if prevVirtualService == nil {
-		fmt.Println("CREATING NEW VIRTUALS SERVICE TRAFFICSPLITTER")
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -64,10 +63,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	if err != nil {
 		return nil, "", err
 	}
-	fmt.Println(prevVirtualService)
-	fmt.Println(virtualServiceSpec(api, services, weight))
+
 	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api, services, weight)) {
-		fmt.Println("UPDATING EXISTING VIRTUALS SERVICE TRAFFICSPLITTER")
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -79,14 +76,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
-	fmt.Println("SAME VIRTUALS SERVICE TRAFFICSPLITTER")
 	return api, fmt.Sprintf("%s is up to date", api.Name), nil
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
 	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
-
 	err := parallel.RunFirstErr(
 		func() error {
 			return vsErr
@@ -180,7 +175,7 @@ func getServicesWeightsTrafficSplitter(trafficsplitter *spec.API) ([]string, []i
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(apiName)
+			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
 			return err
 		},
 	)
