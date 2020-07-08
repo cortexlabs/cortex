@@ -638,6 +638,21 @@ func ValidateAPI(
 	return nil
 }
 
+func ValidateAPISplitter(
+	api *userconfig.API,
+	providerType types.ProviderType,
+	awsClient *aws.Client,
+) error {
+	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
+		api.Networking.Endpoint = pointer.String("/" + api.Name)
+	}
+	if err := isWeight100(api.APIs); err != nil {
+		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
+	}
+
+	return nil
+}
+
 func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerType types.ProviderType, awsClient *aws.Client) error {
 	predictor := api.Predictor
 
@@ -1199,4 +1214,16 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 	}
 
 	return nil
+}
+
+func isWeight100(apis []*userconfig.TrafficSplitter) error {
+
+	totalWeight := 0
+	for _, api := range apis {
+		totalWeight += api.Weight
+	}
+	if totalWeight == 100 {
+		return nil
+	}
+	return ErrorAPISplitterWeightNot100(totalWeight)
 }

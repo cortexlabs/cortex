@@ -21,20 +21,14 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	kapps "k8s.io/api/apps/v1"
-	kcore "k8s.io/api/core/v1"
 )
-
-var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
 	prevVirtualService, err := getK8sResources(apiConfig)
@@ -59,6 +53,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 
 		return api, fmt.Sprintf("creating %s", api.Name), nil
 	}
+
 	services, weight := getServicesWeightsTrafficSplitter(api)
 	if err != nil {
 		return nil, "", err
@@ -117,33 +112,16 @@ func DeleteAPI(apiName string, keepCache bool) error {
 func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualService, error) {
 	var virtualService *istioclientnetworking.VirtualService
 
-	err := parallel.RunFirstErr(
-		// func() error {
-		// 	var err error
-		// 	deployment, err = config.K8s.GetDeployment(operator.K8sName(apiConfig.Name))
-		// 	return err
-		// },
-		// func() error {
-		// 	var err error
-		// 	service, err = config.K8s.GetService(operator.K8sName(apiConfig.Name))
-		// 	return err
-		// },
-		func() error {
-			var err error
-			virtualService, err = config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
-			return err
-		},
-	)
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
+	if err != nil {
+		return nil, err
+	}
 
 	return virtualService, err
 }
 
 func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
-	return parallel.RunFirstErr(
-		func() error {
-			return applyK8sVirtualService(api, prevVirtualService)
-		},
-	)
+	return applyK8sVirtualService(api, prevVirtualService)
 }
 
 func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
@@ -165,11 +143,11 @@ func getServicesWeightsTrafficSplitter(trafficsplitter *spec.API) ([]string, []i
 	services := []string{}
 	weights := []int32{}
 	for _, api := range trafficsplitter.APIs {
-		services = append(services, "api-"+api.Name)
+		services = append(services, operator.K8sName(api.Name))
 		weights = append(weights, int32(api.Weight))
 	}
-	return services, weights
 
+	return services, weights
 }
 
 func deleteK8sResources(apiName string) error {
@@ -186,13 +164,6 @@ func deleteS3Resources(apiName string) error {
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 }
 
-func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return k8s.PodComputesEqual(&deployment.Spec.Template.Spec, &pod.Spec) &&
-		deployment.Spec.Template.Labels["apiName"] == pod.Labels["apiName"] &&
-		deployment.Spec.Template.Labels["apiID"] == pod.Labels["apiID"] &&
-		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
-}
-
 func areVirtualServiceEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
 	return vs1.ObjectMeta.Name == vs2.ObjectMeta.Name &&
 		reflect.DeepEqual(vs1.ObjectMeta.Labels, vs2.ObjectMeta.Labels) &&
@@ -200,14 +171,6 @@ func areVirtualServiceEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool
 		reflect.DeepEqual(vs1.Spec.Http, vs2.Spec.Http) &&
 		reflect.DeepEqual(vs1.Spec.Gateways, vs2.Spec.Gateways) &&
 		reflect.DeepEqual(vs1.Spec.Hosts, vs2.Spec.Hosts)
-}
-
-func IsAPIDeployed(apiName string) (bool, error) {
-	deployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
-	if err != nil {
-		return false, err
-	}
-	return deployment != nil, nil
 }
 
 // APIBaseURL returns BaseURL of the API without resource endpoint

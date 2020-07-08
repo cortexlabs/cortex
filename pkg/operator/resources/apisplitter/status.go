@@ -36,7 +36,6 @@ func GetStatus(apiName string) (*status.Status, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if virtualService == nil {
 		return nil, errors.ErrorUnexpected("unable to find trafficsplitter", apiName)
 	}
@@ -60,7 +59,6 @@ func GetAllStatuses() ([]status.Status, error) {
 		}
 		statuses[i] = *status
 	}
-
 	sort.Slice(statuses, func(i, j int) bool {
 		return statuses[i].APIName < statuses[j].APIName
 	})

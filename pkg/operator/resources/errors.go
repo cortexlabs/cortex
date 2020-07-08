@@ -28,7 +28,7 @@ const (
 	ErrAPINotDeployed                = "resources.api_not_deployed"
 	ErrCannotChangeTypeOfDeployedAPI = "resources.cannot_change_kind_of_deployed_api"
 	ErrNoAvailableNodeComputeLimit   = "resources.no_available_node_compute_limit"
-	APIUsed                          = "resources.syncapi_used_by_apisplitter"
+	ErrAPIUsed                       = "resources.syncapi_used_by_apisplitter"
 )
 
 func ErrorOperationNotSupportedForKind(kind userconfig.Kind) error {
@@ -63,9 +63,9 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	})
 }
 
-func ErrorAPIUsedByAPISPlitter(apiSplitter string) error {
+func ErrorAPIUsedByAPISplitter(apiSplitter string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    APIUsed,
+		Kind:    ErrAPIUsed,
 		Message: fmt.Sprintf("can not delete api because it is used by APISplitter: %s", apiSplitter),
 	})
 }

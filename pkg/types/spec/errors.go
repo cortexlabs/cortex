@@ -63,6 +63,7 @@ const (
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
+	ErrIncorretAPISplitterWeight            = "spec.invalid_apisplitter_weights"
 )
 
 func ErrorMalformedConfig() error {
@@ -337,5 +338,12 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfInfs,
 		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
+	})
+}
+
+func ErrorAPISplitterWeightNot100(totalWeight int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIncorretAPISplitterWeight,
+		Message: fmt.Sprintf("api splitter weights added up to %d instead of 100", totalWeight),
 	})
 }

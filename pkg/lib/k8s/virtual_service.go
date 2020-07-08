@@ -17,8 +17,6 @@ limitations under the License.
 package k8s
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -140,7 +138,6 @@ func (c *Client) GetVirtualService(name string) (*istioclientnetworking.VirtualS
 }
 
 func (c *Client) DeleteVirtualService(name string) (bool, error) {
-	fmt.Println("Delteing VS %s", name)
 	err := c.virtualServiceClient.Delete(name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil

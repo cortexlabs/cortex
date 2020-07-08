@@ -92,17 +92,13 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			}
 		}
 		if api.Kind == userconfig.APISplitterKind {
-			_, err = isWeight100(api.APIs)
-			if err != nil {
+			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
 				return err
 			}
-			//Change return values
-			_, err = checkIfAPIExist(api.APIs, withoutAPISplitter)
-			if err != nil {
+			if err := checkIfAPIExist(api.APIs, withoutAPISplitter); err != nil {
 				return err
 			}
-			err = validateEndpointCollisions(api, virtualServices)
-			if err != nil {
+			if err := validateEndpointCollisions(api, virtualServices); err != nil {
 				return err
 			}
 		}
@@ -113,7 +109,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		return spec.ErrorDuplicateName(dups)
 	}
 
-	dups = findDuplicateEndpoints(withoutAPISplitter)
+	dups = findDuplicateEndpoints(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateEndpointInOneDeploy(dups)
 	}
@@ -253,6 +249,7 @@ func getValidationK8sResources() ([]istioclientnetworking.VirtualService, kresou
 	return virtualServices, maxMem, err
 }
 
+// ApisWithoutAPISplitter returns all apis which are not of Kind APISplitter
 func ApisWithoutAPISplitter(apis []userconfig.API) []userconfig.API {
 	withoutAPISplitter := []userconfig.API{}
 	for _, api := range apis {
@@ -277,11 +274,11 @@ func ApisWithoutSyncAPI(apis []userconfig.API) []userconfig.API {
 }
 
 // checkIfAPIExist checks if refrenced apis in trafficsplitter are either defined in yaml or already deployed
-func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []userconfig.API) (bool, error) {
+func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []userconfig.API) error {
 
 	deployedAPIs, err := GetAPIs()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
@@ -301,23 +298,9 @@ func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []u
 			}
 		}
 		if deployed == false {
-			return false, fmt.Errorf("unable to find apis specified in apisplitter")
+			return fmt.Errorf("unable to find apis specified in apisplitter")
 		}
 	}
-	return true, nil
+	return nil
 
-}
-
-// isWeight100 checks if total weights add up to 100. It is assumed that values are between 0-100 because of spec checks
-func isWeight100(apis []*userconfig.TrafficSplitter) (bool, error) {
-
-	totalWeight := 0
-	for _, api := range apis {
-		totalWeight += api.Weight
-	}
-	if totalWeight == 100 {
-		return true, nil
-	}
-	fmt.Println(totalWeight)
-	return false, fmt.Errorf("api splitter weights added up to %d instead of 100", totalWeight)
 }

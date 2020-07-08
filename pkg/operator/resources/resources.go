@@ -95,7 +95,8 @@ func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bo
 		return nil, err
 	}
 
-	//order apiconfigs first syncAPIs then TrafficSplit
+	// order apiconfigs first syncAPIs then TrafficSplit
+	// This is done if user specifies SyncAPIs in same file as APISplitter
 	apiConfigs = append(ApisWithoutAPISplitter(apiConfigs), ApisWithoutSyncAPI(apiConfigs)...)
 
 	results := make([]schema.DeployResult, len(apiConfigs))
@@ -192,7 +193,6 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 					telemetry.Error(err)
 				}
 			}()
-
 			return nil, ErrorAPINotDeployed(apiName)
 		}
 		err := apisplitter.DeleteAPI(apiName, keepCache)
@@ -227,19 +227,16 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if len(syncAPIstatuses) > 0 {
 		syncAPIapiNames, syncAPIapiIDs := namesAndIDsFromStatuses(syncAPIstatuses)
 		syncAPIapis, err := operator.DownloadAPISpecs(syncAPIapiNames, syncAPIapiIDs)
 		if err != nil {
 			return nil, err
 		}
-
 		allMetrics, err := syncapi.GetMultipleMetrics(syncAPIapis)
 		if err != nil {
 			return nil, err
 		}
-
 		for i, api := range syncAPIapis {
 			syncAPIs = append(syncAPIs, schema.SyncAPI{
 				Spec:    api,
@@ -260,7 +257,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		for i, api := range apiSplitterapis {
 			apiSplitter = append(apiSplitter, schema.APISplitter{
 				Spec:   api,
@@ -268,7 +264,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 			})
 		}
 	}
-
 	return &schema.GetAPIsResponse{
 		SyncAPIs:    syncAPIs,
 		APISplitter: apiSplitter,
@@ -284,27 +279,22 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
-
 		status, err := syncapi.GetStatus(apiName)
 		if err != nil {
 			return nil, err
 		}
-
 		api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
 		if err != nil {
 			return nil, err
 		}
-
 		metrics, err := syncapi.GetMetrics(api)
 		if err != nil {
 			return nil, err
 		}
-
 		baseURL, err := syncapi.APIBaseURL(api)
 		if err != nil {
 			return nil, err
 		}
-
 		return &schema.GetAPIResponse{
 			SyncAPI: &schema.SyncAPI{
 				Spec:         *api,
@@ -314,9 +304,7 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 				DashboardURL: syncapi.DashboardURL(),
 			},
 		}, nil
-
 	}
-
 	if deployedResource.Kind == userconfig.APISplitterKind {
 		status, err := apisplitter.GetStatus(apiName)
 		if err != nil {
@@ -326,12 +314,10 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		baseURL, err := apisplitter.APIBaseURL(api)
 		if err != nil {
 			return nil, err
 		}
-
 		return &schema.GetAPIResponse{
 			APISplitter: &schema.APISplitter{
 				Spec:    *api,
@@ -339,11 +325,9 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 				BaseURL: baseURL,
 			},
 		}, nil
-
 	}
 
 	return nil, ErrorOperationNotSupportedForKind(deployedResource.Kind) // unexpected
-
 }
 
 func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
@@ -363,13 +347,13 @@ func checkIfUsedByAPISplitter(apiName string) error {
 	if err != nil {
 		return err
 	}
-
 	for _, apiSplitter := range apiRes.APISplitter {
 		for _, api := range apiSplitter.Spec.APIs {
 			if apiName == api.Name {
-				return ErrorAPIUsedByAPISPlitter(apiSplitter.Spec.Name)
+				return ErrorAPIUsedByAPISplitter(apiSplitter.Spec.Name)
 			}
 		}
 	}
+
 	return nil
 }

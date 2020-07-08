@@ -202,7 +202,6 @@ func (api *API) ToK8sAnnotations() map[string]string {
 }
 
 func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
-
 	apiGatewayType := APIGatewayTypeFromString(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
 	if apiGatewayType == UnknownAPIGatewayType {
 		return UnknownAPIGatewayType, ErrorUnknownAPIGatewayType()
@@ -288,8 +287,7 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
 
 	if api.Kind == APISplitterKind {
-		//add APIs to constants
-		sb.WriteString(fmt.Sprintf("%s:\n", "APIs"))
+		sb.WriteString(fmt.Sprintf("%s:\n", APISplitterAPIs))
 		for _, api := range api.APIs {
 			sb.WriteString(s.Indent(api.UserStr(), "  "))
 		}
@@ -298,7 +296,6 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	if api.Kind == SyncAPIKind {
 		sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 		sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
-
 	}
 
 	if api.Networking != nil {
