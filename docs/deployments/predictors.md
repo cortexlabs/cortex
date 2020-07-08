@@ -362,6 +362,40 @@ The pre-installed system packages are listed in [images/onnx-predictor-cpu/Docke
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
 
+## API requests
+
+The `payload` parameter in the `predict(self, payload)` method can be of different types depending on the content type of the request.
+
+Here are some examples:
+
+```bash
+# payload parameter is a dictionary object
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"key": "value"}'
+```
+
+```bash
+# payload parameter is a bytes object
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/octet-stream" \
+    -d @file.bin
+```
+
+```bash
+# payload parameter is a starlette.datastructures.FormData object
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: multipart/form" \
+    -d @file.txt
+```
+
+```bash
+# payload parameter is a starlette.datastructures.FormData object
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    -d @file.txt
+```
+
 ## API responses
 
 The response of your `predict()` function may be:
