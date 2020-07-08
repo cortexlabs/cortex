@@ -35,24 +35,22 @@ type apiGatewayToIntegrationRouting struct {
 
 func getAPIGatewayToIntegrationRouting(apiEndpoint string, isRoutePrefix bool) []apiGatewayToIntegrationRouting {
 	mappings := []apiGatewayToIntegrationRouting{
-		apiGatewayToIntegrationRouting{
+		{
 			apiEndpoint,
 			apiEndpoint,
 		},
 	}
 
 	if isRoutePrefix {
-		/*
-			Use {proxy+} instead of {proxy} for greedy matching.
-			e.g. if the api gateway route is: /api_name/{proxy}
-			/api_name/a   MATCH
-			/api_name/a/  will not MATCH
-			/api_name/a/b will not MATCH
+		// Use {proxy+} instead of {proxy} for greedy matching.
+		// e.g. if the api gateway route is: /api_name/{proxy}
+		// /api_name/a   MATCH
+		// /api_name/a/  will not MATCH
+		// /api_name/a/b will not MATCH
 
-			{proxy} is being used for now because greedy matching is not required at the moment.
+		// {proxy} is being used for now because greedy matching is not required at the moment.
 
-			Regardless of whether api gateway route uses {proxy} or {proxy+}, the integration route should always use {proxy}
-		*/
+		// Regardless of whether api gateway route uses {proxy} or {proxy+}, the integration route should always use {proxy}
 		mappings = append(mappings, apiGatewayToIntegrationRouting{APIGatewayRoute: urls.Join(apiEndpoint, "{proxy}"), IntegrationRoute: urls.Join(apiEndpoint, "{proxy}")})
 	}
 
