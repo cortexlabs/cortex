@@ -31,7 +31,6 @@ from starlette.requests import Request
 from starlette.responses import Response, PlainTextResponse, JSONResponse
 from starlette.background import BackgroundTasks
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.datastructures import FormData
 
 from cortex.lib import util
 from cortex.lib.type import API, get_spec
