@@ -163,6 +163,11 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 					return syncapi.DeleteAPI(apiName, keepCache)
 				},
 			)
+			err = parallel.RunFirstErr(
+				func() error {
+					return apisplitter.DeleteAPI(apiName, keepCache)
+				},
+			)
 			if err != nil {
 				telemetry.Error(err)
 			}
@@ -172,7 +177,11 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
-		err := syncapi.DeleteAPI(apiName, keepCache)
+		err := checkIfUsedByAPISplitter(apiName)
+		if err != nil {
+			return nil, err
+		}
+		err = syncapi.DeleteAPI(apiName, keepCache)
 		if err != nil {
 			return nil, err
 		}
@@ -338,4 +347,20 @@ func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
 	}
 
 	return apiNames, apiIDs
+}
+
+func checkIfUsedByAPISplitter(apiName string) error {
+	apiRes, err := GetAPIs()
+	if err != nil {
+		return err
+	}
+
+	for _, apiSplitter := range apiRes.APISplitter {
+		for _, api := range apiSplitter.Spec.APIs {
+			if apiName == api.Name {
+				return ErrorAPIUsedByAPISPlitter(apiSplitter.Spec.Name)
+			}
+		}
+	}
+	return nil
 }

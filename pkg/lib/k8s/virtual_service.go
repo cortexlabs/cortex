@@ -46,7 +46,7 @@ type VirtualServiceSpec struct {
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
 	destinations := []*istionetworking.HTTPRouteDestination{}
-	for i, _ := range spec.ServiceName {
+	for i := range spec.ServiceName {
 		destinations = append(destinations, &istionetworking.HTTPRouteDestination{
 			Destination: &istionetworking.Destination{
 				Host: spec.ServiceName[i],
