@@ -317,3 +317,13 @@ func getPortToRunningAPIsMap() (map[int]string, error) {
 
 	return portMap, nil
 }
+
+func containsAPISplitter(apis []userconfig.API) bool {
+	for _, api := range apis {
+		if api.Kind == userconfig.APISplitterKind {
+			return true
+		}
+	}
+
+	return false
+}
