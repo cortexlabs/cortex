@@ -49,19 +49,21 @@ import (
 )
 
 const (
-	_titleEnvironment = "env"
-	_titleAPI         = "api"
-	_titleAPISplitter = "api-splitter"
-	_titleStatus      = "status"
-	_titleUpToDate    = "up-to-date"
-	_titleStale       = "stale"
-	_titleRequested   = "requested"
-	_titleFailed      = "failed"
-	_titleLastupdated = "last update"
-	_titleAvgRequest  = "avg request"
-	_title2XX         = "2XX"
-	_title4XX         = "4XX"
-	_title5XX         = "5XX"
+	_titleEnvironment   = "env"
+	_titleAPI           = "api"
+	_titleAPISplitter   = "api-splitter"
+	_apiSplitterTitle   = "apis"
+	_apiSplitterWeights = "weights"
+	_titleStatus        = "status"
+	_titleUpToDate      = "up-to-date"
+	_titleStale         = "stale"
+	_titleRequested     = "requested"
+	_titleFailed        = "failed"
+	_titleLastupdated   = "last update"
+	_titleAvgRequest    = "avg request"
+	_title2XX           = "2XX"
+	_title4XX           = "4XX"
+	_title5XX           = "5XX"
 )
 
 var (
@@ -242,6 +244,8 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 	var apiSplitTable table.Table
 	var syncAPITable table.Table
 	var out string
+
+	// build different table depending on kinds that are deployed
 	if len(apisRes.SyncAPIs) == 0 {
 		apiSplitTable = apiSplitterListTable(apisRes.APISplitter, envNames)
 		apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
@@ -322,7 +326,7 @@ func traficSplitterAPITable(apiSplitter *schema.APISplitter, env cliconfig.Envir
 	var out string
 
 	lastUpdated := time.Unix(apiSplitter.Spec.LastUpdated, 0)
-	out += console.Bold(apiSplitter.Spec.Name) + "\n\n"
+	out += console.Bold("Kind: ") + apiSplitter.Spec.Kind.String() + "\n\n"
 	out += console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated) + "\n\n"
 
 	t, err := apiSplitterTable(*apiSplitter, env)
@@ -375,8 +379,8 @@ func apiSplitterTable(trafficSplitter schema.APISplitter, env cliconfig.Environm
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
-			{Title: "api"},
-			{Title: "weight"},
+			{Title: _apiSplitterTitle},
+			{Title: _apiSplitterWeights},
 			{Title: _titleStatus},
 			{Title: _titleRequested},
 			{Title: _titleLastupdated},
@@ -418,6 +422,8 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 	t := apiTable([]schema.SyncAPI{*syncAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 	t.FindHeaderByTitle(_titleAPI).Hidden = true
+
+	out += console.Bold("Kind: ") + syncAPI.Spec.Kind.String() + "\n\n"
 
 	out += t.MustFormat()
 
