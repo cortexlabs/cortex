@@ -22,6 +22,7 @@ import (
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
 const _batchItemSizeLimit = 1024 * 256
@@ -34,12 +35,13 @@ type Job struct {
 
 type JobSubmission struct {
 	Job
-	Batches []json.RawMessage `json:"batches"`
+	Batches   []json.RawMessage `json:"batches"`
+	BatchSize *int              `json:"batch_size"`
 }
 
 func (submission *JobSubmission) Validate() error {
 	if len(submission.Batches) == 0 {
-		return errors.Wrap(cr.ErrorTooFewElements(0), BatchesKey)
+		return errors.Wrap(cr.ErrorTooFewElements(1), BatchesKey)
 	}
 
 	for i, batch := range submission.Batches {
@@ -48,16 +50,22 @@ func (submission *JobSubmission) Validate() error {
 		}
 	}
 
-	if submission.Workers != nil && *submission.Workers <= 0 {
-		return errors.Wrap(cr.ErrorMustBeGreaterThan(*submission.Workers, 0), WorkersKey)
-	}
-
-	if submission.BatchesPerWorker != nil && *submission.BatchesPerWorker <= 0 {
-		return errors.Wrap(cr.ErrorMustBeGreaterThan(*submission.BatchesPerWorker, 0), BatchesPerWorkerKey)
+	if submission.BatchSize == nil {
+		submission.BatchSize = pointer.Int(1)
+	} else if *submission.BatchSize < 1 {
+		return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.BatchSize, 1), WorkersKey)
 	}
 
 	if (submission.Workers == nil) == (submission.BatchesPerWorker == nil) {
 		return errors.Wrap(ErrorConflictingFields(WorkersKey, BatchesPerWorkerKey))
+	}
+
+	if submission.Workers != nil && *submission.Workers <= 0 {
+		return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.Workers, 1), WorkersKey)
+	}
+
+	if submission.BatchesPerWorker != nil && *submission.BatchesPerWorker <= 0 {
+		return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.BatchesPerWorker, 1), BatchesPerWorkerKey)
 	}
 
 	return nil

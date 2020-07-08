@@ -54,8 +54,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
+		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
 		if err != nil {
+			operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
 			return nil, "", err
 		}
 		return api, fmt.Sprintf("creating %s", api.Name), nil
@@ -72,7 +73,13 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
+		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, true); err != nil {
+			operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
+			go deleteK8sResources(api.Name) // Delete k8s if update fails?
+			return nil, "", err
+		}
+
+		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, true); err != nil {
 			go deleteK8sResources(api.Name) // Delete k8s if update fails?
 			return nil, "", err
 		}
@@ -114,10 +121,11 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			return nil
 		},
 		func() error {
-			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
+			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService, true)
 			if err != nil {
 				return err
 			}
+
 			return nil
 		},
 	)

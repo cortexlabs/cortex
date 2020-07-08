@@ -95,6 +95,7 @@ const (
 	UpscaleToleranceAnnotationKey             = "autoscaling.cortex.dev/upscale-tolerance"
 
 	// Job Submission
+	BatcheSizeKey       = "batch_size"
 	BatchesKey          = "batches"
 	WorkersKey          = "workers"
 	BatchesPerWorkerKey = "batches_per_worker"

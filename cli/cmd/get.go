@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -233,6 +234,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	} else {
 		apisRes, err = local.GetAPIs()
+		debug.Pp(apisRes)
 		if err != nil {
 			return "", err
 		}
@@ -323,7 +325,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return "", err
 	}
 
-	return "", nil
+	return syncAPITable(apiRes.SyncAPI, env)
 }
 
 func titleStr(title string) string {

@@ -205,7 +205,13 @@ func ExtractVirtualServiceEndpoints(virtualService *istioclientnetworking.Virtua
 	endpoints := strset.New()
 	for _, http := range virtualService.Spec.Http {
 		for _, match := range http.Match {
-			endpoints.Add(urls.CanonicalizeEndpoint(match.Uri.GetExact()))
+			if match.Uri.GetExact() != "" {
+				endpoints.Add(urls.CanonicalizeEndpoint(match.Uri.GetExact()))
+			}
+
+			if match.Uri.GetPrefix() != "" {
+				endpoints.Add(urls.CanonicalizeEndpoint(match.Uri.GetPrefix()))
+			}
 		}
 	}
 	return endpoints

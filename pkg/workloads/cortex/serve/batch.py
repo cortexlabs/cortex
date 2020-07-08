@@ -187,7 +187,7 @@ def sqs_loop():
         renewer.start()
         try:
             payload = json.loads(response["Messages"][0]["Body"])
-            local_cache["predictor_impl"].predict(build_predict_args(payload))
+            local_cache["predictor_impl"].predict(**build_predict_args(payload))
             local_cache["api"].post_metrics(
                 [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )

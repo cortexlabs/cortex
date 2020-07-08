@@ -169,7 +169,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	jobIntroTable := table.KeyValuePairs{}
 	jobIntroTable.Add("job id", job.ID)
 	jobIntroTable.Add("status", job.Status.Message())
-	out += jobIntroTable.String()
+	out += jobIntroTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
 
 	jobTimingTable := table.KeyValuePairs{}
 	jobTimingTable.Add("start time", job.StartTime.Format(time.RFC3339))
@@ -182,7 +182,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		jobTimingTable.Add("duration", time.Now().Sub(job.StartTime).Truncate(time.Second).String())
 	}
 
-	out += "\n" + jobTimingTable.String()
+	out += "\n" + jobTimingTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
 
 	totalBatchCount := job.TotalBatchCount
 
@@ -220,11 +220,11 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		},
 	}
 
-	out += titleStr("batch stats") + t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)}) + "\n"
+	out += titleStr("batch stats") + t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
 
 	out += titleStr("worker stats")
 	if job.WorkerCounts == nil {
-		out += "worker stats not available"
+		out += "\nworker stats not available"
 	} else {
 		workers, _ := job.RequestedWorkers()
 		rows := make([][]interface{}, 0, 1)

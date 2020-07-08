@@ -17,6 +17,7 @@ limitations under the License.
 package batchapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"path"
@@ -206,35 +207,54 @@ func enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) (int, erro
 	livenessCron := cron.Run(livenessUpdater, cronErrHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), 20*time.Second)
 	defer livenessCron.Cancel()
 
-	total := 0
-	for i, batch := range submission.Batches {
-		randomID := k8s.RandomName()
+	batchCount := len(submission.Batches) / *submission.BatchSize
+	if len(submission.Batches)%*submission.BatchSize != 0 {
+		batchCount++
+	}
 
-		for retry := 0; retry < 3; retry++ {
-			_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-				MessageDeduplicationId: aws.String(randomID),
-				QueueUrl:               aws.String(jobSpec.SQSUrl),
-				MessageBody:            aws.String(string(batch)),
-				MessageGroupId:         aws.String(randomID),
-			})
-			if err != nil {
-				newErr := errors.Wrap(errors.WithStack(err), fmt.Sprintf("batch %d", i))
-				if retry == 2 {
-					return 0, errors.Wrap(newErr, fmt.Sprintf("failed after retrying 3 times to enqueue batch %d", i))
-				}
-				operator.WriteToJobLogGroup(jobSpec.JobKey, newErr.Error())
-			} else {
-				break
-			}
+	operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(submission.Batches), batchCount, *submission.BatchSize))
+
+	for i := 0; i < batchCount; i++ {
+		min := i * (*submission.BatchSize)
+		max := (i + 1) * (*submission.BatchSize)
+		if max > len(submission.Batches) {
+			max = len(submission.Batches)
 		}
-
-		total++
-		if total%100 == 0 {
-			operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueuing %d batches...", total))
+		err := sendMessage(jobSpec, submission.Batches[min:max], i)
+		if err != nil {
+			return 0, err
 		}
 	}
 
-	return total, nil
+	return batchCount, nil
+}
+
+func sendMessage(jobSpec *spec.Job, batch []json.RawMessage, batchNumber int) error {
+	jsonBytes, err := json.Marshal(batch)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("batch %d", batchNumber))
+	}
+
+	randomID := k8s.RandomName()
+	for retry := 0; retry < 3; retry++ {
+		_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
+			MessageDeduplicationId: aws.String(randomID),
+			QueueUrl:               aws.String(jobSpec.SQSUrl),
+			MessageBody:            aws.String(string(jsonBytes)),
+			MessageGroupId:         aws.String(randomID),
+		})
+		if err != nil {
+			newErr := errors.Wrap(errors.WithStack(err), fmt.Sprintf("batch %d", batchNumber))
+			if retry == 2 {
+				return errors.Wrap(newErr, "failed after retrying 3 times")
+			}
+			operator.WriteToJobLogGroup(jobSpec.JobKey, newErr.Error())
+		} else {
+			break
+		}
+	}
+
+	return nil
 }
 
 func applyK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {

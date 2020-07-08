@@ -18,22 +18,17 @@ package endpoints
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
 func SubmitJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-
 	apiName := vars["apiName"]
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
@@ -41,12 +36,10 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-
 	if deployedResource == nil {
 		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
 		return
 	}
-
 	if deployedResource.Kind == userconfig.SyncAPIKind {
 		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.BatchAPIKind))
 		return
@@ -75,59 +68,4 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, jobSpec)
-}
-
-func DeleteJob(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	err := batchapi.StopJob(spec.JobKey{APIName: vars["apiName"], ID: vars["jobID"]})
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	respond(w, schema.DeleteResponse{
-		Message: fmt.Sprintf("deleted job %s", vars["jobID"]),
-	})
-}
-
-func GetJob(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	apiName := vars["apiName"]
-	deployedResource, err := resources.GetDeployedResourceByName(apiName)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	if deployedResource == nil {
-		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
-		return
-	}
-
-	if deployedResource.Kind == userconfig.SyncAPIKind {
-		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.BatchAPIKind))
-		return
-	}
-
-	jobID := spec.JobKey{APIName: apiName, ID: vars["jobID"]}
-
-	jobStatus, err := batchapi.GetJobStatus(jobID)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	spec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	response := schema.JobResponse{
-		JobStatus: *jobStatus,
-		APISpec:   *spec,
-	}
-
-	respond(w, response)
 }
