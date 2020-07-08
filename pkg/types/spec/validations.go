@@ -111,9 +111,9 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 					{
 						StructField: "Weight",
 						IntValidation: &cr.IntValidation{
-							Default:           100,
-							GreaterThan:       pointer.Int(0),
-							LessThanOrEqualTo: pointer.Int(100),
+							Default:              100,
+							GreaterThanOrEqualTo: pointer.Int(0),
+							LessThanOrEqualTo:    pointer.Int(100),
 						},
 					},
 				},
