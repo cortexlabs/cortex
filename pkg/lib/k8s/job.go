@@ -18,7 +18,6 @@ package k8s
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,8 +33,8 @@ var _jobTypeMeta = kmeta.TypeMeta{
 type JobSpec struct {
 	Name         string
 	PodSpec      PodSpec
-	Parallelism  int
-	BackoffLimit int
+	Parallelism  int32
+	BackoffLimit int32
 	Labels       map[string]string
 	Annotations  map[string]string
 }
@@ -53,8 +52,8 @@ func Job(spec *JobSpec) *kbatch.Job {
 			Annotations: spec.Annotations,
 		},
 		Spec: kbatch.JobSpec{
-			BackoffLimit: pointer.Int32(int32(spec.BackoffLimit)),
-			Parallelism:  pointer.Int32(int32(spec.Parallelism)),
+			BackoffLimit: &spec.BackoffLimit,
+			Parallelism:  &spec.Parallelism,
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
 					Name:   spec.PodSpec.Name,

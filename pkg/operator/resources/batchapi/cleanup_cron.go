@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
@@ -47,7 +46,7 @@ func ManageJobResources() error {
 		inProgressIDMap[jobKey.ID] = jobKey
 	}
 
-	queues, err := operator.ListQueues()
+	queues, err := listQueuesForAllAPIs()
 	if err != nil {
 		return err
 	}
@@ -67,7 +66,7 @@ func ManageJobResources() error {
 	queueURLMap := map[string]string{}
 	jobIDSetQueueURL := strset.Set{}
 	for _, queueURL := range queues {
-		jobKey := operator.IdentifierFromQueueURL(queueURL)
+		jobKey := jobKeyFromQueueURL(queueURL)
 		jobIDSetQueueURL.Add(jobKey.ID)
 		queueURLMap[jobKey.ID] = queueURL
 	}
@@ -81,7 +80,7 @@ func ManageJobResources() error {
 
 		if jobState.Status.IsCompletedPhase() {
 			if jobIDSetQueueURL.Has(jobKey.ID) {
-				deleteQueue(queueURLMap[jobKey.ID])
+				deleteQueueByURL(queueURLMap[jobKey.ID])
 			}
 			if jobIDSetK8s.Has(jobKey.ID) {
 				deleteK8sJob(jobKey)
@@ -90,12 +89,12 @@ func ManageJobResources() error {
 
 		if jobState.Status.IsInProgressPhase() {
 			if !jobIDSetQueueURL.Has(jobKey.ID) {
-				queueURL, err := operator.QueueURL(jobKey)
+				queueURL, err := getJobQueueURL(jobKey)
 				if err != nil {
 					fmt.Println(err.Error())
 					telemetry.Error(err)
 				}
-				queueExists, err := operator.DoesQueueExist(jobKey.ID)
+				queueExists, err := doesQueueExist(jobKey)
 				if err != nil {
 					queueExists = false
 				}
@@ -106,7 +105,7 @@ func ManageJobResources() error {
 				}
 			} else {
 				if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_lastUpdatedFile]) >= ManageJobResourcesCronPeriod {
-					operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()))
+					writeToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()))
 					setEnqueueFailedStatus(jobKey)
 					deleteJobRuntimeResources(jobKey)
 				}
@@ -138,7 +137,7 @@ func ManageJobResources() error {
 	}
 
 	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8s, inProgressJobIDSet) {
-		jobKey := operator.IdentifierFromQueueURL(queueURLMap[jobID])
+		jobKey := jobKeyFromQueueURL(queueURLMap[jobID])
 		deleteJobRuntimeResources(jobKey)
 	}
 
@@ -146,13 +145,13 @@ func ManageJobResources() error {
 }
 
 func errorJobAndDelete(jobKey spec.JobKey, message string, messages ...string) {
-	operator.WriteToJobLogGroup(jobKey, message, messages...)
+	writeToJobLogGroup(jobKey, message, messages...)
 	setUnexpectedErrorStatus(jobKey)
 	deleteJobRuntimeResources(jobKey)
 }
 
 func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {
-	queueMetrics, err := operator.GetQueueMetricsFromURL(queueURL)
+	queueMetrics, err := getQueueMetricsFromURL(queueURL)
 	if err != nil {
 		return err
 
@@ -202,7 +201,7 @@ func InvestigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) {
 	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
 	for _, pod := range pods {
 		if k8s.WasPodOOMKilled(&pod) {
-			operator.WriteToJobLogGroup(jobKey, "at least one worker was killed because it ran out of out of memory")
+			writeToJobLogGroup(jobKey, "at least one worker was killed because it ran out of out of memory")
 			setWorkerOOMStatus(jobKey)
 			deleteJobRuntimeResources(jobKey)
 		} else {
@@ -211,11 +210,11 @@ func InvestigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) {
 				if containerStatus.LastTerminationState.Terminated != nil {
 					exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
 					reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-					operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+					writeToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
 				} else if containerStatus.State.Terminated != nil {
 					exitCode := containerStatus.State.Terminated.ExitCode
 					reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-					operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+					writeToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
 				}
 			}
 			setWorkerErrorStatus(jobKey)

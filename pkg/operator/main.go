@@ -70,9 +70,10 @@ func main() {
 	routerWithoutAuth := router.NewRoute().Subrouter()
 	routerWithoutAuth.Use(endpoints.PanicMiddleware)
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitJob).Methods("POST") // TODO blacklist /batch*endpoints in cortex.yaml endpoint configuration
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitJob).Methods("POST")
 	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.GetJob).Methods("GET")
 	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.StopJob).Methods("DELETE")
+	routerWithoutAuth.HandleFunc("/logs/{apiName}/{jobID}", endpoints.ReadJobLogs)
 
 	routerWithAuth := router.NewRoute().Subrouter()
 
@@ -88,7 +89,6 @@ func main() {
 	routerWithAuth.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
 	routerWithAuth.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
 	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
-	routerWithAuth.HandleFunc("/logs/{apiName}/{jobID}", endpoints.ReadLogs)
 
 	log.Print("Running on port " + _operatorPortStr)
 	log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))

@@ -78,6 +78,7 @@ type BatchAPI struct {
 type JobResponse struct {
 	APISpec   spec.API         `json:"api_spec"`
 	JobStatus status.JobStatus `json:"job_status"`
+	BaseURL   string           `json:"base_url"`
 }
 
 type DeleteResponse struct {
@@ -103,9 +104,4 @@ type InputSignatures map[string]InputSignature
 type APISummary struct {
 	Message         string                     `json:"message"`
 	ModelSignatures map[string]InputSignatures `json:"model_signatures"`
-}
-
-type LogRequest struct {
-	userconfig.Resource
-	JobID string `json:"job_id"`
 }

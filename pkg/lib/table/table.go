@@ -170,7 +170,7 @@ func (t *Table) Format(opts ...*Opts) (string, error) {
 			continue
 		}
 
-		if mergedOpts.BoldHeader != nil && *mergedOpts.BoldHeader {
+		if *mergedOpts.BoldHeader {
 			headerStr += console.Bold(header.Title)
 		} else {
 			headerStr += header.Title

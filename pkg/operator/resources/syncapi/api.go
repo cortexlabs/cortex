@@ -62,6 +62,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
 		if err != nil {
+			go deleteK8sResources(api.Name)
+			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, false)
 			errors.PrintError(err)
 		}
 		return api, fmt.Sprintf("creating %s", api.Name), nil
@@ -154,8 +156,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				return nil
 			}
 			// best effort deletion
-			deleteS3Resources(apiName)
-			return nil
+			return deleteS3Resources(apiName)
 		},
 		// delete API from API Gateway
 		func() error {

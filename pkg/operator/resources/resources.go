@@ -33,7 +33,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/gorilla/websocket"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kapps "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
@@ -184,19 +183,6 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	return &schema.DeleteResponse{
 		Message: fmt.Sprintf("deleting %s", apiName),
 	}, nil
-}
-
-func StreamLogs(logRequest schema.LogRequest, socket *websocket.Conn) error {
-	switch logRequest.Kind {
-	case userconfig.SyncAPIKind:
-		syncapi.ReadLogs(logRequest.Name, socket)
-	case userconfig.BatchAPIKind:
-		batchapi.ReadLogs(logRequest, socket)
-	default:
-		return ErrorOperationNotSupportedForKind(logRequest.Resource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
-	}
-
-	return nil
 }
 
 func GetAPIs() (*schema.GetAPIsResponse, error) {

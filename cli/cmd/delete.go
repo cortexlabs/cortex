@@ -44,7 +44,7 @@ func deleteInit() {
 
 var _deleteCmd = &cobra.Command{
 	Use:   "delete API_NAME [JOB_ID]",
-	Short: "delete an api or stop a job",
+	Short: "delete any kind of api or stop a batch job",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		env, err := ReadOrConfigureEnv(_flagDeleteEnv)
@@ -62,7 +62,7 @@ var _deleteCmd = &cobra.Command{
 		var deleteResponse schema.DeleteResponse
 		if env.Provider == types.AWSProviderType {
 			if len(args) == 2 {
-				deleteResponse, err = cluster.StopJob(MustGetOperatorConfig(env.Name), args[0], args[1], _flagDeleteKeepCache, _flagDeleteForce)
+				deleteResponse, err = cluster.StopJob(MustGetOperatorConfig(env.Name), args[0], args[1])
 				if err != nil {
 					exit.Error(err)
 				}

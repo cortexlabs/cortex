@@ -21,14 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
-	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -45,6 +40,7 @@ const (
 	_titleBatchAPI    = "batch api"
 	_titleJobCount    = "running jobs"
 	_titleLatestJobID = "latest job id"
+	_timeFormat       = "02 Jan 2006 15:04:05 MST"
 )
 
 func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
@@ -59,7 +55,7 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 		for _, job := range batchAPI.JobStatuses {
 			if job.StartTime.After(latestStartTime) {
 				latestStartTime = job.StartTime
-				latestJobID = job.ID
+				latestJobID = job.ID + fmt.Sprintf(" (submitted %s ago)", libtime.SinceStr(&lastUpdated))
 			}
 
 			if job.Status.IsInProgressPhase() {
@@ -99,7 +95,8 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 		for _, job := range batchAPI.JobStatuses {
 			succeeded := 0
 			failed := 0
-
+			fmt.Println(job.TotalBatchCount)
+			fmt.Println(job.QueueMetrics)
 			totalBatchCount := job.TotalBatchCount
 
 			if job.Status == status.JobEnqueuing && job.QueueMetrics != nil {
@@ -112,19 +109,19 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 				totalFailed += failed
 			}
 
-			duration := ""
+			jobEndTime := time.Now()
 			if job.EndTime != nil {
-				duration = job.EndTime.Sub(job.StartTime).Truncate(time.Second).String()
-			} else {
-				duration = time.Now().Sub(job.StartTime).Truncate(time.Second).String()
+				jobEndTime = *job.EndTime
 			}
+
+			duration := jobEndTime.Sub(job.StartTime).Truncate(time.Second).String()
 
 			rows = append(rows, []interface{}{
 				job.ID,
 				job.Status.Message(),
 				fmt.Sprintf("%d/%d", succeeded, totalBatchCount),
 				failed,
-				job.StartTime.Format(time.RFC3339),
+				job.StartTime.Format(_timeFormat),
 				duration,
 			})
 		}
@@ -133,7 +130,7 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 			Headers: []table.Header{
 				{Title: "job id"},
 				{Title: "status"},
-				{Title: "progress"}, // (completed/total), only show when status is running
+				{Title: "progress"}, // (succeeded/total)
 				{Title: "failed", Hidden: totalFailed == 0},
 				{Title: "start time"},
 				{Title: "duration"},
@@ -149,7 +146,7 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
+	out += "\n" + console.Bold("submission endpoint: ") + apiEndpoint
 	out += "\n"
 
 	out += titleStr("batch api configuration") + batchAPI.APISpec.UserStr(types.AWSProviderType)
@@ -172,15 +169,17 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	out += jobIntroTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
 
 	jobTimingTable := table.KeyValuePairs{}
-	jobTimingTable.Add("start time", job.StartTime.Format(time.RFC3339))
+	jobTimingTable.Add("start time", job.StartTime.Format(_timeFormat))
 
+	jobEndTime := time.Now()
 	if job.EndTime != nil {
-		jobTimingTable.Add("end time", job.EndTime.Format(time.RFC3339))
-		jobTimingTable.Add("duration", job.EndTime.Sub(job.StartTime).Truncate(time.Second).String())
+		jobTimingTable.Add("end time", job.EndTime.Format(_timeFormat))
+		jobEndTime = *job.EndTime
 	} else {
 		jobTimingTable.Add("end time", "-")
-		jobTimingTable.Add("duration", time.Now().Sub(job.StartTime).Truncate(time.Second).String())
 	}
+	duration := jobEndTime.Sub(job.StartTime).Truncate(time.Second).String()
+	jobTimingTable.Add("duration", duration)
 
 	out += "\n" + jobTimingTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
 
@@ -226,15 +225,6 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	if job.WorkerCounts == nil {
 		out += "\nworker stats not available"
 	} else {
-		workers, _ := job.RequestedWorkers()
-		rows := make([][]interface{}, 0, 1)
-		rows = append(rows, []interface{}{
-			workers,
-			job.WorkerCounts.Active,
-			job.WorkerCounts.Failed,
-			job.WorkerCounts.Succeeded,
-		})
-
 		t := table.Table{
 			Headers: []table.Header{
 				{Title: "requested"},
@@ -242,7 +232,14 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 				{Title: "failed"},
 				{Title: "succeeded"},
 			},
-			Rows: rows,
+			Rows: [][]interface{}{
+				{
+					job.RequestedWorkers(),
+					job.WorkerCounts.Active,
+					job.WorkerCounts.Failed,
+					job.WorkerCounts.Succeeded,
+				},
+			},
 		}
 
 		out += t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
@@ -256,25 +253,4 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	out += titleStr("job configuration") + jobSpecStr
 
 	return out, nil
-}
-
-func DeleteQueues(clusterName string, awsClient *awslib.Client) error {
-	queuePrefix := hash.String(clusterName)[:11] + "-"
-
-	output, err := awsClient.SQS().ListQueues(
-		&sqs.ListQueuesInput{
-			QueueNamePrefix: aws.String(queuePrefix),
-		},
-	)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	for _, queueURL := range output.QueueUrls {
-		awsClient.SQS().DeleteQueue(&sqs.DeleteQueueInput{ // best effort delete
-			QueueUrl: queueURL,
-		})
-	}
-
-	return nil
 }

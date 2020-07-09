@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
@@ -378,11 +377,12 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job) (*status.J
 	}
 
 	if statusCode.IsInProgressPhase() {
-		queueMetrics, err := operator.GetQueueMetrics(jobKey)
+		queueMetrics, err := getQueueMetrics(jobKey)
 		if err != nil {
 			return nil, err
 		}
 		jobStatus.QueueMetrics = queueMetrics
+		jobStatus.TotalBatchCount = queueMetrics.TotalInQueue()
 
 		if statusCode == status.JobRunning {
 			metrics, err := getRealTimeJobMetrics(jobKey)
@@ -393,7 +393,7 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job) (*status.J
 
 			if k8sJob == nil {
 				setUnexpectedErrorStatus(jobKey)
-				operator.WriteToJobLogGroup(jobKey, fmt.Sprintf("kubernetes job not found"))
+				writeToJobLogGroup(jobKey, fmt.Sprintf("kubernetes job not found"))
 				deleteJobRuntimeResources(jobKey)
 				jobStatus.Status = status.JobUnexpectedError
 			}

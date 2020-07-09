@@ -40,12 +40,12 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
 		return
 	}
-	if deployedResource.Kind == userconfig.SyncAPIKind {
+	if deployedResource.Kind != userconfig.BatchAPIKind {
 		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.BatchAPIKind))
 		return
 	}
 
-	rw := http.MaxBytesReader(w, r.Body, 32<<10)
+	rw := http.MaxBytesReader(w, r.Body, 64<<20)
 
 	bodyBytes, err := ioutil.ReadAll(rw)
 	if err != nil {

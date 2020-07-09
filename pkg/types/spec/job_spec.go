@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -59,16 +58,16 @@ type Job struct {
 	Created         time.Time `json:"created_time"`
 }
 
-func (j Job) RequestedWorkers() (int, error) {
+func (j Job) RequestedWorkers() int {
 	if j.Workers != nil {
-		return *j.Workers, nil
+		return *j.Workers
 	}
 
 	if j.BatchesPerWorker != nil && *j.BatchesPerWorker > 0 {
-		return j.TotalBatchCount / (*j.BatchesPerWorker), nil
+		return j.TotalBatchCount / (*j.BatchesPerWorker)
 	}
 
-	return 0, errors.ErrorUnexpected(fmt.Sprintf("%s and %s are both not specified", userconfig.WorkersKey, userconfig.BatchesPerWorkerKey))
+	return 0
 }
 
 func APIJobPrefix(apiName string) string {

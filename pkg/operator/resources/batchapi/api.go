@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -56,7 +58,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
 		if err != nil {
-			operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
+			go deleteK8sResources(api.Name)
+			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
 			return nil, "", err
 		}
 		return api, fmt.Sprintf("creating %s", api.Name), nil
@@ -74,15 +77,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		}
 
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, true); err != nil {
-			operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
+			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
 			go deleteK8sResources(api.Name) // Delete k8s if update fails?
 			return nil, "", err
 		}
 
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, true); err != nil {
-			go deleteK8sResources(api.Name) // Delete k8s if update fails?
-			return nil, "", err
-		}
 		return api, fmt.Sprintf("updating %s", api.Name), nil
 	}
 
@@ -110,15 +109,21 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			if keepCache {
 				return nil
 			}
-			deleteS3Resources(apiName)
-			return nil
+			return deleteS3Resources(apiName)
 		},
 		func() error {
-			queues, _ := listQueuesPerAPI(apiName)
+			queues, _ := listQueueURLsForAPI(apiName)
+			errs := []error{}
 			for _, queueURL := range queues {
-				deleteQueue(queueURL)
+				_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
+					QueueUrl: aws.String(queueURL),
+				})
+
+				if err != nil {
+					return err
+				}
 			}
-			return nil
+			return errors.FirstError(errs...)
 		},
 		func() error {
 			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService, true)

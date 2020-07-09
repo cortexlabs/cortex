@@ -68,7 +68,7 @@ func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 		keyStr := s.ObjFlatNoQuotes(pair.k)
 		keyLen := len(keyStr)
 
-		if opts.BoldKeys != nil && *opts.BoldKeys {
+		if *opts.BoldKeys {
 			keyStr = console.Bold(keyStr)
 		}
 

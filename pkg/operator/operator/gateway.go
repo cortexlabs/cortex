@@ -21,20 +21,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	ok8s "github.com/cortexlabs/cortex/pkg/operator/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
-type apiGatewayToIntegrationRouting struct {
+type routeToIntegrationMapping struct {
 	APIGatewayRoute  string
 	IntegrationRoute string
 }
 
-func getAPIGatewayToIntegrationRouting(apiEndpoint string, isRoutePrefix bool) []apiGatewayToIntegrationRouting {
-	mappings := []apiGatewayToIntegrationRouting{
+func getRouteToIntegrationMapping(apiEndpoint string, isRoutePrefix bool) []routeToIntegrationMapping {
+	mappings := []routeToIntegrationMapping{
 		{
 			apiEndpoint,
 			apiEndpoint,
@@ -51,7 +50,7 @@ func getAPIGatewayToIntegrationRouting(apiEndpoint string, isRoutePrefix bool) [
 		// {proxy} is being used for now because greedy matching is not required at the moment.
 
 		// Regardless of whether api gateway route uses {proxy} or {proxy+}, the integration route should always use {proxy}
-		mappings = append(mappings, apiGatewayToIntegrationRouting{APIGatewayRoute: urls.Join(apiEndpoint, "{proxy}"), IntegrationRoute: urls.Join(apiEndpoint, "{proxy}")})
+		mappings = append(mappings, routeToIntegrationMapping{APIGatewayRoute: urls.Join(apiEndpoint, "{proxy}"), IntegrationRoute: urls.Join(apiEndpoint, "{proxy}")})
 	}
 
 	return mappings
@@ -62,13 +61,13 @@ func AddAPIToAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGateway
 		return nil
 	}
 
-	apiGatewayToIntegrationRouting := getAPIGatewayToIntegrationRouting(apiEndpoint, isRoutePrefix)
+	routeToIntegrationMapping := getRouteToIntegrationMapping(apiEndpoint, isRoutePrefix)
 
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
 	errs := []error{}
 
-	for _, routeMap := range apiGatewayToIntegrationRouting {
+	for _, routeMap := range routeToIntegrationMapping {
 		// check if API Gateway route already exists
 		existingRoute, err := config.AWS.GetRoute(apiGatewayID, routeMap.APIGatewayRoute)
 		if err != nil {
@@ -87,7 +86,7 @@ func AddAPIToAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGateway
 		}
 
 		if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
-			loadBalancerURL, err := ok8s.APILoadBalancerURL()
+			loadBalancerURL, err := APILoadBalancerURL()
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -116,13 +115,13 @@ func RemoveAPIFromAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGa
 		return nil
 	}
 
-	apiGatewayToIntegrationRouting := getAPIGatewayToIntegrationRouting(apiEndpoint, isRoutePrefix)
+	routeToIntegrationMapping := getRouteToIntegrationMapping(apiEndpoint, isRoutePrefix)
 
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
 	errs := []error{}
 
-	for _, routeMap := range apiGatewayToIntegrationRouting {
+	for _, routeMap := range routeToIntegrationMapping {
 		route, err := config.AWS.DeleteRoute(apiGatewayID, routeMap.APIGatewayRoute)
 		if err != nil {
 			errs = append(errs, err)
@@ -148,6 +147,10 @@ func UpdateAPIGateway(
 	newAPIGatewayType userconfig.APIGatewayType,
 	isRoutePrefix bool,
 ) error {
+	if prevAPIGatewayType == userconfig.NoneAPIGatewayType && newAPIGatewayType == userconfig.NoneAPIGatewayType {
+		return nil
+	}
+
 	if prevAPIGatewayType == userconfig.PublicAPIGatewayType && newAPIGatewayType == userconfig.NoneAPIGatewayType {
 		return RemoveAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType, isRoutePrefix)
 	}
@@ -181,7 +184,7 @@ func RemoveAPIFromAPIGatewayK8s(virtualService *istioclientnetworking.VirtualSer
 		return err
 	}
 
-	endpoint, err := ok8s.GetEndpointFromVirtualService(virtualService)
+	endpoint, err := GetEndpointFromVirtualService(virtualService)
 	if err != nil {
 		return err
 	}
@@ -195,7 +198,7 @@ func UpdateAPIGatewayK8s(prevVirtualService *istioclientnetworking.VirtualServic
 		return err
 	}
 
-	prevEndpoint, err := ok8s.GetEndpointFromVirtualService(prevVirtualService)
+	prevEndpoint, err := GetEndpointFromVirtualService(prevVirtualService)
 	if err != nil {
 		return err
 	}

@@ -57,10 +57,7 @@ var _logsCmd = &cobra.Command{
 
 		apiName := args[0]
 		if env.Provider == types.AWSProviderType {
-			logPath := apiName
-			if len(args) == 2 {
-				logPath = path.Join(apiName, args[1])
-			}
+			logPath := path.Join(args...)
 			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), logPath)
 			if err != nil {
 				// note: if modifying this string, search the codebase for it and change all occurrences

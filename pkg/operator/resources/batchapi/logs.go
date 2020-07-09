@@ -29,8 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/websocket"
@@ -82,8 +80,7 @@ func (c *eventCache) Add(eventID string) {
 	c.eventQueue.PushRight(eventID)
 }
 
-func ReadLogs(logRequest schema.LogRequest, socket *websocket.Conn) {
-	jobKey := spec.JobKey{APIName: logRequest.Name, ID: logRequest.JobID}
+func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	jobStatus, err := GetJobStatus(jobKey)
 	if err != nil {
 		writeAndCloseSocket(socket, "error: "+errors.Message(err))
@@ -93,7 +90,7 @@ func ReadLogs(logRequest schema.LogRequest, socket *websocket.Conn) {
 	defer close(podCheckCancel)
 
 	if jobStatus.Status.IsInProgressPhase() {
-		go streamFromCloudWatch(logRequest, podCheckCancel, socket)
+		go streamFromCloudWatch(jobKey, podCheckCancel, socket)
 	} else {
 		if err != nil {
 			writeAndCloseSocket(socket, "error: "+errors.Message(err))
@@ -116,7 +113,7 @@ func pumpStdin(socket *websocket.Conn) {
 }
 
 func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := operator.LogGroupNameForJob(jobStatus.JobKey)
+	logGroupName := logGroupNameForJob(jobStatus.JobKey)
 
 	newLogStreamNames, err := getLogStreams(logGroupName)
 	if err != nil {
@@ -155,8 +152,8 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 	closeSocket(socket)
 }
 
-func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := operator.LogGroupNameForJob(spec.JobKey{APIName: logRequest.Name, ID: logRequest.JobID})
+func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, socket *websocket.Conn) {
+	logGroupName := logGroupNameForJob(spec.JobKey{APIName: jobKey.APIName, ID: jobKey.ID})
 	eventCache := newEventCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}
 	lastJobRefresh := time.Time{}
@@ -165,8 +162,6 @@ func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan stru
 	didShowFetchingMessage := false
 	didFetchLogs := false
 	var jobSpec *spec.Job
-
-	jobKey := spec.JobKey{APIName: logRequest.Name, ID: logRequest.JobID}
 
 	timer := time.NewTimer(0)
 	defer timer.Stop()
@@ -188,7 +183,7 @@ func streamFromCloudWatch(logRequest schema.LogRequest, podCheckCancel chan stru
 			}
 
 			if jobSpec == nil {
-				writeAndCloseSocket(socket, "\njob "+logRequest.JobID+" (api "+logRequest.Name+") not found")
+				writeAndCloseSocket(socket, "\njob "+jobKey.UserString()+" not found")
 				continue
 			}
 

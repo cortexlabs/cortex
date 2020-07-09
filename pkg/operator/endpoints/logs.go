@@ -20,7 +20,7 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -28,21 +28,18 @@ import (
 
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
-	jobID := mux.Vars(r)["jobID"]
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
-
 	if deployedResource == nil {
 		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
 		return
 	}
-
-	if deployedResource.Kind == userconfig.BatchAPIKind && jobID == "" {
-		respondError(w, r, resources.ErrorJobIDRequired(*deployedResource))
+	if deployedResource.Kind != userconfig.SyncAPIKind {
+		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind))
 		return
 	}
 
@@ -54,12 +51,5 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	err = resources.StreamLogs(schema.LogRequest{
-		Resource: *deployedResource,
-		JobID:    jobID,
-	}, socket)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
+	syncapi.ReadLogs(apiName, socket)
 }

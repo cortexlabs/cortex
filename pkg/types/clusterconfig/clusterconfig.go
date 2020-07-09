@@ -498,6 +498,16 @@ var AccessValidation = &cr.StructValidation{
 	},
 }
 
+func SQSNamePrefix(clusterName string) string {
+	// 10 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
+	return hash.String(clusterName)[:10]
+}
+
+func (cc *Config) SQSNamePrefix() string {
+	// 10 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
+	return SQSNamePrefix(cc.ClusterName)
+}
+
 func (cc *Config) ToAccessConfig() AccessConfig {
 	clusterName := cc.ClusterName
 	region := *cc.Region

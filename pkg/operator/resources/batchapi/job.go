@@ -79,17 +79,19 @@ func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, 
 		"jobID":   jobID,
 	}
 
-	queueURL, err := operator.CreateQueue(apiName, jobID, tags)
+	jobKey := spec.JobKey{
+		APIName: apiSpec.Name,
+		ID:      jobID,
+	}
+
+	queueURL, err := createFIFOQueue(jobKey, tags)
 	if err != nil {
 		return nil, err
 	}
 
 	jobSpec := spec.Job{
-		Job: submission.Job,
-		JobKey: spec.JobKey{
-			APIName: apiSpec.Name,
-			ID:      jobID,
-		},
+		Job:     submission.Job,
+		JobKey:  jobKey,
 		APIID:   apiSpec.ID,
 		SQSUrl:  queueURL,
 		Created: time.Now(),
@@ -97,13 +99,13 @@ func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, 
 
 	err = uploadJobSpec(&jobSpec)
 	if err != nil {
-		deleteQueue(queueURL)
+		deleteQueueByURL(queueURL)
 		return nil, err
 	}
 
 	err = setEnqueuingStatus(jobSpec.JobKey)
 	if err != nil {
-		deleteQueue(queueURL)
+		deleteQueueByURL(queueURL)
 		return nil, err
 	}
 
@@ -130,23 +132,23 @@ func uploadJobSpec(jobSpec *spec.Job) error {
 }
 
 func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobSubmission) {
-	err := operator.CreateLogGroupForJob(jobSpec.JobKey)
+	err := createLogGroupForJob(jobSpec.JobKey)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 		return
 	}
 
-	operator.WriteToJobLogGroup(jobSpec.JobKey, "started enqueuing batches to queue")
+	writeToJobLogGroup(jobSpec.JobKey, "started enqueuing batches to queue")
 
 	totalBatches, err := enqueue(jobSpec, submission)
 	if err != nil {
-		operator.WriteToJobLogGroup(jobSpec.JobKey, errors.Wrap(err, "failed to enqueue all batches").Error())
+		writeToJobLogGroup(jobSpec.JobKey, errors.Wrap(err, "failed to enqueue all batches").Error())
 		setEnqueueFailedStatus(jobSpec.JobKey)
 		deleteJobRuntimeResources(jobSpec.JobKey)
 		return
 	}
 
-	operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("completed enqueuing a total %d batches", totalBatches), "spinning up workers...")
+	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("completed enqueuing a total %d batches", totalBatches), "spinning up workers...")
 
 	jobSpec.TotalBatchCount = totalBatches
 
@@ -169,7 +171,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobS
 }
 
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
-	err := operator.WriteToJobLogGroup(jobKey, jobErr.Error())
+	err := writeToJobLogGroup(jobKey, jobErr.Error())
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -212,7 +214,7 @@ func enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) (int, erro
 		batchCount++
 	}
 
-	operator.WriteToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(submission.Batches), batchCount, *submission.BatchSize))
+	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(submission.Batches), batchCount, *submission.BatchSize))
 
 	for i := 0; i < batchCount; i++ {
 		min := i * (*submission.BatchSize)
@@ -248,7 +250,7 @@ func sendMessage(jobSpec *spec.Job, batch []json.RawMessage, batchNumber int) er
 			if retry == 2 {
 				return errors.Wrap(newErr, "failed after retrying 3 times")
 			}
-			operator.WriteToJobLogGroup(jobSpec.JobKey, newErr.Error())
+			writeToJobLogGroup(jobSpec.JobKey, newErr.Error())
 		} else {
 			break
 		}
@@ -288,12 +290,7 @@ func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 		return err
 	}
 
-	queueURL, err := operator.QueueURL(jobKey)
-	if err != nil {
-		return err
-	}
-
-	err = deleteQueue(queueURL)
+	err = deleteQueueByJobKey(jobKey)
 	if err != nil {
 		return err
 	}
@@ -302,7 +299,7 @@ func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 }
 
 func StopJob(jobKey spec.JobKey) error {
-	operator.WriteToJobLogGroup(jobKey, "request received to stop job; performing cleanup...")
+	writeToJobLogGroup(jobKey, "request received to stop job; performing cleanup...")
 	return errors.FirstError(
 		setStoppedStatus(jobKey),
 		deleteJobRuntimeResources(jobKey),

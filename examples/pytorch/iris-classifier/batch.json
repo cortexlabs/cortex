@@ -1,10 +1,10 @@
 {
     "batches": [
         "a",
-        "b",
-        "c",
-        "d",
-        "e"
+        "a",
+        "a",
+        "a",
+        "a"
     ],
     "parallelism": 2,
     "config": {

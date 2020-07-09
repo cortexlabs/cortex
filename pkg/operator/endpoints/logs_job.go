@@ -19,19 +19,17 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 
-func GetJob(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	apiName := vars["apiName"]
-	jobID := vars["jobID"]
+func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
+	apiName := mux.Vars(r)["apiName"]
+	jobID := mux.Vars(r)["jobID"]
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
@@ -47,31 +45,16 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobKey := spec.JobKey{APIName: apiName, ID: jobID}
-
-	jobStatus, err := batchapi.GetJobStatus(jobKey)
+	upgrader := websocket.Upgrader{}
+	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
+	defer socket.Close()
 
-	spec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	baseURL, err := operator.APIBaseURL(spec)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	response := schema.JobResponse{
-		JobStatus: *jobStatus,
-		APISpec:   *spec,
-		BaseURL:   baseURL,
-	}
-
-	respond(w, response)
+	batchapi.ReadLogs(spec.JobKey{
+		APIName: deployedResource.Name,
+		ID:      jobID,
+	}, socket)
 }

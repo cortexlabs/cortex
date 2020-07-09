@@ -101,7 +101,6 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 		path = *spec.PrefixPath
 	}
 
-	// TODO what happens if rewrite path == PrefixPath or ExactPath?
 	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(path) {
 		virtualService.Spec.Http[0].Rewrite = &istionetworking.HTTPRewrite{
 			Uri: urls.CanonicalizeEndpoint(*spec.Rewrite),

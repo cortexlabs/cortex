@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -347,7 +348,15 @@ var _downCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
-		DeleteQueues(*accessConfig.ClusterName, awsClient)
+		fmt.Print("￮ deleting sqs queues ")
+		err = awsClient.DeleteQueues(clusterconfig.SQSNamePrefix(*accessConfig.ClusterName))
+		if err != nil {
+			fmt.Printf("\n\nunable to delete cortex's api dashboard (see error below); if it still exists after the cluster has been deleted, please delete it via the cloudwatch console: https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:\n", *accessConfig.Region)
+			errors.PrintError(err)
+			fmt.Println()
+		} else {
+			fmt.Println("✓")
+		}
 
 		fmt.Println("￮ spinning down the cluster ...")
 		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
@@ -764,9 +773,26 @@ func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[s
 			fmt.Print("\n\n")
 			return err
 		}
-	} else {
-		fmt.Print("￮ using existing cloudwatch log group: ✓", logGroup)
+		fmt.Println(" ✓")
+		return nil
 	}
+
+	fmt.Print("￮ using existing cloudwatch log group:", logGroup)
+
+	// retry since it's possible that it takes some time for the new log group to be registered by AWS
+	for i := 0; i < 10; i++ {
+		err = awsClient.TagLogGroup(logGroup, tags)
+		if err == nil {
+			fmt.Println(" ✓")
+			return nil
+		}
+		if !aws.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	fmt.Print("\n\n")
 
 	return err
 }

@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -80,31 +79,7 @@ var _getCmd = &cobra.Command{
 		}
 
 		rerun(func() (string, error) {
-			env, err := ReadOrConfigureEnv(_flagGetEnv)
-			if err != nil {
-				exit.Error(err)
-			}
-
-			out, err := envStringIfNotSpecified(_flagGetEnv)
-			if err != nil {
-				return "", err
-			}
-
 			if len(args) == 1 {
-				apiTable, err := getAPI(env, args[0])
-				if err != nil {
-					return "", err
-				}
-				return out + apiTable, nil
-			} else if len(args) == 2 {
-				apiTable, err := getJob(env, args[0], args[1])
-				if err != nil {
-					return "", err
-				}
-				return out + apiTable, nil
-			}
-
-			if wasEnvFlagProvided() {
 				env, err := ReadOrConfigureEnv(_flagGetEnv)
 				if err != nil {
 					exit.Error(err)
@@ -114,20 +89,52 @@ var _getCmd = &cobra.Command{
 				if err != nil {
 					return "", err
 				}
-
-				apiTable, err := getAPIsByEnv(env, false)
+				apiTable, err := getAPI(env, args[0])
 				if err != nil {
 					return "", err
 				}
 				return out + apiTable, nil
-			}
+			} else if len(args) == 2 {
+				env, err := ReadOrConfigureEnv(_flagGetEnv)
+				if err != nil {
+					exit.Error(err)
+				}
 
-			out, err = getAPIsInAllEnvironments()
-			if err != nil {
-				return "", err
-			}
+				out, err := envStringIfNotSpecified(_flagGetEnv)
+				if err != nil {
+					return "", err
+				}
+				apiTable, err := getJob(env, args[0], args[1])
+				if err != nil {
+					return "", err
+				}
+				return out + apiTable, nil
+			} else {
+				if wasEnvFlagProvided() {
+					env, err := ReadOrConfigureEnv(_flagGetEnv)
+					if err != nil {
+						exit.Error(err)
+					}
 
-			return out, nil
+					out, err := envStringIfNotSpecified(_flagGetEnv)
+					if err != nil {
+						return "", err
+					}
+
+					apiTable, err := getAPIsByEnv(env, false)
+					if err != nil {
+						return "", err
+					}
+					return out + apiTable, nil
+				}
+
+				out, err := getAPIsInAllEnvironments()
+				if err != nil {
+					return "", err
+				}
+
+				return out, nil
+			}
 		})
 	},
 }
@@ -234,7 +241,6 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	} else {
 		apisRes, err = local.GetAPIs()
-		debug.Pp(apisRes)
 		if err != nil {
 			return "", err
 		}
@@ -270,6 +276,11 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		if len(apisRes.BatchAPIs) > 0 {
 			out += "\n"
 		}
+
+		if env.Provider == types.LocalProviderType {
+			hideReplicaCountColumns(&t)
+		}
+
 		out += t.MustFormat()
 	}
 
@@ -299,10 +310,8 @@ func getLocalVersionMismatchedAPIsMessage() (string, error) {
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
-	var apiRes schema.GetAPIResponse
-	var err error
 	if env.Provider == types.AWSProviderType {
-		apiRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 		if err != nil {
 			// note: if modifying this string, search the codebase for it and change all occurrences
 			if strings.HasSuffix(errors.Message(err), "is not deployed") {
@@ -316,7 +325,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return batchAPITable(*apiRes.BatchAPI), nil
 	}
 
-	apiRes, err = local.GetAPI(apiName)
+	apiRes, err := local.GetAPI(apiName)
 	if err != nil {
 		// note: if modifying this string, search the codebase for it and change all occurrences
 		if strings.HasSuffix(errors.Message(err), "is not deployed") {

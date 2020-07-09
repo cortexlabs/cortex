@@ -73,11 +73,10 @@ func getReadySyncAPIReplicasOrNil(operatorConfig OperatorConfig, apiName string)
 	return &totalReady
 }
 
-func StopJob(operatorConfig OperatorConfig, apiName string, jobID string, keepCache bool, force bool) (schema.DeleteResponse, error) {
+func StopJob(operatorConfig OperatorConfig, apiName string, jobID string) (schema.DeleteResponse, error) {
 	params := map[string]string{
-		"apiName":   apiName,
-		"jobID":     jobID,
-		"keepCache": s.Bool(keepCache),
+		"apiName": apiName,
+		"jobID":   jobID,
 	}
 
 	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch", apiName, jobID), params)
