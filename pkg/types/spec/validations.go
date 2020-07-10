@@ -115,7 +115,7 @@ func predictorValidation() *cr.StructFieldValidation {
 						AllowEmpty:       false,
 						DisallowedValues: []string{".", "./", "./."},
 						Validator: func(path string) (string, error) {
-							if files.IsAbs(path) {
+							if files.IsAbsOrTildePrefixed(path) {
 								return "", ErrorMustBeRelativeProjectPath(path)
 							}
 							path = strings.TrimPrefix(path, "./")

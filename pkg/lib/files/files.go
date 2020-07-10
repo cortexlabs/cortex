@@ -142,7 +142,7 @@ func WriteFile(data []byte, path string) error {
 	return nil
 }
 
-func IsAbs(path string) bool {
+func IsAbsOrTildePrefixed(path string) bool {
 	return strings.HasPrefix(path, "/") || strings.HasPrefix(path, "~/")
 }
 
@@ -203,7 +203,7 @@ func TrimDirPrefix(fullPath string, dirPath string) string {
 }
 
 func RelToAbsPath(relativePath string, baseDir string) string {
-	if !IsAbs(relativePath) {
+	if !IsAbsOrTildePrefixed(relativePath) {
 		relativePath = filepath.Join(baseDir, relativePath)
 	}
 	return filepath.Clean(relativePath)
@@ -226,7 +226,7 @@ func PathRelativeToCWD(absPath string) string {
 }
 
 func PathRelativeToDir(absPath string, dir string) string {
-	if !IsAbs(absPath) {
+	if !IsAbsOrTildePrefixed(absPath) {
 		return absPath
 	}
 	absPath, _ = EscapeTilde(absPath)

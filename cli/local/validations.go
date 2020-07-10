@@ -48,14 +48,14 @@ type ProjectFiles struct {
 }
 
 func newProjectFiles(projectFileList []string, configPath string) (ProjectFiles, error) {
-	if !files.IsAbs(configPath) {
+	if !files.IsAbsOrTildePrefixed(configPath) {
 		return ProjectFiles{}, errors.ErrorUnexpected(fmt.Sprintf("%s is not an absolute path", configPath))
 	}
 	projectRoot := files.Dir(configPath)
 
 	relFilePaths := make([]string, len(projectFileList))
 	for i, projectFilePath := range projectFileList {
-		if !files.IsAbs(projectFilePath) {
+		if !files.IsAbsOrTildePrefixed(projectFilePath) {
 			return ProjectFiles{}, errors.ErrorUnexpected(fmt.Sprintf("%s is not an absolute path", projectFilePath))
 		}
 		if !strings.HasPrefix(projectFilePath, projectRoot) {
