@@ -43,6 +43,7 @@ import (
 var (
 	_homeDir               string
 	_maxMemoryUsagePercent float64 = 0.9
+	_maxFileSizeBytes      int64   = 512 * 1024 * 1024
 )
 
 func Open(path string) (*os.File, error) {
@@ -118,6 +119,9 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 	if float64(fileSizeBytes) > float64(virtual.Available) &&
 		int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*_maxMemoryUsagePercent) {
 		return nil, ErrorInsufficientMemoryToReadFile(path, fileSizeBytes, int64(virtual.Available))
+	}
+	if fileSizeBytes > _maxFileSizeBytes {
+		return nil, ErrorFileSizeLimit(path, _maxFileSizeBytes)
 	}
 
 	fileBytes, err := ioutil.ReadFile(path)

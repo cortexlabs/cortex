@@ -31,6 +31,7 @@ const (
 	ErrReadDir                      = "files.read_dir"
 	ErrReadFile                     = "files.read_file"
 	ErrInsufficientMemoryToReadFile = "files.insufficient_memory_to_read_file"
+	ErrFileSizeLimit                = "files.file_size_limit"
 	ErrFileAlreadyExists            = "files.file_already_exists"
 	ErrUnexpected                   = "files.unexpected"
 	ErrFileDoesNotExist             = "files.file_does_not_exist"
@@ -85,6 +86,13 @@ func ErrorInsufficientMemoryToReadFile(path string, fileSizeBytes, availableMemB
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInsufficientMemoryToReadFile,
 		Message: fmt.Sprintf("%s: unable to read file due to insufficient system memory; needs %s but only has %s available", path, s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes)),
+	})
+}
+
+func ErrorFileSizeLimit(path string, maxFileSizeBytes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFileSizeLimit,
+		Message: fmt.Sprintf("%s: file size cannot be greater than %s", path, s.Int64ToBase2Byte(maxFileSizeBytes)),
 	})
 }
 
