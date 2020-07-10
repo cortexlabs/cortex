@@ -18,6 +18,7 @@ package resources
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -35,32 +36,43 @@ import (
 
 type ProjectFiles struct {
 	ProjectByteMap map[string][]byte
-	ConfigFilePath string
+	ConfigFileName string
 }
 
-func (projectFiles ProjectFiles) GetAllPaths() []string {
-	files := make([]string, len(projectFiles.ProjectByteMap))
-
-	i := 0
+func (projectFiles ProjectFiles) AllPaths() []string {
+	files := make([]string, 0, len(projectFiles.ProjectByteMap))
 	for path := range projectFiles.ProjectByteMap {
-		files[i] = path
-		i++
+		files = append(files, path)
 	}
-
 	return files
 }
 
-func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
-	bytes, ok := projectFiles.ProjectByteMap[fileName]
+func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {
+	bytes, ok := projectFiles.ProjectByteMap[path]
 	if !ok {
-		return nil, files.ErrorFileDoesNotExist(fileName)
+		return nil, files.ErrorFileDoesNotExist(path)
 	}
-
 	return bytes, nil
 }
 
-func (projectFiles ProjectFiles) GetConfigFilePath() string {
-	return projectFiles.ConfigFilePath
+func (projectFiles ProjectFiles) HasFile(path string) bool {
+	_, ok := projectFiles.ProjectByteMap[path]
+	return ok
+}
+
+func (projectFiles ProjectFiles) HasDir(path string) bool {
+	path = s.EnsureSuffix(path, "/")
+	for projectFilePath := range projectFiles.ProjectByteMap {
+		if strings.HasPrefix(projectFilePath, path) {
+			return true
+		}
+	}
+	return false
+}
+
+// This should not be called, since it's only relevant for the local environment
+func (projectFiles ProjectFiles) ProjectDir() string {
+	return "./"
 }
 
 func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
