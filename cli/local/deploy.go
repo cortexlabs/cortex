@@ -31,18 +31,20 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileList []string) (schema.DeployResponse, error) {
+func Deploy(env cliconfig.Environment, configPath string, projectFileList []string) (schema.DeployResponse, error) {
+	configFileName := filepath.Base(configPath)
+
 	_, err := docker.GetDockerClient()
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
 
-	configBytes, err := files.ReadFileBytes(absoluteConfigPath)
+	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
 
-	projectFiles, err := NewProjectFiles(projectFileList, absoluteConfigPath)
+	projectFiles, err := newProjectFiles(projectFileList, configPath)
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
@@ -60,7 +62,7 @@ func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileLis
 		}
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, projectFiles, absoluteConfigPath)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName)
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
@@ -73,12 +75,12 @@ func Deploy(env cliconfig.Environment, absoluteConfigPath string, projectFileLis
 
 	projectID, err := files.HashFile(projectFileList[0], projectFileList[1:]...)
 	if err != nil {
-		return schema.DeployResponse{}, errors.Wrap(err, "failed to hash directory", filepath.Dir(absoluteConfigPath))
+		return schema.DeployResponse{}, errors.Wrap(err, "failed to hash directory", filepath.Dir(configPath))
 	}
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := UpdateAPI(&apiConfig, absoluteConfigPath, projectID, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, configPath, projectID, awsClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)

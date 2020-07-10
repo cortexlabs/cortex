@@ -112,9 +112,15 @@ func predictorValidation() *cr.StructFieldValidation {
 				{
 					StructField: "PythonPath",
 					StringPtrValidation: &cr.StringPtrValidation{
-						AllowEmpty: true,
+						AllowEmpty:       false,
+						DisallowedValues: []string{".", "./", "./."},
 						Validator: func(path string) (string, error) {
-							return s.EnsureSuffix(path, "/"), nil
+							if files.IsAbsOrTildePrefixed(path) {
+								return "", ErrorMustBeRelativeProjectPath(path)
+							}
+							path = strings.TrimPrefix(path, "./")
+							path = s.EnsureSuffix(path, "/")
+							return path, nil
 						},
 					},
 				},
@@ -487,17 +493,17 @@ var resourceStructValidation = cr.StructValidation{
 	StructFieldValidations: resourceStructValidations,
 }
 
-func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectFiles ProjectFiles, filePath string) ([]userconfig.API, error) {
+func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFileName string) ([]userconfig.API, error) {
 	var err error
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, filePath)
+		return nil, errors.Wrap(err, configFileName)
 	}
 
 	configDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(configData)
 	if !ok {
-		return nil, errors.Wrap(ErrorMalformedConfig(), filePath)
+		return nil, errors.Wrap(ErrorMalformedConfig(), configFileName)
 	}
 
 	apis := make([]userconfig.API, len(configDataSlice))
@@ -509,7 +515,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 			name, _ := data[userconfig.NameKey].(string)
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
-			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 
@@ -519,11 +525,11 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, projectF
 			name, _ := data[userconfig.NameKey].(string)
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
-			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(filePath, name, kind, i))
+			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 		api.Index = i
-		api.FilePath = filePath
+		api.FileName = configFileName
 
 		api.ApplyDefaultDockerPaths()
 
@@ -597,15 +603,12 @@ func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerT
 		}
 	}
 
-	if _, err := projectFiles.GetFile(predictor.Path); err != nil {
-		if errors.GetKind(err) == files.ErrFileDoesNotExist {
-			return errors.Wrap(files.ErrorFileDoesNotExist(predictor.Path), userconfig.PathKey)
-		}
-		return errors.Wrap(err, userconfig.PathKey)
+	if !projectFiles.HasFile(predictor.Path) {
+		return errors.Wrap(files.ErrorFileDoesNotExist(predictor.Path), userconfig.PathKey)
 	}
 
 	if predictor.PythonPath != nil {
-		if err := validatePythonPath(*predictor.PythonPath, projectFiles); err != nil {
+		if err := validatePythonPath(predictor, projectFiles); err != nil {
 			return errors.Wrap(err, userconfig.PythonPathKey)
 		}
 	}
@@ -703,8 +706,6 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, api *userc
 			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), modelPath, userconfig.ModelPathKey)
 		}
 
-		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
-
 		var err error
 		if strings.HasPrefix(modelResource.ModelPath, "~/") {
 			modelPath, err = files.EscapeTilde(modelPath)
@@ -712,7 +713,7 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, api *userc
 				return err
 			}
 		} else {
-			modelPath = files.RelToAbsPath(modelResource.ModelPath, configFileDir)
+			modelPath = files.RelToAbsPath(modelResource.ModelPath, projectFiles.ProjectDir())
 		}
 		if strings.HasSuffix(modelPath, ".zip") {
 			if err := files.CheckFile(modelPath); err != nil {
@@ -797,14 +798,13 @@ func validateONNXModel(modelResource *userconfig.ModelResource, providerType typ
 			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), modelPath, userconfig.ModelPathKey)
 		}
 
-		configFileDir := filepath.Dir(projectFiles.GetConfigFilePath())
 		if strings.HasPrefix(modelResource.ModelPath, "~/") {
 			modelPath, err = files.EscapeTilde(modelPath)
 			if err != nil {
 				return err
 			}
 		} else {
-			modelPath = files.RelToAbsPath(modelResource.ModelPath, configFileDir)
+			modelPath = files.RelToAbsPath(modelResource.ModelPath, projectFiles.ProjectDir())
 		}
 		if err := files.CheckFile(modelPath); err != nil {
 			return errors.Wrap(err, userconfig.ModelPathKey)
@@ -959,17 +959,11 @@ func IsValidTensorFlowLocalDirectory(path string) (bool, error) {
 	return false, nil
 }
 
-func validatePythonPath(pythonPath string, projectFiles ProjectFiles) error {
-	validPythonPath := false
-	for _, fileKey := range projectFiles.GetAllPaths() {
-		if strings.HasPrefix(fileKey, pythonPath) {
-			validPythonPath = true
-			break
-		}
+func validatePythonPath(predictor *userconfig.Predictor, projectFiles ProjectFiles) error {
+	if !projectFiles.HasDir(*predictor.PythonPath) {
+		return ErrorPythonPathNotFound(*predictor.PythonPath)
 	}
-	if !validPythonPath {
-		return files.ErrorFileDoesNotExist(pythonPath)
-	}
+
 	return nil
 }
 
