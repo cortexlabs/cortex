@@ -121,7 +121,11 @@ func Round(val float64, decimalPlaces int, padToDecimalPlaces int) string {
 
 // copied from https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
 func IntToBase2Byte(size int) string {
-	const unit = 1024
+	return Int64ToBase2Byte(int64(size))
+}
+
+func Int64ToBase2Byte(size int64) string {
+	const unit int64 = 1024
 	if size < unit {
 		return fmt.Sprintf("%d B", size)
 	}

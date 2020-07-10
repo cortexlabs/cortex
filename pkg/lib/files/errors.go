@@ -24,18 +24,19 @@ import (
 )
 
 const (
-	ErrCreateDir         = "files.create_dir"
-	ErrDeleteDir         = "files.delete_dir"
-	ErrReadFormFile      = "files.read_form_file"
-	ErrCreateFile        = "files.create_file"
-	ErrReadDir           = "files.read_dir"
-	ErrReadFile          = "files.read_file"
-	ErrFileAlreadyExists = "files.file_already_exists"
-	ErrUnexpected        = "files.unexpected"
-	ErrFileDoesNotExist  = "files.file_does_not_exist"
-	ErrDirDoesNotExist   = "files.dir_does_not_exist"
-	ErrNotAFile          = "files.not_a_file"
-	ErrNotADir           = "files.not_a_dir"
+	ErrCreateDir                    = "files.create_dir"
+	ErrDeleteDir                    = "files.delete_dir"
+	ErrReadFormFile                 = "files.read_form_file"
+	ErrCreateFile                   = "files.create_file"
+	ErrReadDir                      = "files.read_dir"
+	ErrReadFile                     = "files.read_file"
+	ErrInsufficientMemoryToReadFile = "files.insufficient_memory_to_read_file"
+	ErrFileAlreadyExists            = "files.file_already_exists"
+	ErrUnexpected                   = "files.unexpected"
+	ErrFileDoesNotExist             = "files.file_does_not_exist"
+	ErrDirDoesNotExist              = "files.dir_does_not_exist"
+	ErrNotAFile                     = "files.not_a_file"
+	ErrNotADir                      = "files.not_a_dir"
 )
 
 func ErrorCreateDir(path string) error {
@@ -77,6 +78,13 @@ func ErrorReadFile(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrReadFile,
 		Message: fmt.Sprintf("%s: unable to read file", path),
+	})
+}
+
+func ErrorInsufficientMemoryToReadFile(path string, fileSizeBytes, availableMemBytes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInsufficientMemoryToReadFile,
+		Message: fmt.Sprintf("%s: unable to read file due to insufficient system memory; needs %s but only has %s available", path, s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes)),
 	})
 }
 

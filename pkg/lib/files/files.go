@@ -36,10 +36,14 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/denormal/go-gitignore"
 	"github.com/mitchellh/go-homedir"
+	"github.com/shirou/gopsutil/mem"
 	"github.com/xlab/treeprint"
 )
 
-var _homeDir string
+var (
+	_homeDir               string
+	_maxMemoryUsagePercent float64 = 0.9
+)
 
 func Open(path string) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
@@ -104,6 +108,16 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 
 	if err := CheckFileErrPath(path, errMsgPath); err != nil {
 		return nil, err
+	}
+
+	var fileSizeBytes int64
+	if fileSizeBytes, err = CheckFileSizeBytes(path); err != nil {
+		return nil, err
+	}
+	virtual, _ := mem.VirtualMemory()
+	if float64(fileSizeBytes) > float64(virtual.Available) &&
+		int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*_maxMemoryUsagePercent) {
+		return nil, ErrorInsufficientMemoryToReadFile(path, fileSizeBytes, int64(virtual.Available))
 	}
 
 	fileBytes, err := ioutil.ReadFile(path)
@@ -299,6 +313,23 @@ func CheckFileErrPath(path string, errMsgPath string) error {
 	}
 
 	return nil
+}
+
+func CheckFileSizeBytes(path string) (int64, error) {
+	var fileSize int64
+
+	file, err := os.Open(path)
+	if err != nil {
+		return fileSize, err
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return fileSize, err
+	}
+
+	return stat.Size(), nil
 }
 
 func CreateDir(path string) error {
@@ -540,7 +571,7 @@ func PromptForFilesAboveSize(size int, promptMsgTemplate string) IgnoreFn {
 
 	return func(path string, fi os.FileInfo) (bool, error) {
 		if !fi.IsDir() && fi.Size() > int64(size) {
-			promptMsg := fmt.Sprintf(promptMsgTemplate, PathRelativeToCWD(path), s.IntToBase2Byte(int(fi.Size())))
+			promptMsg := fmt.Sprintf(promptMsgTemplate, PathRelativeToCWD(path), s.Int64ToBase2Byte(fi.Size()))
 			return !prompt.YesOrNo(promptMsg, "", ""), nil
 		}
 		return false, nil
