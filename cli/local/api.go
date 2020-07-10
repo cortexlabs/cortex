@@ -34,7 +34,7 @@ import (
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
 	if err != nil {
 		if errors.GetKind(err) != ErrAPINotDeployed {
@@ -58,7 +58,7 @@ func UpdateAPI(apiConfig *userconfig.API, cortexYAMLPath string, projectID strin
 		newAPISpec.LocalModelCaches = localModelCaches
 	}
 
-	newAPISpec.LocalProjectDir = filepath.Dir(cortexYAMLPath)
+	newAPISpec.LocalProjectDir = files.Dir(configPath)
 
 	if areAPIsEqual(newAPISpec, prevAPISpec) {
 		return newAPISpec, fmt.Sprintf("%s is up to date", newAPISpec.Name), nil

@@ -60,7 +60,7 @@ func IsResourceUpdating(resource userconfig.Resource) (bool, error) {
 	return false, ErrorOperationNotSupportedForKind(resource.Kind)
 }
 
-func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
+func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
 	projectID := hash.Bytes(projectBytes)
 	projectKey := spec.ProjectKey(projectID)
 	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
@@ -70,9 +70,9 @@ func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bo
 
 	projectFiles := ProjectFiles{
 		ProjectByteMap: projectFileMap,
-		ConfigFilePath: configPath,
+		ConfigFileName: configFileName,
 	}
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName)
 	if err != nil {
 		return nil, err
 	}
