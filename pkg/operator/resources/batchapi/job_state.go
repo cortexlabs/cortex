@@ -382,7 +382,10 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job) (*status.J
 			return nil, err
 		}
 		jobStatus.QueueMetrics = queueMetrics
-		jobStatus.TotalBatchCount = queueMetrics.TotalInQueue()
+
+		if statusCode == status.JobEnqueuing {
+			jobStatus.TotalBatchCount = queueMetrics.TotalInQueue()
+		}
 
 		if statusCode == status.JobRunning {
 			metrics, err := getRealTimeJobMetrics(jobKey)

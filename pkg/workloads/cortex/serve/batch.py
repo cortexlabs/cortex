@@ -240,7 +240,7 @@ def start():
 
         job_spec = get_job_spec(storage, cache_dir, job_spec_path)
         if job_spec.get("config") is not None:
-            raw_api_spec["predictor"]["config"] = util.merge_dicts_overwrite(
+            util.merge_dicts_in_place_overwrite(
                 raw_api_spec["predictor"]["config"], job_spec["config"]
             )
 

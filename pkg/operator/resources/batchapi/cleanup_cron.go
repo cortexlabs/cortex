@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -94,14 +95,17 @@ func ManageJobResources() error {
 					fmt.Println(err.Error())
 					telemetry.Error(err)
 				}
-				queueExists, err := doesQueueExist(jobKey)
+				queueExists, err := doesQueueExist(jobKey) // double check queue existence because it might 10-20 seconds to verify queue existence after a queue has been created
 				if err != nil {
 					queueExists = false
 				}
+				debug.Pp(queueExists)
 
 				if !queueExists && time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) >= ManageJobResourcesCronPeriod {
 					// unexpected queue missing error
-					errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), queueURL))
+					writeToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), queueURL))
+					setUnexpectedErrorStatus(jobKey)
+					deleteJobRuntimeResources(jobKey)
 				}
 			} else {
 				if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_lastUpdatedFile]) >= ManageJobResourcesCronPeriod {
@@ -114,7 +118,9 @@ func ManageJobResources() error {
 
 					if !jobIDSetK8s.Has(jobKey.ID) {
 						// unexpected k8s job missing
-						errorJobAndDelete(jobKey, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobKey.UserString()))
+						writeToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobKey.UserString()))
+						setUnexpectedErrorStatus(jobKey)
+						deleteJobRuntimeResources(jobKey)
 					} else {
 						k8sJob := k8sJobMap[jobKey.ID]
 						err := checkJobCompletion(jobKey, queueURLMap[jobKey.ID], &k8sJob)
@@ -142,12 +148,6 @@ func ManageJobResources() error {
 	}
 
 	return nil
-}
-
-func errorJobAndDelete(jobKey spec.JobKey, message string, messages ...string) {
-	writeToJobLogGroup(jobKey, message, messages...)
-	setUnexpectedErrorStatus(jobKey)
-	deleteJobRuntimeResources(jobKey)
 }
 
 func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {

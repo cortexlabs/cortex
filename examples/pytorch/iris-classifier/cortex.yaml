@@ -7,6 +7,14 @@
     path: predictor.py
     config:
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+      testing: bye
+      nested:
+        - hello: bye
+          name: true
+  networking:
+    endpoint: /blah
+  compute:
+    mem: 2G
 # - name: text-generator
 #   kind: sync
 #   predictor:

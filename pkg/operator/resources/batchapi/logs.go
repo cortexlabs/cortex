@@ -46,7 +46,6 @@ const (
 
 	_pollPeriod             = 250 * time.Millisecond
 	_logStreamRefreshPeriod = 10 * time.Second
-	_jobRefreshPeriod       = 30 * time.Second
 )
 
 type fluentdLog struct {
@@ -155,13 +154,16 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	logGroupName := logGroupNameForJob(spec.JobKey{APIName: jobKey.APIName, ID: jobKey.ID})
 	eventCache := newEventCache(_maxCacheSize)
-	lastLogStreamRefresh := time.Time{}
-	lastJobRefresh := time.Time{}
 	lastLogTime := time.Now()
-	logStreamNames := strset.New()
 	didShowFetchingMessage := false
 	didFetchLogs := false
 	var jobSpec *spec.Job
+
+	jobSpec, err := downloadJobSpec(jobKey)
+	if err != nil {
+		writeAndCloseSocket(socket, "\nunable to find job "+jobKey.UserString()+"")
+		return
+	}
 
 	timer := time.NewTimer(0)
 	defer timer.Stop()
@@ -171,46 +173,9 @@ func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, sock
 		case <-podCheckCancel:
 			return
 		case <-timer.C:
-			if jobSpec == nil || time.Since(lastJobRefresh) > _jobRefreshPeriod {
-				var err error
-				jobSpec, err = downloadJobSpec(jobKey)
-				if err != nil {
-					telemetry.Error(err)
-					writeAndCloseSocket(socket, "error: "+errors.Message(err))
-					continue
-				}
-				lastJobRefresh = time.Now()
-			}
-
-			if jobSpec == nil {
-				writeAndCloseSocket(socket, "\njob "+jobKey.UserString()+" not found")
-				continue
-			}
-
 			if !didShowFetchingMessage {
 				writeString(socket, "fetching logs ...")
 				didShowFetchingMessage = true
-			}
-
-			if time.Since(lastLogStreamRefresh) > _logStreamRefreshPeriod {
-				newLogStreamNames, err := getLogStreams(logGroupName)
-				if err != nil {
-					telemetry.Error(err)
-					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+errors.Message(err))
-					continue
-				}
-
-				if !logStreamNames.IsEqual(newLogStreamNames) {
-					lastLogTime = lastLogTime.Add(-_logStreamRefreshPeriod)
-					logStreamNames = newLogStreamNames
-				}
-
-				lastLogStreamRefresh = time.Now()
-			}
-
-			if len(logStreamNames) == 0 {
-				timer.Reset(_pollPeriod)
-				continue
 			}
 
 			if !didFetchLogs {
@@ -221,11 +186,10 @@ func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, sock
 			endTime := libtime.ToMillis(time.Now())
 
 			logEventsOutput, err := config.AWS.CloudWatchLogs().FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
-				LogGroupName:   aws.String(logGroupName),
-				LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
-				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime.Add(-_pollPeriod))),
-				EndTime:        aws.Int64(endTime),
-				Limit:          aws.Int64(int64(_maxLogLinesPerRequest)),
+				LogGroupName: aws.String(logGroupName),
+				StartTime:    aws.Int64(libtime.ToMillis(lastLogTime.Add(-_pollPeriod * 2))),
+				EndTime:      aws.Int64(endTime),
+				Limit:        aws.Int64(int64(_maxLogLinesPerRequest)),
 			})
 
 			if err != nil {

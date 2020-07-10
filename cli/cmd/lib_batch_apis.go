@@ -55,7 +55,7 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 		for _, job := range batchAPI.JobStatuses {
 			if job.StartTime.After(latestStartTime) {
 				latestStartTime = job.StartTime
-				latestJobID = job.ID + fmt.Sprintf(" (submitted %s ago)", libtime.SinceStr(&lastUpdated))
+				latestJobID = job.ID + fmt.Sprintf(" (submitted %s ago)", libtime.SinceStr(&latestStartTime))
 			}
 
 			if job.Status.IsInProgressPhase() {
@@ -95,8 +95,7 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 		for _, job := range batchAPI.JobStatuses {
 			succeeded := 0
 			failed := 0
-			fmt.Println(job.TotalBatchCount)
-			fmt.Println(job.QueueMetrics)
+
 			totalBatchCount := job.TotalBatchCount
 
 			if job.Status == status.JobEnqueuing && job.QueueMetrics != nil {
@@ -244,6 +243,13 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 		out += t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
 	}
+
+	jobEndpoint := urls.Join(resp.BaseURL, *resp.APISpec.Networking.Endpoint, job.ID)
+	if resp.APISpec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+		jobEndpoint = strings.Replace(jobEndpoint, "https://", "http://", 1)
+	}
+
+	out += "\n" + console.Bold("job endpoint: ") + jobEndpoint + "\n"
 
 	jobSpecStr, err := json.Pretty(job.Job)
 	if err != nil {

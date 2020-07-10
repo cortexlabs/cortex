@@ -19,6 +19,7 @@ package batchapi
 import (
 	"path"
 
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -189,9 +190,10 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Rewrite:     pointer.String(path.Join("batch", api.Name)),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiID":   api.ID,
-			"apiKind": api.Kind.String(),
+			"apiName":   api.Name,
+			"apiID":     api.ID,
+			"apiKind":   api.Kind.String(),
+			"computeID": hash.String(api.Compute.UserStr()),
 		},
 	})
 }
