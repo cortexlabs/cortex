@@ -50,6 +50,8 @@
 
 - [Iris classification](onnx/iris-classifier): deploy an XGBoost model (exported in ONNX) to classify iris flowers.
 
+- [YOLOv5 YouTube detection](onnx/yolov5-youtube): deploy a YOLOv5 model trained on COCO val2017 dataset.
+
 - [Multi-model classification](onnx/multi-model-classifier): deploy 3 models (ResNet50, MobileNet, ShuffleNet) in a single API.
 
 ## scikit-learn
