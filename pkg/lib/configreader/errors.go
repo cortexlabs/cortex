@@ -57,6 +57,7 @@ const (
 	ErrWrongNumberOfElements         = "configreader.wrong_number_of_elements"
 	ErrCannotSetStructField          = "configreader.cannot_set_struct_field"
 	ErrCannotBeNull                  = "configreader.cannot_be_null"
+	ErrCannotBeEmptyOrNull           = "configreader.cannot_be_empty_or_null"
 	ErrCannotBeEmpty                 = "configreader.cannot_be_empty"
 	ErrMustBeDefined                 = "configreader.must_be_defined"
 	ErrMapMustBeDefined              = "configreader.map_must_be_defined"
@@ -299,13 +300,22 @@ func ErrorCannotSetStructField() error {
 
 func ErrorCannotBeNull(isRequired bool) error {
 	msg := "cannot be null"
-
 	if !isRequired {
 		msg = "cannot be null (specify a value, or remove the key to use the default value)"
 	}
-
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotBeNull,
+		Message: msg,
+	})
+}
+
+func ErrorCannotBeEmptyOrNull(isRequired bool) error {
+	msg := "cannot be empty or null"
+	if !isRequired {
+		msg = "cannot be empty or null (specify a value, or remove the key to use the default value)"
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCannotBeEmptyOrNull,
 		Message: msg,
 	})
 }
