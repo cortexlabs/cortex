@@ -404,7 +404,7 @@ The `payload` parameter type will be a `starlette.datastructures.FormData` objec
 # payload parameter is a starlette.datastructures.FormData object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: multipart/form" \
-    -d @file.txt
+    -F "fieldName=@file.txt"
 ```
 
 The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: application/x-www-form-urlencoded` is made:
