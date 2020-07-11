@@ -364,9 +364,14 @@ If your application requires additional dependencies, you can install additional
 
 ## API requests
 
-The `payload` parameter in the `predict(self, payload)` method can be of different types depending on the content type of the request.
+The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request.
 
-Here are some examples:
+The `payload` parameter is parsed according to the `Content-Type` header in the request:
+1. For `Content-Type: application/json`, `payload` will be the parsed JSON body.
+1. For `Content-Type: multipart/form` / `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData`.
+1. For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
+
+The `payload` parameter type will be a Python `dict` object if a request with a JSON payload is made:
 
 ```bash
 # payload parameter is a dictionary object
@@ -375,12 +380,16 @@ $ curl http://***.amazonaws.com/my-api \
     -d '{"key": "value"}'
 ```
 
+The `payload` parameter type will be a `bytes` object if a request with a `Content-Type: application/octet-stream` is made:
+
 ```bash
 # payload parameter is a bytes object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/octet-stream" \
     -d @file.bin
 ```
+
+The `payload` parameter type will be a `bytes` object if a request doesn't have the `Content-Type` set:
 
 ```bash
 # payload parameter is a bytes object
@@ -389,6 +398,8 @@ $ curl http://***.amazonaws.com/my-api \
     -d @sample.txt
 ```
 
+The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: multipart/form` is made:
+
 ```bash
 # payload parameter is a starlette.datastructures.FormData object
 $ curl http://***.amazonaws.com/my-api \
@@ -396,12 +407,16 @@ $ curl http://***.amazonaws.com/my-api \
     -d @file.txt
 ```
 
+The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: application/x-www-form-urlencoded` is made:
+
 ```bash
 # payload parameter is a starlette.datastructures.FormData object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     -d @file.txt
 ```
+
+The `payload` parameter type will be a `starlette.datastructures.FormData` object if no headers are added to the request:
 
 ```bash
 # payload parameter is a starlette.datastructures.FormData object
