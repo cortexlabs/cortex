@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	ErrNotAbsolutePath               = "local.not_absolute_path"
 	ErrAPINotDeployed                = "local.api_not_deployed"
 	ErrAPISpecNotFound               = "local.api_specification_not_found"
 	ErrCortexVersionMismatch         = "local.cortex_version_mismatch"
@@ -36,13 +35,6 @@ const (
 	ErrPortAlreadyInUse              = "local.port_already_in_use"
 	ErrUnableToFindAvailablePorts    = "local.unable_to_find_available_ports"
 )
-
-func ErrorNotAbsolutePath(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNotAbsolutePath,
-		Message: fmt.Sprintf("%s is not an absolute path", path),
-	})
-}
 
 func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(&errors.Error{
