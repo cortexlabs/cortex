@@ -55,7 +55,7 @@ func GetDeployedResourceByName(resourceName string) (*userconfig.Resource, error
 	}, nil
 }
 
-func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
+func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
 	projectID := hash.Bytes(projectBytes)
 	projectKey := spec.ProjectKey(projectID)
 	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
@@ -65,9 +65,9 @@ func Deploy(projectBytes []byte, configPath string, configBytes []byte, force bo
 
 	projectFiles := ProjectFiles{
 		ProjectByteMap: projectFileMap,
-		ConfigFilePath: configPath,
+		ConfigFileName: configFileName,
 	}
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, projectFiles, configPath)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -217,12 +217,23 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		return nil, err
 	}
 
-	syncAPIList, err := syncapi.GetAllAPIs(pods, deployments)
+	syncAPIPods := []kcore.Pod{}
+	batchAPIPods := []kcore.Pod{}
+	for _, pod := range pods {
+		switch pod.Labels["apiKind"] {
+		case userconfig.SyncAPIKind.String():
+			syncAPIPods = append(syncAPIPods, pod)
+		case userconfig.BatchAPIKind.String():
+			batchAPIPods = append(syncAPIPods, pod)
+		}
+	}
+
+	syncAPIList, err := syncapi.GetAllAPIs(syncAPIPods, deployments)
 	if err != nil {
 		return nil, err
 	}
 
-	batchAPIList, err := batchapi.GetAllAPIs(virtualServices, k8sJobs)
+	batchAPIList, err := batchapi.GetAllAPIs(virtualServices, k8sJobs, batchAPIPods)
 	if err != nil {
 		return nil, err
 	}

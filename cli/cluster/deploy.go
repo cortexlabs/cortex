@@ -17,6 +17,8 @@ limitations under the License.
 package cluster
 
 import (
+	"path/filepath"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -25,8 +27,8 @@ import (
 
 func Deploy(operatorConfig OperatorConfig, configPath string, deploymentBytesMap map[string][]byte, force bool) (schema.DeployResponse, error) {
 	params := map[string]string{
-		"force":      s.Bool(force),
-		"configPath": configPath,
+		"force":          s.Bool(force),
+		"configFileName": filepath.Base(configPath),
 	}
 	uploadInput := &HTTPUploadInput{
 		Bytes: deploymentBytesMap,

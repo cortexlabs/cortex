@@ -113,7 +113,7 @@ type AccessConfig struct {
 }
 
 var UserValidation = &cr.StructValidation{
-	TreatNullAsEmpty: true,
+	Required: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "InstanceType",

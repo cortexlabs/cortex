@@ -45,6 +45,8 @@ const (
 	ErrSurgeAndUnavailableBothZero          = "spec.surge_and_unavailable_both_zero"
 	ErrFileNotFound                         = "spec.file_not_found"
 	ErrDirIsEmpty                           = "spec.dir_is_empty"
+	ErrMustBeRelativeProjectPath            = "spec.must_be_relative_project_path"
+	ErrPythonPathNotFound                   = "spec.python_path_not_found"
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
 	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
 	ErrInvalidNeuronTensorFlowDir           = "operator.invalid_neuron_tensorflow_dir"
@@ -85,7 +87,7 @@ func ErrorNoAPIs() error {
 func ErrorDuplicateName(apis []userconfig.API) error {
 	filePaths := strset.New()
 	for _, api := range apis {
-		filePaths.Add(api.FilePath)
+		filePaths.Add(api.FileName)
 	}
 
 	return errors.WithStack(&errors.Error{
@@ -196,6 +198,20 @@ func ErrorDirIsEmpty(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDirIsEmpty,
 		Message: fmt.Sprintf("%s: directory is empty", path),
+	})
+}
+
+func ErrorMustBeRelativeProjectPath(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMustBeRelativeProjectPath,
+		Message: fmt.Sprintf("%s: must be a relative path (relative to the directory containing your API configuration file)", path),
+	})
+}
+
+func ErrorPythonPathNotFound(pythonPath string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrPythonPathNotFound,
+		Message: fmt.Sprintf("%s: path does not exist, or has been excluded from your project directory", pythonPath),
 	})
 }
 

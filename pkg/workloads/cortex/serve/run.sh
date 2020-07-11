@@ -46,7 +46,8 @@ if [ -f "/mnt/project/.env" ]; then
     set +a
 fi
 
-export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
+export PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH
+
 # ensure predictor print() statements are always flushed
 export PYTHONUNBUFFERED=TRUE
 
