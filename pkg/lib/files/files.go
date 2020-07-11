@@ -111,19 +111,6 @@ func ReadFileBytesErrPath(path string, errMsgPath string) ([]byte, error) {
 		return nil, err
 	}
 
-	var fileSizeBytes int64
-	if fileSizeBytes, err = CheckFileSizeBytes(path); err != nil {
-		return nil, err
-	}
-	virtual, _ := mem.VirtualMemory()
-	if float64(fileSizeBytes) > float64(virtual.Available) &&
-		int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*_maxMemoryUsagePercent) {
-		return nil, ErrorInsufficientMemoryToReadFile(path, fileSizeBytes, int64(virtual.Available))
-	}
-	if fileSizeBytes > _maxFileSizeBytes {
-		return nil, ErrorFileSizeLimit(path, _maxFileSizeBytes)
-	}
-
 	fileBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Message(ErrorReadFile(errMsgPath)))
@@ -329,23 +316,6 @@ func CheckFileErrPath(path string, errMsgPath string) error {
 	}
 
 	return nil
-}
-
-func CheckFileSizeBytes(path string) (int64, error) {
-	var fileSize int64
-
-	file, err := os.Open(path)
-	if err != nil {
-		return fileSize, err
-	}
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return fileSize, err
-	}
-
-	return stat.Size(), nil
 }
 
 func CreateDir(path string) error {
@@ -560,6 +530,22 @@ func IgnoreSpecificFiles(absPaths ...string) IgnoreFn {
 	return func(path string, fi os.FileInfo) (bool, error) {
 		return absPathsSet.Has(path), nil
 	}
+}
+
+func ErrorOnBigFiles(path string, fi os.FileInfo) (bool, error) {
+	if !fi.IsDir() {
+		fileSizeBytes := fi.Size()
+		virtual, _ := mem.VirtualMemory()
+		if float64(fileSizeBytes) > float64(virtual.Available) &&
+			int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*_maxMemoryUsagePercent) {
+			return true, ErrorInsufficientMemoryToReadFile(path, fileSizeBytes, int64(virtual.Available))
+		}
+		if fileSizeBytes > _maxFileSizeBytes {
+			return true, ErrorFileSizeLimit(path, _maxFileSizeBytes)
+		}
+	}
+
+	return false, nil
 }
 
 func GitIgnoreFn(gitIgnorePath string) (IgnoreFn, error) {
