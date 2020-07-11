@@ -347,13 +347,16 @@ func checkIfUsedByAPISplitter(apiName string) error {
 	if err != nil {
 		return err
 	}
+	var usedByAPISplitters []string
 	for _, apiSplitter := range apiRes.APISplitter {
 		for _, api := range apiSplitter.Spec.APIs {
 			if apiName == api.Name {
-				return ErrorAPIUsedByAPISplitter(apiSplitter.Spec.Name)
+				usedByAPISplitters = append(usedByAPISplitters, apiSplitter.Spec.Name)
 			}
 		}
 	}
-
+	if len(usedByAPISplitters) > 0 {
+		return ErrorAPIUsedByAPISplitter(usedByAPISplitters)
+	}
 	return nil
 }

@@ -281,8 +281,8 @@ func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []u
 		return err
 	}
 
+	var notDeployedAPIs []string
 	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
-	// OHHHH NO DOUBLE FOR LOOP
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
 		deployed := false
 		//check if already deployed
@@ -298,8 +298,11 @@ func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []u
 			}
 		}
 		if deployed == false {
-			return fmt.Errorf("unable to find apis specified in apisplitter")
+			notDeployedAPIs = append(notDeployedAPIs, trafficSplitAPI.Name)
 		}
+	}
+	if len(notDeployedAPIs) != 0 {
+		return ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs)
 	}
 	return nil
 

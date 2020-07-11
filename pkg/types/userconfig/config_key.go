@@ -28,7 +28,7 @@ const (
 	UpdateStrategyKey = "update_strategy"
 
 	// APISplitter
-	APISplitterAPIs = "APIs"
+	APISplitterAPIs = "apis"
 
 	// Predictor
 	TypeKey                   = "type"
