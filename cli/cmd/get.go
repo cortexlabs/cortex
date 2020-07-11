@@ -52,7 +52,7 @@ const (
 	_titleEnvironment   = "env"
 	_titleAPI           = "api"
 	_titleAPISplitter   = "api-splitter"
-	_apiSplitterTitle   = "apis"
+	_titleAPIs          = "apis"
 	_apiSplitterWeights = "weights"
 	_titleStatus        = "status"
 	_titleUpToDate      = "up-to-date"
@@ -326,7 +326,7 @@ func traficSplitterAPITable(apiSplitter *schema.APISplitter, env cliconfig.Envir
 	var out string
 
 	lastUpdated := time.Unix(apiSplitter.Spec.LastUpdated, 0)
-	out += console.Bold("Kind: ") + apiSplitter.Spec.Kind.String() + "\n\n"
+	out += console.Bold("kind: ") + apiSplitter.Spec.Kind.String() + "\n\n"
 	out += console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated) + "\n\n"
 
 	t, err := apiSplitterTable(*apiSplitter, env)
@@ -379,7 +379,7 @@ func apiSplitterTable(trafficSplitter schema.APISplitter, env cliconfig.Environm
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
-			{Title: _apiSplitterTitle},
+			{Title: _titleAPIs},
 			{Title: _apiSplitterWeights},
 			{Title: _titleStatus},
 			{Title: _titleRequested},
@@ -397,9 +397,15 @@ func apiSplitterListTable(trafficSplitter []schema.APISplitter, envNames []strin
 
 	for i, splitAPI := range trafficSplitter {
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
+		apis := ""
+		for _, api := range splitAPI.Spec.APIs {
+			apis += api.Name + ": " + s.Int(api.Weight) + ", "
+		}
+
 		rows = append(rows, []interface{}{
 			envNames[i],
 			splitAPI.Spec.Name,
+			apis,
 			splitAPI.Status.Message(),
 			libtime.SinceStr(&lastUpdated),
 		})
@@ -408,7 +414,8 @@ func apiSplitterListTable(trafficSplitter []schema.APISplitter, envNames []strin
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
-			{Title: "api splitter"},
+			{Title: _titleAPISplitter},
+			{Title: _titleAPIs},
 			{Title: _titleStatus},
 			{Title: _titleLastupdated},
 		},
@@ -423,7 +430,7 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 	t.FindHeaderByTitle(_titleAPI).Hidden = true
 
-	out += console.Bold("Kind: ") + syncAPI.Spec.Kind.String() + "\n\n"
+	out += console.Bold("kind: ") + syncAPI.Spec.Kind.String() + "\n\n"
 
 	out += t.MustFormat()
 
