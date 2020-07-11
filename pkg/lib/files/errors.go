@@ -30,9 +30,9 @@ const (
 	ErrCreateFile                   = "files.create_file"
 	ErrReadDir                      = "files.read_dir"
 	ErrReadFile                     = "files.read_file"
+	ErrFileAlreadyExists            = "files.file_already_exists"
 	ErrInsufficientMemoryToReadFile = "files.insufficient_memory_to_read_file"
 	ErrFileSizeLimit                = "files.file_size_limit"
-	ErrFileAlreadyExists            = "files.file_already_exists"
 	ErrUnexpected                   = "files.unexpected"
 	ErrFileDoesNotExist             = "files.file_does_not_exist"
 	ErrDirDoesNotExist              = "files.dir_does_not_exist"
@@ -82,24 +82,24 @@ func ErrorReadFile(path string) error {
 	})
 }
 
-func ErrorInsufficientMemoryToReadFile(path string, fileSizeBytes, availableMemBytes int64) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInsufficientMemoryToReadFile,
-		Message: fmt.Sprintf("%s: unable to read file due to insufficient system memory; needs %s but only has %s available", path, s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes)),
-	})
-}
-
-func ErrorFileSizeLimit(path string, maxFileSizeBytes int64) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFileSizeLimit,
-		Message: fmt.Sprintf("%s: file size cannot be greater than %s", path, s.Int64ToBase2Byte(maxFileSizeBytes)),
-	})
-}
-
 func ErrorFileAlreadyExists(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileAlreadyExists,
 		Message: fmt.Sprintf("%s: file already exists", path),
+	})
+}
+
+func ErrorInsufficientMemoryToReadFile(fileSizeBytes, availableMemBytes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInsufficientMemoryToReadFile,
+		Message: fmt.Sprintf("unable to read file due to insufficient system memory; needs %s but only has %s available", s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes)),
+	})
+}
+
+func ErrorFileSizeLimit(maxFileSizeBytes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFileSizeLimit,
+		Message: fmt.Sprintf("file size cannot be greater than %s", s.Int64ToBase2Byte(maxFileSizeBytes)),
 	})
 }
 
