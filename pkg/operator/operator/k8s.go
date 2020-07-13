@@ -512,7 +512,7 @@ func tfDownloadArgs(api *spec.API) string {
 	}
 
 	rootModelPath := path.Join(_emptyDirMountPath, "model")
-	for _, model := range api.Predictor.Models {
+	for _, model := range api.Predictor.Models.Paths {
 		var itemName string
 		if model.Name == consts.SingleModelName {
 			itemName = "the model"
@@ -567,7 +567,7 @@ func onnxDownloadArgs(api *spec.API) string {
 	}
 
 	rootModelPath := path.Join(_emptyDirMountPath, "model")
-	for _, model := range api.Predictor.Models {
+	for _, model := range api.Predictor.Models.Paths {
 		var itemName string
 		if model.Name == consts.SingleModelName {
 			itemName = "the model"

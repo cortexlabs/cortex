@@ -45,7 +45,7 @@ type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
 	ModelPath              *string                `json:"model_path" yaml:"model_path"`
-	Models                 []*ModelResource       `json:"models" yaml:"models"`
+	Models                 *MultiModels           `json:"models" yaml:"models"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
@@ -54,6 +54,13 @@ type Predictor struct {
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
+}
+
+type MultiModels struct {
+	Paths         []*ModelResource `json:"paths" yaml:"paths"`
+	Dir           *string          `json:"dir" yaml:"dir"`
+	CacheSize     *int32           `json:"cache_size" yaml:"cache_size"`
+	DiskCacheSize *int32           `json:"disk_cache_size" yaml:"disk_cache_size"`
 }
 
 type ModelResource struct {
@@ -106,8 +113,8 @@ func (api *API) Identify() string {
 
 func (api *API) ModelNames() []string {
 	names := []string{}
-	if api != nil && len(api.Predictor.Models) > 0 {
-		for _, model := range api.Predictor.Models {
+	if api != nil && len(api.Predictor.Models.Paths) > 0 {
+		for _, model := range api.Predictor.Models.Paths {
 			names = append(names, model.Name)
 		}
 	}
@@ -319,11 +326,9 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.ModelPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
 	}
-	if predictor.ModelPath == nil && len(predictor.Models) > 0 {
+	if predictor.ModelPath == nil && predictor.Models != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
-		for _, model := range predictor.Models {
-			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
-		}
+		sb.WriteString(s.Indent(predictor.Models.UserStr(), "  "))
 	}
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
@@ -347,6 +352,26 @@ func (predictor *Predictor) UserStr() string {
 		d, _ := yaml.Marshal(&predictor.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
+	return sb.String()
+}
+
+func (models *MultiModels) UserStr() string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
+	for _, model := range models.Paths {
+		sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
+	}
+	if models.Dir != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
+	}
+	if models.CacheSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsCacheSizeKey, s.Int32(*models.CacheSize)))
+	}
+	if models.DiskCacheSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsCacheSizeKey, s.Int32(*models.DiskCacheSize)))
+	}
+
 	return sb.String()
 }
 

@@ -50,7 +50,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, a
 	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
 
 	// apiConfig.Predictor.ModelPath was already added to apiConfig.Predictor.Models for ease of use
-	if len(apiConfig.Predictor.Models) > 0 {
+	if len(apiConfig.Predictor.Models.Paths) > 0 {
 		localModelCaches, err := CacheModels(newAPISpec, awsClient)
 		if err != nil {
 			return nil, "", err
