@@ -37,14 +37,13 @@ class PythonPredictor:
         model.load_state_dict(torch.load("/tmp/model.pth"))
         model.eval()
 
+        time.sleep(60)
         self.config = config
         self.model = model
 
     def predict(self, payload):
         # Convert the request to a tensor and pass it into the model
-        time.sleep(60)
         print(payload)
-
         # input_tensor = torch.FloatTensor(
         #     [
         #         [

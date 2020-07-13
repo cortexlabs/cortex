@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	kcore "k8s.io/api/core/v1"
@@ -174,18 +175,25 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		return PodStatusUnknown
 	}
 
+	debug.Pp("GetPodStatus")
+	debug.Pp(pod.Labels)
+	debug.Pp(pod.Status.Phase)
+
 	switch pod.Status.Phase {
 	case kcore.PodPending:
+		debug.Pp("initPodStatus")
 		initPodStatus := PodStatusFromContainerStatuses(pod.Status.InitContainerStatuses)
 		if initPodStatus == PodStatusRunning {
 			return PodStatusInitializing
 		}
+		debug.Pp("allPodStatus")
 		allPodStatus := PodStatusFromContainerStatuses(append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...))
 		if allPodStatus == PodStatusErrImagePull {
 			return PodStatusErrImagePull
 		}
-		return initPodStatus
+		return PodStatusPending
 	case kcore.PodSucceeded:
+		debug.Pp("here")
 		return PodStatusSucceeded
 	case kcore.PodFailed:
 		if pod.Status.Reason == ReasonEvicted && _evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
@@ -218,6 +226,8 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		if pod.ObjectMeta.DeletionTimestamp != nil {
 			return PodStatusTerminating
 		}
+
+		debug.Pp("DeletionTimestamp")
 		return PodStatusFromContainerStatuses(pod.Status.ContainerStatuses)
 	default:
 		return PodStatusUnknown
@@ -233,6 +243,11 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 	numKilled := 0
 	numKilledOOM := 0
 
+	debug.Pp("PodStatusFromContainerStatuses")
+	debug.Ppg(containerStatuses)
+	if len(containerStatuses) == 0 {
+		return PodStatusPending
+	}
 	for _, containerStatus := range containerStatuses {
 		if containerStatus.State.Running != nil && containerStatus.Ready == true {
 			numRunning++

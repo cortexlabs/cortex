@@ -57,7 +57,7 @@ func ErrorAPINotDeployed(apiName string) error {
 func ErrorCannotChangeKindOfDeployedAPI(name string, newKind, prevKind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotChangeTypeOfDeployedAPI,
-		Message: fmt.Sprintf("cannot change the kind of %s to %s because it has already been deployed with kind %s; please delete it with `cortex delete %s` and redeploy to change the kind", name, newKind.String(), prevKind.String(), name),
+		Message: fmt.Sprintf("cannot change the kind of %s to %s because it has already been deployed with kind %s; please delete it with `cortex delete %s` and redeploy after updating the api configuration appropriately", name, newKind.String(), prevKind.String(), name),
 	})
 }
 

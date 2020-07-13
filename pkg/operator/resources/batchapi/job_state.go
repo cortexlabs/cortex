@@ -29,10 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
-)
-
-var (
-	_workerCountsFile = "worker_counts.json"
+	kcore "k8s.io/api/core/v1"
 )
 
 type JobState struct {
@@ -123,10 +120,6 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 	statusCode := getStatusCode(keys)
 
 	var jobEndTime *time.Time
-	if endTime, ok := lastUpdatedFileMap[_workerCountsFile]; ok {
-		jobEndTime = &endTime
-	}
-
 	if statusCode.IsCompletedPhase() {
 		if endTime, ok := lastUpdatedFileMap[statusCode.String()]; ok {
 			jobEndTime = &endTime
@@ -201,28 +194,8 @@ func setRunningStatus(jobKey spec.JobKey) error {
 	return nil
 }
 
-func saveWorkerCounts(jobKey spec.JobKey) error {
-	job, err := config.K8s.GetJob(jobKey.K8sName())
-	if err != nil {
-		return err
-	}
-
-	workerCounts := status.ExtractWorkerCounts(job)
-
-	err = config.AWS.UploadJSONToS3(workerCounts, config.Cluster.Bucket, path.Join(jobKey.PrefixKey(), _workerCountsFile))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func setStoppedStatus(jobKey spec.JobKey) error {
 	err := uploadStatusFile(jobKey, status.JobStopped)
-	if err != nil {
-		return err
-	}
-
-	err = saveWorkerCounts(jobKey)
 	if err != nil {
 		return err
 	}
@@ -241,11 +214,6 @@ func setSucceededStatus(jobKey spec.JobKey) error {
 		return err
 	}
 
-	err = saveWorkerCounts(jobKey)
-	if err != nil {
-		return err
-	}
-
 	err = deleteInProgressFile(jobKey)
 	if err != nil {
 		return err
@@ -256,11 +224,6 @@ func setSucceededStatus(jobKey spec.JobKey) error {
 
 func setCompletedWithFailuresStatus(jobKey spec.JobKey) error {
 	err := uploadStatusFile(jobKey, status.JobCompletedWithFailures)
-	if err != nil {
-		return err
-	}
-
-	err = saveWorkerCounts(jobKey)
 	if err != nil {
 		return err
 	}
@@ -279,11 +242,6 @@ func setWorkerErrorStatus(jobKey spec.JobKey) error {
 		return err
 	}
 
-	err = saveWorkerCounts(jobKey)
-	if err != nil {
-		return err
-	}
-
 	err = deleteInProgressFile(jobKey)
 	if err != nil {
 		return err
@@ -294,11 +252,6 @@ func setWorkerErrorStatus(jobKey spec.JobKey) error {
 
 func setWorkerOOMStatus(jobKey spec.JobKey) error {
 	err := uploadStatusFile(jobKey, status.JobWorkerOOM)
-	if err != nil {
-		return err
-	}
-
-	err = saveWorkerCounts(jobKey)
 	if err != nil {
 		return err
 	}
@@ -317,11 +270,6 @@ func setEnqueueFailedStatus(jobKey spec.JobKey) error {
 		return err
 	}
 
-	err = saveWorkerCounts(jobKey)
-	if err != nil {
-		return err
-	}
-
 	err = deleteInProgressFile(jobKey)
 	if err != nil {
 		return err
@@ -332,11 +280,6 @@ func setEnqueueFailedStatus(jobKey spec.JobKey) error {
 
 func setUnexpectedErrorStatus(jobKey spec.JobKey) error {
 	err := uploadStatusFile(jobKey, status.JobUnexpectedError)
-	if err != nil {
-		return err
-	}
-
-	err = saveWorkerCounts(jobKey)
 	if err != nil {
 		return err
 	}
@@ -357,7 +300,7 @@ func uploadStatusFile(jobKey spec.JobKey, status status.JobCode) error {
 	return nil
 }
 
-func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job) (*status.JobStatus, error) {
+func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
 	jobKey := jobState.JobKey
 
 	jobSpec, err := downloadJobSpec(jobKey)
@@ -401,8 +344,8 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job) (*status.J
 				jobStatus.Status = status.JobUnexpectedError
 			}
 
-			workerCounts := status.ExtractWorkerCounts(k8sJob)
-			jobStatus.WorkerCounts = &workerCounts
+			workerStats := getWorkerStatsForJob(*k8sJob, pods)
+			jobStatus.WorkerStats = &workerStats
 		}
 	}
 
@@ -412,16 +355,6 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job) (*status.J
 			return nil, err
 		}
 		jobStatus.BatchMetrics = metrics
-
-		if _, ok := jobState.LastUpdatedMap[_workerCountsFile]; ok {
-			var workerCounts status.WorkerCounts
-			err = config.AWS.ReadJSONFromS3(&workerCounts, config.Cluster.Bucket, path.Join(jobKey.PrefixKey(), _workerCountsFile))
-			if err != nil {
-				return nil, err
-			}
-
-			jobStatus.WorkerCounts = &workerCounts
-		}
 	}
 
 	return &jobStatus, nil
@@ -441,14 +374,19 @@ func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
 		}
 	}
 
-	return getJobStatusFromJobState(jobState, k8sJob)
+	pods, err := config.K8s.ListPodsByLabels(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID})
+	if err != nil {
+		return nil, err
+	}
+
+	return getJobStatusFromJobState(jobState, k8sJob, pods)
 }
 
-func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job) (*status.JobStatus, error) {
+func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
 	jobState, err := getJobState(jobKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return getJobStatusFromJobState(jobState, k8sJob)
+	return getJobStatusFromJobState(jobState, k8sJob, pods)
 }

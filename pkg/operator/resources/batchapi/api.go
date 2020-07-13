@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	kbatch "k8s.io/api/batch/v1"
+	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
@@ -62,7 +63,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("creating %s", api.Name), nil
+		return api, fmt.Sprintf("created %s", api.Name), nil
 	}
 
 	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
@@ -82,7 +83,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		return api, fmt.Sprintf("updating %s", api.Name), nil
+		return api, fmt.Sprintf("updated %s", api.Name), nil
 	}
 
 	return api, fmt.Sprintf("%s is up to date", api.Name), nil
@@ -171,12 +172,17 @@ func deleteS3Resources(apiName string) error {
 	)
 }
 
-func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job) ([]schema.BatchAPI, error) {
+func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.BatchAPI, error) {
 	batchAPIsMap := map[string]*schema.BatchAPI{}
 
 	k8sJobMap := map[string]*kbatch.Job{}
 	for _, job := range k8sJobs {
 		k8sJobMap[job.Labels["jobID"]] = &job
+	}
+
+	jobIDToPodsMap := map[string][]kcore.Pod{}
+	for _, pod := range pods {
+		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
 	}
 
 	for _, virtualService := range virtualServices {
@@ -197,7 +203,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 		jobStatuses := []status.JobStatus{}
 		if len(jobStates) != 0 {
-			jobStatus, err := getJobStatusFromJobState(jobStates[0], k8sJobMap[jobStates[0].ID])
+			jobStatus, err := getJobStatusFromJobState(jobStates[0], k8sJobMap[jobStates[0].ID], jobIDToPodsMap[jobStates[0].ID])
 			if err != nil {
 				return nil, err
 			}
@@ -230,7 +236,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			continue
 		}
 
-		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
+		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
 		if err != nil {
 			return nil, err
 		}
@@ -267,6 +273,10 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	k8sJobMap := map[string]*kbatch.Job{}
+	for _, job := range k8sJobs {
+		k8sJobMap[job.Labels["jobID"]] = &job
+	}
 
 	baseURL, err := operator.APIBaseURL(api)
 	if err != nil {
@@ -274,9 +284,13 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 
 	}
 
-	k8sJobMap := map[string]*kbatch.Job{}
-	for _, job := range k8sJobs {
-		k8sJobMap[job.Labels["jobID"]] = &job
+	pods, err := config.K8s.ListPodsByLabel("apiName", apiName)
+	if err != nil {
+		return nil, err
+	}
+	jobIDToPodsMap := map[string][]kcore.Pod{}
+	for _, pod := range pods {
+		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
 	}
 
 	inProgressJobIDs, err := listAllInProgressJobsByAPI(apiName)
@@ -287,7 +301,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	jobStatuses := []status.JobStatus{}
 	jobIDSet := strset.New()
 	for _, jobKey := range inProgressJobIDs {
-		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID])
+		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
 		if err != nil {
 			return nil, err
 		}
@@ -307,7 +321,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 			}
 			jobIDSet.Add(jobState.ID)
 
-			jobStatus, err := getJobStatusFromJobState(jobState, nil)
+			jobStatus, err := getJobStatusFromJobState(jobState, nil, nil)
 			if err != nil {
 				return nil, err
 			}

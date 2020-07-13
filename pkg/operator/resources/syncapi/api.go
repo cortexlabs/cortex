@@ -66,7 +66,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, false)
 			errors.PrintError(err)
 		}
-		return api, fmt.Sprintf("creating %s", api.Name), nil
+		return api, fmt.Sprintf("creating %s", api.Resource.UserString()), nil
 	}
 
 	if !areAPIsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
@@ -86,7 +86,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, false); err != nil {
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("updating %s", api.Name), nil
+		return api, fmt.Sprintf("updating %s", api.Resource.UserString()), nil
 	}
 
 	// deployment didn't change
@@ -95,9 +95,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return nil, "", err
 	}
 	if isUpdating {
-		return api, fmt.Sprintf("%s is already updating", api.Name), nil
+		return api, fmt.Sprintf("%s is already updating", api.Resource.UserString()), nil
 	}
-	return api, fmt.Sprintf("%s is up to date", api.Name), nil
+	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {

@@ -35,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -269,7 +270,13 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) string
 	var items table.KeyValuePairs
 	items.Add("cortex get"+envArg, "(show api statuses)")
 	items.Add(fmt.Sprintf("cortex get %s%s", apiName, envArg), "(show api info)")
-	items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
+
+	for _, result := range results {
+		if result.API.Kind == userconfig.SyncAPIKind {
+			items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
+			break
+		}
+	}
 
 	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
 		Delimiter: pointer.String(""),

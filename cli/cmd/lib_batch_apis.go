@@ -220,28 +220,40 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	out += titleStr("batch stats") + t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
 
-	out += titleStr("worker stats")
-	if job.WorkerCounts == nil {
-		out += "\nworker stats not available"
+	if job.Status == status.JobEnqueuing {
+		out += "\nstill enqueuing, workers have not been allocated for this job yet\n"
+	} else if job.Status.IsCompletedPhase() {
+		out += "\nworker stats is not available because this job is no longer running\n"
 	} else {
-		t := table.Table{
-			Headers: []table.Header{
-				{Title: "requested"},
-				{Title: "active"},
-				{Title: "failed"},
-				{Title: "succeeded"},
-			},
-			Rows: [][]interface{}{
-				{
-					job.RequestedWorkers(),
-					job.WorkerCounts.Active,
-					job.WorkerCounts.Failed,
-					job.WorkerCounts.Succeeded,
-				},
-			},
-		}
+		out += titleStr("worker stats")
 
-		out += t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
+		if job.WorkerStats != nil {
+			t := table.Table{
+				Headers: []table.Header{
+					{Title: "requested"},
+					{Title: "pending", Hidden: job.WorkerStats.Pending == 0},
+					{Title: "initializing", Hidden: job.WorkerStats.Initializing == 0},
+					{Title: "stalled", Hidden: job.WorkerStats.Stalled == 0},
+					{Title: "running"},
+					{Title: "failed"},
+					{Title: "succeeded"},
+				},
+				Rows: [][]interface{}{
+					{
+						job.RequestedWorkers(),
+						job.WorkerStats.Pending,
+						job.WorkerStats.Initializing,
+						job.WorkerStats.Stalled,
+						job.WorkerStats.Running,
+						job.WorkerStats.Failed,
+						job.WorkerStats.Succeeded,
+					},
+				},
+			}
+			out += t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
+		} else {
+			out += "unable to get worker stats\n"
+		}
 	}
 
 	jobEndpoint := urls.Join(resp.BaseURL, *resp.APISpec.Networking.Endpoint, job.ID)
