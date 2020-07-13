@@ -610,9 +610,27 @@ func ValidateAPI(
 func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerType types.ProviderType, awsClient *aws.Client) error {
 	predictor := api.Predictor
 
+	if predictor.ModelPath != nil && predictor.Models != nil {
+		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
+	}
+	if predictor.Models != nil {
+		if len(predictor.Models.Paths) == 0 && predictor.Models.Dir == nil {
+			return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+		}
+		if predictor.Models.CacheSize == nil && len(predictor.Models.Paths) > 0 {
+			*predictor.Models.CacheSize = int32(len(predictor.Models.Paths))
+		}
+		if predictor.Models.DiskCacheSize == nil && predictor.Models.CacheSize != nil {
+			*predictor.Models.DiskCacheSize = *predictor.Models.CacheSize
+		}
+		if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
+			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
+		}
+	}
+
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
-		if err := validatePythonPredictor(predictor); err != nil {
+		if err := validatePythonPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
@@ -651,19 +669,45 @@ func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerT
 	return nil
 }
 
-func validatePythonPredictor(predictor *userconfig.Predictor) error {
+func validatePythonPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType)
-	}
-
-	if predictor.ModelPath != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelPathKey, userconfig.PythonPredictorType)
 	}
 
 	if predictor.TensorFlowServingImage != "" {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
 	}
 
+	if predictor.ModelPath != nil {
+		modelResource := &userconfig.ModelResource{
+			Name:      consts.SingleModelName,
+			ModelPath: *predictor.ModelPath,
+		}
+		// place the model into predictor.Models for ease of use
+		predictor.Models.Paths = []*userconfig.ModelResource{modelResource}
+	}
+
+	if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
+		return errors.Wrap(err, userconfig.ModelsKey)
+	}
+
+	for i := range predictor.Models.Paths {
+		if predictor.Models.Paths[i].SignatureKey != nil {
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey, predictor.Models.Paths[i].Name)
+		}
+		if err := validatePythonModel(predictor.Models.Paths[i], providerType, projectFiles, awsClient); err != nil {
+			if predictor.ModelPath == nil {
+				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models.Paths[i].Name)
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validatePythonModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	// TODO add python model validation (should be generic validation for S3/local paths)
 	return nil
 }
 
@@ -672,9 +716,9 @@ func validateTensorFlowPredictor(api *userconfig.API, providerType types.Provide
 
 	if predictor.ModelPath == nil && predictor.Models == nil {
 		return ErrorMissingModel(predictor.Type)
-	} else if predictor.ModelPath != nil && predictor.Models != nil {
-		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
-	} else if predictor.ModelPath != nil {
+	}
+
+	if predictor.ModelPath != nil {
 		modelResource := &userconfig.ModelResource{
 			Name:         consts.SingleModelName,
 			ModelPath:    *predictor.ModelPath,
@@ -773,9 +817,9 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	}
 	if predictor.ModelPath == nil && predictor.Models == nil {
 		return ErrorMissingModel(predictor.Type)
-	} else if predictor.ModelPath != nil && predictor.Models != nil {
-		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
-	} else if predictor.ModelPath != nil {
+	}
+
+	if predictor.ModelPath != nil {
 		modelResource := &userconfig.ModelResource{
 			Name:      consts.SingleModelName,
 			ModelPath: *predictor.ModelPath,

@@ -34,6 +34,7 @@ const (
 	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint                    = "spec.duplicate_endpoint"
 	ErrConflictingFields                    = "spec.conflicting_fields"
+	ErrSpecifyOneOrTheOther                 = "spec.specify_one_or_the_other"
 	ErrSpecifyAllOrNone                     = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined         = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig         = "spec.config_greater_than_other_config"
@@ -116,6 +117,13 @@ func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
 		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+	})
+}
+
+func ErrorSpecifyOneOrTheOther(fieldKeyA, fieldKeyB string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyOneOrTheOther,
+		Message: fmt.Sprintf("please specify either the %s field or %s field (cannot be both empty at the same time", fieldKeyA, fieldKeyB),
 	})
 }
 
