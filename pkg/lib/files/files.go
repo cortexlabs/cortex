@@ -580,6 +580,19 @@ func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) Ig
 	}
 }
 
+func ErrorOnProjectSizeLimit(maxProjectSizeBytes int64) IgnoreFn {
+	filesSizeSum := int64(0)
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() {
+			filesSizeSum += fi.Size()
+		}
+		if filesSizeSum > maxProjectSizeBytes {
+			return false, ErrorProjectSizeLimit(maxProjectSizeBytes)
+		}
+		return false, nil
+	}
+}
+
 type DirsOrder string
 
 var DirsSorted DirsOrder = "sorted"

@@ -158,6 +158,9 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 		ignoreFns = append(ignoreFns, files.ErrorOnBigFilesFn(_maxFileSizeBytes, _maxMemoryUsagePercent))
 	}
 
+	// must be the last appended IgnoreFn
+	ignoreFns = append(ignoreFns, files.ErrorOnProjectSizeLimit(_maxFileSizeBytes))
+
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
 	if err != nil {
 		return nil, err

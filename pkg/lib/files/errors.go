@@ -33,6 +33,7 @@ const (
 	ErrFileAlreadyExists            = "files.file_already_exists"
 	ErrInsufficientMemoryToReadFile = "files.insufficient_memory_to_read_file"
 	ErrFileSizeLimit                = "files.file_size_limit"
+	ErrProjectSizeLimit             = "files.project_size_limit"
 	ErrUnexpected                   = "files.unexpected"
 	ErrFileDoesNotExist             = "files.file_does_not_exist"
 	ErrDirDoesNotExist              = "files.dir_does_not_exist"
@@ -108,6 +109,13 @@ func ErrorFileSizeLimit(path string, maxFileSizeBytes int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileSizeLimit,
 		Message: errMsg,
+	})
+}
+
+func ErrorProjectSizeLimit(maxProjectSizeBytes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProjectSizeLimit,
+		Message: fmt.Sprintf("project size cannot exceed %s", s.Int64ToBase2Byte(maxProjectSizeBytes)),
 	})
 }
 
