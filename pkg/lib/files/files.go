@@ -41,9 +41,7 @@ import (
 )
 
 var (
-	_homeDir               string
-	_maxMemoryUsagePercent float64 = 0.9
-	_maxFileSizeBytes      int64   = 512 * 1024 * 1024
+	_homeDir string
 )
 
 func Open(path string) (*os.File, error) {
@@ -532,20 +530,22 @@ func IgnoreSpecificFiles(absPaths ...string) IgnoreFn {
 	}
 }
 
-func ErrorOnBigFiles(path string, fi os.FileInfo) (bool, error) {
-	if !fi.IsDir() {
-		fileSizeBytes := fi.Size()
-		virtual, _ := mem.VirtualMemory()
-		if float64(fileSizeBytes) > float64(virtual.Available) ||
-			int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*_maxMemoryUsagePercent) {
-			return false, ErrorInsufficientMemoryToReadFile("", fileSizeBytes, int64(virtual.Available))
+func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) IgnoreFn {
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() {
+			fileSizeBytes := fi.Size()
+			virtual, _ := mem.VirtualMemory()
+			if float64(fileSizeBytes) > float64(virtual.Available) ||
+				int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*maxMemoryUsagePercent) {
+				return false, ErrorInsufficientMemoryToReadFile("", fileSizeBytes, int64(virtual.Available))
+			}
+			if fileSizeBytes > maxFileSizeBytes {
+				return false, ErrorFileSizeLimit("", maxFileSizeBytes)
+			}
 		}
-		if fileSizeBytes > _maxFileSizeBytes {
-			return false, ErrorFileSizeLimit("", _maxFileSizeBytes)
-		}
-	}
 
-	return false, nil
+		return false, nil
+	}
 }
 
 func GitIgnoreFn(gitIgnorePath string) (IgnoreFn, error) {
