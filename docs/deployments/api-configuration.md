@@ -9,7 +9,6 @@ Reference the section below which corresponds to your Predictor type: [Python](#
 ## Python Predictor
 
 ```yaml
-here
 - name: <string>  # API name (required)
   kind: SyncAPI  # must be "SyncAPI", create a synchronous API that holds on to the request and responds only after a prediction has been made
   predictor:
