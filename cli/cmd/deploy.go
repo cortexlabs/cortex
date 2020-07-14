@@ -152,10 +152,10 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 	}
 
 	if provider != types.LocalProviderType {
-		ignoreFns = append(ignoreFns, files.ErrorOnBigFilesFn(_maxFileSizeBytes, _maxMemoryUsagePercent))
 		if !_flagDeployDisallowPrompt {
 			ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 		}
+		ignoreFns = append(ignoreFns, files.ErrorOnBigFilesFn(_maxFileSizeBytes, _maxMemoryUsagePercent))
 	}
 
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
