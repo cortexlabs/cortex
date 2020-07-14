@@ -76,7 +76,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 
 Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` function.
 
-Your API can be configured to respond with different response payload types such as `JSON`-parseable, `string`, `bytes` objects, and more. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
+Your API can be configured to respond with different types of payload such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
 
 ### Examples
 
@@ -236,7 +236,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 
 Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` function.
 
-Your API can be configured to respond with different response payload types such as `JSON`-parseable, `string`, `bytes` objects, and more. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
+Your API can be configured to respond with different types of payload such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
 
 ### Examples
 
@@ -321,7 +321,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 
 Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` function.
 
-Your API can be configured to respond with different response payload types such as `JSON`-parseable, `string`, `bytes` objects, and more. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
+Your API can be configured to respond with different types of payload such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
 
 ### Examples
 
