@@ -530,24 +530,6 @@ func IgnoreSpecificFiles(absPaths ...string) IgnoreFn {
 	}
 }
 
-func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) IgnoreFn {
-	return func(path string, fi os.FileInfo) (bool, error) {
-		if !fi.IsDir() {
-			fileSizeBytes := fi.Size()
-			virtual, _ := mem.VirtualMemory()
-			if float64(fileSizeBytes) > float64(virtual.Available) ||
-				int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*maxMemoryUsagePercent) {
-				return false, ErrorInsufficientMemoryToReadFile("", fileSizeBytes, int64(virtual.Available))
-			}
-			if fileSizeBytes > maxFileSizeBytes {
-				return false, ErrorFileSizeLimit("", maxFileSizeBytes)
-			}
-		}
-
-		return false, nil
-	}
-}
-
 func GitIgnoreFn(gitIgnorePath string) (IgnoreFn, error) {
 	gitIgnoreDir := filepath.Dir(gitIgnorePath)
 
@@ -576,6 +558,24 @@ func PromptForFilesAboveSize(size int, promptMsgTemplate string) IgnoreFn {
 			promptMsg := fmt.Sprintf(promptMsgTemplate, PathRelativeToCWD(path), s.Int64ToBase2Byte(fi.Size()))
 			return !prompt.YesOrNo(promptMsg, "", ""), nil
 		}
+		return false, nil
+	}
+}
+
+func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) IgnoreFn {
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() {
+			fileSizeBytes := fi.Size()
+			virtual, _ := mem.VirtualMemory()
+			if float64(fileSizeBytes) > float64(virtual.Available) ||
+				int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*maxMemoryUsagePercent) {
+				return false, ErrorInsufficientMemoryToReadFile("", fileSizeBytes, int64(virtual.Available))
+			}
+			if fileSizeBytes > maxFileSizeBytes {
+				return false, ErrorFileSizeLimit("", maxFileSizeBytes)
+			}
+		}
+
 		return false, nil
 	}
 }
