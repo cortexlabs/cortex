@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -42,38 +43,41 @@ import (
 var _startingPort = 8888
 
 type ProjectFiles struct {
-	projectFileList []string // make sure it is absolute paths
-	configFilePath  string
+	relFilePaths []string
+	projectRoot  string
 }
 
-func NewProjectFiles(projectFileList []string, absoluteConfigFilePath string) (ProjectFiles, error) {
-	if !filepath.IsAbs(absoluteConfigFilePath) {
-		return ProjectFiles{}, ErrorNotAbsolutePath(absoluteConfigFilePath) // unexpected
+func newProjectFiles(projectFileList []string, configPath string) (ProjectFiles, error) {
+	if !files.IsAbsOrTildePrefixed(configPath) {
+		return ProjectFiles{}, errors.ErrorUnexpected(fmt.Sprintf("%s is not an absolute path", configPath))
 	}
+	projectRoot := files.Dir(configPath)
 
-	for _, projectFile := range projectFileList {
-		if !filepath.IsAbs(projectFile) {
-			return ProjectFiles{}, ErrorNotAbsolutePath(absoluteConfigFilePath) // unexpected
+	relFilePaths := make([]string, len(projectFileList))
+	for i, projectFilePath := range projectFileList {
+		if !files.IsAbsOrTildePrefixed(projectFilePath) {
+			return ProjectFiles{}, errors.ErrorUnexpected(fmt.Sprintf("%s is not an absolute path", projectFilePath))
 		}
+		if !strings.HasPrefix(projectFilePath, projectRoot) {
+			return ProjectFiles{}, errors.ErrorUnexpected(fmt.Sprintf("%s is not located within in the project", projectFilePath))
+		}
+		relFilePaths[i] = strings.TrimPrefix(projectFilePath, projectRoot)
 	}
 
 	return ProjectFiles{
-		projectFileList: projectFileList,
-		configFilePath:  absoluteConfigFilePath,
+		relFilePaths: relFilePaths,
+		projectRoot:  projectRoot,
 	}, nil
 }
 
-func (projectFiles ProjectFiles) GetAllPaths() []string {
-	return projectFiles.projectFileList
+func (projectFiles ProjectFiles) AllPaths() []string {
+	return projectFiles.relFilePaths
 }
 
-func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
-	baseDir := filepath.Dir(projectFiles.configFilePath)
-
-	absPath := files.RelToAbsPath(fileName, baseDir)
-	for _, path := range projectFiles.projectFileList {
-		if path == absPath {
-			bytes, err := files.ReadFileBytes(absPath)
+func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {
+	for _, projectFilePath := range projectFiles.relFilePaths {
+		if path == projectFilePath {
+			bytes, err := files.ReadFileBytes(filepath.Join(projectFiles.projectRoot, path))
 			if err != nil {
 				return nil, err
 			}
@@ -81,11 +85,26 @@ func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
 		}
 	}
 
-	return nil, files.ErrorFileDoesNotExist(fileName)
+	return nil, files.ErrorFileDoesNotExist(path)
 }
 
-func (projectFiles ProjectFiles) GetConfigFilePath() string {
-	return projectFiles.configFilePath
+func (projectFiles ProjectFiles) HasFile(path string) bool {
+	return slices.HasString(projectFiles.relFilePaths, path)
+}
+
+func (projectFiles ProjectFiles) HasDir(path string) bool {
+	path = s.EnsureSuffix(path, "/")
+	for _, projectFilePath := range projectFiles.relFilePaths {
+		if strings.HasPrefix(projectFilePath, path) {
+			return true
+		}
+	}
+	return false
+}
+
+// Get the absolute path to the project directory
+func (projectFiles ProjectFiles) ProjectDir() string {
+	return projectFiles.projectRoot
 }
 
 func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClient *aws.Client) error {

@@ -39,7 +39,7 @@ type API struct {
 	Autoscaling    *Autoscaling       `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy *UpdateStrategy    `json:"update_strategy" yaml:"update_strategy"`
 	Index          int                `json:"index" yaml:"-"`
-	FilePath       string             `json:"file_path" yaml:"-"`
+	FileName       string             `json:"file_name" yaml:"-"`
 }
 
 type Predictor struct {
@@ -107,7 +107,7 @@ type UpdateStrategy struct {
 }
 
 func (api *API) Identify() string {
-	return IdentifyAPI(api.FilePath, api.Name, api.Kind, api.Index)
+	return IdentifyAPI(api.FileName, api.Name, api.Kind, api.Index)
 }
 
 func (api *API) ModelNames() []string {
