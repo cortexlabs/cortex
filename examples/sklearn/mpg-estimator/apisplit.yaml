@@ -1,6 +1,7 @@
 - name: iris-classifier
   kind: APISplitter
-  endpoint: iris-classifier
+  networking:
+    endpoint: iris-classifier
   apis:
     - name: mpg-estimator1
       weight: 50
