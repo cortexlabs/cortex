@@ -585,9 +585,9 @@ func ErrorOnProjectSizeLimit(maxProjectSizeBytes int64) IgnoreFn {
 	return func(path string, fi os.FileInfo) (bool, error) {
 		if !fi.IsDir() {
 			filesSizeSum += fi.Size()
-		}
-		if filesSizeSum > maxProjectSizeBytes {
-			return false, ErrorProjectSizeLimit(maxProjectSizeBytes)
+			if filesSizeSum > maxProjectSizeBytes {
+				return false, ErrorProjectSizeLimit(maxProjectSizeBytes)
+			}
 		}
 		return false, nil
 	}
