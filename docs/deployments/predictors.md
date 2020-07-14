@@ -74,8 +74,9 @@ class PythonPredictor:
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
-To see what values the `payload` parameter can take, check the [API requests](#api-requests) section.
-To see what values the `predict` method can return, check the [API responses](#api-responses) section.
+Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` function.
+
+Your API can be configured to respond with different response payload types such as `JSON`-parseable, `string`, `bytes` objects, and more. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
 
 ### Examples
 
@@ -233,8 +234,9 @@ When multiple models are defined using the Predictor's `models` field, the `tens
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
-To see what values the `payload` parameter can take, check the [API requests](#api-requests) section.
-To see what values the `predict` method can return, check the [API responses](#api-responses) section.
+Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` function.
+
+Your API can be configured to respond with different response payload types such as `JSON`-parseable, `string`, `bytes` objects, and more. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
 
 ### Examples
 
@@ -317,8 +319,9 @@ When multiple models are defined using the Predictor's `models` field, the `onnx
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
-To see what values the `payload` parameter can take, check the [API requests](#api-requests) section.
-To see what values the `predict` method can return, check the [API responses](#api-responses) section.
+Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` function.
+
+Your API can be configured to respond with different response payload types such as `JSON`-parseable, `string`, `bytes` objects, and more. Navigate to the [API responses](#api-responses) section to learn about how your API can respond with different response codes and content-types.
 
 ### Examples
 
@@ -373,10 +376,9 @@ The type of the `payload` parameter in `predict(self, payload)` can vary based o
 1. For `Content-Type: multipart/form` / `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)).
 1. For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
 
-The `payload` parameter type will be a Python `dict` object if a request with a JSON payload is made:
+The `payload` parameter type will be a Python object (*lists*, *dicts*, *numbers*) if a request with a JSON payload is made:
 
 ```bash
-# payload parameter is a dictionary object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/json" \
     -d '{"key": "value"}'
@@ -385,7 +387,6 @@ $ curl http://***.amazonaws.com/my-api \
 The `payload` parameter type will be a `bytes` object if a request with a `Content-Type: application/octet-stream` is made:
 
 ```bash
-# payload parameter is a bytes object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/octet-stream" \
     -d @file.bin
@@ -394,7 +395,6 @@ $ curl http://***.amazonaws.com/my-api \
 The `payload` parameter type will be a `bytes` object if a request doesn't have the `Content-Type` set:
 
 ```bash
-# payload parameter is a bytes object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type:" \
     -d @sample.txt
@@ -403,7 +403,6 @@ $ curl http://***.amazonaws.com/my-api \
 The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: multipart/form` is made:
 
 ```bash
-# payload parameter is a starlette.datastructures.FormData object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: multipart/form" \
     -F "fieldName=@file.txt"
@@ -412,7 +411,6 @@ $ curl http://***.amazonaws.com/my-api \
 The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: application/x-www-form-urlencoded` is made:
 
 ```bash
-# payload parameter is a starlette.datastructures.FormData object
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/x-www-form-urlencoded" \
     -d @file.txt
@@ -420,8 +418,7 @@ $ curl http://***.amazonaws.com/my-api \
 
 The `payload` parameter type will be a `starlette.datastructures.FormData` object if no headers are added to the request:
 
-```bash
-# payload parameter is a starlette.datastructures.FormData object
+```bashß
 $ curl http://***.amazonaws.com/my-api \
     -X POST \
     -d @file.txt
