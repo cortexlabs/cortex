@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -41,25 +42,19 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
+		if err := applyK8sResources(api, prevVirtualService); err != nil {
+			go deleteK8sResources(api.Name)
+			return nil, "", err
+		}
 		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		if err := applyK8sResources(api, prevVirtualService); err != nil {
-			go deleteK8sResources(api.Name)
-			return nil, "", err
-		}
-
-		return api, fmt.Sprintf("creating %s", api.Name), nil
+		return api, fmt.Sprintf("created %s", api.Name), nil
 	}
 
-	services, weight := getServicesWeightsTrafficSplitter(api)
-	if err != nil {
-		return nil, "", err
-	}
-
-	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api, services, weight)) {
+	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api, getTrafficSplitterDestinations(api))) {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -69,7 +64,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("updating %s", api.Name), nil
+		return api, fmt.Sprintf("updated %s", api.Name), nil
 	}
 	return api, fmt.Sprintf("%s is up to date", api.Name), nil
 }
@@ -125,10 +120,7 @@ func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.
 }
 
 func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
-
-	services, weights := getServicesWeightsTrafficSplitter(trafficsplitter)
-
-	newVirtualService := virtualServiceSpec(trafficsplitter, services, weights)
+	newVirtualService := virtualServiceSpec(trafficsplitter, getTrafficSplitterDestinations(trafficsplitter))
 
 	if prevVirtualService == nil {
 		_, err := config.K8s.CreateVirtualService(newVirtualService)
@@ -139,15 +131,16 @@ func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istio
 	return err
 }
 
-func getServicesWeightsTrafficSplitter(trafficsplitter *spec.API) ([]string, []int32) {
-	services := []string{}
-	weights := []int32{}
-	for _, api := range trafficsplitter.APIs {
-		services = append(services, operator.K8sName(api.Name))
-		weights = append(weights, int32(api.Weight))
+func getTrafficSplitterDestinations(trafficsplitter *spec.API) []k8s.Destination {
+	destinations := make([]k8s.Destination, len(trafficsplitter.APIs))
+	for i, api := range trafficsplitter.APIs {
+		destinations[i] = k8s.Destination{
+			ServiceName: operator.K8sName(api.Name),
+			Weight:      int32(api.Weight),
+			Port:        uint32(_defaultPortInt32),
+		}
 	}
-
-	return services, weights
+	return destinations
 }
 
 func deleteK8sResources(apiName string) error {
