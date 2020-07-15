@@ -67,10 +67,6 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return schema.DeployResponse{}, err
 	}
 
-	if containsAPISplitter(apiConfigs) {
-		return schema.DeployResponse{}, ErrorAPISplitterNotSupported()
-	}
-
 	err = ValidateLocalAPIs(apiConfigs, projectFiles, awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))

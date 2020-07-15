@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -87,41 +88,44 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 	didPrintWarning := false
 
-	withoutAPISplitter := ApisWithoutAPISplitter(apis)
+	withoutAPISplitter := InclusiveFilterAPIsByKind(apis, userconfig.SyncAPIKind)
 	for i := range apis {
 		api := &apis[i]
 		if api.Kind == userconfig.SyncAPIKind {
 			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
-				return err
+				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateK8s(api, virtualServices, maxMem); err != nil {
-				return err
+				return errors.Wrap(err, api.Identify())
 			}
 
 			if !didPrintWarning && api.Networking.LocalPort != nil {
 				fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
 				didPrintWarning = true
 			}
+			dups := spec.FindDuplicateNames(withoutAPISplitter)
+			if len(dups) > 0 {
+				return spec.ErrorDuplicateName(dups)
+			}
 		}
 		if api.Kind == userconfig.APISplitterKind {
 			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
-				return err
+				return errors.Wrap(err, api.Identify())
 			}
-			if err := checkIfAPIExist(api.APIs, withoutAPISplitter); err != nil {
-				return err
+			if err := checkIfAPIExists(api.APIs, withoutAPISplitter); err != nil {
+				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
-				return err
+				return errors.Wrap(err, api.Identify())
+			}
+			dups := spec.FindDuplicateNames(InclusiveFilterAPIsByKind(apis, userconfig.APISplitterKind))
+			if len(dups) > 0 {
+				return spec.ErrorDuplicateName(dups)
 			}
 		}
 	}
 
-	dups := spec.FindDuplicateNames(withoutAPISplitter)
-	if len(dups) > 0 {
-		return spec.ErrorDuplicateName(dups)
-	}
-
-	dups = findDuplicateEndpoints(apis)
+	dups := findDuplicateEndpoints(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateEndpointInOneDeploy(dups)
 	}
@@ -261,39 +265,30 @@ func getValidationK8sResources() ([]istioclientnetworking.VirtualService, kresou
 	return virtualServices, maxMem, err
 }
 
-// ApisWithoutAPISplitter returns all apis which are not of Kind APISplitter
-func ApisWithoutAPISplitter(apis []userconfig.API) []userconfig.API {
-	withoutAPISplitter := []userconfig.API{}
-	for _, api := range apis {
-		if api.Kind != userconfig.APISplitterKind {
-			withoutAPISplitter = append(withoutAPISplitter, api)
-		}
-
+// InclusiveFilterAPIsByKind includes only provided Kinds
+func InclusiveFilterAPIsByKind(apis []userconfig.API, kindsToInclude ...userconfig.Kind) []userconfig.API {
+	kindsToIncludeSet := strset.New()
+	for _, kind := range kindsToInclude {
+		kindsToIncludeSet.Add(kind.String())
 	}
-	return withoutAPISplitter
+	fileredAPIs := []userconfig.API{}
+	for _, api := range apis {
+		if kindsToIncludeSet.Has(api.Kind.String()) {
+			fileredAPIs = append(fileredAPIs, api)
+		}
+	}
+	return fileredAPIs
 }
 
-// ApisWithoutSyncAPI return all defined APIs in yaml without trafficsplitter
-func ApisWithoutSyncAPI(apis []userconfig.API) []userconfig.API {
-	withoutSyncAPI := []userconfig.API{}
-	for _, api := range apis {
-		if api.Kind != userconfig.SyncAPIKind {
-			withoutSyncAPI = append(withoutSyncAPI, api)
-		}
-
-	}
-	return withoutSyncAPI
-}
-
-// checkIfAPIExist checks if refrenced apis in trafficsplitter are either defined in yaml or already deployed
-func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []userconfig.API) error {
+// checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
+func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API) error {
 
 	deployedAPIs, err := GetAPIs()
 	if err != nil {
 		return err
 	}
 
-	var notDeployedAPIs []string
+	var missingAPIs []string
 	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
 		deployed := false
@@ -310,11 +305,11 @@ func checkIfAPIExist(trafficSplitterAPIs []*userconfig.TrafficSplitter, apis []u
 			}
 		}
 		if deployed == false {
-			notDeployedAPIs = append(notDeployedAPIs, trafficSplitAPI.Name)
+			missingAPIs = append(missingAPIs, trafficSplitAPI.Name)
 		}
 	}
-	if len(notDeployedAPIs) != 0 {
-		return ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs)
+	if len(missingAPIs) != 0 {
+		return ErrorNotDeployedAPIsAPISplitter(missingAPIs)
 	}
 	return nil
 

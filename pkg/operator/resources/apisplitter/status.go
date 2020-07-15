@@ -18,7 +18,6 @@ package apisplitter
 
 import (
 	"sort"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -26,8 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
-
-const _stalledPodTimeout = 10 * time.Minute
 
 func GetStatus(apiName string) (*status.Status, error) {
 	var virtualService *istioclientnetworking.VirtualService

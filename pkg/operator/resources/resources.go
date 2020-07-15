@@ -97,7 +97,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	// order apiconfigs first syncAPIs then TrafficSplit
 	// This is done if user specifies SyncAPIs in same file as APISplitter
-	apiConfigs = append(ApisWithoutAPISplitter(apiConfigs), ApisWithoutSyncAPI(apiConfigs)...)
+	apiConfigs = append(InclusiveFilterAPIsByKind(apiConfigs, userconfig.SyncAPIKind), InclusiveFilterAPIsByKind(apiConfigs, userconfig.APISplitterKind)...)
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
@@ -257,10 +257,9 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-		for i, api := range apiSplitterapis {
+		for _, api := range apiSplitterapis {
 			apiSplitter = append(apiSplitter, schema.APISplitter{
-				Spec:   api,
-				Status: apiSplitterstatuses[i],
+				Spec: api,
 			})
 		}
 	}
@@ -321,7 +320,6 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 		return &schema.GetAPIResponse{
 			APISplitter: &schema.APISplitter{
 				Spec:    *api,
-				Status:  *status,
 				BaseURL: baseURL,
 			},
 		}, nil

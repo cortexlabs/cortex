@@ -595,6 +595,9 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 		}
 
 		if resourceStruct.Kind == userconfig.APISplitterKind {
+			if provider == types.LocalProviderType {
+				return nil, ErrorAPISplitterNotSupported(api)
+			}
 			api.Index = i
 			api.FileName = configFileName
 			apis[i] = api
@@ -653,7 +656,7 @@ func ValidateAPISplitter(
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 	if err := isWeight100(api.APIs); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
+		return errors.Wrap(err, api.Identify())
 	}
 
 	return nil
@@ -1210,7 +1213,7 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 	return nil
 }
 
-func isWeight100(apis []*userconfig.TrafficSplitter) error {
+func isWeight100(apis []*userconfig.TrafficSplit) error {
 
 	totalWeight := 0
 	for _, api := range apis {

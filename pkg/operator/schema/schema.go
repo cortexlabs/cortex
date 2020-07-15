@@ -65,9 +65,8 @@ type SyncAPI struct {
 }
 
 type APISplitter struct {
-	Spec    spec.API      `json:"spec"`
-	Status  status.Status `json:"status"`
-	BaseURL string        `json:"base_url"`
+	Spec    spec.API `json:"spec"`
+	BaseURL string   `json:"base_url"`
 }
 
 type GetAPIResponse struct {

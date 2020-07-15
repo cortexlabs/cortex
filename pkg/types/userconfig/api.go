@@ -31,15 +31,15 @@ import (
 
 type API struct {
 	Resource
-	APIs           []*TrafficSplitter `json:"apis" yaml:"apis"`
-	Predictor      *Predictor         `json:"predictor" yaml:"predictor"`
-	Monitoring     *Monitoring        `json:"monitoring" yaml:"monitoring"`
-	Networking     *Networking        `json:"networking" yaml:"networking"`
-	Compute        *Compute           `json:"compute" yaml:"compute"`
-	Autoscaling    *Autoscaling       `json:"autoscaling" yaml:"autoscaling"`
-	UpdateStrategy *UpdateStrategy    `json:"update_strategy" yaml:"update_strategy"`
-	Index          int                `json:"index" yaml:"-"`
-	FileName       string             `json:"file_name" yaml:"-"`
+	APIs           []*TrafficSplit `json:"apis" yaml:"apis"`
+	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
+	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
+	Networking     *Networking     `json:"networking" yaml:"networking"`
+	Compute        *Compute        `json:"compute" yaml:"compute"`
+	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
+	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
+	Index          int             `json:"index" yaml:"-"`
+	FileName       string          `json:"file_name" yaml:"-"`
 }
 
 type Predictor struct {
@@ -57,7 +57,7 @@ type Predictor struct {
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 }
 
-type TrafficSplitter struct {
+type TrafficSplit struct {
 	Name   string `json:"name" yaml:"name"`
 	Weight int    `json:"weight" yaml:"weight "`
 }
@@ -287,13 +287,13 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
 
 	if api.Kind == APISplitterKind {
-		sb.WriteString(fmt.Sprintf("%s:\n", APISplitterAPIs))
+		sb.WriteString(fmt.Sprintf("%s:\n", APIsKey))
 		for _, api := range api.APIs {
 			sb.WriteString(s.Indent(api.UserStr(), "  "))
 		}
 	}
 
-	if api.Kind == SyncAPIKind {
+	if api.Predictor != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 		sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
 	}
@@ -327,11 +327,11 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	return sb.String()
 }
 
-func (trafficSplitter *TrafficSplitter) UserStr() string {
+func (trafficSplit *TrafficSplit) UserStr() string {
 	var sb strings.Builder
 	// ADD KEY TO CONSTS
-	sb.WriteString(fmt.Sprintf("%s: %s\n", "Name", trafficSplitter.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", "Weight", s.Int(trafficSplitter.Weight)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Int(trafficSplit.Weight)))
 	return sb.String()
 }
 

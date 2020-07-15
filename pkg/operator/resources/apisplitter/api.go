@@ -144,12 +144,8 @@ func getTrafficSplitterDestinations(trafficsplitter *spec.API) []k8s.Destination
 }
 
 func deleteK8sResources(apiName string) error {
-	return parallel.RunFirstErr(
-		func() error {
-			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
-			return err
-		},
-	)
+	_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
+	return err
 }
 
 func deleteS3Resources(apiName string) error {

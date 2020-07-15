@@ -28,7 +28,8 @@ const (
 	UpdateStrategyKey = "update_strategy"
 
 	// APISplitter
-	APISplitterAPIs = "apis"
+	APIsKey   = "apis"
+	WeightKey = "weight"
 
 	// Predictor
 	TypeKey                   = "type"

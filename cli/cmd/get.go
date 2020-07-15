@@ -51,7 +51,7 @@ import (
 const (
 	_titleEnvironment   = "env"
 	_titleAPI           = "api"
-	_titleAPISplitter   = "api-splitter"
+	_titleAPISplitter   = "api splitter"
 	_titleAPIs          = "apis"
 	_apiSplitterWeights = "weights"
 	_titleStatus        = "status"
@@ -315,21 +315,21 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return syncAPITable(apiRes.SyncAPI, env)
 	}
 	if apiRes.APISplitter != nil {
-		return traficSplitterAPITable(apiRes.APISplitter, env)
+		return apiSplitterTable(apiRes.APISplitter, env)
 	}
 	//need to create some error
 	return "", nil
 
 }
 
-func traficSplitterAPITable(apiSplitter *schema.APISplitter, env cliconfig.Environment) (string, error) {
+func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment) (string, error) {
 	var out string
 
 	lastUpdated := time.Unix(apiSplitter.Spec.LastUpdated, 0)
 	out += console.Bold("kind: ") + apiSplitter.Spec.Kind.String() + "\n\n"
 	out += console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated) + "\n\n"
 
-	t, err := apiSplitterTable(*apiSplitter, env)
+	t, err := trafficSplitTable(*apiSplitter, env)
 	if err != nil {
 		return "", err
 	}
@@ -354,7 +354,7 @@ func traficSplitterAPITable(apiSplitter *schema.APISplitter, env cliconfig.Envir
 	return out, nil
 }
 
-func apiSplitterTable(trafficSplitter schema.APISplitter, env cliconfig.Environment) (table.Table, error) {
+func trafficSplitTable(trafficSplitter schema.APISplitter, env cliconfig.Environment) (table.Table, error) {
 	rows := make([][]interface{}, 0, len(trafficSplitter.Spec.APIs))
 
 	for _, api := range trafficSplitter.Spec.APIs {
@@ -397,16 +397,15 @@ func apiSplitterListTable(trafficSplitter []schema.APISplitter, envNames []strin
 
 	for i, splitAPI := range trafficSplitter {
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
-		apis := ""
+		var apis []string
 		for _, api := range splitAPI.Spec.APIs {
-			apis += api.Name + ": " + s.Int(api.Weight) + ", "
+			apis = append(apis, api.Name+": "+s.Int(api.Weight))
 		}
-
+		apisStr := s.TruncateEllipses(s.StrsSentence(apis, " "), 100)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			splitAPI.Spec.Name,
-			apis,
-			splitAPI.Status.Message(),
+			apisStr,
 			libtime.SinceStr(&lastUpdated),
 		})
 	}
@@ -416,7 +415,6 @@ func apiSplitterListTable(trafficSplitter []schema.APISplitter, envNames []strin
 			{Title: _titleEnvironment},
 			{Title: _titleAPISplitter},
 			{Title: _titleAPIs},
-			{Title: _titleStatus},
 			{Title: _titleLastupdated},
 		},
 		Rows: rows,

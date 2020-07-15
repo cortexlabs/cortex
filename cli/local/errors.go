@@ -34,7 +34,6 @@ const (
 	ErrDuplicateLocalPort            = "local.duplicate_local_port"
 	ErrPortAlreadyInUse              = "local.port_already_in_use"
 	ErrUnableToFindAvailablePorts    = "local.unable_to_find_available_ports"
-	ErrAPISplitterNotSupported       = "local.apisplitter_not_supported"
 )
 
 func ErrorAPINotDeployed(apiName string) error {
@@ -115,12 +114,5 @@ func ErrorUnableToFindAvailablePorts() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnableToFindAvailablePorts,
 		Message: fmt.Sprintf("unable to find available ports"),
-	})
-}
-
-func ErrorAPISplitterNotSupported() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPISplitterNotSupported,
-		Message: fmt.Sprintf("kind APISplitter is not supported on local"),
 	})
 }

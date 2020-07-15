@@ -66,6 +66,7 @@ const (
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 	ErrIncorretAPISplitterWeight            = "spec.invalid_apisplitter_weights"
+	ErrAPISplitterNotSupported              = "spec.apisplitter_not_supported"
 )
 
 func ErrorMalformedConfig() error {
@@ -361,5 +362,12 @@ func ErrorAPISplitterWeightNot100(totalWeight int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorretAPISplitterWeight,
 		Message: fmt.Sprintf("api splitter weights added up to %d instead of 100", totalWeight),
+	})
+}
+
+func ErrorAPISplitterNotSupported(api userconfig.API) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPISplitterNotSupported,
+		Message: fmt.Sprintf("kind APISplitter is not supported in local environment: %s", api.Resource.Name),
 	})
 }
