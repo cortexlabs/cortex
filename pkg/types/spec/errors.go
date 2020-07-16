@@ -48,6 +48,7 @@ const (
 	ErrMustBeRelativeProjectPath            = "spec.must_be_relative_project_path"
 	ErrPythonPathNotFound                   = "spec.python_path_not_found"
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
+	ErrS3DirNotFound                        = "spec.s3_dir_not_found"
 	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
 	ErrInvalidNeuronTensorFlowDir           = "operator.invalid_neuron_tensorflow_dir"
 	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
@@ -223,7 +224,14 @@ func ErrorPythonPathNotFound(pythonPath string) error {
 func ErrorS3FileNotFound(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3FileNotFound,
-		Message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+		Message: fmt.Sprintf("%s: file not found or insufficient permissions", path),
+	})
+}
+
+func ErrorS3DirNotFound(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrS3DirNotFound,
+		Message: fmt.Sprintf("%s: dir not found or insufficient permissions", path),
 	})
 }
 

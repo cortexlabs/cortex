@@ -30,15 +30,16 @@ import (
 
 type API struct {
 	*userconfig.API
-	ID               string             `json:"id"`
-	Key              string             `json:"key"`
-	DeploymentID     string             `json:"deployment_id"`
-	LastUpdated      int64              `json:"last_updated"`
-	MetadataRoot     string             `json:"metadata_root"`
-	ProjectID        string             `json:"project_id"`
-	ProjectKey       string             `json:"project_key"`
-	LocalModelCaches []*LocalModelCache `json:"local_model_cache"` // local only
-	LocalProjectDir  string             `json:"local_project_dir"`
+	ID                    string                 `json:"id"`
+	Key                   string                 `json:"key"`
+	DeploymentID          string                 `json:"deployment_id"`
+	LastUpdated           int64                  `json:"last_updated"`
+	MetadataRoot          string                 `json:"metadata_root"`
+	ProjectID             string                 `json:"project_id"`
+	ProjectKey            string                 `json:"project_key"`
+	CuratedModelResources []CuratedModelResource `json:"curated_model_resources"`
+	LocalModelCaches      []*LocalModelCache     `json:"local_model_cache"` // local only
+	LocalProjectDir       string                 `json:"local_project_dir"`
 }
 
 type LocalModelCache struct {
@@ -47,7 +48,14 @@ type LocalModelCache struct {
 	TargetPath string `json:"target_path"`
 }
 
-func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
+type CuratedModelResource struct {
+	*userconfig.ModelResource
+	ZipFormat       bool  `json:"zip_format"`
+	NoVersionSubdir bool  `json:"no_version_subdir"`
+	Versions        []int `json:"versions"`
+}
+
+func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projectID string, deploymentID string) *API {
 	var buf bytes.Buffer
 	buf.WriteString(apiConfig.Name)
 	buf.WriteString(s.Obj(apiConfig.Predictor))
@@ -57,14 +65,15 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	id := hash.Bytes(buf.Bytes())
 
 	return &API{
-		API:          apiConfig,
-		ID:           id,
-		Key:          Key(apiConfig.Name, id),
-		DeploymentID: deploymentID,
-		LastUpdated:  time.Now().Unix(),
-		MetadataRoot: MetadataRoot(apiConfig.Name),
-		ProjectID:    projectID,
-		ProjectKey:   ProjectKey(projectID),
+		API:                   apiConfig,
+		CuratedModelResources: models,
+		ID:                    id,
+		Key:                   Key(apiConfig.Name, id),
+		DeploymentID:          deploymentID,
+		LastUpdated:           time.Now().Unix(),
+		MetadataRoot:          MetadataRoot(apiConfig.Name),
+		ProjectID:             projectID,
+		ProjectKey:            ProjectKey(projectID),
 	}
 }
 

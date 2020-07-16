@@ -38,7 +38,7 @@ import (
 
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, projectID string, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
@@ -49,7 +49,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, deploymentID)
+	api := spec.GetAPISpec(apiConfig, models, projectID, deploymentID)
 
 	if prevDeployment == nil {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
@@ -129,7 +129,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, api.ProjectID, k8s.RandomName())
+	api = spec.GetAPISpec(api.API, api.CuratedModelResources, api.ProjectID, k8s.RandomName())
 
 	if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")

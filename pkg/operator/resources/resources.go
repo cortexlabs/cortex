@@ -77,7 +77,8 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		return nil, err
 	}
 
-	err = ValidateClusterAPIs(apiConfigs, projectFiles)
+	models := []spec.CuratedModelResource{}
+	err = ValidateClusterAPIs(apiConfigs, &models, projectFiles)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		return nil, err
@@ -95,7 +96,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
+		api, msg, err := UpdateAPI(&apiConfig, models, projectID, force)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)
@@ -109,7 +110,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	}, nil
 }
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, projectID string, force bool) (*spec.API, string, error) {
 	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
@@ -120,7 +121,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	}
 
 	if apiConfig.Kind == userconfig.SyncAPIKind {
-		return syncapi.UpdateAPI(apiConfig, projectID, force)
+		return syncapi.UpdateAPI(apiConfig, models, projectID, force)
 	}
 
 	return nil, "", ErrorOperationNotSupportedForKind(apiConfig.Kind) // unexpected

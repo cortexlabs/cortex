@@ -34,7 +34,7 @@ import (
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
 	if err != nil {
 		if errors.GetKind(err) != ErrAPINotDeployed {
@@ -47,7 +47,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, a
 		return nil, "", err
 	}
 
-	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
+	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID)
 
 	// apiConfig.Predictor.ModelPath was already added to apiConfig.Predictor.Models for ease of use
 	if len(apiConfig.Predictor.Models.Paths) > 0 {

@@ -436,7 +436,7 @@ func multiModelValidation() *cr.StructFieldValidation {
 		StructField: "Models",
 		StructValidation: &cr.StructValidation{
 			Required:   false,
-			DefaultNil: true,
+			DefaultNil: false,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				multiModelPathsValidation(),
 				{
@@ -523,6 +523,13 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
+func isMultiModelFieldSet(m *userconfig.MultiModels) bool {
+	if len(m.Paths) == 0 && m.Dir == nil && m.CacheSize == nil && m.DiskCacheSize == nil {
+		return false
+	}
+	return true
+}
+
 var resourceStructValidation = cr.StructValidation{
 	AllowExtraFields:       true,
 	StructFieldValidations: resourceStructValidations,
@@ -576,6 +583,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 
 func ValidateAPI(
 	api *userconfig.API,
+	models *[]CuratedModelResource,
 	projectFiles ProjectFiles,
 	providerType types.ProviderType,
 	awsClient *aws.Client,
@@ -584,7 +592,7 @@ func ValidateAPI(
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validatePredictor(api, projectFiles, providerType, awsClient); err != nil {
+	if err := validatePredictor(api, models, projectFiles, providerType, awsClient); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
 	}
 
@@ -607,13 +615,19 @@ func ValidateAPI(
 	return nil
 }
 
-func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerType types.ProviderType, awsClient *aws.Client) error {
+func validatePredictor(
+	api *userconfig.API,
+	models *[]CuratedModelResource,
+	projectFiles ProjectFiles,
+	providerType types.ProviderType,
+	awsClient *aws.Client,
+) error {
 	predictor := api.Predictor
 
-	if predictor.ModelPath != nil && predictor.Models != nil {
+	if predictor.ModelPath != nil && isMultiModelFieldSet(predictor.Models) {
 		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
 	}
-	if predictor.Models != nil {
+	if isMultiModelFieldSet(predictor.Models) {
 		if len(predictor.Models.Paths) == 0 && predictor.Models.Dir == nil {
 			return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 		}
@@ -630,7 +644,7 @@ func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerT
 
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
-		if err := validatePythonPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
+		if err := validatePythonPredictor(predictor, models, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
@@ -669,7 +683,13 @@ func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerT
 	return nil
 }
 
-func validatePythonPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func retrieveModelsFromPath(path string) ([]*userconfig.ModelResource, error) {
+	models := []*userconfig.ModelResource{}
+
+	return models, nil
+}
+
+func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType)
 	}
@@ -678,13 +698,25 @@ func validatePythonPredictor(predictor *userconfig.Predictor, providerType types
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
 	}
 
+	var modelResources []*userconfig.ModelResource
 	if predictor.ModelPath != nil {
-		modelResource := &userconfig.ModelResource{
-			Name:      consts.SingleModelName,
-			ModelPath: *predictor.ModelPath,
+		modelResources = []*userconfig.ModelResource{
+			{
+				Name:      consts.SingleModelName,
+				ModelPath: *predictor.ModelPath,
+			},
 		}
-		// place the model into predictor.Models for ease of use
-		predictor.Models.Paths = []*userconfig.ModelResource{modelResource}
+	}
+	if len(predictor.Models.Paths) > 0 {
+		modelResources = predictor.Models.Paths
+	}
+	if predictor.Models.Dir != nil {
+		var err error
+		modelResources, err = retrieveModelsFromPath(*predictor.Models.Dir)
+		if err != nil {
+			// TODO add wrap for error
+			return err
+		}
 	}
 
 	if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
@@ -707,7 +739,33 @@ func validatePythonPredictor(predictor *userconfig.Predictor, providerType types
 }
 
 func validatePythonModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	// TODO add python model validation (should be generic validation for S3/local paths)
+	modelPath := modelResource.ModelPath
+
+	if strings.HasPrefix(modelPath, "s3://") {
+		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelPathKey)
+		}
+
+		modelPath, err = cr.S3PathValidator(modelPath)
+		if err != nil {
+			return errors.Wrap(err, userconfig.ModelPathKey)
+		}
+
+		if strings.HasSuffix(modelPath, ".zip") {
+			if ok, err := awsClientForBucket.IsS3PathFile(modelPath); err != nil || !ok {
+				fmt.Println(err)
+				return errors.Wrap(ErrorS3FileNotFound(modelPath), userconfig.ModelPathKey)
+			}
+		} else {
+			s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, true, nil)
+			if err != nil {
+				return errors.Wrap(ErrorS3DirNotFound(modelPath), userconfig.ModelPathKey)
+			}
+			fmt.Println(s3Objects)
+		}
+	}
+
 	return nil
 }
 

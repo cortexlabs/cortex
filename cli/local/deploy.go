@@ -67,7 +67,8 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return schema.DeployResponse{}, err
 	}
 
-	err = ValidateLocalAPIs(apiConfigs, projectFiles, awsClient)
+	models := []spec.CuratedModelResource{}
+	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		return schema.DeployResponse{}, err
@@ -78,9 +79,12 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return schema.DeployResponse{}, errors.Wrap(err, "failed to hash directory", filepath.Dir(configPath))
 	}
 
+	fmt.Println("cortex/cli/local/deploy.go", models)
+	return schema.DeployResponse{}, &errors.Error{}
+
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := UpdateAPI(&apiConfig, configPath, projectID, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, models, configPath, projectID, awsClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)
