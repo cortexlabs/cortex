@@ -45,6 +45,7 @@ type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
 	ModelPath              *string                `json:"model_path" yaml:"model_path"`
+	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 	Models                 *MultiModels           `json:"models" yaml:"models"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
@@ -53,7 +54,6 @@ type Predictor struct {
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
-	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 }
 
 type MultiModels struct {
@@ -61,6 +61,7 @@ type MultiModels struct {
 	Dir           *string          `json:"dir" yaml:"dir"`
 	CacheSize     *int32           `json:"cache_size" yaml:"cache_size"`
 	DiskCacheSize *int32           `json:"disk_cache_size" yaml:"disk_cache_size"`
+	SignatureKey  *string          `json:"signature_key" yaml:"signature_key"`
 }
 
 type ModelResource struct {
@@ -364,6 +365,9 @@ func (models *MultiModels) UserStr() string {
 	}
 	if models.Dir != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
+	}
+	if models.SignatureKey != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.SignatureKey))
 	}
 	if models.CacheSize != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsCacheSizeKey, s.Int32(*models.CacheSize)))

@@ -43,12 +43,15 @@ const (
 	ErrInitReplicasLessThanMin              = "spec.init_replicas_less_than_min"
 	ErrInvalidSurgeOrUnavailable            = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero          = "spec.surge_and_unavailable_both_zero"
+	ErrInvalidPath                          = "spec.invalid_path"
 	ErrFileNotFound                         = "spec.file_not_found"
 	ErrDirIsEmpty                           = "spec.dir_is_empty"
+	ErrInvalidDirPath                       = "spec.invalid_dir_path"
 	ErrMustBeRelativeProjectPath            = "spec.must_be_relative_project_path"
 	ErrPythonPathNotFound                   = "spec.python_path_not_found"
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
 	ErrS3DirNotFound                        = "spec.s3_dir_not_found"
+	ErrS3ModelNameDuplicate                 = "spec.s3_model_name_duplicate"
 	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
 	ErrInvalidNeuronTensorFlowDir           = "operator.invalid_neuron_tensorflow_dir"
 	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
@@ -193,6 +196,13 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
+func ErrorInvalidPath(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidPath,
+		Message: fmt.Sprintf("%s: is not a valid path", path),
+	})
+}
+
 func ErrorFileNotFound(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileNotFound,
@@ -204,6 +214,13 @@ func ErrorDirIsEmpty(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDirIsEmpty,
 		Message: fmt.Sprintf("%s: directory is empty", path),
+	})
+}
+
+func ErrorInvalidDirPath(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidDirPath,
+		Message: fmt.Sprintf("%s: invalid directory path", path),
 	})
 }
 
@@ -232,6 +249,13 @@ func ErrorS3DirNotFound(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3DirNotFound,
 		Message: fmt.Sprintf("%s: dir not found or insufficient permissions", path),
+	})
+}
+
+func ErrorS3ModelNameDuplicate(path, modelName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrS3ModelNameDuplicate,
+		Message: fmt.Sprintf("%s: found duplicate model %s", path, modelName),
 	})
 }
 

@@ -36,6 +36,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -120,6 +121,29 @@ func IsValidS3aPath(s3aPath string) bool {
 		return false
 	}
 	return true
+}
+
+func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirObjects bool, maxResults *int64) ([]string, error) {
+	paths := []string{}
+
+	_, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return paths, err
+	}
+	objects, err := c.ListS3PathDir(s3Path, includeDirObjects, maxResults)
+	if err != nil {
+		return paths, err
+	}
+
+	pathKeys := slices.RemoveEmpties(strings.Split(key, "/"))
+	for _, object := range objects {
+		objectKeys := slices.RemoveEmpties(strings.Split(*object.Key, "/"))
+		if len(objectKeys)-len(pathKeys) >= depth {
+			paths = append(paths, strings.Join(objectKeys[:len(pathKeys)+depth], "/"))
+		}
+	}
+
+	return slices.UniqueStrings(paths), nil
 }
 
 func GetBucketRegionFromS3Path(s3Path string) (string, error) {
@@ -564,6 +588,7 @@ func (c *Client) ListS3PathPrefix(s3Path string, includeDirObjects bool, maxResu
 	if err != nil {
 		return nil, err
 	}
+	prefix = "models/"
 	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults)
 }
 

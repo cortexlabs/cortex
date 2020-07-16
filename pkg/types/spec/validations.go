@@ -19,6 +19,7 @@ package spec
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -435,12 +436,18 @@ func multiModelValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Models",
 		StructValidation: &cr.StructValidation{
-			Required:   false,
-			DefaultNil: false,
+			Required:         false,
+			TreatNullAsEmpty: false,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				multiModelPathsValidation(),
 				{
 					StructField: "Dir",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required: false,
+					},
+				},
+				{
+					StructField: "SignatureKey",
 					StringPtrValidation: &cr.StringPtrValidation{
 						Required: false,
 					},
@@ -623,22 +630,21 @@ func validatePredictor(
 	awsClient *aws.Client,
 ) error {
 	predictor := api.Predictor
+	hasMultiModels := isMultiModelFieldSet(predictor.Models)
+	hasSingleModel := predictor.ModelPath != nil
 
-	if predictor.ModelPath != nil && isMultiModelFieldSet(predictor.Models) {
+	if hasMultiModels && hasSingleModel {
 		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
 	}
-	if isMultiModelFieldSet(predictor.Models) {
+	if hasMultiModels {
 		if len(predictor.Models.Paths) == 0 && predictor.Models.Dir == nil {
 			return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 		}
 		if predictor.Models.CacheSize == nil && len(predictor.Models.Paths) > 0 {
-			*predictor.Models.CacheSize = int32(len(predictor.Models.Paths))
+			predictor.Models.CacheSize = pointer.Int32(int32(len(predictor.Models.Paths)))
 		}
 		if predictor.Models.DiskCacheSize == nil && predictor.Models.CacheSize != nil {
-			*predictor.Models.DiskCacheSize = *predictor.Models.CacheSize
-		}
-		if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
-			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
+			predictor.Models.DiskCacheSize = pointer.Int32(*predictor.Models.CacheSize)
 		}
 	}
 
@@ -658,6 +664,19 @@ func validatePredictor(
 		if err := validateONNXPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
+	}
+
+	if hasMultiModels && len(predictor.Models.Paths) == 0 && predictor.Models.Dir != nil {
+		if predictor.Models.CacheSize == nil {
+			predictor.Models.CacheSize = pointer.Int32(int32(len(*models)))
+		}
+		if predictor.Models.DiskCacheSize == nil {
+			predictor.Models.DiskCacheSize = pointer.Int32(int32(len(*models)))
+		}
+	}
+
+	if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
+		return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
 	}
 
 	if err := validateDockerImagePath(predictor.Image, providerType, awsClient); err != nil {
@@ -683,8 +702,96 @@ func validatePredictor(
 	return nil
 }
 
-func retrieveModelsFromPath(path string) ([]*userconfig.ModelResource, error) {
+func isModelNameIn(models []*userconfig.ModelResource, modelName string) bool {
+	for _, model := range models {
+		if model.Name == modelName {
+			return true
+		}
+	}
+	return false
+}
+
+func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, awsClient *aws.Client) ([]*userconfig.ModelResource, error) {
 	models := []*userconfig.ModelResource{}
+
+	if aws.IsValidS3Path(path) {
+		awsClientForBucket, err := aws.NewFromClientS3Path(path, awsClient)
+		if err != nil {
+			return models, err
+		}
+
+		if isDir, err := awsClientForBucket.IsS3PathDir(path); err != nil {
+			return models, err
+		} else if isDir {
+			modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, true, nil)
+			if err != nil {
+				return models, err
+			}
+			var bucket string
+			bucket, _, err = aws.SplitS3Path(path)
+			if err != nil {
+				return models, err
+			}
+
+			for _, modelPath := range modelPaths {
+				modelName := strings.Split(filepath.Base(modelPath), ".")[0]
+				if !isModelNameIn(models, modelName) {
+					models = append(models, &userconfig.ModelResource{
+						Name:      modelName,
+						ModelPath: aws.S3Path(bucket, modelPath),
+					})
+				} else {
+					return []*userconfig.ModelResource{}, ErrorS3ModelNameDuplicate(path, modelName)
+				}
+			}
+		} else {
+			return models, ErrorS3DirNotFound(path)
+		}
+
+	} else {
+		var err error
+		if strings.HasPrefix(path, "~/") {
+			path, err = files.EscapeTilde(path)
+			if err != nil {
+				return models, err
+			}
+		} else {
+			path = files.RelToAbsPath(path, projectFiles.ProjectDir())
+		}
+
+		var fi os.FileInfo
+		fi, err = os.Stat(path)
+		if err != nil {
+			return models, ErrorInvalidPath(path)
+		}
+		if !fi.Mode().IsDir() {
+			return models, ErrorInvalidDirPath(path)
+		}
+
+		var file *os.File
+		file, err = os.Open(path)
+		if err != nil {
+			return models, err
+		}
+
+		var modelObjects []string
+		modelObjects, err = file.Readdirnames(0)
+		if err != nil {
+			return models, err
+		}
+
+		for _, modelObject := range modelObjects {
+			modelName := strings.Split(modelObject, ".")[0]
+			if !isModelNameIn(models, modelName) {
+				models = append(models, &userconfig.ModelResource{
+					Name:      modelName,
+					ModelPath: filepath.Join(path, modelObject),
+				})
+			} else {
+				return []*userconfig.ModelResource{}, ErrorS3ModelNameDuplicate(path, modelName)
+			}
+		}
+	}
 
 	return models, nil
 }
@@ -707,33 +814,41 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 			},
 		}
 	}
-	if len(predictor.Models.Paths) > 0 {
-		modelResources = predictor.Models.Paths
-	}
-	if predictor.Models.Dir != nil {
-		var err error
-		modelResources, err = retrieveModelsFromPath(*predictor.Models.Dir)
-		if err != nil {
-			// TODO add wrap for error
-			return err
-		}
-	}
-
-	if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
-		return errors.Wrap(err, userconfig.ModelsKey)
-	}
-
-	for i := range predictor.Models.Paths {
-		if predictor.Models.Paths[i].SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey, predictor.Models.Paths[i].Name)
-		}
-		if err := validatePythonModel(predictor.Models.Paths[i], providerType, projectFiles, awsClient); err != nil {
-			if predictor.ModelPath == nil {
-				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models.Paths[i].Name)
+	if isMultiModelFieldSet(predictor.Models) {
+		if len(predictor.Models.Paths) > 0 {
+			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey)
 			}
-			return err
+			modelResources = predictor.Models.Paths
+		}
+		if predictor.Models.Dir != nil {
+			var err error
+			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			if err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+			}
+		}
+		if predictor.Models.SignatureKey != nil {
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType), userconfig.ModelsKey)
+		}
+
+		fmt.Println("modelResources")
+		for _, mr := range modelResources {
+			fmt.Println(*mr)
 		}
 	}
+
+	// for i := range predictor.Models.Paths {
+	// 	if predictor.Models.Paths[i].SignatureKey != nil {
+	// 		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey, predictor.Models.Paths[i].Name)
+	// 	}
+	// 	if err := validatePythonModel(predictor.Models.Paths[i], providerType, projectFiles, awsClient); err != nil {
+	// 		if predictor.ModelPath == nil {
+	// 			return errors.Wrap(err, userconfig.ModelsKey, predictor.Models.Paths[i].Name)
+	// 		}
+	// 		return err
+	// 	}
+	// }
 
 	return nil
 }
