@@ -54,7 +54,7 @@ func apiValidation(provider types.ProviderType, resource userconfig.Resource) *c
 	if resource.Kind == userconfig.SyncAPIKind {
 		structFieldValidations = append(structFieldValidations,
 			predictorValidation(),
-			networkingValidation(),
+			networkingValidation(resource.Kind),
 			computeValidation(provider),
 			monitoringValidation(),
 			autoscalingValidation(provider),
@@ -64,7 +64,7 @@ func apiValidation(provider types.ProviderType, resource userconfig.Resource) *c
 	if resource.Kind == userconfig.APISplitterKind {
 		structFieldValidations = append(structFieldValidations,
 			multiAPIsValidation(),
-			networkingValidationNoLocal(),
+			networkingValidation(resource.Kind),
 		)
 	}
 	return &cr.StructValidation{
@@ -115,33 +115,6 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 							GreaterThanOrEqualTo: pointer.Int(0),
 							LessThanOrEqualTo:    pointer.Int(100),
 						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func networkingValidationNoLocal() *cr.StructFieldValidation {
-	return &cr.StructFieldValidation{
-		StructField: "Networking",
-		StructValidation: &cr.StructValidation{
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Endpoint",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Validator: urls.ValidateEndpoint,
-						MaxLength: 1000, // no particular reason other than it works
-					},
-				},
-				{
-					StructField: "APIGateway",
-					StringValidation: &cr.StringValidation{
-						AllowedValues: userconfig.APIGatewayTypeStrings(),
-						Default:       userconfig.PublicAPIGatewayType.String(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.APIGatewayTypeFromString(str), nil
 					},
 				},
 			},
@@ -275,36 +248,39 @@ func monitoringValidation() *cr.StructFieldValidation {
 	}
 }
 
-func networkingValidation() *cr.StructFieldValidation {
+func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
+	structFieldValidation := []*cr.StructFieldValidation{
+		{
+			StructField: "Endpoint",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: urls.ValidateEndpoint,
+				MaxLength: 1000, // no particular reason other than it works
+			},
+		},
+		{
+			StructField: "APIGateway",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: userconfig.APIGatewayTypeStrings(),
+				Default:       userconfig.PublicAPIGatewayType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.APIGatewayTypeFromString(str), nil
+			},
+		},
+	}
+	if kind == userconfig.SyncAPIKind {
+		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
+			StructField: "LocalPort",
+			IntPtrValidation: &cr.IntPtrValidation{
+				GreaterThan:       pointer.Int(0),
+				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
+			},
+		})
+	}
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Endpoint",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Validator: urls.ValidateEndpoint,
-						MaxLength: 1000, // no particular reason other than it works
-					},
-				},
-				{
-					StructField: "LocalPort",
-					IntPtrValidation: &cr.IntPtrValidation{
-						GreaterThan:       pointer.Int(0),
-						LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-					},
-				},
-				{
-					StructField: "APIGateway",
-					StringValidation: &cr.StringValidation{
-						AllowedValues: userconfig.APIGatewayTypeStrings(),
-						Default:       userconfig.PublicAPIGatewayType.String(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.APIGatewayTypeFromString(str), nil
-					},
-				},
-			},
+			StructFieldValidations: structFieldValidation,
 		},
 	}
 }

@@ -37,7 +37,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 		return nil, errors.ErrorUnexpected("unable to find trafficsplitter", apiName)
 	}
 
-	return trafficSplitterStatus(virtualService)
+	return apiSplitterStatus(virtualService)
 }
 
 func GetAllStatuses() ([]status.Status, error) {
@@ -50,7 +50,7 @@ func GetAllStatuses() ([]status.Status, error) {
 
 	statuses := make([]status.Status, len(virtualServices))
 	for i, virtualService := range virtualServices {
-		status, err := trafficSplitterStatus(&virtualService)
+		status, err := apiSplitterStatus(&virtualService)
 		if err != nil {
 			return nil, err
 		}
@@ -63,12 +63,12 @@ func GetAllStatuses() ([]status.Status, error) {
 	return statuses, nil
 }
 
-func trafficSplitterStatus(virtualService *istioclientnetworking.VirtualService) (*status.Status, error) {
+func apiSplitterStatus(virtualService *istioclientnetworking.VirtualService) (*status.Status, error) {
 
 	statusResponse := &status.Status{}
 	statusResponse.APIName = virtualService.Labels["apiName"]
 	statusResponse.APIID = virtualService.Labels["apiID"]
-	// if virtual service deploy the trafficsplitter is actice
+	// if virtual service deploy the trafficsplitter is active
 	// maybe need to check if backends are active
 	statusResponse.Code = status.Live
 

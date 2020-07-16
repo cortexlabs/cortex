@@ -354,10 +354,10 @@ func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment
 	return out, nil
 }
 
-func trafficSplitTable(trafficSplitter schema.APISplitter, env cliconfig.Environment) (table.Table, error) {
-	rows := make([][]interface{}, 0, len(trafficSplitter.Spec.APIs))
+func trafficSplitTable(apiSplitter schema.APISplitter, env cliconfig.Environment) (table.Table, error) {
+	rows := make([][]interface{}, 0, len(apiSplitter.Spec.APIs))
 
-	for _, api := range trafficSplitter.Spec.APIs {
+	for _, api := range apiSplitter.Spec.APIs {
 		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), api.Name)
 		if err != nil {
 			return table.Table{}, err
@@ -392,10 +392,10 @@ func trafficSplitTable(trafficSplitter schema.APISplitter, env cliconfig.Environ
 	}, nil
 }
 
-func apiSplitterListTable(trafficSplitter []schema.APISplitter, envNames []string) table.Table {
-	rows := make([][]interface{}, 0, len(trafficSplitter))
+func apiSplitterListTable(apiSplitter []schema.APISplitter, envNames []string) table.Table {
+	rows := make([][]interface{}, 0, len(apiSplitter))
 
-	for i, splitAPI := range trafficSplitter {
+	for i, splitAPI := range apiSplitter {
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
 		var apis []string
 		for _, api := range splitAPI.Spec.APIs {

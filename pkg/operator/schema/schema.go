@@ -53,7 +53,7 @@ type DeployResult struct {
 
 type GetAPIsResponse struct {
 	SyncAPIs    []SyncAPI     `json:"sync_apis"`
-	APISplitter []APISplitter `json:"api_splitter"`
+	APISplitter []APISplitter `json:"api_splitters"`
 }
 
 type SyncAPI struct {

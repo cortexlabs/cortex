@@ -228,12 +228,7 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	endpoints := make(map[string][]userconfig.API)
 
 	for _, api := range apis {
-		if api.Kind == userconfig.SyncAPIKind {
-			endpoints[*api.Networking.Endpoint] = append(endpoints[*api.Networking.Endpoint], api)
-		}
-		if api.Kind == userconfig.APISplitterKind {
-			endpoints[*api.Networking.Endpoint] = append(endpoints[*api.Networking.Endpoint], api)
-		}
+		endpoints[*api.Networking.Endpoint] = append(endpoints[*api.Networking.Endpoint], api)
 	}
 
 	for endpoint := range endpoints {

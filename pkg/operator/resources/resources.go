@@ -74,16 +74,6 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		ConfigFileName: configFileName,
 	}
 
-	isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
-	if err != nil {
-		return nil, err
-	}
-	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
-			return nil, err
-		}
-	}
-
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName)
 	if err != nil {
 		return nil, err
@@ -93,6 +83,16 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		return nil, err
+	}
+
+	isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
+	if err != nil {
+		return nil, err
+	}
+	if !isProjectUploaded {
+		if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+			return nil, err
+		}
 	}
 
 	// order apiconfigs first syncAPIs then TrafficSplit
@@ -247,17 +247,17 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 	}
 
 	// get all apiSplitters
-	apiSplitterstatuses, err := apisplitter.GetAllStatuses()
+	apiSplitterStatuses, err := apisplitter.GetAllStatuses()
 	if err != nil {
 		return nil, err
 	}
-	if len(apiSplitterstatuses) > 0 {
-		apiSplitterapiNames, apiSplitterapiIDs := namesAndIDsFromStatuses(apiSplitterstatuses)
-		apiSplitterapis, err := operator.DownloadAPISpecs(apiSplitterapiNames, apiSplitterapiIDs)
+	if len(apiSplitterStatuses) > 0 {
+		apiSplitterAPINames, apiSplitterAPIIDs := namesAndIDsFromStatuses(apiSplitterStatuses)
+		apiSplitterAPIs, err := operator.DownloadAPISpecs(apiSplitterAPINames, apiSplitterAPIIDs)
 		if err != nil {
 			return nil, err
 		}
-		for _, api := range apiSplitterapis {
+		for _, api := range apiSplitterAPIs {
 			apiSplitter = append(apiSplitter, schema.APISplitter{
 				Spec: api,
 			})
@@ -340,16 +340,22 @@ func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
 	return apiNames, apiIDs
 }
 
+//checkIfUsedByAPISplitter checks if api is used by a deployed APISplitter
 func checkIfUsedByAPISplitter(apiName string) error {
-	apiRes, err := GetAPIs()
+	virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.APISplitterKind.String())
 	if err != nil {
 		return err
 	}
+
 	var usedByAPISplitters []string
-	for _, apiSplitter := range apiRes.APISplitter {
-		for _, api := range apiSplitter.Spec.APIs {
+	for _, vs := range virtualServices {
+		apiSplitterSpec, err := operator.DownloadAPISpec(vs.Labels["apiName"], vs.Labels["apiID"])
+		if err != nil {
+			return err
+		}
+		for _, api := range apiSplitterSpec.APIs {
 			if apiName == api.Name {
-				usedByAPISplitters = append(usedByAPISplitters, apiSplitter.Spec.Name)
+				usedByAPISplitters = append(usedByAPISplitters, apiSplitterSpec.Name)
 			}
 		}
 	}

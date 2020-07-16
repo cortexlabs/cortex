@@ -29,20 +29,20 @@ const (
 	_defaultPortInt32, _defaultPortStr = int32(8888), "8888"
 )
 
-func virtualServiceSpec(trafficsplitter *spec.API, destinations []k8s.Destination) *istioclientnetworking.VirtualService {
+func virtualServiceSpec(apiSplitter *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:         operator.K8sName(trafficsplitter.Name),
+		Name:         operator.K8sName(apiSplitter.Name),
 		Gateways:     []string{"apis-gateway"},
-		Destinations: destinations,
-		Path:         *trafficsplitter.Networking.Endpoint,
+		Destinations: getAPISplitterDestinations(apiSplitter),
+		Path:         *apiSplitter.Networking.Endpoint,
 		Rewrite:      pointer.String("predict"),
 		Annotations: map[string]string{
-			userconfig.EndpointAnnotationKey:   *trafficsplitter.Networking.Endpoint,
-			userconfig.APIGatewayAnnotationKey: trafficsplitter.Networking.APIGateway.String()},
+			userconfig.EndpointAnnotationKey:   *apiSplitter.Networking.Endpoint,
+			userconfig.APIGatewayAnnotationKey: apiSplitter.Networking.APIGateway.String()},
 		Labels: map[string]string{
-			"apiName": trafficsplitter.Name,
-			"apiKind": trafficsplitter.Kind.String(),
-			"apiID":   trafficsplitter.ID,
+			"apiName": apiSplitter.Name,
+			"apiKind": apiSplitter.Kind.String(),
+			"apiID":   apiSplitter.ID,
 		},
 	})
 }

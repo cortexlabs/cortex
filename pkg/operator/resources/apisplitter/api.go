@@ -54,7 +54,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return api, fmt.Sprintf("created %s", api.Name), nil
 	}
 
-	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api, getTrafficSplitterDestinations(api))) {
+	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api)) {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -119,8 +119,8 @@ func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.
 	return applyK8sVirtualService(api, prevVirtualService)
 }
 
-func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
-	newVirtualService := virtualServiceSpec(trafficsplitter, getTrafficSplitterDestinations(trafficsplitter))
+func applyK8sVirtualService(apiSplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
+	newVirtualService := virtualServiceSpec(apiSplitter)
 
 	if prevVirtualService == nil {
 		_, err := config.K8s.CreateVirtualService(newVirtualService)
@@ -131,9 +131,9 @@ func applyK8sVirtualService(trafficsplitter *spec.API, prevVirtualService *istio
 	return err
 }
 
-func getTrafficSplitterDestinations(trafficsplitter *spec.API) []k8s.Destination {
-	destinations := make([]k8s.Destination, len(trafficsplitter.APIs))
-	for i, api := range trafficsplitter.APIs {
+func getAPISplitterDestinations(apiSplitter *spec.API) []k8s.Destination {
+	destinations := make([]k8s.Destination, len(apiSplitter.APIs))
+	for i, api := range apiSplitter.APIs {
 		destinations[i] = k8s.Destination{
 			ServiceName: operator.K8sName(api.Name),
 			Weight:      int32(api.Weight),
