@@ -49,6 +49,7 @@ The operator requires read permissions for any S3 bucket containing exported mod
             "Action": [
                 "sts:GetCallerIdentity",
                 "ecr:GetAuthorizationToken",
+                "ecr:BatchGetImage",
                 "elasticloadbalancing:Describe*",
                 "apigateway:*",
                 "cloudwatch:*",
