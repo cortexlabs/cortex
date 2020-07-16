@@ -24,10 +24,12 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -175,20 +177,45 @@ func updateRootUsage() {
 	})
 }
 
-func wasEnvFlagProvided() bool {
+func getCmdShorthandFlags(cmd *cobra.Command) strset.Set {
+	shorthands := strset.New()
+	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Shorthand != "" {
+			shorthands.Add(flag.Shorthand)
+		}
+	})
+	return shorthands
+}
+
+func wasEnvFlagProvided(cmd *cobra.Command) bool {
+	shorthands := getCmdShorthandFlags(cmd)
+
 	for _, str := range os.Args[1:] {
-		if str == "-e" || str == "--env" {
+		if str == "--env" || strings.HasPrefix(str, "--env=") {
 			return true
 		}
-		if strings.HasPrefix(str, "-e=") || strings.HasPrefix(str, "--env=") {
-			return true
+
+		if !strings.HasPrefix(str, "-") {
+			continue
+		}
+
+		// `-e local`, `-e=local`, `-elocal`, and `-welocal` are supported by cobra
+		for i := 1; i < len(str); i++ {
+			char := string(str[i])
+			if char == "e" {
+				return true
+			}
+			if !shorthands.Has(char) {
+				break
+			}
 		}
 	}
+
 	return false
 }
 
-func printEnvIfNotSpecified(envName string) error {
-	out, err := envStringIfNotSpecified(envName)
+func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
+	out, err := envStringIfNotSpecified(envName, cmd)
 	if err != nil {
 		return err
 	}
@@ -197,13 +224,13 @@ func printEnvIfNotSpecified(envName string) error {
 	return nil
 }
 
-func envStringIfNotSpecified(envName string) (string, error) {
+func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error) {
 	envNames, err := listConfiguredEnvNames()
 	if err != nil {
 		return "", err
 	}
 
-	if !wasEnvFlagProvided() && len(envNames) > 1 {
+	if !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
 		return fmt.Sprintf("using %s environment\n\n", envName), nil
 	}
 

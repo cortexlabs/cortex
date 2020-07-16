@@ -80,7 +80,7 @@ var _getCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
-		if len(args) == 1 || wasEnvFlagProvided() {
+		if len(args) == 1 || wasEnvFlagProvided(cmd) {
 			env, err := ReadOrConfigureEnv(_flagGetEnv)
 			if err != nil {
 				telemetry.Event("cli.get")
@@ -98,7 +98,7 @@ var _getCmd = &cobra.Command{
 					exit.Error(err)
 				}
 
-				out, err := envStringIfNotSpecified(_flagGetEnv)
+				out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
 				if err != nil {
 					return "", err
 				}
@@ -110,13 +110,13 @@ var _getCmd = &cobra.Command{
 				return out + apiTable, nil
 			}
 
-			if wasEnvFlagProvided() {
+			if wasEnvFlagProvided(cmd) {
 				env, err := ReadOrConfigureEnv(_flagGetEnv)
 				if err != nil {
 					exit.Error(err)
 				}
 
-				out, err := envStringIfNotSpecified(_flagGetEnv)
+				out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
 				if err != nil {
 					return "", err
 				}
