@@ -123,6 +123,8 @@ func IsValidS3aPath(s3aPath string) bool {
 	return true
 }
 
+// List all S3 objects that are "depth" levels deeper than the given "s3Path".
+// Setting depth to 1 effectively translates to listing the objects one level deeper than the given prefix (aka listing the directory contents).
 func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirObjects bool, maxResults *int64) ([]string, error) {
 	paths := []string{}
 
