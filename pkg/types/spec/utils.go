@@ -53,6 +53,17 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
+// Verifies if modelName is found in models slice.
+func isModelNameIn(models []*userconfig.ModelResource, modelName string) bool {
+	for _, model := range models {
+		if model.Name == modelName {
+			return true
+		}
+	}
+	return false
+}
+
+// Verifies if m has been initialized.
 func isMultiModelFieldSet(m *userconfig.MultiModels) bool {
 	if len(m.Paths) == 0 && m.Dir == nil && m.CacheSize == nil && m.DiskCacheSize == nil {
 		return false
@@ -60,6 +71,10 @@ func isMultiModelFieldSet(m *userconfig.MultiModels) bool {
 	return true
 }
 
+// Retrieves the objects found in the path directory.
+//
+// The model name is determined from the objects' names found in the path directory minus the extension if there's one.
+// Path can either be an S3 path or a local system path - in the latter case, the returned paths will be in absolute form.
 func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, awsClient *aws.Client) ([]*userconfig.ModelResource, error) {
 	models := []*userconfig.ModelResource{}
 
