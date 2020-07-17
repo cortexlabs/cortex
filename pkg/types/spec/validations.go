@@ -669,15 +669,6 @@ func validatePredictor(
 	return nil
 }
 
-func isModelNameIn(models []*userconfig.ModelResource, modelName string) bool {
-	for _, model := range models {
-		if model.Name == modelName {
-			return true
-		}
-	}
-	return false
-}
-
 func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType)
@@ -700,6 +691,16 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 		if len(predictor.Models.Paths) > 0 {
 			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
 				return errors.Wrap(err, userconfig.ModelsKey)
+			}
+			for _, path := range predictor.Models.Paths {
+				if path.SignatureKey != nil {
+					return errors.Wrap(
+						ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType),
+						userconfig.ModelsKey,
+						userconfig.ModelsPathsKey,
+						path.Name,
+					)
+				}
 			}
 			modelResources = predictor.Models.Paths
 		}
