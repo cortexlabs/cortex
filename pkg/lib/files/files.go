@@ -569,7 +569,8 @@ func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) Ig
 			virtual, _ := mem.VirtualMemory()
 			if int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*maxMemoryUsagePercent) {
 				return false, errors.Wrap(
-					ErrorInsufficientMemoryToReadFile(fileSizeBytes, int64(float64(virtual.Total)*maxMemoryUsagePercent)-int64(virtual.Used)), path,
+					ErrorInsufficientMemoryToReadFile(fileSizeBytes, int64(float64(virtual.Total)*maxMemoryUsagePercent)-int64(virtual.Used)),
+					path,
 				)
 			}
 			if fileSizeBytes > maxFileSizeBytes {
