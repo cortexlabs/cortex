@@ -535,7 +535,7 @@ func GitIgnoreFn(gitIgnorePath string) (IgnoreFn, error) {
 
 	ignore, err := gitignore.NewFromFile(gitIgnorePath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, gitIgnorePath)
 	}
 
 	return func(path string, fi os.FileInfo) (bool, error) {
@@ -569,10 +569,10 @@ func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) Ig
 			virtual, _ := mem.VirtualMemory()
 			if float64(fileSizeBytes) > float64(virtual.Available) ||
 				int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*maxMemoryUsagePercent) {
-				return false, ErrorInsufficientMemoryToReadFile("", fileSizeBytes, int64(virtual.Available))
+				return false, errors.Wrap(ErrorInsufficientMemoryToReadFile(fileSizeBytes, int64(virtual.Available)), path)
 			}
 			if fileSizeBytes > maxFileSizeBytes {
-				return false, ErrorFileSizeLimit("", maxFileSizeBytes)
+				return false, errors.Wrap(ErrorFileSizeLimit(maxFileSizeBytes), path)
 			}
 		}
 
@@ -586,7 +586,7 @@ func ErrorOnProjectSizeLimit(maxProjectSizeBytes int64) IgnoreFn {
 		if !fi.IsDir() {
 			filesSizeSum += fi.Size()
 			if filesSizeSum > maxProjectSizeBytes {
-				return false, ErrorProjectSizeLimit(maxProjectSizeBytes)
+				return false, errors.Wrap(ErrorProjectSizeLimit(maxProjectSizeBytes), path)
 			}
 		}
 		return false, nil
@@ -737,7 +737,7 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 		for _, ignoreFn := range ignoreFns {
 			ignore, err := ignoreFn(path, fi)
 			if err != nil {
-				return errors.Wrap(err, path)
+				return err
 			}
 			if ignore {
 				if fi.IsDir() {

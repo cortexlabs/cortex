@@ -90,25 +90,17 @@ func ErrorFileAlreadyExists(path string) error {
 	})
 }
 
-func ErrorInsufficientMemoryToReadFile(path string, fileSizeBytes, availableMemBytes int64) error {
-	errMsg := fmt.Sprintf("unable to read file due to insufficient system memory; needs %s but only has %s available", s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes))
-	if len(path) > 0 {
-		errMsg = fmt.Sprintf("%s: ", path) + errMsg
-	}
+func ErrorInsufficientMemoryToReadFile(fileSizeBytes, availableMemBytes int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInsufficientMemoryToReadFile,
-		Message: errMsg,
+		Message: fmt.Sprintf("unable to read file due to insufficient system memory; needs %s but only has %s available", s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes)),
 	})
 }
 
-func ErrorFileSizeLimit(path string, maxFileSizeBytes int64) error {
-	errMsg := fmt.Sprintf("file size cannot be greater than %s", s.Int64ToBase2Byte(maxFileSizeBytes))
-	if len(path) > 0 {
-		errMsg = fmt.Sprintf("%s: ", path) + errMsg
-	}
+func ErrorFileSizeLimit(maxFileSizeBytes int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileSizeLimit,
-		Message: errMsg,
+		Message: fmt.Sprintf("file size cannot be greater than %s", s.Int64ToBase2Byte(maxFileSizeBytes)),
 	})
 }
 
