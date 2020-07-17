@@ -93,7 +93,7 @@ func ErrorFileAlreadyExists(path string) error {
 func ErrorInsufficientMemoryToReadFile(fileSizeBytes, availableMemBytes int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInsufficientMemoryToReadFile,
-		Message: fmt.Sprintf("unable to read file due to insufficient system memory; needs %s but only has %s available", s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes)),
+		Message: fmt.Sprintf("unable to read file due to insufficient system memory; needs %s but is only allowed to use %s", s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes)),
 	})
 }
 
