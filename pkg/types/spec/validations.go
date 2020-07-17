@@ -666,6 +666,11 @@ func validatePredictor(
 		}
 	}
 
+	fmt.Println("modelResources")
+	for _, mr := range *models {
+		fmt.Println(mr)
+	}
+
 	return nil
 }
 
@@ -678,16 +683,19 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
 	}
 
-	var modelResources []*userconfig.ModelResource
-	if predictor.ModelPath != nil {
-		modelResources = []*userconfig.ModelResource{
+	hasSingleModel := predictor.ModelPath != nil
+	hasMultiModels := isMultiModelFieldSet(predictor.Models)
+
+	var modelResources []userconfig.ModelResource
+	if hasSingleModel {
+		modelResources = []userconfig.ModelResource{
 			{
 				Name:      consts.SingleModelName,
 				ModelPath: *predictor.ModelPath,
 			},
 		}
 	}
-	if isMultiModelFieldSet(predictor.Models) {
+	if hasMultiModels {
 		if len(predictor.Models.Paths) > 0 {
 			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
 				return errors.Wrap(err, userconfig.ModelsKey)
@@ -701,8 +709,8 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 						path.Name,
 					)
 				}
+				modelResources = append(modelResources, *path)
 			}
-			modelResources = predictor.Models.Paths
 		}
 		if predictor.Models.Dir != nil {
 			var err error
@@ -714,25 +722,8 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 		if predictor.Models.SignatureKey != nil {
 			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType), userconfig.ModelsKey)
 		}
-
-		fmt.Println("modelResources")
-		for _, mr := range modelResources {
-			fmt.Println(*mr)
-		}
 	}
-
-	// for i := range predictor.Models.Paths {
-	// 	if predictor.Models.Paths[i].SignatureKey != nil {
-	// 		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey, predictor.Models.Paths[i].Name)
-	// 	}
-	// 	if err := validatePythonModel(predictor.Models.Paths[i], providerType, projectFiles, awsClient); err != nil {
-	// 		if predictor.ModelPath == nil {
-	// 			return errors.Wrap(err, userconfig.ModelsKey, predictor.Models.Paths[i].Name)
-	// 		}
-	// 		return err
-	// 	}
-	// }
-
+	*models = modelResourceToCurated(modelResources)
 	return nil
 }
 

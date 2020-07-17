@@ -49,7 +49,7 @@ type LocalModelCache struct {
 }
 
 type CuratedModelResource struct {
-	*userconfig.ModelResource
+	userconfig.ModelResource
 	ZipFormat       bool  `json:"zip_format"`
 	NoVersionSubdir bool  `json:"no_version_subdir"`
 	Versions        []int `json:"versions"`

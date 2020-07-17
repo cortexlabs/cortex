@@ -54,7 +54,7 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 }
 
 // Verifies if modelName is found in models slice.
-func isModelNameIn(models []*userconfig.ModelResource, modelName string) bool {
+func isModelNameIn(models []userconfig.ModelResource, modelName string) bool {
 	for _, model := range models {
 		if model.Name == modelName {
 			return true
@@ -71,12 +71,27 @@ func isMultiModelFieldSet(m *userconfig.MultiModels) bool {
 	return true
 }
 
+func modelResourceToCurated(modelResources []userconfig.ModelResource) []CuratedModelResource {
+	models := []CuratedModelResource{}
+	for _, model := range modelResources {
+		models = append(models, CuratedModelResource{
+			ModelResource: userconfig.ModelResource{
+				Name:         model.Name,
+				ModelPath:    model.ModelPath,
+				SignatureKey: model.SignatureKey,
+			},
+		})
+	}
+
+	return models
+}
+
 // Retrieves the objects found in the path directory.
 //
 // The model name is determined from the objects' names found in the path directory minus the extension if there's one.
 // Path can either be an S3 path or a local system path - in the latter case, the returned paths will be in absolute form.
-func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, awsClient *aws.Client) ([]*userconfig.ModelResource, error) {
-	models := []*userconfig.ModelResource{}
+func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, awsClient *aws.Client) ([]userconfig.ModelResource, error) {
+	models := []userconfig.ModelResource{}
 
 	if aws.IsValidS3Path(path) {
 		awsClientForBucket, err := aws.NewFromClientS3Path(path, awsClient)
@@ -100,12 +115,12 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 			for _, modelPath := range modelPaths {
 				modelName := strings.Split(filepath.Base(modelPath), ".")[0]
 				if !isModelNameIn(models, modelName) {
-					models = append(models, &userconfig.ModelResource{
+					models = append(models, userconfig.ModelResource{
 						Name:      modelName,
 						ModelPath: aws.S3Path(bucket, modelPath),
 					})
 				} else {
-					return []*userconfig.ModelResource{}, ErrorS3ModelNameDuplicate(path, modelName)
+					return []userconfig.ModelResource{}, ErrorS3ModelNameDuplicate(path, modelName)
 				}
 			}
 		} else {
@@ -147,12 +162,12 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 		for _, modelObject := range modelObjects {
 			modelName := strings.Split(modelObject, ".")[0]
 			if !isModelNameIn(models, modelName) {
-				models = append(models, &userconfig.ModelResource{
+				models = append(models, userconfig.ModelResource{
 					Name:      modelName,
 					ModelPath: filepath.Join(path, modelObject),
 				})
 			} else {
-				return []*userconfig.ModelResource{}, ErrorS3ModelNameDuplicate(path, modelName)
+				return []userconfig.ModelResource{}, ErrorS3ModelNameDuplicate(path, modelName)
 			}
 		}
 	}
