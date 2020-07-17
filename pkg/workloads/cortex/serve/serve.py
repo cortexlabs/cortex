@@ -28,7 +28,7 @@ from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, PlainTextResponse, JSONResponse
 from starlette.background import BackgroundTasks
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -160,9 +160,15 @@ async def parse_payload(request: Request, call_next):
     if content_type.startswith("multipart/form") or content_type.startswith(
         "application/x-www-form-urlencoded"
     ):
-        request.state.payload = await request.form()
+        try:
+            request.state.payload = await request.form()
+        except Exception as e:
+            return PlainTextResponse(content=str(e), status_code=400)
     elif content_type.startswith("application/json"):
-        request.state.payload = await request.json()
+        try:
+            request.state.payload = await request.json()
+        except json.JSONDecodeError as e:
+            return JSONResponse(content={"error": str(e)}, status_code=400)
     else:
         request.state.payload = await request.body()
 

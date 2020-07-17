@@ -74,7 +74,9 @@ class PythonPredictor:
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
-The `payload` parameter is parsed according to the `Content-Type` header in the request. For `Content-Type: application/json`, `payload` will be the parsed JSON body. For `Content-Type: multipart/form` or `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
+Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+
+Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
 ### Examples
 
@@ -232,7 +234,9 @@ When multiple models are defined using the Predictor's `models` field, the `tens
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
-The `payload` parameter is parsed according to the `Content-Type` header in the request. For `Content-Type: application/json`, `payload` will be the parsed JSON body. For `Content-Type: multipart/form` or `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
+Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+
+Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
 ### Examples
 
@@ -315,7 +319,9 @@ When multiple models are defined using the Predictor's `models` field, the `onnx
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
-The `payload` parameter is parsed according to the `Content-Type` header in the request. For `Content-Type: application/json`, `payload` will be the parsed JSON body. For `Content-Type: multipart/form` or `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
+Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+
+Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
 ### Examples
 
@@ -361,6 +367,62 @@ requests==2.23.0
 The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-cpu/Dockerfile) (for CPU) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-gpu/Dockerfile) (for GPU).
 
 If your application requires additional dependencies, you can install additional [Python packages](python-packages.md) and [system packages](system-packages.md).
+
+## API requests
+
+The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request. The `payload` parameter is parsed according to the `Content-Type` header in the request:
+
+1. For `Content-Type: application/json`, `payload` will be the parsed JSON body.
+1. For `Content-Type: multipart/form-data` / `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)).
+1. For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
+
+The `payload` parameter type will be a Python object (*lists*, *dicts*, *numbers*) if a request with a JSON payload is made:
+
+```bash
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"key": "value"}'
+```
+
+The `payload` parameter type will be a `bytes` object if a request with a `Content-Type: application/octet-stream` is made:
+
+```bash
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/octet-stream" \
+    -d @file.bin
+```
+
+The `payload` parameter type will be a `bytes` object if a request doesn't have the `Content-Type` set:
+
+```bash
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type:" \
+    -d @sample.txt
+```
+
+The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: multipart/form-data` is made:
+
+```bash
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: multipart/form-data" \
+    -F "fieldName=@file.txt"
+```
+
+The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: application/x-www-form-urlencoded` is made:
+
+```bash
+$ curl http://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+    -d @file.txt
+```
+
+The `payload` parameter type will be a `starlette.datastructures.FormData` object if no headers are added to the request:
+
+```bash
+$ curl http://***.amazonaws.com/my-api \
+    -X POST \
+    -d @file.txt
+```
 
 ## API responses
 
