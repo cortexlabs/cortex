@@ -607,6 +607,9 @@ func validatePredictor(
 		if len(predictor.Models.Paths) == 0 && predictor.Models.Dir == nil {
 			return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 		}
+		if len(predictor.Models.Paths) > 0 && predictor.Models.Dir != nil {
+			return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+		}
 		if predictor.Models.CacheSize == nil && len(predictor.Models.Paths) > 0 {
 			predictor.Models.CacheSize = pointer.Int32(int32(len(predictor.Models.Paths)))
 		}
@@ -621,14 +624,14 @@ func validatePredictor(
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(api, providerType, projectFiles, awsClient); err != nil {
+		if err := validateTensorFlowPredictor(api, models, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
 		if err := validateDockerImagePath(predictor.TensorFlowServingImage, providerType, awsClient); err != nil {
 			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
 	case userconfig.ONNXPredictorType:
-		if err := validateONNXPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
+		if err := validateONNXPredictor(predictor, models, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
 	}
@@ -642,7 +645,8 @@ func validatePredictor(
 		}
 	}
 
-	if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
+	if predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil &&
+		*predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
 		return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
 	}
 
@@ -676,11 +680,10 @@ func validatePredictor(
 
 func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
-
 	if predictor.TensorFlowServingImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
 	}
 
 	hasSingleModel := predictor.ModelPath != nil
@@ -696,14 +699,18 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 		}
 	}
 	if hasMultiModels {
+		if predictor.Models.SignatureKey != nil {
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey)
+		}
+
 		if len(predictor.Models.Paths) > 0 {
 			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
-				return errors.Wrap(err, userconfig.ModelsKey)
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
 			}
 			for _, path := range predictor.Models.Paths {
 				if path.SignatureKey != nil {
 					return errors.Wrap(
-						ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType),
+						ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type),
 						userconfig.ModelsKey,
 						userconfig.ModelsPathsKey,
 						path.Name,
@@ -712,6 +719,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 				modelResources = append(modelResources, *path)
 			}
 		}
+
 		if predictor.Models.Dir != nil {
 			var err error
 			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
@@ -719,11 +727,11 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
 			}
 		}
-		if predictor.Models.SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType), userconfig.ModelsKey)
-		}
 	}
 	*models = modelResourceToCurated(modelResources)
+
+	// TODO add model validation
+
 	return nil
 }
 
@@ -758,35 +766,55 @@ func validatePythonModel(modelResource *userconfig.ModelResource, providerType t
 	return nil
 }
 
-func validateTensorFlowPredictor(api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
 
-	if predictor.ModelPath == nil && predictor.Models == nil {
+	hasSingleModel := predictor.ModelPath != nil
+	hasMultiModels := isMultiModelFieldSet(predictor.Models)
+
+	if !hasSingleModel && !hasMultiModels {
 		return ErrorMissingModel(predictor.Type)
 	}
 
-	if predictor.ModelPath != nil {
-		modelResource := &userconfig.ModelResource{
-			Name:         consts.SingleModelName,
-			ModelPath:    *predictor.ModelPath,
-			SignatureKey: predictor.SignatureKey,
+	var modelResources []userconfig.ModelResource
+	if hasSingleModel {
+		modelResources = []userconfig.ModelResource{
+			{
+				Name:         consts.SingleModelName,
+				ModelPath:    *predictor.ModelPath,
+				SignatureKey: predictor.SignatureKey,
+			},
 		}
-		// place the model into predictor.Models for ease of use
-		predictor.Models.Paths = []*userconfig.ModelResource{modelResource}
 	}
-
-	if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
-		return errors.Wrap(err, userconfig.ModelsKey)
-	}
-
-	for i := range predictor.Models.Paths {
-		if err := validateTensorFlowModel(predictor.Models.Paths[i], api, providerType, projectFiles, awsClient); err != nil {
-			if predictor.ModelPath == nil {
-				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models.Paths[i].Name)
+	if hasMultiModels {
+		if len(predictor.Models.Paths) > 0 {
+			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
 			}
-			return err
+			for _, path := range predictor.Models.Paths {
+				if path.SignatureKey == nil && predictor.Models.SignatureKey != nil {
+					path.SignatureKey = predictor.Models.SignatureKey
+				}
+				modelResources = append(modelResources, *path)
+			}
+		}
+
+		if predictor.Models.Dir != nil {
+			var err error
+			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			if err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+			}
+			if predictor.Models.SignatureKey != nil {
+				for i := range modelResources {
+					modelResources[i].SignatureKey = predictor.Models.SignatureKey
+				}
+			}
 		}
 	}
+	*models = modelResourceToCurated(modelResources)
+
+	// TODO add model validation
 
 	return nil
 }
@@ -858,38 +886,63 @@ func validateTensorFlowModel(modelResource *userconfig.ModelResource, api *userc
 	return nil
 }
 
-func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
-	if predictor.ModelPath == nil && predictor.Models == nil {
+	if predictor.TensorFlowServingImage != "" {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
+	}
+
+	hasSingleModel := predictor.ModelPath != nil
+	hasMultiModels := isMultiModelFieldSet(predictor.Models)
+
+	if !hasSingleModel && !hasMultiModels {
 		return ErrorMissingModel(predictor.Type)
 	}
 
-	if predictor.ModelPath != nil {
-		modelResource := &userconfig.ModelResource{
-			Name:      consts.SingleModelName,
-			ModelPath: *predictor.ModelPath,
+	var modelResources []userconfig.ModelResource
+	if hasSingleModel {
+		modelResources = []userconfig.ModelResource{
+			{
+				Name:      consts.SingleModelName,
+				ModelPath: *predictor.ModelPath,
+			},
 		}
-		// place the model into predictor.Models for ease of use
-		predictor.Models.Paths = []*userconfig.ModelResource{modelResource}
 	}
-
-	if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
-		return errors.Wrap(err, userconfig.ModelsKey)
-	}
-
-	for i := range predictor.Models.Paths {
-		if predictor.Models.Paths[i].SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey, predictor.Models.Paths[i].Name)
+	if hasMultiModels {
+		if predictor.Models.SignatureKey != nil {
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey)
 		}
-		if err := validateONNXModel(predictor.Models.Paths[i], providerType, projectFiles, awsClient); err != nil {
-			if predictor.ModelPath == nil {
-				return errors.Wrap(err, userconfig.ModelsKey, predictor.Models.Paths[i].Name)
+
+		if len(predictor.Models.Paths) > 0 {
+			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
 			}
-			return err
+			for _, path := range predictor.Models.Paths {
+				if path.SignatureKey != nil {
+					return errors.Wrap(
+						ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type),
+						userconfig.ModelsKey,
+						userconfig.ModelsPathsKey,
+						path.Name,
+					)
+				}
+				modelResources = append(modelResources, *path)
+			}
+		}
+
+		if predictor.Models.Dir != nil {
+			var err error
+			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			if err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+			}
 		}
 	}
+	*models = modelResourceToCurated(modelResources)
+
+	// TODO add model validation
 
 	return nil
 }
