@@ -71,20 +71,40 @@ func isMultiModelFieldSet(m *userconfig.MultiModels) bool {
 	return true
 }
 
-func modelResourceToCurated(modelResources []userconfig.ModelResource) []CuratedModelResource {
+func absolutePath(path, basedir string) (string, error) {
+	var err error
+	if strings.HasPrefix(path, "~/") {
+		path, err = files.EscapeTilde(path)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		path = files.RelToAbsPath(path, basedir)
+	}
+
+	return path, nil
+}
+
+func modelResourceToCurated(modelResources []userconfig.ModelResource, projectFiles ProjectFiles) ([]CuratedModelResource, error) {
 	models := []CuratedModelResource{}
+	var err error
 	for _, model := range modelResources {
+		model.ModelPath, err = absolutePath(model.ModelPath, projectFiles.ProjectDir())
+		if err != nil {
+			return []CuratedModelResource{}, err
+		}
 		models = append(models, CuratedModelResource{
 			ModelResource: userconfig.ModelResource{
 				Name:         model.Name,
 				ModelPath:    model.ModelPath,
 				SignatureKey: model.SignatureKey,
 			},
-			S3Path: strings.HasPrefix(model.ModelPath, "s3://"),
+			S3Path:    strings.HasPrefix(model.ModelPath, "s3://"),
+			ZipFormat: strings.HasSuffix(model.ModelPath, ".zip"),
 		})
 	}
 
-	return models
+	return models, nil
 }
 
 // Retrieves the objects found in the path directory.
@@ -130,13 +150,9 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 
 	} else {
 		var err error
-		if strings.HasPrefix(path, "~/") {
-			path, err = files.EscapeTilde(path)
-			if err != nil {
-				return models, err
-			}
-		} else {
-			path = files.RelToAbsPath(path, projectFiles.ProjectDir())
+		path, err = absolutePath(path, projectFiles.ProjectDir())
+		if err != nil {
+			return models, err
 		}
 
 		var fi os.FileInfo
