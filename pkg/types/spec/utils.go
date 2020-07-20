@@ -27,9 +27,39 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
+
+func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
+	names := make(map[string][]userconfig.API)
+
+	for _, api := range apis {
+		names[api.Name] = append(names[api.Name], api)
+	}
+
+	for name := range names {
+		if len(names[name]) > 1 {
+			return names[name]
+		}
+	}
+
+	return nil
+}
+
+func checkDuplicateModelNames(modelResources []*userconfig.ModelResource) error {
+	names := strset.New()
+
+	for _, modelResource := range modelResources {
+		if names.Has(modelResource.Name) {
+			return ErrorDuplicateModelNames(modelResource.Name)
+		}
+		names.Add(modelResource.Name)
+	}
+
+	return nil
+}
 
 func surgeOrUnavailableValidator(str string) (string, error) {
 	if strings.HasSuffix(str, "%") {
@@ -71,6 +101,7 @@ func isMultiModelFieldSet(m *userconfig.MultiModels) bool {
 	return true
 }
 
+// Returns absolute path of "path" based on "basedir".
 func absolutePath(path, basedir string) (string, error) {
 	var err error
 	if strings.HasPrefix(path, "~/") {
@@ -107,7 +138,7 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectFi
 	return models, nil
 }
 
-// Retrieves the objects found in the path directory.
+// Retrieves the objects found in the S3/local path directory.
 //
 // The model name is determined from the objects' names found in the path directory minus the extension if there's one.
 // Path can either be an S3 path or a local system path - in the latter case, the returned paths will be in absolute form.
@@ -123,7 +154,7 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 		if isDir, err := awsClientForBucket.IsS3PathDir(path); err != nil {
 			return models, err
 		} else if isDir {
-			modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, true, pointer.Int64(20000))
+			modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, false, pointer.Int64(20000))
 			if err != nil {
 				return models, err
 			}
@@ -192,6 +223,30 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 	return models, nil
 }
 
+// getTFServingVersionsFromS3Path checks that the path contains a valid S3 directory for (Neuron) TensorFlow models:
+//
+// For TensorFlow models:
+// - model-name
+// 		- 1523423423/ (version prefix, usually a timestamp)
+//			- saved_model.pb
+// 			- variables/
+//				- variables.index
+//				- variables.data-00000-of-00001 (there are a variable number of these files)
+// 		- 2434389194/ (version prefix, usually a timestamp)
+// 			- saved_model.pb
+//			- variables/
+//				- variables.index
+//				- variables.data-00000-of-00001 (there are a variable number of these files)
+//   ...
+//
+// For Neuron TensorFlow models:
+// - model-name
+// 		- 1523423423/ (version prefix, usually a timestamp)
+// 			- saved_model.pb
+// 		- 2434389194/ (version prefix, usually a timestamp)
+//			- saved_model.pb
+// 		...
+//
 func getTFServingVersionsFromS3Path(path string, isNeuronExport bool, awsClientForBucket *aws.Client) ([]int64, error) {
 	bucket, _, err := aws.SplitS3Path(path)
 	if err != nil {
@@ -265,13 +320,24 @@ func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool
 	return true
 }
 
+// GetTFServingVersionsFromLocalPath checks that the path contains a valid local directory for TensorFlow models:
+// - model-name
+// 		- 1523423423/ (version prefix, usually a timestamp)
+//			- saved_model.pb
+// 			- variables/
+//				- variables.index
+//				- variables.data-00000-of-00001 (there are a variable number of these files)
+// 		- 2434389194/ (version prefix, usually a timestamp)
+// 			- saved_model.pb
+//			- variables/
+//				- variables.index
+//				- variables.data-00000-of-00001 (there are a variable number of these files)
+//   ...
 func GetTFServingVersionsFromLocalPath(path string) ([]int64, error) {
 	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return []int64{}, err
-	}
-
-	if len(paths) == 0 {
+	} else if len(paths) == 0 {
 		return []int64{}, ErrorDirIsEmpty(path)
 	}
 
@@ -299,6 +365,13 @@ func GetTFServingVersionsFromLocalPath(path string) ([]int64, error) {
 	return versions, nil
 }
 
+// IsValidTensorFlowLocalDirectory checks that the path contains a valid local directory for TensorFlow models
+// Must contain the following structure:
+// - 1523423423/ (version prefix, usually a timestamp)
+// 		- saved_model.pb
+//		- variables/
+//			- variables.index
+//			- variables.data-00000-of-00001 (there are a variable number of these files)
 func IsValidTensorFlowLocalDirectory(path string) (bool, error) {
 	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
@@ -319,31 +392,133 @@ func IsValidTensorFlowLocalDirectory(path string) (bool, error) {
 	return false, nil
 }
 
-func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
-	names := make(map[string][]userconfig.API)
-
-	for _, api := range apis {
-		names[api.Name] = append(names[api.Name], api)
+// getONNXVersionsFromS3Path checks that the path contains a valid S3 directory for versioned ONNX models:
+// - model-name
+// 		- 1523423423/ (version prefix, usually a timestamp)
+// 			- *.onnx
+// 		- 2434389194/ (version prefix, usually a timestamp)
+//			- *.onnx
+// 		...
+func getONNXVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([]int64, error) {
+	objects, err := awsClientForBucket.ListS3PathDir(path, false, pointer.Int64(1000))
+	if err != nil {
+		return []int64{}, err
+	} else if len(objects) == 0 {
+		return []int64{}, errors.Wrap(ErrorInvalidONNXModelPath(), path)
 	}
 
-	for name := range names {
-		if len(names[name]) > 1 {
-			return names[name]
+	versions := []int64{}
+	for _, object := range objects {
+		if !strings.HasSuffix(*object.Key, ".onnx") {
+			continue
 		}
+
+		keyParts := strings.Split(*object.Key, "/")
+		versionStr := keyParts[len(keyParts)-1]
+		version, err := strconv.ParseInt(versionStr, 10, 64)
+		if err != nil {
+			return []int64{}, err
+		}
+
+		versions = append(versions, version)
 	}
 
-	return nil
+	return versions, nil
 }
 
-func checkDuplicateModelNames(modelResources []*userconfig.ModelResource) error {
-	names := strset.New()
-
-	for _, modelResource := range modelResources {
-		if names.Has(modelResource.Name) {
-			return ErrorDuplicateModelNames(modelResource.Name)
-		}
-		names.Add(modelResource.Name)
+// GetONNXVersionsFromLocalPath checks that the path contains a valid local directory for versioned ONNX models:
+// - model-name
+// 		- 1523423423/ (version prefix, usually a timestamp)
+// 			- *.onnx
+// 		- 2434389194/ (version prefix, usually a timestamp)
+//			- *.onnx
+// 		...
+func GetONNXVersionsFromLocalPath(path string) ([]int64, error) {
+	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	if err != nil {
+		return []int64{}, err
+	} else if len(paths) == 0 {
+		return []int64{}, ErrorDirIsEmpty(path)
 	}
 
-	return nil
+	versions := []int64{}
+	for _, path := range paths {
+		if strings.HasSuffix(path, ".onnx") {
+			possiblePath := filepath.Dir(path)
+
+			versionStr := filepath.Base(possiblePath)
+			version, err := strconv.ParseInt(versionStr, 10, 64)
+			if err != nil {
+				return []int64{}, err
+			}
+
+			versions = append(versions, version)
+		}
+	}
+
+	return versions, nil
+}
+
+// getPythonVersionsFromS3Path checks that the path contains a valid S3 directory for versioned Python models:
+// - model-name
+// 		- 1523423423/ (version prefix, usually a timestamp)
+// 			- *
+// 		- 2434389194/ (version prefix, usually a timestamp)
+//			- *
+// 		...
+func getPythonVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([]int64, error) {
+	objects, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 2, false, pointer.Int64(1000))
+	if err != nil {
+		return []int64{}, err
+	} else if len(objects) == 0 {
+		return []int64{}, errors.Wrap(ErrorInvalidONNXModelPath(), path)
+	}
+
+	versions := []int64{}
+	for _, object := range objects {
+
+		keyParts := strings.Split(object, "/")
+		versionStr := keyParts[len(keyParts)-1]
+		version, err := strconv.ParseInt(versionStr, 10, 64)
+		if err != nil {
+			return []int64{}, err
+		}
+
+		versions = append(versions, version)
+	}
+
+	return slices.UniqueInt64(versions), nil
+}
+
+// GetPythonVersionsFromLocalPath checks that the path contains a valid local directory for versioned Python models:
+// - model-name
+// 		- 1523423423/ (version prefix, usually a timestamp)
+// 			- *
+// 		- 2434389194/ (version prefix, usually a timestamp)
+//			- *
+// 		...
+func GetPythonVersionsFromLocalPath(path string) ([]int64, error) {
+	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	if err != nil {
+		return []int64{}, err
+	}
+
+	if len(paths) == 0 {
+		return []int64{}, ErrorDirIsEmpty(path)
+	}
+
+	versions := []int64{}
+	for _, path := range paths {
+		possiblePath := filepath.Dir(path)
+
+		versionStr := filepath.Base(possiblePath)
+		version, err := strconv.ParseInt(versionStr, 10, 64)
+		if err != nil {
+			return []int64{}, err
+		}
+
+		versions = append(versions, version)
+	}
+
+	return slices.UniqueInt64(versions), nil
 }

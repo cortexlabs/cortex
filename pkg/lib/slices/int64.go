@@ -28,3 +28,15 @@ func HasInt64(list []int64, query int64) bool {
 func CopyInt64s(vals []int64) []int64 {
 	return append(vals[:0:0], vals...)
 }
+
+func UniqueInt64(vals []int64) []int64 {
+	keys := make(map[int64]bool)
+	list := []int64{}
+	for _, entry := range vals {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}

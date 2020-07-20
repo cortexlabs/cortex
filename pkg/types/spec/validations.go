@@ -734,36 +734,59 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 		return err
 	}
 
-	// TODO add model validation
+	for i := range *models {
+		if err := validatePythonModel(&(*models)[i], providerType, projectFiles, awsClient); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
-func validatePythonModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	modelPath := modelResource.ModelPath
-
-	if strings.HasPrefix(modelPath, "s3://") {
-		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
+func validatePythonModel(modelResource *CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	if modelResource.S3Path {
+		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {
-			return errors.Wrap(err, userconfig.ModelPathKey)
+			return err
 		}
 
-		modelPath, err = cr.S3PathValidator(modelPath)
+		_, err = cr.S3PathValidator(modelResource.ModelPath)
 		if err != nil {
-			return errors.Wrap(err, userconfig.ModelPathKey)
+			return err
 		}
 
-		if strings.HasSuffix(modelPath, ".zip") {
-			if ok, err := awsClientForBucket.IsS3PathFile(modelPath); err != nil || !ok {
-				fmt.Println(err)
-				return errors.Wrap(ErrorS3FileNotFound(modelPath), userconfig.ModelPathKey)
+		if modelResource.ZipFormat {
+			if ok, err := awsClientForBucket.IsS3PathFile(modelResource.ModelPath); err != nil || !ok {
+				return ErrorS3FileNotFound(modelResource.ModelPath)
 			}
 		} else {
-			s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, true, nil)
+			versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
 			if err != nil {
-				return errors.Wrap(ErrorS3DirNotFound(modelPath), userconfig.ModelPathKey)
+				return err
+			} else if len(versions) == 0 {
+				return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
 			}
-			fmt.Println(s3Objects)
+			modelResource.Versions = versions
+		}
+	} else {
+		if providerType == types.AWSProviderType {
+			return ErrorLocalModelPathNotSupportedByAWSProvider()
+		}
+
+		if modelResource.ZipFormat {
+			if err := files.CheckFile(modelResource.ModelPath); err != nil {
+				return err
+			}
+		} else if files.IsDir(modelResource.ModelPath) {
+			versions, err := GetONNXVersionsFromLocalPath(modelResource.ModelPath)
+			if err != nil {
+				return err
+			} else if len(versions) == 0 {
+				return ErrorInvalidONNXModelPath()
+			}
+			modelResource.Versions = versions
+		} else {
+			return ErrorInvalidONNXModelPath()
 		}
 	}
 
@@ -953,50 +976,68 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 		return err
 	}
 
-	// TODO add model validation
+	for i := range *models {
+		if err := validateONNXModel(&(*models)[i], providerType, projectFiles, awsClient); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
-func validateONNXModel(modelResource *userconfig.ModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	modelPath := modelResource.ModelPath
-	var err error
-	if !strings.HasSuffix(modelPath, ".onnx") {
-		return errors.Wrap(ErrorInvalidONNXModelPath(), userconfig.ModelPathKey, modelPath)
-	}
+func validateONNXModel(
+	modelResource *CuratedModelResource,
+	providerType types.ProviderType,
+	projectFiles ProjectFiles,
+	awsClient *aws.Client,
+) error {
 
-	if strings.HasPrefix(modelPath, "s3://") {
-		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
+	if modelResource.S3Path {
+		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {
-			return errors.Wrap(err, userconfig.ModelPathKey)
+			return err
 		}
 
-		modelPath, err := cr.S3PathValidator(modelPath)
+		_, err = cr.S3PathValidator(modelResource.ModelPath)
 		if err != nil {
-			return errors.Wrap(err, userconfig.ModelPathKey)
+			return err
 		}
 
-		if ok, err := awsClientForBucket.IsS3PathFile(modelPath); err != nil || !ok {
-			return errors.Wrap(ErrorS3FileNotFound(modelPath), userconfig.ModelPathKey)
+		if modelResource.ZipFormat || strings.HasSuffix(modelResource.ModelPath, ".onnx") {
+			if ok, err := awsClientForBucket.IsS3PathFile(modelResource.ModelPath); err != nil || !ok {
+				return ErrorS3FileNotFound(modelResource.ModelPath)
+			}
+		} else {
+			versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
+			if err != nil {
+				return err
+			} else if len(versions) == 0 {
+				return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
+			}
+			modelResource.Versions = versions
 		}
 	} else {
 		if providerType == types.AWSProviderType {
-			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), modelPath, userconfig.ModelPathKey)
+			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		if strings.HasPrefix(modelResource.ModelPath, "~/") {
-			modelPath, err = files.EscapeTilde(modelPath)
-			if err != nil {
+		if modelResource.ZipFormat {
+			if err := files.CheckFile(modelResource.ModelPath); err != nil {
 				return err
 			}
+		} else if files.IsDir(modelResource.ModelPath) {
+			versions, err := GetONNXVersionsFromLocalPath(modelResource.ModelPath)
+			if err != nil {
+				return err
+			} else if len(versions) == 0 {
+				return ErrorInvalidONNXModelPath()
+			}
+			modelResource.Versions = versions
 		} else {
-			modelPath = files.RelToAbsPath(modelResource.ModelPath, projectFiles.ProjectDir())
+			return ErrorInvalidONNXModelPath()
 		}
-		if err := files.CheckFile(modelPath); err != nil {
-			return errors.Wrap(err, userconfig.ModelPathKey)
-		}
-		modelResource.ModelPath = modelPath
 	}
+
 	return nil
 }
 
