@@ -50,9 +50,9 @@ type LocalModelCache struct {
 
 type CuratedModelResource struct {
 	userconfig.ModelResource
-	ZipFormat       bool  `json:"zip_format"`
-	NoVersionSubdir bool  `json:"no_version_subdir"`
-	Versions        []int `json:"versions"`
+	S3Path    bool  `json:"s3_path"`
+	ZipFormat bool  `json:"zip_format"`
+	Versions  []int `json:"versions"`
 }
 
 func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projectID string, deploymentID string) *API {

@@ -80,6 +80,7 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource) []Curated
 				ModelPath:    model.ModelPath,
 				SignatureKey: model.SignatureKey,
 			},
+			S3Path: strings.HasPrefix(model.ModelPath, "s3://"),
 		})
 	}
 
