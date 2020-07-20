@@ -123,7 +123,7 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 		if isDir, err := awsClientForBucket.IsS3PathDir(path); err != nil {
 			return models, err
 		} else if isDir {
-			modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, true, nil)
+			modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, true, pointer.Int64(20000))
 			if err != nil {
 				return models, err
 			}
@@ -192,25 +192,20 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 	return models, nil
 }
 
-func getTFServingExportFromS3Path(path string, isNeuronExport bool, awsClientForBucket *aws.Client) (string, error) {
-	if isValidTensorFlowS3Directory(path, awsClientForBucket) {
-		return path, nil
-	}
-
+func getTFServingVersionsFromS3Path(path string, isNeuronExport bool, awsClientForBucket *aws.Client) ([]int64, error) {
 	bucket, _, err := aws.SplitS3Path(path)
 	if err != nil {
-		return "", err
+		return []int64{}, err
 	}
 
 	objects, err := awsClientForBucket.ListS3PathDir(path, false, pointer.Int64(1000))
 	if err != nil {
-		return "", err
+		return []int64{}, err
 	} else if len(objects) == 0 {
-		return "", errors.Wrap(ErrorInvalidTensorFlowModelPath(), path)
+		return []int64{}, errors.Wrap(ErrorInvalidTensorFlowModelPath(), path)
 	}
 
-	highestVersion := int64(0)
-	var highestPath string
+	versions := []int64{}
 	for _, object := range objects {
 		if !strings.HasSuffix(*object.Key, "saved_model.pb") {
 			continue
@@ -220,24 +215,17 @@ func getTFServingExportFromS3Path(path string, isNeuronExport bool, awsClientFor
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			version = 0
+			return []int64{}, err
 		}
 
-		possiblePath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
-
-		if version >= highestVersion {
-			if isNeuronExport && isValidNeuronTensorFlowS3Directory(possiblePath, awsClientForBucket) {
-				highestVersion = version
-				highestPath = possiblePath
-			}
-			if !isNeuronExport && isValidTensorFlowS3Directory(possiblePath, awsClientForBucket) {
-				highestVersion = version
-				highestPath = possiblePath
-			}
+		versionedPath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
+		if (isNeuronExport && isValidNeuronTensorFlowS3Directory(versionedPath, awsClientForBucket)) ||
+			(!isNeuronExport && isValidTensorFlowS3Directory(versionedPath, awsClientForBucket)) {
+			versions = append(versions, version)
 		}
 	}
 
-	return highestPath, nil
+	return versions, nil
 }
 
 // isValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
@@ -277,22 +265,17 @@ func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool
 	return true
 }
 
-func GetTFServingExportFromLocalPath(path string) (string, error) {
-	if err := files.CheckDir(path); err != nil {
-		return "", err
-	}
+func GetTFServingVersionsFromLocalPath(path string) ([]int64, error) {
 	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
-		return "", err
+		return []int64{}, err
 	}
 
 	if len(paths) == 0 {
-		return "", ErrorDirIsEmpty(path)
+		return []int64{}, ErrorDirIsEmpty(path)
 	}
 
-	highestVersion := int64(0)
-	var highestPath string
-
+	versions := []int64{}
 	for _, path := range paths {
 		if strings.HasSuffix(path, "saved_model.pb") {
 			possiblePath := filepath.Dir(path)
@@ -300,21 +283,20 @@ func GetTFServingExportFromLocalPath(path string) (string, error) {
 			versionStr := filepath.Base(possiblePath)
 			version, err := strconv.ParseInt(versionStr, 10, 64)
 			if err != nil {
-				version = 0
+				return []int64{}, err
 			}
 
 			validTFDirectory, err := IsValidTensorFlowLocalDirectory(possiblePath)
 			if err != nil {
-				return "", err
+				return []int64{}, err
 			}
-			if version > highestVersion && validTFDirectory {
-				highestVersion = version
-				highestPath = possiblePath
+			if validTFDirectory {
+				versions = append(versions, version)
 			}
 		}
 	}
 
-	return highestPath, nil
+	return versions, nil
 }
 
 func IsValidTensorFlowLocalDirectory(path string) (bool, error) {

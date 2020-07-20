@@ -728,7 +728,11 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 			}
 		}
 	}
-	*models = modelResourceToCurated(modelResources)
+	var err error
+	*models, err = modelResourceToCurated(modelResources, projectFiles)
+	if err != nil {
+		return err
+	}
 
 	// TODO add model validation
 
@@ -812,74 +816,77 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 			}
 		}
 	}
-	*models = modelResourceToCurated(modelResources)
+	var err error
+	*models, err = modelResourceToCurated(modelResources, projectFiles)
+	if err != nil {
+		return err
+	}
 
-	// TODO add model validation
+	for i := range *models {
+		if err := validateTensorFlowModel(&(*models)[i], api, providerType, projectFiles, awsClient); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
-func validateTensorFlowModel(modelResource *userconfig.ModelResource, api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	modelPath := modelResource.ModelPath
+func validateTensorFlowModel(
+	modelResource *CuratedModelResource,
+	api *userconfig.API,
+	providerType types.ProviderType,
+	projectFiles ProjectFiles,
+	awsClient *aws.Client,
+) error {
 
-	if strings.HasPrefix(modelPath, "s3://") {
-		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
+	if modelResource.S3Path {
+		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {
-			return errors.Wrap(err, userconfig.ModelPathKey)
+			return err
 		}
 
-		modelPath, err := cr.S3PathValidator(modelPath)
+		_, err = cr.S3PathValidator(modelResource.ModelPath)
 		if err != nil {
-			return errors.Wrap(err, userconfig.ModelPathKey)
+			return err
 		}
 
-		if strings.HasSuffix(modelPath, ".zip") {
-			if ok, err := awsClientForBucket.IsS3PathFile(modelPath); err != nil || !ok {
-				return errors.Wrap(ErrorS3FileNotFound(modelPath), userconfig.ModelPathKey)
+		if modelResource.ZipFormat {
+			if ok, err := awsClientForBucket.IsS3PathFile(modelResource.ModelPath); err != nil || !ok {
+				return ErrorS3FileNotFound(modelResource.ModelPath)
 			}
 		} else {
 			isNeuronExport := api.Compute.Inf > 0
-			exportPath, err := getTFServingExportFromS3Path(modelPath, isNeuronExport, awsClientForBucket)
-			if err != nil {
-				return errors.Wrap(err, userconfig.ModelPathKey)
-			}
-			if exportPath == "" {
-				if isNeuronExport {
-					return errors.Wrap(ErrorInvalidNeuronTensorFlowDir(modelPath), userconfig.ModelPathKey)
-				}
-				return errors.Wrap(ErrorInvalidTensorFlowDir(modelPath), userconfig.ModelPathKey)
-			}
-			modelResource.ModelPath = exportPath
-		}
-	} else {
-		if providerType == types.AWSProviderType {
-			return errors.Wrap(ErrorLocalModelPathNotSupportedByAWSProvider(), modelPath, userconfig.ModelPathKey)
-		}
-
-		var err error
-		if strings.HasPrefix(modelResource.ModelPath, "~/") {
-			modelPath, err = files.EscapeTilde(modelPath)
+			versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, isNeuronExport, awsClientForBucket)
 			if err != nil {
 				return err
 			}
-		} else {
-			modelPath = files.RelToAbsPath(modelResource.ModelPath, projectFiles.ProjectDir())
+			if len(versions) == 0 {
+				if isNeuronExport {
+					return ErrorInvalidNeuronTensorFlowDir(modelResource.ModelPath)
+				}
+				return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
+			}
+			modelResource.Versions = versions
 		}
-		if strings.HasSuffix(modelPath, ".zip") {
-			if err := files.CheckFile(modelPath); err != nil {
-				return errors.Wrap(err, userconfig.ModelPathKey)
+	} else {
+		if providerType == types.AWSProviderType {
+			return ErrorLocalModelPathNotSupportedByAWSProvider()
+		}
+
+		if modelResource.ZipFormat {
+			if err := files.CheckFile(modelResource.ModelPath); err != nil {
+				return err
 			}
-			modelResource.ModelPath = modelPath
-		} else if files.IsDir(modelPath) {
-			path, err := GetTFServingExportFromLocalPath(modelPath)
+		} else if files.IsDir(modelResource.ModelPath) {
+			versions, err := GetTFServingVersionsFromLocalPath(modelResource.ModelPath)
 			if err != nil {
-				return errors.Wrap(err, userconfig.ModelPathKey)
-			} else if path == "" {
-				return errors.Wrap(ErrorInvalidTensorFlowDir(modelPath), userconfig.ModelPathKey)
+				return err
+			} else if len(versions) == 0 {
+				return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
 			}
-			modelResource.ModelPath = path
+			modelResource.Versions = versions
 		} else {
-			return errors.Wrap(ErrorInvalidTensorFlowModelPath(), userconfig.ModelPathKey, modelPath)
+			return ErrorInvalidTensorFlowModelPath()
 		}
 	}
 
@@ -940,7 +947,11 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 			}
 		}
 	}
-	*models = modelResourceToCurated(modelResources)
+	var err error
+	*models, err = modelResourceToCurated(modelResources, projectFiles)
+	if err != nil {
+		return err
+	}
 
 	// TODO add model validation
 

@@ -227,20 +227,19 @@ func unzipAndValidate(originalModelPath string, zipFile string, destPath string)
 	}
 
 	// returns a tensorflow directory with the version as the suffix of the path
-	tensorflowDir, err := spec.GetTFServingExportFromLocalPath(tmpDir)
+	_, err = spec.GetTFServingVersionsFromLocalPath(tmpDir)
 	if err != nil {
 		return err
 	}
 
-	isValid, err := spec.IsValidTensorFlowLocalDirectory(tensorflowDir)
+	isValid, err := spec.IsValidTensorFlowLocalDirectory(tmpDir)
 	if err != nil {
 		return err
 	} else if !isValid {
 		return ErrorInvalidTensorFlowZip()
 	}
 
-	destPathWithVersion := filepath.Join(destPath, filepath.Base(tensorflowDir))
-	err = os.Rename(strings.TrimSuffix(tensorflowDir, "/"), strings.TrimSuffix(destPathWithVersion, "/"))
+	err = os.Rename(strings.TrimSuffix(tmpDir, "/"), strings.TrimSuffix(destPath, "/"))
 	if err != nil {
 		return errors.WithStack(err)
 	}
