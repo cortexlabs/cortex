@@ -755,29 +755,19 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return err
 		}
 
-		if modelResource.ZipFormat {
-			if ok, err := awsClientForBucket.IsS3PathFile(modelResource.ModelPath); err != nil || !ok {
-				return ErrorS3FileNotFound(modelResource.ModelPath)
-			}
-		} else {
-			versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
-			if err != nil {
-				return err
-			} else if len(versions) == 0 {
-				return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
-			}
-			modelResource.Versions = versions
+		versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
+		if err != nil {
+			return err
+		} else if len(versions) == 0 {
+			return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
 		}
+		modelResource.Versions = versions
 	} else {
 		if providerType == types.AWSProviderType {
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		if modelResource.ZipFormat {
-			if err := files.CheckFile(modelResource.ModelPath); err != nil {
-				return err
-			}
-		} else if files.IsDir(modelResource.ModelPath) {
+		if files.IsDir(modelResource.ModelPath) {
 			versions, err := GetONNXVersionsFromLocalPath(modelResource.ModelPath)
 			if err != nil {
 				return err
@@ -873,34 +863,24 @@ func validateTensorFlowModel(
 			return err
 		}
 
-		if modelResource.ZipFormat {
-			if ok, err := awsClientForBucket.IsS3PathFile(modelResource.ModelPath); err != nil || !ok {
-				return ErrorS3FileNotFound(modelResource.ModelPath)
-			}
-		} else {
-			isNeuronExport := api.Compute.Inf > 0
-			versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, isNeuronExport, awsClientForBucket)
-			if err != nil {
-				return err
-			}
-			if len(versions) == 0 {
-				if isNeuronExport {
-					return ErrorInvalidNeuronTensorFlowDir(modelResource.ModelPath)
-				}
-				return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
-			}
-			modelResource.Versions = versions
+		isNeuronExport := api.Compute.Inf > 0
+		versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, isNeuronExport, awsClientForBucket)
+		if err != nil {
+			return err
 		}
+		if len(versions) == 0 {
+			if isNeuronExport {
+				return ErrorInvalidNeuronTensorFlowDir(modelResource.ModelPath)
+			}
+			return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
+		}
+		modelResource.Versions = versions
 	} else {
 		if providerType == types.AWSProviderType {
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		if modelResource.ZipFormat {
-			if err := files.CheckFile(modelResource.ModelPath); err != nil {
-				return err
-			}
-		} else if files.IsDir(modelResource.ModelPath) {
+		if files.IsDir(modelResource.ModelPath) {
 			versions, err := GetTFServingVersionsFromLocalPath(modelResource.ModelPath)
 			if err != nil {
 				return err
@@ -1003,29 +983,19 @@ func validateONNXModel(
 			return err
 		}
 
-		if modelResource.ZipFormat || strings.HasSuffix(modelResource.ModelPath, ".onnx") {
-			if ok, err := awsClientForBucket.IsS3PathFile(modelResource.ModelPath); err != nil || !ok {
-				return ErrorS3FileNotFound(modelResource.ModelPath)
-			}
-		} else {
-			versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
-			if err != nil {
-				return err
-			} else if len(versions) == 0 {
-				return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
-			}
-			modelResource.Versions = versions
+		versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
+		if err != nil {
+			return err
+		} else if len(versions) == 0 {
+			return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
 		}
+		modelResource.Versions = versions
 	} else {
 		if providerType == types.AWSProviderType {
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		if modelResource.ZipFormat {
-			if err := files.CheckFile(modelResource.ModelPath); err != nil {
-				return err
-			}
-		} else if files.IsDir(modelResource.ModelPath) {
+		if files.IsDir(modelResource.ModelPath) {
 			versions, err := GetONNXVersionsFromLocalPath(modelResource.ModelPath)
 			if err != nil {
 				return err

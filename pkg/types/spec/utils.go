@@ -130,8 +130,7 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectFi
 				ModelPath:    model.ModelPath,
 				SignatureKey: model.SignatureKey,
 			},
-			S3Path:    strings.HasPrefix(model.ModelPath, "s3://"),
-			ZipFormat: strings.HasSuffix(model.ModelPath, ".zip"),
+			S3Path: strings.HasPrefix(model.ModelPath, "s3://"),
 		})
 	}
 
