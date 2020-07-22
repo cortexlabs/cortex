@@ -75,19 +75,27 @@ func addAPIToDashboardObject(dashboard *aws.CloudWatchDashboard, dashboardName s
 		return errors.Wrap(err, fmt.Sprintf("failed to add API \"%s\" to cloudwatch dashboard", apiName))
 	}
 
-	// create widgets for title and metrics
-	apiTitleWidget := aws.TextWidget(1, highestY+1, 22, 1, "## "+apiName)
-	// top left widget
-	statCodeWidget := aws.MetricWidget(1, highestY+2, 11, 6, statusCodeMetric(dashboardName, apiName), "responses per minute", "Sum", 60, config.AWS.Region)
-	// top right widget
-	inFlightWidget := aws.MetricWidget(12, highestY+2, 11, 6, inFlightMetric(dashboardName, apiName), "total in-flight requests", "Sum", 10, config.AWS.Region)
-	// bottem left widget
-	latencyWidgetP50 := aws.MetricWidget(1, highestY+8, 11, 6, latencyMetric(dashboardName, apiName), "median response time (ms)", "p50", 60, config.AWS.Region)
-	// bottom right widget
-	latencyWidgetP99 := aws.MetricWidget(12, highestY+8, 11, 6, latencyMetric(dashboardName, apiName), "p99 response time (ms)", "p99", 60, config.AWS.Region)
+	// create widget for title
+	dashboard.Widgets = append(dashboard.Widgets, aws.TextWidget(1, highestY+1, 22, 1, "## "+apiName))
+
+	grid, err := aws.NewVerticalGrid(1, highestY+2, 6, 11, 3)
+	if err != nil {
+		return nil
+	}
+
+	// first grid column
+	grid.AddWidget(statusCodeMetric(dashboardName, apiName), "responses per minute", "Sum", 60, config.AWS.Region)
+	grid.AddWidget(latencyMetric(dashboardName, apiName), "median response time (ms)", "p50", 60, config.AWS.Region)
+	grid.AddWidget(latencyMetric(dashboardName, apiName), "p99 response time (ms)", "p99", 60, config.AWS.Region)
+
+	// second grid column
+	grid.AddWidget(inFlightMetric(dashboardName, apiName), "total in-flight requests", "Sum", 10, config.AWS.Region)
+	grid.AddWidget(inFlightMetric(dashboardName, apiName), "avg in-flight requests per replica", "Average", 10, config.AWS.Region)
+	// setting the period to 10 seconds because the publishing frequency of the request monitor is 10 seconds
+	grid.AddWidget(inFlightMetric(dashboardName, apiName), "active replicas", "SampleCount", 10, config.AWS.Region)
 
 	// append new API metrics widgets to existing widgets
-	dashboard.Widgets = append(dashboard.Widgets, apiTitleWidget, statCodeWidget, inFlightWidget, latencyWidgetP50, latencyWidgetP99)
+	dashboard.Widgets = append(dashboard.Widgets, grid.Widgets...)
 
 	return nil
 }
