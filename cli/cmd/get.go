@@ -34,7 +34,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -149,8 +148,11 @@ func getAPIsInAllEnvironments() (string, error) {
 	}
 
 	var allSyncAPIs []schema.SyncAPI
-	var allEnvs []string
+	var allAPISplitters []schema.APISplitter
+	var allEnvsSyncAPI []string
+	var allEnvsAPISplitter []string
 	errorsMap := map[string]error{}
+	// get apis from both environments
 	for _, env := range cliConfig.Environments {
 		var apisRes schema.GetAPIsResponse
 		var err error
@@ -162,34 +164,35 @@ func getAPIsInAllEnvironments() (string, error) {
 
 		if err == nil {
 			for range apisRes.SyncAPIs {
-				allEnvs = append(allEnvs, env.Name)
+				allEnvsSyncAPI = append(allEnvsSyncAPI, env.Name)
 			}
-
+			for range apisRes.APISplitter {
+				allEnvsAPISplitter = append(allEnvsAPISplitter, env.Name)
+			}
 			allSyncAPIs = append(allSyncAPIs, apisRes.SyncAPIs...)
+			if env.Provider == types.AWSProviderType {
+				allAPISplitters = append(allAPISplitters, apisRes.APISplitter...)
+			}
 		} else {
 			errorsMap[env.Name] = err
 		}
 	}
 
 	out := ""
+	var apiSplitTable table.Table
+	var syncAPITable table.Table
 
+	// build different table depending on kinds that are deployed
 	if len(allSyncAPIs) == 0 {
-		if len(errorsMap) == 1 {
-			// Print the error if there is just one
-			exit.Error(errors.FirstErrorInMap(errorsMap))
-		}
-		// if all envs errored, skip it "no apis are deployed" since it's misleading
-		if len(errorsMap) != len(cliConfig.Environments) {
-			out += console.Bold("no apis are deployed") + "\n"
-		}
+		apiSplitTable = apiSplitterListTable(allAPISplitters, allEnvsAPISplitter)
+		out = apiSplitTable.MustFormat()
+	} else if len(allAPISplitters) == 0 {
+		syncAPITable = apiTable(allSyncAPIs, allEnvsSyncAPI)
+		out = syncAPITable.MustFormat()
 	} else {
-		t := apiTable(allSyncAPIs, allEnvs)
-
-		if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
-			hideReplicaCountColumns(&t)
-		}
-
-		out += t.MustFormat()
+		apiSplitTable = apiSplitterListTable(allAPISplitters, allEnvsAPISplitter)
+		syncAPITable = apiTable(allSyncAPIs, allEnvsSyncAPI)
+		out = syncAPITable.MustFormat() + "\n" + apiSplitTable.MustFormat()
 	}
 
 	if len(errorsMap) == 1 {
@@ -394,7 +397,8 @@ func trafficSplitTable(apiSplitter schema.APISplitter, env cliconfig.Environment
 
 func apiSplitterListTable(apiSplitter []schema.APISplitter, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(apiSplitter))
-
+	fmt.Println("apisplitter")
+	fmt.Println(envNames)
 	for i, splitAPI := range apiSplitter {
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
 		var apis []string
@@ -468,7 +472,8 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 
 func apiTable(syncAPIs []schema.SyncAPI, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(syncAPIs))
-
+	fmt.Println("synctable")
+	fmt.Println(envNames)
 	var totalFailed int32
 	var totalStale int32
 	var total4XX int
