@@ -361,13 +361,13 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 func ErrorAPISplitterWeightNot100(totalWeight int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorretAPISplitterWeight,
-		Message: fmt.Sprintf("api splitter weights added up to %d instead of 100", totalWeight),
+		Message: fmt.Sprintf("expected api splitter weights to sum to 100 but found %d", totalWeight),
 	})
 }
 
 func ErrorAPISplitterNotSupported(api userconfig.API) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPISplitterNotSupported,
-		Message: fmt.Sprintf("kind APISplitter is not supported in local environment: %s", api.Resource.Name),
+		Message: fmt.Sprintf("kind APISplitter is not supported for local provider: %s", api.Resource.Name),
 	})
 }

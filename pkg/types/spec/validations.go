@@ -1190,7 +1190,6 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 }
 
 func isWeight100(apis []*userconfig.TrafficSplit) error {
-
 	totalWeight := 0
 	for _, api := range apis {
 		totalWeight += api.Weight

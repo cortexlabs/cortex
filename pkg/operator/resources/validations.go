@@ -118,14 +118,13 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-			dups := spec.FindDuplicateNames(InclusiveFilterAPIsByKind(apis, userconfig.APISplitterKind))
-			if len(dups) > 0 {
-				return spec.ErrorDuplicateName(dups)
-			}
 		}
 	}
-
-	dups := findDuplicateEndpoints(apis)
+	dups := spec.FindDuplicateNames(apis)
+	if len(dups) > 0 {
+		return spec.ErrorDuplicateName(dups)
+	}
+	dups = findDuplicateEndpoints(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateEndpointInOneDeploy(dups)
 	}
@@ -277,7 +276,6 @@ func InclusiveFilterAPIsByKind(apis []userconfig.API, kindsToInclude ...userconf
 
 // checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
 func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API) error {
-
 	deployedAPIs, err := GetAPIs()
 	if err != nil {
 		return err

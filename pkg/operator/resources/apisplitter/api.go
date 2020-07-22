@@ -42,7 +42,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
-		if err := applyK8sResources(api, prevVirtualService); err != nil {
+		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
@@ -58,7 +58,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
-		if err := applyK8sResources(api, prevVirtualService); err != nil {
+		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
 			return nil, "", err
 		}
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
@@ -113,10 +113,6 @@ func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualS
 	}
 
 	return virtualService, err
-}
-
-func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
-	return applyK8sVirtualService(api, prevVirtualService)
 }
 
 func applyK8sVirtualService(apiSplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {

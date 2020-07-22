@@ -329,7 +329,6 @@ func (api *API) UserStr(provider types.ProviderType) string {
 
 func (trafficSplit *TrafficSplit) UserStr() string {
 	var sb strings.Builder
-	// ADD KEY TO CONSTS
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Int(trafficSplit.Weight)))
 	return sb.String()

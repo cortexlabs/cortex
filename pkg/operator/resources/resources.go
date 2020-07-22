@@ -22,8 +22,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -95,7 +93,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		}
 	}
 
-	// order apiconfigs first syncAPIs then TrafficSplit
+	// order SyncAPIs apiconfigs first then APISplitters
 	// This is done if user specifies SyncAPIs in same file as APISplitter
 	apiConfigs = append(InclusiveFilterAPIsByKind(apiConfigs, userconfig.SyncAPIKind), InclusiveFilterAPIsByKind(apiConfigs, userconfig.APISplitterKind)...)
 
@@ -155,23 +153,11 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	if deployedResource == nil {
+		return nil, ErrorAPINotDeployed(apiName)
+	}
 
 	if deployedResource.Kind == userconfig.SyncAPIKind {
-		if deployedResource == nil {
-			// Delete anyways just to be sure everything is deleted
-			go func() {
-				err := parallel.RunFirstErr(
-					func() error {
-						return syncapi.DeleteAPI(apiName, keepCache)
-					},
-				)
-				if err != nil {
-					telemetry.Error(err)
-				}
-			}()
-
-			return nil, ErrorAPINotDeployed(apiName)
-		}
 		err := checkIfUsedByAPISplitter(apiName)
 		if err != nil {
 			return nil, err
@@ -181,20 +167,6 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			return nil, err
 		}
 	} else if deployedResource.Kind == userconfig.APISplitterKind {
-		if deployedResource == nil {
-			// Delete anyways just to be sure everything is deleted
-			go func() {
-				err = parallel.RunFirstErr(
-					func() error {
-						return apisplitter.DeleteAPI(apiName, keepCache)
-					},
-				)
-				if err != nil {
-					telemetry.Error(err)
-				}
-			}()
-			return nil, ErrorAPINotDeployed(apiName)
-		}
 		err := apisplitter.DeleteAPI(apiName, keepCache)
 		if err != nil {
 			return nil, err
