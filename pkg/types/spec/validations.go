@@ -689,13 +689,18 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 	hasSingleModel := predictor.ModelPath != nil
 	hasMultiModels := isMultiModelFieldSet(predictor.Models)
 
+	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
+
 	if hasSingleModel {
 		modelResources = []userconfig.ModelResource{
 			{
 				Name:      consts.SingleModelName,
 				ModelPath: *predictor.ModelPath,
 			},
+		}
+		modelWrapError = func(err error) error {
+			return errors.Wrap(err, userconfig.ModelPathKey)
 		}
 	}
 	if hasMultiModels {
@@ -704,8 +709,12 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 		}
 
 		if len(predictor.Models.Paths) > 0 {
-			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
+			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
+			}
+
+			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
+				return modelWrapError(err)
 			}
 			for _, path := range predictor.Models.Paths {
 				if path.SignatureKey != nil {
@@ -721,22 +730,26 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 		}
 
 		if predictor.Models.Dir != nil {
+			modelWrapError = func(err error) error {
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+			}
+
 			var err error
 			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
 			if err != nil {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+				return modelWrapError(err)
 			}
 		}
 	}
 	var err error
 	*models, err = modelResourceToCurated(modelResources, projectFiles)
 	if err != nil {
-		return err
+		return errors.Wrap(err, userconfig.ModelsKey)
 	}
 
 	for i := range *models {
 		if err := validatePythonModel(&(*models)[i], providerType, projectFiles, awsClient); err != nil {
-			return err
+			return modelWrapError(err)
 		}
 	}
 
@@ -747,19 +760,17 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 	if modelResource.S3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {
-			return err
+			return errors.Wrap(err, modelResource.Name)
 		}
 
 		_, err = cr.S3PathValidator(modelResource.ModelPath)
 		if err != nil {
-			return err
+			return errors.Wrap(err, modelResource.Name)
 		}
 
-		versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
+		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
 		if err != nil {
-			return err
-		} else if len(versions) == 0 {
-			return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
+			return errors.Wrap(err, modelResource.Name)
 		}
 		modelResource.Versions = versions
 	} else {
@@ -768,11 +779,9 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 		}
 
 		if files.IsDir(modelResource.ModelPath) {
-			versions, err := GetONNXVersionsFromLocalPath(modelResource.ModelPath)
+			versions, err := GetPythonVersionsFromLocalPath(modelResource.ModelPath)
 			if err != nil {
 				return err
-			} else if len(versions) == 0 {
-				return ErrorInvalidONNXModelPath()
 			}
 			modelResource.Versions = versions
 		} else {

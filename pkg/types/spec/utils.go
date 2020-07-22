@@ -120,9 +120,12 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectFi
 	models := []CuratedModelResource{}
 	var err error
 	for _, model := range modelResources {
-		model.ModelPath, err = absolutePath(model.ModelPath, projectFiles.ProjectDir())
-		if err != nil {
-			return []CuratedModelResource{}, err
+		isS3Path := strings.HasPrefix(model.ModelPath, "s3://")
+		if !isS3Path {
+			model.ModelPath, err = absolutePath(model.ModelPath, projectFiles.ProjectDir())
+			if err != nil {
+				return []CuratedModelResource{}, err
+			}
 		}
 		models = append(models, CuratedModelResource{
 			ModelResource: userconfig.ModelResource{
@@ -130,16 +133,16 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectFi
 				ModelPath:    model.ModelPath,
 				SignatureKey: model.SignatureKey,
 			},
-			S3Path: strings.HasPrefix(model.ModelPath, "s3://"),
+			S3Path: isS3Path,
 		})
 	}
 
 	return models, nil
 }
 
-// Retrieves the objects found in the S3/local path directory.
+// Retrieves the model objects found in the S3/local path directory.
 //
-// The model name is determined from the objects' names found in the path directory minus the extension if there's one.
+// The model name is determined from the objects' names found in the path directory.
 // Path can either be an S3 path or a local system path - in the latter case, the returned paths will be in absolute form.
 func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, awsClient *aws.Client) ([]userconfig.ModelResource, error) {
 	models := []userconfig.ModelResource{}
@@ -164,15 +167,10 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 			}
 
 			for _, modelPath := range modelPaths {
-				modelName := strings.Split(filepath.Base(modelPath), ".")[0]
-				if !isModelNameIn(models, modelName) {
-					models = append(models, userconfig.ModelResource{
-						Name:      modelName,
-						ModelPath: aws.S3Path(bucket, modelPath),
-					})
-				} else {
-					return []userconfig.ModelResource{}, ErrorS3ModelNameDuplicate(path, modelName)
-				}
+				models = append(models, userconfig.ModelResource{
+					Name:      filepath.Base(modelPath),
+					ModelPath: aws.S3Path(bucket, modelPath),
+				})
 			}
 		} else {
 			return models, ErrorS3DirNotFound(path)
@@ -206,16 +204,11 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 			return models, err
 		}
 
-		for _, modelObject := range modelObjects {
-			modelName := strings.Split(modelObject, ".")[0]
-			if !isModelNameIn(models, modelName) {
-				models = append(models, userconfig.ModelResource{
-					Name:      modelName,
-					ModelPath: filepath.Join(path, modelObject),
-				})
-			} else {
-				return []userconfig.ModelResource{}, ErrorS3ModelNameDuplicate(path, modelName)
-			}
+		for _, modelName := range modelObjects {
+			models = append(models, userconfig.ModelResource{
+				Name:      modelName,
+				ModelPath: filepath.Join(path, modelName),
+			})
 		}
 	}
 
@@ -466,21 +459,36 @@ func GetONNXVersionsFromLocalPath(path string) ([]int64, error) {
 //			- *
 // 		...
 func getPythonVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([]int64, error) {
-	objects, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 2, false, pointer.Int64(1000))
+	objects, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, false, pointer.Int64(1000))
 	if err != nil {
 		return []int64{}, err
 	} else if len(objects) == 0 {
-		return []int64{}, errors.Wrap(ErrorInvalidONNXModelPath(), path)
+		return []int64{}, ErrorNoVersionsFoundForPythonModelPath(path)
+	}
+
+	_, key, err := aws.SplitS3Path(path)
+	if err != nil {
+		return []int64{}, err
 	}
 
 	versions := []int64{}
 	for _, object := range objects {
+		if !strings.HasPrefix(object, key) {
+			continue
+		}
 
 		keyParts := strings.Split(object, "/")
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
+			return []int64{}, ErrorInvalidPythonModelPath(path)
+		}
+
+		modelVersionPath := aws.JoinS3Path(path, versionStr)
+		if yes, err := awsClientForBucket.IsS3PathDir(modelVersionPath); err != nil {
 			return []int64{}, err
+		} else if !yes {
+			return []int64{}, ErrorPythonModelVersionPathMustBeDir(path, versionStr)
 		}
 
 		versions = append(versions, version)
@@ -515,7 +523,6 @@ func GetPythonVersionsFromLocalPath(path string) ([]int64, error) {
 		if err != nil {
 			return []int64{}, err
 		}
-
 		versions = append(versions, version)
 	}
 

@@ -132,6 +132,13 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 	if err != nil {
 		return paths, err
 	}
+
+	if yes, err := c.IsS3PathFile(s3Path); err != nil {
+		return paths, err
+	} else if yes {
+		return append(paths, key), nil
+	}
+
 	objects, err := c.ListS3PathDir(s3Path, includeDirObjects, maxResults)
 	if err != nil {
 		return paths, err

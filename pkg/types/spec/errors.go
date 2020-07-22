@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -28,36 +29,45 @@ import (
 )
 
 const (
-	ErrMalformedConfig                      = "spec.malformed_config"
-	ErrNoAPIs                               = "spec.no_apis"
-	ErrDuplicateName                        = "spec.duplicate_name"
-	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
-	ErrDuplicateEndpoint                    = "spec.duplicate_endpoint"
-	ErrConflictingFields                    = "spec.conflicting_fields"
-	ErrSpecifyOneOrTheOther                 = "spec.specify_one_or_the_other"
-	ErrSpecifyAllOrNone                     = "spec.specify_all_or_none"
-	ErrOneOfPrerequisitesNotDefined         = "spec.one_of_prerequisites_not_defined"
-	ErrConfigGreaterThanOtherConfig         = "spec.config_greater_than_other_config"
-	ErrMinReplicasGreaterThanMax            = "spec.min_replicas_greater_than_max"
-	ErrInitReplicasGreaterThanMax           = "spec.init_replicas_greater_than_max"
-	ErrInitReplicasLessThanMin              = "spec.init_replicas_less_than_min"
-	ErrInvalidSurgeOrUnavailable            = "spec.invalid_surge_or_unavailable"
-	ErrSurgeAndUnavailableBothZero          = "spec.surge_and_unavailable_both_zero"
-	ErrInvalidPath                          = "spec.invalid_path"
-	ErrFileNotFound                         = "spec.file_not_found"
-	ErrDirIsEmpty                           = "spec.dir_is_empty"
-	ErrInvalidDirPath                       = "spec.invalid_dir_path"
-	ErrMustBeRelativeProjectPath            = "spec.must_be_relative_project_path"
-	ErrPythonPathNotFound                   = "spec.python_path_not_found"
-	ErrS3FileNotFound                       = "spec.s3_file_not_found"
-	ErrS3DirNotFound                        = "spec.s3_dir_not_found"
-	ErrS3ModelNameDuplicate                 = "spec.s3_model_name_duplicate"
-	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
-	ErrInvalidNeuronTensorFlowDir           = "operator.invalid_neuron_tensorflow_dir"
-	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
-	ErrMissingModel                         = "spec.missing_model"
-	ErrInvalidONNXModelPath                 = "spec.invalid_onnx_model_path"
-	ErrDuplicateModelNames                  = "spec.duplicate_model_names"
+	ErrMalformedConfig              = "spec.malformed_config"
+	ErrNoAPIs                       = "spec.no_apis"
+	ErrDuplicateName                = "spec.duplicate_name"
+	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
+	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
+	ErrConflictingFields            = "spec.conflicting_fields"
+	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
+	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
+	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
+	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
+	ErrMinReplicasGreaterThanMax    = "spec.min_replicas_greater_than_max"
+	ErrInitReplicasGreaterThanMax   = "spec.init_replicas_greater_than_max"
+	ErrInitReplicasLessThanMin      = "spec.init_replicas_less_than_min"
+	ErrInvalidSurgeOrUnavailable    = "spec.invalid_surge_or_unavailable"
+	ErrSurgeAndUnavailableBothZero  = "spec.surge_and_unavailable_both_zero"
+
+	ErrInvalidPath               = "spec.invalid_path"
+	ErrInvalidDirPath            = "spec.invalid_dir_path"
+	ErrFileNotFound              = "spec.file_not_found"
+	ErrDirIsEmpty                = "spec.dir_is_empty"
+	ErrMustBeRelativeProjectPath = "spec.must_be_relative_project_path"
+	ErrPythonPathNotFound        = "spec.python_path_not_found"
+
+	ErrS3FileNotFound = "spec.s3_file_not_found"
+	ErrS3DirNotFound  = "spec.s3_dir_not_found"
+
+	ErrInvalidPythonModelPath            = "spec.invalid_python_model_path"
+	ErrNoVersionsFoundForPythonModelPath = "spec.no_versions_found_for_python_model_path"
+	ErrPythonModelVersionPathMustBeDir   = "spec.python_model_version_path_must_be_dir"
+
+	// TODO remove redundant path arguments
+	ErrInvalidTensorFlowDir       = "spec.invalid_tensorflow_dir"
+	ErrInvalidNeuronTensorFlowDir = "operator.invalid_neuron_tensorflow_dir"
+	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
+
+	ErrMissingModel         = "spec.missing_model"
+	ErrInvalidONNXModelPath = "spec.invalid_onnx_model_path"
+	ErrDuplicateModelNames  = "spec.duplicate_model_names"
+
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
@@ -203,6 +213,13 @@ func ErrorInvalidPath(path string) error {
 	})
 }
 
+func ErrorInvalidDirPath(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidDirPath,
+		Message: fmt.Sprintf("%s: invalid directory path", path),
+	})
+}
+
 func ErrorFileNotFound(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileNotFound,
@@ -214,13 +231,6 @@ func ErrorDirIsEmpty(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDirIsEmpty,
 		Message: fmt.Sprintf("%s: directory is empty", path),
-	})
-}
-
-func ErrorInvalidDirPath(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidDirPath,
-		Message: fmt.Sprintf("%s: invalid directory path", path),
 	})
 }
 
@@ -252,10 +262,37 @@ func ErrorS3DirNotFound(path string) error {
 	})
 }
 
-func ErrorS3ModelNameDuplicate(path, modelName string) error {
+var _pythonExpectedStructMessage = `For models provided for the %s predictor type, the path must be a directory with the following structure:
+  %s/ (Version prefix, usually a timestamp)
+  ├── 1523423423/
+  |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+  └── 2434389194/
+      └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)`
+
+func ErrorInvalidPythonModelPath(path string) error {
+	message := fmt.Sprintf("invalid model path for %s predictor type.\n", userconfig.PythonPredictorType)
+	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrS3ModelNameDuplicate,
-		Message: fmt.Sprintf("%s: found duplicate model %s", path, modelName),
+		Kind:    ErrInvalidPythonModelPath,
+		Message: message,
+	})
+}
+
+func ErrorNoVersionsFoundForPythonModelPath(path string) error {
+	message := fmt.Sprintf("%s: model path must have at least one version for %s predictor type.\n", userconfig.PythonPredictorType, path)
+	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoVersionsFoundForPythonModelPath,
+		Message: message,
+	})
+}
+
+func ErrorPythonModelVersionPathMustBeDir(path, version string) error {
+	message := fmt.Sprintf("%s: model version path must be a directory.\n", aws.JoinS3Path(path, version))
+	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrPythonModelVersionPathMustBeDir,
+		Message: message,
 	})
 }
 
@@ -293,7 +330,7 @@ func ErrorInvalidNeuronTensorFlowDir(path string) error {
 func ErrorInvalidTensorFlowModelPath() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowModelPath,
-		Message: "TensorFlow model path must be a directory or a zip file ending in `.zip`",
+		Message: "TensorFlow model path must be a directory",
 	})
 }
 
