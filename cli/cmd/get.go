@@ -397,8 +397,6 @@ func trafficSplitTable(apiSplitter schema.APISplitter, env cliconfig.Environment
 
 func apiSplitterListTable(apiSplitter []schema.APISplitter, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(apiSplitter))
-	fmt.Println("apisplitter")
-	fmt.Println(envNames)
 	for i, splitAPI := range apiSplitter {
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
 		var apis []string
@@ -472,8 +470,6 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 
 func apiTable(syncAPIs []schema.SyncAPI, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(syncAPIs))
-	fmt.Println("synctable")
-	fmt.Println(envNames)
 	var totalFailed int32
 	var totalStale int32
 	var total4XX int
