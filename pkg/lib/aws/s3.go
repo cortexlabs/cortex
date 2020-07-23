@@ -547,7 +547,7 @@ func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath
 	return nil
 }
 
-func (c *Client) S3FileIterator(bucket string, s3Obj *s3.Object, partSize int, fn func(io.ReadCloser, bool) (bool, error)) error {
+func (c *Client) S3FileIterator(bucket string, s3Obj *s3.Object, partSize int, fn func(buffer io.ReadCloser, isLastPart bool) (bool, error)) error {
 	size := int(*s3Obj.Size)
 
 	iters := size / partSize

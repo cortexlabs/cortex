@@ -20,7 +20,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -30,8 +29,20 @@ var (
 	_inProgressFilePrefix = "in_progress_jobs"
 )
 
+func inProgressS3Key(jobKey spec.JobKey) string {
+	return path.Join(_inProgressFilePrefix, jobKey.APIName, jobKey.ID)
+}
+
+func jobKeyFromInProgressS3Key(s3Key string) spec.JobKey {
+	s3PathSplit := strings.Split(s3Key, "/")
+	apiName := s3PathSplit[len(s3PathSplit)-2]
+	jobID := s3PathSplit[len(s3PathSplit)-1]
+
+	return spec.JobKey{APIName: apiName, ID: jobID}
+}
+
 func uploadInProgressFile(jobKey spec.JobKey) error {
-	err := config.AWS.UploadJSONToS3("", config.Cluster.Bucket, path.Join(_inProgressFilePrefix, jobKey.APIName, jobKey.ID))
+	err := config.AWS.UploadJSONToS3("", config.Cluster.Bucket, inProgressS3Key(jobKey))
 	if err != nil {
 		return err
 	}
@@ -39,7 +50,7 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 }
 
 func deleteInProgressFile(jobKey spec.JobKey) error {
-	err := config.AWS.DeleteS3Prefix(config.Cluster.Bucket, path.Join(_inProgressFilePrefix, jobKey.APIName, jobKey.ID), false)
+	err := config.AWS.DeleteS3Prefix(config.Cluster.Bucket, inProgressS3Key(jobKey), false)
 	if err != nil {
 		return err
 	}
@@ -47,7 +58,7 @@ func deleteInProgressFile(jobKey spec.JobKey) error {
 }
 
 func deleteAllInProgressFilesByAPI(apiName string) error {
-	jobKeys, err := listAllInProgressJobsByAPI(apiName)
+	jobKeys, err := listAllInProgressJobKeysByAPI(apiName)
 	if err != nil {
 		return err
 	}
@@ -62,30 +73,30 @@ func deleteAllInProgressFilesByAPI(apiName string) error {
 	return errors.FirstError(errs...)
 }
 
-func listAllInProgressJobs() ([]spec.JobKey, error) {
+func listAllInProgressJobKeys() ([]spec.JobKey, error) {
 	s3Objects, err := config.AWS.ListS3Dir(config.Cluster.Bucket, _inProgressFilePrefix, false, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return extractJobIDSFromS3ObjectList(s3Objects), nil
+	jobKeys := make([]spec.JobKey, 0, len(s3Objects))
+	for _, obj := range s3Objects {
+		jobKeys = append(jobKeys, jobKeyFromInProgressS3Key(*obj.Key))
+	}
+
+	return jobKeys, nil
 }
 
-func listAllInProgressJobsByAPI(apiName string) ([]spec.JobKey, error) {
+func listAllInProgressJobKeysByAPI(apiName string) ([]spec.JobKey, error) {
 	s3Objects, err := config.AWS.ListS3Dir(config.Cluster.Bucket, path.Join(_inProgressFilePrefix, apiName), false, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return extractJobIDSFromS3ObjectList(s3Objects), nil
-}
-
-func extractJobIDSFromS3ObjectList(s3Objects []*s3.Object) []spec.JobKey {
-	jobIDs := make([]spec.JobKey, 0, len(s3Objects))
+	jobKeys := make([]spec.JobKey, 0, len(s3Objects))
 	for _, obj := range s3Objects {
-		s3PathSplit := strings.Split(*obj.Key, "/")
-		jobIDs = append(jobIDs, spec.JobKey{APIName: s3PathSplit[len(s3PathSplit)-2], ID: s3PathSplit[len(s3PathSplit)-1]})
+		jobKeys = append(jobKeys, jobKeyFromInProgressS3Key(*obj.Key))
 	}
 
-	return jobIDs
+	return jobKeys, nil
 }

@@ -349,7 +349,7 @@ var _downCmd = &cobra.Command{
 		}
 
 		fmt.Print("￮ deleting sqs queues ")
-		err = awsClient.DeleteQueues(clusterconfig.SQSNamePrefix(*accessConfig.ClusterName))
+		err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(*accessConfig.ClusterName))
 		if err != nil {
 			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home", clusterconfig.SQSNamePrefix(*accessConfig.ClusterName), *accessConfig.Region)
 			errors.PrintError(err)

@@ -17,45 +17,16 @@ limitations under the License.
 package userconfig
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 const (
-	ErrUnknownAPIGatewayType     = "userconfig.unknown_api_gateway_type"
-	ErrConflictingFields         = "userconfig.conflicting_fields"
-	ErrBatchItemSizeExceedsLimit = "userconfig.batch_item_size_exceeds_limit"
-	ErrSpecifyExactlyOneKey      = "userconfig.specify_exactly_one_key"
+	ErrUnknownAPIGatewayType = "userconfig.unknown_api_gateway_type"
 )
 
 func ErrorUnknownAPIGatewayType() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnknownAPIGatewayType,
 		Message: "unknown api gateway type",
-	})
-}
-
-func ErrorConflictingFields(key string, keys ...string) error {
-	allKeys := append(keys, key)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("please specify either the %s field (both not more than one at the same time)", s.StrsOr(allKeys)),
-	})
-}
-
-func ErrorItemSizeExceedsLimit(index int, size int, limit int) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrBatchItemSizeExceedsLimit,
-		Message: fmt.Sprintf("item %d has size %d bytes which exceeds the limit %d", index, size, limit),
-	})
-}
-
-func ErrorSpecifyExactlyOneKey(key string, keys ...string) error {
-	allKeys := append(keys, key)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrSpecifyExactlyOneKey,
-		Message: fmt.Sprintf("specify exactly one of the following keys %s", s.StrsOr(allKeys)), // TODO add job specification documentation
 	})
 }

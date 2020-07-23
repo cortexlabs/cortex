@@ -26,14 +26,14 @@ import (
 )
 
 const (
-	ErrOperationNotSupportedForKind  = "resources.operation_not_supported_for_kind"
-	ErrAPINotDeployed                = "resources.api_not_deployed"
-	ErrCannotChangeTypeOfDeployedAPI = "resources.cannot_change_kind_of_deployed_api"
-	ErrNoAvailableNodeComputeLimit   = "resources.no_available_node_compute_limit"
-	ErrJobIDRequired                 = "resources.job_id_required"
+	ErrOperationIsOnlySupportedForKind = "resources.operation_is_only_supported_for_kind"
+	ErrAPINotDeployed                  = "resources.api_not_deployed"
+	ErrCannotChangeTypeOfDeployedAPI   = "resources.cannot_change_kind_of_deployed_api"
+	ErrNoAvailableNodeComputeLimit     = "resources.no_available_node_compute_limit"
+	ErrJobIDRequired                   = "resources.job_id_required"
 )
 
-func ErrorOperationNotSupportedForKind(resource userconfig.Resource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
+func ErrorOperationIsOnlySupportedForKind(resource userconfig.Resource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
 	supportedKindsSlice := append(make([]string, 0, 1+len(supportedKinds)), supportedKind.String())
 	for _, kind := range supportedKinds {
 		supportedKindsSlice = append(supportedKindsSlice, kind.String())
@@ -42,7 +42,7 @@ func ErrorOperationNotSupportedForKind(resource userconfig.Resource, supportedKi
 	msg := fmt.Sprintf("%s %s", s.StrsOr(supportedKindsSlice), s.PluralS(userconfig.KindKey, len(supportedKindsSlice)))
 
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperationNotSupportedForKind,
+		Kind:    ErrOperationIsOnlySupportedForKind,
 		Message: fmt.Sprintf("this operation is only allowed for %s and is not supported for %s of kind %s", msg, resource.Name, resource.Kind),
 	})
 }
@@ -69,12 +69,5 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		Message: message,
-	})
-}
-
-func ErrorJobIDRequired(resource userconfig.Resource) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrJobIDRequired,
-		Message: fmt.Sprintf("job id is required to stream logs for %s; you can select a job id from a list of job ids from `cortex get %s` and then use `cortex logs %s JOB_ID` to stream logs for that job", resource.UserString(), resource.Name, resource.Name),
 	})
 }

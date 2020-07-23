@@ -25,24 +25,24 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-const MessageSizeLimit = 256 * 1024
-const MaxMessagesPerBatch = 10
-const CortexMessageSizeLimit = MessageSizeLimit - 2
+const (
+	_messageSizeLimit    = 256 * 1024
+	_maxMessagesPerBatch = 10
+)
 
 type SQSBatchUploader struct {
-	Client       *awslib.Client
-	QueueURL     string
-	Retries      *int // default 3 times
-	messageList  []*sqs.SendMessageBatchRequestEntry
-	startIndex   int
-	endIndex     int
-	totalBytes   int
-	TotalBatches int
+	Client               *awslib.Client
+	QueueURL             string
+	Retries              *int // default 3 times
+	messageList          []*sqs.SendMessageBatchRequestEntry
+	messageIDToListIndex map[string]int
+	totalBytes           int
+	TotalBatches         int
 }
 
 func (uploader *SQSBatchUploader) AddToBatch(id string, body *string) error {
-	if len(*body) > MessageSizeLimit {
-		return ErrorMessageExceedsMaxSize(len(*body), MessageSizeLimit)
+	if len(*body) > _messageSizeLimit {
+		return ErrorMessageExceedsMaxSize(len(*body), _messageSizeLimit)
 	}
 
 	message := &sqs.SendMessageBatchRequestEntry{
@@ -52,18 +52,16 @@ func (uploader *SQSBatchUploader) AddToBatch(id string, body *string) error {
 		MessageGroupId:         aws.String(id), // aws recommends message group id per message to improve chances of exactly-once
 	}
 
-	// TODO test what happens if messagebody exactly adds up to 256 KB
-	if len(*message.MessageBody)+uploader.totalBytes > MessageSizeLimit || len(uploader.messageList) == MaxMessagesPerBatch {
+	// TODO test what happens if 2 separate message bodies add up to 256 KB
+	if len(*message.MessageBody)+uploader.totalBytes > _messageSizeLimit || len(uploader.messageList) == _maxMessagesPerBatch {
 		err := uploader.Flush()
 		if err != nil {
 			return err
 		}
-
-		uploader.startIndex = uploader.TotalBatches
 	}
 
-	uploader.endIndex = uploader.TotalBatches
 	uploader.messageList = append(uploader.messageList, message)
+	uploader.messageIDToListIndex[id] = uploader.TotalBatches
 	uploader.totalBytes += len(*message.MessageBody)
 	uploader.TotalBatches++
 	return nil
@@ -74,8 +72,6 @@ func (uploader *SQSBatchUploader) Flush() error {
 		return nil
 	}
 
-	fmt.Println("flushing", uploader.TotalBatches)
-
 	retries := 3
 	if uploader.Retries != nil {
 		retries = *uploader.Retries
@@ -83,12 +79,11 @@ func (uploader *SQSBatchUploader) Flush() error {
 
 	var err error
 
-	for retry := 0; retry < retries; retry++ {
+	for attempt := 0; attempt < retries; attempt++ {
 		err = uploader.enqueueToSQS()
 		if err == nil {
 			uploader.messageList = nil
-			uploader.startIndex = 0
-			uploader.endIndex = 0
+			uploader.messageIDToListIndex = map[string]int{}
 			uploader.totalBytes = 0
 			return nil
 		}
@@ -102,16 +97,11 @@ func (uploader *SQSBatchUploader) enqueueToSQS() error {
 		Entries:  uploader.messageList,
 	})
 	if err != nil {
-		errorWrap := fmt.Sprintf("enqueuing batch %d", uploader.startIndex)
-		if uploader.startIndex != uploader.endIndex {
-			errorWrap = fmt.Sprintf("enqueuing batches between %d to %d", uploader.startIndex, uploader.endIndex)
-		}
-
 		if len(output.Failed) == 0 {
-			return errors.Wrap(err, errorWrap)
+			return errors.WithStack(err)
 		}
 
-		return errors.Wrap(ErrorFailedToEnqueueMessages(*output.Failed[0].Message, uploader.startIndex, uploader.endIndex), errorWrap)
+		return errors.Wrap(ErrorFailedToEnqueueMessages(*output.Failed[0].Message), fmt.Sprintf("batch %s", uploader.messageIDToListIndex[*output.Failed[0].Id]))
 	}
 
 	return nil

@@ -120,7 +120,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, projectID)
 	default:
-		return nil, "", ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
+		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 }
 
@@ -136,7 +136,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	case userconfig.SyncAPIKind:
 		return syncapi.RefreshAPI(apiName, force)
 	default:
-		return "", ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind)
+		return "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind)
 	}
 }
 
@@ -177,7 +177,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			return nil, err
 		}
 	default:
-		return nil, ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
+		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 
 	return &schema.DeleteResponse{
@@ -224,7 +224,7 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		case userconfig.SyncAPIKind.String():
 			syncAPIPods = append(syncAPIPods, pod)
 		case userconfig.BatchAPIKind.String():
-			batchAPIPods = append(syncAPIPods, pod)
+			batchAPIPods = append(batchAPIPods, pod)
 		}
 	}
 
@@ -258,6 +258,6 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 	case userconfig.BatchAPIKind:
 		return batchapi.GetAPIByName(apiName)
 	default:
-		return nil, ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
+		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 }

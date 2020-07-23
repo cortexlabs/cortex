@@ -98,10 +98,6 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 
 			totalBatchCount := job.TotalBatchCount
 
-			if job.Status == status.JobEnqueuing && job.BatchesInQueue != nil {
-				totalBatchCount = *job.BatchesInQueue
-			}
-
 			if job.BatchMetrics != nil {
 				failed = job.BatchMetrics.Failed
 				succeeded = job.BatchMetrics.Succeeded
@@ -183,10 +179,6 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	out += "\n" + jobTimingTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
 
 	totalBatchCount := job.TotalBatchCount
-
-	if job.Status == status.JobEnqueuing && job.BatchesInQueue != nil {
-		totalBatchCount = *job.BatchesInQueue
-	}
 
 	succeeded := "-"
 	failed := "-"

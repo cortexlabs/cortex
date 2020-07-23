@@ -17,9 +17,6 @@ limitations under the License.
 package batchapi
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/aws/aws-sdk-go/service/s3"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -55,8 +52,8 @@ func jobSubmissionSchemaValidation(submission *schema.JobSubmission) error {
 		}
 
 		for i, batch := range submission.ItemList.Items {
-			if len(batch) > MessageSizeLimit {
-				return ErrorItemSizeExceedsLimit(i, len(batch), MessageSizeLimit)
+			if len(batch) > _messageSizeLimit {
+				return ErrorItemSizeExceedsLimit(i, len(batch), _messageSizeLimit)
 			}
 		}
 
@@ -115,20 +112,20 @@ func validateJobSubmission(submission *schema.JobSubmission) error {
 
 func validateS3Lister(s3Lister *schema.S3Lister) error {
 	if len(s3Lister.S3Paths) == 0 {
-		return errors.Wrap(cr.ErrorTooFewElements(0), schema.S3PathsKey)
+		return errors.Wrap(cr.ErrorTooFewElements(1), schema.S3PathsKey)
 	}
 
 	for _, globPattern := range s3Lister.Includes {
 		_, err := glob.Compile(globPattern, '/')
 		if err != nil {
-			return errors.Wrap(err, "invalid glob pattern", schema.IncludesKey, globPattern)
+			return errors.Wrap(err, schema.IncludesKey, globPattern)
 		}
 	}
 
 	for _, globPattern := range s3Lister.Excludes {
 		_, err := glob.Compile(globPattern, '/')
 		if err != nil {
-			return errors.Wrap(err, "invalid glob pattern", schema.ExcludesKey, globPattern)
+			return errors.Wrap(err, schema.ExcludesKey, globPattern)
 		}
 	}
 
@@ -155,31 +152,26 @@ func validateS3Lister(s3Lister *schema.S3Lister) error {
 	return nil
 }
 
-func listFilesDryRun(s3Lister *schema.S3Lister, response io.Writer) error {
-	filesFound := 0
+func listFilesDryRun(s3Lister *schema.S3Lister) ([]string, error) {
+	s3Files := []string{}
 	for _, s3Path := range s3Lister.S3Paths {
 		if !awslib.IsValidS3Path(s3Path) {
-			return awslib.ErrorInvalidS3Path(s3Path)
+			return nil, awslib.ErrorInvalidS3Path(s3Path)
 		}
 
 		err := s3IteratorFromLister(*s3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
-			filesFound++
-			filePath := awslib.S3Path(bucket, *s3Obj.Key)
-			_, err := io.WriteString(response, fmt.Sprintf("(dryrun) found: %s\n", filePath))
-			if err != nil {
-				return false, err
-			}
+			s3Files = append(s3Files, awslib.S3Path(bucket, *s3Obj.Key))
 			return true, nil
 		})
 
 		if err != nil {
-			return errors.Wrap(err, s3Path)
+			return nil, errors.Wrap(err, s3Path)
 		}
 	}
 
-	if filesFound == 0 {
-		return ErrorNoS3FilesFound()
+	if len(s3Files) == 0 {
+		return nil, ErrorNoS3FilesFound()
 	}
 
-	return nil
+	return s3Files, nil
 }

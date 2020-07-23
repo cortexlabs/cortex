@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -113,5 +114,12 @@ func ErrorAnyPathParamRequired(param string, params ...string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAnyPathParamRequired,
 		Message: fmt.Sprintf("path params required: %s", s.UserStrsOr(allParams)),
+	})
+}
+
+func ErrorJobIDRequired(resource userconfig.Resource) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJobIDRequired,
+		Message: fmt.Sprintf("job id is required to stream logs for %s; you can get a list of latest job ids with `cortex get %s` and use `cortex logs %s JOB_ID` to stream logs for a job", resource.UserString(), resource.Name, resource.Name),
 	})
 }

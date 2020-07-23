@@ -53,7 +53,7 @@ func createLogGroupForJob(jobKey spec.JobKey) error {
 
 	_, err = config.AWS.CloudWatchLogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroupNameForJob(jobKey)),
-		LogStreamName: aws.String("operator"),
+		LogStreamName: aws.String(_operatorService),
 	})
 	if err != nil {
 		return errors.WithStack(err)
@@ -65,14 +65,14 @@ func createLogGroupForJob(jobKey spec.JobKey) error {
 func writeToJobLogGroup(jobKey spec.JobKey, logLine string, logLines ...string) error {
 	logStreams, err := config.AWS.CloudWatchLogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(logGroupNameForJob(jobKey)),
-		LogStreamNamePrefix: aws.String("operator"),
+		LogStreamNamePrefix: aws.String(_operatorService),
 	})
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	if len(logStreams.LogStreams) == 0 {
-		return errors.ErrorUnexpected(fmt.Sprintf("unable to find log stream named '%s' in log group %s", "operator", logGroupNameForJob(jobKey)))
+		return errors.ErrorUnexpected(fmt.Sprintf("unable to find log stream named '%s' in log group %s", _operatorService, logGroupNameForJob(jobKey)))
 	}
 
 	logLines = append([]string{logLine}, logLines...)
@@ -89,7 +89,7 @@ func writeToJobLogGroup(jobKey spec.JobKey, logLine string, logLines ...string) 
 
 	_, err = config.AWS.CloudWatchLogs().PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
 		LogGroupName:  aws.String(logGroupNameForJob(jobKey)),
-		LogStreamName: aws.String("operator"),
+		LogStreamName: aws.String(_operatorService),
 		LogEvents:     inputLogEvents,
 		SequenceToken: logStreams.LogStreams[0].UploadSequenceToken,
 	},

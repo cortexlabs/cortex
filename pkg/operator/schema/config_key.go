@@ -25,6 +25,6 @@ const (
 	DelimitedFilesKey = "delimited_files"
 	S3PathsKey        = "s3_paths"
 	IncludesKey       = "includes"
-	ExcludesKey       = "exludes"
+	ExcludesKey       = "excludes"
 	WorkersKey        = "workers"
 )

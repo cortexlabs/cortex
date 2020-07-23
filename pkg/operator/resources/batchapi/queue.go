@@ -29,8 +29,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
+func apiQueueNamePrefix(apiName string) string {
+	return config.Cluster.SQSNamePrefix() + apiName + "-"
+}
+
+// QueueName is <hash of cluster name>-<api_name>-<job_id>.fifo
 func getJobQueueName(jobKey spec.JobKey) string {
-	return config.Cluster.SQSNamePrefix() + "-" + jobKey.APIName + "-" + jobKey.ID + ".fifo"
+	return apiQueueNamePrefix(jobKey.APIName) + jobKey.ID + ".fifo"
 }
 
 func getJobQueueURL(jobKey spec.JobKey) (string, error) {
@@ -95,8 +100,8 @@ func listQueueURLsForAPI(apiName string) ([]string, error) {
 	return queueURLs, nil
 }
 
-func listQueuesForAllAPIs() ([]string, error) {
-	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.Cluster.SQSNamePrefix() + "-")
+func listQueueURLsForAllAPIs() ([]string, error) {
+	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.Cluster.SQSNamePrefix())
 	if err != nil {
 		return nil, err
 	}

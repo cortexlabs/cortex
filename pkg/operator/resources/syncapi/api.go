@@ -1,9 +1,12 @@
 /*
 Copyright 2020 Cortex Labs, Inc.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -202,7 +205,6 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Sync
 	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
 	if err != nil {
 		return nil, err
-
 	}
 
 	allMetrics, err := GetMultipleMetrics(apis)
@@ -216,7 +218,6 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Sync
 		baseURL, err := operator.APIBaseURL(&api)
 		if err != nil {
 			return nil, err
-
 		}
 
 		syncAPIs[i] = schema.SyncAPI{
@@ -251,19 +252,16 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
 		return nil, err
-
 	}
 
 	metrics, err := GetMetrics(api)
 	if err != nil {
 		return nil, err
-
 	}
 
 	baseURL, err := operator.APIBaseURL(api)
 	if err != nil {
 		return nil, err
-
 	}
 
 	return &schema.GetAPIResponse{

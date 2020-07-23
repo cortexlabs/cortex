@@ -18,7 +18,6 @@ package batchapi
 
 import (
 	"fmt"
-	"io"
 	"math"
 	"sync"
 	"time"
@@ -37,7 +36,7 @@ import (
 
 var jobIDMutex = sync.Mutex{}
 
-// Job id creation optimized for listing the most recently created jobs in S3. S3 objects are listed in ascending UTF-8 binary order. This should work until the year 2262.
+// Job ID creation optimized for listing the most recently created jobs in S3. S3 objects are listed in ascending UTF-8 binary order. This should work until the year 2262.
 func monotonicallyDecreasingJobID() string {
 	jobIDMutex.Lock()
 	defer jobIDMutex.Unlock()
@@ -46,27 +45,31 @@ func monotonicallyDecreasingJobID() string {
 	return fmt.Sprintf("%x", i)
 }
 
-func DryRun(submission *schema.JobSubmission, response io.Writer) error {
+func DryRun(submission *schema.JobSubmission) ([]string, error) {
 	err := validateJobSubmission(submission)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if submission.FilePathLister != nil {
-		err := listFilesDryRun(&submission.FilePathLister.S3Lister, response)
+		s3Files, err := listFilesDryRun(&submission.FilePathLister.S3Lister)
 		if err != nil {
-			return errors.Wrap(err, userconfig.FilePathListerKey)
+			return nil, errors.Wrap(err, userconfig.FilePathListerKey)
 		}
+
+		return s3Files, nil
 	}
 
 	if submission.DelimitedFiles != nil {
-		err := listFilesDryRun(&submission.DelimitedFiles.S3Lister, response)
+		s3Files, err := listFilesDryRun(&submission.DelimitedFiles.S3Lister)
 		if err != nil {
-			return errors.Wrap(err, userconfig.DelimitedFilesKey)
+			return nil, errors.Wrap(err, userconfig.DelimitedFilesKey)
 		}
+
+		return s3Files, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, error) {
@@ -89,15 +92,15 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 
 	jobID := monotonicallyDecreasingJobID()
 
+	jobKey := spec.JobKey{
+		APIName: apiSpec.Name,
+		ID:      jobID,
+	}
+
 	tags := map[string]string{
 		"apiName": apiSpec.Name,
 		"apiID":   apiSpec.ID,
 		"jobID":   jobID,
-	}
-
-	jobKey := spec.JobKey{
-		APIName: apiSpec.Name,
-		ID:      jobID,
 	}
 
 	queueURL, err := createFIFOQueue(jobKey, tags)
@@ -198,13 +201,15 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 }
 
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
-	err := writeToJobLogGroup(jobKey, jobErr.Error())
+	err := errors.FirstError(
+		writeToJobLogGroup(jobKey, jobErr.Error()),
+		setUnexpectedErrorStatus(jobKey),
+		deleteJobRuntimeResources(jobKey),
+	)
 	if err != nil {
 		telemetry.Error(err)
 		errors.PrintError(err)
 	}
-	setUnexpectedErrorStatus(jobKey)
-	deleteJobRuntimeResources(jobKey)
 }
 
 func applyK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {

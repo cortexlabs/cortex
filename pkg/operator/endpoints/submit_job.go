@@ -44,11 +44,12 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if deployedResource.Kind != userconfig.BatchAPIKind {
-		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.BatchAPIKind))
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind))
 		return
 	}
 
-	rw := http.MaxBytesReader(w, r.Body, 64<<20)
+	// max payload size
+	rw := http.MaxBytesReader(w, r.Body, 10<<20)
 
 	bodyBytes, err := ioutil.ReadAll(rw)
 	if err != nil {
@@ -65,14 +66,25 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if dryRun {
-		err := batchapi.DryRun(&submission, w)
+		// plain text response for dry run because it is typically consumed by people
+		w.Header().Set("Content-type", "text/plain")
+
+		fileNames, err := batchapi.DryRun(&submission)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, "\n"+err.Error()+"\n")
 			return
 		}
 
-		w.Header().Add("Content-type", "text/plain")
+		for _, fileName := range fileNames {
+			_, err := io.WriteString(w, fileName+"\n")
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				io.WriteString(w, "\n"+err.Error()+"\n")
+				return
+			}
+		}
+
 		return
 	}
 

@@ -47,7 +47,7 @@ func (c *Client) DoesQueueExist(queueName string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) DeleteQueues(queueNamePrefix string) error {
+func (c *Client) DeleteQueuesWithPrefix(queueNamePrefix string) error {
 	output, err := c.SQS().ListQueues(
 		&sqs.ListQueuesInput{
 			QueueNamePrefix: aws.String(queueNamePrefix),

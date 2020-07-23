@@ -39,10 +39,10 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if deployedResource.Kind == userconfig.BatchAPIKind {
-		respondError(w, r, resources.ErrorJobIDRequired(*deployedResource))
+		respondError(w, r, ErrorJobIDRequired(*deployedResource))
 		return
 	} else if deployedResource.Kind != userconfig.SyncAPIKind {
-		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind))
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind))
 	}
 
 	upgrader := websocket.Upgrader{}

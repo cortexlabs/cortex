@@ -134,17 +134,10 @@ def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval
 
 
 def get_api_spec(provider, storage, cache_dir, api_spec_path):
-    if provider == "local":
-        return read_msgpack(api_spec_path)
-
     local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
     _, key = S3.deconstruct_s3_path(api_spec_path)
     storage.download_file(key, local_spec_path)
-    return read_msgpack(local_spec_path)
-
-
-def read_msgpack(msgpack_path):
-    with open(msgpack_path, "rb") as msgpack_file:
+    with open(local_spec_path, "rb") as msgpack_file:
         return msgpack.load(msgpack_file, raw=False)
 
 
@@ -186,14 +179,12 @@ def handle_on_complete(message):
         trigger_on_job_complete_next = False
         while True:
             visible_count, not_visible_count = get_total_messages_in_queue()
-            print("stats", visible_count, not_visible_count)
 
             # if there are other messages that are visible, release this message and get the other ones (should rarely for FIFO)
             if visible_count > 0:
                 sqs_client.change_message_visibility(
                     QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=0
                 )
-                print("handle other visible messages first")
                 return
 
             total_in_queue = visible_count + not_visible_count
@@ -261,7 +252,6 @@ def sqs_loop():
         receipt_handle = message["ReceiptHandle"]
 
         if "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]:
-            print("received job_complete")
             handle_on_complete(message)
             continue
 

@@ -42,7 +42,7 @@ func (j JobKey) FileSpecKey() string {
 
 // e.g. /jobs/<cortex version>/<api_name>/<job_id>
 func (j JobKey) PrefixKey() string {
-	return s.EnsureSuffix(path.Join(APIJobPrefix(j.APIName), j.ID), "/")
+	return s.EnsureSuffix(path.Join(BatchAPIJobPrefix(j.APIName), j.ID), "/")
 }
 
 func (j JobKey) K8sName() string {
@@ -64,6 +64,6 @@ type Job struct {
 	Created         time.Time `json:"created_time"`
 }
 
-func APIJobPrefix(apiName string) string {
-	return filepath.Join("jobs", apiName, consts.CortexVersion)
+func BatchAPIJobPrefix(apiName string) string {
+	return filepath.Join("jobs", consts.CortexVersion, apiName)
 }

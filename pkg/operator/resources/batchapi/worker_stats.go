@@ -42,19 +42,6 @@ func getWorkerStatsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerStat
 	return workerStats
 }
 
-func getWorkerStatsFromJob(k8sJob kbatch.Job) status.WorkerStats {
-	if k8sJob.Status.Failed > 0 {
-		return status.WorkerStats{
-			Failed: k8sJob.Status.Failed,
-		}
-	}
-	return status.WorkerStats{
-		Failed:    k8sJob.Status.Failed,
-		Succeeded: k8sJob.Status.Succeeded,
-		Pending:   k8sJob.Status.Active - k8sJob.Status.Failed - k8sJob.Status.Succeeded,
-	}
-}
-
 func addPodToReplicaCounts(pod *kcore.Pod, counts *status.WorkerStats) {
 	if k8s.IsPodReady(pod) {
 		counts.Running++

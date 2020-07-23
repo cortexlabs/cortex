@@ -28,7 +28,7 @@ type JobStatus struct {
 	StartTime      time.Time           `json:"start_time"`
 	EndTime        *time.Time          `json:"end_time"`
 	Status         JobCode             `json:"status"`
-	BatchesInQueue *int                `json:"batches_in_queue"`
+	BatchesInQueue int                 `json:"batches_in_queue"`
 	BatchMetrics   *metrics.JobMetrics `json:"batch_metrics"`
 	WorkerStats    *WorkerStats        `json:"worker_stats"`
 }

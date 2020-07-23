@@ -41,16 +41,22 @@ Request: POST <batch_api_endpoint>
 ```yaml
 {
     "workers": int,    # the number of workers you want to allocate for this job
-    "items": [         # a list items that cna be of any type
-        <any>,
-        <any>
-    ],
-    "batch_size": int, # the number of items in the items_list that should be in a batch
-    "config": {        # fields custom for this specific job (will override values specified in api configuration)
+    "item_list": {
+        "items": [         # a list items that can be of any type
+            <any>,
+            <any>
+        ],
+        "batch_size": int, # the number of items in the items_list that should be in a batch
+    }
+        "config": {        # fields custom for this specific job (will override values specified in api configuration)
         "string": <any>
     }
 }
 ```
+
+NOTE: The maximum size of a request must be less than 10 MB. If your request needs to be more than 10 MB please write the payload in a newline delimited JSON format to a storage such S3 and use Delimited files to stream the file contents.
+
+NOTE: A single item must not exceed 256 KB
 
 Response:
 ```yaml

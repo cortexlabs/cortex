@@ -53,7 +53,7 @@ type DeployResult struct {
 
 type GetAPIsResponse struct {
 	SyncAPIs  []SyncAPI  `json:"sync_apis"`
-	BatchAPIs []BatchAPI `json:"batch_api"`
+	BatchAPIs []BatchAPI `json:"batch_apis"`
 }
 
 type SyncAPI struct {

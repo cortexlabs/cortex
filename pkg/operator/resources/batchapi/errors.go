@@ -80,15 +80,10 @@ func ErrorNoDataFoundInJobSubmission() error {
 	})
 }
 
-func ErrorFailedToEnqueueMessages(message string, startIndex int, endIndex ...int) error {
-	additionalInfo := fmt.Sprintf("failed to enqueue message %d", startIndex)
-	if len(endIndex) == 1 {
-		additionalInfo = fmt.Sprintf("an error occurred when attempting to enqueue one or more of the messages between %s and %s index", startIndex, endIndex[0])
-	}
-
+func ErrorFailedToEnqueueMessages(message string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToEnqueueMessages,
-		Message: fmt.Sprintf("%s: %s", additionalInfo, message),
+		Message: fmt.Sprintf(message),
 	})
 }
 
@@ -98,8 +93,6 @@ func ErrorMessageExceedsMaxSize(messageSize int, messageLimit int) error {
 		Message: fmt.Sprintf("cannot enqueue message because its size of %d bytes exceeds the %d bytes limit; use a smaller batch size or reduce the size of each of item in the batch", messageSize, messageLimit),
 	})
 }
-
-const ()
 
 func ErrorConflictingFields(key string, keys ...string) error {
 	allKeys := append(keys, key)

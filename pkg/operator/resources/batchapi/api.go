@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -63,6 +61,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
 			return nil, "", err
 		}
+
 		return api, fmt.Sprintf("created %s", api.Name), nil
 	}
 
@@ -111,18 +110,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			return deleteS3Resources(apiName)
 		},
 		func() error {
-			queues, _ := listQueueURLsForAPI(apiName)
-			errs := []error{}
-			for _, queueURL := range queues {
-				_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
-					QueueUrl: aws.String(queueURL),
-				})
-
-				if err != nil {
-					return err
-				}
-			}
-			return errors.FirstError(errs...)
+			return config.AWS.DeleteQueuesWithPrefix(apiQueueNamePrefix(apiName))
 		},
 		func() error {
 			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService, true)
@@ -163,7 +151,7 @@ func deleteS3Resources(apiName string) error {
 			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 		},
 		func() error {
-			prefix := spec.APIJobPrefix(apiName)
+			prefix := spec.BatchAPIJobPrefix(apiName)
 			go config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
 			return nil
 		},
@@ -183,16 +171,18 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 	jobIDToPodsMap := map[string][]kcore.Pod{}
 	for _, pod := range pods {
-		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
+		if pod.Labels["jobID"] != "" {
+			jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
+		}
 	}
 
 	for _, virtualService := range virtualServices {
 		apiName := virtualService.GetLabels()["apiName"]
 		apiID := virtualService.GetLabels()["apiID"]
+
 		api, err := operator.DownloadAPISpec(apiName, apiID)
 		if err != nil {
 			return nil, err
-
 		}
 
 		baseURL, err := operator.APIBaseURL(api)
@@ -219,12 +209,12 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 	}
 
-	inProgressJobIDs, err := listAllInProgressJobs()
+	inProgressJobKeys, err := listAllInProgressJobKeys()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, jobKey := range inProgressJobIDs {
+	for _, jobKey := range inProgressJobKeys {
 		alreadyAdded := false
 		for _, jobStatus := range batchAPIsMap[jobKey.APIName].JobStatuses {
 			if jobStatus.ID == jobKey.ID {
@@ -274,6 +264,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	k8sJobMap := map[string]*kbatch.Job{}
 	for _, job := range k8sJobs {
 		k8sJobMap[job.Labels["jobID"]] = &job
@@ -282,26 +273,26 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	baseURL, err := operator.APIBaseURL(api)
 	if err != nil {
 		return nil, err
-
 	}
 
 	pods, err := config.K8s.ListPodsByLabel("apiName", apiName)
 	if err != nil {
 		return nil, err
 	}
+
 	jobIDToPodsMap := map[string][]kcore.Pod{}
 	for _, pod := range pods {
 		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
 	}
 
-	inProgressJobIDs, err := listAllInProgressJobsByAPI(apiName)
+	inProgressJobKeys, err := listAllInProgressJobKeysByAPI(apiName)
 	if err != nil {
 		return nil, err
 	}
 
 	jobStatuses := []status.JobStatus{}
 	jobIDSet := strset.New()
-	for _, jobKey := range inProgressJobIDs {
+	for _, jobKey := range inProgressJobKeys {
 		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
 		if err != nil {
 			return nil, err
@@ -312,7 +303,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	}
 
 	if len(jobStatuses) < 10 {
-		jobStates, err := getMostRecentlySubmittedJobStates(apiName, 10)
+		jobStates, err := getMostRecentlySubmittedJobStates(apiName, 10-len(jobStatuses))
 		if err != nil {
 			return nil, err
 		}
@@ -326,11 +317,8 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 			if err != nil {
 				return nil, err
 			}
-			jobStatuses = append(jobStatuses, *jobStatus)
 
-			if len(jobStatuses) >= 10 {
-				break
-			}
+			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 	}
 

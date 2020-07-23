@@ -31,6 +31,8 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
+const _operatorService = "operator"
+
 func k8sJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
@@ -62,12 +64,14 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 			"apiName": api.Name,
 			"apiID":   api.ID,
 			"jobID":   job.ID,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName": api.Name,
 				"apiID":   api.ID,
 				"jobID":   job.ID,
+				"apiKind": api.Kind.String(),
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -107,12 +111,14 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 			"apiName": api.Name,
 			"apiID":   api.ID,
 			"jobID":   job.ID,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName": api.Name,
 				"apiID":   api.ID,
 				"jobID":   job.ID,
+				"apiKind": api.Kind.String(),
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -153,12 +159,14 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 			"apiName": api.Name,
 			"apiID":   api.ID,
 			"jobID":   job.ID,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName": api.Name,
 				"apiID":   api.ID,
 				"jobID":   job.ID,
+				"apiKind": api.Kind.String(),
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -184,7 +192,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        operator.K8sName(api.Name),
 		Gateways:    []string{"apis-gateway"},
-		ServiceName: "operator",
+		ServiceName: _operatorService,
 		ServicePort: operator.DefaultPortInt32,
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String(path.Join("batch", api.Name)),
