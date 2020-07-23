@@ -24,7 +24,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	homedir "github.com/mitchellh/go-homedir"
@@ -177,41 +176,15 @@ func updateRootUsage() {
 	})
 }
 
-func getCmdShorthandFlags(cmd *cobra.Command) strset.Set {
-	shorthands := strset.New()
+func wasEnvFlagProvided(cmd *cobra.Command) bool {
+	envFlagProvided := false
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		if flag.Shorthand != "" {
-			shorthands.Add(flag.Shorthand)
+		if flag.Shorthand == "e" && flag.Changed {
+			envFlagProvided = true
 		}
 	})
-	return shorthands
-}
 
-func wasEnvFlagProvided(cmd *cobra.Command) bool {
-	shorthands := getCmdShorthandFlags(cmd)
-
-	for _, str := range os.Args[1:] {
-		if str == "--env" || strings.HasPrefix(str, "--env=") {
-			return true
-		}
-
-		if !strings.HasPrefix(str, "-") {
-			continue
-		}
-
-		// `-e local`, `-e=local`, `-elocal`, and `-welocal` are supported by cobra
-		for i := 1; i < len(str); i++ {
-			char := string(str[i])
-			if char == "e" {
-				return true
-			}
-			if !shorthands.Has(char) {
-				break
-			}
-		}
-	}
-
-	return false
+	return envFlagProvided
 }
 
 func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
