@@ -29,7 +29,7 @@ endpoint: http://***.amazonaws.com/image-classifier
 ...
 ```
 
-Appending the `--watch` flag will re-run the `cortex get` command every second.
+Appending the `--watch` flag will re-run the `cortex get` command every 2 seconds.
 
 ## Available endpoints
 
@@ -82,17 +82,14 @@ Response:
         "api_id": string,
         "sqs_url": string,
         "status": string,   # string can take one of the following values: status_unknown|status_enqueuing|status_running|status_enqueue_failed|status_completed_with_failures|status_succeeded|status_unexpected_error|status_worker_error|status_worker_oom|status_stopped
-        "queue_metrics": {              # queue metrics are only available when job status is enqueueing or running
-            "in_queue": int             # number of batches in queue
-            "not_visible": int          # number of batches currently being worked
-        },
+        "batches_in_queue": int          # number of batches in queue
         "batch_metrics": {
             "succeeded": int
             "failed": int
             "avg_time_per_batch": float (optional)  # only available if batches have been completed
             "total": int
         },
-        "worker_stats": {                # worker stats only available when job status is running
+        "worker_stats": {                # worker stats are only available when job status is running
             "pending": int,              # number of workers that are waiting for compute resources to be provisioned
             "initializing": int,         # number of workers that are initializing (downloading images, running your predictor's init function)
             "running": int,              # number of workers that are running and working on batches from the queue

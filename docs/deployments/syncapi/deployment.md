@@ -30,7 +30,7 @@ endpoint: http://***.amazonaws.com/iris-classifier
 ...
 ```
 
-Appending the `--watch` flag will re-run the `cortex get` command every second.
+Appending the `--watch` flag will re-run the `cortex get` command every 2 seconds.
 
 ## `cortex logs`
 
