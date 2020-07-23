@@ -18,6 +18,7 @@ package endpoints
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -30,6 +31,7 @@ import (
 func SubmitJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
+	dryRun := getOptionalBoolQParam("dryRun", false, r)
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
@@ -53,15 +55,28 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub := userconfig.JobSubmission{}
+	submission := userconfig.JobSubmission{}
 
-	err = json.Unmarshal(bodyBytes, &sub)
+	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	jobSpec, err := batchapi.SubmitJob(apiName, sub)
+	if dryRun {
+		err := batchapi.DryRun(&submission, w)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			io.WriteString(w, "\n"+err.Error()+"\n")
+			return
+		}
+
+		w.Header().Add("Content-type", "text/plain")
+		io.WriteString(w, "\npassed preliminary validations\n")
+		return
+	}
+
+	jobSpec, err := batchapi.SubmitJob(apiName, &submission)
 	if err != nil {
 		respondError(w, r, err)
 		return

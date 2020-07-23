@@ -22,7 +22,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -127,7 +126,6 @@ func getQueueMetrics(jobKey spec.JobKey) (*metrics.QueueMetrics, error) {
 	if err != nil {
 		return nil, err
 	}
-	debug.Pp(queueURL)
 	return getQueueMetricsFromURL(queueURL)
 }
 

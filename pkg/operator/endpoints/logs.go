@@ -38,9 +38,11 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
 		return
 	}
-	if deployedResource.Kind != userconfig.SyncAPIKind {
-		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind))
+	if deployedResource.Kind == userconfig.BatchAPIKind {
+		respondError(w, r, resources.ErrorJobIDRequired(*deployedResource))
 		return
+	} else if deployedResource.Kind != userconfig.SyncAPIKind {
+		respondError(w, r, resources.ErrorOperationNotSupportedForKind(*deployedResource, userconfig.SyncAPIKind))
 	}
 
 	upgrader := websocket.Upgrader{}

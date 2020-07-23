@@ -57,7 +57,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(job.RequestedWorkers()),
+		Parallelism: int32(*job.Workers),
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -102,7 +102,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(job.RequestedWorkers()),
+		Parallelism: int32(*job.Workers),
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -148,7 +148,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(job.RequestedWorkers()),
+		Parallelism: int32(*job.Workers),
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,

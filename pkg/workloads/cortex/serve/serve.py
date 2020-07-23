@@ -219,7 +219,8 @@ def build_predict_args(request: Request):
         args["headers"] = request.headers
     if "query_params" in local_cache["predict_fn_args"]:
         args["query_params"] = request.query_params
-
+    if "batch_id" in local_cache["predict_fn_args"]:
+        args["batch_id"] = None
     return args
 
 
@@ -282,7 +283,7 @@ def start_fn():
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(project_dir, client)
+        predictor_impl = api.predictor.initialize_impl(project_dir, client, raw_api_spec, None)
 
         local_cache["api"] = api
         local_cache["provider"] = provider

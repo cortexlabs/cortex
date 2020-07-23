@@ -50,23 +50,23 @@ class PythonPredictor:
 # initialization code and variables can be declared here in global scope
 
 class PythonPredictor:
-    def __init__(self, config):
+    def __init__(self, config, job_spec):
         """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
-            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys,
-            values in configuration specified in Job submission takes precedence.
+            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
+            job_spec: Dictionary containing the submitted job request and additional information such as the job_id
         """
         pass
 
-    def predict(self, payload):
+    def predict(self, payload, batch_id):
         """Called once per batch. Preprocesses the batch payload (if necessary), runs inference, postprocesses the inference output (if necessary) and writes the predictions to storage (i.e. S3 or a database).
 
         Args:
             payload: a batch, a list of one or more samples (required).
-
+            batch_id: uuid assigned to this batch
         Returns:
-            Nothing. The function body writes the predictions to storage.
+            Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
         """
         pass
 ```
@@ -89,7 +89,7 @@ from model import IrisNet
 
 labels = ["setosa", "versicolor", "virginica"]
 
-class PythonPredictor:
+class PythonPredictor: // TODO update this example
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
@@ -198,25 +198,25 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config):
+    def __init__(self, tensorflow_client, config, job_spec):
         """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             tensorflow_client: TensorFlow client which is used to make predictions. This should be saved for use in predict().
-            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys,
-            values in configuration specified in Job submission takes precedence.
+            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
+            job_spec: Dictionary containing the submitted job request and additional information such as the job_id
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
 
-    def predict(self, payload, query_params, headers):
+    def predict(self, payload, batch_id):
         """Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary) and writes the predictions to storage (i.e. S3 or a database).
 
         Args:
             payload: a batch, a list of one or more samples (required).
-
+            batch_id: uuid assigned to this batch
         Returns:
-            Nothing. The function body writes the predictions to storage.
+            Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
         """
         pass
 ```
@@ -239,7 +239,7 @@ Here is the Predictor for [examples/tensorflow/iris-classifier](https://github.c
 ```python
 labels = ["setosa", "versicolor", "virginica"]
 
-class TensorFlowPredictor:
+class TensorFlowPredictor: // TODO update this example
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 
@@ -278,25 +278,25 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class ONNXPredictor:
-    def __init__(self, onnx_client, config):
+    def __init__(self, onnx_client, config, job_spec):
         """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             onnx_client: ONNX client which is used to make predictions. This should be saved for use in predict().
-            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys,
-            values in configuration specified in Job submission takes precedence.
+            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
+            job_spec: Dictionary containing the submitted job request and additional information such as the job_id
         """
         self.client = onnx_client
         # Additional initialization may be done here
 
-    def predict(self, payload, query_params, headers):
+    def predict(self, payload, batch_id):
         """Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
 
         Args:
             payload: a batch, a list of one or more samples (required).
-
+            batch_id: uuid assigned to this batch
         Returns:
-            Nothing. The function body writes the predictions to storage.
+            Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
         """
         pass
 ```
@@ -316,17 +316,19 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 ```python
 labels = ["setosa", "versicolor", "virginica"]
 
-class ONNXPredictor:
+class ONNXPredictor: // TODO update this example
     def __init__(self, onnx_client, config):
         self.client = onnx_client
 
-    def predict(self, payload):
-        model_input = [
-            payload["sepal_length"],
-            payload["sepal_width"],
-            payload["petal_length"],
-            payload["petal_width"],
-        ]
+    def predict(self, payload, batch_id):
+        model_input = []
+        for iris in payload:
+            model_input.append([
+                payload["sepal_length"],
+                payload["sepal_width"],
+                payload["petal_length"],
+                payload["petal_width"],
+            ])
 
         prediction = self.client.predict(model_input)
         predicted_class_id = prediction[0][0]

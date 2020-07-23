@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
@@ -37,6 +38,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/gobwas/glob"
 )
 
 const DefaultS3Region string = endpoints.UsWest2RegionID
@@ -70,12 +72,15 @@ func JoinS3Path(paths ...string) string {
 	return "s3://" + filepath.Join(paths...)
 }
 
-func SplitS3Path(s3Path string) (string, string, error) {
+func SplitS3Path(s3Path string) (string, string, error) { // TODO this disallows s3://<bucket_name>/
 	if !IsValidS3Path(s3Path) {
 		return "", "", ErrorInvalidS3Path(s3Path)
 	}
 	fullPath := s3Path[len("s3://"):]
 	slashIndex := strings.Index(fullPath, "/")
+	if slashIndex == -1 {
+		return fullPath, "", nil
+	}
 	bucket := fullPath[0:slashIndex]
 	key := fullPath[slashIndex+1:]
 
@@ -99,10 +104,10 @@ func IsValidS3Path(s3Path string) bool {
 		return false
 	}
 	parts := strings.Split(s3Path[5:], "/")
-	if len(parts) < 2 {
+	if len(parts) == 0 {
 		return false
 	}
-	if parts[0] == "" || parts[1] == "" {
+	if parts[0] == "" {
 		return false
 	}
 	return true
@@ -543,6 +548,47 @@ func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath
 	return nil
 }
 
+func (c *Client) S3FileIterator(bucket string, s3Obj *s3.Object, partSize int, fn func(io.ReadCloser, bool) (bool, error)) error {
+	size := int(*s3Obj.Size)
+
+	iters := size / partSize
+	if size%partSize != 0 {
+		iters++
+	}
+
+	for i := 0; i < iters; i++ {
+		min := i * (partSize)
+		max := (i + 1) * (partSize)
+		if max > size {
+			max = size
+		}
+		max--
+
+		byteRange := fmt.Sprintf("bytes=%d-%d", min, max)
+		fmt.Println(byteRange)
+		obj, err := c.S3().GetObject(&s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    s3Obj.Key,
+			Range:  aws.String(byteRange), // use range instead of part numbers because only files uploaded using multipart have parts
+		})
+		if err != nil {
+			return errors.Wrap(err, S3Path(bucket, *s3Obj.Key), "range "+byteRange)
+		}
+
+		isLastChunk := max == size
+		shouldContinue, err := fn(obj.Body, isLastChunk)
+		if err != nil {
+			return errors.Wrap(err, S3Path(bucket, *s3Obj.Key))
+		}
+
+		if !shouldContinue {
+			break
+		}
+	}
+
+	return nil
+}
+
 func (c *Client) ListS3Dir(bucket string, s3Dir string, includeDirObjects bool, maxResults *int64) ([]*s3.Object, error) {
 	prefix := s.EnsureSuffix(s3Dir, "/")
 	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults)
@@ -630,6 +676,73 @@ func (c *Client) HashS3Dir(bucket string, prefix string, maxResults *int64) (str
 	}
 
 	return hex.EncodeToString((md5Hash.Sum(nil))), nil
+}
+
+type S3Lister struct {
+	S3Paths  []string `json:"s3_paths"` // s3://<bucket_name>/key
+	Includes []string `json:"includes"`
+	Excludes []string `json:"excludes"`
+}
+
+func (c *Client) S3IteratorFromLister(s3Lister S3Lister, fn func(string, *s3.Object) (bool, error)) error {
+	includeGlobPatterns := make([]glob.Glob, 0, len(s3Lister.Includes))
+
+	for _, includePattern := range s3Lister.Includes {
+		globExpression, err := glob.Compile(includePattern, '/')
+		if err != nil {
+			return errors.Wrap(err, "failed to interpret glob pattern", includePattern)
+		}
+		includeGlobPatterns = append(includeGlobPatterns, globExpression)
+	}
+
+	excludeGlobPatterns := make([]glob.Glob, 0, len(s3Lister.Excludes))
+	for _, excludePattern := range s3Lister.Excludes {
+		globExpression, err := glob.Compile(excludePattern, '/')
+		if err != nil {
+			return errors.Wrap(err, "failed to interpret glob pattern", excludePattern)
+		}
+		excludeGlobPatterns = append(excludeGlobPatterns, globExpression)
+	}
+
+	for _, s3Path := range s3Lister.S3Paths {
+		bucket, key, err := SplitS3Path(s3Path)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("bucket", bucket)
+		fmt.Println("key", key)
+		err = c.S3Iterator(bucket, key, false, nil, func(s3Obj *s3.Object) (bool, error) {
+			s3FilePath := S3Path(bucket, *s3Obj.Key)
+
+			shouldSkip := false
+			if len(includeGlobPatterns) > 0 {
+				shouldSkip = true
+				for _, includeGlobPattern := range includeGlobPatterns {
+					if includeGlobPattern.Match(s3FilePath) {
+						shouldSkip = false
+					}
+				}
+			}
+
+			for _, excludeGlobPattern := range excludeGlobPatterns {
+				if excludeGlobPattern.Match(s3FilePath) {
+					shouldSkip = true
+				}
+			}
+
+			if !shouldSkip {
+				return fn(bucket, s3Obj)
+			}
+
+			return true, nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Directory objects are empty objects ending in "/". They are not guaranteed to exists, and there may or may not be files "in" the directory

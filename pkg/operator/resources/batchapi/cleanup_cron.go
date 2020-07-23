@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -75,7 +74,6 @@ func ManageJobResources() error {
 	for _, jobKey := range inProgressJobIDs {
 		jobState, err := getJobState(jobKey)
 		if err != nil {
-			fmt.Println(err.Error())
 			telemetry.Error(err)
 		}
 
@@ -92,14 +90,13 @@ func ManageJobResources() error {
 			if !jobIDSetQueueURL.Has(jobKey.ID) {
 				queueURL, err := getJobQueueURL(jobKey)
 				if err != nil {
-					fmt.Println(err.Error())
 					telemetry.Error(err)
+					errors.PrintError(err)
 				}
 				queueExists, err := doesQueueExist(jobKey) // double check queue existence because it might 10-20 seconds to verify queue existence after a queue has been created
 				if err != nil {
 					queueExists = false
 				}
-				debug.Pp(queueExists)
 
 				if !queueExists && time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) >= ManageJobResourcesCronPeriod {
 					// unexpected queue missing error
@@ -125,8 +122,8 @@ func ManageJobResources() error {
 						k8sJob := k8sJobMap[jobKey.ID]
 						err := checkJobCompletion(jobKey, queueURLMap[jobKey.ID], &k8sJob)
 						if err != nil {
-							fmt.Println(err.Error())
 							telemetry.Error(err)
+							errors.PrintError(err)
 						}
 					}
 				}
@@ -167,6 +164,12 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 			return err
 		}
 
+		if int(k8sJob.Status.Failed) > 0 {
+			InvestigateJobFailure(jobKey, k8sJob)
+			return nil
+		}
+
+		// what happens if job_incomplete fails
 		if jobSpec.TotalBatchCount == jobMetrics.TotalCompleted || k8sJob.Annotations["cortex/to-delete"] == "true" {
 			if jobMetrics.Failed != 0 {
 				return errors.FirstError(
@@ -221,4 +224,7 @@ func InvestigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) {
 			deleteJobRuntimeResources(jobKey)
 		}
 	}
+	writeToJobLogGroup(jobKey, "workers were killed for unknown reason")
+	setWorkerErrorStatus(jobKey)
+	deleteJobRuntimeResources(jobKey)
 }

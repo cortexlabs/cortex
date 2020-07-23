@@ -11,20 +11,37 @@
 
 ## Deployments
 
-* [Exporting models](deployments/exporting.md)
-* [Predictor implementation](deployments/predictors.md)
-* [API configuration](deployments/api-configuration.md)
-* [API deployment](deployments/deployment.md)
-* [Parellelism](deployments/parallelism.md)
-* [Autoscaling](deployments/autoscaling.md)
-* [Networking](deployments/networking.md)
-* [Compute](deployments/compute.md)
+* [Realtime API](deployments/realtimeapi.md)
+  * [Exporting models](deployments/exporting.md)
+  * [Predictor implementation](deployments/realtimeapi/predictors.md)
+  * [API configuration](deployments/realtimeapi/api-configuration.md)
+  * [API deployment](deployments/realtimeapi/deployment.md)
+  * [API statuses](deployments/realtimeapi/statuses.md)
+  * [Parellelism](deployments/parallelism.md)
+  * [Autoscaling](deployments/realtimeapi/autoscaling.md)
+  * [Networking](deployments/networking.md)
+  * [Compute](deployments/compute.md)
+  * [Using GPUs](deployments/gpus.md)
+  * [Using Inferentia](deployments/inferentia.md)
+  * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
+* [Batch API](deployments/batchapi.md)
+  * [Exporting models](deployments/exporting.md)
+  * [Predictor implementation](deployments/batchapi/predictors.md)
+  * [API configuration](deployments/batchapi/api-configuration.md)
+  * [API deployment](deployments/batchapi/deployment.md)
+  * [Job statuses](deployments/batchapi/statuses.md)
+  * [Compute](deployments/compute.md)
+  * [Using GPUs](deployments/gpus.md)
+  * [Using Inferentia](deployments/inferentia.md)
+  * [Networking](deployments/networking.md)
+
+## Advanced
+
 * [Using GPUs](deployments/gpus.md)
 * [Using Inferentia](deployments/inferentia.md)
-* [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
-* [API statuses](deployments/statuses.md)
+* [Networking](deployments/networking.md)
 
 ## Cluster management
 

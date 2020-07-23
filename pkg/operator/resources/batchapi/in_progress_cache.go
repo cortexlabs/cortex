@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
@@ -43,6 +44,22 @@ func deleteInProgressFile(jobKey spec.JobKey) error {
 		return err
 	}
 	return nil
+}
+
+func deleteAllInProgressFilesByAPI(apiName string) error {
+	jobKeys, err := listAllInProgressJobsByAPI(apiName)
+	if err != nil {
+		return err
+	}
+
+	errs := []error{}
+	for _, jobKey := range jobKeys {
+		err := deleteInProgressFile(jobKey)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.FirstError(errs...)
 }
 
 func listAllInProgressJobs() ([]spec.JobKey, error) {

@@ -20,6 +20,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.9.0
 	github.com/getsentry/sentry-go v0.6.1
+	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.4.2

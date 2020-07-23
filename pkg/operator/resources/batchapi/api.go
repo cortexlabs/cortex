@@ -73,13 +73,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 		err = applyK8sResources(api, prevVirtualService)
 		if err != nil {
-			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
 
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, true); err != nil {
-			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
-			go deleteK8sResources(api.Name) // Delete k8s if update fails?
 			return nil, "", err
 		}
 
@@ -167,7 +164,11 @@ func deleteS3Resources(apiName string) error {
 		},
 		func() error {
 			prefix := spec.APIJobPrefix(apiName)
-			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+			go config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
+			return nil
+		},
+		func() error {
+			return deleteAllInProgressFilesByAPI(apiName)
 		},
 	)
 }

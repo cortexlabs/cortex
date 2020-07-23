@@ -2,6 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
+// TODO FIX
 ![api architecture diagram](https://user-images.githubusercontent.com/808475/84695323-8507dd00-aeff-11ea-8b32-5a55cef76c79.png)
 
 APIs are deployed with a public API Gateway by default (the API Gateway forwards requests to the API load balancer). Each API can be independently configured to not create the API Gateway endpoint by setting `api_gateway: none` in the `networking` field of the [api configuration](api-configuration.md). If the API Gateway endpoint is not created, your API can still be accessed via the API load balancer; `cortex get API_NAME` will show the load balancer endpoint if API Gateway is disabled. API Gateway is enabled by default, and is generally recommended unless it doesn't support your use case due to limitations such as the 29 second request timeout, or if you are keeping your APIs private to your VPC. See below for common configurations.

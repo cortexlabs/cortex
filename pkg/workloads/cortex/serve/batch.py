@@ -98,7 +98,7 @@ def startup():
     update_api_liveness()
 
 
-def build_predict_args(payload):
+def build_predict_args(payload, batch_id):
     args = {}
 
     if "payload" in local_cache["predict_fn_args"]:
@@ -107,6 +107,8 @@ def build_predict_args(payload):
         args["headers"] = None
     if "query_params" in local_cache["predict_fn_args"]:
         args["query_params"] = None
+    if "batch_id" in local_cache["predict_fn_args"]:
+        args["batch_id"] = batch_id
     return args
 
 
@@ -154,24 +156,114 @@ def get_job_spec(storage, cache_dir, job_spec_path):
         return json.load(f)
 
 
+def get_total_messages_in_queue():
+    sqs_client = local_cache["sqs"]
+    job_spec = local_cache["job"]
+    queue_url = job_spec["sqs_url"]
+
+    attributes = sqs_client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    visible_count = int(attributes.get("ApproximateNumberOfMessages", 0))
+    not_visible_count = int(attributes.get("ApproximateNumberOfMessagesNotVisible", 0))
+    return visible_count, not_visible_count
+
+
+def handle_on_complete(message):
+    job_spec = local_cache["job"]
+    predictor_impl = local_cache["predictor_impl"]
+    sqs_client = local_cache["sqs"]
+    queue_url = job_spec["sqs_url"]
+    receipt_handle = message["ReceiptHandle"]
+
+    total_message_visibility = INITIAL_MESSAGE_VISIBILITY
+
+    try:
+        if not getattr(predictor_impl, "on_job_complete", None):
+            sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+            return
+
+        trigger_on_job_complete_next = False
+        while True:
+            visible_count, not_visible_count = get_total_messages_in_queue()
+            print("stats", visible_count, not_visible_count)
+
+            # if there are other messages that are visible, release this message and get the other ones (should rarely for FIFO)
+            if visible_count > 0:
+                sqs_client.change_message_visibility(
+                    QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=0
+                )
+                print("handle other visible messages first")
+                return
+
+            total_in_queue = visible_count + not_visible_count
+
+            if trigger_on_job_complete_next:
+                # double check that the queue is still empty (except for the job_complete message)
+                if total_in_queue <= 1:
+                    predictor_impl.on_job_complete()
+                    cx_logger().info("executed on_job_complete()")
+                    sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+                    return
+                else:
+                    trigger_on_job_complete_next = False
+
+            if total_in_queue == 1:
+                trigger_on_job_complete_next = True
+
+            # check queue state every 20 seconds (give time for queue metrics to achieve consistency)
+            total_message_visibility += 20
+            sqs_client.change_message_visibility(
+                QueueUrl=queue_url,
+                ReceiptHandle=receipt_handle,
+                VisibilityTimeout=total_message_visibility,
+            )
+            time.sleep(20)
+    except:
+        sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+        raise
+
+
 def sqs_loop():
-    queue_url = local_cache["job"]["sqs_url"]
+    job_spec = local_cache["job"]
+    api_spec = local_cache["api"]
+    predictor_impl = local_cache["predictor_impl"]
+    sqs_client = local_cache["sqs"]
+
+    _, results_dir_key = S3.deconstruct_s3_path(local_cache["job"]["results_dir"])
+    queue_url = job_spec["sqs_url"]
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
 
+    no_messages_found_previous_loop = False
+
     while True:
-        response = local_cache["sqs"].receive_message(
+        response = sqs_client.receive_message(
             QueueUrl=queue_url,
             MaxNumberOfMessages=1,
-            WaitTimeSeconds=1,
+            WaitTimeSeconds=10,
             VisibilityTimeout=INITIAL_MESSAGE_VISIBILITY,
+            MessageAttributeNames=["All"],
         )
 
         if response.get("Messages") is None or len(response["Messages"]) == 0:
-            cx_logger().info("no batches left in queue, exiting...")
-            break
+            if no_messages_found_previous_loop:
+                cx_logger().info("no batches left in queue, exiting...")
+                break
+            else:
+                no_messages_found_previous_loop = True
+                continue
+        else:
+            no_messages_found_previous_loop = False
 
-        receipt_handle = response["Messages"][0]["ReceiptHandle"]
+        message = response["Messages"][0]
+
+        receipt_handle = message["ReceiptHandle"]
+
+        if "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]:
+            print("received job_complete")
+            handle_on_complete(message)
+            continue
 
         start_time = time.time()
 
@@ -186,19 +278,41 @@ def sqs_loop():
 
         renewer.start()
         try:
-            payload = json.loads(response["Messages"][0]["Body"])
-            local_cache["predictor_impl"].predict(**build_predict_args(payload))
-            local_cache["api"].post_metrics(
+            payload = json.loads(message["Body"])
+            batch_id = message["MessageId"]
+            prediction = predictor_impl.predict(**build_predict_args(payload, batch_id))
+
+            if prediction is not None:
+                key = f"{results_dir_key}/{batch_id}"
+
+                if isinstance(prediction, bytes):
+                    api_spec.storage.put_object(prediction, key)
+                if isinstance(prediction, str):
+                    api_spec.storage.put_str(prediction, key)
+                else:
+                    try:
+                        response = json.dumps(prediction)
+                    except Exception as e:
+                        raise UserRuntimeException(
+                            str(e),
+                            "please return an object that is JSON serializable (including its nested fields), a bytes object or a string; alternatively, you can also not return anything and write the output to your desired storage yourself",
+                        ) from e
+                    api_spec.storage.put_str(response, key + ".json")
+                cx_logger.info(
+                    f"uploaded results for {batch_id} to s3://{api_spec.storage.bucket}/{key}"
+                )
+
+            api_spec.post_metrics(
                 [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
         except Exception:
             cx_logger().exception("failed to process batch")
-            local_cache["api"].post_metrics(
+            api_spec.post_metrics(
                 [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
         finally:
             renewer.stop()
-            local_cache["sqs"].delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+            sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
 
 def start():
@@ -248,7 +362,7 @@ def start():
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(project_dir, client)
+        predictor_impl = api.predictor.initialize_impl(project_dir, client, raw_api_spec, job_spec)
 
         local_cache["api"] = api
         local_cache["provider"] = provider

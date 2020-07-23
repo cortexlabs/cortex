@@ -100,6 +100,10 @@ func getJobState(jobKey spec.JobKey) (*JobState, error) {
 		return nil, errors.Wrap(err, "failed to get job state", jobKey.UserString())
 	}
 
+	if len(s3Objects) == 0 {
+		return nil, errors.Wrap(ErrorJobNotFound(jobKey), "failed to get job state")
+	}
+
 	lastUpdatedMap := map[string]time.Time{}
 
 	for _, s3Object := range s3Objects {
@@ -324,7 +328,7 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 		if err != nil {
 			return nil, err
 		}
-		jobStatus.QueueMetrics = queueMetrics
+		jobStatus.BatchesInQueue = pointer.Int(queueMetrics.TotalUserMessages())
 
 		if statusCode == status.JobEnqueuing {
 			jobStatus.TotalBatchCount = queueMetrics.TotalInQueue()

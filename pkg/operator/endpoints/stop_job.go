@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -33,6 +34,12 @@ func StopJob(w http.ResponseWriter, r *http.Request) {
 
 	err := batchapi.StopJob(spec.JobKey{APIName: apiName, ID: jobID})
 	if err != nil {
+		if errors.GetKind(err) == batchapi.ErrJobIsNotInProgress {
+			respond(w, schema.DeleteResponse{
+				Message: err.Error(),
+			})
+			return
+		}
 		respondError(w, r, err)
 		return
 	}

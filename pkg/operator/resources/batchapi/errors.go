@@ -24,8 +24,12 @@ import (
 )
 
 const (
-	ErrBatchAPINotDeployed = "batchapi.batch_api_not_deployed"
-	ErrJobNotFound         = "batchapi.job_not_found"
+	ErrBatchAPINotDeployed        = "batchapi.batch_api_not_deployed"
+	ErrJobNotFound                = "batchapi.job_not_found"
+	ErrJobIsNotInProgress         = "batchapi.job_is_not_in_progress"
+	ErrJobHasAlreadyBeenStopped   = "batchapi.job_has_already_been_stopped"
+	ErrNoS3FilesFound             = "batchapi.no_s3_files_found"
+	ErrNoDataFoundInJobSubmission = "batchapi.no_data_found_in_job_submission"
 )
 
 func ErrorBatchAPINotDeployed(apiName string) error {
@@ -39,5 +43,33 @@ func ErrorJobNotFound(jobKey spec.JobKey) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJobNotFound,
 		Message: fmt.Sprintf("unable to find job %s", jobKey.UserString()),
+	})
+}
+
+func ErrorJobIsNotInProgress() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJobIsNotInProgress,
+		Message: "cannot stop job because it is not in progress",
+	})
+}
+
+func ErrorJobHasAlreadyBeenStopped() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJobHasAlreadyBeenStopped,
+		Message: "job has already been stopped",
+	})
+}
+
+func ErrorNoS3FilesFound() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoS3FilesFound,
+		Message: "no s3 files found based on search criteria",
+	})
+}
+
+func ErrorNoDataFoundInJobSubmission() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoDataFoundInJobSubmission,
+		Message: "unable to enqueue batches because no data was found",
 	})
 }

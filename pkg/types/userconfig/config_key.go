@@ -95,8 +95,13 @@ const (
 	UpscaleToleranceAnnotationKey             = "autoscaling.cortex.dev/upscale-tolerance"
 
 	// Job Submission
-	BatcheSizeKey       = "batch_size"
-	BatchesKey          = "batches"
-	WorkersKey          = "workers"
-	BatchesPerWorkerKey = "batches_per_worker"
+	BatcheSizeKey     = "batch_size"
+	ItemsKey          = "items"
+	ItemListKey       = "item_list"
+	FilePathListerKey = "file_path_lister"
+	DelimitedFilesKey = "delimited_files"
+	S3PathsKey        = "s3_paths"
+	IncludesKey       = "includes"
+	ExcludesKey       = "exludes"
+	WorkersKey        = "workers"
 )

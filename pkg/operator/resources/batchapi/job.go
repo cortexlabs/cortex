@@ -17,22 +17,20 @@ limitations under the License.
 package batchapi
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 	"math"
-	"path"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/cortexlabs/cortex/pkg/lib/cron"
+	"github.com/aws/aws-sdk-go/service/s3"
+	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -40,6 +38,7 @@ import (
 
 const (
 	_lastUpdatedFile = "last_updated"
+	_fileBuffer      = 32 * 1024 * 1024
 )
 
 var jobIDMutex = sync.Mutex{}
@@ -53,8 +52,113 @@ func monotonicallyDecreasingJobID() string {
 	return fmt.Sprintf("%x", i)
 }
 
-func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, error) {
+func DryRun(submission *userconfig.JobSubmission, response io.Writer) error {
 	err := submission.Validate()
+	if err != nil {
+		return err
+	}
+
+	if submission.DelimitedFiles != nil {
+		err := validateS3ListerDryRun(&submission.DelimitedFiles.S3Lister, response)
+		if err != nil {
+			return errors.Wrap(err, userconfig.DelimitedFilesKey)
+		}
+	}
+
+	if submission.FilePathLister != nil {
+		err := validateS3ListerDryRun(&submission.FilePathLister.S3Lister, response)
+		if err != nil {
+			return errors.Wrap(err, userconfig.FilePathListerKey)
+		}
+	}
+
+	return nil
+}
+
+func validateS3ListerDryRun(s3Lister *awslib.S3Lister, response io.Writer) error {
+	filesFound := 0
+	for _, s3Path := range s3Lister.S3Paths {
+		if !awslib.IsValidS3Path(s3Path) {
+			return awslib.ErrorInvalidS3Path(s3Path)
+		}
+
+		err := config.AWS.S3IteratorFromLister(*s3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
+			filesFound++
+			filePath := awslib.S3Path(bucket, *s3Obj.Key)
+			_, err := io.WriteString(response, fmt.Sprintf("(dryrun) found: %s\n", filePath))
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		})
+
+		if err != nil {
+			return errors.Wrap(err, s3Path)
+		}
+	}
+
+	if filesFound == 0 {
+		return ErrorNoS3FilesFound()
+	}
+
+	return nil
+}
+
+func validateS3Lister(s3Lister *awslib.S3Lister) error {
+	filesFound := 0
+	for _, s3Path := range s3Lister.S3Paths {
+		if !awslib.IsValidS3Path(s3Path) {
+			return awslib.ErrorInvalidS3Path(s3Path)
+		}
+
+		err := config.AWS.S3IteratorFromLister(*s3Lister, func(objPath string, s3Obj *s3.Object) (bool, error) {
+			filesFound++
+			return false, nil
+		})
+
+		if err != nil {
+			return errors.Wrap(err, s3Path)
+		}
+	}
+
+	if filesFound == 0 {
+		return ErrorNoS3FilesFound()
+	}
+
+	return nil
+}
+
+func validateSubmission(submission *userconfig.JobSubmission) error {
+	err := submission.Validate()
+	if err != nil {
+		return err
+	}
+
+	if submission.DelimitedFiles != nil {
+		err := validateS3Lister(&submission.DelimitedFiles.S3Lister)
+		if err != nil {
+			if errors.GetKind(err) == ErrNoS3FilesFound {
+				return errors.Wrap(errors.Append(err, "; you can append `dryRun=true` query param to experiment with s3_file_list criteria without initializing jobs"), userconfig.DelimitedFilesKey)
+			}
+			return errors.Wrap(err, userconfig.DelimitedFilesKey)
+		}
+	}
+
+	if submission.FilePathLister != nil {
+		err := validateS3Lister(&submission.FilePathLister.S3Lister)
+		if err != nil {
+			if errors.GetKind(err) == ErrNoS3FilesFound {
+				return errors.Wrap(errors.Append(err, "; you can append `dryRun=true` query param to experiment with s3_file_list criteria without initializing jobs"), userconfig.FilePathListerKey)
+			}
+			return errors.Wrap(err, userconfig.FilePathListerKey)
+		}
+	}
+
+	return nil
+}
+
+func SubmitJob(apiName string, submission *userconfig.JobSubmission) (*spec.Job, error) {
+	err := validateSubmission(submission)
 	if err != nil {
 		return nil, err
 	}
@@ -90,11 +194,12 @@ func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, 
 	}
 
 	jobSpec := spec.Job{
-		Job:     submission.Job,
-		JobKey:  jobKey,
-		APIID:   apiSpec.ID,
-		SQSUrl:  queueURL,
-		Created: time.Now(),
+		Job:        submission.Job,
+		ResultsDir: fmt.Sprintf("s3://%s/job_results/%s/%s", config.Cluster.Bucket, apiName, jobID),
+		JobKey:     jobKey,
+		APIID:      apiSpec.ID,
+		SQSUrl:     queueURL,
+		Created:    time.Now(),
 	}
 
 	err = uploadJobSpec(&jobSpec)
@@ -109,7 +214,7 @@ func SubmitJob(apiName string, submission userconfig.JobSubmission) (*spec.Job, 
 		return nil, err
 	}
 
-	go deployJob(apiSpec, &jobSpec, &submission)
+	go deployJob(apiSpec, &jobSpec, submission)
 
 	return &jobSpec, nil
 }
@@ -148,6 +253,16 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobS
 		return
 	}
 
+	if totalBatches == 0 {
+		writeToJobLogGroup(jobSpec.JobKey, ErrorNoDataFoundInJobSubmission().Error())
+		if submission.DelimitedFiles != nil {
+			writeToJobLogGroup(jobSpec.JobKey, "please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission")
+		}
+		setEnqueueFailedStatus(jobSpec.JobKey)
+		deleteJobRuntimeResources(jobSpec.JobKey)
+		return
+	}
+
 	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("completed enqueuing a total %d batches", totalBatches), "spinning up workers...")
 
 	jobSpec.TotalBatchCount = totalBatches
@@ -173,90 +288,11 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobS
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 	err := writeToJobLogGroup(jobKey, jobErr.Error())
 	if err != nil {
-		fmt.Println(err.Error())
-	}
-	setUnexpectedErrorStatus(jobKey)
-	deleteJobRuntimeResources(jobKey)
-}
-
-func cronErrHandler(cronName string) func(error) {
-	return func(err error) {
-		err = errors.Wrap(err, cronName+" cron failed")
 		telemetry.Error(err)
 		errors.PrintError(err)
 	}
-}
-
-func updateLiveness(jobKey spec.JobKey) error {
-	s3Key := path.Join(jobKey.PrefixKey(), _lastUpdatedFile)
-	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
-	if err != nil {
-		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
-	}
-	return nil
-}
-
-func enqueue(jobSpec *spec.Job, submission *userconfig.JobSubmission) (int, error) {
-	err := updateLiveness(jobSpec.JobKey)
-	if err != nil {
-		return 0, err
-	}
-
-	livenessUpdater := func() error {
-		return updateLiveness(jobSpec.JobKey)
-	}
-
-	livenessCron := cron.Run(livenessUpdater, cronErrHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), 20*time.Second)
-	defer livenessCron.Cancel()
-
-	batchCount := len(submission.Batches) / *submission.BatchSize
-	if len(submission.Batches)%*submission.BatchSize != 0 {
-		batchCount++
-	}
-
-	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(submission.Batches), batchCount, *submission.BatchSize))
-
-	for i := 0; i < batchCount; i++ {
-		min := i * (*submission.BatchSize)
-		max := (i + 1) * (*submission.BatchSize)
-		if max > len(submission.Batches) {
-			max = len(submission.Batches)
-		}
-		err := sendMessage(jobSpec, submission.Batches[min:max], i)
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	return batchCount, nil
-}
-
-func sendMessage(jobSpec *spec.Job, batch []json.RawMessage, batchNumber int) error {
-	jsonBytes, err := json.Marshal(batch)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("batch %d", batchNumber))
-	}
-
-	randomID := k8s.RandomName()
-	for retry := 0; retry < 3; retry++ {
-		_, err := config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-			MessageDeduplicationId: aws.String(randomID),
-			QueueUrl:               aws.String(jobSpec.SQSUrl),
-			MessageBody:            aws.String(string(jsonBytes)),
-			MessageGroupId:         aws.String(randomID),
-		})
-		if err != nil {
-			newErr := errors.Wrap(errors.WithStack(err), fmt.Sprintf("batch %d", batchNumber))
-			if retry == 2 {
-				return errors.Wrap(newErr, "failed after retrying 3 times")
-			}
-			writeToJobLogGroup(jobSpec.JobKey, newErr.Error())
-		} else {
-			break
-		}
-	}
-
-	return nil
+	setUnexpectedErrorStatus(jobKey)
+	deleteJobRuntimeResources(jobKey)
 }
 
 func applyK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {
@@ -299,9 +335,25 @@ func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 }
 
 func StopJob(jobKey spec.JobKey) error {
+	jobState, err := getJobState(jobKey)
+	if err != nil {
+		go deleteJobRuntimeResources(jobKey)
+		return err
+	}
+
+	if jobState.Status == status.JobStopped {
+		go deleteJobRuntimeResources(jobKey)
+		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
+	}
+
+	if !jobState.Status.IsInProgressPhase() {
+		go deleteJobRuntimeResources(jobKey)
+		return errors.Wrap(ErrorJobIsNotInProgress())
+	}
+
 	writeToJobLogGroup(jobKey, "request received to stop job; performing cleanup...")
 	return errors.FirstError(
-		setStoppedStatus(jobKey),
 		deleteJobRuntimeResources(jobKey),
+		setStoppedStatus(jobKey),
 	)
 }

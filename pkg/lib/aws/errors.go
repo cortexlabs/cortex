@@ -37,6 +37,8 @@ const (
 	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
 	ErrReadCredentials              = "aws.read_credentials"
 	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
+	ErrFailedToEnqueueMessages      = "aws.failed_to_enqueue_messages"
+	ErrMessageExceedsMaxSize        = "aws.message_exceeds_max_size"
 )
 
 func IsNotFoundErr(err error) bool {
@@ -151,5 +153,24 @@ func ErrorECRExtractingCredentials() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrECRExtractingCredentials,
 		Message: "unable to extract ECR credentials",
+	})
+}
+
+func ErrorFailedToEnqueueMessages(message string, startIndex int, endIndex ...int) error {
+	additionalInfo := fmt.Sprintf("failed to enqueue message %d", startIndex)
+	if len(endIndex) == 1 {
+		additionalInfo = fmt.Sprintf("an error occurred when attempting to enqueue one or more of the message between %s and %s index", startIndex, endIndex[0])
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFailedToEnqueueMessages,
+		Message: fmt.Sprintf("%s: %s", additionalInfo, message),
+	})
+}
+
+func ErrorMessageExceedsMaxSize(messageSize int, messageLimit int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMessageExceedsMaxSize,
+		Message: fmt.Sprintf("cannot enqueue message because its size of %d bytes which exceeds the %d bytes limit", messageSize, messageLimit),
 	})
 }

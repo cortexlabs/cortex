@@ -83,6 +83,7 @@ func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	jobStatus, err := GetJobStatus(jobKey)
 	if err != nil {
 		writeAndCloseSocket(socket, "error: "+errors.Message(err))
+		return
 	}
 
 	podCheckCancel := make(chan struct{})
@@ -93,6 +94,7 @@ func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	} else {
 		if err != nil {
 			writeAndCloseSocket(socket, "error: "+errors.Message(err))
+			return
 		}
 		go fetchLogsFromCloudWatch(jobStatus, podCheckCancel, socket)
 	}

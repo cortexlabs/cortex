@@ -28,3 +28,12 @@ func (q QueueMetrics) IsEmpty() bool {
 func (q QueueMetrics) TotalInQueue() int {
 	return q.InQueue + q.NotVisible
 }
+
+func (q QueueMetrics) TotalUserMessages() int {
+	total := q.TotalInQueue()
+	if total == 0 {
+		return 0
+	}
+
+	return total - 1 // An extra message is added
+}

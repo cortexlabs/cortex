@@ -17,10 +17,96 @@ limitations under the License.
 package aws
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
+
+const MessageSizeLimit = 256 * 1024
+const MaxMessagesPerBatch = 10
+const CortexMessageSizeLimit = MessageSizeLimit - 2
+
+type SQSBatchUploader struct {
+	Client       *Client
+	QueueURL     string
+	Retries      *int // default 3 times
+	messageList  []*sqs.SendMessageBatchRequestEntry
+	startIndex   int
+	endIndex     int
+	totalBytes   int
+	TotalBatches int
+}
+
+func (uploader *SQSBatchUploader) AddToBatch(message *sqs.SendMessageBatchRequestEntry) error {
+	if len(*message.MessageBody) > MessageSizeLimit {
+		return errors.Append(ErrorMessageExceedsMaxSize(len(*message.MessageBody), MessageSizeLimit), "; use a smaller batch size or minimize the size of each of item in the batch")
+	}
+
+	if len(*message.MessageBody)+uploader.totalBytes > MessageSizeLimit || len(uploader.messageList) == MaxMessagesPerBatch {
+		err := uploader.Flush()
+		if err != nil {
+			return err
+		}
+
+		uploader.startIndex = uploader.TotalBatches
+	}
+
+	uploader.endIndex = uploader.TotalBatches
+	uploader.messageList = append(uploader.messageList, message)
+	uploader.totalBytes += len(*message.MessageBody)
+	uploader.TotalBatches++
+	return nil
+}
+
+func (uploader *SQSBatchUploader) Flush() error {
+	if len(uploader.messageList) == 0 {
+		return nil
+	}
+
+	fmt.Println("flushing", uploader.TotalBatches)
+
+	retries := 3
+	if uploader.Retries != nil {
+		retries = *uploader.Retries
+	}
+
+	var err error
+
+	for retry := 0; retry < retries; retry++ {
+		err = uploader.enqueueToSQS()
+		if err == nil {
+			uploader.messageList = nil
+			uploader.startIndex = 0
+			uploader.endIndex = 0
+			uploader.totalBytes = 0
+			return nil
+		}
+	}
+	return errors.Wrap(err, fmt.Sprintf("failed after retrying %d times", retries))
+}
+
+func (uploader *SQSBatchUploader) enqueueToSQS() error {
+	output, err := uploader.Client.SQS().SendMessageBatch(&sqs.SendMessageBatchInput{
+		QueueUrl: aws.String(uploader.QueueURL),
+		Entries:  uploader.messageList,
+	})
+	if err != nil {
+		errorWrap := fmt.Sprintf("enqueuing batch %d", uploader.startIndex)
+		if uploader.startIndex != uploader.endIndex {
+			errorWrap = fmt.Sprintf("enqueuing batches between %d to %d", uploader.startIndex, uploader.endIndex)
+		}
+
+		if len(output.Failed) == 0 {
+			return errors.Wrap(err, errorWrap)
+		}
+
+		return errors.Wrap(ErrorFailedToEnqueueMessages(*output.Failed[0].Message, uploader.startIndex, uploader.endIndex), errorWrap)
+	}
+
+	return nil
+}
 
 func (c *Client) ListQueuesByQueueNamePrefix(queueNamePrefix string) ([]string, error) {
 	output, err := c.SQS().ListQueues(&sqs.ListQueuesInput{

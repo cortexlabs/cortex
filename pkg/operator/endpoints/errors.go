@@ -35,6 +35,7 @@ const (
 	ErrPathParamRequired      = "endpoints.path_param_required"
 	ErrAnyQueryParamRequired  = "endpoints.any_query_param_required"
 	ErrAnyPathParamRequired   = "endpoints.any_path_param_required"
+	ErrJobIDRequired          = "endpoints.job_id_required"
 )
 
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {

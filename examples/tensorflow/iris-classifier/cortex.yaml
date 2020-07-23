@@ -9,6 +9,4 @@
   monitoring:
     model_type: classification
   compute:
-    gpu: 1
-  autoscaling:
-    min_replicas: 3
+    mem: 400Mi

@@ -20,12 +20,14 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 const (
 	ErrUnknownAPIGatewayType     = "userconfig.unknown_api_gateway_type"
 	ErrConflictingFields         = "userconfig.conflicting_fields"
 	ErrBatchItemSizeExceedsLimit = "userconfig.batch_item_size_exceeds_limit"
+	ErrSpecifyExactlyOneKey      = "userconfig.specify_exactly_one_key"
 )
 
 func ErrorUnknownAPIGatewayType() error {
@@ -35,16 +37,25 @@ func ErrorUnknownAPIGatewayType() error {
 	})
 }
 
-func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
+func ErrorConflictingFields(key string, keys ...string) error {
+	allKeys := append(keys, key)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+		Message: fmt.Sprintf("please specify either the %s field (both not more than one at the same time)", s.StrsOr(allKeys)),
 	})
 }
 
-func ErrorItemSizeExceedsLimit(size int, limit int) error {
+func ErrorItemSizeExceedsLimit(index int, size int, limit int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrBatchItemSizeExceedsLimit,
-		Message: fmt.Sprintf("batch item has size %d bytes which exceeds the limit %d", size, limit),
+		Message: fmt.Sprintf("item %d has size %d bytes which exceeds the limit %d", index, size, limit),
+	})
+}
+
+func ErrorSpecifyExactlyOneKey(key string, keys ...string) error {
+	allKeys := append(keys, key)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyExactlyOneKey,
+		Message: fmt.Sprintf("specify exactly one of the following keys %s", s.StrsOr(allKeys)), // TODO add job specification documentation
 	})
 }

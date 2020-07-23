@@ -525,6 +525,12 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 
+		if resourceStruct.Kind == userconfig.BatchAPIKind {
+			if provider == types.LocalProviderType {
+				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
+			}
+		}
+
 		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct.Kind))
 
 		if errors.HasError(errs) {
@@ -534,6 +540,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
+
 		api.Index = i
 		api.FileName = configFileName
 
@@ -557,12 +564,6 @@ func ValidateAPI(
 
 	if err := validatePredictor(api, projectFiles, providerType, awsClient); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
-	}
-
-	if api.Kind == userconfig.BatchAPIKind {
-		if providerType == types.LocalProviderType {
-			return errors.Wrap(ErrorKindIsNotSupportedByProvider(api.Kind, providerType), api.Identify())
-		}
 	}
 
 	if api.Autoscaling != nil { // should only be nil for local provider

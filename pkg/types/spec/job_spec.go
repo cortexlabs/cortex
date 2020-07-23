@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -42,7 +43,7 @@ func (j JobKey) FileSpecKey() string {
 
 // e.g. /jobs/<cortex version>/<api_name>/<job_id>
 func (j JobKey) PrefixKey() string {
-	return path.Join(APIJobPrefix(j.APIName), j.ID)
+	return s.EnsureSuffix(path.Join(APIJobPrefix(j.APIName), j.ID), "/")
 }
 
 func (j JobKey) K8sName() string {
@@ -54,20 +55,9 @@ type Job struct {
 	userconfig.Job
 	APIID           string    `json:"api_id"`
 	SQSUrl          string    `json:"sqs_url"`
-	TotalBatchCount int       `json:"total_batch_count"`
+	ResultsDir      string    `json:"results_dir"`
+	TotalBatchCount int       `json:"total_batch_count"` // TODO this will always be 0 on first response
 	Created         time.Time `json:"created_time"`
-}
-
-func (j Job) RequestedWorkers() int {
-	if j.Workers != nil {
-		return *j.Workers
-	}
-
-	if j.BatchesPerWorker != nil && *j.BatchesPerWorker > 0 {
-		return j.TotalBatchCount / (*j.BatchesPerWorker)
-	}
-
-	return 0
 }
 
 func APIJobPrefix(apiName string) string {

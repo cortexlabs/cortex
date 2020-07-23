@@ -98,8 +98,8 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 
 			totalBatchCount := job.TotalBatchCount
 
-			if job.Status == status.JobEnqueuing && job.QueueMetrics != nil {
-				totalBatchCount = job.QueueMetrics.TotalInQueue()
+			if job.Status == status.JobEnqueuing && job.BatchesInQueue != nil {
+				totalBatchCount = *job.BatchesInQueue
 			}
 
 			if job.BatchMetrics != nil {
@@ -145,7 +145,7 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
 	}
 
-	out += "\n" + console.Bold("submission endpoint: ") + apiEndpoint
+	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
 	out += "\n"
 
 	out += titleStr("batch api configuration") + batchAPI.APISpec.UserStr(types.AWSProviderType)
@@ -184,8 +184,8 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	totalBatchCount := job.TotalBatchCount
 
-	if job.Status == status.JobEnqueuing && job.QueueMetrics != nil {
-		totalBatchCount = job.QueueMetrics.TotalInQueue()
+	if job.Status == status.JobEnqueuing && job.BatchesInQueue != nil {
+		totalBatchCount = *job.BatchesInQueue
 	}
 
 	succeeded := "-"
@@ -240,7 +240,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 				},
 				Rows: [][]interface{}{
 					{
-						job.RequestedWorkers(),
+						*job.Workers,
 						job.WorkerStats.Pending,
 						job.WorkerStats.Initializing,
 						job.WorkerStats.Stalled,
@@ -262,6 +262,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	}
 
 	out += "\n" + console.Bold("job endpoint: ") + jobEndpoint + "\n"
+	out += console.Bold("results dir (if used): ") + job.ResultsDir + "\n"
 
 	jobSpecStr, err := json.Pretty(job.Job)
 	if err != nil {

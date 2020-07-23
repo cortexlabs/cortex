@@ -1,0 +1,16 @@
+{
+    "workers": 2,
+    "delimited_files": {
+        "s3_paths": [
+            "s3://cortex-vishal/testing/"
+        ],
+        "includes": [
+            "**testing.json",
+            "**testing-5000000.json"
+        ],
+        "excludes": [
+            "**1-256KB.json"
+        ],
+        "batch_size": 4800
+    }
+}

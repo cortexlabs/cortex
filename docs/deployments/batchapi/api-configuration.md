@@ -10,7 +10,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: SyncAPI  # must be "SyncAPI", create a synchronous API that holds on to the request and responds only after a prediction has been made
+  kind: BatchAPI
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
@@ -36,7 +36,7 @@ See additional documentation for [parallelism](parallelism.md), [compute](comput
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: SyncAPI  # must be "SyncAPI", create a synchronous API that holds on to the request and responds only after a prediction has been made
+  kind: BatchAPI
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
@@ -70,7 +70,7 @@ See additional documentation for [parallelism](parallelism.md), [compute](comput
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: SyncAPI  # must be "SyncAPI", create a synchronous API that holds on to the request and responds only after a prediction has been made
+  kind: BatchAPI
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
