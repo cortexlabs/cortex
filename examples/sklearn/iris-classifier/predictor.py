@@ -19,8 +19,7 @@ class PythonPredictor:
         s3.download_file(config["bucket"], config["key"], "/tmp/model.pkl")
         self.model = pickle.load(open("/tmp/model.pkl", "rb"))
 
-    def predict(self, payload, headers):
-        print(headers)
+    def predict(self, payload):
         measurements = [
             payload["sepal_length"],
             payload["sepal_width"],

@@ -8,5 +8,3 @@
     model_path: s3://cortex-examples/tensorflow/iris-classifier/nn
   monitoring:
     model_type: classification
-  compute:
-    mem: 400Mi
