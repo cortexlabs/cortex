@@ -387,16 +387,16 @@ func IsValidTensorFlowLocalDirectory(path string) (bool, error) {
 // getONNXVersionsFromS3Path checks that the path contains a valid S3 directory for versioned ONNX models:
 // - model-name
 // 		- 1523423423/ (version prefix, usually a timestamp)
-// 			- *.onnx
+// 			- <model-name>.onnx
 // 		- 2434389194/ (version prefix, usually a timestamp)
-//			- *.onnx
+//			- <model-name>.onnx
 // 		...
 func getONNXVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([]int64, error) {
 	objects, err := awsClientForBucket.ListS3PathDir(path, false, pointer.Int64(1000))
 	if err != nil {
 		return []int64{}, err
 	} else if len(objects) == 0 {
-		return []int64{}, errors.Wrap(ErrorInvalidONNXModelPath(), path)
+		return []int64{}, errors.Wrap(ErrorInvalidONNXModelPath(path), path)
 	}
 
 	versions := []int64{}
@@ -421,34 +421,57 @@ func getONNXVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([]i
 // GetONNXVersionsFromLocalPath checks that the path contains a valid local directory for versioned ONNX models:
 // - model-name
 // 		- 1523423423/ (version prefix, usually a timestamp)
-// 			- *.onnx
+// 			- <model-name>.onnx
 // 		- 2434389194/ (version prefix, usually a timestamp)
-//			- *.onnx
+//			- <model-name>.onnx
 // 		...
 func GetONNXVersionsFromLocalPath(path string) ([]int64, error) {
-	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	dirPaths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return []int64{}, err
-	} else if len(paths) == 0 {
-		return []int64{}, ErrorDirIsEmpty(path)
+	} else if len(dirPaths) == 0 {
+		return []int64{}, ErrorNoVersionsFoundForONNXModelPath(path)
 	}
 
+	basePathLength := len(strings.Split(path, "/"))
+	numONNXFiles := 0
+	numGenericFiles := 0
 	versions := []int64{}
-	for _, path := range paths {
-		if strings.HasSuffix(path, ".onnx") {
-			possiblePath := filepath.Dir(path)
 
-			versionStr := filepath.Base(possiblePath)
-			version, err := strconv.ParseInt(versionStr, 10, 64)
-			if err != nil {
-				return []int64{}, err
-			}
-
-			versions = append(versions, version)
+	for _, dirPath := range dirPaths {
+		pathParts := strings.Split(dirPath, "/")
+		versionStr := pathParts[basePathLength]
+		version, err := strconv.ParseInt(versionStr, 10, 64)
+		if err != nil {
+			return []int64{}, ErrorInvalidONNXModelPath(path)
 		}
+
+		modelVersionPath := filepath.Join(path, versionStr)
+		if !files.IsDir(modelVersionPath) {
+			return []int64{}, ErrorONNXModelVersionPathMustBeDir(path, modelVersionPath)
+		}
+
+		var objects []string
+		if objects, err = files.ListDir(modelVersionPath, false); err != nil {
+			return []int64{}, err
+		} else if len(objects) == 0 {
+			continue
+		}
+
+		if strings.HasSuffix(dirPath, ".onnx") {
+			numONNXFiles++
+		} else {
+			numGenericFiles++
+		}
+
+		versions = append(versions, version)
 	}
 
-	return versions, nil
+	if numONNXFiles != 1 || numGenericFiles > 0 {
+		return []int64{}, ErrorInvalidONNXModelPath(path)
+	}
+
+	return slices.UniqueInt64(versions), nil
 }
 
 // getPythonVersionsFromS3Path checks that the path contains a valid S3 directory for versioned Python models:
