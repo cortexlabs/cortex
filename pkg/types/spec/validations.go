@@ -757,20 +757,25 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 }
 
 func validatePythonModel(modelResource *CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	modelName := modelResource.Name
+	if modelName == consts.SingleModelName {
+		modelName = ""
+	}
+
 	if modelResource.S3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {
-			return errors.Wrap(err, modelResource.Name)
+			return errors.Wrap(err, modelName)
 		}
 
 		_, err = cr.S3PathValidator(modelResource.ModelPath)
 		if err != nil {
-			return errors.Wrap(err, modelResource.Name)
+			return errors.Wrap(err, modelName)
 		}
 
 		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
 		if err != nil {
-			return errors.Wrap(err, modelResource.Name)
+			return errors.Wrap(err, modelName)
 		}
 		modelResource.Versions = versions
 	} else {
@@ -780,7 +785,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 
 		versions, err := GetPythonVersionsFromLocalPath(modelResource.ModelPath)
 		if err != nil {
-			return errors.Wrap(err, modelResource.Name)
+			return errors.Wrap(err, modelName)
 		}
 		modelResource.Versions = versions
 	}
@@ -970,8 +975,8 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 	}
 	var err error
 	*models, err = modelResourceToCurated(modelResources, projectFiles)
-	if err == nil {
-		return modelWrapError(&errors.Error{Message: "ha"})
+	if err != nil {
+		return err
 	}
 
 	for i := range *models {
@@ -990,24 +995,35 @@ func validateONNXModel(
 	awsClient *aws.Client,
 ) error {
 
+	modelName := modelResource.Name
+	if modelName == consts.SingleModelName {
+		modelName = ""
+	}
+
 	if modelResource.S3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {
-			return err
+			return errors.Wrap(err, modelName)
 		}
 
 		_, err = cr.S3PathValidator(modelResource.ModelPath)
 		if err != nil {
-			return err
+			return errors.Wrap(err, modelName)
 		}
 
-		versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
-		if err != nil {
-			return err
-		} else if len(versions) == 0 {
-			return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
+		if yes, err := awsClientForBucket.IsS3PathDir(modelResource.ModelPath); yes {
+			versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
+			if err != nil {
+				return errors.Wrap(err, modelName)
+			}
+			modelResource.Versions = versions
+		} else if err != nil {
+			return errors.Wrap(err, modelName)
+		} else if yes, err := awsClientForBucket.IsS3PathFile(modelResource.ModelPath); !yes {
+			return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath), modelName)
+		} else if err != nil {
+			return errors.Wrap(err, modelName)
 		}
-		modelResource.Versions = versions
 	} else {
 		if providerType == types.AWSProviderType {
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
@@ -1016,11 +1032,11 @@ func validateONNXModel(
 		if files.IsDir(modelResource.ModelPath) {
 			versions, err := GetONNXVersionsFromLocalPath(modelResource.ModelPath)
 			if err != nil {
-				return errors.Wrap(err, modelResource.Name)
+				return errors.Wrap(err, modelName)
 			}
 			modelResource.Versions = versions
 		} else if !(files.IsFile(modelResource.ModelPath) && strings.HasSuffix(modelResource.ModelPath, ".onnx")) {
-			return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath), modelResource.ModelPath)
+			return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath), modelName)
 		}
 	}
 
