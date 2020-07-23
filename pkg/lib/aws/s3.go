@@ -148,7 +148,10 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 	for _, object := range objects {
 		objectKeys := slices.RemoveEmpties(strings.Split(*object.Key, "/"))
 		if len(objectKeys)-len(pathKeys) >= depth {
-			paths = append(paths, strings.Join(objectKeys[:len(pathKeys)+depth], "/"))
+			computedPath := strings.Join(objectKeys[:len(pathKeys)+depth], "/")
+			if strings.HasPrefix(computedPath, key) {
+				paths = append(paths, computedPath)
+			}
 		}
 	}
 

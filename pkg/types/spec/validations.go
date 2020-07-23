@@ -778,15 +778,11 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		if files.IsDir(modelResource.ModelPath) {
-			versions, err := GetPythonVersionsFromLocalPath(modelResource.ModelPath)
-			if err != nil {
-				return err
-			}
-			modelResource.Versions = versions
-		} else {
-			return ErrorInvalidONNXModelPath()
+		versions, err := GetPythonVersionsFromLocalPath(modelResource.ModelPath)
+		if err != nil {
+			return errors.Wrap(err, modelResource.Name)
 		}
+		modelResource.Versions = versions
 	}
 
 	return nil

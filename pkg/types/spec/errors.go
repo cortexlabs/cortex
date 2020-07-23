@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -287,8 +286,8 @@ func ErrorNoVersionsFoundForPythonModelPath(path string) error {
 	})
 }
 
-func ErrorPythonModelVersionPathMustBeDir(path, version string) error {
-	message := fmt.Sprintf("%s: model version path must be a directory.\n", aws.JoinS3Path(path, version))
+func ErrorPythonModelVersionPathMustBeDir(path, versionedPath string) error {
+	message := fmt.Sprintf("%s: model version path must be a directory.\n", versionedPath)
 	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrPythonModelVersionPathMustBeDir,

@@ -466,17 +466,8 @@ func getPythonVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([
 		return []int64{}, ErrorNoVersionsFoundForPythonModelPath(path)
 	}
 
-	_, key, err := aws.SplitS3Path(path)
-	if err != nil {
-		return []int64{}, err
-	}
-
 	versions := []int64{}
 	for _, object := range objects {
-		if !strings.HasPrefix(object, key) {
-			continue
-		}
-
 		keyParts := strings.Split(object, "/")
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
@@ -488,7 +479,7 @@ func getPythonVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([
 		if yes, err := awsClientForBucket.IsS3PathDir(modelVersionPath); err != nil {
 			return []int64{}, err
 		} else if !yes {
-			return []int64{}, ErrorPythonModelVersionPathMustBeDir(path, versionStr)
+			return []int64{}, ErrorPythonModelVersionPathMustBeDir(path, aws.JoinS3Path(path, versionStr))
 		}
 
 		versions = append(versions, version)
@@ -505,24 +496,37 @@ func getPythonVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([
 //			- *
 // 		...
 func GetPythonVersionsFromLocalPath(path string) ([]int64, error) {
-	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	if !files.IsDir(path) {
+		return []int64{}, ErrorInvalidDirPath(path)
+	}
+	dirPaths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return []int64{}, err
+	} else if len(dirPaths) == 0 {
+		return []int64{}, ErrorNoVersionsFoundForPythonModelPath(path)
 	}
 
-	if len(paths) == 0 {
-		return []int64{}, ErrorDirIsEmpty(path)
-	}
-
+	basePathLength := len(strings.Split(path, "/"))
 	versions := []int64{}
-	for _, path := range paths {
-		possiblePath := filepath.Dir(path)
-
-		versionStr := filepath.Base(possiblePath)
+	for _, dirPath := range dirPaths {
+		pathParts := strings.Split(dirPath, "/")
+		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return []int64{}, err
+			return []int64{}, ErrorInvalidPythonModelPath(path)
 		}
+
+		modelVersionPath := filepath.Join(path, versionStr)
+		if !files.IsDir(modelVersionPath) {
+			return []int64{}, ErrorPythonModelVersionPathMustBeDir(path, modelVersionPath)
+		}
+
+		if objects, err := files.ListDir(modelVersionPath, false); err != nil {
+			return []int64{}, err
+		} else if len(objects) == 0 {
+			continue
+		}
+
 		versions = append(versions, version)
 	}
 
