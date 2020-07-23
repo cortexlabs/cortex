@@ -37,6 +37,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
+const (
+	_lastUpdatedFile = "last_updated"
+	_fileBuffer      = 32 * 1024 * 1024
+)
+
 func cronErrHandler(cronName string) func(error) {
 	return func(err error) {
 		err = errors.Wrap(err, cronName+" cron failed")

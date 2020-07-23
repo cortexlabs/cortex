@@ -34,11 +34,6 @@ import (
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
-const (
-	_lastUpdatedFile = "last_updated"
-	_fileBuffer      = 32 * 1024 * 1024
-)
-
 var jobIDMutex = sync.Mutex{}
 
 // Job id creation optimized for listing the most recently created jobs in S3. S3 objects are listed in ascending UTF-8 binary order. This should work until the year 2262.
