@@ -68,6 +68,9 @@ var _logsCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		} else {
+			if len(args) == 2 {
+				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot stream logs for job %s for api %s", args[1], args[0]))
+			}
 			err := local.StreamLogs(apiName)
 			if err != nil {
 				exit.Error(err)

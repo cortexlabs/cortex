@@ -24,7 +24,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type JobKey struct {
@@ -50,9 +49,14 @@ func (j JobKey) K8sName() string {
 	return fmt.Sprintf("%s-%s", j.APIName, j.ID)
 }
 
+type RuntimeJobConfig struct {
+	Workers *int                   `json:"workers,omitifempty"`
+	Config  map[string]interface{} `json:"config"`
+}
+
 type Job struct {
 	JobKey
-	userconfig.Job
+	RuntimeJobConfig
 	APIID           string    `json:"api_id"`
 	SQSUrl          string    `json:"sqs_url"`
 	ResultsDir      string    `json:"results_dir"`

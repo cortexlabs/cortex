@@ -27,7 +27,7 @@ Usage:
 
 Flags:
   -e, --env string   environment to use (default "local")
-  -w, --watch        re-run the command every second
+  -w, --watch        re-run the command every 2 seconds
   -h, --help         help for get
 ```
 

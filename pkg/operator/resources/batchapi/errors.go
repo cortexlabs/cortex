@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
@@ -30,6 +31,11 @@ const (
 	ErrJobHasAlreadyBeenStopped   = "batchapi.job_has_already_been_stopped"
 	ErrNoS3FilesFound             = "batchapi.no_s3_files_found"
 	ErrNoDataFoundInJobSubmission = "batchapi.no_data_found_in_job_submission"
+	ErrFailedToEnqueueMessages    = "batchapi.failed_to_enqueue_messages"
+	ErrMessageExceedsMaxSize      = "batchapi.message_exceeds_max_size"
+	ErrConflictingFields          = "batchapi.conflicting_fields"
+	ErrBatchItemSizeExceedsLimit  = "batchapi.item_size_exceeds_limit"
+	ErrSpecifyExactlyOneKey       = "batchapi.specify_exactly_one_key"
 )
 
 func ErrorBatchAPINotDeployed(apiName string) error {
@@ -71,5 +77,49 @@ func ErrorNoDataFoundInJobSubmission() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoDataFoundInJobSubmission,
 		Message: "unable to enqueue batches because no data was found",
+	})
+}
+
+func ErrorFailedToEnqueueMessages(message string, startIndex int, endIndex ...int) error {
+	additionalInfo := fmt.Sprintf("failed to enqueue message %d", startIndex)
+	if len(endIndex) == 1 {
+		additionalInfo = fmt.Sprintf("an error occurred when attempting to enqueue one or more of the messages between %s and %s index", startIndex, endIndex[0])
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFailedToEnqueueMessages,
+		Message: fmt.Sprintf("%s: %s", additionalInfo, message),
+	})
+}
+
+func ErrorMessageExceedsMaxSize(messageSize int, messageLimit int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMessageExceedsMaxSize,
+		Message: fmt.Sprintf("cannot enqueue message because its size of %d bytes exceeds the %d bytes limit; use a smaller batch size or reduce the size of each of item in the batch", messageSize, messageLimit),
+	})
+}
+
+const ()
+
+func ErrorConflictingFields(key string, keys ...string) error {
+	allKeys := append(keys, key)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConflictingFields,
+		Message: fmt.Sprintf("please specify either the %s field (both not more than one at the same time)", s.StrsOr(allKeys)),
+	})
+}
+
+func ErrorItemSizeExceedsLimit(index int, size int, limit int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrBatchItemSizeExceedsLimit,
+		Message: fmt.Sprintf("item %d has size %d bytes which exceeds the limit %d", index, size, limit),
+	})
+}
+
+func ErrorSpecifyExactlyOneKey(key string, keys ...string) error {
+	allKeys := append(keys, key)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyExactlyOneKey,
+		Message: fmt.Sprintf("specify exactly one of the following keys %s", s.StrsOr(allKeys)), // TODO add job specification documentation
 	})
 }

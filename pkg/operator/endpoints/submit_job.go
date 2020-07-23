@@ -24,6 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
@@ -55,7 +56,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	submission := userconfig.JobSubmission{}
+	submission := schema.JobSubmission{}
 
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
@@ -72,7 +73,6 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Add("Content-type", "text/plain")
-		io.WriteString(w, "\npassed preliminary validations\n")
 		return
 	}
 

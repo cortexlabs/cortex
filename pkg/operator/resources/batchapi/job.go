@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -45,31 +46,31 @@ func monotonicallyDecreasingJobID() string {
 	return fmt.Sprintf("%x", i)
 }
 
-func DryRun(submission *userconfig.JobSubmission, response io.Writer) error {
-	err := submission.Validate()
+func DryRun(submission *schema.JobSubmission, response io.Writer) error {
+	err := validateJobSubmission(submission)
 	if err != nil {
 		return err
 	}
 
-	if submission.DelimitedFiles != nil {
-		err := validateS3ListerDryRun(&submission.DelimitedFiles.S3Lister, response)
+	if submission.FilePathLister != nil {
+		err := listFilesDryRun(&submission.FilePathLister.S3Lister, response)
 		if err != nil {
-			return errors.Wrap(err, userconfig.DelimitedFilesKey)
+			return errors.Wrap(err, userconfig.FilePathListerKey)
 		}
 	}
 
-	if submission.FilePathLister != nil {
-		err := validateS3ListerDryRun(&submission.FilePathLister.S3Lister, response)
+	if submission.DelimitedFiles != nil {
+		err := listFilesDryRun(&submission.DelimitedFiles.S3Lister, response)
 		if err != nil {
-			return errors.Wrap(err, userconfig.FilePathListerKey)
+			return errors.Wrap(err, userconfig.DelimitedFilesKey)
 		}
 	}
 
 	return nil
 }
 
-func SubmitJob(apiName string, submission *userconfig.JobSubmission) (*spec.Job, error) {
-	err := validateSubmission(submission)
+func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, error) {
+	err := validateJobSubmission(submission)
 	if err != nil {
 		return nil, err
 	}
@@ -105,12 +106,12 @@ func SubmitJob(apiName string, submission *userconfig.JobSubmission) (*spec.Job,
 	}
 
 	jobSpec := spec.Job{
-		Job:        submission.Job,
-		ResultsDir: fmt.Sprintf("s3://%s/job_results/%s/%s", config.Cluster.Bucket, apiName, jobID),
-		JobKey:     jobKey,
-		APIID:      apiSpec.ID,
-		SQSUrl:     queueURL,
-		Created:    time.Now(),
+		RuntimeJobConfig: submission.RuntimeJobConfig,
+		ResultsDir:       fmt.Sprintf("s3://%s/job_results/%s/%s", config.Cluster.Bucket, apiName, jobID),
+		JobKey:           jobKey,
+		APIID:            apiSpec.ID,
+		SQSUrl:           queueURL,
+		Created:          time.Now(),
 	}
 
 	err = uploadJobSpec(&jobSpec)
@@ -147,7 +148,7 @@ func uploadJobSpec(jobSpec *spec.Job) error {
 	return nil
 }
 
-func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *userconfig.JobSubmission) {
+func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmission) {
 	err := createLogGroupForJob(jobSpec.JobKey)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)

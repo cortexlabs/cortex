@@ -85,7 +85,7 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 }
 
 func batchAPITable(batchAPI schema.BatchAPI) string {
-	rows := make([][]interface{}, 0, len(batchAPI.JobStatuses))
+	jobRows := make([][]interface{}, 0, len(batchAPI.JobStatuses))
 
 	out := ""
 	if len(batchAPI.JobStatuses) == 0 {
@@ -115,7 +115,7 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 
 			duration := jobEndTime.Sub(job.StartTime).Truncate(time.Second).String()
 
-			rows = append(rows, []interface{}{
+			jobRows = append(jobRows, []interface{}{
 				job.ID,
 				job.Status.Message(),
 				fmt.Sprintf("%d/%d", succeeded, totalBatchCount),
@@ -134,7 +134,7 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 				{Title: "start time"},
 				{Title: "duration"},
 			},
-			Rows: rows,
+			Rows: jobRows,
 		}
 
 		out += t.MustFormat()
@@ -223,7 +223,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	if job.Status == status.JobEnqueuing {
 		out += "\nstill enqueuing, workers have not been allocated for this job yet\n"
 	} else if job.Status.IsCompletedPhase() {
-		out += "\nworker stats is not available because this job is no longer running\n"
+		out += "\nworker stats are not available because this job is not currently running\n"
 	} else {
 		out += titleStr("worker stats")
 

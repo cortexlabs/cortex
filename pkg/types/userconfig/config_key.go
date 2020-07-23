@@ -95,7 +95,7 @@ const (
 	UpscaleToleranceAnnotationKey             = "autoscaling.cortex.dev/upscale-tolerance"
 
 	// Job Submission
-	BatcheSizeKey     = "batch_size"
+	BatchSizeKey      = "batch_size"
 	ItemsKey          = "items"
 	ItemListKey       = "item_list"
 	FilePathListerKey = "file_path_lister"

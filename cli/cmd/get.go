@@ -58,7 +58,7 @@ var (
 func getInit() {
 	_getCmd.Flags().SortFlags = false
 	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
-	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every second")
+	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every 2 seconds")
 }
 
 var _getCmd = &cobra.Command{
@@ -104,6 +104,11 @@ var _getCmd = &cobra.Command{
 				if err != nil {
 					return "", err
 				}
+
+				if env.Provider == types.LocalProviderType {
+					return "", errors.Wrap(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot get status of job %s for api %s", args[1], args[0]))
+				}
+
 				apiTable, err := getJob(env, args[0], args[1])
 				if err != nil {
 					return "", err

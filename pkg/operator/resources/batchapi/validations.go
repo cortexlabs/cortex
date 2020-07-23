@@ -22,48 +22,123 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/gobwas/glob"
 )
 
-func validateS3ListerDryRun(s3Lister *awslib.S3Lister, response io.Writer) error {
-	filesFound := 0
-	for _, s3Path := range s3Lister.S3Paths {
-		if !awslib.IsValidS3Path(s3Path) {
-			return awslib.ErrorInvalidS3Path(s3Path)
+func jobSubmissionSchemaValidation(submission *schema.JobSubmission) error {
+	providedKeys := []string{}
+	if submission.ItemList != nil {
+		providedKeys = append(providedKeys, schema.ItemListKey)
+	}
+	if submission.FilePathLister != nil {
+		providedKeys = append(providedKeys, schema.FilePathListerKey)
+	}
+	if submission.DelimitedFiles != nil {
+		providedKeys = append(providedKeys, schema.DelimitedFilesKey)
+	}
+
+	if len(providedKeys) == 0 {
+		return ErrorSpecifyExactlyOneKey(schema.ItemListKey, schema.FilePathListerKey, schema.DelimitedFilesKey)
+	}
+
+	if len(providedKeys) > 1 {
+		return ErrorConflictingFields(providedKeys[0], providedKeys[1:]...)
+	}
+
+	if submission.ItemList != nil {
+		if len(submission.ItemList.Items) == 0 {
+			return errors.Wrap(cr.ErrorTooFewElements(1), schema.ItemsKey)
 		}
 
-		err := config.AWS.S3IteratorFromLister(*s3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
-			filesFound++
-			filePath := awslib.S3Path(bucket, *s3Obj.Key)
-			_, err := io.WriteString(response, fmt.Sprintf("(dryrun) found: %s\n", filePath))
-			if err != nil {
-				return false, err
+		for i, batch := range submission.ItemList.Items {
+			if len(batch) > MessageSizeLimit {
+				return ErrorItemSizeExceedsLimit(i, len(batch), MessageSizeLimit)
 			}
-			return true, nil
-		})
+		}
 
-		if err != nil {
-			return errors.Wrap(err, s3Path)
+		if submission.ItemList.BatchSize == nil {
+			submission.ItemList.BatchSize = pointer.Int(1)
+		} else if *submission.ItemList.BatchSize < 1 {
+			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.ItemList.BatchSize, 1), schema.ItemListKey, schema.BatchSizeKey)
 		}
 	}
 
-	if filesFound == 0 {
-		return ErrorNoS3FilesFound()
+	if submission.FilePathLister != nil {
+		if submission.FilePathLister.BatchSize == nil {
+			submission.FilePathLister.BatchSize = pointer.Int(1)
+		} else if *submission.FilePathLister.BatchSize < 1 {
+			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.FilePathLister.BatchSize, 1), schema.FilePathListerKey, schema.BatchSizeKey)
+		}
+	}
+
+	if submission.DelimitedFiles != nil {
+		if submission.DelimitedFiles.BatchSize == nil {
+			submission.DelimitedFiles.BatchSize = pointer.Int(1)
+		} else if *submission.DelimitedFiles.BatchSize < 1 {
+			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.DelimitedFiles.BatchSize, 1), schema.DelimitedFilesKey, schema.BatchSizeKey)
+		}
+	}
+
+	if submission.Workers != nil && *submission.Workers <= 0 {
+		return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.Workers, 1), schema.WorkersKey)
 	}
 
 	return nil
 }
 
-func validateS3Lister(s3Lister *awslib.S3Lister) error {
+func validateJobSubmission(submission *schema.JobSubmission) error {
+	err := jobSubmissionSchemaValidation(submission)
+	if err != nil {
+		return err
+	}
+
+	if submission.FilePathLister != nil {
+		err := validateS3Lister(&submission.DelimitedFiles.S3Lister)
+		if err != nil {
+			return errors.Wrap(err, schema.FilePathListerKey)
+		}
+	}
+
+	if submission.DelimitedFiles != nil {
+		err := validateS3Lister(&submission.DelimitedFiles.S3Lister)
+		if err != nil {
+			return errors.Wrap(err, schema.DelimitedFilesKey)
+		}
+	}
+
+	return nil
+}
+
+func validateS3Lister(s3Lister *schema.S3Lister) error {
+	if len(s3Lister.S3Paths) == 0 {
+		return errors.Wrap(cr.ErrorTooFewElements(0), schema.S3PathsKey)
+	}
+
+	for _, globPattern := range s3Lister.Includes {
+		_, err := glob.Compile(globPattern, '/')
+		if err != nil {
+			return errors.Wrap(err, "invalid glob pattern", schema.IncludesKey, globPattern)
+		}
+	}
+
+	for _, globPattern := range s3Lister.Excludes {
+		_, err := glob.Compile(globPattern, '/')
+		if err != nil {
+			return errors.Wrap(err, "invalid glob pattern", schema.ExcludesKey, globPattern)
+		}
+	}
+
 	filesFound := 0
 	for _, s3Path := range s3Lister.S3Paths {
 		if !awslib.IsValidS3Path(s3Path) {
 			return awslib.ErrorInvalidS3Path(s3Path)
 		}
 
-		err := config.AWS.S3IteratorFromLister(*s3Lister, func(objPath string, s3Obj *s3.Object) (bool, error) {
+		err := s3IteratorFromLister(*s3Lister, func(objPath string, s3Obj *s3.Object) (bool, error) {
 			filesFound++
 			return false, nil
 		})
@@ -80,30 +155,30 @@ func validateS3Lister(s3Lister *awslib.S3Lister) error {
 	return nil
 }
 
-func validateSubmission(submission *userconfig.JobSubmission) error {
-	err := submission.Validate()
-	if err != nil {
-		return err
-	}
+func listFilesDryRun(s3Lister *schema.S3Lister, response io.Writer) error {
+	filesFound := 0
+	for _, s3Path := range s3Lister.S3Paths {
+		if !awslib.IsValidS3Path(s3Path) {
+			return awslib.ErrorInvalidS3Path(s3Path)
+		}
 
-	if submission.DelimitedFiles != nil {
-		err := validateS3Lister(&submission.DelimitedFiles.S3Lister)
-		if err != nil {
-			if errors.GetKind(err) == ErrNoS3FilesFound {
-				return errors.Wrap(errors.Append(err, "; you can append `dryRun=true` query param to experiment with s3_file_list criteria without initializing jobs"), userconfig.DelimitedFilesKey)
+		err := s3IteratorFromLister(*s3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
+			filesFound++
+			filePath := awslib.S3Path(bucket, *s3Obj.Key)
+			_, err := io.WriteString(response, fmt.Sprintf("(dryrun) found: %s\n", filePath))
+			if err != nil {
+				return false, err
 			}
-			return errors.Wrap(err, userconfig.DelimitedFilesKey)
+			return true, nil
+		})
+
+		if err != nil {
+			return errors.Wrap(err, s3Path)
 		}
 	}
 
-	if submission.FilePathLister != nil {
-		err := validateS3Lister(&submission.FilePathLister.S3Lister)
-		if err != nil {
-			if errors.GetKind(err) == ErrNoS3FilesFound {
-				return errors.Wrap(errors.Append(err, "; you can append `dryRun=true` query param to experiment with s3_file_list criteria without initializing jobs"), userconfig.FilePathListerKey)
-			}
-			return errors.Wrap(err, userconfig.FilePathListerKey)
-		}
+	if filesFound == 0 {
+		return ErrorNoS3FilesFound()
 	}
 
 	return nil
