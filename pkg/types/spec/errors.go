@@ -54,6 +54,8 @@ const (
 	ErrS3FileNotFound = "spec.s3_file_not_found"
 	ErrS3DirNotFound  = "spec.s3_dir_not_found"
 
+	ErrInvalidONNXModelPath = "spec.invalid_onnx_model_path"
+
 	ErrInvalidPythonModelPath            = "spec.invalid_python_model_path"
 	ErrNoVersionsFoundForPythonModelPath = "spec.no_versions_found_for_python_model_path"
 	ErrPythonModelVersionPathMustBeDir   = "spec.python_model_version_path_must_be_dir"
@@ -63,9 +65,8 @@ const (
 	ErrInvalidNeuronTensorFlowDir = "operator.invalid_neuron_tensorflow_dir"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 
-	ErrMissingModel         = "spec.missing_model"
-	ErrInvalidONNXModelPath = "spec.invalid_onnx_model_path"
-	ErrDuplicateModelNames  = "spec.duplicate_model_names"
+	ErrMissingModel        = "spec.missing_model"
+	ErrDuplicateModelNames = "spec.duplicate_model_names"
 
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
@@ -261,6 +262,13 @@ func ErrorS3DirNotFound(path string) error {
 	})
 }
 
+func ErrorInvalidONNXModelPath() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidONNXModelPath,
+		Message: "onnx model path must be an onnx exported file ending in `.onnx`",
+	})
+}
+
 var _pythonExpectedStructMessage = `For models provided for the %s predictor type, the path must be a directory with the following structure:
   %s/ (Version prefix, usually a timestamp)
   ├── 1523423423/
@@ -269,7 +277,7 @@ var _pythonExpectedStructMessage = `For models provided for the %s predictor typ
       └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)`
 
 func ErrorInvalidPythonModelPath(path string) error {
-	message := fmt.Sprintf("invalid model path for %s predictor type.\n", userconfig.PythonPredictorType)
+	message := fmt.Sprintf("invalid %s model path.\n", userconfig.PythonPredictorType)
 	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidPythonModelPath,
@@ -278,7 +286,7 @@ func ErrorInvalidPythonModelPath(path string) error {
 }
 
 func ErrorNoVersionsFoundForPythonModelPath(path string) error {
-	message := fmt.Sprintf("%s: model path must have at least one version for %s predictor type.\n", userconfig.PythonPredictorType, path)
+	message := fmt.Sprintf("%s: %s model path must have at least one version.\n", userconfig.PythonPredictorType, path)
 	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoVersionsFoundForPythonModelPath,
@@ -287,7 +295,7 @@ func ErrorNoVersionsFoundForPythonModelPath(path string) error {
 }
 
 func ErrorPythonModelVersionPathMustBeDir(path, versionedPath string) error {
-	message := fmt.Sprintf("%s: model version path must be a directory.\n", versionedPath)
+	message := fmt.Sprintf("%s: %s model version path must be a directory.\n", versionedPath, userconfig.PythonPredictorType)
 	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrPythonModelVersionPathMustBeDir,
@@ -337,13 +345,6 @@ func ErrorMissingModel(predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingModel,
 		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
-	})
-}
-
-func ErrorInvalidONNXModelPath() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXModelPath,
-		Message: "onnx model path must be an onnx exported file ending in `.onnx`",
 	})
 }
 
