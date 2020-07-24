@@ -249,7 +249,7 @@ func getTFServingVersionsFromS3Path(path string, isNeuronExport bool, awsClientF
 	if err != nil {
 		return []int64{}, err
 	} else if len(objects) == 0 {
-		return []int64{}, errors.Wrap(ErrorInvalidTensorFlowModelPath(), path)
+		return []int64{}, errors.Wrap(ErrorInvalidTensorFlowModelPath(path, isNeuronExport), path)
 	}
 
 	versions := []int64{}
@@ -325,46 +325,48 @@ func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool
 //				- variables.index
 //				- variables.data-00000-of-00001 (there are a variable number of these files)
 //   ...
-func GetTFServingVersionsFromLocalPath(path string) ([]int64, error) {
-	paths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+func getTFServingVersionsFromLocalPath(path string) ([]int64, error) {
+	dirPaths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return []int64{}, err
-	} else if len(paths) == 0 {
-		return []int64{}, ErrorDirIsEmpty(path)
+	} else if len(dirPaths) == 0 {
+		return []int64{}, ErrorNoVersionsFoundForTensorFlowModelPath(path, false)
 	}
 
+	basePathLength := len(strings.Split(path, "/"))
 	versions := []int64{}
-	for _, path := range paths {
-		if strings.HasSuffix(path, "saved_model.pb") {
-			possiblePath := filepath.Dir(path)
 
-			versionStr := filepath.Base(possiblePath)
-			version, err := strconv.ParseInt(versionStr, 10, 64)
-			if err != nil {
-				return []int64{}, err
-			}
-
-			validTFDirectory, err := IsValidTensorFlowLocalDirectory(possiblePath)
-			if err != nil {
-				return []int64{}, err
-			}
-			if validTFDirectory {
-				versions = append(versions, version)
-			}
+	for _, dirPath := range dirPaths {
+		pathParts := strings.Split(dirPath, "/")
+		versionStr := pathParts[basePathLength]
+		version, err := strconv.ParseInt(versionStr, 10, 64)
+		if err != nil {
+			return []int64{}, ErrorInvalidTensorFlowModelPath(path, false)
 		}
+
+		modelVersionPath := filepath.Join(path, versionStr)
+		if !files.IsDir(modelVersionPath) {
+			return []int64{}, ErrorTensorFlowModelVersionPathMustBeDir(path, modelVersionPath, false)
+		}
+
+		if yes, err := isValidTensorFlowLocalDirectory(modelVersionPath); !yes || err != nil {
+			return []int64{}, ErrorInvalidTensorFlowModelPath(path, false)
+		}
+
+		versions = append(versions, version)
 	}
 
-	return versions, nil
+	return slices.UniqueInt64(versions), nil
 }
 
-// IsValidTensorFlowLocalDirectory checks that the path contains a valid local directory for TensorFlow models
+// isValidTensorFlowLocalDirectory checks that the path contains a valid local directory for TensorFlow models
 // Must contain the following structure:
 // - 1523423423/ (version prefix, usually a timestamp)
 // 		- saved_model.pb
 //		- variables/
 //			- variables.index
 //			- variables.data-00000-of-00001 (there are a variable number of these files)
-func IsValidTensorFlowLocalDirectory(path string) (bool, error) {
+func isValidTensorFlowLocalDirectory(path string) (bool, error) {
 	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return false, err
@@ -384,8 +386,7 @@ func IsValidTensorFlowLocalDirectory(path string) (bool, error) {
 	return false, nil
 }
 
-// TODO handle default model name (prevent it from being used with get versions functions)
-// TODO verify if adding imbricated directories passes the check for ONNX version checkers
+// TODO verify if adding imbricated directories pass the check for ONNX version checkers
 
 // getONNXVersionsFromS3Path checks that the path contains a valid S3 directory for versioned ONNX models:
 // - model-name

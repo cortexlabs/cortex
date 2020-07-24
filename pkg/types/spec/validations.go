@@ -803,7 +803,9 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		return ErrorMissingModel(predictor.Type)
 	}
 
+	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
+
 	if hasSingleModel {
 		modelResources = []userconfig.ModelResource{
 			{
@@ -812,11 +814,18 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 				SignatureKey: predictor.SignatureKey,
 			},
 		}
+		modelWrapError = func(err error) error {
+			return errors.Wrap(err, userconfig.ModelPathKey)
+		}
 	}
 	if hasMultiModels {
 		if len(predictor.Models.Paths) > 0 {
-			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
+			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
+			}
+
+			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
+				return modelWrapError(err)
 			}
 			for _, path := range predictor.Models.Paths {
 				if path.SignatureKey == nil && predictor.Models.SignatureKey != nil {
@@ -827,10 +836,14 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		}
 
 		if predictor.Models.Dir != nil {
+			modelWrapError = func(err error) error {
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+			}
+
 			var err error
 			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
 			if err != nil {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+				return modelWrapError(err)
 			}
 			if predictor.Models.SignatureKey != nil {
 				for i := range modelResources {
@@ -847,7 +860,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	for i := range *models {
 		if err := validateTensorFlowModel(&(*models)[i], api, providerType, projectFiles, awsClient); err != nil {
-			return err
+			return modelWrapError(err)
 		}
 	}
 
@@ -862,44 +875,47 @@ func validateTensorFlowModel(
 	awsClient *aws.Client,
 ) error {
 
+	modelName := modelResource.Name
+	if modelName == consts.SingleModelName {
+		modelName = ""
+	}
+
 	if modelResource.S3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {
-			return err
+			return errors.Wrap(err, modelName)
 		}
 
 		_, err = cr.S3PathValidator(modelResource.ModelPath)
 		if err != nil {
-			return err
+			return errors.Wrap(err, modelName)
 		}
 
 		isNeuronExport := api.Compute.Inf > 0
-		versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, isNeuronExport, awsClientForBucket)
-		if err != nil {
-			return err
-		}
-		if len(versions) == 0 {
-			if isNeuronExport {
-				return ErrorInvalidNeuronTensorFlowDir(modelResource.ModelPath)
+		if yes, err := awsClientForBucket.IsS3PathDir(modelResource.ModelPath); yes {
+			versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, isNeuronExport, awsClientForBucket)
+			if err != nil {
+				return errors.Wrap(err, modelName)
 			}
-			return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
+			modelResource.Versions = versions
+		} else if !yes && err == nil {
+			return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport), modelName)
+		} else if err != nil {
+			return errors.Wrap(err, modelName)
 		}
-		modelResource.Versions = versions
 	} else {
 		if providerType == types.AWSProviderType {
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
 		if files.IsDir(modelResource.ModelPath) {
-			versions, err := GetTFServingVersionsFromLocalPath(modelResource.ModelPath)
+			versions, err := getTFServingVersionsFromLocalPath(modelResource.ModelPath)
 			if err != nil {
-				return err
-			} else if len(versions) == 0 {
-				return ErrorInvalidTensorFlowDir(modelResource.ModelPath)
+				return errors.Wrap(err, modelName)
 			}
 			modelResource.Versions = versions
 		} else {
-			return ErrorInvalidTensorFlowModelPath()
+			return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false), modelName)
 		}
 	}
 
@@ -1017,9 +1033,7 @@ func validateONNXModel(
 				return errors.Wrap(err, modelName)
 			}
 			modelResource.Versions = versions
-		} else if err != nil {
-			return errors.Wrap(err, modelName)
-		} else if yes, err := awsClientForBucket.IsS3PathFile(modelResource.ModelPath); !yes {
+		} else if !yes && err == nil {
 			return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath), modelName)
 		} else if err != nil {
 			return errors.Wrap(err, modelName)

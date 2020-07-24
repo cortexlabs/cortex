@@ -18,7 +18,6 @@ package local
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -30,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -106,12 +104,7 @@ func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache,
 			return nil, err
 		}
 	} else {
-		if strings.HasSuffix(modelPath, ".zip") {
-			err := unzipAndValidate(modelPath, modelPath, modelDir)
-			if err != nil {
-				return nil, err
-			}
-		} else if strings.HasSuffix(modelPath, ".onnx") {
+		if strings.HasSuffix(modelPath, ".onnx") {
 			fmt.Println(fmt.Sprintf("￮ caching model %s ...", modelPath))
 			err := files.CopyFileOverwrite(modelPath, filepath.Join(modelDir, filepath.Base(modelPath)))
 			if err != nil {
@@ -192,61 +185,12 @@ func downloadModel(modelPath string, modelDir string, awsClientForBucket *aws.Cl
 		if err != nil {
 			return err
 		}
-		if strings.HasSuffix(modelPath, ".zip") {
-			err := unzipAndValidate(modelPath, localPath, modelDir)
-			if err != nil {
-				return err
-			}
-			err = os.Remove(localPath)
-			if err != nil {
-				return err
-			}
-		}
 	} else {
 		tfModelVersion := filepath.Base(prefix)
 		err := awsClientForBucket.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, tfModelVersion), true, nil)
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func unzipAndValidate(originalModelPath string, zipFile string, destPath string) error {
-	fmt.Println(fmt.Sprintf("￮ unzipping model %s ...", originalModelPath))
-	tmpDir := filepath.Join(filepath.Dir(destPath), filepath.Base(destPath)+"-tmp")
-	err := files.CreateDir(tmpDir)
-	if err != nil {
-		return err
-	}
-
-	_, err = zip.UnzipFileToDir(zipFile, tmpDir)
-	if err != nil {
-		return err
-	}
-
-	// returns a tensorflow directory with the version as the suffix of the path
-	_, err = spec.GetTFServingVersionsFromLocalPath(tmpDir)
-	if err != nil {
-		return err
-	}
-
-	isValid, err := spec.IsValidTensorFlowLocalDirectory(tmpDir)
-	if err != nil {
-		return err
-	} else if !isValid {
-		return ErrorInvalidTensorFlowZip()
-	}
-
-	err = os.Rename(strings.TrimSuffix(tmpDir, "/"), strings.TrimSuffix(destPath, "/"))
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	err = files.DeleteDir(tmpDir)
-	if err != nil {
-		return err
 	}
 
 	return nil
