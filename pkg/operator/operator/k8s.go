@@ -447,7 +447,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		if api.Predictor.ServerSideBatching != nil {
 			envVars = append(envVars,
 				kcore.EnvVar{
-					Name:  "TF_BATCH_SIZE",
+					Name:  "TF_MAX_BATCH_SIZE",
 					Value: s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
 				},
 				kcore.EnvVar{

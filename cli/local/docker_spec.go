@@ -308,7 +308,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	}
 	if api.Predictor.ServerSideBatching != nil {
 		envVars = append(envVars,
-			"TF_BATCH_SIZE="+s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
+			"TF_MAX_BATCH_SIZE="+s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
 			"TF_BATCH_TIMEOUT_MICROS="+s.Int64(api.Predictor.ServerSideBatching.BatchInterval.Microseconds()),
 			"TF_NUM_BATCHED_THREADS="+s.Int32(api.Predictor.ProcessesPerReplica),
 		)
