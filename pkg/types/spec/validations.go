@@ -110,21 +110,6 @@ func predictorValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
 				{
-					StructField: "BatchSize",
-					Int32PtrValidation: &cr.Int32PtrValidation{
-						Required:             false,
-						GreaterThanOrEqualTo: pointer.Int32(2),
-						LessThanOrEqualTo:    pointer.Int32(1024),
-					},
-				},
-				{
-					StructField: "BatchTimeout",
-					Float64PtrValidation: &cr.Float64PtrValidation{
-						Required:    false,
-						GreaterThan: pointer.Float64(0),
-					},
-				},
-				{
 					StructField: "PythonPath",
 					StringPtrValidation: &cr.StringPtrValidation{
 						AllowEmpty: true,
@@ -186,6 +171,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
 				multiModelValidation(),
+				serverSideBatchingValidation(),
 			},
 		},
 	}
@@ -475,6 +461,36 @@ func multiModelValidation() *cr.StructFieldValidation {
 	}
 }
 
+func serverSideBatchingValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "ServerSideBatching",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			DefaultNil:        true,
+			AllowExplicitNull: true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "MaxBatchSize",
+					Int32Validation: &cr.Int32Validation{
+						Required:             true,
+						GreaterThanOrEqualTo: pointer.Int32(2),
+						LessThanOrEqualTo:    pointer.Int32(1024),
+					},
+				},
+				{
+					StructField: "BatchInterval",
+					StringValidation: &cr.StringValidation{
+						Required: true,
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThan: pointer.Duration(libtime.MustParseDuration("0s")),
+					}),
+				},
+			},
+		},
+	}
+}
+
 func surgeOrUnavailableValidator(str string) (string, error) {
 	if strings.HasSuffix(str, "%") {
 		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
@@ -633,12 +649,8 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
 
-	if predictor.BatchSize != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.BatchSizeKey, predictor.Type)
-	}
-
-	if predictor.BatchTimeout != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.BatchTimeoutKey, predictor.Type)
+	if predictor.ServerSideBatching != nil {
+		ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
 	}
 
 	if predictor.ModelPath != nil {
@@ -659,15 +671,10 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 func validateTensorFlowPredictor(api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
 
-	if predictor.BatchSize == nil && predictor.BatchTimeout != nil {
-		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchTimeoutKey, userconfig.BatchSizeKey)
-	}
-	if predictor.BatchSize != nil && predictor.BatchTimeout == nil {
-		return ErrorOneOfPrerequisitesNotDefined(userconfig.BatchSizeKey, userconfig.BatchTimeoutKey)
-	}
-	if predictor.BatchSize != nil && *predictor.BatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
+	if predictor.ServerSideBatching != nil && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
 		return ErrorInsufficientBatchConcurrencyLevel()
 	}
+
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(predictor.Type)
 	} else if predictor.ModelPath != nil && len(predictor.Models) > 0 {
@@ -772,12 +779,8 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
 
-	if predictor.BatchSize != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.BatchSizeKey, predictor.Type)
-	}
-
-	if predictor.BatchTimeout != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.BatchTimeoutKey, predictor.Type)
+	if predictor.ServerSideBatching != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
 	}
 
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {

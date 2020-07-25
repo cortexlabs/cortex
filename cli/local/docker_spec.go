@@ -300,10 +300,10 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		"--port=" + _tfServingPortStr,
 		"--model_config_file=" + _tfServingEmptyModelConfig,
 	}
-	if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+	if api.Predictor.ServerSideBatching != nil {
 		envVars = append(envVars,
-			"TF_BATCH_SIZE="+s.Int32(*api.Predictor.BatchSize),
-			"TF_BATCH_TIMEOUT_MICROS="+s.Int64(int64(*api.Predictor.BatchTimeout*1000000)),
+			"TF_BATCH_SIZE="+s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
+			"TF_BATCH_TIMEOUT_MICROS="+s.Int64(api.Predictor.ServerSideBatching.BatchInterval.Microseconds()),
 			"TF_NUM_BATCHED_THREADS="+s.Int32(api.Predictor.ProcessesPerReplica),
 		)
 		cmdArgs = append(cmdArgs,

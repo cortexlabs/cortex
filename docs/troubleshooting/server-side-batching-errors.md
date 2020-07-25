@@ -1,8 +1,8 @@
-# Batching errors when batch_size/batch_timeout are set
+# Batching errors when max_batch_size/batch_interval are set
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-When `batch_size` and `batch_timeout` fields are set for the [TensorFlow Predictor](../deployments/predictors.md#tensorflow-predictor), errors can be encountered if the associated model hasn't been built for batching.
+When `max_batch_size` and `batch_interval` fields are set for the [TensorFlow Predictor](../deployments/predictors.md#tensorflow-predictor), errors can be encountered if the associated model hasn't been built for batching.
 
 The following error is an example of what happens when the input shape doesn't accommodate batching - e.g. when its shape is `[height, width, 3]` instead of `[batch_size, height, width, 3]`.
 ```text

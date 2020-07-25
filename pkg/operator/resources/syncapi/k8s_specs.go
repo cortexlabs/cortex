@@ -708,15 +708,15 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	}
 
 	if container == _tfServingContainerName {
-		if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+		if api.Predictor.ServerSideBatching != nil {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "TF_BATCH_SIZE",
-					Value: s.Int32(*api.Predictor.BatchSize),
+					Value: s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
 				},
 				kcore.EnvVar{
 					Name:  "TF_BATCH_TIMEOUT_MICROS",
-					Value: s.Int64(int64(*api.Predictor.BatchTimeout * 1000000)),
+					Value: s.Int64(api.Predictor.ServerSideBatching.BatchInterval.Microseconds()),
 				},
 				kcore.EnvVar{
 					Name:  "TF_NUM_BATCHED_THREADS",
@@ -803,7 +803,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			"--port="+_tfBaseServingPortStr,
 			"--model_config_file="+_tfServingEmptyModelConfig,
 		)
-		if api.Predictor.BatchSize != nil && api.Predictor.BatchTimeout != nil {
+		if api.Predictor.ServerSideBatching != nil {
 			cmdArgs = append(cmdArgs,
 				"--enable_batching=true",
 				"--batching_parameters_file="+_tfServingBatchConfig,
