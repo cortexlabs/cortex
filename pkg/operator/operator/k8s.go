@@ -445,6 +445,14 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 
 	if container == _tfServingContainerName {
 		if api.Predictor.ServerSideBatching != nil {
+			var numBatchedThreads int32
+			if api.Compute.Inf > 0 {
+				// because there are processes_per_replica TF servers
+				numBatchedThreads = 1
+			} else {
+				numBatchedThreads = api.Predictor.ProcessesPerReplica
+			}
+
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "TF_MAX_BATCH_SIZE",
@@ -456,7 +464,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				},
 				kcore.EnvVar{
 					Name:  "TF_NUM_BATCHED_THREADS",
-					Value: s.Int32(api.Predictor.ProcessesPerReplica),
+					Value: s.Int32(numBatchedThreads),
 				},
 			)
 		}
