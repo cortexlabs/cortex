@@ -66,6 +66,7 @@ const (
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
+	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
 )
 
 func ErrorMalformedConfig() error {
@@ -363,6 +364,16 @@ func ErrorInsufficientBatchConcurrencyLevel() error {
 		Message: fmt.Sprintf(
 			"%s must be greater than or equal to %s * %s",
 			userconfig.MaxBatchSizeKey, userconfig.ProcessesPerReplicaKey, userconfig.ThreadsPerProcessKey,
+		),
+	})
+}
+
+func ErrorInsufficientBatchConcurrencyLevelInf() error {
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInsufficientBatchConcurrencyLevelInf,
+		Message: fmt.Sprintf(
+			"%s must be greater than or equal to %s",
+			userconfig.MaxBatchSizeKey, userconfig.ThreadsPerProcessKey,
 		),
 	})
 }

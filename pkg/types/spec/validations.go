@@ -674,8 +674,13 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 func validateTensorFlowPredictor(api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
 
-	if predictor.ServerSideBatching != nil && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
-		return ErrorInsufficientBatchConcurrencyLevel()
+	if predictor.ServerSideBatching != nil {
+		if api.Compute.Inf == 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevel()
+		}
+		if api.Compute.Inf > 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevelInf()
+		}
 	}
 
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
