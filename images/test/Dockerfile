@@ -1,6 +1,6 @@
 FROM python:3.6
 
-ENV PYTHONPATH="/src:${PYTHONPATH}"
+ENV PYTHONPATH="${PYTHONPATH}:/src"
 
 COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
 

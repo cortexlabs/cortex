@@ -5,7 +5,7 @@
 <!-- CORTEX_VERSION_README_MINOR -->
 [install](https://docs.cortex.dev/install) • [docs](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
-# API platform for machine learning engineers
+# Build machine learning APIs
 
 Cortex makes deploying, scaling, and managing machine learning systems in production simple. We believe that developers in any organization should be able to add natural language processing, computer vision, and other machine learning capabilities to their applications without having to worry about infrastructure.
 
@@ -35,8 +35,11 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 ## How it works
 
-<!-- Set header Cache-Control=no-cache on the S3 object metadata (see https://help.github.com/en/articles/about-anonymized-image-urls) -->
-![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.13_2.gif)
+Implement your predictor in `predictor.py`, configure your deployment in `cortex.yaml`, and run `cortex deploy`.
+
+Here's how to deploy GPT-2 as a scalable text generation API:
+
+![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.18.gif)
 
 <br>
 
