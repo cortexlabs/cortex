@@ -70,6 +70,17 @@ class PythonPredictor:
             Prediction or a batch of predictions.
         """
         pass
+
+    def post_predict(self, response, payload, query_params, headers):
+        """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
+
+        Args:
+            response: The response as returned by the predict method (optional).
+            payload: The request payload (see below for the possible payload types) (optional).
+            query_params: A dictionary of the query parameters used in the request (optional).
+            headers: A dictionary of the headers sent in the request (optional).
+        """
+        pass
 ```
 
 For proper separation of concerns, it is recommended to use the constructor's `config` paramater for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
@@ -225,6 +236,17 @@ class TensorFlowPredictor:
             Prediction or a batch of predictions.
         """
         pass
+
+    def post_predict(self, response, payload, query_params, headers):
+        """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
+
+        Args:
+            response: The response as returned by the predict method (optional).
+            payload: The request payload (see below for the possible payload types) (optional).
+            query_params: A dictionary of the query parameters used in the request (optional).
+            headers: A dictionary of the headers sent in the request (optional).
+        """
+        pass
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
@@ -308,6 +330,17 @@ class ONNXPredictor:
 
         Returns:
             Prediction or a batch of predictions.
+        """
+        pass
+
+    def post_predict(self, response, payload, query_params, headers):
+        """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
+
+        Args:
+            response: The response as returned by the predict method (optional).
+            payload: The request payload (see below for the possible payload types) (optional).
+            query_params: A dictionary of the query parameters used in the request (optional).
+            headers: A dictionary of the headers sent in the request (optional).
         """
         pass
 ```
