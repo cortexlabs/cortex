@@ -103,10 +103,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 				fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
 				didPrintWarning = true
 			}
-			dups := spec.FindDuplicateNames(withoutAPISplitter)
-			if len(dups) > 0 {
-				return spec.ErrorDuplicateName(dups)
-			}
 		}
 		if api.Kind == userconfig.APISplitterKind {
 			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
@@ -276,7 +272,7 @@ func InclusiveFilterAPIsByKind(apis []userconfig.API, kindsToInclude ...userconf
 
 // checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
 func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API) error {
-	deployedAPIs, err := GetAPIs()
+	deployedSyncAPIs, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.SyncAPIKind.String())
 	if err != nil {
 		return err
 	}
@@ -286,8 +282,10 @@ func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []use
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
 		deployed := false
 		//check if already deployed
-		for _, deployedAPI := range deployedAPIs.SyncAPIs {
-			if trafficSplitAPI.Name == deployedAPI.Spec.Name {
+		for _, deployedSyncAPI := range deployedSyncAPIs {
+			// API resources in k8s are prefixed with api-
+			// to compare we need to prepend api- to the trafficSplitterAPIs
+			if operator.K8sName(trafficSplitAPI.Name) == deployedSyncAPI.Name {
 				deployed = true
 			}
 		}

@@ -320,9 +320,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	if apiRes.APISplitter != nil {
 		return apiSplitterTable(apiRes.APISplitter, env)
 	}
-	//need to create some error
 	return "", nil
-
 }
 
 func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment) (string, error) {

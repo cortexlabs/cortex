@@ -65,7 +65,7 @@ const (
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
-	ErrIncorretAPISplitterWeight            = "spec.invalid_apisplitter_weights"
+	ErrIncorretAPISplitterWeight            = "spec.incorrect_api_splitter_weight"
 	ErrAPISplitterNotSupported              = "spec.apisplitter_not_supported"
 )
 
@@ -358,7 +358,7 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	})
 }
 
-func ErrorAPISplitterWeightNot100(totalWeight int) error {
+func ErrorIncorrectAPISplitterWeightTotal(totalWeight int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorretAPISplitterWeight,
 		Message: fmt.Sprintf("expected api splitter weights to sum to 100 but found %d", totalWeight),

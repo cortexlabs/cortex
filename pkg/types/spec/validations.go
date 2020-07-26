@@ -1197,5 +1197,5 @@ func isWeight100(apis []*userconfig.TrafficSplit) error {
 	if totalWeight == 100 {
 		return nil
 	}
-	return ErrorAPISplitterWeightNot100(totalWeight)
+	return ErrorIncorrectAPISplitterWeightTotal(totalWeight)
 }
