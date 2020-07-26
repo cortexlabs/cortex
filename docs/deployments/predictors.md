@@ -51,7 +51,7 @@ class PythonPredictor:
 
 class PythonPredictor:
     def __init__(self, config):
-        """Called once before the API becomes available. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+        """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             config: Dictionary passed from API configuration (if specified). This may contain information on where to download the model and/or metadata.
@@ -59,7 +59,7 @@ class PythonPredictor:
         pass
 
     def predict(self, payload, query_params, headers):
-        """Called once per request. Preprocesses the request payload (if necessary), runs inference, and postprocesses the inference output (if necessary).
+        """(Required) Called once per request. Preprocesses the request payload (if necessary), runs inference, and postprocesses the inference output (if necessary).
 
         Args:
             payload: The request payload (see below for the possible payload types) (optional).
@@ -215,7 +215,7 @@ If your application requires additional dependencies, you can install additional
 ```python
 class TensorFlowPredictor:
     def __init__(self, tensorflow_client, config):
-        """Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
+        """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
 
         Args:
             tensorflow_client: TensorFlow client which is used to make predictions. This should be saved for use in predict().
@@ -225,7 +225,7 @@ class TensorFlowPredictor:
         # Additional initialization may be done here
 
     def predict(self, payload, query_params, headers):
-        """Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
+        """(Required) Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
 
         Args:
             payload: The request payload (see below for the possible payload types) (optional).
@@ -311,7 +311,7 @@ If your application requires additional dependencies, you can install additional
 ```python
 class ONNXPredictor:
     def __init__(self, onnx_client, config):
-        """Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
+        """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
 
         Args:
             onnx_client: ONNX client which is used to make predictions. This should be saved for use in predict().
@@ -321,7 +321,7 @@ class ONNXPredictor:
         # Additional initialization may be done here
 
     def predict(self, payload, query_params, headers):
-        """Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
+        """(Required) Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
 
         Args:
             payload: The request payload (see below for the possible payload types) (optional).
