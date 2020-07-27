@@ -80,7 +80,9 @@ func jobSubmissionSchemaValidation(submission *schema.JobSubmission) error {
 		}
 	}
 
-	if submission.Workers != nil && *submission.Workers <= 0 {
+	if submission.Workers == nil {
+		return errors.Wrap(cr.ErrorCannotBeEmptyOrNull(true), schema.WorkersKey)
+	} else if *submission.Workers <= 0 {
 		return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.Workers, 1), schema.WorkersKey)
 	}
 

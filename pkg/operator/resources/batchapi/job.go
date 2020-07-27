@@ -178,7 +178,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		return
 	}
 
-	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("completed enqueuing a total %d batches", totalBatches), "spinning up workers...")
+	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("completed enqueuing a total of %d batches", totalBatches), "spinning up workers...")
 
 	jobSpec.TotalBatchCount = totalBatches
 

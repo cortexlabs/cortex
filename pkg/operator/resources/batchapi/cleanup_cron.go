@@ -116,22 +116,14 @@ func reconcileInProgressJob(jobKey spec.JobKey, queueURL *string, k8sJob *kbatch
 	}
 
 	if jobState.Status.IsCompletedPhase() {
+		// best effort cleanup
 		if queueURL != nil {
-			err := deleteQueueByURL(*queueURL)
-			if err != nil {
-				return err
-			}
+			deleteQueueByURL(*queueURL)
 		}
 		if k8sJob != nil {
-			err := deleteK8sJob(jobKey)
-			if err != nil {
-				return err
-			}
+			deleteK8sJob(jobKey)
 		}
-		err := deleteInProgressFile(jobKey)
-		if err != nil {
-			return err
-		}
+		deleteInProgressFile(jobKey)
 	}
 
 	if jobState.Status.IsInProgressPhase() {
@@ -249,26 +241,26 @@ func InvestigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 				setWorkerOOMStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
 			)
-		} else {
-			podStatus := k8s.GetPodStatus(&pod)
-			var err error
-			for _, containerStatus := range pod.Status.ContainerStatuses {
-				if containerStatus.LastTerminationState.Terminated != nil {
-					exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-					reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-					err = writeToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
-				} else if containerStatus.State.Terminated != nil {
-					exitCode := containerStatus.State.Terminated.ExitCode
-					reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-					err = writeToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
-				}
-			}
-			return errors.FirstError(
-				err,
-				setWorkerErrorStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
 		}
+		podStatus := k8s.GetPodStatus(&pod)
+		var err error
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if containerStatus.LastTerminationState.Terminated != nil {
+				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+				reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
+				err = writeToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+			} else if containerStatus.State.Terminated != nil {
+				exitCode := containerStatus.State.Terminated.ExitCode
+				reason := strings.ToLower(containerStatus.State.Terminated.Reason)
+				err = writeToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+			}
+		}
+		return errors.FirstError(
+			err,
+			setWorkerErrorStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
+
 	}
 	return errors.FirstError(
 		writeToJobLogGroup(jobKey, "workers were killed for unknown reason"),

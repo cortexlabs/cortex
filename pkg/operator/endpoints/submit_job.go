@@ -61,7 +61,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
-		respondError(w, r, err)
+		respondError(w, r, err) // TODO point to documentation here
 		return
 	}
 

@@ -336,11 +336,11 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	envVars := []kcore.EnvVar{
-		kcore.EnvVar{
+		{
 			Name:  "CORTEX_PROVIDER",
 			Value: types.AWSProviderType.String(),
 		},
-		kcore.EnvVar{
+		{
 			Name:  "CORTEX_KIND",
 			Value: api.Kind.String(),
 		},

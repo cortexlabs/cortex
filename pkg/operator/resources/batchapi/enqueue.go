@@ -124,11 +124,7 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 
 	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(itemList.Items), batchCount, *itemList.BatchSize))
 
-	uploader := SQSBatchUploader{
-		Client:   config.AWS,
-		QueueURL: jobSpec.SQSUrl,
-		Retries:  aws.Int(3),
-	}
+	uploader := newSQSBatchUploader(config.AWS, jobSpec.SQSUrl)
 
 	for i := 0; i < batchCount; i++ {
 		min := i * (*itemList.BatchSize)
@@ -164,11 +160,7 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 
 func enqueueS3Paths(jobSpec *spec.Job, s3PathsLister *schema.FilePathLister) (int, error) {
 	s3PathList := []string{}
-	uploader := &SQSBatchUploader{
-		Client:   config.AWS,
-		QueueURL: jobSpec.SQSUrl,
-		Retries:  aws.Int(3),
-	}
+	uploader := newSQSBatchUploader(config.AWS, jobSpec.SQSUrl)
 
 	err := s3IteratorFromLister(s3PathsLister.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
@@ -207,7 +199,7 @@ func enqueueS3Paths(jobSpec *spec.Job, s3PathsLister *schema.FilePathLister) (in
 	return uploader.TotalBatches, nil
 }
 
-func addS3PathsToQueue(uploader *SQSBatchUploader, s3PathList []string) error {
+func addS3PathsToQueue(uploader *sqsBatchUploader, s3PathList []string) error {
 	jsonBytes, err := json.Marshal(s3PathList)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("batch %d", uploader.TotalBatches))
@@ -246,11 +238,7 @@ func (j *jsonBuffer) Length() int {
 
 func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFiles) (int, error) {
 	jsonMessageList := newJSONBuffer(*delimitedFiles.BatchSize)
-	uploader := &SQSBatchUploader{
-		Client:   config.AWS,
-		QueueURL: jobSpec.SQSUrl,
-		Retries:  aws.Int(3),
-	}
+	uploader := newSQSBatchUploader(config.AWS, jobSpec.SQSUrl)
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	err := s3IteratorFromLister(delimitedFiles.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
@@ -295,7 +283,7 @@ func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFi
 	return uploader.TotalBatches, nil
 }
 
-func streamJSONToQueue(jobSpec *spec.Job, uploader *SQSBatchUploader, bytesBuffer *bytes.Buffer, jsonMessageList *jsonBuffer, itemIndex *int) error {
+func streamJSONToQueue(jobSpec *spec.Job, uploader *sqsBatchUploader, bytesBuffer *bytes.Buffer, jsonMessageList *jsonBuffer, itemIndex *int) error {
 	dec := json.NewDecoder(bytesBuffer)
 	for {
 		var doc json.RawMessage
@@ -332,7 +320,7 @@ func streamJSONToQueue(jobSpec *spec.Job, uploader *SQSBatchUploader, bytesBuffe
 	return nil
 }
 
-func addJSONObjectsToQueue(uploader *SQSBatchUploader, jsonMessageList *jsonBuffer) error {
+func addJSONObjectsToQueue(uploader *sqsBatchUploader, jsonMessageList *jsonBuffer) error {
 	jsonBytes, err := json.Marshal(jsonMessageList.messageList)
 	if err != nil {
 		return err
