@@ -130,7 +130,7 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectFi
 		models = append(models, CuratedModelResource{
 			ModelResource: userconfig.ModelResource{
 				Name:         model.Name,
-				ModelPath:    model.ModelPath,
+				ModelPath:    s.EnsureSuffix(model.ModelPath, "/"),
 				SignatureKey: model.SignatureKey,
 			},
 			S3Path: isS3Path,
@@ -240,39 +240,43 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 // 		...
 //
 func getTFServingVersionsFromS3Path(path string, isNeuronExport bool, awsClientForBucket *aws.Client) ([]int64, error) {
-	bucket, _, err := aws.SplitS3Path(path)
-	if err != nil {
-		return []int64{}, err
-	}
-
-	objects, err := awsClientForBucket.ListS3PathDir(path, false, pointer.Int64(1000))
+	objects, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, false, pointer.Int64(1000))
 	if err != nil {
 		return []int64{}, err
 	} else if len(objects) == 0 {
-		return []int64{}, errors.Wrap(ErrorInvalidTensorFlowModelPath(path, isNeuronExport), path)
+		return []int64{}, ErrorNoVersionsFoundForTensorFlowModelPath(path, isNeuronExport)
 	}
 
 	versions := []int64{}
 	for _, object := range objects {
-		if !strings.HasSuffix(*object.Key, "saved_model.pb") {
-			continue
-		}
-
-		keyParts := strings.Split(*object.Key, "/")
+		keyParts := strings.Split(object, "/")
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return []int64{}, err
+			return []int64{}, ErrorInvalidTensorFlowModelPath(path, isNeuronExport)
 		}
 
-		versionedPath := "s3://" + filepath.Join(bucket, filepath.Join(keyParts[:len(keyParts)-1]...))
-		if (isNeuronExport && isValidNeuronTensorFlowS3Directory(versionedPath, awsClientForBucket)) ||
-			(!isNeuronExport && isValidTensorFlowS3Directory(versionedPath, awsClientForBucket)) {
-			versions = append(versions, version)
+		modelVersionPath := aws.JoinS3Path(path, versionStr)
+		if yes, err := awsClientForBucket.IsS3PathDir(modelVersionPath); err != nil {
+			return []int64{}, err
+		} else if !yes {
+			return []int64{}, ErrorTensorFlowModelVersionPathMustBeDir(path, modelVersionPath, isNeuronExport)
 		}
+
+		if isNeuronExport {
+			if isValidNeuronTensorFlowS3Directory(modelVersionPath, awsClientForBucket) {
+				return []int64{}, ErrorInvalidTensorFlowModelPath(path, isNeuronExport)
+			}
+		} else {
+			if isValidTensorFlowS3Directory(modelVersionPath, awsClientForBucket) {
+				return []int64{}, ErrorInvalidTensorFlowModelPath(path, isNeuronExport)
+			}
+		}
+
+		versions = append(versions, version)
 	}
 
-	return versions, nil
+	return slices.UniqueInt64(versions), nil
 }
 
 // isValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models

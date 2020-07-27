@@ -32,6 +32,13 @@ var _predictorTypes = []string{
 	"onnx",
 }
 
+var _casedPredictorTypes = []string{
+	"unknown",
+	"Python",
+	"TensorFlow",
+	"ONNX",
+}
+
 func PredictorTypeFromString(s string) PredictorType {
 	for i := 0; i < len(_predictorTypes); i++ {
 		if s == _predictorTypes[i] {
@@ -47,6 +54,10 @@ func PredictorTypeStrings() []string {
 
 func (t PredictorType) String() string {
 	return _predictorTypes[t]
+}
+
+func (t PredictorType) CasedString() string {
+	return _casedPredictorTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler

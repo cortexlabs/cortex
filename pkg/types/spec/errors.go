@@ -339,14 +339,14 @@ var _tfExpectedStructMessage = `
   |       ├── variables.index
   |       ├── variables.data-00000-of-00003
   |       ├── variables.data-00001-of-00003
-  |	      └── variables.data-00002-of-...
+  |       └── variables.data-00002-of-...
   └── 2434389194/ (Version prefix, usually a timestamp)
-	  ├── saved_model.pb
-	  └── variables/
-		  ├── variables.index
-		  ├── variables.data-00000-of-00003
-		  ├── variables.data-00001-of-00003
-		  └── variables.data-00002-of-...`
+      ├── saved_model.pb
+      └── variables/
+          ├── variables.index
+          ├── variables.data-00000-of-00003
+          ├── variables.data-00001-of-00003
+          └── variables.data-00002-of-...`
 
 var _neuronTfExpectedStructMessage = `
   %s/
@@ -358,9 +358,9 @@ var _neuronTfExpectedStructMessage = `
 func ErrorInvalidTensorFlowModelPath(path string, neuronExport bool) error {
 	neuronKey := ""
 	if neuronExport {
-		neuronKey = "neuron "
+		neuronKey = "Neuron "
 	}
-	message := fmt.Sprintf("%s: each %s%s model must be structured the following way.\n", path, neuronKey, userconfig.TensorFlowPredictorType)
+	message := fmt.Sprintf("%s: each %s%s SavedModel model must be structured the following way.\n", path, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
 	if neuronExport {
 		message += fmt.Sprintf(_neuronTfExpectedStructMessage, path)
 	} else {
@@ -375,9 +375,9 @@ func ErrorInvalidTensorFlowModelPath(path string, neuronExport bool) error {
 func ErrorNoVersionsFoundForTensorFlowModelPath(path string, neuronExport bool) error {
 	neuronKey := ""
 	if neuronExport {
-		neuronKey = "neuron "
+		neuronKey = "Neuron "
 	}
-	message := fmt.Sprintf("%s: no versions found for %s%s model. The model must be structured the following way.\n", path, neuronKey, userconfig.TensorFlowPredictorType)
+	message := fmt.Sprintf("%s: no versions found for %s%s SavedModel. The SavedModel model must be structured the following way.\n", path, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
 	if neuronExport {
 		message += fmt.Sprintf(_neuronTfExpectedStructMessage, path)
 	} else {
@@ -392,9 +392,9 @@ func ErrorNoVersionsFoundForTensorFlowModelPath(path string, neuronExport bool) 
 func ErrorTensorFlowModelVersionPathMustBeDir(path, versionedPath string, neuronExport bool) error {
 	neuronKey := ""
 	if neuronExport {
-		neuronKey = "neuron "
+		neuronKey = "Neuron "
 	}
-	message := fmt.Sprintf("%s: each %s%s model's version must be a directory. The model must be structured the following way.\n", path, neuronKey, userconfig.TensorFlowPredictorType)
+	message := fmt.Sprintf("%s: each %s%s SavedModel version must be a directory. The SavedModel model must be structured the following way.\n", versionedPath, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
 	if neuronExport {
 		message += fmt.Sprintf(_neuronTfExpectedStructMessage, path)
 	} else {
