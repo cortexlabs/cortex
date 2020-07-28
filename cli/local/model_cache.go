@@ -33,30 +33,33 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCache, error) {
-	modelPaths := make([]string, len(apiSpec.Predictor.Models.Paths))
-	for i, modelResource := range apiSpec.Predictor.Models.Paths {
+func CacheModels(apiSpec *spec.API, awsClient *aws.Client) error {
+	modelPaths := make([]string, len(apiSpec.CuratedModelResources))
+	for i, modelResource := range apiSpec.CuratedModelResources {
 		modelPaths[i] = modelResource.ModelPath
 	}
 
-	localModelCaches := make([]*spec.LocalModelCache, len(modelPaths))
+	localModelCaches := make([]*spec.LocalModelCache, len(apiSpec.CuratedModelResources))
 	for i, modelPath := range modelPaths {
 		var err error
 		localModelCaches[i], err = CacheModel(modelPath, awsClient)
 		if err != nil {
 			if apiSpec.Predictor.ModelPath != nil {
-				return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
+				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
+			} else if apiSpec.Predictor.Models != nil && apiSpec.Predictor.Models.Dir != nil {
+				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsDirKey, apiSpec.CuratedModelResources[i].Name, *apiSpec.Predictor.Models.Dir)
 			}
-			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, apiSpec.Predictor.Models.Paths[i].Name, userconfig.ModelPathKey)
+			return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsPathsKey, apiSpec.CuratedModelResources[i].Name, userconfig.ModelPathKey)
 		}
-		localModelCaches[i].TargetPath = apiSpec.Predictor.Models.Paths[i].Name
+		localModelCaches[i].TargetPath = apiSpec.CuratedModelResources[i].Name
 	}
+	apiSpec.LocalModelCaches = localModelCaches
 
 	if len(localModelCaches) > 0 {
 		fmt.Println("") // Newline to group all of the model information
 	}
 
-	return localModelCaches, nil
+	return nil
 }
 
 func CacheModel(modelPath string, awsClient *aws.Client) (*spec.LocalModelCache, error) {

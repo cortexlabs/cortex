@@ -49,13 +49,10 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 
 	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID)
 
-	// apiConfig.Predictor.ModelPath was already added to apiConfig.Predictor.Models for ease of use
-	if len(apiConfig.Predictor.Models.Paths) > 0 {
-		localModelCaches, err := CacheModels(newAPISpec, awsClient)
-		if err != nil {
+	if len(models) > 0 {
+		if err := CacheModels(newAPISpec, awsClient); err != nil {
 			return nil, "", err
 		}
-		newAPISpec.LocalModelCaches = localModelCaches
 	}
 
 	newAPISpec.LocalProjectDir = files.Dir(configPath)

@@ -79,8 +79,6 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return schema.DeployResponse{}, errors.Wrap(err, "failed to hash directory", filepath.Dir(configPath))
 	}
 
-	// return schema.DeployResponse{}, &errors.Error{}
-
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
 		api, msg, err := UpdateAPI(&apiConfig, models, configPath, projectID, awsClient)

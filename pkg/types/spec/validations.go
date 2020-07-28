@@ -597,6 +597,7 @@ func validatePredictor(
 	awsClient *aws.Client,
 ) error {
 	predictor := api.Predictor
+
 	hasMultiModels := isMultiModelFieldSet(predictor.Models)
 	hasSingleModel := predictor.ModelPath != nil
 
@@ -668,11 +669,6 @@ func validatePredictor(
 		if err := validatePythonPath(predictor, projectFiles); err != nil {
 			return errors.Wrap(err, userconfig.PythonPathKey)
 		}
-	}
-
-	fmt.Println("modelResources")
-	for _, mr := range *models {
-		fmt.Println(mr)
 	}
 
 	return nil
