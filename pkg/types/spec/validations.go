@@ -572,7 +572,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 
 		if resourceStruct.Kind == userconfig.APISplitterKind {
 			if provider == types.LocalProviderType {
-				return nil, ErrorAPISplitterNotSupported(api)
+				return nil, errors.Wrap(ErrorAPISplitterNotSupported(), api.Identify())
 			}
 			api.Index = i
 			api.FileName = configFileName
@@ -632,6 +632,9 @@ func ValidateAPISplitter(
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 	if err := isWeight100(api.APIs); err != nil {
+		return errors.Wrap(err, api.Identify())
+	}
+	if err := areAPISplitterAPIsUnique(api.APIs); err != nil {
 		return errors.Wrap(err, api.Identify())
 	}
 
@@ -1198,4 +1201,22 @@ func isWeight100(apis []*userconfig.TrafficSplit) error {
 		return nil
 	}
 	return ErrorIncorrectAPISplitterWeightTotal(totalWeight)
+}
+
+// areAPISplitterAPIsUnique gives error if the same API is used multiple times in APISplitter
+func areAPISplitterAPIsUnique(apis []*userconfig.TrafficSplit) error {
+	names := make(map[string][]userconfig.TrafficSplit)
+	for _, api := range apis {
+		names[api.Name] = append(names[api.Name], *api)
+	}
+	var notUniqueAPIs []string
+	for name := range names {
+		if len(names[name]) > 1 {
+			notUniqueAPIs = append(notUniqueAPIs, names[name][0].Name)
+		}
+	}
+	if len(notUniqueAPIs) > 0 {
+		return ErrorAPISplitterAPIsNotUnique(notUniqueAPIs)
+	}
+	return nil
 }

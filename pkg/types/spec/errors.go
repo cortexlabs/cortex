@@ -65,8 +65,9 @@ const (
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
-	ErrIncorretAPISplitterWeight            = "spec.incorrect_api_splitter_weight"
+	ErrIncorrectAPISplitterWeight           = "spec.incorrect_api_splitter_weight"
 	ErrAPISplitterNotSupported              = "spec.apisplitter_not_supported"
+	ErrAPISplitterAPIsNotUnique             = "spec.apisplitter_apis_not_unique"
 )
 
 func ErrorMalformedConfig() error {
@@ -360,14 +361,21 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 
 func ErrorIncorrectAPISplitterWeightTotal(totalWeight int) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrIncorretAPISplitterWeight,
+		Kind:    ErrIncorrectAPISplitterWeight,
 		Message: fmt.Sprintf("expected api splitter weights to sum to 100 but found %d", totalWeight),
 	})
 }
 
-func ErrorAPISplitterNotSupported(api userconfig.API) error {
+func ErrorAPISplitterNotSupported() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPISplitterNotSupported,
-		Message: fmt.Sprintf("kind APISplitter is not supported for local provider: %s", api.Resource.Name),
+		Message: fmt.Sprintf("kind APISplitter is not supported for local provider"),
+	})
+}
+
+func ErrorAPISplitterAPIsNotUnique(names []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPISplitterAPIsNotUnique,
+		Message: fmt.Sprintf("api splitter %s not unique: %s", s.PluralS("API", len(names)), s.StrsSentence(names, "")),
 	})
 }
