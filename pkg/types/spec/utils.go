@@ -272,11 +272,11 @@ func getTFServingVersionsFromS3Path(path string, isNeuronExport bool, awsClientF
 		}
 
 		if isNeuronExport {
-			if isValidNeuronTensorFlowS3Directory(modelVersionPath, awsClientForBucket) {
+			if !isValidNeuronTensorFlowS3Directory(modelVersionPath, awsClientForBucket) {
 				return []int64{}, ErrorInvalidTensorFlowModelPath(path, isNeuronExport)
 			}
 		} else {
-			if isValidTensorFlowS3Directory(modelVersionPath, awsClientForBucket) {
+			if !isValidTensorFlowS3Directory(modelVersionPath, awsClientForBucket) {
 				return []int64{}, ErrorInvalidTensorFlowModelPath(path, isNeuronExport)
 			}
 		}
@@ -307,6 +307,7 @@ func isValidTensorFlowS3Directory(path string, awsClientForBucket *aws.Client) b
 	); err != nil || !valid {
 		return false
 	}
+
 	return true
 }
 
@@ -416,6 +417,10 @@ func getONNXVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([]i
 	}
 
 	versions := []int64{}
+	bucket, _, err := aws.SplitS3Path(path)
+	if err != nil {
+		return []int64{}, err
+	}
 	for _, object := range objects {
 		keyParts := strings.Split(object, "/")
 		versionStr := keyParts[len(keyParts)-1]
@@ -441,7 +446,7 @@ func getONNXVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([]i
 			if !strings.HasSuffix(versionObject, ".onnx") {
 				return []int64{}, ErrorInvalidONNXModelPath(path)
 			}
-			if yes, err := awsClientForBucket.IsS3PathFile(versionObject); err != nil {
+			if yes, err := awsClientForBucket.IsS3PathFile(aws.S3Path(bucket, versionObject)); err != nil {
 				return []int64{}, errors.Wrap(err, path)
 			} else if !yes {
 				return []int64{}, ErrorInvalidONNXModelPath(path)

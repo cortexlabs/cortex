@@ -64,7 +64,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
 		err = errors.FirstError(
 			DeleteAPI(newAPISpec.Name),
-			DeleteCachedModels(newAPISpec.Name, prevAPISpec.SubtractModelIDs(newAPISpec)),
+			deleteCachedModels(newAPISpec.Name, prevAPISpec.SubtractModelIDs(newAPISpec)),
 		)
 		if err != nil {
 			return nil, "", err
@@ -74,13 +74,13 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 	err = writeAPISpec(newAPISpec)
 	if err != nil {
 		DeleteAPI(newAPISpec.Name)
-		DeleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
+		deleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
 		return nil, "", err
 	}
 
 	if err := DeployContainers(newAPISpec, awsClient); err != nil {
 		DeleteAPI(newAPISpec.Name)
-		DeleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
+		deleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
 		return nil, "", err
 	}
 

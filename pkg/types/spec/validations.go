@@ -1039,7 +1039,6 @@ func validateONNXModel(
 		modelName = ""
 	}
 
-	// TODO might have to check for when "*.onnx" is a directory (certainly an edge-case, but nonetheless, possible)
 	if modelResource.S3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {

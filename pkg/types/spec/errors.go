@@ -324,7 +324,7 @@ func ErrorInvalidPythonModelPath(path string) error {
 }
 
 func ErrorNoVersionsFoundForPythonModelPath(path string) error {
-	message := fmt.Sprintf("%s: %s model path must have at least one version.\n", userconfig.PythonPredictorType.CasedString(), path)
+	message := fmt.Sprintf("%s: %s model path must have at least one version.\n", path, userconfig.PythonPredictorType.CasedString())
 	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoVersionsFoundForPythonModelPath,

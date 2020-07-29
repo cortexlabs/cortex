@@ -41,7 +41,7 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) error {
 
 	modelsThatWereCachedAlready := 0
 	for i, modelPath := range apiSpec.CuratedModelResources {
-		localModelCaches[i], wasAlreadyCached, err = CacheModel(modelPath, awsClient)
+		localModelCaches[i], wasAlreadyCached, err = cacheModel(modelPath, awsClient)
 		if err != nil {
 			if apiSpec.Predictor.ModelPath != nil {
 				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
@@ -64,7 +64,7 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) error {
 	return nil
 }
 
-func CacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.LocalModelCache, bool, error) {
+func cacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.LocalModelCache, bool, error) {
 	localModelCache := spec.LocalModelCache{}
 	var awsClientForBucket *aws.Client
 	var err error
@@ -98,9 +98,14 @@ func CacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.L
 		return &localModelCache, true, nil
 	}
 
-	err = ResetModelCacheDir(destModelDir)
+	err = resetModelCacheDir(destModelDir)
 	if err != nil {
 		return nil, false, err
+	}
+	if strings.HasSuffix(model.ModelPath, ".onnx") {
+		if _, err := files.CreateDirIfMissing(filepath.Join(destModelDir, "1")); err != nil {
+			return nil, false, err
+		}
 	}
 
 	if model.S3Path {
@@ -121,9 +126,6 @@ func CacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.L
 			}
 		}
 		if strings.HasSuffix(model.ModelPath, ".onnx") {
-			if _, err := files.CreateDirIfMissing(filepath.Join(destModelDir, "1")); err != nil {
-				return nil, false, err
-			}
 			err := files.CopyFileOverwrite(model.ModelPath, filepath.Join(destModelDir, "1", "default.onnx"))
 			if err != nil {
 				return nil, false, err
@@ -140,7 +142,7 @@ func CacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.L
 	return &localModelCache, false, nil
 }
 
-func DeleteCachedModels(apiName string, modelsToDelete []string) error {
+func deleteCachedModels(apiName string, modelsToDelete []string) error {
 	var errList []error
 	modelsInUse := strset.New()
 	apiSpecList, err := ListAPISpecs()
@@ -160,13 +162,13 @@ func DeleteCachedModels(apiName string, modelsToDelete []string) error {
 		strset.FromSlice(modelsToDelete),
 		modelsInUse,
 	)
-	err = DeleteCachedModelsByID(toDeleteModels.Slice())
+	err = deleteCachedModelsByID(toDeleteModels.Slice())
 
 	errList = append(errList, err)
 	return errors.FirstError(errList...)
 }
 
-func DeleteCachedModelsByID(modelIDs []string) error {
+func deleteCachedModelsByID(modelIDs []string) error {
 	errList := []error{}
 	for _, modelID := range modelIDs {
 		err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
@@ -180,14 +182,14 @@ func DeleteCachedModelsByID(modelIDs []string) error {
 
 func downloadModel(model spec.CuratedModelResource, destModelDir string, awsClientForBucket *aws.Client) error {
 	if len(model.Versions) == 1 {
-		fmt.Println(fmt.Sprintf("￮ downloading model %s (version %d) ...", model.Name, model.Versions[0]))
+		fmt.Print(fmt.Sprintf("￮ downloading model %s (version %d) ...", model.Name, model.Versions[0]))
 	} else if len(model.Versions) > 0 {
-		fmt.Println(fmt.Sprintf("￮ downloading model %s (version %v) ...", model.Name, model.Versions))
+		fmt.Print(fmt.Sprintf("￮ downloading model %s (version %v) ...", model.Name, model.Versions))
 	} else {
 		if model.Name == consts.SingleModelName {
-			fmt.Println("￮ downloading model ...")
+			fmt.Print("￮ downloading model ...")
 		} else {
-			fmt.Println(fmt.Sprintf("￮ downloading model %s ...", model.Name))
+			fmt.Print(fmt.Sprintf("￮ downloading model %s ...", model.Name))
 		}
 	}
 	defer fmt.Print(" ✓\n")
@@ -235,7 +237,7 @@ func localModelHash(modelPath string) (string, error) {
 	return modelHash, nil
 }
 
-func ResetModelCacheDir(modelDir string) error {
+func resetModelCacheDir(modelDir string) error {
 	_, err := files.DeleteDirIfPresent(modelDir)
 	if err != nil {
 		return err
