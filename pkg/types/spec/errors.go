@@ -55,6 +55,7 @@ const (
 	ErrS3DirNotFound  = "spec.s3_dir_not_found"
 
 	ErrInvalidONNXModelPath            = "spec.invalid_onnx_model_path"
+	ErrInvalidONNXModelPathSuffix      = "spec.invalid_onnx_model_path_suffix"
 	ErrNoVersionsFoundForONNXModelPath = "spec.no_versions_found_for_onnx_model_path"
 	ErrONNXModelVersionPathMustBeDir   = "spec.onnx_model_version_path_must_be_dir"
 
@@ -68,6 +69,7 @@ const (
 
 	ErrMissingModel        = "spec.missing_model"
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
+	ErrIllegalModelName    = "spec.illegal_model_name"
 
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
@@ -271,7 +273,7 @@ var _onnxExpectedStructMessage = `
       └── <model-name>.onnx // ONNX-exported file`
 
 func ErrorInvalidONNXModelPath(path string) error {
-	message := fmt.Sprintf("%s: %s model path must be an ONNX-exported file ending in `.onnx`, or can be a directory with the following structure.\n", path, userconfig.ONNXPredictorType)
+	message := fmt.Sprintf("%s: %s model path must be an ONNX-exported file ending in `.onnx`, or can be a directory with the following structure.\n", path, userconfig.ONNXPredictorType.CasedString())
 	message += fmt.Sprintf(_onnxExpectedStructMessage, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidONNXModelPath,
@@ -279,8 +281,16 @@ func ErrorInvalidONNXModelPath(path string) error {
 	})
 }
 
+func ErrorInvalidONNXModelPathSuffix(path string) error {
+	message := fmt.Sprintf("%s: when %s model path ends with `.onnx`, it must be a file representing the ONNX-exported model", path, userconfig.ONNXPredictorType.CasedString())
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidONNXModelPath,
+		Message: message,
+	})
+}
+
 func ErrorNoVersionsFoundForONNXModelPath(path string) error {
-	message := fmt.Sprintf("%s: no versions found for %s model. Each model must be structured the following way.\n", path, userconfig.ONNXPredictorType)
+	message := fmt.Sprintf("%s: no versions found for %s model. Each model must be structured the following way.\n", path, userconfig.ONNXPredictorType.CasedString())
 	message += fmt.Sprintf(_onnxExpectedStructMessage, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoVersionsFoundForONNXModelPath,
@@ -305,7 +315,7 @@ var _pythonExpectedStructMessage = `For models provided for the %s predictor typ
       └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)`
 
 func ErrorInvalidPythonModelPath(path string) error {
-	message := fmt.Sprintf("invalid %s model path.\n", userconfig.PythonPredictorType)
+	message := fmt.Sprintf("invalid %s model path.\n", userconfig.PythonPredictorType.CasedString())
 	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidPythonModelPath,
@@ -314,7 +324,7 @@ func ErrorInvalidPythonModelPath(path string) error {
 }
 
 func ErrorNoVersionsFoundForPythonModelPath(path string) error {
-	message := fmt.Sprintf("%s: %s model path must have at least one version.\n", userconfig.PythonPredictorType, path)
+	message := fmt.Sprintf("%s: %s model path must have at least one version.\n", userconfig.PythonPredictorType.CasedString(), path)
 	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoVersionsFoundForPythonModelPath,
@@ -323,7 +333,7 @@ func ErrorNoVersionsFoundForPythonModelPath(path string) error {
 }
 
 func ErrorPythonModelVersionPathMustBeDir(path, versionedPath string) error {
-	message := fmt.Sprintf("%s: %s model version path must be a directory.\n", versionedPath, userconfig.PythonPredictorType)
+	message := fmt.Sprintf("%s: %s model version path must be a directory.\n", versionedPath, userconfig.PythonPredictorType.CasedString())
 	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrPythonModelVersionPathMustBeDir,
@@ -417,6 +427,13 @@ func ErrorDuplicateModelNames(duplicateModel string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateModelNames,
 		Message: fmt.Sprintf("cannot have multiple models with the same name (%s)", duplicateModel),
+	})
+}
+
+func ErrorIllegalModelName(illegalModel string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIllegalModelName,
+		Message: fmt.Sprintf("%s: use a different model name", illegalModel),
 	})
 }
 

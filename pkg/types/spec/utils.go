@@ -48,14 +48,14 @@ func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 	return nil
 }
 
-func checkDuplicateModelNames(modelResources []*userconfig.ModelResource) error {
+func checkDuplicateModelNames(models []CuratedModelResource) error {
 	names := strset.New()
 
-	for _, modelResource := range modelResources {
-		if names.Has(modelResource.Name) {
-			return ErrorDuplicateModelNames(modelResource.Name)
+	for _, model := range models {
+		if names.Has(model.Name) {
+			return ErrorDuplicateModelNames(model.Name)
 		}
-		names.Add(modelResource.Name)
+		names.Add(model.Name)
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func absolutePath(path, basedir string) (string, error) {
 	return path, nil
 }
 
-func modelResourceToCurated(modelResources []userconfig.ModelResource, projectFiles ProjectFiles) ([]CuratedModelResource, error) {
+func modelResourceToCurated(modelResources []userconfig.ModelResource, predictorType userconfig.PredictorType, projectFiles ProjectFiles) ([]CuratedModelResource, error) {
 	models := []CuratedModelResource{}
 	var err error
 	for _, model := range modelResources {
@@ -127,10 +127,18 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectFi
 				return []CuratedModelResource{}, err
 			}
 		}
+
+		if predictorType == userconfig.ONNXPredictorType && strings.HasSuffix(strings.TrimSuffix(model.ModelPath, "/"), ".onnx") {
+			model.ModelPath = strings.TrimSuffix(model.ModelPath, "/")
+			model.Name = strings.TrimSuffix(model.Name, ".onnx")
+		} else {
+			model.ModelPath = s.EnsureSuffix(model.ModelPath, "/")
+		}
+
 		models = append(models, CuratedModelResource{
 			ModelResource: userconfig.ModelResource{
 				Name:         model.Name,
-				ModelPath:    s.EnsureSuffix(model.ModelPath, "/"),
+				ModelPath:    model.ModelPath,
 				SignatureKey: model.SignatureKey,
 			},
 			S3Path: isS3Path,
@@ -337,11 +345,11 @@ func getTFServingVersionsFromLocalPath(path string) ([]int64, error) {
 		return []int64{}, ErrorNoVersionsFoundForTensorFlowModelPath(path, false)
 	}
 
-	basePathLength := len(strings.Split(path, "/"))
+	basePathLength := len(slices.RemoveEmpties(strings.Split(path, "/")))
 	versions := []int64{}
 
 	for _, dirPath := range dirPaths {
-		pathParts := strings.Split(dirPath, "/")
+		pathParts := slices.RemoveEmpties(strings.Split(dirPath, "/"))
 		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
@@ -466,11 +474,11 @@ func GetONNXVersionsFromLocalPath(path string) ([]int64, error) {
 		return []int64{}, ErrorNoVersionsFoundForONNXModelPath(path)
 	}
 
-	basePathLength := len(strings.Split(path, "/"))
+	basePathLength := len(slices.RemoveEmpties(strings.Split(path, "/")))
 	versions := []int64{}
 
 	for _, dirPath := range dirPaths {
-		pathParts := strings.Split(dirPath, "/")
+		pathParts := slices.RemoveEmpties(strings.Split(dirPath, "/"))
 		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
@@ -562,10 +570,10 @@ func GetPythonVersionsFromLocalPath(path string) ([]int64, error) {
 		return []int64{}, ErrorNoVersionsFoundForPythonModelPath(path)
 	}
 
-	basePathLength := len(strings.Split(path, "/"))
+	basePathLength := len(slices.RemoveEmpties(strings.Split(path, "/")))
 	versions := []int64{}
 	for _, dirPath := range dirPaths {
-		pathParts := strings.Split(dirPath, "/")
+		pathParts := slices.RemoveEmpties(strings.Split(dirPath, "/"))
 		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {

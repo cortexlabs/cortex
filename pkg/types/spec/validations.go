@@ -709,9 +709,6 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
 			}
 
-			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
-				return modelWrapError(err)
-			}
 			for _, path := range predictor.Models.Paths {
 				if path.SignatureKey != nil {
 					return errors.Wrap(
@@ -738,8 +735,20 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 		}
 	}
 	var err error
-	*models, err = modelResourceToCurated(modelResources, projectFiles)
+	*models, err = modelResourceToCurated(modelResources, predictor.Type, projectFiles)
 	if err != nil {
+		return modelWrapError(err)
+	}
+
+	if hasMultiModels {
+		for _, model := range *models {
+			if model.Name == consts.SingleModelName {
+				return modelWrapError(ErrorIllegalModelName(model.Name))
+			}
+		}
+	}
+
+	if err := checkDuplicateModelNames(*models); err != nil {
 		return modelWrapError(err)
 	}
 
@@ -820,9 +829,6 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
 			}
 
-			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
-				return modelWrapError(err)
-			}
 			for _, path := range predictor.Models.Paths {
 				if path.SignatureKey == nil && predictor.Models.SignatureKey != nil {
 					path.SignatureKey = predictor.Models.SignatureKey
@@ -849,9 +855,21 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		}
 	}
 	var err error
-	*models, err = modelResourceToCurated(modelResources, projectFiles)
+	*models, err = modelResourceToCurated(modelResources, predictor.Type, projectFiles)
 	if err != nil {
 		return err
+	}
+
+	if hasMultiModels {
+		for _, model := range *models {
+			if model.Name == consts.SingleModelName {
+				return modelWrapError(ErrorIllegalModelName(model.Name))
+			}
+		}
+	}
+
+	if err := checkDuplicateModelNames(*models); err != nil {
+		return modelWrapError(err)
 	}
 
 	for i := range *models {
@@ -957,9 +975,6 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
 			}
 
-			if err := checkDuplicateModelNames(predictor.Models.Paths); err != nil {
-				return modelWrapError(err)
-			}
 			for _, path := range predictor.Models.Paths {
 				if path.SignatureKey != nil {
 					return errors.Wrap(
@@ -986,9 +1001,21 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 		}
 	}
 	var err error
-	*models, err = modelResourceToCurated(modelResources, projectFiles)
+	*models, err = modelResourceToCurated(modelResources, predictor.Type, projectFiles)
 	if err != nil {
 		return err
+	}
+
+	if hasMultiModels {
+		for _, model := range *models {
+			if model.Name == consts.SingleModelName {
+				return modelWrapError(ErrorIllegalModelName(model.Name))
+			}
+		}
+	}
+
+	if err := checkDuplicateModelNames(*models); err != nil {
+		return modelWrapError(err)
 	}
 
 	for i := range *models {
@@ -1012,6 +1039,7 @@ func validateONNXModel(
 		modelName = ""
 	}
 
+	// TODO might have to check for when "*.onnx" is a directory (certainly an edge-case, but nonetheless, possible)
 	if modelResource.S3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelResource.ModelPath, awsClient)
 		if err != nil {
@@ -1028,8 +1056,11 @@ func validateONNXModel(
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
+			if strings.HasSuffix(modelResource.ModelPath, ".onnx") {
+				return errors.Wrap(ErrorInvalidONNXModelPathSuffix(modelResource.ModelPath), modelName)
+			}
 			modelResource.Versions = versions
-		} else if !yes && err == nil {
+		} else if !yes && err == nil && !strings.HasSuffix(modelResource.ModelPath, ".onnx") {
 			return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath), modelName)
 		} else if err != nil {
 			return errors.Wrap(err, modelName)
@@ -1044,8 +1075,11 @@ func validateONNXModel(
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
+			if strings.HasSuffix(modelResource.ModelPath, ".onnx") {
+				return errors.Wrap(ErrorInvalidONNXModelPathSuffix(modelResource.ModelPath), modelName)
+			}
 			modelResource.Versions = versions
-		} else if !(files.IsFile(modelResource.ModelPath) && strings.HasSuffix(modelResource.ModelPath, ".onnx")) {
+		} else if !strings.HasSuffix(modelResource.ModelPath, ".onnx") {
 			return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath), modelName)
 		}
 	}
