@@ -43,6 +43,10 @@ var (
 	_warningProjectBytes = 1024 * 1024 * 10
 	_warningFileCount    = 1000
 
+	_maxFileSizeBytes      int64   = 1024 * 1024 * 512
+	_maxProjectSizeBytes   int64   = 1024 * 1024 * 512
+	_maxMemoryUsagePercent float64 = 0.9
+
 	_flagDeployEnv            string
 	_flagDeployForce          bool
 	_flagDeployDisallowPrompt bool
@@ -67,7 +71,7 @@ var _deployCmd = &cobra.Command{
 		}
 		telemetry.Event("cli.deploy", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagDeployEnv)
+		err = printEnvIfNotSpecified(_flagDeployEnv, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -148,8 +152,15 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 		ignoreFns = append(ignoreFns, cortexIgnore)
 	}
 
-	if !_flagDeployDisallowPrompt && provider != types.LocalProviderType {
-		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
+	if provider != types.LocalProviderType {
+		if !_flagDeployDisallowPrompt {
+			ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
+		}
+		ignoreFns = append(ignoreFns,
+			files.ErrorOnBigFilesFn(_maxFileSizeBytes, _maxMemoryUsagePercent),
+			// must be the last appended IgnoreFn
+			files.ErrorOnProjectSizeLimit(_maxProjectSizeBytes),
+		)
 	}
 
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)

@@ -36,10 +36,13 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/denormal/go-gitignore"
 	"github.com/mitchellh/go-homedir"
+	"github.com/shirou/gopsutil/mem"
 	"github.com/xlab/treeprint"
 )
 
-var _homeDir string
+var (
+	_homeDir string
+)
 
 func Open(path string) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
@@ -532,7 +535,7 @@ func GitIgnoreFn(gitIgnorePath string) (IgnoreFn, error) {
 
 	ignore, err := gitignore.NewFromFile(gitIgnorePath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, gitIgnorePath)
 	}
 
 	return func(path string, fi os.FileInfo) (bool, error) {
@@ -552,8 +555,41 @@ func PromptForFilesAboveSize(size int, promptMsgTemplate string) IgnoreFn {
 
 	return func(path string, fi os.FileInfo) (bool, error) {
 		if !fi.IsDir() && fi.Size() > int64(size) {
-			promptMsg := fmt.Sprintf(promptMsgTemplate, PathRelativeToCWD(path), s.IntToBase2Byte(int(fi.Size())))
+			promptMsg := fmt.Sprintf(promptMsgTemplate, PathRelativeToCWD(path), s.Int64ToBase2Byte(fi.Size()))
 			return !prompt.YesOrNo(promptMsg, "", ""), nil
+		}
+		return false, nil
+	}
+}
+
+func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) IgnoreFn {
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() {
+			fileSizeBytes := fi.Size()
+			virtual, _ := mem.VirtualMemory()
+			if int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*maxMemoryUsagePercent) {
+				return false, errors.Wrap(
+					ErrorInsufficientMemoryToReadFile(fileSizeBytes, int64(float64(virtual.Total)*maxMemoryUsagePercent)-int64(virtual.Used)),
+					path,
+				)
+			}
+			if fileSizeBytes > maxFileSizeBytes {
+				return false, errors.Wrap(ErrorFileSizeLimit(maxFileSizeBytes), path)
+			}
+		}
+
+		return false, nil
+	}
+}
+
+func ErrorOnProjectSizeLimit(maxProjectSizeBytes int64) IgnoreFn {
+	filesSizeSum := int64(0)
+	return func(path string, fi os.FileInfo) (bool, error) {
+		if !fi.IsDir() {
+			filesSizeSum += fi.Size()
+			if filesSizeSum > maxProjectSizeBytes {
+				return false, errors.Wrap(ErrorProjectSizeLimit(maxProjectSizeBytes), path)
+			}
 		}
 		return false, nil
 	}
@@ -703,7 +739,7 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 		for _, ignoreFn := range ignoreFns {
 			ignore, err := ignoreFn(path, fi)
 			if err != nil {
-				return errors.Wrap(err, path)
+				return err
 			}
 			if ignore {
 				if fi.IsDir() {

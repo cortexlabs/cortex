@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -175,20 +176,19 @@ func updateRootUsage() {
 	})
 }
 
-func wasEnvFlagProvided() bool {
-	for _, str := range os.Args[1:] {
-		if str == "-e" || str == "--env" {
-			return true
+func wasEnvFlagProvided(cmd *cobra.Command) bool {
+	envFlagProvided := false
+	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Shorthand == "e" && flag.Changed {
+			envFlagProvided = true
 		}
-		if strings.HasPrefix(str, "-e=") || strings.HasPrefix(str, "--env=") {
-			return true
-		}
-	}
-	return false
+	})
+
+	return envFlagProvided
 }
 
-func printEnvIfNotSpecified(envName string) error {
-	out, err := envStringIfNotSpecified(envName)
+func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
+	out, err := envStringIfNotSpecified(envName, cmd)
 	if err != nil {
 		return err
 	}
@@ -197,13 +197,13 @@ func printEnvIfNotSpecified(envName string) error {
 	return nil
 }
 
-func envStringIfNotSpecified(envName string) (string, error) {
+func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error) {
 	envNames, err := listConfiguredEnvNames()
 	if err != nil {
 		return "", err
 	}
 
-	if !wasEnvFlagProvided() && len(envNames) > 1 {
+	if !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
 		return fmt.Sprintf("using %s environment\n\n", envName), nil
 	}
 
