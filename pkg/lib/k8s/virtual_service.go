@@ -37,8 +37,8 @@ type VirtualServiceSpec struct {
 	Gateways    []string
 	ServiceName string
 	ServicePort int32
-	ExactPath   *string
-	PrefixPath  *string
+	ExactPath   *string // either this or PrefixPath
+	PrefixPath  *string // either this or ExactPath
 	Rewrite     *string
 	Labels      map[string]string
 	Annotations map[string]string

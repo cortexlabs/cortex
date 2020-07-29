@@ -161,12 +161,13 @@ func deleteS3Resources(apiName string) error {
 	)
 }
 
+// Returns all batch apis, for each API returning the most recently submitted job and all running APIs
 func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.BatchAPI, error) {
 	batchAPIsMap := map[string]*schema.BatchAPI{}
 
-	k8sJobMap := map[string]*kbatch.Job{}
+	jobIDToK8sJobMap := map[string]*kbatch.Job{}
 	for _, job := range k8sJobs {
-		k8sJobMap[job.Labels["jobID"]] = &job
+		jobIDToK8sJobMap[job.Labels["jobID"]] = &job
 	}
 
 	jobIDToPodsMap := map[string][]kcore.Pod{}
@@ -193,8 +194,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		jobStates, err := getMostRecentlySubmittedJobStates(apiName, 1)
 
 		jobStatuses := []status.JobStatus{}
-		if len(jobStates) != 0 {
-			jobStatus, err := getJobStatusFromJobState(jobStates[0], k8sJobMap[jobStates[0].ID], jobIDToPodsMap[jobStates[0].ID])
+		if len(jobStates) > 0 {
+			jobStatus, err := getJobStatusFromJobState(jobStates[0], jobIDToK8sJobMap[jobStates[0].ID], jobIDToPodsMap[jobStates[0].ID])
 			if err != nil {
 				return nil, err
 			}
@@ -203,7 +204,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 
 		batchAPIsMap[apiName] = &schema.BatchAPI{
-			APISpec:     *api,
+			Spec:        *api,
 			BaseURL:     baseURL,
 			JobStatuses: jobStatuses,
 		}
@@ -227,47 +228,42 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			continue
 		}
 
-		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
+		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
 		if err != nil {
 			return nil, err
 		}
 
-		if jobStatus.Status.IsInProgressPhase() {
+		if jobStatus.Status.IsInProgress() {
 			batchAPIsMap[jobKey.APIName].JobStatuses = append(batchAPIsMap[jobKey.APIName].JobStatuses, *jobStatus)
 		}
 	}
 
-	batchAPIList := make([]schema.BatchAPI, len(batchAPIsMap))
+	batchAPIList := make([]schema.BatchAPI, 0, len(batchAPIsMap))
 
-	i := 0
 	for _, batchAPI := range batchAPIsMap {
-		batchAPIList[i] = *batchAPI
-		i++
+		batchAPIList = append(batchAPIList, *batchAPI)
 	}
 
 	return batchAPIList, nil
 }
 
-func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
-	if err != nil {
-		return nil, err
-	}
+func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
+	virtualService := deployedResource.VirtualService
 
 	apiID := virtualService.GetLabels()["apiID"]
-	api, err := operator.DownloadAPISpec(apiName, apiID)
+	api, err := operator.DownloadAPISpec(deployedResource.Name, apiID)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", apiName)
+	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", deployedResource.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sJobMap := map[string]*kbatch.Job{}
+	jobIDToK8sJobMap := map[string]*kbatch.Job{}
 	for _, job := range k8sJobs {
-		k8sJobMap[job.Labels["jobID"]] = &job
+		jobIDToK8sJobMap[job.Labels["jobID"]] = &job
 	}
 
 	baseURL, err := operator.APIBaseURL(api)
@@ -275,7 +271,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 		return nil, err
 	}
 
-	pods, err := config.K8s.ListPodsByLabel("apiName", apiName)
+	pods, err := config.K8s.ListPodsByLabel("apiName", deployedResource.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +281,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
 	}
 
-	inProgressJobKeys, err := listAllInProgressJobKeysByAPI(apiName)
+	inProgressJobKeys, err := listAllInProgressJobKeysByAPI(deployedResource.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +289,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	jobStatuses := []status.JobStatus{}
 	jobIDSet := strset.New()
 	for _, jobKey := range inProgressJobKeys {
-		jobStatus, err := getJobStatusFromK8sJob(jobKey, k8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
+		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
 		if err != nil {
 			return nil, err
 		}
@@ -303,7 +299,7 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 	}
 
 	if len(jobStatuses) < 10 {
-		jobStates, err := getMostRecentlySubmittedJobStates(apiName, 10-len(jobStatuses))
+		jobStates, err := getMostRecentlySubmittedJobStates(deployedResource.Name, 10+len(jobStatuses))
 		if err != nil {
 			return nil, err
 		}
@@ -319,12 +315,15 @@ func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
 			}
 
 			jobStatuses = append(jobStatuses, *jobStatus)
+			if len(jobStatuses) == 10 {
+				break
+			}
 		}
 	}
 
 	return &schema.GetAPIResponse{
 		BatchAPI: &schema.BatchAPI{
-			APISpec:     *api,
+			Spec:        *api,
 			JobStatuses: jobStatuses,
 			BaseURL:     baseURL,
 		},

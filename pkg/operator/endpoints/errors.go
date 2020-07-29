@@ -21,7 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 	ErrPathParamRequired      = "endpoints.path_param_required"
 	ErrAnyQueryParamRequired  = "endpoints.any_query_param_required"
 	ErrAnyPathParamRequired   = "endpoints.any_path_param_required"
-	ErrJobIDRequired          = "endpoints.job_id_required"
+	ErrLogsJobIDRequired      = "endpoints.logs_job_id_required"
 )
 
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
@@ -117,9 +117,9 @@ func ErrorAnyPathParamRequired(param string, params ...string) error {
 	})
 }
 
-func ErrorJobIDRequired(resource userconfig.Resource) error {
+func ErrorLogsJobIDRequired(resource operator.DeployedResource) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrJobIDRequired,
+		Kind:    ErrLogsJobIDRequired,
 		Message: fmt.Sprintf("job id is required to stream logs for %s; you can get a list of latest job ids with `cortex get %s` and use `cortex logs %s JOB_ID` to stream logs for a job", resource.UserString(), resource.Name, resource.Name),
 	})
 }

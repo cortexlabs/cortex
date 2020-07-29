@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -73,6 +75,10 @@ var _deleteCmd = &cobra.Command{
 				}
 			}
 		} else {
+			if len(args) == 2 {
+				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot delete job %s for api %s", args[1], args[0]))
+			}
+
 			// local only supports deploying 1 replica at a time so _flagDeleteForce will be ignored
 			deleteResponse, err = local.Delete(args[0], _flagDeleteKeepCache)
 			if err != nil {

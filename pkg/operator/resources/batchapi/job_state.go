@@ -31,6 +31,10 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
+const (
+	_averageFilesPerJobState = 10
+)
+
 type JobState struct {
 	spec.JobKey
 	Status         status.JobCode
@@ -50,7 +54,7 @@ func (j JobState) GetLastUpdated() time.Time {
 	return lastUpdated
 }
 
-// Doesn't assume only status files are present, order matters
+// Doesn't assume only status files are present. The order below matters.
 func getStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
 		return status.JobStopped
@@ -115,7 +119,7 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 	statusCode := getStatusCode(lastUpdatedFileMap)
 
 	var jobEndTime *time.Time
-	if statusCode.IsCompletedPhase() {
+	if statusCode.IsCompleted() {
 		if endTime, ok := lastUpdatedFileMap[statusCode.String()]; ok {
 			jobEndTime = &endTime
 		}
@@ -131,11 +135,12 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 
 func getMostRecentlySubmittedJobStates(apiName string, count int) ([]*JobState, error) {
 	// a single job state may include 5 files on average, overshoot the number of files needed
-	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, spec.BatchAPIJobPrefix(apiName), false, pointer.Int64(int64(count*10)))
+	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, spec.BatchAPIJobPrefix(apiName), false, pointer.Int64(int64(count*_averageFilesPerJobState)))
 	if err != nil {
 		return nil, err
 	}
 
+	// job id -> file name -> last update timestamp
 	lastUpdatedMaps := map[string]map[string]time.Time{}
 
 	jobIDOrder := []string{}
@@ -301,18 +306,15 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 		return nil, err
 	}
 
-	startTime := jobSpec.Created
-
 	statusCode := jobState.Status
 
 	jobStatus := status.JobStatus{
-		Job:       *jobSpec,
-		StartTime: startTime,
-		EndTime:   jobState.EndTime,
-		Status:    statusCode,
+		Job:     *jobSpec,
+		EndTime: jobState.EndTime,
+		Status:  statusCode,
 	}
 
-	if statusCode.IsInProgressPhase() {
+	if statusCode.IsInProgress() {
 		queueMetrics, err := getQueueMetrics(jobKey)
 		if err != nil {
 			return nil, err
@@ -335,6 +337,7 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 				setUnexpectedErrorStatus(jobKey)
 				deleteJobRuntimeResources(jobKey)
 				jobStatus.Status = status.JobUnexpectedError
+				return &jobStatus, nil
 			}
 
 			workerStats := getWorkerStatsForJob(*k8sJob, pods)
@@ -342,8 +345,8 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 		}
 	}
 
-	if statusCode.IsCompletedPhase() {
-		metrics, err := getJobMetrics(jobKey, startTime, *jobState.EndTime)
+	if statusCode.IsCompleted() {
+		metrics, err := getCompletedJobMetrics(jobKey, jobSpec.StartTime, *jobState.EndTime)
 		if err != nil {
 			return nil, err
 		}

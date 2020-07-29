@@ -39,16 +39,12 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource == nil {
-		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
-		return
-	}
 	if deployedResource.Kind != userconfig.BatchAPIKind {
 		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind))
 		return
 	}
 
-	// max payload size
+	// max payload size, same as API Gateway
 	rw := http.MaxBytesReader(w, r.Body, 10<<20)
 
 	bodyBytes, err := ioutil.ReadAll(rw)
@@ -61,7 +57,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
-		respondError(w, r, err) // TODO point to documentation here
+		respondError(w, r, err) // TODO point to job submission documentation here
 		return
 	}
 
@@ -85,6 +81,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		io.WriteString(w, "validations passed")
 		return
 	}
 

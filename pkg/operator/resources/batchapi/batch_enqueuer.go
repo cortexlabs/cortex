@@ -21,8 +21,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 )
 
 const (
@@ -31,7 +31,6 @@ const (
 )
 
 type sqsBatchUploader struct {
-	client               *awslib.Client
 	queueURL             string
 	retries              int // default 3 times
 	messageList          []*sqs.SendMessageBatchRequestEntry
@@ -40,9 +39,8 @@ type sqsBatchUploader struct {
 	TotalBatches         int
 }
 
-func newSQSBatchUploader(client *awslib.Client, queueURL string) *sqsBatchUploader {
+func newSQSBatchUploader(queueURL string) *sqsBatchUploader {
 	return &sqsBatchUploader{
-		client:               client,
 		queueURL:             queueURL,
 		retries:              3,
 		messageIDToListIndex: map[string]int{},
@@ -96,7 +94,7 @@ func (uploader *sqsBatchUploader) Flush() error {
 }
 
 func (uploader *sqsBatchUploader) enqueueToSQS() error {
-	output, err := uploader.client.SQS().SendMessageBatch(&sqs.SendMessageBatchInput{
+	output, err := config.AWS.SQS().SendMessageBatch(&sqs.SendMessageBatchInput{
 		QueueUrl: aws.String(uploader.queueURL),
 		Entries:  uploader.messageList,
 	})

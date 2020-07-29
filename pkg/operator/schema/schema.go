@@ -70,12 +70,12 @@ type GetAPIResponse struct {
 }
 
 type BatchAPI struct {
-	APISpec     spec.API           `json:"api_spec"`
+	Spec        spec.API           `json:"spec"`
 	JobStatuses []status.JobStatus `json:"job_statuses"`
 	BaseURL     string             `json:"base_url"`
 }
 
-type JobResponse struct {
+type GetJobResponse struct {
 	APISpec   spec.API         `json:"api_spec"`
 	JobStatus status.JobStatus `json:"job_status"`
 	BaseURL   string           `json:"base_url"`

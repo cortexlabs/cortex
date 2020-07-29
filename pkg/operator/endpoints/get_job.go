@@ -38,10 +38,6 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource == nil {
-		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
-		return
-	}
 	if deployedResource.Kind != userconfig.BatchAPIKind {
 		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind))
 		return
@@ -67,7 +63,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := schema.JobResponse{
+	response := schema.GetJobResponse{
 		JobStatus: *jobStatus,
 		APISpec:   *spec,
 		BaseURL:   baseURL,

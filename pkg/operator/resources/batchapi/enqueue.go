@@ -30,30 +30,21 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 const (
-	_lastUpdatedFile = "last_updated"
-	_fileBuffer      = 32 * 1024 * 1024
+	_lastUpdatedFile     = "last_updated"
+	_S3DownloadChunkSize = 32 * 1024 * 1024
 )
 
-func randomID() string {
+func randomMessageID() string {
 	return random.String(40) // maximum is 80 (for sqs.SendMessageBatchRequestEntry.Id) but this ID may show up in a user error message
-}
-
-func cronErrHandler(cronName string) func(error) {
-	return func(err error) {
-		err = errors.Wrap(err, cronName+" cron failed")
-		telemetry.Error(err)
-		errors.PrintError(err)
-	}
 }
 
 func updateLiveness(jobKey spec.JobKey) error {
@@ -66,19 +57,15 @@ func updateLiveness(jobKey spec.JobKey) error {
 }
 
 func enqueue(jobSpec *spec.Job, submission *schema.JobSubmission) (int, error) {
-	err := updateLiveness(jobSpec.JobKey)
-	if err != nil {
-		return 0, err
-	}
-
 	livenessUpdater := func() error {
 		return updateLiveness(jobSpec.JobKey)
 	}
 
-	livenessCron := cron.Run(livenessUpdater, cronErrHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), 20*time.Second)
+	livenessCron := cron.Run(livenessUpdater, operator.ErrorHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), 20*time.Second)
 	defer livenessCron.Cancel()
 
 	totalBatches := 0
+	var err error
 	if submission.ItemList != nil {
 		totalBatches, err = enqueueItems(jobSpec, submission.ItemList)
 		if err != nil {
@@ -96,12 +83,12 @@ func enqueue(jobSpec *spec.Job, submission *schema.JobSubmission) (int, error) {
 		}
 	}
 
-	randomID := k8s.RandomName()
+	randomMessageID := randomMessageID()
 	_, err = config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
 		QueueUrl:               aws.String(jobSpec.SQSUrl),
 		MessageBody:            aws.String("\"job_complete\""),
-		MessageDeduplicationId: aws.String(randomID), // prevent content based deduping
-		MessageGroupId:         aws.String(randomID), // aws recommends message group id per message to improve chances of exactly-once
+		MessageDeduplicationId: aws.String(randomMessageID), // prevent content based deduping
+		MessageGroupId:         aws.String(randomMessageID), // aws recommends message group id per message to improve chances of exactly-once
 		MessageAttributes: map[string]*sqs.MessageAttributeValue{
 			"job_complete": {
 				DataType:    aws.String("String"),
@@ -124,7 +111,7 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 
 	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(itemList.Items), batchCount, *itemList.BatchSize))
 
-	uploader := newSQSBatchUploader(config.AWS, jobSpec.SQSUrl)
+	uploader := newSQSBatchUploader(jobSpec.SQSUrl)
 
 	for i := 0; i < batchCount; i++ {
 		min := i * (*itemList.BatchSize)
@@ -135,17 +122,20 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 
 		jsonBytes, err := json.Marshal(itemList.Items[min:max])
 		if err != nil {
-			return 0, errors.Wrap(err, fmt.Sprintf("batch %d", i))
-		}
-
-		err = uploader.AddToBatch(randomID(), pointer.String(string(jsonBytes)))
-		if err != nil {
-			if *itemList.BatchSize > 1 {
+			if *itemList.BatchSize == 1 {
 				return 0, errors.Wrap(err, fmt.Sprintf("item %d", i))
 			}
 			return 0, errors.Wrap(err, fmt.Sprintf("items with index between %d to %d", min, max))
 		}
-		if uploader.TotalBatches%10 == 0 {
+
+		err = uploader.AddToBatch(randomMessageID(), pointer.String(string(jsonBytes)))
+		if err != nil {
+			if *itemList.BatchSize == 1 {
+				return 0, errors.Wrap(err, fmt.Sprintf("item %d", i))
+			}
+			return 0, errors.Wrap(err, fmt.Sprintf("items with index between %d to %d", min, max))
+		}
+		if uploader.TotalBatches%100 == 0 {
 			writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
 		}
 	}
@@ -159,8 +149,8 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 }
 
 func enqueueS3Paths(jobSpec *spec.Job, s3PathsLister *schema.FilePathLister) (int, error) {
-	s3PathList := []string{}
-	uploader := newSQSBatchUploader(config.AWS, jobSpec.SQSUrl)
+	var s3PathList []string
+	uploader := newSQSBatchUploader(jobSpec.SQSUrl)
 
 	err := s3IteratorFromLister(s3PathsLister.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
@@ -173,7 +163,7 @@ func enqueueS3Paths(jobSpec *spec.Job, s3PathsLister *schema.FilePathLister) (in
 			}
 			s3PathList = nil
 
-			if uploader.TotalBatches%10 == 0 {
+			if uploader.TotalBatches%100 == 0 {
 				writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
 			}
 		}
@@ -205,7 +195,7 @@ func addS3PathsToQueue(uploader *sqsBatchUploader, s3PathList []string) error {
 		return errors.Wrap(err, fmt.Sprintf("batch %d", uploader.TotalBatches))
 	}
 
-	err = uploader.AddToBatch(randomID(), pointer.String(string(jsonBytes)))
+	err = uploader.AddToBatch(randomMessageID(), pointer.String(string(jsonBytes)))
 	if err != nil {
 		return err
 	}
@@ -238,7 +228,7 @@ func (j *jsonBuffer) Length() int {
 
 func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFiles) (int, error) {
 	jsonMessageList := newJSONBuffer(*delimitedFiles.BatchSize)
-	uploader := newSQSBatchUploader(config.AWS, jobSpec.SQSUrl)
+	uploader := newSQSBatchUploader(jobSpec.SQSUrl)
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	err := s3IteratorFromLister(delimitedFiles.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
@@ -246,7 +236,7 @@ func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFi
 		writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueuing contents from file %s", s3Path))
 
 		itemIndex := 0
-		err := config.AWS.S3FileIterator(bucket, s3Obj, _fileBuffer, func(readCloser io.ReadCloser, isLastChunk bool) (bool, error) {
+		err := config.AWS.S3FileIterator(bucket, s3Obj, _S3DownloadChunkSize, func(readCloser io.ReadCloser, isLastChunk bool) (bool, error) {
 			_, err := bytesBuffer.ReadFrom(readCloser)
 			if err != nil {
 				return false, err
@@ -311,7 +301,7 @@ func streamJSONToQueue(jobSpec *spec.Job, uploader *sqsBatchUploader, bytesBuffe
 			}
 			jsonMessageList.Clear()
 
-			if uploader.TotalBatches%10 == 0 {
+			if uploader.TotalBatches%100 == 0 {
 				writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
 			}
 		}
@@ -326,7 +316,7 @@ func addJSONObjectsToQueue(uploader *sqsBatchUploader, jsonMessageList *jsonBuff
 		return err
 	}
 
-	err = uploader.AddToBatch(randomID(), pointer.String(string(jsonBytes)))
+	err = uploader.AddToBatch(randomMessageID(), pointer.String(string(jsonBytes)))
 	if err != nil {
 		return err
 	}

@@ -243,8 +243,8 @@ func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
 	return apiNames, apiIDs
 }
 
-func GetAPIByName(apiName string) (*schema.GetAPIResponse, error) {
-	status, err := GetStatus(apiName)
+func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
+	status, err := GetStatus(deployedResource.Name)
 	if err != nil {
 		return nil, err
 	}

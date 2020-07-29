@@ -25,7 +25,6 @@ import (
 
 type JobStatus struct {
 	spec.Job
-	StartTime      time.Time           `json:"start_time"`
 	EndTime        *time.Time          `json:"end_time"`
 	Status         JobCode             `json:"status"`
 	BatchesInQueue int                 `json:"batches_in_queue"`

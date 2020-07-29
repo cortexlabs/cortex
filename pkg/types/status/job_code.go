@@ -44,11 +44,11 @@ var _jobCodes = []string{
 	"status_stopped",
 }
 
-func (code JobCode) IsInProgressPhase() bool {
+func (code JobCode) IsInProgress() bool {
 	return code == JobEnqueuing || code == JobRunning
 }
 
-func (code JobCode) IsCompletedPhase() bool {
+func (code JobCode) IsCompleted() bool {
 	return code == JobEnqueueFailed || code == JobCompletedWithFailures || code == JobSucceeded || code == JobUnexpectedError || code == JobWorkerError || code == JobWorkerOOM || code == JobStopped
 }
 

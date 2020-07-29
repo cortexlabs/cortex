@@ -61,6 +61,7 @@ func s3IteratorFromLister(s3Lister schema.S3Lister, fn func(string, *s3.Object) 
 				for _, includeGlobPattern := range includeGlobPatterns {
 					if includeGlobPattern.Match(s3FilePath) {
 						shouldSkip = false
+						break
 					}
 				}
 			}
@@ -68,6 +69,7 @@ func s3IteratorFromLister(s3Lister schema.S3Lister, fn func(string, *s3.Object) 
 			for _, excludeGlobPattern := range excludeGlobPatterns {
 				if excludeGlobPattern.Match(s3FilePath) {
 					shouldSkip = true
+					break
 				}
 			}
 

@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -33,7 +34,7 @@ const (
 	ErrJobIDRequired                   = "resources.job_id_required"
 )
 
-func ErrorOperationIsOnlySupportedForKind(resource userconfig.Resource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
+func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
 	supportedKindsSlice := append(make([]string, 0, 1+len(supportedKinds)), supportedKind.String())
 	for _, kind := range supportedKinds {
 		supportedKindsSlice = append(supportedKindsSlice, kind.String())

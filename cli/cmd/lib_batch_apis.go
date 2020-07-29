@@ -47,7 +47,7 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 	rows := make([][]interface{}, 0, len(batchAPIs))
 
 	for i, batchAPI := range batchAPIs {
-		lastUpdated := time.Unix(batchAPI.APISpec.LastUpdated, 0)
+		lastAPIUpdated := time.Unix(batchAPI.Spec.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := "-"
 		runningJobs := 0
@@ -58,17 +58,17 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 				latestJobID = job.ID + fmt.Sprintf(" (submitted %s ago)", libtime.SinceStr(&latestStartTime))
 			}
 
-			if job.Status.IsInProgressPhase() {
+			if job.Status.IsInProgress() {
 				runningJobs++
 			}
 		}
 
 		rows = append(rows, []interface{}{
 			envNames[i],
-			batchAPI.APISpec.Name,
+			batchAPI.Spec.Name,
 			runningJobs,
 			latestJobID,
-			libtime.SinceStr(&lastUpdated),
+			libtime.SinceStr(&lastAPIUpdated),
 		})
 	}
 
@@ -96,8 +96,6 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 			succeeded := 0
 			failed := 0
 
-			totalBatchCount := job.TotalBatchCount
-
 			if job.BatchMetrics != nil {
 				failed = job.BatchMetrics.Failed
 				succeeded = job.BatchMetrics.Succeeded
@@ -114,7 +112,7 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 			jobRows = append(jobRows, []interface{}{
 				job.ID,
 				job.Status.Message(),
-				fmt.Sprintf("%d/%d", succeeded, totalBatchCount),
+				fmt.Sprintf("%d/%d", succeeded, job.TotalBatchCount),
 				failed,
 				job.StartTime.Format(_timeFormat),
 				duration,
@@ -136,15 +134,14 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 		out += t.MustFormat()
 	}
 
-	apiEndpoint := urls.Join(batchAPI.BaseURL, *batchAPI.APISpec.Networking.Endpoint)
-	if batchAPI.APISpec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+	apiEndpoint := urls.Join(batchAPI.BaseURL, *batchAPI.Spec.Networking.Endpoint)
+	if batchAPI.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
 		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
 	}
 
 	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
-	out += "\n"
 
-	out += titleStr("batch api configuration") + batchAPI.APISpec.UserStr(types.AWSProviderType)
+	out += "\n" + titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
 	return out
 }
 
@@ -178,15 +175,14 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	out += "\n" + jobTimingTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
 
-	totalBatchCount := job.TotalBatchCount
-
 	succeeded := "-"
 	failed := "-"
 	avgTimePerBatch := "-"
 
 	if job.BatchMetrics != nil {
 		if job.BatchMetrics.AverageTimePerBatch != nil {
-			avgTimePerBatch = fmt.Sprintf("%.6g s", *job.BatchMetrics.AverageTimePerBatch)
+			batchMetricsDuration := time.Duration(*job.BatchMetrics.AverageTimePerBatch*1000000000) * time.Nanosecond
+			avgTimePerBatch = batchMetricsDuration.Truncate(time.Millisecond).String()
 		}
 
 		succeeded = s.Int(job.BatchMetrics.Succeeded)
@@ -202,7 +198,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		},
 		Rows: [][]interface{}{
 			{
-				totalBatchCount,
+				job.TotalBatchCount,
 				succeeded,
 				failed,
 				avgTimePerBatch,
@@ -214,7 +210,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	if job.Status == status.JobEnqueuing {
 		out += "\nstill enqueuing, workers have not been allocated for this job yet\n"
-	} else if job.Status.IsCompletedPhase() {
+	} else if job.Status.IsCompleted() {
 		out += "\nworker stats are not available because this job is not currently running\n"
 	} else {
 		out += titleStr("worker stats")
@@ -227,7 +223,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 					{Title: "initializing", Hidden: job.WorkerStats.Initializing == 0},
 					{Title: "stalled", Hidden: job.WorkerStats.Stalled == 0},
 					{Title: "running"},
-					{Title: "failed"},
+					{Title: "failed", Hidden: job.WorkerStats.Failed == 0},
 					{Title: "succeeded"},
 				},
 				Rows: [][]interface{}{

@@ -34,12 +34,8 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource == nil {
-		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
-		return
-	}
 	if deployedResource.Kind == userconfig.BatchAPIKind {
-		respondError(w, r, ErrorJobIDRequired(*deployedResource))
+		respondError(w, r, ErrorLogsJobIDRequired(*deployedResource))
 		return
 	} else if deployedResource.Kind != userconfig.SyncAPIKind {
 		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind))

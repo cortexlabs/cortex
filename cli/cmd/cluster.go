@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -777,24 +776,18 @@ func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[s
 		return nil
 	}
 
-	fmt.Print("￮ using existing cloudwatch log group:", logGroup)
+	fmt.Print("￮ using existing cloudwatch log group: ", logGroup)
 
 	// retry since it's possible that it takes some time for the new log group to be registered by AWS
-	for i := 0; i < 10; i++ {
-		err = awsClient.TagLogGroup(logGroup, tags)
-		if err == nil {
-			fmt.Println(" ✓")
-			return nil
-		}
-		if !aws.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
-			break
-		}
-		time.Sleep(1 * time.Second)
+	err = awsClient.TagLogGroup(logGroup, tags)
+	if err != nil {
+		fmt.Print("\n\n")
+		return err
 	}
 
-	fmt.Print("\n\n")
+	fmt.Println(" ✓")
 
-	return err
+	return nil
 }
 
 // createOrClearDashboard creates a new dashboard (or clears an existing one if it already exists)

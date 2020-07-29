@@ -14,30 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package endpoints
+package operator
 
 import (
-	"fmt"
-	"net/http"
-
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/gorilla/mux"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
-func StopJob(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	apiName := vars["apiName"]
-	jobID := vars["jobID"]
-
-	err := batchapi.StopJob(spec.JobKey{APIName: apiName, ID: jobID})
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	respond(w, schema.DeleteResponse{
-		Message: fmt.Sprintf("stopped job %s", jobID),
-	})
+type DeployedResource struct {
+	userconfig.Resource
+	VirtualService *istioclientnetworking.VirtualService
 }

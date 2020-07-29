@@ -32,7 +32,7 @@ type JobKey struct {
 }
 
 func (j JobKey) UserString() string {
-	return fmt.Sprintf("%s (api %s)", j.ID, j.APIName)
+	return fmt.Sprintf("%s (%s api)", j.ID, j.APIName)
 }
 
 // e.g. /jobs/<cortex version>/<api name>/<job id>/spec.json
@@ -60,8 +60,8 @@ type Job struct {
 	APIID           string    `json:"api_id"`
 	SQSUrl          string    `json:"sqs_url"`
 	ResultsDir      string    `json:"results_dir"`
-	TotalBatchCount int       `json:"total_batch_count"` // TODO this will always be 0 on first response
-	Created         time.Time `json:"created_time"`
+	TotalBatchCount int       `json:"total_batch_count"`
+	StartTime       time.Time `json:"start_time"`
 }
 
 func BatchAPIJobPrefix(apiName string) string {

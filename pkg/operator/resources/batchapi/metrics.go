@@ -31,7 +31,7 @@ import (
 
 // Find data retention period at https://aws.amazon.com/cloudwatch/faqs/
 
-func getJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.JobMetrics, error) {
+func getCompletedJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.JobMetrics, error) {
 	batchMetrics := metrics.JobMetrics{}
 
 	if time.Now().Sub(endTime) < 2*time.Hour {

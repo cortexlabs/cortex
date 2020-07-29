@@ -122,6 +122,9 @@ func deleteQueueByURL(queueURL string) error {
 	_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
 		QueueUrl: aws.String(queueURL),
 	})
+	if err != nil {
+		return errors.Wrap(err, "failed to delete queue", queueURL)
+	}
 
 	return err
 }
@@ -135,21 +138,18 @@ func getQueueMetrics(jobKey spec.JobKey) (*metrics.QueueMetrics, error) {
 }
 
 func getQueueMetricsFromURL(queueURL string) (*metrics.QueueMetrics, error) {
-	output, err := config.AWS.SQS().GetQueueAttributes(&sqs.GetQueueAttributesInput{
-		AttributeNames: aws.StringSlice([]string{"ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"}),
-		QueueUrl:       aws.String(queueURL),
-	})
+	attributes, err := config.AWS.GetAllQueueAttributes(queueURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get queue metrics", queueURL)
+		return nil, errors.Wrap(err, "failed to get queue metrics")
 	}
 
 	metrics := metrics.QueueMetrics{}
-	parsedInt, ok := s.ParseInt(*output.Attributes["ApproximateNumberOfMessages"])
+	parsedInt, ok := s.ParseInt(attributes["ApproximateNumberOfMessages"])
 	if ok {
 		metrics.InQueue = parsedInt
 	}
 
-	parsedInt, ok = s.ParseInt(*output.Attributes["ApproximateNumberOfMessagesNotVisible"])
+	parsedInt, ok = s.ParseInt(attributes["ApproximateNumberOfMessagesNotVisible"])
 	if ok {
 		metrics.NotVisible = parsedInt
 	}

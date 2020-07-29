@@ -22,15 +22,32 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
+func (c *Client) GetAllQueueAttributes(queueURL string) (map[string]string, error) {
+	output, err := c.SQS().GetQueueAttributes(&sqs.GetQueueAttributesInput{
+		QueueUrl:       aws.String(queueURL),
+		AttributeNames: aws.StringSlice([]string{"All"}),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get queue attributes", queueURL)
+	}
+
+	return aws.StringValueMap(output.Attributes), nil
+}
+
 func (c *Client) ListQueuesByQueueNamePrefix(queueNamePrefix string) ([]string, error) {
-	output, err := c.SQS().ListQueues(&sqs.ListQueuesInput{
+	queueURLs := []string{}
+
+	err := c.SQS().ListQueuesPages(&sqs.ListQueuesInput{
 		QueueNamePrefix: aws.String(queueNamePrefix),
+	}, func(output *sqs.ListQueuesOutput, lastPage bool) bool {
+		queueURLs = append(queueURLs, aws.StringValueSlice(output.QueueUrls)...)
+		return true
 	})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return aws.StringValueSlice(output.QueueUrls), nil
+	return queueURLs, nil
 }
 
 func (c *Client) DoesQueueExist(queueName string) (bool, error) {
@@ -48,25 +65,30 @@ func (c *Client) DoesQueueExist(queueName string) (bool, error) {
 }
 
 func (c *Client) DeleteQueuesWithPrefix(queueNamePrefix string) error {
-	output, err := c.SQS().ListQueues(
-		&sqs.ListQueuesInput{
-			QueueNamePrefix: aws.String(queueNamePrefix),
-		},
-	)
+	var deleteError error
+
+	err := c.SQS().ListQueuesPages(&sqs.ListQueuesInput{
+		QueueNamePrefix: aws.String(queueNamePrefix),
+	}, func(output *sqs.ListQueuesOutput, lastPage bool) bool {
+		for _, queueURL := range output.QueueUrls {
+			_, err := c.SQS().DeleteQueue(&sqs.DeleteQueueInput{ // best effort delete
+				QueueUrl: queueURL,
+			})
+
+			if deleteError != nil {
+				deleteError = err
+			}
+		}
+		return true
+	})
+
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	errs := []error{}
-
-	for _, queueURL := range output.QueueUrls {
-		_, err := c.SQS().DeleteQueue(&sqs.DeleteQueueInput{ // best effort delete
-			QueueUrl: queueURL,
-		})
-		if err != nil {
-			errs = append(errs, err)
-		}
+	if deleteError != nil {
+		return errors.WithStack(deleteError)
 	}
 
-	return errors.FirstError(errs...)
+	return nil
 }

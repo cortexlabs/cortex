@@ -89,7 +89,7 @@ func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
 
-	if jobStatus.Status.IsInProgressPhase() {
+	if jobStatus.Status.IsInProgress() {
 		go streamFromCloudWatch(jobKey, podCheckCancel, socket)
 	} else {
 		if err != nil {
@@ -182,7 +182,7 @@ func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, sock
 			}
 
 			if !didFetchLogs {
-				lastLogTime = jobSpec.Created
+				lastLogTime = jobSpec.StartTime
 				didFetchLogs = true
 			}
 

@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -32,7 +33,10 @@ import (
 	kbatch "k8s.io/api/batch/v1"
 )
 
-const ManageJobResourcesCronPeriod = 60 * time.Second
+const (
+	ManageJobResourcesCronPeriod = 60 * time.Second
+	DoesQueueExistGracePeriod    = 30 * time.Second
+)
 
 func ManageJobResources() error {
 	inProgressJobKeys, err := listAllInProgressJobKeys()
@@ -53,10 +57,10 @@ func ManageJobResources() error {
 	}
 
 	queueURLMap := map[string]string{}
-	jobIDSetQueueURL := strset.Set{}
+	queueJobIDSet := strset.Set{}
 	for _, queueURL := range queues {
 		jobKey := jobKeyFromQueueURL(queueURL)
-		jobIDSetQueueURL.Add(jobKey.ID)
+		queueJobIDSet.Add(jobKey.ID)
 		queueURLMap[jobKey.ID] = queueURL
 	}
 
@@ -66,15 +70,15 @@ func ManageJobResources() error {
 	}
 
 	k8sJobMap := map[string]*kbatch.Job{}
-	jobIDSetK8sJob := strset.Set{}
+	k8sJobIDSet := strset.Set{}
 	for _, job := range jobs {
 		k8sJobMap[job.Labels["jobID"]] = &job
-		jobIDSetK8sJob.Add(job.Labels["jobID"])
+		k8sJobIDSet.Add(job.Labels["jobID"])
 	}
 
 	for _, jobKey := range inProgressJobKeys {
 		var queueURL *string
-		if jobIDSetQueueURL.Has(jobKey.ID) {
+		if queueJobIDSet.Has(jobKey.ID) {
 			queueURL = pointer.String(queueURLMap[jobKey.ID])
 		}
 
@@ -87,19 +91,41 @@ func ManageJobResources() error {
 		}
 	}
 
-	for jobID := range strset.Difference(jobIDSetK8sJob, inProgressJobIDSet) {
-		err := deleteJobRuntimeResources(
-			spec.JobKey{APIName: k8sJobMap[jobID].Labels["apiName"], ID: k8sJobMap[jobID].Labels["jobID"]},
-		)
+	// existing k8sjob but job is not in progress
+	for jobID := range strset.Difference(k8sJobIDSet, inProgressJobIDSet) {
+		jobKey := spec.JobKey{APIName: k8sJobMap[jobID].Labels["apiName"], ID: k8sJobMap[jobID].Labels["jobID"]}
+
+		// delete both k8sjob and queue
+		err := deleteJobRuntimeResources(jobKey)
 		if err != nil {
 			telemetry.Error(err)
 			errors.PrintError(err)
 		}
 	}
 
-	for jobID := range strset.Difference(jobIDSetQueueURL, jobIDSetK8sJob, inProgressJobIDSet) {
+	// existing queue but no k8sjob and not in progress (existing queue, existing k8sjob and not in progress is handled by the for loop above)
+	for jobID := range strset.Difference(queueJobIDSet, k8sJobIDSet, inProgressJobIDSet) {
+		attributes, err := config.AWS.GetAllQueueAttributes(queueURLMap[jobID])
+		if err != nil {
+			telemetry.Error(err)
+			errors.PrintError(err)
+		}
+
+		queueCreatedTimestamp := time.Time{}
+		parsedSeconds, ok := s.ParseInt64(attributes["CreatedTimestamp"])
+		if ok {
+			queueCreatedTimestamp = time.Unix(parsedSeconds, 0)
+		}
+
+		// queue was created recently, maybe there was a delay between the time queue was created and when the in progress file was written
+		if time.Now().Sub(queueCreatedTimestamp) <= DoesQueueExistGracePeriod {
+			continue
+		}
+
 		jobKey := jobKeyFromQueueURL(queueURLMap[jobID])
-		err := deleteJobRuntimeResources(jobKey)
+
+		// delete both k8sjob and queue
+		err = deleteJobRuntimeResources(jobKey)
 		if err != nil {
 			telemetry.Error(err)
 			errors.PrintError(err)
@@ -115,7 +141,7 @@ func reconcileInProgressJob(jobKey spec.JobKey, queueURL *string, k8sJob *kbatch
 		return err
 	}
 
-	if jobState.Status.IsCompletedPhase() {
+	if !jobState.Status.IsInProgress() {
 		// best effort cleanup
 		if queueURL != nil {
 			deleteQueueByURL(*queueURL)
@@ -126,18 +152,19 @@ func reconcileInProgressJob(jobKey spec.JobKey, queueURL *string, k8sJob *kbatch
 		deleteInProgressFile(jobKey)
 	}
 
-	if jobState.Status.IsInProgressPhase() {
+	if jobState.Status.IsInProgress() {
 		if queueURL == nil {
-			expectedQueueURL, err := getJobQueueURL(jobKey)
-			if err != nil {
-				return err
-			}
 			queueExists, err := doesQueueExist(jobKey) // double check queue existence because it might take 10-20 seconds for a queue to be included in list queues api response after a queue has been created
 			if err != nil {
 				queueExists = false
 			}
 
-			if !queueExists && time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) >= ManageJobResourcesCronPeriod {
+			if !queueExists && time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) >= DoesQueueExistGracePeriod {
+				expectedQueueURL, err := getJobQueueURL(jobKey)
+				if err != nil {
+					return err
+				}
+
 				// unexpected queue missing error
 				return errors.FirstError(
 					writeToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), expectedQueueURL)),
@@ -198,8 +225,7 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 		}
 
 		if int(k8sJob.Status.Failed) > 0 {
-			InvestigateJobFailure(jobKey, k8sJob)
-			return nil
+			return investigateJobFailure(jobKey, k8sJob)
 		}
 
 		if jobSpec.TotalBatchCount == jobMetrics.TotalCompleted || k8sJob.Annotations["cortex/to-delete"] == "true" {
@@ -226,13 +252,13 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 		}
 	} else {
 		if int(k8sJob.Status.Active) == 0 {
-			InvestigateJobFailure(jobKey, k8sJob)
+			return investigateJobFailure(jobKey, k8sJob)
 		}
 	}
 	return nil
 }
 
-func InvestigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
+func investigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
 	for _, pod := range pods {
 		if k8s.WasPodOOMKilled(&pod) {

@@ -39,19 +39,22 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-func GetDeployedResourceByName(resourceName string) (*userconfig.Resource, error) {
+func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource, error) {
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
 	if err != nil {
 		return nil, err
 	}
 
 	if virtualService == nil {
-		return nil, nil
+		return nil, ErrorAPINotDeployed(resourceName)
 	}
 
-	return &userconfig.Resource{
-		Name: virtualService.Labels["apiName"],
-		Kind: userconfig.KindFromString(virtualService.Labels["apiKind"]),
+	return &operator.DeployedResource{
+		Resource: userconfig.Resource{
+			Name: virtualService.Labels["apiName"],
+			Kind: userconfig.KindFromString(virtualService.Labels["apiKind"]),
+		},
+		VirtualService: virtualService,
 	}, nil
 }
 
@@ -107,7 +110,9 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
 	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
 	if err != nil {
-		return nil, "", err
+		if errors.GetKind(err) != ErrAPINotDeployed {
+			return nil, "", err
+		}
 	}
 
 	if deployedResource != nil && deployedResource.Kind != apiConfig.Kind {
@@ -128,8 +133,6 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
 		return "", err
-	} else if deployedResource == nil {
-		return "", ErrorAPINotDeployed(apiName)
 	}
 
 	switch deployedResource.Kind {
@@ -143,11 +146,9 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
-		return nil, err
-	}
-
-	if deployedResource == nil {
-		// Delete anyways just to be sure everything is deleted
+		if errors.GetKind(err) != ErrAPINotDeployed {
+			return nil, err
+		}
 		go func() {
 			err := parallel.RunFirstErr(
 				func() error {
@@ -162,7 +163,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			}
 		}()
 
-		return nil, ErrorAPINotDeployed(apiName)
+		return nil, err
 	}
 
 	switch deployedResource.Kind {
@@ -248,15 +249,13 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
 		return nil, err
-	} else if deployedResource == nil {
-		return nil, ErrorAPINotDeployed(apiName)
 	}
 
 	switch deployedResource.Kind {
 	case userconfig.SyncAPIKind:
-		return syncapi.GetAPIByName(apiName)
+		return syncapi.GetAPIByName(deployedResource)
 	case userconfig.BatchAPIKind:
-		return batchapi.GetAPIByName(apiName)
+		return batchapi.GetAPIByName(deployedResource)
 	default:
 		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}

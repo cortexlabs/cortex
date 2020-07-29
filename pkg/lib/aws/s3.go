@@ -573,7 +573,7 @@ func (c *Client) S3FileIterator(bucket string, s3Obj *s3.Object, partSize int, f
 			return errors.Wrap(err, S3Path(bucket, *s3Obj.Key), "range "+byteRange)
 		}
 
-		isLastChunk := max == size
+		isLastChunk := i+1 == iters
 		shouldContinue, err := fn(obj.Body, isLastChunk)
 		if err != nil {
 			return errors.Wrap(err, S3Path(bucket, *s3Obj.Key))

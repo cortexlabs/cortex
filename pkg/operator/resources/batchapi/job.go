@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -114,7 +113,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		JobKey:           jobKey,
 		APIID:            apiSpec.ID,
 		SQSUrl:           queueURL,
-		Created:          time.Now(),
+		StartTime:        time.Now(),
 	}
 
 	err = uploadJobSpec(&jobSpec)
@@ -123,7 +122,13 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	err = setEnqueuingStatus(jobSpec.JobKey)
+	err = createLogGroupForJob(jobSpec.JobKey)
+	if err != nil {
+		deleteQueueByURL(queueURL)
+		return nil, err
+	}
+
+	err = writeToJobLogGroup(jobSpec.JobKey, "started enqueuing batches")
 	if err != nil {
 		deleteQueueByURL(queueURL)
 		return nil, err
@@ -138,7 +143,7 @@ func downloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
 	jobSpec := spec.Job{}
 	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.FileSpecKey())
 	if err != nil {
-		return nil, ErrorJobNotFound(jobKey)
+		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
 	}
 	return &jobSpec, nil
 }
@@ -152,29 +157,34 @@ func uploadJobSpec(jobSpec *spec.Job) error {
 }
 
 func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmission) {
-	err := createLogGroupForJob(jobSpec.JobKey)
-	if err != nil {
-		handleJobSubmissionError(jobSpec.JobKey, err)
-		return
-	}
-
-	writeToJobLogGroup(jobSpec.JobKey, "started enqueuing batches to queue")
-
 	totalBatches, err := enqueue(jobSpec, submission)
 	if err != nil {
-		writeToJobLogGroup(jobSpec.JobKey, errors.Wrap(err, "failed to enqueue all batches").Error())
-		setEnqueueFailedStatus(jobSpec.JobKey)
-		deleteJobRuntimeResources(jobSpec.JobKey)
+		err := errors.FirstError(
+			writeToJobLogGroup(jobSpec.JobKey, errors.Wrap(err, "failed to enqueue all batches").Error()),
+			setEnqueueFailedStatus(jobSpec.JobKey),
+			deleteJobRuntimeResources(jobSpec.JobKey),
+		)
+		if err != nil {
+			telemetry.Error(err)
+			errors.PrintError(err)
+		}
 		return
 	}
 
 	if totalBatches == 0 {
+		var errs []error
 		writeToJobLogGroup(jobSpec.JobKey, ErrorNoDataFoundInJobSubmission().Error())
 		if submission.DelimitedFiles != nil {
-			writeToJobLogGroup(jobSpec.JobKey, "please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission")
+			errs = append(errs, writeToJobLogGroup(jobSpec.JobKey, "please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission"))
 		}
-		setEnqueueFailedStatus(jobSpec.JobKey)
-		deleteJobRuntimeResources(jobSpec.JobKey)
+		errs = append(errs, setEnqueueFailedStatus(jobSpec.JobKey))
+		errs = append(errs, deleteJobRuntimeResources(jobSpec.JobKey))
+
+		err := errors.FirstError(errs...)
+		if err != nil {
+			telemetry.Error(err)
+			errors.PrintError(err)
+		}
 		return
 	}
 
@@ -194,7 +204,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		return
 	}
 
-	err = applyK8sJob(apiSpec, jobSpec)
+	err = createK8sJob(apiSpec, jobSpec)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
@@ -212,7 +222,7 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 	}
 }
 
-func applyK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {
+func createK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {
 	job, err := k8sJobSpec(apiSpec, jobSpec)
 	if err != nil {
 		return err
@@ -238,12 +248,11 @@ func deleteK8sJob(jobKey spec.JobKey) error {
 }
 
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
-	err := deleteK8sJob(jobKey)
-	if err != nil {
-		return err
-	}
+	err := errors.FirstError(
+		deleteK8sJob(jobKey),
+		deleteQueueByJobKey(jobKey),
+	)
 
-	err = deleteQueueByJobKey(jobKey)
 	if err != nil {
 		return err
 	}
@@ -258,14 +267,9 @@ func StopJob(jobKey spec.JobKey) error {
 		return err
 	}
 
-	if jobState.Status == status.JobStopped {
+	if !jobState.Status.IsInProgress() {
 		go deleteJobRuntimeResources(jobKey)
 		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
-	}
-
-	if !jobState.Status.IsInProgressPhase() {
-		go deleteJobRuntimeResources(jobKey)
-		return errors.Wrap(ErrorJobIsNotInProgress())
 	}
 
 	writeToJobLogGroup(jobKey, "request received to stop job; performing cleanup...")
