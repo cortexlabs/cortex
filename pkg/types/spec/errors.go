@@ -266,7 +266,7 @@ func ErrorS3DirNotFound(path string) error {
 }
 
 var _onnxExpectedStructMessage = `
-  %s/
+  %s
   ├── 1523423423/ (Version prefix)
   |   └── <model-name>.onnx // ONNX-exported file
   └── 2434389194/ (Version prefix)
@@ -308,7 +308,7 @@ func ErrorONNXModelVersionPathMustBeDir(path, versionedPath string) error {
 }
 
 var _pythonExpectedStructMessage = `For models provided for the %s predictor type, the path must be a directory with the following structure:
-  %s/
+  %s
   ├── 1523423423/ (Version prefix)
   |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
   └── 2434389194/ (Version prefix)
@@ -342,7 +342,7 @@ func ErrorPythonModelVersionPathMustBeDir(path, versionedPath string) error {
 }
 
 var _tfExpectedStructMessage = `
-  %s/
+  %s
   ├── 1523423423/ (Version prefix, usually a timestamp)
   |   ├── saved_model.pb
   |   └── variables/
@@ -359,7 +359,7 @@ var _tfExpectedStructMessage = `
           └── variables.data-00002-of-...`
 
 var _neuronTfExpectedStructMessage = `
-  %s/
+  %s
   ├── 1523423423/ (Version prefix, usually a timestamp)
   |   └── saved_model.pb
   └── 2434389194/ (Version prefix, usually a timestamp)
