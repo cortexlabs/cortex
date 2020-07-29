@@ -111,7 +111,7 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 					{
 						StructField: "Weight",
 						IntValidation: &cr.IntValidation{
-							Default:              100,
+							Required:             true,
 							GreaterThanOrEqualTo: pointer.Int(0),
 							LessThanOrEqualTo:    pointer.Int(100),
 						},
@@ -631,11 +631,11 @@ func ValidateAPISplitter(
 	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
-	if err := isWeight100(api.APIs); err != nil {
-		return errors.Wrap(err, api.Identify())
+	if err := verifyTotalWeight(api.APIs); err != nil {
+		return err
 	}
 	if err := areAPISplitterAPIsUnique(api.APIs); err != nil {
-		return errors.Wrap(err, api.Identify())
+		return err
 	}
 
 	return nil
@@ -1192,7 +1192,7 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 	return nil
 }
 
-func isWeight100(apis []*userconfig.TrafficSplit) error {
+func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
 	totalWeight := 0
 	for _, api := range apis {
 		totalWeight += api.Weight

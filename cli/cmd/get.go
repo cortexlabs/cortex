@@ -399,9 +399,9 @@ func apiSplitterListTable(apiSplitter []schema.APISplitter, envNames []string) t
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
 		var apis []string
 		for _, api := range splitAPI.Spec.APIs {
-			apis = append(apis, api.Name+": "+s.Int(api.Weight))
+			apis = append(apis, api.Name+":"+s.Int(api.Weight))
 		}
-		apisStr := s.TruncateEllipses(s.StrsSentence(apis, " "), 100)
+		apisStr := s.TruncateEllipses(strings.Join(apis, " "), 100)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			splitAPI.Spec.Name,
