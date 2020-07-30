@@ -54,7 +54,7 @@ class PythonPredictor:
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
-            config: Dictionary passed from API configuration (if specified). This may contain information on where to download the model and/or metadata (required).
+            config (required): Dictionary passed from API configuration (if specified). This may contain information on where to download the model and/or metadata.
         """
         pass
 
@@ -62,9 +62,9 @@ class PythonPredictor:
         """(Required) Called once per request. Preprocesses the request payload (if necessary), runs inference, and postprocesses the inference output (if necessary).
 
         Args:
-            payload: The request payload (see below for the possible payload types) (optional).
-            query_params: A dictionary of the query parameters used in the request (optional).
-            headers: A dictionary of the headers sent in the request (optional).
+            payload (optional): The request payload (see below for the possible payload types).
+            query_params (optional): A dictionary of the query parameters used in the request.
+            headers (optional): A dictionary of the headers sent in the request.
 
         Returns:
             Prediction or a batch of predictions.
@@ -75,10 +75,10 @@ class PythonPredictor:
         """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
 
         Args:
-            response: The response as returned by the predict method (optional).
-            payload: The request payload (see below for the possible payload types) (optional).
-            query_params: A dictionary of the query parameters used in the request (optional).
-            headers: A dictionary of the headers sent in the request (optional).
+            response (optional): The response as returned by the predict method.
+            payload (optional): The request payload (see below for the possible payload types).
+            query_params (optional): A dictionary of the query parameters used in the request.
+            headers (optional): A dictionary of the headers sent in the request.
         """
         pass
 ```
@@ -218,8 +218,8 @@ class TensorFlowPredictor:
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
 
         Args:
-            tensorflow_client: TensorFlow client which is used to make predictions. This should be saved for use in predict() (required).
-            config: Dictionary passed from API configuration (if specified) (required).
+            tensorflow_client (required): TensorFlow client which is used to make predictions. This should be saved for use in predict().
+            config (required): Dictionary passed from API configuration (if specified).
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
@@ -228,9 +228,9 @@ class TensorFlowPredictor:
         """(Required) Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
 
         Args:
-            payload: The request payload (see below for the possible payload types) (optional).
-            query_params: A dictionary of the query parameters used in the request (optional).
-            headers: A dictionary of the headers sent in the request (optional).
+            payload (optional): The request payload (see below for the possible payload types).
+            query_params (optional): A dictionary of the query parameters used in the request.
+            headers (optional): A dictionary of the headers sent in the request.
 
         Returns:
             Prediction or a batch of predictions.
@@ -241,10 +241,10 @@ class TensorFlowPredictor:
         """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
 
         Args:
-            response: The response as returned by the predict method (optional).
-            payload: The request payload (see below for the possible payload types) (optional).
-            query_params: A dictionary of the query parameters used in the request (optional).
-            headers: A dictionary of the headers sent in the request (optional).
+            response (optional): The response as returned by the predict method.
+            payload (optional): The request payload (see below for the possible payload types).
+            query_params (optional): A dictionary of the query parameters used in the request.
+            headers (optional): A dictionary of the headers sent in the request.
         """
         pass
 ```
@@ -314,8 +314,8 @@ class ONNXPredictor:
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
 
         Args:
-            onnx_client: ONNX client which is used to make predictions. This should be saved for use in predict() (required).
-            config: Dictionary passed from API configuration (if specified) (required).
+            onnx_client (required): ONNX client which is used to make predictions. This should be saved for use in predict().
+            config (required): Dictionary passed from API configuration (if specified).
         """
         self.client = onnx_client
         # Additional initialization may be done here
@@ -324,9 +324,9 @@ class ONNXPredictor:
         """(Required) Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
 
         Args:
-            payload: The request payload (see below for the possible payload types) (optional).
-            query_params: A dictionary of the query parameters used in the request (optional).
-            headers: A dictionary of the headers sent in the request (optional).
+            payload (optional): The request payload (see below for the possible payload types).
+            query_params (optional): A dictionary of the query parameters used in the request.
+            headers (optional): A dictionary of the headers sent in the request.
 
         Returns:
             Prediction or a batch of predictions.
@@ -337,10 +337,10 @@ class ONNXPredictor:
         """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
 
         Args:
-            response: The response as returned by the predict method (optional).
-            payload: The request payload (see below for the possible payload types) (optional).
-            query_params: A dictionary of the query parameters used in the request (optional).
-            headers: A dictionary of the headers sent in the request (optional).
+            response (optional): The response as returned by the predict method.
+            payload (optional): The request payload (see below for the possible payload types).
+            query_params (optional): A dictionary of the query parameters used in the request.
+            headers (optional): A dictionary of the headers sent in the request.
         """
         pass
 ```
