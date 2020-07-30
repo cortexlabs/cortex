@@ -54,7 +54,7 @@ class PythonPredictor:
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
-            config: Dictionary passed from API configuration (if specified). This may contain information on where to download the model and/or metadata.
+            config: Dictionary passed from API configuration (if specified). This may contain information on where to download the model and/or metadata (required).
         """
         pass
 
@@ -218,8 +218,8 @@ class TensorFlowPredictor:
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
 
         Args:
-            tensorflow_client: TensorFlow client which is used to make predictions. This should be saved for use in predict().
-            config: Dictionary passed from API configuration (if specified).
+            tensorflow_client: TensorFlow client which is used to make predictions. This should be saved for use in predict() (required).
+            config: Dictionary passed from API configuration (if specified) (required).
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
@@ -314,8 +314,8 @@ class ONNXPredictor:
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
 
         Args:
-            onnx_client: ONNX client which is used to make predictions. This should be saved for use in predict().
-            config: Dictionary passed from API configuration (if specified).
+            onnx_client: ONNX client which is used to make predictions. This should be saved for use in predict() (required).
+            config: Dictionary passed from API configuration (if specified) (required).
         """
         self.client = onnx_client
         # Additional initialization may be done here
