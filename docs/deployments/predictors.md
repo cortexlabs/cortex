@@ -72,7 +72,7 @@ class PythonPredictor:
         pass
 
     def post_predict(self, response, payload, query_params, headers):
-        """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
+        """(Optional) Called in the background after returning a response. Useful for tasks that the client doesn't need to wait on before receiving a response such as recording metrics or storing results.
 
         Args:
             response (optional): The response as returned by the predict method.
@@ -238,7 +238,7 @@ class TensorFlowPredictor:
         pass
 
     def post_predict(self, response, payload, query_params, headers):
-        """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
+        """(Optional) Called in the background after returning a response. Useful for tasks that the client doesn't need to wait on before receiving a response such as recording metrics or storing results.
 
         Args:
             response (optional): The response as returned by the predict method.
@@ -334,7 +334,7 @@ class ONNXPredictor:
         pass
 
     def post_predict(self, response, payload, query_params, headers):
-        """(Optional) Called after the response has been sent back. Useful for sending metrics, updating in-memory cache, or anything that doesn't have to be on the critical path.
+        """(Optional) Called in the background after returning a response. Useful for tasks that the client doesn't need to wait on before receiving a response such as recording metrics or storing results.
 
         Args:
             response (optional): The response as returned by the predict method.
