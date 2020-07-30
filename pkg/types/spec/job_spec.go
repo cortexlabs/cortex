@@ -59,7 +59,6 @@ type Job struct {
 	RuntimeJobConfig
 	APIID           string    `json:"api_id"`
 	SQSUrl          string    `json:"sqs_url"`
-	ResultsDir      string    `json:"results_dir"`
 	TotalBatchCount int       `json:"total_batch_count"`
 	StartTime       time.Time `json:"start_time"`
 }

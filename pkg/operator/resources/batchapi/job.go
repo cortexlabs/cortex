@@ -109,7 +109,6 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 
 	jobSpec := spec.Job{
 		RuntimeJobConfig: submission.RuntimeJobConfig,
-		ResultsDir:       fmt.Sprintf("s3://%s/job_results/%s/%s", config.Cluster.Bucket, apiName, jobID),
 		JobKey:           jobKey,
 		APIID:            apiSpec.ID,
 		SQSUrl:           queueURL,

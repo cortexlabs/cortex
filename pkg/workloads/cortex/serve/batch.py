@@ -221,7 +221,6 @@ def sqs_loop():
     predictor_impl = local_cache["predictor_impl"]
     sqs_client = local_cache["sqs"]
 
-    _, results_dir_key = S3.deconstruct_s3_path(local_cache["job"]["results_dir"])
     queue_url = job_spec["sqs_url"]
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
@@ -270,35 +269,7 @@ def sqs_loop():
         try:
             payload = json.loads(message["Body"])
             batch_id = message["MessageId"]
-            prediction = predictor_impl.predict(**build_predict_args(payload, batch_id))
-
-            if prediction is not None:
-                key = f"{results_dir_key}/{batch_id}"
-
-                if isinstance(prediction, bytes):
-                    api_spec.storage.put_object(prediction, key)
-                    cx_logger().info(
-                        f"uploaded results for {batch_id} to s3://{api_spec.storage.bucket}/{key}"
-                    )
-                if isinstance(prediction, str):
-                    api_spec.storage.put_str(prediction, key)
-                    cx_logger().info(
-                        f"uploaded results for {batch_id} to s3://{api_spec.storage.bucket}/{key}"
-                    )
-                else:
-                    try:
-                        response = json.dumps(
-                            prediction
-                        )  # TODO: write a newline delimited json file if it is a list?
-                    except Exception as e:
-                        raise UserRuntimeException(
-                            str(e),
-                            "please return an object that is JSON serializable (including its nested fields), a bytes object or a string; alternatively, you can also not return anything and write the output to your desired storage",
-                        ) from e
-                    api_spec.storage.put_str(response, key + ".json")
-                    cx_logger().info(
-                        f"uploaded results for {batch_id} to s3://{api_spec.storage.bucket}/{key}.json"
-                    )
+            predictor_impl.predict(**build_predict_args(payload, batch_id))
 
             api_spec.post_metrics(
                 [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]

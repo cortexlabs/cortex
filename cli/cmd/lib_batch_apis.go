@@ -250,7 +250,6 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	}
 
 	out += "\n" + console.Bold("job endpoint: ") + jobEndpoint + "\n"
-	out += console.Bold("results dir (if used): ") + job.ResultsDir + "\n"
 
 	jobSpecStr, err := json.Pretty(job.Job)
 	if err != nil {
