@@ -28,23 +28,27 @@ import (
 )
 
 const (
-	ErrMalformedConfig                   = "spec.malformed_config"
-	ErrNoAPIs                            = "spec.no_apis"
-	ErrDuplicateName                     = "spec.duplicate_name"
-	ErrDuplicateEndpointInOneDeploy      = "spec.duplicate_endpoint_in_one_deploy"
-	ErrDuplicateEndpoint                 = "spec.duplicate_endpoint"
-	ErrConflictingFields                 = "spec.conflicting_fields"
-	ErrSpecifyOneOrTheOther              = "spec.specify_one_or_the_other"
-	ErrSpecifyAllOrNone                  = "spec.specify_all_or_none"
-	ErrOneOfPrerequisitesNotDefined      = "spec.one_of_prerequisites_not_defined"
-	ErrConfigGreaterThanOtherConfig      = "spec.config_greater_than_other_config"
-	ErrMinReplicasGreaterThanMax         = "spec.min_replicas_greater_than_max"
-	ErrInitReplicasGreaterThanMax        = "spec.init_replicas_greater_than_max"
-	ErrInitReplicasLessThanMin           = "spec.init_replicas_less_than_min"
-	ErrInvalidSurgeOrUnavailable         = "spec.invalid_surge_or_unavailable"
-	ErrSurgeAndUnavailableBothZero       = "spec.surge_and_unavailable_both_zero"
-	ErrCacheSizeGreaterThanNumModels     = "spec.cache_size_greater_than_num_models"
-	ErrDiskCacheSizeGreaterThanNumModels = "spec.disk_cache_size_greater_than_num_models"
+	ErrMalformedConfig              = "spec.malformed_config"
+	ErrNoAPIs                       = "spec.no_apis"
+	ErrDuplicateName                = "spec.duplicate_name"
+	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
+	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
+	ErrConflictingFields            = "spec.conflicting_fields"
+	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
+	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
+	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
+	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
+
+	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
+	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"
+	ErrInitReplicasLessThanMin    = "spec.init_replicas_less_than_min"
+
+	ErrInvalidSurgeOrUnavailable   = "spec.invalid_surge_or_unavailable"
+	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
+
+	ErrCacheSizeGreaterThanNumModels       = "spec.cache_size_greater_than_num_models"
+	ErrDiskCacheSizeGreaterThanNumModels   = "spec.disk_cache_size_greater_than_num_models"
+	ErrInvalidNumberOfProcessesWhenCaching = "spec.invalid_number_of_processes_when_caching"
 
 	ErrInvalidPath               = "spec.invalid_path"
 	ErrInvalidDirPath            = "spec.invalid_dir_path"
@@ -222,6 +226,15 @@ func ErrorDiskCacheSizeGreaterThanNumModels(cacheSize, numModels int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDiskCacheSizeGreaterThanNumModels,
 		Message: fmt.Sprintf("%s cannot be greater than the number of provided models (%d > %d)", userconfig.ModelsDiskCacheSizeKey, cacheSize, numModels),
+	})
+}
+
+func ErrorInvalidNumberOfProcessesWhenCaching(desiredProcesses int32) error {
+	const maxNumProcesses int32 = 1
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInvalidNumberOfProcessesWhenCaching,
+		Message: fmt.Sprintf("when dynamic model caching is enabled (%s < provided models), the max value %s can take is %d, while currently it's set to %d",
+			userconfig.ModelsCacheSizeKey, userconfig.ProcessesPerReplicaKey, maxNumProcesses, desiredProcesses),
 	})
 }
 

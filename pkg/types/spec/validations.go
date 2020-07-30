@@ -638,6 +638,7 @@ func validatePredictor(
 		if predictor.Models.DiskCacheSize == nil {
 			predictor.Models.DiskCacheSize = pointer.Int32(*predictor.Models.CacheSize)
 		}
+
 		if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
 			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
 		}
@@ -646,6 +647,10 @@ func validatePredictor(
 		}
 		if int(*predictor.Models.DiskCacheSize) > NumModels(*models) {
 			return errors.Wrap(ErrorDiskCacheSizeGreaterThanNumModels(int(*predictor.Models.DiskCacheSize), NumModels(*models)), userconfig.ModelsKey)
+		}
+
+		if int(*predictor.Models.CacheSize) < NumModels(*models) && predictor.ProcessesPerReplica > 1 {
+			return ErrorInvalidNumberOfProcessesWhenCaching(predictor.ProcessesPerReplica)
 		}
 	}
 
