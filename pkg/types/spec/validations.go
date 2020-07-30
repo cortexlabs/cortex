@@ -47,16 +47,26 @@ import (
 
 var AutoscalingTickInterval = 10 * time.Second
 
-func apiValidation(provider types.ProviderType, kind userconfig.Kind) *cr.StructValidation {
+func apiValidation(provider types.ProviderType, resource userconfig.Resource) *cr.StructValidation {
 	structFieldValidations := []*cr.StructFieldValidation{}
-	structFieldValidations = append(resourceStructValidations,
-		predictorValidation(),
-		monitoringValidation(),
-		networkingValidation(),
-		computeValidation(provider),
-		autoscalingValidation(provider),
-		updateStrategyValidation(provider),
-	)
+	structFieldValidations = append(resourceStructValidations)
+
+	if resource.Kind == userconfig.SyncAPIKind {
+		structFieldValidations = append(structFieldValidations,
+			predictorValidation(),
+			networkingValidation(resource.Kind),
+			computeValidation(provider),
+			monitoringValidation(),
+			autoscalingValidation(provider),
+			updateStrategyValidation(provider),
+		)
+	}
+	if resource.Kind == userconfig.APISplitterKind {
+		structFieldValidations = append(structFieldValidations,
+			multiAPIsValidation(),
+			networkingValidation(resource.Kind),
+		)
+	}
 	return &cr.StructValidation{
 		StructFieldValidations: structFieldValidations,
 	}
@@ -81,6 +91,35 @@ var resourceStructValidations = []*cr.StructFieldValidation{
 			return userconfig.KindFromString(str), nil
 		},
 	},
+}
+
+func multiAPIsValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "APIs",
+		StructListValidation: &cr.StructListValidation{
+			Required:         true,
+			TreatNullAsEmpty: true,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Name",
+						StringValidation: &cr.StringValidation{
+							Required:   true,
+							AllowEmpty: false,
+						},
+					},
+					{
+						StructField: "Weight",
+						IntValidation: &cr.IntValidation{
+							Required:             true,
+							GreaterThanOrEqualTo: pointer.Int(0),
+							LessThanOrEqualTo:    pointer.Int(100),
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func predictorValidation() *cr.StructFieldValidation {
@@ -209,36 +248,39 @@ func monitoringValidation() *cr.StructFieldValidation {
 	}
 }
 
-func networkingValidation() *cr.StructFieldValidation {
+func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
+	structFieldValidation := []*cr.StructFieldValidation{
+		{
+			StructField: "Endpoint",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: urls.ValidateEndpoint,
+				MaxLength: 1000, // no particular reason other than it works
+			},
+		},
+		{
+			StructField: "APIGateway",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: userconfig.APIGatewayTypeStrings(),
+				Default:       userconfig.PublicAPIGatewayType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.APIGatewayTypeFromString(str), nil
+			},
+		},
+	}
+	if kind == userconfig.SyncAPIKind {
+		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
+			StructField: "LocalPort",
+			IntPtrValidation: &cr.IntPtrValidation{
+				GreaterThan:       pointer.Int(0),
+				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
+			},
+		})
+	}
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Endpoint",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Validator: urls.ValidateEndpoint,
-						MaxLength: 1000, // no particular reason other than it works
-					},
-				},
-				{
-					StructField: "LocalPort",
-					IntPtrValidation: &cr.IntPtrValidation{
-						GreaterThan:       pointer.Int(0),
-						LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-					},
-				},
-				{
-					StructField: "APIGateway",
-					StringValidation: &cr.StringValidation{
-						AllowedValues: userconfig.APIGatewayTypeStrings(),
-						Default:       userconfig.PublicAPIGatewayType.String(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.APIGatewayTypeFromString(str), nil
-					},
-				},
-			},
+			StructFieldValidations: structFieldValidation,
 		},
 	}
 }
@@ -519,8 +561,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
 
-		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct.Kind))
-
+		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			kindString, _ := data[userconfig.KindKey].(string)
@@ -528,12 +569,22 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
 		}
-		api.Index = i
-		api.FileName = configFileName
 
-		api.ApplyDefaultDockerPaths()
+		if resourceStruct.Kind == userconfig.APISplitterKind {
+			if provider == types.LocalProviderType {
+				return nil, errors.Wrap(ErrorAPISplitterNotSupported(), api.Identify())
+			}
+			api.Index = i
+			api.FileName = configFileName
+			apis[i] = api
+		}
+		if resourceStruct.Kind == userconfig.SyncAPIKind {
+			api.Index = i
+			api.FileName = configFileName
+			api.ApplyDefaultDockerPaths()
+			apis[i] = api
+		}
 
-		apis[i] = api
 	}
 
 	return apis, nil
@@ -567,6 +618,24 @@ func ValidateAPI(
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, api.Identify(), userconfig.UpdateStrategyKey)
 		}
+	}
+
+	return nil
+}
+
+func ValidateAPISplitter(
+	api *userconfig.API,
+	providerType types.ProviderType,
+	awsClient *aws.Client,
+) error {
+	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
+		api.Networking.Endpoint = pointer.String("/" + api.Name)
+	}
+	if err := verifyTotalWeight(api.APIs); err != nil {
+		return err
+	}
+	if err := areAPISplitterAPIsUnique(api.APIs); err != nil {
+		return err
 	}
 
 	return nil
@@ -1120,5 +1189,34 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 		return err
 	}
 
+	return nil
+}
+
+func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
+	totalWeight := 0
+	for _, api := range apis {
+		totalWeight += api.Weight
+	}
+	if totalWeight == 100 {
+		return nil
+	}
+	return ErrorIncorrectAPISplitterWeightTotal(totalWeight)
+}
+
+// areAPISplitterAPIsUnique gives error if the same API is used multiple times in APISplitter
+func areAPISplitterAPIsUnique(apis []*userconfig.TrafficSplit) error {
+	names := make(map[string][]userconfig.TrafficSplit)
+	for _, api := range apis {
+		names[api.Name] = append(names[api.Name], *api)
+	}
+	var notUniqueAPIs []string
+	for name := range names {
+		if len(names[name]) > 1 {
+			notUniqueAPIs = append(notUniqueAPIs, names[name][0].Name)
+		}
+	}
+	if len(notUniqueAPIs) > 0 {
+		return ErrorAPISplitterAPIsNotUnique(notUniqueAPIs)
+	}
 	return nil
 }
