@@ -359,12 +359,13 @@ func (predictor *Predictor) UserStr() string {
 func (models *MultiModels) UserStr() string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
-	for _, model := range models.Paths {
-		sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
-	}
 	if models.Dir != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
+		for _, model := range models.Paths {
+			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
+		}
 	}
 	if models.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.SignatureKey))
@@ -373,7 +374,7 @@ func (models *MultiModels) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsCacheSizeKey, s.Int32(*models.CacheSize)))
 	}
 	if models.DiskCacheSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsCacheSizeKey, s.Int32(*models.DiskCacheSize)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDiskCacheSizeKey, s.Int32(*models.DiskCacheSize)))
 	}
 
 	return sb.String()

@@ -184,7 +184,7 @@ func downloadModel(model spec.CuratedModelResource, destModelDir string, awsClie
 	if len(model.Versions) == 1 {
 		fmt.Print(fmt.Sprintf("￮ downloading model %s (version %d) ...", model.Name, model.Versions[0]))
 	} else if len(model.Versions) > 0 {
-		fmt.Print(fmt.Sprintf("￮ downloading model %s (version %v) ...", model.Name, model.Versions))
+		fmt.Print(fmt.Sprintf("￮ downloading model %s (versions %s) ...", model.Name, s.UserStrsAnd(model.Versions)))
 	} else {
 		if model.Name == consts.SingleModelName {
 			fmt.Print("￮ downloading model ...")
