@@ -182,9 +182,6 @@ def predict(request: Request):
     kwargs = build_predict_kwargs(request)
 
     prediction = predictor_impl.predict(**kwargs)
-    if has_method(predictor_impl, "post_predict"):
-        kwargs = build_post_predict_kwargs(prediction, request)
-        tasks.add_task(predictor_impl.post_predict, **kwargs)
 
     if isinstance(prediction, bytes):
         response = Response(content=prediction, media_type="application/octet-stream")
@@ -214,6 +211,10 @@ def predict(request: Request):
                 local_cache["class_set"].add(predicted_value)
         except:
             cx_logger().warn("unable to record prediction metric", exc_info=True)
+
+    if has_method(predictor_impl, "post_predict"):
+        kwargs = build_post_predict_kwargs(prediction, request)
+        tasks.add_task(predictor_impl.post_predict, **kwargs)
 
     response.background = tasks
     return response
