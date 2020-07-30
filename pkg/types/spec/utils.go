@@ -94,7 +94,7 @@ func isModelNameIn(models []userconfig.ModelResource, modelName string) bool {
 }
 
 // Verifies if m has been initialized.
-func isMultiModelFieldSet(m *userconfig.MultiModels) bool {
+func IsMultiModelFieldSet(m *userconfig.MultiModels) bool {
 	if len(m.Paths) == 0 && m.Dir == nil && m.CacheSize == nil && m.DiskCacheSize == nil && m.SignatureKey == nil {
 		return false
 	}

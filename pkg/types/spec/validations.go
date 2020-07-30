@@ -598,7 +598,7 @@ func validatePredictor(
 ) error {
 	predictor := api.Predictor
 
-	hasMultiModels := isMultiModelFieldSet(predictor.Models)
+	hasMultiModels := IsMultiModelFieldSet(predictor.Models)
 	hasSingleModel := predictor.ModelPath != nil
 
 	if hasMultiModels && hasSingleModel {
@@ -610,12 +610,6 @@ func validatePredictor(
 		}
 		if len(predictor.Models.Paths) > 0 && predictor.Models.Dir != nil {
 			return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
-		}
-		if predictor.Models.CacheSize == nil && len(predictor.Models.Paths) > 0 {
-			predictor.Models.CacheSize = pointer.Int32(int32(len(predictor.Models.Paths)))
-		}
-		if predictor.Models.DiskCacheSize == nil && predictor.Models.CacheSize != nil {
-			predictor.Models.DiskCacheSize = pointer.Int32(*predictor.Models.CacheSize)
 		}
 	}
 
@@ -637,18 +631,22 @@ func validatePredictor(
 		}
 	}
 
-	if hasMultiModels && len(predictor.Models.Paths) == 0 && predictor.Models.Dir != nil {
+	if hasMultiModels && models != nil {
 		if predictor.Models.CacheSize == nil {
-			predictor.Models.CacheSize = pointer.Int32(int32(len(*models)))
+			predictor.Models.CacheSize = pointer.Int32(int32(NumModels(*models)))
 		}
 		if predictor.Models.DiskCacheSize == nil {
-			predictor.Models.DiskCacheSize = pointer.Int32(int32(len(*models)))
+			predictor.Models.DiskCacheSize = pointer.Int32(*predictor.Models.CacheSize)
 		}
-	}
-
-	if predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil &&
-		*predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
-		return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
+		if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
+			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
+		}
+		if int(*predictor.Models.CacheSize) > NumModels(*models) {
+			return errors.Wrap(ErrorCacheSizeGreaterThanNumModels(int(*predictor.Models.CacheSize), NumModels(*models)), userconfig.ModelsKey)
+		}
+		if int(*predictor.Models.DiskCacheSize) > NumModels(*models) {
+			return errors.Wrap(ErrorDiskCacheSizeGreaterThanNumModels(int(*predictor.Models.DiskCacheSize), NumModels(*models)), userconfig.ModelsKey)
+		}
 	}
 
 	if err := validateDockerImagePath(predictor.Image, providerType, awsClient); err != nil {
@@ -683,7 +681,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 	}
 
 	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := isMultiModelFieldSet(predictor.Models)
+	hasMultiModels := IsMultiModelFieldSet(predictor.Models)
 
 	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
@@ -802,7 +800,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 	predictor := api.Predictor
 
 	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := isMultiModelFieldSet(predictor.Models)
+	hasMultiModels := IsMultiModelFieldSet(predictor.Models)
 
 	if !hasSingleModel && !hasMultiModels {
 		return ErrorMissingModel(predictor.Type)
@@ -945,7 +943,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 	}
 
 	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := isMultiModelFieldSet(predictor.Models)
+	hasMultiModels := IsMultiModelFieldSet(predictor.Models)
 
 	if !hasSingleModel && !hasMultiModels {
 		return ErrorMissingModel(predictor.Type)

@@ -413,10 +413,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					Name:  "CORTEX_MODEL_DIR",
 					Value: path.Join(_emptyDirMountPath, "model"),
 				},
-				kcore.EnvVar{
-					Name:  "CORTEX_MODELS",
-					Value: strings.Join(api.ModelNames(), ","),
-				},
 			)
 		}
 
@@ -425,10 +421,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				kcore.EnvVar{
 					Name:  "CORTEX_MODEL_DIR",
 					Value: path.Join(_emptyDirMountPath, "model"),
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_MODELS",
-					Value: strings.Join(api.ModelNames(), ","),
 				},
 				kcore.EnvVar{
 					Name:  "CORTEX_TF_BASE_SERVING_PORT",

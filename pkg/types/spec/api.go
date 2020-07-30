@@ -76,6 +76,29 @@ func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projec
 	}
 }
 
+func NumModels(models []CuratedModelResource) int {
+	numModels := 0
+	if len(models) > 0 {
+		for _, model := range models {
+			if len(model.Versions) > 0 {
+				numModels += len(model.Versions)
+			} else {
+				numModels++
+			}
+		}
+	}
+
+	return numModels
+}
+
+func (api *API) NumModels() int {
+	numModels := 0
+	if api != nil {
+		numModels = NumModels(api.CuratedModelResources)
+	}
+	return numModels
+}
+
 func (api *API) ModelIDs() []string {
 	models := []string{}
 	if api != nil && len(api.LocalModelCaches) > 0 {
@@ -89,8 +112,8 @@ func (api *API) ModelIDs() []string {
 
 func (api *API) ModelNames() []string {
 	names := []string{}
-	if api != nil && len(api.Predictor.Models.Paths) > 0 {
-		for _, model := range api.Predictor.Models.Paths {
+	if api != nil && len(api.CuratedModelResources) > 0 {
+		for _, model := range api.CuratedModelResources {
 			names = append(names, model.Name)
 		}
 	}

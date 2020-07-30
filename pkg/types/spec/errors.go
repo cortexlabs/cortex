@@ -28,21 +28,23 @@ import (
 )
 
 const (
-	ErrMalformedConfig              = "spec.malformed_config"
-	ErrNoAPIs                       = "spec.no_apis"
-	ErrDuplicateName                = "spec.duplicate_name"
-	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
-	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
-	ErrConflictingFields            = "spec.conflicting_fields"
-	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
-	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
-	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
-	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
-	ErrMinReplicasGreaterThanMax    = "spec.min_replicas_greater_than_max"
-	ErrInitReplicasGreaterThanMax   = "spec.init_replicas_greater_than_max"
-	ErrInitReplicasLessThanMin      = "spec.init_replicas_less_than_min"
-	ErrInvalidSurgeOrUnavailable    = "spec.invalid_surge_or_unavailable"
-	ErrSurgeAndUnavailableBothZero  = "spec.surge_and_unavailable_both_zero"
+	ErrMalformedConfig                   = "spec.malformed_config"
+	ErrNoAPIs                            = "spec.no_apis"
+	ErrDuplicateName                     = "spec.duplicate_name"
+	ErrDuplicateEndpointInOneDeploy      = "spec.duplicate_endpoint_in_one_deploy"
+	ErrDuplicateEndpoint                 = "spec.duplicate_endpoint"
+	ErrConflictingFields                 = "spec.conflicting_fields"
+	ErrSpecifyOneOrTheOther              = "spec.specify_one_or_the_other"
+	ErrSpecifyAllOrNone                  = "spec.specify_all_or_none"
+	ErrOneOfPrerequisitesNotDefined      = "spec.one_of_prerequisites_not_defined"
+	ErrConfigGreaterThanOtherConfig      = "spec.config_greater_than_other_config"
+	ErrMinReplicasGreaterThanMax         = "spec.min_replicas_greater_than_max"
+	ErrInitReplicasGreaterThanMax        = "spec.init_replicas_greater_than_max"
+	ErrInitReplicasLessThanMin           = "spec.init_replicas_less_than_min"
+	ErrInvalidSurgeOrUnavailable         = "spec.invalid_surge_or_unavailable"
+	ErrSurgeAndUnavailableBothZero       = "spec.surge_and_unavailable_both_zero"
+	ErrCacheSizeGreaterThanNumModels     = "spec.cache_size_greater_than_num_models"
+	ErrDiskCacheSizeGreaterThanNumModels = "spec.disk_cache_size_greater_than_num_models"
 
 	ErrInvalidPath               = "spec.invalid_path"
 	ErrInvalidDirPath            = "spec.invalid_dir_path"
@@ -206,6 +208,20 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSurgeAndUnavailableBothZero,
 		Message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
+	})
+}
+
+func ErrorCacheSizeGreaterThanNumModels(cacheSize, numModels int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCacheSizeGreaterThanNumModels,
+		Message: fmt.Sprintf("%s cannot be greater than the number of provided models (%d > %d)", userconfig.ModelsCacheSizeKey, cacheSize, numModels),
+	})
+}
+
+func ErrorDiskCacheSizeGreaterThanNumModels(cacheSize, numModels int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDiskCacheSizeGreaterThanNumModels,
+		Message: fmt.Sprintf("%s cannot be greater than the number of provided models (%d > %d)", userconfig.ModelsDiskCacheSizeKey, cacheSize, numModels),
 	})
 }
 

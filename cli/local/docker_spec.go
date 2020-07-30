@@ -86,7 +86,6 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_PROVIDER="+"local",
 		"CORTEX_CACHE_DIR="+_cacheDir,
 		"CORTEX_MODEL_DIR="+_modelDir,
-		"CORTEX_MODELS="+strings.Join(api.ModelNames(), ","),
 		"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", filepath.Base(api.Key)),
 		"CORTEX_PROJECT_DIR="+_projectDir,
 		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
@@ -137,24 +136,34 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 		}
 	}
 
+	mounts := []mount.Mount{
+		{
+			Type:   mount.TypeBind,
+			Source: api.LocalProjectDir,
+			Target: _projectDir,
+		},
+		{
+			Type:   mount.TypeBind,
+			Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
+			Target: _workspaceDir,
+		},
+	}
+
+	for _, modelCache := range api.LocalModelCaches {
+		mounts = append(mounts, mount.Mount{
+			Type:   mount.TypeBind,
+			Source: modelCache.HostPath,
+			Target: filepath.Join(_modelDir, modelCache.TargetPath),
+		})
+	}
+
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
 		Runtime:   runtime,
 		Resources: resources,
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: api.LocalProjectDir,
-				Target: _projectDir,
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-				Target: _workspaceDir,
-			},
-		},
+		Mounts:    mounts,
 	}
 
 	containerConfig := &container.Config{
