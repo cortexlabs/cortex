@@ -20,6 +20,7 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
@@ -32,9 +33,12 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-
 	if deployedResource == nil {
 		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
+		return
+	}
+	if deployedResource.Kind != userconfig.SyncAPIKind {
+		respondError(w, r, resources.ErrorOperationNotSupportedForKind(deployedResource.Kind))
 		return
 	}
 

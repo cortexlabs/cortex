@@ -67,6 +67,9 @@ const (
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
 	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
+	ErrIncorrectAPISplitterWeight           = "spec.incorrect_api_splitter_weight"
+	ErrAPISplitterNotSupported              = "spec.apisplitter_not_supported"
+	ErrAPISplitterAPIsNotUnique             = "spec.apisplitter_apis_not_unique"
 )
 
 func ErrorMalformedConfig() error {
@@ -375,5 +378,26 @@ func ErrorInsufficientBatchConcurrencyLevelInf() error {
 			"%s must be greater than or equal to %s",
 			userconfig.MaxBatchSizeKey, userconfig.ThreadsPerProcessKey,
 		),
+	})
+}
+
+func ErrorIncorrectAPISplitterWeightTotal(totalWeight int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIncorrectAPISplitterWeight,
+		Message: fmt.Sprintf("expected api splitter weights to sum to 100 but found %d", totalWeight),
+	})
+}
+
+func ErrorAPISplitterNotSupported() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPISplitterNotSupported,
+		Message: fmt.Sprintf("kind APISplitter is not supported for local provider"),
+	})
+}
+
+func ErrorAPISplitterAPIsNotUnique(names []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPISplitterAPIsNotUnique,
+		Message: fmt.Sprintf("api splitter %s not unique: %s", s.PluralS("API", len(names)), s.StrsSentence(names, "")),
 	})
 }
