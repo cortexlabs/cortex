@@ -1,0 +1,37 @@
+- name: iris-classifier-apisplitter
+  kind: APISplitter
+  networking:
+    endpoint: iris-classifier
+  apis:
+    - name: iris-classifier-v1
+      weight: 20
+    - name: iris-classifier-v2
+      weight: 80
+---
+- name: iris-classifier-v1
+  kind: SyncAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
+  monitoring:
+    model_type: classification
+  compute:
+    cpu: 0.2
+    mem: 100M
+---
+- name: iris-classifier-v2
+  kind: SyncAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
+  monitoring:
+    model_type: classification
+  compute:
+    cpu: 0.2
+    mem: 100M

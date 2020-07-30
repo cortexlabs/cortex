@@ -15,6 +15,8 @@
 * [Predictor implementation](deployments/predictors.md)
 * [API configuration](deployments/api-configuration.md)
 * [API deployment](deployments/deployment.md)
+* [APISplitter configuration](deployments/apisplitter-configuration.md)
+* [APISplitter deployment](deployments/apisplitter-deployment.md)
 * [Parellelism](deployments/parallelism.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Networking](deployments/networking.md)
