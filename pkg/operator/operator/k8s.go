@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -504,7 +505,7 @@ func tfDownloadArgs(api *spec.API) string {
 	}
 
 	rootModelPath := path.Join(_emptyDirMountPath, "model")
-	for _, model := range api.Predictor.Models.Paths {
+	for _, model := range api.CuratedModelResources {
 		var itemName string
 		if model.Name == consts.SingleModelName {
 			itemName = "the model"
@@ -512,11 +513,9 @@ func tfDownloadArgs(api *spec.API) string {
 			itemName = fmt.Sprintf("model %s", model.Name)
 		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:                 model.ModelPath,
-			To:                   path.Join(rootModelPath, model.Name),
-			Unzip:                strings.HasSuffix(model.ModelPath, ".zip"),
-			ItemName:             itemName,
-			TFModelVersionRename: path.Join(rootModelPath, model.Name, "1"),
+			From:     model.ModelPath,
+			To:       rootModelPath,
+			ItemName: itemName,
 		})
 	}
 
@@ -539,6 +538,21 @@ func pythonDownloadArgs(api *spec.API) string {
 		},
 	}
 
+	rootModelPath := path.Join(_emptyDirMountPath, "model")
+	for _, model := range api.CuratedModelResources {
+		var itemName string
+		if model.Name == consts.SingleModelName {
+			itemName = "the model"
+		} else {
+			itemName = fmt.Sprintf("model %s", model.Name)
+		}
+		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
+			From:     model.ModelPath,
+			To:       rootModelPath,
+			ItemName: itemName,
+		})
+	}
+
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
@@ -558,17 +572,22 @@ func onnxDownloadArgs(api *spec.API) string {
 		},
 	}
 
-	rootModelPath := path.Join(_emptyDirMountPath, "model")
-	for _, model := range api.Predictor.Models.Paths {
+	for _, model := range api.CuratedModelResources {
 		var itemName string
 		if model.Name == consts.SingleModelName {
 			itemName = "the model"
 		} else {
 			itemName = fmt.Sprintf("model %s", model.Name)
 		}
+
+		// TODO have to fix the process of downloading onnx files
+		rootModelPath := path.Join(_emptyDirMountPath, "model")
+		if strings.HasSuffix(model.ModelPath, ".onnx") {
+			rootModelPath = filepath.Join(rootModelPath, "1", "default.onnx")
+		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
 			From:     model.ModelPath,
-			To:       path.Join(rootModelPath, model.Name),
+			To:       rootModelPath,
 			ItemName: itemName,
 		})
 	}
