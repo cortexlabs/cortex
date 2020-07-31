@@ -22,11 +22,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func Delete(apiName string, keepCache bool) (schema.DeleteResponse, error) {
+func Delete(apiName string, keepCache, deleteForce bool) (schema.DeleteResponse, error) {
 	_, err := docker.GetDockerClient()
 	if err != nil {
 		return schema.DeleteResponse{}, err
@@ -40,17 +41,20 @@ func Delete(apiName string, keepCache bool) (schema.DeleteResponse, error) {
 				if incompatibleVersion, err = GetVersionFromAPISpec(apiName); err != nil {
 					return schema.DeleteResponse{}, err
 				}
+				if !deleteForce {
+					prompt.YesOrExit(
+						fmt.Sprintf(
+							"api %s was deployed using CLI version %s but the current CLI version is %s; "+
+								"deleting %s with current CLI version %s might break the CLI\n\n"+
+								"do you still want to delete?",
+							apiName, incompatibleVersion, consts.CortexVersion, apiName, consts.CortexVersion),
+						"", "",
+					)
+				}
 				if err = DeleteAPI(apiName); err != nil {
 					return schema.DeleteResponse{}, err
 				}
-				fmt.Println(fmt.Sprintf(
-					"api %s was deployed using CLI version %s but the current CLI version is %s; deleting api %s with current CLI version %s",
-					apiName,
-					incompatibleVersion,
-					consts.CortexVersion,
-					apiName,
-					consts.CortexVersion,
-				))
+				fmt.Println(fmt.Sprintf("deleting api %s with current CLI version %s", apiName, consts.CortexVersion))
 			}
 			return schema.DeleteResponse{}, err
 		}

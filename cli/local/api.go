@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -34,7 +35,7 @@ import (
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*spec.API, string, error) {
 	var incompatibleVersion string
 	encounteredVersionMismatch := false
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
@@ -43,6 +44,16 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, a
 			encounteredVersionMismatch = true
 			if incompatibleVersion, err = GetVersionFromAPISpec(apiConfig.Name); err != nil {
 				return nil, "", err
+			}
+			if !deployDisallowPrompt {
+				prompt.YesOrExit(
+					fmt.Sprintf(
+						"api %s was deployed using CLI version %s but the current CLI version is %s; "+
+							"re-deploying %s with current CLI version %s might break the CLI\n\n"+
+							"do you still want to re-deploy?",
+						apiConfig.Name, incompatibleVersion, consts.CortexVersion, apiConfig.Name, consts.CortexVersion),
+					"", "",
+				)
 			}
 			if err := DeleteAPI(apiConfig.Name); err != nil {
 				return nil, "", err
@@ -100,10 +111,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, a
 	if prevAPISpec == nil && len(prevAPIContainers) == 0 {
 		if encounteredVersionMismatch {
 			return newAPISpec, fmt.Sprintf(
-				"api %s was deployed using CLI version %s but the current CLI version is %s; re-creating api %s with current CLI version %s",
-				newAPISpec.Name,
-				incompatibleVersion,
-				consts.CortexVersion,
+				"re-creating api %s with current CLI version %s",
 				newAPISpec.Name,
 				consts.CortexVersion,
 			), nil

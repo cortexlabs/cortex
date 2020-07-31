@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func Deploy(env cliconfig.Environment, configPath string, projectFileList []string) (schema.DeployResponse, error) {
+func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, deployDisallowPrompt bool) (schema.DeployResponse, error) {
 	configFileName := filepath.Base(configPath)
 
 	_, err := docker.GetDockerClient()
@@ -80,7 +80,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := UpdateAPI(&apiConfig, configPath, projectID, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, configPath, projectID, deployDisallowPrompt, awsClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)
