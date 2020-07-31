@@ -49,7 +49,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 				prompt.YesOrExit(
 					fmt.Sprintf(
 						"api %s was deployed using CLI version %s but the current CLI version is %s; "+
-							"re-deploying %s with current CLI version %s might break the CLI\n\n"+
+							"re-deploying %s with current CLI version %s might break the CLI; any cached models won't be deleted\n\n"+
 							"do you still want to re-deploy?",
 						apiConfig.Name, incompatibleVersion, consts.CortexVersion, apiConfig.Name, consts.CortexVersion),
 					"", "",
