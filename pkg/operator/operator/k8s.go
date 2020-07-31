@@ -80,13 +80,13 @@ type downloadContainerConfig struct {
 }
 
 type downloadContainerArg struct {
-	From                 string `json:"from"`
-	To                   string `json:"to"`
-	Unzip                bool   `json:"unzip"`
-	ItemName             string `json:"item_name"`               // name of the item being downloaded, just for logging (if "" nothing will be logged)
-	TFModelVersionRename string `json:"tf_model_version_rename"` // e.g. passing in /mnt/model/1 will rename /mnt/model/* to /mnt/model/1 only if there is one item in /mnt/model/
-	HideFromLog          bool   `json:"hide_from_log"`           // if true, don't log where the file is being downloaded from
-	HideUnzippingLog     bool   `json:"hide_unzipping_log"`      // if true, don't log when unzipping
+	From             string `json:"from"`
+	To               string `json:"to"`
+	ToFile           bool   `json:"to_file"` // whether "To" path reflects the path to a file or just the directory in which "From" object is copied to
+	Unzip            bool   `json:"unzip"`
+	ItemName         string `json:"item_name"`          // name of the item being downloaded, just for logging (if "" nothing will be logged)
+	HideFromLog      bool   `json:"hide_from_log"`      // if true, don't log where the file is being downloaded from
+	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
 func InitContainer(api *spec.API) kcore.Container {
@@ -580,15 +580,15 @@ func onnxDownloadArgs(api *spec.API) string {
 			itemName = fmt.Sprintf("model %s", model.Name)
 		}
 
-		// TODO have to fix the process of downloading onnx files
 		rootModelPath := path.Join(_emptyDirMountPath, "model")
 		if strings.HasSuffix(model.ModelPath, ".onnx") {
-			rootModelPath = filepath.Join(rootModelPath, "1", "default.onnx")
+			rootModelPath = filepath.Join(rootModelPath, model.Name, "1", "default.onnx")
 		}
 		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
 			From:     model.ModelPath,
 			To:       rootModelPath,
 			ItemName: itemName,
+			ToFile:   strings.HasSuffix(model.ModelPath, ".onnx"),
 		})
 	}
 
