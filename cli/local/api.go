@@ -35,9 +35,19 @@ import (
 var _deploymentID = "local"
 
 func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
+	var incompatibleVersion string
+	encounteredVersionMismatch := false
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
 	if err != nil {
-		if errors.GetKind(err) != ErrAPINotDeployed {
+		if errors.GetKind(err) == ErrCortexVersionMismatch {
+			encounteredVersionMismatch = true
+			if incompatibleVersion, err = GetVersionFromAPISpec(apiConfig.Name); err != nil {
+				return nil, "", err
+			}
+			if err := DeleteAPI(apiConfig.Name); err != nil {
+				return nil, "", err
+			}
+		} else if errors.GetKind(err) != ErrAPINotDeployed {
 			return nil, "", err
 		}
 	}
@@ -88,6 +98,16 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, a
 	}
 
 	if prevAPISpec == nil && len(prevAPIContainers) == 0 {
+		if encounteredVersionMismatch {
+			return newAPISpec, fmt.Sprintf(
+				"api %s was deployed using CLI version %s but the current CLI version is %s; re-creating api %s with current CLI version %s",
+				newAPISpec.Name,
+				incompatibleVersion,
+				consts.CortexVersion,
+				newAPISpec.Name,
+				consts.CortexVersion,
+			), nil
+		}
 		return newAPISpec, fmt.Sprintf("creating %s", newAPISpec.Name), nil
 	}
 
@@ -200,6 +220,25 @@ func FindAPISpec(apiName string) (*spec.API, error) {
 		}
 	}
 	return nil, ErrorAPINotDeployed(apiName)
+}
+
+func GetVersionFromAPISpec(apiName string) (string, error) {
+	apiWorkspace := filepath.Join(_localWorkspaceDir, "apis", apiName)
+	if !files.IsDir(apiWorkspace) {
+		return "", ErrorAPINotDeployed(apiName)
+	}
+
+	filepaths, err := files.ListDirRecursive(apiWorkspace, false)
+	if err != nil {
+		return "", errors.Wrap(err, "api", apiName)
+	}
+
+	for _, specPath := range filepaths {
+		if strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+			return GetVersionFromAPISpecFilePath(specPath), nil
+		}
+	}
+	return "", ErrorAPINotDeployed(apiName)
 }
 
 func GetVersionFromAPISpecFilePath(path string) string {

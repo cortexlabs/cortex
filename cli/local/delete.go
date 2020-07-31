@@ -19,6 +19,7 @@ package local
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -34,6 +35,23 @@ func Delete(apiName string, keepCache bool) (schema.DeleteResponse, error) {
 	var apiSpec *spec.API = nil
 	if !keepCache {
 		if apiSpec, err = FindAPISpec(apiName); err != nil {
+			if errors.GetKind(err) == ErrCortexVersionMismatch {
+				var incompatibleVersion string
+				if incompatibleVersion, err = GetVersionFromAPISpec(apiName); err != nil {
+					return schema.DeleteResponse{}, err
+				}
+				if err = DeleteAPI(apiName); err != nil {
+					return schema.DeleteResponse{}, err
+				}
+				fmt.Println(fmt.Sprintf(
+					"api %s was deployed using CLI version %s but the current CLI version is %s; deleting api %s with current CLI version %s",
+					apiName,
+					incompatibleVersion,
+					consts.CortexVersion,
+					apiName,
+					consts.CortexVersion,
+				))
+			}
 			return schema.DeleteResponse{}, err
 		}
 	}
