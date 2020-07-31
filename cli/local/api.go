@@ -54,7 +54,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 	hasSingleModel := apiConfig.Predictor.ModelPath != nil
 	numModels := spec.NumModels(models)
 
-	if numModels > 0 && ((hasMultiModels && int(*modelsConfig.CacheSize) == numModels) || hasSingleModel) {
+	if numModels > 0 && ((hasMultiModels && int(*modelsConfig.DiskCacheSize) == numModels) || hasSingleModel) {
 		if err := CacheModels(newAPISpec, awsClient); err != nil {
 			return nil, "", err
 		}

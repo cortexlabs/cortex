@@ -504,19 +504,23 @@ func tfDownloadArgs(api *spec.API) string {
 		},
 	}
 
-	rootModelPath := path.Join(_emptyDirMountPath, "model")
-	for _, model := range api.CuratedModelResources {
-		var itemName string
-		if model.Name == consts.SingleModelName {
-			itemName = "the model"
-		} else {
-			itemName = fmt.Sprintf("model %s", model.Name)
+	hasSingleModel := api.Predictor.ModelPath != nil
+	hasMultiModels := spec.IsMultiModelFieldSet(api.Predictor.Models)
+	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
+		rootModelPath := path.Join(_emptyDirMountPath, "model")
+		for _, model := range api.CuratedModelResources {
+			var itemName string
+			if model.Name == consts.SingleModelName {
+				itemName = "the model"
+			} else {
+				itemName = fmt.Sprintf("model %s", model.Name)
+			}
+			downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
+				From:     model.ModelPath,
+				To:       rootModelPath,
+				ItemName: itemName,
+			})
 		}
-		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:     model.ModelPath,
-			To:       rootModelPath,
-			ItemName: itemName,
-		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
@@ -538,19 +542,23 @@ func pythonDownloadArgs(api *spec.API) string {
 		},
 	}
 
-	rootModelPath := path.Join(_emptyDirMountPath, "model")
-	for _, model := range api.CuratedModelResources {
-		var itemName string
-		if model.Name == consts.SingleModelName {
-			itemName = "the model"
-		} else {
-			itemName = fmt.Sprintf("model %s", model.Name)
+	hasSingleModel := api.Predictor.ModelPath != nil
+	hasMultiModels := spec.IsMultiModelFieldSet(api.Predictor.Models)
+	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
+		rootModelPath := path.Join(_emptyDirMountPath, "model")
+		for _, model := range api.CuratedModelResources {
+			var itemName string
+			if model.Name == consts.SingleModelName {
+				itemName = "the model"
+			} else {
+				itemName = fmt.Sprintf("model %s", model.Name)
+			}
+			downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
+				From:     model.ModelPath,
+				To:       rootModelPath,
+				ItemName: itemName,
+			})
 		}
-		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:     model.ModelPath,
-			To:       rootModelPath,
-			ItemName: itemName,
-		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
@@ -572,24 +580,28 @@ func onnxDownloadArgs(api *spec.API) string {
 		},
 	}
 
-	for _, model := range api.CuratedModelResources {
-		var itemName string
-		if model.Name == consts.SingleModelName {
-			itemName = "the model"
-		} else {
-			itemName = fmt.Sprintf("model %s", model.Name)
-		}
+	hasSingleModel := api.Predictor.ModelPath != nil
+	hasMultiModels := spec.IsMultiModelFieldSet(api.Predictor.Models)
+	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
+		for _, model := range api.CuratedModelResources {
+			var itemName string
+			if model.Name == consts.SingleModelName {
+				itemName = "the model"
+			} else {
+				itemName = fmt.Sprintf("model %s", model.Name)
+			}
 
-		rootModelPath := path.Join(_emptyDirMountPath, "model")
-		if strings.HasSuffix(model.ModelPath, ".onnx") {
-			rootModelPath = filepath.Join(rootModelPath, model.Name, "1", "default.onnx")
+			rootModelPath := path.Join(_emptyDirMountPath, "model")
+			if strings.HasSuffix(model.ModelPath, ".onnx") {
+				rootModelPath = filepath.Join(rootModelPath, model.Name, "1", "default.onnx")
+			}
+			downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
+				From:     model.ModelPath,
+				To:       rootModelPath,
+				ItemName: itemName,
+				ToFile:   strings.HasSuffix(model.ModelPath, ".onnx"),
+			})
 		}
-		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:     model.ModelPath,
-			To:       rootModelPath,
-			ItemName: itemName,
-			ToFile:   strings.HasSuffix(model.ModelPath, ".onnx"),
-		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
