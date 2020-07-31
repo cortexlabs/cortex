@@ -34,38 +34,43 @@ func Delete(apiName string, keepCache, deleteForce bool) (schema.DeleteResponse,
 	}
 
 	var apiSpec *spec.API = nil
-	if !keepCache {
-		if apiSpec, err = FindAPISpec(apiName); err != nil {
-			if errors.GetKind(err) == ErrCortexVersionMismatch {
-				var incompatibleVersion string
-				if incompatibleVersion, err = GetVersionFromAPISpec(apiName); err != nil {
-					return schema.DeleteResponse{}, err
-				}
-				if !deleteForce {
-					prompt.YesOrExit(
-						fmt.Sprintf(
-							"api %s was deployed using CLI version %s but the current CLI version is %s; "+
-								"deleting %s with current CLI version %s might break the CLI; any cached models won't be deleted\n\n"+
-								"do you still want to delete?",
-							apiName, incompatibleVersion, consts.CortexVersion, apiName, consts.CortexVersion),
-						"", "",
-					)
-				}
-				if err = DeleteAPI(apiName); err != nil {
-					return schema.DeleteResponse{}, err
-				}
-				return schema.DeleteResponse{
-					Message: fmt.Sprintf("deleting api %s with current CLI version %s", apiName, consts.CortexVersion),
-				}, nil
+	if apiSpec, err = FindAPISpec(apiName); err != nil {
+		if errors.GetKind(err) == ErrCortexVersionMismatch {
+			var incompatibleVersion string
+			if incompatibleVersion, err = GetVersionFromAPISpec(apiName); err != nil {
+				return schema.DeleteResponse{}, err
 			}
+			if !deleteForce {
+				prompt.YesOrExit(
+					fmt.Sprintf(
+						"api %s was deployed using CLI version %s but the current CLI version is %s; "+
+							"deleting %s with current CLI version %s might break the CLI; any cached models won't be deleted\n\n"+
+							"do you still want to delete?",
+						apiName, incompatibleVersion, consts.CortexVersion, apiName, consts.CortexVersion),
+					"", "",
+				)
+			}
+			if err = DeleteAPI(apiName); err != nil {
+				return schema.DeleteResponse{}, err
+			}
+			return schema.DeleteResponse{
+				Message: fmt.Sprintf("deleting api %s with current CLI version %s", apiName, consts.CortexVersion),
+			}, nil
+		}
+
+		if !keepCache {
 			return schema.DeleteResponse{}, err
 		}
 	}
 
-	err = errors.FirstError(
-		DeleteAPI(apiName),
-		DeleteCachedModels(apiName, apiSpec.ModelIDs()),
-	)
+	if keepCache {
+		err = DeleteAPI(apiName)
+	} else {
+		err = errors.FirstError(
+			DeleteAPI(apiName),
+			DeleteCachedModels(apiName, apiSpec.ModelIDs()),
+		)
+	}
 	if err != nil {
 		return schema.DeleteResponse{}, err
 	}
