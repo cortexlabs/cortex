@@ -46,8 +46,6 @@ const (
 	ErrInvalidSurgeOrUnavailable   = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
 
-	ErrCacheSizeGreaterThanNumModels       = "spec.cache_size_greater_than_num_models"
-	ErrDiskCacheSizeGreaterThanNumModels   = "spec.disk_cache_size_greater_than_num_models"
 	ErrInvalidNumberOfProcessesWhenCaching = "spec.invalid_number_of_processes_when_caching"
 
 	ErrInvalidPath               = "spec.invalid_path"
@@ -212,20 +210,6 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSurgeAndUnavailableBothZero,
 		Message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
-	})
-}
-
-func ErrorCacheSizeGreaterThanNumModels(cacheSize, numModels int) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCacheSizeGreaterThanNumModels,
-		Message: fmt.Sprintf("%s cannot be greater than the number of provided models (%d > %d)", userconfig.ModelsCacheSizeKey, cacheSize, numModels),
-	})
-}
-
-func ErrorDiskCacheSizeGreaterThanNumModels(cacheSize, numModels int) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrDiskCacheSizeGreaterThanNumModels,
-		Message: fmt.Sprintf("%s cannot be greater than the number of provided models (%d > %d)", userconfig.ModelsDiskCacheSizeKey, cacheSize, numModels),
 	})
 }
 

@@ -598,19 +598,11 @@ func validatePredictor(
 ) error {
 	predictor := api.Predictor
 
-	hasMultiModels := predictor.Models != nil
-	hasSingleModel := predictor.ModelPath != nil
-
-	if hasMultiModels && hasSingleModel {
+	if predictor.Models != nil && predictor.ModelPath != nil {
 		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
 	}
-	if hasMultiModels {
-		if len(predictor.Models.Paths) == 0 && predictor.Models.Dir == nil {
-			return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
-		}
-		if len(predictor.Models.Paths) > 0 && predictor.Models.Dir != nil {
-			return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
-		}
+	if err := validateMultiModelsFields(predictor); err != nil {
+		return err
 	}
 
 	switch predictor.Type {
@@ -631,29 +623,6 @@ func validatePredictor(
 		}
 	}
 
-	if hasMultiModels && models != nil {
-		if predictor.Models.CacheSize == nil {
-			predictor.Models.CacheSize = pointer.Int32(int32(NumModels(*models)))
-		}
-		if predictor.Models.DiskCacheSize == nil {
-			predictor.Models.DiskCacheSize = pointer.Int32(*predictor.Models.CacheSize)
-		}
-
-		if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
-			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
-		}
-		if int(*predictor.Models.CacheSize) > NumModels(*models) {
-			return errors.Wrap(ErrorCacheSizeGreaterThanNumModels(int(*predictor.Models.CacheSize), NumModels(*models)), userconfig.ModelsKey)
-		}
-		if int(*predictor.Models.DiskCacheSize) > NumModels(*models) {
-			return errors.Wrap(ErrorDiskCacheSizeGreaterThanNumModels(int(*predictor.Models.DiskCacheSize), NumModels(*models)), userconfig.ModelsKey)
-		}
-
-		if int(*predictor.Models.CacheSize) < NumModels(*models) && predictor.ProcessesPerReplica > 1 {
-			return ErrorInvalidNumberOfProcessesWhenCaching(predictor.ProcessesPerReplica)
-		}
-	}
-
 	if err := validateDockerImagePath(predictor.Image, providerType, awsClient); err != nil {
 		return errors.Wrap(err, userconfig.ImageKey)
 	}
@@ -671,6 +640,35 @@ func validatePredictor(
 	if predictor.PythonPath != nil {
 		if err := validatePythonPath(predictor, projectFiles); err != nil {
 			return errors.Wrap(err, userconfig.PythonPathKey)
+		}
+	}
+
+	return nil
+}
+
+func validateMultiModelsFields(predictor *userconfig.Predictor) error {
+	if predictor.Models == nil {
+		return nil
+	}
+
+	if len(predictor.Models.Paths) == 0 && predictor.Models.Dir == nil {
+		return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	}
+	if len(predictor.Models.Paths) > 0 && predictor.Models.Dir != nil {
+		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	}
+	if (predictor.Models.CacheSize == nil && predictor.Models.DiskCacheSize != nil) ||
+		(predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize == nil) {
+		return errors.Wrap(ErrorSpecifyAllOrNone(userconfig.ModelsCacheSizeKey, userconfig.ModelsDiskCacheSizeKey), userconfig.ModelsKey)
+	}
+
+	if predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil {
+		if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
+			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
+		}
+
+		if predictor.ProcessesPerReplica > 1 {
+			return ErrorInvalidNumberOfProcessesWhenCaching(predictor.ProcessesPerReplica)
 		}
 	}
 

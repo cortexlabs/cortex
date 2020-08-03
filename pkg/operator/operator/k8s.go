@@ -426,7 +426,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			)
 		}
 
-		if api.Predictor.Models != nil {
+		if api.Predictor.Models != nil && api.Predictor.Models.CacheSize != nil && api.Predictor.Models.DiskCacheSize != nil {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_MODEL_CACHE_SIZE",
@@ -435,17 +435,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				kcore.EnvVar{
 					Name:  "CORTEX_MODEL_DISK_CACHE_SIZE",
 					Value: s.Int32(*api.Predictor.Models.DiskCacheSize),
-				},
-			)
-		} else if api.Predictor.ModelPath != nil {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_CACHE_SIZE",
-					Value: s.Int32(1),
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_DISK_CACHE_SIZE",
-					Value: s.Int32(1),
 				},
 			)
 		}

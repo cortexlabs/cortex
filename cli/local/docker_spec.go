@@ -108,15 +108,10 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		envs = append(envs, "CORTEX_MODEL_DIR="+_modelDir)
 	}
 
-	if api.Predictor.Models != nil {
+	if api.Predictor.Models != nil && api.Predictor.Models.CacheSize != nil && api.Predictor.Models.DiskCacheSize != nil {
 		envs = append(envs,
 			"CORTEX_MODEL_CACHE_SIZE="+s.Int32(*api.Predictor.Models.CacheSize),
 			"CORTEX_MODEL_DISK_CACHE_SIZE="+s.Int32(*api.Predictor.Models.DiskCacheSize),
-		)
-	} else if api.Predictor.ModelPath != nil {
-		envs = append(envs,
-			"CORTEX_MODEL_CACHE_SIZE="+s.Int32(1),
-			"CORTEX_MODEL_DISK_CACHE_SIZE="+s.Int32(1),
 		)
 	}
 
