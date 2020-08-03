@@ -397,7 +397,58 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Name:  "CORTEX_PROJECT_DIR",
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
+			kcore.EnvVar{
+				Name:  "CORTEX_MODEL_DIR",
+				Value: path.Join(_emptyDirMountPath, "model"),
+			},
 		)
+
+		modelSourceType := "provided"
+		if api.Predictor.Models != nil && api.Predictor.Models.Dir != nil {
+			modelSourceType = "directory"
+		}
+		if api.Predictor.Type == userconfig.PythonPredictorType && api.Predictor.Models == nil && api.Predictor.ModelPath == nil {
+			modelSourceType = "none"
+		}
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "CORTEX_MODEL_SOURCE_TYPE",
+				Value: modelSourceType,
+			},
+		)
+
+		if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_MODEL_DIR",
+					Value: path.Join(_emptyDirMountPath, "model"),
+				},
+			)
+		}
+
+		if api.Predictor.Models != nil {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_MODEL_CACHE_SIZE",
+					Value: s.Int32(*api.Predictor.Models.CacheSize),
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_MODEL_DISK_CACHE_SIZE",
+					Value: s.Int32(*api.Predictor.Models.DiskCacheSize),
+				},
+			)
+		} else if api.Predictor.ModelPath != nil {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_MODEL_CACHE_SIZE",
+					Value: s.Int32(1),
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_MODEL_DISK_CACHE_SIZE",
+					Value: s.Int32(1),
+				},
+			)
+		}
 
 		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
 		if api.Predictor.PythonPath != nil {
@@ -408,21 +459,8 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			Value: cortexPythonPath,
 		})
 
-		if api.Predictor.Type == userconfig.ONNXPredictorType {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_DIR",
-					Value: path.Join(_emptyDirMountPath, "model"),
-				},
-			)
-		}
-
 		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
 			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_DIR",
-					Value: path.Join(_emptyDirMountPath, "model"),
-				},
 				kcore.EnvVar{
 					Name:  "CORTEX_TF_BASE_SERVING_PORT",
 					Value: _tfBaseServingPortStr,
@@ -505,7 +543,7 @@ func tfDownloadArgs(api *spec.API) string {
 	}
 
 	hasSingleModel := api.Predictor.ModelPath != nil
-	hasMultiModels := spec.IsMultiModelFieldSet(api.Predictor.Models)
+	hasMultiModels := api.Predictor.Models != nil
 	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
 		rootModelPath := path.Join(_emptyDirMountPath, "model")
 		for _, model := range api.CuratedModelResources {
@@ -543,7 +581,7 @@ func pythonDownloadArgs(api *spec.API) string {
 	}
 
 	hasSingleModel := api.Predictor.ModelPath != nil
-	hasMultiModels := spec.IsMultiModelFieldSet(api.Predictor.Models)
+	hasMultiModels := api.Predictor.Models != nil
 	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
 		rootModelPath := path.Join(_emptyDirMountPath, "model")
 		for _, model := range api.CuratedModelResources {
@@ -581,7 +619,7 @@ func onnxDownloadArgs(api *spec.API) string {
 	}
 
 	hasSingleModel := api.Predictor.ModelPath != nil
-	hasMultiModels := spec.IsMultiModelFieldSet(api.Predictor.Models)
+	hasMultiModels := api.Predictor.Models != nil
 	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
 		for _, model := range api.CuratedModelResources {
 			var itemName string

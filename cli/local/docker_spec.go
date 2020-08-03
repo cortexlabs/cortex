@@ -85,7 +85,6 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_SERVING_PORT="+_defaultPortStr,
 		"CORTEX_PROVIDER="+"local",
 		"CORTEX_CACHE_DIR="+_cacheDir,
-		"CORTEX_MODEL_DIR="+_modelDir,
 		"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", filepath.Base(api.Key)),
 		"CORTEX_PROJECT_DIR="+_projectDir,
 		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
@@ -95,6 +94,31 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_SO_MAX_CONN="+s.Int64(consts.DefaultMaxReplicaConcurrency+100), // add a buffer to be safe
 		"AWS_REGION="+awsClient.Region,
 	)
+
+	modelSourceType := "provided"
+	if api.Predictor.Models != nil && api.Predictor.Models.Dir != nil {
+		modelSourceType = "directory"
+	}
+	if api.Predictor.Type == userconfig.PythonPredictorType && api.Predictor.Models == nil && api.Predictor.ModelPath == nil {
+		modelSourceType = "none"
+	}
+	envs = append(envs, "CORTEX_MODEL_SOURCE_TYPE="+modelSourceType)
+
+	if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
+		envs = append(envs, "CORTEX_MODEL_DIR="+_modelDir)
+	}
+
+	if api.Predictor.Models != nil {
+		envs = append(envs,
+			"CORTEX_MODEL_CACHE_SIZE="+s.Int32(*api.Predictor.Models.CacheSize),
+			"CORTEX_MODEL_DISK_CACHE_SIZE="+s.Int32(*api.Predictor.Models.DiskCacheSize),
+		)
+	} else if api.Predictor.ModelPath != nil {
+		envs = append(envs,
+			"CORTEX_MODEL_CACHE_SIZE="+s.Int32(1),
+			"CORTEX_MODEL_DISK_CACHE_SIZE="+s.Int32(1),
+		)
+	}
 
 	cortexPythonPath := _projectDir
 	if api.Predictor.PythonPath != nil {
