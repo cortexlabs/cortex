@@ -146,7 +146,7 @@ func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
 func ErrorSpecifyOneOrTheOther(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpecifyOneOrTheOther,
-		Message: fmt.Sprintf("please specify either the %s field or %s field (cannot be both empty at the same time", fieldKeyA, fieldKeyB),
+		Message: fmt.Sprintf("please specify either the %s field or %s field (cannot be both empty at the same time)", fieldKeyA, fieldKeyB),
 	})
 }
 
