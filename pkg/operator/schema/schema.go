@@ -52,7 +52,8 @@ type DeployResult struct {
 }
 
 type GetAPIsResponse struct {
-	SyncAPIs []SyncAPI `json:"sync_apis"`
+	SyncAPIs    []SyncAPI     `json:"sync_apis"`
+	APISplitter []APISplitter `json:"api_splitters"`
 }
 
 type SyncAPI struct {
@@ -63,8 +64,14 @@ type SyncAPI struct {
 	DashboardURL string          `json:"dashboard_url"`
 }
 
+type APISplitter struct {
+	Spec    spec.API `json:"spec"`
+	BaseURL string   `json:"base_url"`
+}
+
 type GetAPIResponse struct {
-	SyncAPI *SyncAPI `json:"sync_api"`
+	SyncAPI     *SyncAPI     `json:"sync_api"`
+	APISplitter *APISplitter `json:"api_splitter"`
 }
 
 type DeleteResponse struct {
