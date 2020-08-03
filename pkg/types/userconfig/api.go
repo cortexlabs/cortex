@@ -361,7 +361,7 @@ func (models *MultiModels) UserStr() string {
 
 	if models.Dir != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
-	} else {
+	} else if len(models.Paths) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
 		for _, model := range models.Paths {
 			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))

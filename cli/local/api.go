@@ -50,7 +50,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID)
 
 	modelsConfig := apiConfig.Predictor.Models
-	hasMultiModels := spec.IsMultiModelFieldSet(modelsConfig)
+	hasMultiModels := apiConfig.Predictor.Models != nil
 	hasSingleModel := apiConfig.Predictor.ModelPath != nil
 	numModels := spec.NumModels(models)
 

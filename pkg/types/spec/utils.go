@@ -93,14 +93,6 @@ func isModelNameIn(models []userconfig.ModelResource, modelName string) bool {
 	return false
 }
 
-// Verifies if m has been initialized.
-func IsMultiModelFieldSet(m *userconfig.MultiModels) bool {
-	if len(m.Paths) == 0 && m.Dir == nil && m.CacheSize == nil && m.DiskCacheSize == nil && m.SignatureKey == nil {
-		return false
-	}
-	return true
-}
-
 // Returns absolute path of "path" based on "basedir".
 func absolutePath(path, basedir string) (string, error) {
 	var err error

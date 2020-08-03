@@ -432,8 +432,8 @@ func multiModelValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Models",
 		StructValidation: &cr.StructValidation{
-			Required:         false,
-			TreatNullAsEmpty: false,
+			Required:   false,
+			DefaultNil: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				multiModelPathsValidation(),
 				{
@@ -598,7 +598,7 @@ func validatePredictor(
 ) error {
 	predictor := api.Predictor
 
-	hasMultiModels := IsMultiModelFieldSet(predictor.Models)
+	hasMultiModels := predictor.Models != nil
 	hasSingleModel := predictor.ModelPath != nil
 
 	if hasMultiModels && hasSingleModel {
@@ -686,7 +686,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 	}
 
 	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := IsMultiModelFieldSet(predictor.Models)
+	hasMultiModels := predictor.Models != nil
 
 	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
@@ -805,7 +805,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 	predictor := api.Predictor
 
 	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := IsMultiModelFieldSet(predictor.Models)
+	hasMultiModels := predictor.Models != nil
 
 	if !hasSingleModel && !hasMultiModels {
 		return ErrorMissingModel(predictor.Type)
@@ -948,7 +948,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 	}
 
 	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := IsMultiModelFieldSet(predictor.Models)
+	hasMultiModels := predictor.Models != nil
 
 	if !hasSingleModel && !hasMultiModels {
 		return ErrorMissingModel(predictor.Type)
