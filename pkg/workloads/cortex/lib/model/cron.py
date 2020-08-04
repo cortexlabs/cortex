@@ -14,6 +14,7 @@
 
 import threading as td
 import multiprocessing as mp
+import time
 
 
 class SimpleModelMonitor(mp.Process):
@@ -23,7 +24,37 @@ class SimpleModelMonitor(mp.Process):
     When a new model is found, it updates the tree and downloads it - likewise when a model is removed.
     """
 
-    pass
+    def __init__(self, interval: int, paths: list(str), is_path_top_dir: bool, **kwargs):
+        """
+        Args:
+            interval (int): How often to update the models tree. Measured in seconds.
+            paths (list(str)): The model paths as passed in cortex.yaml. Can be predictor:model_path, predictor:models:paths:model_path or predictor:models:dir.
+            is_path_top_dir (str): Whether the models have been specified using predictor:models:dir or not.
+        """
+        mp.Process.__init__(self, **kwargs)
+        self._interval = interval
+        self._paths = paths
+        self.is_path_top_dir = is_path_to_dir
+        self._event_stopper = mp.Event()
+        self._stopped = mp.Event()
+
+    def run(self):
+        while not self._event_stopper.is_set():
+            self._update_models_tree()
+            time.sleep(self._interval)
+        self._stopped.set()
+
+    def stop(self, blocking: bool = False):
+        self._event_stopper.set()
+        if blocking:
+            self.join()
+
+    def join(self):
+        while not self._stopped.is_set():
+            time.sleep(0.001)
+
+    def _update_models_tree(self):
+        pass
 
 
 class CachedModelMonitor(td.Thread):
@@ -36,4 +67,26 @@ class CachedModelMonitor(td.Thread):
     Does the same for the disk cache size.
     """
 
-    pass
+    def __init__(self, interval: int, **kwargs):
+        mp.Thread.__init__(self, **kwargs)
+        self._interval = interval
+        self._event_stopper = thread.Event()
+        self._stopped = False
+
+    def run(self):
+        while not self._event_stopper.is_set():
+            self._update_models_tree()
+            time.sleep(self._interval)
+        self._stopped = True
+
+    def stop(self, blocking: bool = False):
+        self._event_stopper.set()
+        if blocking:
+            self.join()
+
+    def join(self):
+        while not self._stopped:
+            time.sleep(0.001)
+
+    def _update_models_tree(self):
+        pass

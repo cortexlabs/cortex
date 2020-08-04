@@ -12,26 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex.lib.storage import S3, LocalStorage
-from cortex.lib.log import cx_logger
-from cortex.lib.model import ModelsTree
 
-# Model validations for S3/local paths and
-# for TensorFlow/Python/ONNX predictors.
-# ...
-
-
-def get_models_tree_from_s3_path(s3_path: str):
-    return {}
-
-
-def get_models_tree_from_local_path(path: str):
-    return {}
-
-
-def get_models_tree_from_s3_top_dir(s3_top_dir: str):
-    return {}
-
-
-def get_models_tree_from_local_top_dir(top_dir: str):
-    return {}
+class ModelsTree:
+    pass
