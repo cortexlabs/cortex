@@ -28,6 +28,14 @@ from cortex.lib.api.monitoring import Monitoring
 from cortex.lib.storage import S3
 
 
+# This is where the 2nd component is implemented for both cases:
+# - when models are only loaded from disk or unloaded if not present in the tree
+# - when models are to be cached using the LRU policy
+#
+# This also requires the Predictor class to come with the `get_model` and `load_model` methods implemented.
+# For the Python predictor, `load_model` method must be provided by the user.
+
+
 class API:
     def __init__(self, provider, storage, model_dir, cache_dir=".", **kwargs):
         self.provider = provider
