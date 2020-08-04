@@ -133,14 +133,6 @@ def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval
         new_timeout += interval
 
 
-def get_api_spec(provider, storage, cache_dir, api_spec_path):
-    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
-    _, key = S3.deconstruct_s3_path(api_spec_path)
-    storage.download_file(key, local_spec_path)
-    with open(local_spec_path, "rb") as msgpack_file:
-        return msgpack.load(msgpack_file, raw=False)
-
-
 def get_job_spec(storage, cache_dir, job_spec_path):
     local_spec_path = os.path.join(cache_dir, "job_spec.json")
     _, key = S3.deconstruct_s3_path(job_spec_path)
@@ -225,7 +217,7 @@ def sqs_loop():
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
 
-    no_messages_found_previous_loop = False
+    no_messages_found_in_previous_iteration = False
 
     while True:
         response = sqs_client.receive_message(
@@ -237,14 +229,14 @@ def sqs_loop():
         )
 
         if response.get("Messages") is None or len(response["Messages"]) == 0:
-            if no_messages_found_previous_loop:
+            if no_messages_found_in_previous_iteration:
                 cx_logger().info("no batches left in queue, exiting...")
                 break
             else:
-                no_messages_found_previous_loop = True
+                no_messages_found_in_previous_iteration = True
                 continue
         else:
-            no_messages_found_previous_loop = False
+            no_messages_found_in_previous_iteration = False
 
         message = response["Messages"][0]
 

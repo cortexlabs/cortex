@@ -25,9 +25,9 @@ import (
 
 type JobStatus struct {
 	spec.Job
-	EndTime        *time.Time          `json:"end_time"`
-	Status         JobCode             `json:"status"`
-	BatchesInQueue int                 `json:"batches_in_queue"`
-	BatchMetrics   *metrics.JobMetrics `json:"batch_metrics"`
-	WorkerStats    *WorkerStats        `json:"worker_stats"`
+	EndTime        *time.Time            `json:"end_time"`
+	Status         JobCode               `json:"status"`
+	BatchesInQueue int                   `json:"batches_in_queue"`
+	BatchMetrics   *metrics.BatchMetrics `json:"batch_metrics"`
+	WorkerStats    *WorkerStats          `json:"worker_stats"`
 }

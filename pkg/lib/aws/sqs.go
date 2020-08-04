@@ -35,7 +35,7 @@ func (c *Client) GetAllQueueAttributes(queueURL string) (map[string]string, erro
 }
 
 func (c *Client) ListQueuesByQueueNamePrefix(queueNamePrefix string) ([]string, error) {
-	queueURLs := []string{}
+	var queueURLs []string
 
 	err := c.SQS().ListQueuesPages(&sqs.ListQueuesInput{
 		QueueNamePrefix: aws.String(queueNamePrefix),

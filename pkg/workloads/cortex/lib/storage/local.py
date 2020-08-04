@@ -91,8 +91,9 @@ class LocalStorage(object):
             return None
         return json.loads(f.read_text())
 
-    def put_object(self, body, key):
-        pass
+    def put_object(self, body: bytes, key):
+        f = self._get_or_create_path(key)
+        f.write_bytes(body)
 
     def put_msgpack(self, obj, key):
         f = self._get_or_create_path(key)

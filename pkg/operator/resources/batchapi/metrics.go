@@ -31,11 +31,11 @@ import (
 
 // Find data retention period at https://aws.amazon.com/cloudwatch/faqs/
 
-func getCompletedJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.JobMetrics, error) {
-	batchMetrics := metrics.JobMetrics{}
+func getCompletedBatchMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.BatchMetrics, error) {
+	batchMetrics := metrics.BatchMetrics{}
 
 	if time.Now().Sub(endTime) < 2*time.Hour {
-		return getRealTimeJobMetrics(jobKey)
+		return getRealTimeBatchMetrics(jobKey)
 	}
 
 	minimumEndTime := time.Now()
@@ -51,13 +51,13 @@ func getCompletedJobMetrics(jobKey spec.JobKey, startTime time.Time, endTime tim
 	return &batchMetrics, nil
 }
 
-func getRealTimeJobMetrics(jobKey spec.JobKey) (*metrics.JobMetrics, error) {
+func getRealTimeBatchMetrics(jobKey spec.JobKey) (*metrics.BatchMetrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
 	realTimeEnd := time.Now().Truncate(time.Second)
 	realTimeStart := realTimeEnd.Truncate(time.Minute)
 
-	realTimeMetrics := metrics.JobMetrics{}
-	batchMetrics := metrics.JobMetrics{}
+	realTimeMetrics := metrics.BatchMetrics{}
+	batchMetrics := metrics.BatchMetrics{}
 	requestList := []func() error{}
 
 	if realTimeStart.Before(realTimeEnd) {
@@ -77,19 +77,19 @@ func getRealTimeJobMetrics(jobKey spec.JobKey) (*metrics.JobMetrics, error) {
 	return &mergedMetrics, nil
 }
 
-func getMetricsFunc(jobKey *spec.JobKey, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.JobMetrics) func() error {
+func getMetricsFunc(jobKey *spec.JobKey, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.BatchMetrics) func() error {
 	return func() error {
 		metricDataResults, err := queryMetrics(jobKey, period, startTime, endTime)
 		if err != nil {
 			return err
 		}
 
-		jobMetrics, err := extractJobStats(metricDataResults)
+		batchMetrics, err := extractJobStats(metricDataResults)
 		if err != nil {
 			return err
 		}
 
-		metrics.MergeInPlace(*jobMetrics)
+		metrics.MergeInPlace(*batchMetrics)
 
 		return nil
 	}
@@ -110,8 +110,8 @@ func queryMetrics(jobKey *spec.JobKey, period int64, startTime *time.Time, endTi
 	return output.MetricDataResults, nil
 }
 
-func extractJobStats(metricsDataResults []*cloudwatch.MetricDataResult) (*metrics.JobMetrics, error) {
-	var jobStats metrics.JobMetrics
+func extractJobStats(metricsDataResults []*cloudwatch.MetricDataResult) (*metrics.BatchMetrics, error) {
+	var jobStats metrics.BatchMetrics
 	var batchCounts []*float64
 	var latencyAvgs []*float64
 

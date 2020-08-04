@@ -42,7 +42,7 @@ type SubReplicaCounts struct {
 	Unknown      int32 `json:"unknown"`
 }
 
-// Worker stats don't have as many failure variations because Jobs clean up did pods, so counting different failure scenarios isn't interesting
+// Worker stats don't have as many failure variations because Jobs clean up dead pods, so counting different failure scenarios isn't interesting
 type WorkerStats struct {
 	Pending      int32 `json:"pending"`
 	Initializing int32 `json:"initializing"`

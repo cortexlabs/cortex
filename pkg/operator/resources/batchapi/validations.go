@@ -26,7 +26,7 @@ import (
 	"github.com/gobwas/glob"
 )
 
-func jobSubmissionSchemaValidation(submission *schema.JobSubmission) error {
+func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
 	providedKeys := []string{}
 	if submission.ItemList != nil {
 		providedKeys = append(providedKeys, schema.ItemListKey)
@@ -90,7 +90,7 @@ func jobSubmissionSchemaValidation(submission *schema.JobSubmission) error {
 }
 
 func validateJobSubmission(submission *schema.JobSubmission) error {
-	err := jobSubmissionSchemaValidation(submission)
+	err := validateJobSubmissionSchema(submission)
 	if err != nil {
 		return err
 	}
@@ -141,21 +141,20 @@ func validateS3Lister(s3Lister *schema.S3Lister) error {
 			filesFound++
 			return false, nil
 		})
-
 		if err != nil {
 			return errors.Wrap(err, s3Path)
 		}
+
+		if filesFound > 0 {
+			return nil
+		}
 	}
 
-	if filesFound == 0 {
-		return ErrorNoS3FilesFound()
-	}
-
-	return nil
+	return ErrorNoS3FilesFound()
 }
 
 func listFilesDryRun(s3Lister *schema.S3Lister) ([]string, error) {
-	s3Files := []string{}
+	var s3Files []string
 	for _, s3Path := range s3Lister.S3Paths {
 		if !awslib.IsValidS3Path(s3Path) {
 			return nil, awslib.ErrorInvalidS3Path(s3Path)

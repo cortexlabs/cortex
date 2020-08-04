@@ -39,6 +39,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
+// Returns an error if resources doesn't exist
 func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource, error) {
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
 	if err != nil {

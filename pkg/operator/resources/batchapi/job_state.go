@@ -326,14 +326,14 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 		}
 
 		if statusCode == status.JobRunning {
-			metrics, err := getRealTimeJobMetrics(jobKey)
+			metrics, err := getRealTimeBatchMetrics(jobKey)
 			if err != nil {
 				return nil, err
 			}
 			jobStatus.BatchMetrics = metrics
 
 			if k8sJob == nil {
-				writeToJobLogGroup(jobKey, fmt.Sprintf("kubernetes job not found"))
+				writeToJobLogGroup(jobKey, fmt.Sprintf("unexpected: kubernetes job not found"))
 				setUnexpectedErrorStatus(jobKey)
 				deleteJobRuntimeResources(jobKey)
 				jobStatus.Status = status.JobUnexpectedError
@@ -346,7 +346,7 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 	}
 
 	if statusCode.IsCompleted() {
-		metrics, err := getCompletedJobMetrics(jobKey, jobSpec.StartTime, *jobState.EndTime)
+		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *jobState.EndTime)
 		if err != nil {
 			return nil, err
 		}

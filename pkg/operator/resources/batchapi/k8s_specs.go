@@ -217,8 +217,3 @@ func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.
 	_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
 	return err
 }
-
-func getVirtualService(apiName string) (*istioclientnetworking.VirtualService, error) {
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
-	return virtualService, err
-}

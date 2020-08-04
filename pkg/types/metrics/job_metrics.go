@@ -16,21 +16,21 @@ limitations under the License.
 
 package metrics
 
-type JobMetrics struct {
+type BatchMetrics struct {
 	Succeeded           int      `json:"succeeded"`
 	Failed              int      `json:"failed"`
 	AverageTimePerBatch *float64 `json:"average_time_per_batch"`
 	TotalCompleted      int      `json:"total_completed"`
 }
 
-func (left JobMetrics) Merge(right JobMetrics) JobMetrics {
-	newJobMetrics := JobMetrics{}
-	newJobMetrics.MergeInPlace(left)
-	newJobMetrics.MergeInPlace(right)
-	return newJobMetrics
+func (left BatchMetrics) Merge(right BatchMetrics) BatchMetrics {
+	newBatchMetrics := BatchMetrics{}
+	newBatchMetrics.MergeInPlace(left)
+	newBatchMetrics.MergeInPlace(right)
+	return newBatchMetrics
 }
 
-func (left *JobMetrics) MergeInPlace(right JobMetrics) {
+func (left *BatchMetrics) MergeInPlace(right BatchMetrics) {
 	left.AverageTimePerBatch = mergeAvg(left.AverageTimePerBatch, left.TotalCompleted, right.AverageTimePerBatch, right.TotalCompleted)
 	left.Succeeded = left.Succeeded + right.Succeeded
 	left.Failed = left.Failed + right.Failed

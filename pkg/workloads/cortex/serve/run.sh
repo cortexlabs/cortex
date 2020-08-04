@@ -86,9 +86,6 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-# Ensure predictor print() statements are always flushed
-export PYTHONUNBUFFERED=TRUE
-
 if [ "$CORTEX_KIND" == "SyncAPI" ]; then
     /opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py
 else

@@ -214,7 +214,7 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 	}
 
 	if queueMetrics.IsEmpty() {
-		jobMetrics, err := getRealTimeJobMetrics(jobKey)
+		batchMetrics, err := getRealTimeBatchMetrics(jobKey)
 		if err != nil {
 			return err
 		}
@@ -228,8 +228,8 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 			return investigateJobFailure(jobKey, k8sJob)
 		}
 
-		if jobSpec.TotalBatchCount == jobMetrics.TotalCompleted || k8sJob.Annotations["cortex/to-delete"] == "true" {
-			if jobMetrics.Failed != 0 {
+		if jobSpec.TotalBatchCount == batchMetrics.TotalCompleted || k8sJob.Annotations["cortex/to-delete"] == "true" {
+			if batchMetrics.Failed != 0 {
 				return errors.FirstError(
 					setCompletedWithFailuresStatus(jobKey),
 					deleteJobRuntimeResources(jobKey),

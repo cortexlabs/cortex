@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	ErrBatchAPINotDeployed        = "batchapi.batch_api_not_deployed"
 	ErrJobNotFound                = "batchapi.job_not_found"
 	ErrJobIsNotInProgress         = "batchapi.job_is_not_in_progress"
 	ErrJobHasAlreadyBeenStopped   = "batchapi.job_has_already_been_stopped"
@@ -38,38 +37,31 @@ const (
 	ErrSpecifyExactlyOneKey       = "batchapi.specify_exactly_one_key"
 )
 
-func ErrorBatchAPINotDeployed(apiName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrBatchAPINotDeployed,
-		Message: fmt.Sprintf("BatchAPI api named '%s' is not deployed", apiName),
-	})
-}
-
 func ErrorJobNotFound(jobKey spec.JobKey) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJobNotFound,
-		Message: fmt.Sprintf("unable to find job %s", jobKey.UserString()),
+		Message: fmt.Sprintf("unable to find batch job %s", jobKey.UserString()),
 	})
 }
 
 func ErrorJobIsNotInProgress() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJobIsNotInProgress,
-		Message: "cannot stop job because it is not in progress",
+		Message: "cannot stop batch job because it is not in progress",
 	})
 }
 
 func ErrorJobHasAlreadyBeenStopped() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJobHasAlreadyBeenStopped,
-		Message: "job has already been stopped",
+		Message: "batch job has already been stopped",
 	})
 }
 
 func ErrorNoS3FilesFound() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoS3FilesFound,
-		Message: "no s3 files found based on search criteria",
+		Message: "no s3 files match search criteria",
 	})
 }
 
@@ -80,10 +72,10 @@ func ErrorNoDataFoundInJobSubmission() error {
 	})
 }
 
-func ErrorFailedToEnqueueMessages(message string) error {
+func ErrorFailedToEnqueueMessages(meErrConflictingFieldsssage string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToEnqueueMessages,
-		Message: fmt.Sprintf(message),
+		Message: message,
 	})
 }
 
@@ -95,24 +87,25 @@ func ErrorMessageExceedsMaxSize(messageSize int, messageLimit int) error {
 }
 
 func ErrorConflictingFields(key string, keys ...string) error {
-	allKeys := append(keys, key)
+	allKeys := append([]string{key}, keys...)
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("please specify either the %s field (both not more than one at the same time)", s.StrsOr(allKeys)),
+		Message: fmt.Sprintf("please specify either the %s field (but not more than one at the same time)", s.StrsOr(allKeys)),
 	})
 }
 
 func ErrorItemSizeExceedsLimit(index int, size int, limit int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrBatchItemSizeExceedsLimit,
-		Message: fmt.Sprintf("item %d has size %d bytes which exceeds the limit %d", index, size, limit),
+		Message: fmt.Sprintf("item %d has size %d bytes which exceeds the limit (%d bytes)", index, size, limit),
 	})
 }
 
 func ErrorSpecifyExactlyOneKey(key string, keys ...string) error {
-	allKeys := append(keys, key)
+	allKeys := append([]string{key}, keys...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpecifyExactlyOneKey,
-		Message: fmt.Sprintf("specify exactly one of the following keys %s", s.StrsOr(allKeys)), // TODO add job specification documentation
+		Message: fmt.Sprintf("specify exactly one of the following keys: %s", s.StrsOr(allKeys)), // TODO add job specification documentation
 	})
 }
