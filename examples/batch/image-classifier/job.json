@@ -1,16 +1,9 @@
 {
-    "workers": 2,
-    "delimited_files": {
-        "s3_paths": [
-            "s3://cortex-vishal/testing/"
+    "workers": 1,
+    "item_list": {
+        "items": [
+            "https://i.imgur.com/PzXprwl.jpg"
         ],
-        "includes": [
-            "**testing.json",
-            "**testing-5000000.json"
-        ],
-        "excludes": [
-            "**1-256KB.json"
-        ],
-        "batch_size": 4800
+        "batch_size": 1
     }
 }

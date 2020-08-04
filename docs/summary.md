@@ -11,14 +11,14 @@
 
 ## Deployments
 
-* [Realtime API](deployments/realtimeapi.md)
+* [Sync API](deployments/syncapi.md)
   * [Exporting models](deployments/exporting.md)
-  * [Predictor implementation](deployments/realtimeapi/predictors.md)
-  * [API configuration](deployments/realtimeapi/api-configuration.md)
-  * [API deployment](deployments/realtimeapi/deployment.md)
-  * [API statuses](deployments/realtimeapi/statuses.md)
+  * [Predictor implementation](deployments/syncapi/predictors.md)
+  * [API configuration](deployments/syncapi/api-configuration.md)
+  * [API deployment](deployments/syncapi/deployment.md)
+  * [API statuses](deployments/syncapi/statuses.md)
   * [Parellelism](deployments/parallelism.md)
-  * [Autoscaling](deployments/realtimeapi/autoscaling.md)
+  * [Autoscaling](deployments/syncapi/autoscaling.md)
   * [Networking](deployments/networking.md)
   * [Compute](deployments/compute.md)
   * [Using GPUs](deployments/gpus.md)

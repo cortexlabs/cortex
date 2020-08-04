@@ -1,0 +1,204 @@
+# Batch API endpoints
+
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
+A deployed Batch API supports the following endpoints:
+
+1. Submit a batch job
+1. Get the status of a job
+1. Stop a job
+
+You can find the url for your BatchAPI using Cortex CLI command `cortex get <batch_api_name>`.
+
+## Submit a Job
+
+There are three options for providing the dataset for your job:
+
+1. Include the dataset directly in the JSON request
+1. Provide a list of S3 file paths
+1. Provide a list of S3 file paths to newline delimited JSON files containing the input dataset
+
+### Data in the request
+
+The dataset for your job can be included directly in your job submission request providing an `item_list` in your request payload. Each item can be any type (object, list, string, etc.) and is treated as a single sample. The `item_list.batch_size` determines how many items are included in a single batch. Make sure that the total size of a batch is less than 256 KiB. __The total request size must be less than 10 MiB.__ If you want to submit more data, explore some of the other methods.
+
+Submitting data in the request can be useful in the following use cases:
+
+- avoiding the use of an intermediate storage layer such as S3
+- small request
+- each item in the request is small (e.g. urls to images/videos)
+
+Request: POST <batch_api_url>
+
+```yaml
+{
+    "workers": int,        # the number of workers you want to allocate for this job
+    "item_list": {
+        "items": [         # a list items that can be of any type
+            <any>,
+            <any>
+        ],
+        "batch_size": int, # the number of items in the items_list that should be in a batch
+    }
+    "config": {            # fields custom for this specific job (will override values specified in api configuration)
+        "string": <any>
+    }
+}
+
+```
+
+Response:
+
+```yaml
+{
+    "job_id": string,
+    "api_name": string,
+    "workers": int,
+    "config": {string: any},
+    "api_id": string,
+    "sqs_url": string,
+    "created_time": string # e.g. 2020-07-16T14:56:10.276007415Z
+}
+```
+
+### S3 files
+
+If your input dataset is a list of files such as images/videos in an s3 directory, you can define `file_path_lister` in your request payload to generate a list of S3 file paths, break them up into batches of size `file_path_lister.batch_size` and send the list of s3 file paths to your workers. Make sure that the total size of a batch is less than 256 KiB.
+
+Upon receiving `file_path_lister` your Batch API will iterate through the `file_path_lister.s3_paths` and generate a collection of s3 files. If any of the s3 paths are prefixes, it will add all s3 files in that prefix to the collection of s3 files. You can specify a list of glob patterns with `file_path_lister.includes` to only include s3 files in the collection that match at least one of the glob patterns. After the include filters run (if they are specified), you can use `file_path_lister.excludes` to remove s3 files from the collection that match at least one of the glob patterns. You can use dry run to list out which s3 files will be processed to test out the glob patterns.
+
+This submission pattern can be useful in the following scenarios (not all inclusive):
+
+- you have a list of images/videos in an s3 directory
+- each s3 file represents a single sample or a small number of samples
+
+If a single S3 file contains a lot of samples/rows, try this submission strategy. // TODO
+
+Request: POST <batch_api_url>
+
+```yaml
+{
+    "workers": int,        # the number of workers you want to allocate for this job
+    "file_path_lister": {
+        "s3_paths": [string],  # can be s3 prefixes or complete s3 paths
+        "includes": [string],  # (optional) glob patterns (delimited by "/"), any s3 file that satisfies at least one glob pattern in this list will be included in the dataset
+        "excludes": [string],  # (optional) glob patterns (delimited by "/"), any s3 file that satisfies at least one glob pattern will be excluded from the dataset
+        "batch_size": int, # the number of items in the items_list that should be in a batch
+    }
+    "config": {            # fields custom for this specific job (will override values specified in api configuration)
+        "string": <any>
+    }
+}
+
+```
+
+Response:
+
+```yaml
+{
+    "job_id": string,
+    "api_name": string,
+    "workers": int,
+    "config": {string: any},
+    "api_id": string,
+    "sqs_url": string,
+    "created_time": string # e.g. 2020-07-16T14:56:10.276007415Z
+}
+```
+
+Example curl command:
+
+```bash
+$ curl <batch_api_endpoint> -X POST -d
+
+### Newline delimited JSON files in S3
+
+If your input dataset lives in a list of new line delimited json files in an s3 directory, you can define `delimited_files` in your request payload to break up the files into a list of JSON Objects of length `delimited_files.batch_size` and send it to your workers. Make sure that the total size of a batch is less than 256 KiB.
+
+Upon receiving `delimited_files` your Batch API will iterate through the `delimited_files.s3_paths` and generate a collection of s3 files. If any of the s3 paths are prefixes, it will add all s3 files in that prefix to the collection of s3 files. You can specify a list of glob patterns with `delimited_files.includes` to only include s3 files in the collection that match at least one of the glob patterns. After the include filters run (if they are specified), you can use `delimited_files.excludes` to remove s3 files from the collection that match at least one of the glob patterns. You can use dry run to list out which s3 files will be processed to test out the glob patterns. Once the list of S3 files has been determined, the Batch API will partition the json objects into batches of size `delimited_files.batch_size` and submit them to your workers.
+
+This submission pattern is useful in the following scenarios:
+
+- you have a list of JSON files in S3 that need
+- an s3 file contains a large number of samples and must be broken down into batches.
+
+Request: POST <batch_api_url>
+
+```yaml
+{
+    "workers": int,            # the number of workers you want to allocate for this job
+    "delimited_files": {
+        "s3_paths": [string],  # can be s3 prefixes or complete s3 paths
+        "includes": [string],  # glob patterns (delimited by "/"), any s3 file that satisfies at least one glob pattern in this list will be included in the dataset (optional)
+        "excludes": [string],  # glob patterns (delimited by "/"), any s3 file that satisfies at least one glob pattern will be excluded from the dataset (optional)
+        "batch_size": int,     # the number of items in the items_list that should be in a batch (default: 1)
+    }
+    "config": {                # fields custom for this specific job (will override values specified in api configuration)
+        "string": <any>
+    }
+}
+
+```
+
+Response:
+
+```yaml
+{
+    "job_id": string,
+    "api_name": string,
+    "workers": int,
+    "config": {string: any},
+    "api_id": string,
+    "sqs_url": string,
+    "created_time": string # e.g. 2020-07-16T14:56:10.276007415Z
+}
+```
+
+## Job status
+
+Request: GET <batch_api_url>/<job_id>
+
+Response:
+
+```yaml
+{
+    "job_status": {
+        "job_id": string,
+        "api_name": string,
+        "workers": int,
+        "batches_per_worker": int,
+        "config": {string: any},
+        "api_id": string,
+        "sqs_url": string,
+        "status": string,   # string can take one of the following values: status_unknown|status_enqueuing|status_running|status_enqueue_failed|status_completed_with_failures|status_succeeded|status_unexpected_error|status_worker_error|status_worker_oom|status_stopped
+        "batches_in_queue": int          # number of batches in queue
+        "batch_metrics": {
+            "succeeded": int
+            "failed": int
+            "avg_time_per_batch": float (optional)  # only available if batches have been completed
+            "total": int
+        },
+        "worker_stats": {                # worker stats are only available when job status is running
+            "pending": int,              # number of workers that are waiting for compute resources to be provisioned
+            "initializing": int,         # number of workers that are initializing (downloading images, running your predictor's init function)
+            "running": int,              # number of workers that are running and working on batches from the queue
+            "succeeded": int,            # number of workers that have completed after verifying that the queue is empty
+            "failed": int,               # number of workers that have failed
+            "stalled": int,              # number of workers that have been stuck in pending for more than 10 minutes
+        },
+        "created_time": string          # e.g. 2020-07-16T14:56:10.276007415Z
+        "start_time": string            # e.g. 2020-07-16T14:56:10.276007415Z
+        "end_time": string (optional)   # e.g. 2020-07-16T14:56:10.276007415Z (only present if the job has completed)
+    }
+}
+```
+
+## Stop a Job
+
+Request: DELETE <batch_api_url>/<job_id>
+
+Response:
+
+```json
+{"message":"stopped job <job_id>"}
+```

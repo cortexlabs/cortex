@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](../exporting.md), you've implemented a [Predictor](predictors.md), and you've [configured your API](api-configuration.md), you're ready to deploy!
+Once your model is [exported](../exporting.md), you've implemented a [Predictor](predictors.md), and you've [configured your API](api-configuration.md), you're ready to deploy a Batch API.
 
 ## `cortex deploy`
 
@@ -16,14 +16,40 @@ created image-classifier
 
 APIs are declarative, so to update your API, you can modify your source code and/or configuration and run `cortex deploy` again.
 
+After deploying a Batch API you can make the following requests to the API:
+1. Submit a batch job
+1. Get the status of a job
+1. Stop a job
+
+You can find the API Documentation [here](endpoints.md).
+
 ## `cortex get`
 
-The `cortex get` command displays the status of all of your APIs, and `cortex get <api_name>` shows additional information about a specific API.
+The `cortex get` command displays the status of all of your API:
+
+```bash
+$ cortex get
+
+env   batch api          running jobs   latest job id                          last update
+aws   image-classifier   1              69d9c0013c2d0d97 (submitted 30s ago)   46s
+
+env     sync api          status   last update   avg request   2XX
+aws     iris-classifier   live     10s           -             -
+local   iris-classifier   live     11s           -             -
+```
+
+## `cortex get <api_name>`
+
+ and `cortex get <api_name>` shows additional information about your Batch API and lists a summary of all of the currently running jobs and the most recently submitted jobs.
 
 ```bash
 $ cortex get image-classifier
 
-no submitted jobs
+job id             status                    progress   failed   start time                 duration
+69d9c0013c2d0d97   running                   1/24       0        29 Jul 2020 14:38:01 UTC   30s
+69da5b1f8cd3b2d3   completed with failures   15/16      1        29 Jul 2020 13:38:01 UTC   5m20s
+69da5bc32feb6aa0   succeeded                 40/40      0        29 Jul 2020 12:38:01 UTC   10m21s
+69da5bd5b2f87258   succeeded                 34/34      0        29 Jul 2020 11:38:01 UTC   8m54s
 
 endpoint: http://***.amazonaws.com/image-classifier
 ...
@@ -31,112 +57,60 @@ endpoint: http://***.amazonaws.com/image-classifier
 
 Appending the `--watch` flag will re-run the `cortex get` command every 2 seconds.
 
-## Available endpoints
+## Job commands
 
 A Batch API provides the following endpoints:
 
-### Submit a job
 
-Request: POST <batch_api_endpoint>
-```yaml
-{
-    "workers": int,    # the number of workers you want to allocate for this job
-    "item_list": {
-        "items": [         # a list items that can be of any type
-            <any>,
-            <any>
-        ],
-        "batch_size": int, # the number of items in the items_list that should be in a batch
-    }
-        "config": {        # fields custom for this specific job (will override values specified in api configuration)
-        "string": <any>
-    }
-}
-```
 
-NOTE: The maximum size of a request must be less than 10 MB. If your request needs to be more than 10 MB please write the payload in a newline delimited JSON format to a storage such S3 and use Delimited files to stream the file contents.
-
-NOTE: A single item must not exceed 256 KB
-
-Response:
-```yaml
-{
-    "job_id": string,
-    "api_name": string,
-    "workers": int,
-    "batches_per_worker": int,
-    "config": {string: any},
-    "api_id": string,
-    "sqs_url": string,
-    "created_time": string # e.g. 2020-07-16T14:56:10.276007415Z
-}
-```
-
-### Get a Job Status
-
-Request: GET <batch_api_endpoint>/<job_id>
-
-Response:
-```yaml
-{
-    "job_status": {
-        "job_id": string,
-        "api_name": string,
-        "workers": int,
-        "batches_per_worker": int,
-        "config": {string: any},
-        "api_id": string,
-        "sqs_url": string,
-        "status": string,   # string can take one of the following values: status_unknown|status_enqueuing|status_running|status_enqueue_failed|status_completed_with_failures|status_succeeded|status_unexpected_error|status_worker_error|status_worker_oom|status_stopped
-        "batches_in_queue": int          # number of batches in queue
-        "batch_metrics": {
-            "succeeded": int
-            "failed": int
-            "avg_time_per_batch": float (optional)  # only available if batches have been completed
-            "total": int
-        },
-        "worker_stats": {                # worker stats are only available when job status is running
-            "pending": int,              # number of workers that are waiting for compute resources to be provisioned
-            "initializing": int,         # number of workers that are initializing (downloading images, running your predictor's init function)
-            "running": int,              # number of workers that are running and working on batches from the queue
-            "succeeded": int,            # number of workers that have completed after verifying that the queue is empty
-            "failed": int,               # number of workers that have failed
-            "stalled": int,              # number of workers that have been stuck in pending for more than 10 minutes
-        },
-        "created_time": string          # e.g. 2020-07-16T14:56:10.276007415Z
-        "start_time": string            # e.g. 2020-07-16T14:56:10.276007415Z
-        "end_time": string (optional)   # e.g. 2020-07-16T14:56:10.276007415Z (only present if the job has completed)
-    }
-}
-```
-
-This information is available in the CLI via `cortex get <api_name> <job_id>`
-
-### Stop a Job
-
-Request: DELETE <batch_api_endpoint>/<job_id>
-
-Response:
-```
-{"message":"stopped job <job_id>"}
-```
 
 You can stop a job using the CLI via `cortex delete <api_name> <job_id>
 
 ## `cortex get <api_name> <job_id>`
 
+After a submitting a job (see [Batch API endpoint documentation](endpoints.md)), you can use the
+
 ```bash
-$ cortex logs my-api
+$ cortex get image-classifier 69d9c0013c2d0d97
+
+job id: 69d9c0013c2d0d97
+status: running
+
+start time: 29 Jul 2020 14:38:01 UTC
+end time:   -
+duration:   32s
+
+batch stats
+total   succeeded   failed   avg time per batch
+24      1           0        20s
+
+worker stats
+requested   running   failed   succeeded
+2           2         0        0
+
+job endpoint: https://://***..amazonaws.com/image-classifier/69d9c0013c2d0d97
 ```
 
-## Making a prediction
-
-You can use `curl` to test your prediction service, for example:
+## `cortex logs <api_name> <job_id>`
 
 ```bash
-$ curl http://***.amazonaws.com/my-api \
-    -X POST -H "Content-Type: application/json" \
-    -d '{"key": "value"}'
+$ cortex logs image-classifier 69d9c0013c2d0d97
+
+started enqueuing batches
+partitioning 240 items found in job submission into 24 batches of size 10
+completed enqueuing a total of 24 batches
+spinning up workers...
+2020-07-30 16:50:30.147522:cortex:pid-1:INFO:downloading the project code
+2020-07-30 16:50:30.268987:cortex:pid-1:INFO:downloading the python serving image
+....
+```
+
+## `cortex delete <api_name> <job_id>`
+
+```bash
+$ cortex delete image-classifier 69d9c0013c2d0d97
+
+stopped job 69d96a01ea55da8c
 ```
 
 ## `cortex delete`

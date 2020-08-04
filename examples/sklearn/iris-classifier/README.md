@@ -1,4 +1,4 @@
-# Deploy models as Realtime APIs
+# Deploy models as Sync APIs
 
 _WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`_
 

@@ -69,6 +69,11 @@ class PythonPredictor:
             Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
         """
         pass
+
+    def on_job_complete(self):
+        """Called once after all of the batches have been processed. Runs job completion processes such as coalescing results and triggers completion webhooks.
+        """
+        pass
 ```
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overriden by providing `config` in the job submission requests.
@@ -219,6 +224,11 @@ class TensorFlowPredictor:
             Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
         """
         pass
+
+    def on_job_complete(self):
+        """Called once after all of the batches have been processed. Runs job completion processes such as coalescing results and triggers completion webhooks.
+        """
+        pass
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
@@ -297,6 +307,11 @@ class ONNXPredictor:
             batch_id: uuid assigned to this batch
         Returns:
             Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
+        """
+        pass
+
+    def on_job_complete(self):
+        """Called once after all of the batches have been processed. Runs job completion processes such as coalescing results and triggers completion webhooks.
         """
         pass
 ```
