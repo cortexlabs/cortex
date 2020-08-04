@@ -20,7 +20,7 @@ import dill
 
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
-from cortex.lib.type.model import Model, get_model_signature_map
+from cortex.lib.api.model import Model, get_model_signature_map
 from cortex import consts
 
 

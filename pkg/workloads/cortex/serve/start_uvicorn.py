@@ -17,7 +17,7 @@ import yaml
 import os
 import json
 
-from cortex.lib.type import get_spec
+from cortex.lib.api import get_spec
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.checkers.pod import wait_neuron_rtd
 

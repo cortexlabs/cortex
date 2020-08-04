@@ -24,7 +24,7 @@ from google.protobuf import json_format
 
 from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
 from cortex.lib.log import cx_logger
-from cortex.lib.type.model import Model, get_model_signature_map, get_model_names
+from cortex.lib.api.model import Model, get_model_signature_map, get_model_names
 from cortex import consts
 
 

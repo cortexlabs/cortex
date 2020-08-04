@@ -18,7 +18,7 @@ import numpy as np
 from cortex.lib.log import cx_logger
 from cortex.lib import util
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException
-from cortex.lib.type.model import Model, get_model_names
+from cortex.lib.api.model import Model, get_model_names
 from cortex import consts
 
 

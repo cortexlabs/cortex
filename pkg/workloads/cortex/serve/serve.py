@@ -33,7 +33,7 @@ from starlette.background import BackgroundTasks
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from cortex.lib import util
-from cortex.lib.type import API, get_spec
+from cortex.lib.api import API, get_spec
 from cortex.lib.log import cx_logger
 from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
