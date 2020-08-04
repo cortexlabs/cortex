@@ -18,17 +18,19 @@ import os, fcntl, time
 
 
 class FileLock:
-    def __init__(self, lock_file, timeout=None):
+    def __init__(self, lock_file, timeout=None, reader_lock=False):
         """
         Lock for files. Not thread-safe. Instantiate one lock per thread.
 
         lock_file - File to use as lock.
         timeout - If used, a timeout exception will be raised if the lock can't be acquired. Measured in seconds.
+        reader_lock - When set to true, a shared lock (LOCK_SH) will be used. Otherwise, an exclusive lock (LOCK_EX) is used.
         """
         self._lock_file = lock_file
         self._file_handle = None
 
         self.timeout = timeout
+        self.reader_lock = reader_lock
         self._time_loop = 0.001
 
         # create lock if it doesn't exist
@@ -37,21 +39,27 @@ class FileLock:
 
     def acquire(self):
         """
-        To acquire rw access to resource.
+        To acquire r/rw lock to resource.
         """
         if self._file_handle:
             return
 
         if not self.timeout:
             self._file_handle = open(self._lock_file, "w")
-            fcntl.lockf(self._file_handle, fcntl.LOCK_EX)
+            if self.reader_lock:
+                fcntl.flock(self._file_handle, fcntl.LOCK_SH)
+            else:
+                fcntl.flock(self._file_handle, fcntl.LOCK_EX)
         else:
             start = time.time()
             acquired = False
             while start + self.timeout >= time.time():
                 try:
                     self._file_handle = open(self._lock_file, "w")
-                    fcntl.lockf(self._file_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    if self.reader_lock:
+                        fcntl.flock(self._file_handle, fcntl.LOCK_SH | fcntl.LOCK_NB)
+                    else:
+                        fcntl.flock(self._file_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
                     acquired = True
                     break
                 except OSError:
@@ -67,14 +75,14 @@ class FileLock:
 
     def release(self):
         """
-        To release rw access to resource.
+        To release r/rw lock to resource.
         """
         if not self._file_handle:
             return
 
         fd = self._file_handle
         self._file_handle = None
-        fcntl.lockf(fd, fcntl.LOCK_UN)
+        fcntl.flock(fd, fcntl.LOCK_UN)
         fd.close()
 
     def __enter__(self):
