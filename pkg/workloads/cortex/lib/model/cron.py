@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict, List, Tuple
+from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.api import get_api
+
 import threading as td
 import multiprocessing as mp
 import time
@@ -24,17 +28,26 @@ class SimpleModelMonitor(mp.Process):
     When a new model is found, it updates the tree and downloads it - likewise when a model is removed.
     """
 
-    def __init__(self, interval: int, paths: list(str), is_path_top_dir: bool, **kwargs):
+    def __init__(self, interval: int, **kwargs):
         """
         Args:
             interval (int): How often to update the models tree. Measured in seconds.
-            paths (list(str)): The model paths as passed in cortex.yaml. Can be predictor:model_path, predictor:models:paths:model_path or predictor:models:dir.
-            is_path_top_dir (str): Whether the models have been specified using predictor:models:dir or not.
+            kwargs: Named parameters.
         """
+
         mp.Process.__init__(self, **kwargs)
         self._interval = interval
-        self._paths = paths
-        self.is_path_top_dir = is_path_to_dir
+
+        self._api = get_api()
+        self._paths = []
+        for curated_model in self._api.curated_model_resources:
+            if curated_model.s3_path:
+                self._paths.append(curated_models.model_path)
+        if self._api.predictor.models != "" and self._api.predictor.models.dir != "":
+            self._is_dir_used = True
+        else:
+            self._is_dir_used = False
+
         self._event_stopper = mp.Event()
         self._stopped = mp.Event()
 
@@ -54,7 +67,11 @@ class SimpleModelMonitor(mp.Process):
             time.sleep(0.001)
 
     def _update_models_tree(self):
-        pass
+        for path in self._paths:
+            if S3.is_valid_s3_path(path):
+                bucket_name, prefix = S3.deconstruct_s3_path(path)
+                s3_client = S3(bucket_name, client_config={})
+                prefixes = s3_client.search(prefix)
 
 
 class CachedModelMonitor(td.Thread):
@@ -68,6 +85,12 @@ class CachedModelMonitor(td.Thread):
     """
 
     def __init__(self, interval: int, **kwargs):
+        """
+        Args:
+            interval (int): How often to update the models tree. Measured in seconds.
+            kwargs: Named parameters.
+        """
+
         mp.Thread.__init__(self, **kwargs)
         self._interval = interval
         self._event_stopper = thread.Event()

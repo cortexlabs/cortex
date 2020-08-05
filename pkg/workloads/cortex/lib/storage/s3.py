@@ -20,6 +20,7 @@ import json
 import msgpack
 import time
 
+from typing import Dict, List, Tuple
 from cortex.lib import util
 from cortex.lib.exceptions import CortexException
 
@@ -38,11 +39,22 @@ class S3(object):
         self.s3 = boto3.client("s3", **client_config)
 
     @staticmethod
-    def deconstruct_s3_path(s3_path):
+    def deconstruct_s3_path(s3_path) -> Tuple[str, str]:
         path = util.trim_prefix(s3_path, "s3://")
         bucket = path.split("/")[0]
         key = os.path.join(*path.split("/")[1:])
         return (bucket, key)
+
+    @staticmethod
+    def is_valid_s3_path(path: str) -> bool:
+        if not path.startswith("s3://"):
+            return False
+        parts = path[5:].split("/")
+        if len(parts) < 2:
+            return False
+        if parts[0] == "" or parts[1] == "":
+            return False
+        return True
 
     def blob_path(self, key):
         return os.path.join("s3://", self.bucket, key)

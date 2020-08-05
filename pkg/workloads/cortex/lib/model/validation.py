@@ -16,9 +16,7 @@ from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.log import cx_logger
 from cortex.lib.model import ModelsTree
 
-# Model validations for S3/local paths and
-# for TensorFlow/Python/ONNX predictors.
-# ...
+# def validate
 
 
 def get_models_tree_from_s3_path(s3_path: str):

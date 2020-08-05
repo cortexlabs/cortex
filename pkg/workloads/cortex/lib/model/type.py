@@ -11,12 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from cortex.lib.api.api import API, get_api
-from cortex.lib.api.predictor import Predictor
-from cortex.lib.api.monitoring import Monitoring
-from cortex.lib.api.model import (
-    Model,
-    get_model_signature_map,
-    get_model_names,
-)

@@ -169,6 +169,28 @@ class API:
             }
 
 
+def get_api() -> API:
+    cache_dir = os.environ["CORTEX_CACHE_DIR"]
+    provider = os.environ["CORTEX_PROVIDER"]
+    spec_path = os.environ["CORTEX_API_SPEC"]
+
+    if provider == "local":
+        storage = LocalStorage(cache_dir)
+    else:
+        storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+    raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
+
+    api = API(
+        provider=provider,
+        storage=storage,
+        model_dir=model_dir,
+        cache_dir=cache_dir,
+        **raw_api_spec,
+    )
+
+    return api
+
+
 def get_spec(provider, storage, cache_dir, spec_path):
     if provider == "local":
         return read_msgpack(spec_path)
