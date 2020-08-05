@@ -20,3 +20,9 @@ from cortex.lib.api.model import (
     get_model_signature_map,
     get_model_names,
 )
+from cortex.lib.api.type import (
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    ONNXPredictorType,
+    PredictorType,
+)

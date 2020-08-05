@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict, List, Tuple, Any
+import os
+
 
 class ModelsTree:
+    pass
+
+
+def create_dict_tree(paths: Dict[str, Any]) -> Any:
     pass

@@ -14,6 +14,7 @@
 
 from typing import Dict, List, Tuple
 from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.model import create_dict_tree
 from cortex.lib.api import get_api
 
 import threading as td
@@ -72,6 +73,7 @@ class SimpleModelMonitor(mp.Process):
                 bucket_name, prefix = S3.deconstruct_s3_path(path)
                 s3_client = S3(bucket_name, client_config={})
                 prefixes = s3_client.search(prefix)
+                dict_tree = create_dict_tree(prefixes)
 
 
 class CachedModelMonitor(td.Thread):
