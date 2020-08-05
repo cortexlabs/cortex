@@ -33,10 +33,6 @@ func MillisecsStr(t time.Time) string {
 	return nanos[0:3]
 }
 
-func SecondStr(t time.Time) string {
-	return fmt.Sprintf("%09d", t.Second())
-}
-
 func Timestamp(t time.Time) string {
 	microseconds := MicrosecsStr(t)
 	return fmt.Sprintf("%d-%02d-%02d-%02d-%02d-%02d-%s",
