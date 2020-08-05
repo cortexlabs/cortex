@@ -98,11 +98,19 @@ class PlaceholderGroup:
         return str(self.parts)
 
 
-IntegerPlaceholder = TemplatePlaceholder("integer")
-AnyPlaceholder = TemplatePlaceholder("any")
-SinglePlaceholder = TemplatePlaceholder("single")
-ExclAlternativePlaceholder = TemplatePlaceholder("exclusive")
-UniquePlaceholder = TemplatePlaceholder("unique")
+IntegerPlaceholder = TemplatePlaceholder("integer")  # the path name must be an integer
+AnyPlaceholder = TemplatePlaceholder(
+    "any"
+)  # the path can be any file or any directory (with multiple subdirectories)
+SinglePlaceholder = TemplatePlaceholder(
+    "single"
+)  # can only have a single occurrence of this, but its name can take any form
+ExclAlternativePlaceholder = TemplatePlaceholder(
+    "exclusive"
+)  # can either be this template xor anything else at the same level
+UniquePlaceholder = TemplatePlaceholder(
+    "unique"
+)  # like AnyPlaceholder, but cannot have subfolders (means that it's either a file or a directory)
 
 
 # to be used when predictor:model_path or predictor:models:paths is used
@@ -128,15 +136,22 @@ model_template = {
 }
 
 # to be used when predictor:models:dir is used
-def dirs_model_template(model_template: dict, predictor_type: Predictor) -> dict:
+def dirs_model_pattern(predictor_type: PredictorType) -> dict:
     return {UniquePlaceholder: model_template[predictor_type]}
 
 
-def models_tree_from_s3_path(s3_path: List[str], predictor_type: PredictorType) -> dict:
-    return {}
+# to be used when predictor:model_path or predictor:models:paths is used
+def model_pattern(predictor_type: PredictorType) -> dict:
+    return model_template[predictor_type]
 
 
+# to be used when predictor:models:dir is used
 def models_tree_from_s3_top_paths(s3_top_paths: List[str], predictor_type: PredictorType) -> dict:
     for s3_top_path in s3_top_paths:
         model_name = os.path.dirname(s3_top_path)
+    return {}
+
+
+# to be used when predictor:model_path or predictor:models:paths is used
+def models_tree_from_s3_path(s3_path: List[str], predictor_type: PredictorType) -> dict:
     return {}
