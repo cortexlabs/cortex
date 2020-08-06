@@ -20,15 +20,21 @@ APISplitters are declarative, so to update your APISplitter, you can modify your
 
 ## `cortex get`
 
-The `cortex get` command displays the status of your APIs, and `cortex get <api_name>` shows additional information about a specific API.
+The `cortex get` command displays the status of your APIs and APISplitters, and `cortex get <api_name>` shows additional information about a specific API.
 
 ```bash
-$ cortex get my-api
+$ cortex get my-apisplitter
 
-status   up-to-date   requested   last update   avg request   2XX
-live     1            1           1m            -             -
+kind: APISplitter
 
-endpoint: http://***.amazonaws.com/iris-classifier
+last updated: 4m
+
+apis                      weights   status   requested   last update   avg request   2XX   5XX
+another-my-api            80        live     1           5m            -             -     -
+my-api                    20        live     1           6m            -             -     -
+
+endpoint: https://******.execute-api.eu-central-1.amazonaws.com/my-apisplitter
+curl: curl https://******.execute-api.eu-central-1.amazonaws.com/my-apisplitter -X POST -H "Content-Type: application/json" -d @sample.json
 ...
 ```
 

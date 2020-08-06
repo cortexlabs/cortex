@@ -1,37 +1,14 @@
+
+# !!!!!
+# before deploying the APISplitter the APIs "iris-classifier" and "another-iris-classifier" should be deployed.
+# cortex deploy examples/sklearn/iris-classifier/cortex.yaml -e aws
+# !!!!!
 - name: iris-classifier-apisplitter
   kind: APISplitter
   networking:
-    endpoint: iris-classifier
+    endpoint: iris-classifier-splitter
   apis:
-    - name: iris-classifier-v1
+    - name: iris-classifier
       weight: 20
-    - name: iris-classifier-v2
+    - name: another-iris-classifier
       weight: 80
----
-- name: iris-classifier-v1
-  kind: SyncAPI
-  predictor:
-    type: python
-    path: predictor.py
-    config:
-      bucket: cortex-examples
-      key: sklearn/iris-classifier/model.pkl
-  monitoring:
-    model_type: classification
-  compute:
-    cpu: 0.2
-    mem: 100M
----
-- name: iris-classifier-v2
-  kind: SyncAPI
-  predictor:
-    type: python
-    path: predictor.py
-    config:
-      bucket: cortex-examples
-      key: sklearn/iris-classifier/model.pkl
-  monitoring:
-    model_type: classification
-  compute:
-    cpu: 0.2
-    mem: 100M

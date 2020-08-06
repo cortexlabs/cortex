@@ -8,6 +8,7 @@ APISplitter is feature which allows you to split traffic between multiple APIs. 
 
 ## APISplitter
 
+APISplitter expects the specified APIs to be already deployed. The traffic is routed according to the defined weights. The weights of all APIs need to add up to 100.
 
 ```yaml
 - name: <string>  # API name (required)
