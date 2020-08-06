@@ -139,6 +139,9 @@ model_template = {
     },
 }
 
+CustomPredictorType = PredictorType("custom")
+model_template = {CustomPredictorType: {IntegerPlaceholder: None, AnyPlaceholder: None}}
+
 
 def json_model_template_representation(model_template) -> dict:
     dct = {}
@@ -175,35 +178,56 @@ def validate_s3_models_dir_paths(s3_top_paths: List[str], predictor_type: Predic
     return {}
 
 
-def validate_s3_model_paths(s3_paths: List[str], predictor_type: PredictorType) -> list:
+def validate_s3_model_paths(
+    s3_paths: List[str], predictor_type: PredictorType, commonprefix: str
+) -> None:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
     """
+    if len(s3_paths) == 0:
+        raise CortexException()
+
     pattern = single_model_pattern(predictor_type)
     keys = pattern.keys()
-    paths = os.path.relpath(s3_paths, os.path.commonprefix(s3_paths))
+    paths = [os.path.relpath(s3_path, commonprefix) for s3_path in s3_paths]
     objects = [get_leftmost_part_of_path(path) for path in paths]
+    objects = list(set(objects))
     visited_objects = len(objects) * [False]
 
-    for key in keys:
-        if key == IntegerPlaceholder:
-            validate_integer_placeholder(keys, objects, visited_objects)
-        elif key == AnyPlaceholder:
-            validate_any_placeholder(keys, objects, visited_objects)
-        elif key == SinglePlaceholder:
-            validate_single_placeholder(keys, objects, visited_objects)
-        elif key == PlaceholderGroup(""):
-            validate_group_placeholder(keys, objects, visited_objects)
-        elif key == ExclAlternativePlaceholder:
-            validate_exclusive_placeholder(keys, objects, visited_objects)
-        else:
-            return []
+    try:
+        for key in keys:
+            if key == IntegerPlaceholder:
+                validate_integer_placeholder(keys, objects, visited_objects)
+            elif key == AnyPlaceholder:
+                validate_any_placeholder(keys, objects, visited_objects)
+            elif key == SinglePlaceholder:
+                validate_single_placeholder(keys, objects, visited_objects)
+            elif key == GenericPlaceholder(""):
+                validate_generic_placeholder(keys, objects, visited_objects, key.value)
+            elif isinstance(key, PlaceholderGroup):
+                validate_group_placeholder(keys, objects, visited_objects)
+            elif key == ExclAlternativePlaceholder:
+                validate_exclusive_placeholder(keys, objects, visited_objects)
+            else:
+                raise CortexException("found a non-placeholder object in model template")
+    except CortexException as e:
+        raise CortexException(f"{predictor_type} predictor at '{commonprefix}'", str(e))
+
+    unvisited_paths = []
+    for idx, visited in enumerate(visited_objects):
+        if not visited:
+            unvisited_paths.append(paths[idx])
+    if len(unvisited_paths) > 0:
+        raise CortexException(
+            f"{predictor_type} predictor model at '{commonprefix}'",
+            "unexpected path(s) for " + str(unvisited_paths),
+        )
 
 
 def get_leftmost_part_of_path(path: str) -> str:
     basename = ""
-    while rel_path:
-        rel_path, basename = os.path.split(rel_path)
+    while path:
+        path, basename = os.path.split(path)
     return basename
 
 
@@ -217,18 +241,30 @@ def validate_integer_placeholder(
             appearances += 1
 
     if appearances > 1 and len(placeholders) == 1:
-        raise CortexException()
+        raise CortexException(f"too many {IntegerPlaceholder} appearances in path")
 
 
 def validate_any_placeholder(placeholders: list, objects: List[str], visited: List[bool]) -> None:
-    visited = len(visited) * [True]
+    for idx in range(len(visited)):
+        visited[idx] = True
 
 
 def validate_single_placeholder(
     placeholders: list, objects: List[str], visited: List[bool]
 ) -> None:
     if len(placeholders) > 1 or len(objects) > 1:
-        raise CortexException()
+        raise CortexException(f"only a single {SinglePlaceholder} is allowed per directory")
+    if len(visited) > 0:
+        visited[0] = True
+
+
+def validate_generic_placeholder(
+    placeholders: list, objects: List[str], visited: List[bool], generic_value: str
+) -> None:
+    for idx, obj in enumerate(objects):
+        if obj == generic_value:
+            visited[idx] = True
+            break
 
 
 def validate_group_placeholder(placeholders: list, objects: List[str], visited: List[bool]) -> None:
