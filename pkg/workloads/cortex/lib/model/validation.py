@@ -140,7 +140,13 @@ model_template = {
 }
 
 CustomPredictorType = PredictorType("custom")
-model_template = {CustomPredictorType: {IntegerPlaceholder: None, AnyPlaceholder: None}}
+model_template = {
+    CustomPredictorType: {
+        IntegerPlaceholder: None,
+        AnyPlaceholder: None,
+        GenericPlaceholder("model.onnx"): None,
+    }
+}
 
 
 def json_model_template_representation(model_template) -> dict:
@@ -185,7 +191,9 @@ def validate_s3_model_paths(
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
     """
     if len(s3_paths) == 0:
-        raise CortexException()
+        raise CortexException(
+            f"{predictor_type} predictor at '{commonprefix}'", "model path can't be empty"
+        )
 
     pattern = single_model_pattern(predictor_type)
     keys = pattern.keys()
@@ -203,7 +211,7 @@ def validate_s3_model_paths(
             elif key == SinglePlaceholder:
                 validate_single_placeholder(keys, objects, visited_objects)
             elif key == GenericPlaceholder(""):
-                validate_generic_placeholder(keys, objects, visited_objects, key.value)
+                validate_generic_placeholder(keys, objects, visited_objects, key)
             elif isinstance(key, PlaceholderGroup):
                 validate_group_placeholder(keys, objects, visited_objects)
             elif key == ExclAlternativePlaceholder:
@@ -259,12 +267,17 @@ def validate_single_placeholder(
 
 
 def validate_generic_placeholder(
-    placeholders: list, objects: List[str], visited: List[bool], generic_value: str
+    placeholders: list, objects: List[str], visited: List[bool], generical: GenericPlaceholder
 ) -> None:
+    found = False
     for idx, obj in enumerate(objects):
-        if obj == generic_value:
+        if obj == generical.value:
             visited[idx] = True
+            found = True
             break
+
+    if not found:
+        raise CortexException(f"{generical.type} placeholder for {generical} wasn't found")
 
 
 def validate_group_placeholder(placeholders: list, objects: List[str], visited: List[bool]) -> None:
