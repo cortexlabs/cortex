@@ -606,12 +606,14 @@ func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerT
 		}
 	}
 
-	if predictor.ProcessesPerReplica > 1 {
-		return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, userconfig.BatchAPIKind)
-	}
+	if api.Kind == userconfig.BatchAPIKind {
+		if predictor.ProcessesPerReplica > 1 {
+			return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, userconfig.BatchAPIKind)
+		}
 
-	if predictor.ThreadsPerProcess > 1 {
-		return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, userconfig.BatchAPIKind)
+		if predictor.ThreadsPerProcess > 1 {
+			return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, userconfig.BatchAPIKind)
+		}
 	}
 
 	if err := validateDockerImagePath(predictor.Image, providerType, awsClient); err != nil {

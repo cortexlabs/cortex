@@ -37,7 +37,7 @@ import (
 )
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
-	prevVirtualService, err := getVirtualService(apiConfig.Name)
+	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
@@ -59,6 +59,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		if err != nil {
 			go deleteK8sResources(api.Name)
 			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
+			return nil, "", err
+		}
+
+		err := createLogGroupForAPI(api.Name)
+		if err != nil {
 			return nil, "", err
 		}
 
@@ -156,7 +161,8 @@ func deleteS3Resources(apiName string) error {
 			return nil
 		},
 		func() error {
-			return deleteAllInProgressFilesByAPI(apiName)
+			deleteAllInProgressFilesByAPI(apiName) // not useful xml error is thrown, swallow the error
+			return nil
 		},
 	)
 }

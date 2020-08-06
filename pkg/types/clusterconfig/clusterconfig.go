@@ -513,6 +513,7 @@ func SQSNamePrefix(clusterName string) string {
 	return hash.String(clusterName)[:10] + "-"
 }
 
+// returns hash of cluster name and adds trailing "-"
 func (cc *Config) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }

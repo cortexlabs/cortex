@@ -16,8 +16,9 @@ limitations under the License.
 
 package metrics
 
+// There could be Cortex specific messages in queue
 type QueueMetrics struct {
-	InQueue    int `json:"in_queue"`
+	Visible    int `json:"visible"`
 	NotVisible int `json:"not_visible"`
 }
 
@@ -26,7 +27,7 @@ func (q QueueMetrics) IsEmpty() bool {
 }
 
 func (q QueueMetrics) TotalInQueue() int {
-	return q.InQueue + q.NotVisible
+	return q.Visible + q.NotVisible
 }
 
 func (q QueueMetrics) TotalUserMessages() int {

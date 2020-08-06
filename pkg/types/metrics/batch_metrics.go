@@ -20,7 +20,10 @@ type BatchMetrics struct {
 	Succeeded           int      `json:"succeeded"`
 	Failed              int      `json:"failed"`
 	AverageTimePerBatch *float64 `json:"average_time_per_batch"`
-	TotalCompleted      int      `json:"total_completed"`
+}
+
+func (b BatchMetrics) TotalCompleted() int {
+	return b.Succeeded + b.Failed
 }
 
 func (left BatchMetrics) Merge(right BatchMetrics) BatchMetrics {
@@ -31,8 +34,7 @@ func (left BatchMetrics) Merge(right BatchMetrics) BatchMetrics {
 }
 
 func (left *BatchMetrics) MergeInPlace(right BatchMetrics) {
-	left.AverageTimePerBatch = mergeAvg(left.AverageTimePerBatch, left.TotalCompleted, right.AverageTimePerBatch, right.TotalCompleted)
+	left.AverageTimePerBatch = mergeAvg(left.AverageTimePerBatch, left.TotalCompleted(), right.AverageTimePerBatch, right.TotalCompleted())
 	left.Succeeded = left.Succeeded + right.Succeeded
 	left.Failed = left.Failed + right.Failed
-	left.TotalCompleted = left.TotalCompleted + right.TotalCompleted
 }

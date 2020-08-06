@@ -72,7 +72,7 @@ func ErrorNoDataFoundInJobSubmission() error {
 	})
 }
 
-func ErrorFailedToEnqueueMessages(meErrConflictingFieldsssage string) error {
+func ErrorFailedToEnqueueMessages(message string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToEnqueueMessages,
 		Message: message,

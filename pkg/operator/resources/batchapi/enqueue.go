@@ -39,8 +39,9 @@ import (
 )
 
 const (
-	_lastUpdatedFile     = "last_updated"
-	_S3DownloadChunkSize = 32 * 1024 * 1024
+	_EnqueuingLivenessFile   = "enqueuing_liveness"
+	_enqueuingLivenessPeriod = 20 * time.Second
+	_S3DownloadChunkSize     = 32 * 1024 * 1024
 )
 
 func randomMessageID() string {
@@ -48,7 +49,7 @@ func randomMessageID() string {
 }
 
 func updateLiveness(jobKey spec.JobKey) error {
-	s3Key := path.Join(jobKey.PrefixKey(), _lastUpdatedFile)
+	s3Key := path.Join(jobKey.Prefix(), _EnqueuingLivenessFile)
 	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
 	if err != nil {
 		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
@@ -61,7 +62,7 @@ func enqueue(jobSpec *spec.Job, submission *schema.JobSubmission) (int, error) {
 		return updateLiveness(jobSpec.JobKey)
 	}
 
-	livenessCron := cron.Run(livenessUpdater, operator.ErrorHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), 20*time.Second)
+	livenessCron := cron.Run(livenessUpdater, operator.ErrorHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), _enqueuingLivenessPeriod)
 	defer livenessCron.Cancel()
 
 	totalBatches := 0

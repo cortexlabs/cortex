@@ -39,7 +39,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-// Returns an error if resources doesn't exist
+// Returns an error if resource doesn't exist
 func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource, error) {
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
 	if err != nil {
@@ -57,6 +57,19 @@ func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource,
 		},
 		VirtualService: virtualService,
 	}, nil
+}
+
+func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedResource, error) {
+	resource, err := GetDeployedResourceByName(resourceName)
+	if err != nil {
+		if errors.GetKind(err) == ErrAPINotDeployed {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return resource, nil
 }
 
 func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
@@ -109,11 +122,9 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 }
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
-	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
+	deployedResource, err := GetDeployedResourceByNameOrNil(apiConfig.Name)
 	if err != nil {
-		if errors.GetKind(err) != ErrAPINotDeployed {
-			return nil, "", err
-		}
+		return nil, "", err
 	}
 
 	if deployedResource != nil && deployedResource.Kind != apiConfig.Kind {
@@ -147,9 +158,6 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
-		if errors.GetKind(err) != ErrAPINotDeployed {
-			return nil, err
-		}
 		go func() {
 			err := parallel.RunFirstErr(
 				func() error {

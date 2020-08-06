@@ -20,7 +20,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
@@ -42,7 +41,7 @@ func jobKeyFromInProgressS3Key(s3Key string) spec.JobKey {
 }
 
 func uploadInProgressFile(jobKey spec.JobKey) error {
-	err := config.AWS.UploadJSONToS3("", config.Cluster.Bucket, inProgressS3Key(jobKey))
+	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, inProgressS3Key(jobKey))
 	if err != nil {
 		return err
 	}
@@ -50,7 +49,7 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 }
 
 func deleteInProgressFile(jobKey spec.JobKey) error {
-	err := config.AWS.DeleteS3Prefix(config.Cluster.Bucket, inProgressS3Key(jobKey), false)
+	err := config.AWS.DeleteS3File(config.Cluster.Bucket, inProgressS3Key(jobKey))
 	if err != nil {
 		return err
 	}
@@ -58,19 +57,11 @@ func deleteInProgressFile(jobKey spec.JobKey) error {
 }
 
 func deleteAllInProgressFilesByAPI(apiName string) error {
-	jobKeys, err := listAllInProgressJobKeysByAPI(apiName)
+	err := config.AWS.DeleteS3Prefix(config.Cluster.Bucket, path.Join(_inProgressFilePrefix, apiName), true)
 	if err != nil {
 		return err
 	}
-
-	errs := []error{}
-	for _, jobKey := range jobKeys {
-		err := deleteInProgressFile(jobKey)
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errors.FirstError(errs...)
+	return nil
 }
 
 func listAllInProgressJobKeys() ([]spec.JobKey, error) {

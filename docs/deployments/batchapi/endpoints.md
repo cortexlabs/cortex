@@ -18,9 +18,11 @@ There are three options for providing the dataset for your job:
 1. Provide a list of S3 file paths
 1. Provide a list of S3 file paths to newline delimited JSON files containing the input dataset
 
-### Data in the request
+### Dataset in the request
 
-The dataset for your job can be included directly in your job submission request providing an `item_list` in your request payload. Each item can be any type (object, list, string, etc.) and is treated as a single sample. The `item_list.batch_size` determines how many items are included in a single batch. Make sure that the total size of a batch is less than 256 KiB. __The total request size must be less than 10 MiB.__ If you want to submit more data, explore some of the other methods.
+The dataset for your job can be included directly in your job submission request providing an `item_list` in your request payload. Each item can be any type (object, list, string, etc.) and is treated as a single sample. `item_list.batch_size` determines how many items are included in a single batch. Make sure that the total size of a batch is less than 256 KiB.
+
+__The total request size must be less than 10 MiB.__ If you want to submit more data, explore some of the other methods.
 
 Submitting data in the request can be useful in the following use cases:
 
@@ -63,11 +65,11 @@ Response:
 
 ### S3 files
 
-If your input dataset is a list of files such as images/videos in an s3 directory, you can define `file_path_lister` in your request payload to generate a list of S3 file paths, break them up into batches of size `file_path_lister.batch_size` and send the list of s3 file paths to your workers. Make sure that the total size of a batch is less than 256 KiB.
+If your input dataset is a list of files such as images/videos in an s3 directory, you can define `file_path_lister` in your request payload to generate a list of S3 file paths. The list of s3 file paths will be broken up into batches of size `file_path_lister.batch_size`. Make sure that the total size of a batch is less than 256 KiB.
 
 Upon receiving `file_path_lister` your Batch API will iterate through the `file_path_lister.s3_paths` and generate a collection of s3 files. If any of the s3 paths are prefixes, it will add all s3 files in that prefix to the collection of s3 files. You can specify a list of glob patterns with `file_path_lister.includes` to only include s3 files in the collection that match at least one of the glob patterns. After the include filters run (if they are specified), you can use `file_path_lister.excludes` to remove s3 files from the collection that match at least one of the glob patterns. You can use dry run to list out which s3 files will be processed to test out the glob patterns.
 
-This submission pattern can be useful in the following scenarios (not all inclusive):
+This submission pattern can be useful in the following scenarios:
 
 - you have a list of images/videos in an s3 directory
 - each s3 file represents a single sample or a small number of samples
@@ -176,9 +178,8 @@ Response:
             "succeeded": int
             "failed": int
             "avg_time_per_batch": float (optional)  # only available if batches have been completed
-            "total": int
         },
-        "worker_stats": {                # worker stats are only available when job status is running
+        "worker_counts": {                # worker stats are only available when job status is running
             "pending": int,              # number of workers that are waiting for compute resources to be provisioned
             "initializing": int,         # number of workers that are initializing (downloading images, running your predictor's init function)
             "running": int,              # number of workers that are running and working on batches from the queue
@@ -202,3 +203,7 @@ Response:
 ```json
 {"message":"stopped job <job_id>"}
 ```
+
+## Filtering files
+
+// TODO

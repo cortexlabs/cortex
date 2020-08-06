@@ -138,7 +138,6 @@ func extractJobStats(metricsDataResults []*cloudwatch.MetricDataResult) (*metric
 	}
 	jobStats.AverageTimePerBatch = avg
 
-	jobStats.TotalCompleted = jobStats.Succeeded + jobStats.Failed
 	return &jobStats, nil
 }
 

@@ -10,6 +10,7 @@ from io import BytesIO
 import boto3
 import json
 import os
+import re
 
 
 class PythonPredictor:
@@ -26,8 +27,8 @@ class PythonPredictor:
         ).text.split("\n")[1:]
 
         self.s3 = boto3.client("s3")
-        self.bucket = config["bucket"]
-        self.key = os.path.join(config["key"], job_spec["job_id"])
+        self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["s3_dir"]).groups()
+        self.key = os.path.join(self.key, job_spec["job_id"])
 
     def predict(self, payload, batch_id):
         tensor_list = []
@@ -48,3 +49,20 @@ class PythonPredictor:
         json_output = json.dumps(results)
 
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json_output)
+
+    def on_job_complete(self):
+        all_results = []
+
+        # download all of the results
+        for obj in self.s3.list_objects_v2(Bucket=self.bucket, Prefix=self.key)["Contents"]:
+            if obj["Size"] > 0:
+                print(obj)
+                body = self.s3.get_object(Bucket=self.bucket, Key=obj["Key"])["Body"]
+                all_results.append(json.loads(body.read().decode("utf8")))
+
+        newline_delimited_results = "\n".join(json.dumps(result) for result in all_results)
+        self.s3.put_object(
+            Bucket=self.bucket,
+            Key=os.path.join(self.key, "aggregated_results.csv"),
+            Body=str(newline_delimited_results),
+        )

@@ -620,6 +620,20 @@ func (c *Client) ListS3PathPrefix(s3Path string, includeDirObjects bool, maxResu
 	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults)
 }
 
+func (c *Client) DeleteS3File(bucket string, key string) error {
+	_, err := c.S3().DeleteObject(
+		&s3.DeleteObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		},
+	)
+
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
 func (c *Client) DeleteS3Dir(bucket string, s3Dir string, continueIfFailure bool) error {
 	prefix := s.EnsureSuffix(s3Dir, "/")
 	return c.DeleteS3Prefix(bucket, prefix, continueIfFailure)

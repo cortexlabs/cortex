@@ -55,8 +55,8 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 
 	jobID := strings.TrimSuffix(dashSplit[len(dashSplit)-1], ".fifo")
 
-	apiNamesplit := dashSplit[1 : len(dashSplit)-1]
-	apiName := strings.Join(apiNamesplit, "-")
+	apiNameSplit := dashSplit[1 : len(dashSplit)-1]
+	apiName := strings.Join(apiNameSplit, "-")
 
 	return spec.JobKey{APIName: apiName, ID: jobID}
 }
@@ -72,7 +72,7 @@ func createFIFOQueue(jobKey spec.JobKey, tags map[string]string) (string, error)
 		&sqs.CreateQueueInput{
 			Attributes: map[string]*string{
 				"FifoQueue":         aws.String("true"),
-				"VisibilityTimeout": aws.String("90"),
+				"VisibilityTimeout": aws.String("120"),
 			},
 			QueueName: aws.String(queueName),
 			Tags:      aws.StringMap(tags),
@@ -87,17 +87,6 @@ func createFIFOQueue(jobKey spec.JobKey, tags map[string]string) (string, error)
 
 func doesQueueExist(jobKey spec.JobKey) (bool, error) {
 	return config.AWS.DoesQueueExist(getJobQueueName(jobKey))
-}
-
-func listQueueURLsForAPI(apiName string) ([]string, error) {
-	queuesForAPIPrefix := config.Cluster.SQSNamePrefix() + "-" + apiName + "-"
-
-	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(queuesForAPIPrefix)
-	if err != nil {
-		return nil, err
-	}
-
-	return queueURLs, nil
 }
 
 func listQueueURLsForAllAPIs() ([]string, error) {
@@ -140,13 +129,14 @@ func getQueueMetrics(jobKey spec.JobKey) (*metrics.QueueMetrics, error) {
 func getQueueMetricsFromURL(queueURL string) (*metrics.QueueMetrics, error) {
 	attributes, err := config.AWS.GetAllQueueAttributes(queueURL)
 	if err != nil {
+		errors.PrintStacktrace(err)
 		return nil, errors.Wrap(err, "failed to get queue metrics")
 	}
 
 	metrics := metrics.QueueMetrics{}
 	parsedInt, ok := s.ParseInt(attributes["ApproximateNumberOfMessages"])
 	if ok {
-		metrics.InQueue = parsedInt
+		metrics.Visible = parsedInt
 	}
 
 	parsedInt, ok = s.ParseInt(attributes["ApproximateNumberOfMessagesNotVisible"])

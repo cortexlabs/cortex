@@ -41,7 +41,7 @@ const (
 	_socketMaxMessageSize    = 8192
 	_maxCacheSize            = 10000
 
-	_maxLogLinesPerRequest = 500
+	_maxLogLinesPerRequest = 5000
 	_maxStreamsPerRequest  = 50
 
 	_pollPeriod             = 250 * time.Millisecond
@@ -116,23 +116,19 @@ func pumpStdin(socket *websocket.Conn) {
 func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	logGroupName := logGroupNameForJob(jobStatus.JobKey)
 
-	newLogStreamNames, err := getLogStreams(logGroupName)
+	logStreamNames, err := getLogStreams(jobStatus.JobKey)
 	if err != nil {
 		telemetry.Error(err)
 		writeAndCloseSocket(socket, "error encountered while searching for log streams: "+errors.Message(err))
 		return
 	}
 
-	if !newLogStreamNames.Has("operator") {
-		newLogStreamNames.Shrink(len(newLogStreamNames) - 1)
-		newLogStreamNames.Add("operator")
-	}
-
 	endTime := jobStatus.EndTime.Add(time.Minute * 10)
 	config.AWS.CloudWatchLogs().FilterLogEventsPages(&cloudwatchlogs.FilterLogEventsInput{
-		LogGroupName: aws.String(logGroupName),
-		StartTime:    aws.Int64(libtime.ToMillis(jobStatus.StartTime)),
-		EndTime:      aws.Int64(libtime.ToMillis(endTime)),
+		LogGroupName:   aws.String(logGroupName),
+		StartTime:      aws.Int64(libtime.ToMillis(jobStatus.StartTime)),
+		EndTime:        aws.Int64(libtime.ToMillis(endTime)),
+		LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
 	}, func(logEventsOutput *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
 		select {
 		case <-podCheckCancel:
@@ -155,8 +151,10 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 }
 
 func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := logGroupNameForJob(spec.JobKey{APIName: jobKey.APIName, ID: jobKey.ID})
+	logGroupName := logGroupNameForJob(jobKey)
 	eventCache := newEventCache(_maxCacheSize)
+	lastLogStreamRefresh := time.Time{}
+	logStreamNames := strset.New()
 	lastLogTime := time.Now()
 	didShowFetchingMessage := false
 	didFetchLogs := false
@@ -181,6 +179,27 @@ func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, sock
 				didShowFetchingMessage = true
 			}
 
+			if time.Since(lastLogStreamRefresh) > _logStreamRefreshPeriod {
+				newLogStreamNames, err := getLogStreams(jobKey)
+				if err != nil {
+					telemetry.Error(err)
+					writeAndCloseSocket(socket, "error encountered while searching for log streams: "+errors.Message(err))
+					continue
+				}
+
+				if !logStreamNames.IsEqual(newLogStreamNames) {
+					lastLogTime = lastLogTime.Add(-_logStreamRefreshPeriod)
+					logStreamNames = newLogStreamNames
+				}
+
+				lastLogStreamRefresh = time.Now()
+			}
+
+			if len(logStreamNames) == 0 {
+				timer.Reset(_pollPeriod)
+				continue
+			}
+
 			if !didFetchLogs {
 				lastLogTime = jobSpec.StartTime
 				didFetchLogs = true
@@ -189,10 +208,11 @@ func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, sock
 			endTime := libtime.ToMillis(time.Now())
 
 			logEventsOutput, err := config.AWS.CloudWatchLogs().FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
-				LogGroupName: aws.String(logGroupName),
-				StartTime:    aws.Int64(libtime.ToMillis(lastLogTime.Add(-_pollPeriod * 2))),
-				EndTime:      aws.Int64(endTime),
-				Limit:        aws.Int64(int64(_maxLogLinesPerRequest)),
+				LogGroupName:   aws.String(logGroupName),
+				StartTime:      aws.Int64(libtime.ToMillis(lastLogTime.Add(-_pollPeriod))),
+				EndTime:        aws.Int64(endTime),
+				LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
+				Limit:          aws.Int64(int64(_maxLogLinesPerRequest)),
 			})
 
 			if err != nil {
@@ -232,13 +252,21 @@ func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, sock
 	}
 }
 
-func getLogStreams(logGroupName string) (strset.Set, error) {
-	describeLogStreamsOutput, err := config.AWS.CloudWatchLogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
-		OrderBy:      aws.String(cloudwatchlogs.OrderByLastEventTime),
-		Descending:   aws.Bool(true),
-		LogGroupName: aws.String(logGroupName),
-		Limit:        aws.Int64(_maxStreamsPerRequest),
-	})
+func getLogStreams(jobKey spec.JobKey) (strset.Set, error) {
+	streams := strset.New()
+	err := config.AWS.CloudWatchLogs().DescribeLogStreamsPages(
+		&cloudwatchlogs.DescribeLogStreamsInput{
+			LogStreamNamePrefix: aws.String(jobKey.ID),
+			LogGroupName:        aws.String(logGroupNameForJob(jobKey)),
+			Limit:               aws.Int64(_maxStreamsPerRequest),
+		}, func(output *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
+			for _, stream := range output.LogStreams {
+				streams.Add(*stream.LogStreamName)
+			}
+
+			return true
+		},
+	)
 	if err != nil {
 		if !awslib.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
 			return nil, err
@@ -246,11 +274,6 @@ func getLogStreams(logGroupName string) (strset.Set, error) {
 		return nil, nil
 	}
 
-	streams := strset.New()
-
-	for _, stream := range describeLogStreamsOutput.LogStreams {
-		streams.Add(*stream.LogStreamName)
-	}
 	return streams, nil
 }
 

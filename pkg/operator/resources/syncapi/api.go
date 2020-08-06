@@ -65,8 +65,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
 		if err != nil {
-			go deleteK8sResources(api.Name)
-			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, false)
 			errors.PrintError(err)
 		}
 		return api, fmt.Sprintf("creating %s", api.Resource.UserString()), nil
@@ -159,7 +157,8 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				return nil
 			}
 			// best effort deletion
-			return deleteS3Resources(apiName)
+			deleteS3Resources(apiName) // swallow errors because there could be weird error messages
+			return nil
 		},
 		// delete API from API Gateway
 		func() error {
@@ -169,13 +168,13 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			return nil
 		},
-		// delete api from cloudwatch
+		// delete api from cloudwatch dashboard
 		func() error {
 			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.SyncAPIKind.String())
 			if err != nil {
-				return errors.Wrap(err, "failed to get virtualServices")
+				return errors.Wrap(err, "failed to get virtual services")
 			}
-			//extract all api names from statuses
+			// extract all api names from statuses
 			allAPINames := make([]string, len(virtualServices))
 			for i, virtualService := range virtualServices {
 				allAPINames[i] = virtualService.GetLabels()["apiName"]

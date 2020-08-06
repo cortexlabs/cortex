@@ -19,11 +19,8 @@ import inspect
 import time
 import json
 import msgpack
-from concurrent.futures import ThreadPoolExecutor
 import threading
 import math
-import asyncio
-from typing import Any
 
 import boto3
 import botocore
@@ -36,42 +33,24 @@ from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
 
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
-INITIAL_MESSAGE_VISIBILITY = 120  # seconds
-MESSAGE_RENEWAL_PERIOD = 60  # seconds
+MAXIMUM_MESSAGE_VISIBILITY = 60 * 60 * 12  # 12 hours is the maximum message visibility
 
 local_cache = {
-    "api": None,
-    "job": None,
+    "api_spec": None,
+    "job_spec": None,
     "provider": None,
     "predictor_impl": None,
     "predict_route": None,
     "client": None,
     "class_set": set(),
-    "sqs": None,
+    "sqs_client": None,
 }
-
-
-class PeriodicGeneratorRunner:
-    def __init__(self, interval, func, *args, **kwargs):
-        self.interval = interval
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-        self.generator = self.func(*self.args, **self.kwargs)
-
-    def start(self):
-        self.timer = threading.Timer(self.interval, self.start)
-        self.timer.start()
-        next(self.generator)
-
-    def stop(self):
-        self.timer.cancel()
 
 
 def dimensions():
     return [
-        {"Name": "APIName", "Value": local_cache["api"].name},
-        {"Name": "JobID", "Value": local_cache["job"]["job_id"]},
+        {"Name": "APIName", "Value": local_cache["api_spec"].name},
+        {"Name": "JobID", "Value": local_cache["job_spec"]["job_id"]},
     ]
 
 
@@ -85,17 +64,6 @@ def failed_counter_metric():
 
 def time_per_batch_metric(total_time_seconds):
     return {"MetricName": "TimePerBatch", "Dimensions": dimensions(), "Value": total_time_seconds}
-
-
-def update_api_liveness():
-    threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
-    with open("/mnt/workspace/api_liveness.txt", "w") as f:
-        f.write(str(math.ceil(time.time())))
-
-
-def startup():
-    open("/mnt/workspace/api_readiness.txt", "a").close()
-    update_api_liveness()
 
 
 def build_predict_args(payload, batch_id):
@@ -112,27 +80,6 @@ def build_predict_args(payload, batch_id):
     return args
 
 
-def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval, *args, **kwargs):
-    new_timeout = initial_offset + interval
-    while True:
-        yield
-        try:
-            local_cache["sqs"].change_message_visibility(
-                QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
-            )
-        except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] == "InvalidParameterValue":
-                continue
-            elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
-                cx_logger().info(
-                    "failed to renew message visibility because the queue was not found"
-                )
-            else:
-                raise e
-
-        new_timeout += interval
-
-
 def get_job_spec(storage, cache_dir, job_spec_path):
     local_spec_path = os.path.join(cache_dir, "job_spec.json")
     _, key = S3.deconstruct_s3_path(job_spec_path)
@@ -142,8 +89,8 @@ def get_job_spec(storage, cache_dir, job_spec_path):
 
 
 def get_total_messages_in_queue():
-    sqs_client = local_cache["sqs"]
-    job_spec = local_cache["job"]
+    sqs_client = local_cache["sqs_client"]
+    job_spec = local_cache["job_spec"]
     queue_url = job_spec["sqs_url"]
 
     attributes = sqs_client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
@@ -155,20 +102,19 @@ def get_total_messages_in_queue():
 
 
 def handle_on_complete(message):
-    job_spec = local_cache["job"]
+    job_spec = local_cache["job_spec"]
     predictor_impl = local_cache["predictor_impl"]
-    sqs_client = local_cache["sqs"]
+    sqs_client = local_cache["sqs_client"]
     queue_url = job_spec["sqs_url"]
     receipt_handle = message["ReceiptHandle"]
-
-    total_message_visibility = INITIAL_MESSAGE_VISIBILITY
 
     try:
         if not getattr(predictor_impl, "on_job_complete", None):
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
             return
 
-        trigger_on_job_complete_next = False
+        should_run_on_job_complete = False
+
         while True:
             visible_count, not_visible_count = get_total_messages_in_queue()
 
@@ -179,28 +125,19 @@ def handle_on_complete(message):
                 )
                 return
 
-            total_in_queue = visible_count + not_visible_count
-
-            if trigger_on_job_complete_next:
+            if should_run_on_job_complete:
                 # double check that the queue is still empty (except for the job_complete message)
-                if total_in_queue <= 1:
+                if not_visible_count <= 1:
+                    cx_logger().info("executing on_job_complete")
                     predictor_impl.on_job_complete()
-                    cx_logger().info("executed on_job_complete()")
                     sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
                     return
                 else:
-                    trigger_on_job_complete_next = False
+                    should_run_on_job_complete = False
 
-            if total_in_queue == 1:
-                trigger_on_job_complete_next = True
+            if not_visible_count <= 1:
+                should_run_on_job_complete = True
 
-            # check queue state every 20 seconds (give time for queue metrics to achieve consistency)
-            total_message_visibility += 20
-            sqs_client.change_message_visibility(
-                QueueUrl=queue_url,
-                ReceiptHandle=receipt_handle,
-                VisibilityTimeout=total_message_visibility,
-            )
             time.sleep(20)
     except:
         sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
@@ -208,14 +145,12 @@ def handle_on_complete(message):
 
 
 def sqs_loop():
-    job_spec = local_cache["job"]
-    api_spec = local_cache["api"]
+    job_spec = local_cache["job_spec"]
+    api_spec = local_cache["api_spec"]
     predictor_impl = local_cache["predictor_impl"]
-    sqs_client = local_cache["sqs"]
+    sqs_client = local_cache["sqs_client"]
 
     queue_url = job_spec["sqs_url"]
-
-    open("/mnt/workspace/api_readiness.txt", "a").close()
 
     no_messages_found_in_previous_iteration = False
 
@@ -224,14 +159,14 @@ def sqs_loop():
             QueueUrl=queue_url,
             MaxNumberOfMessages=1,
             WaitTimeSeconds=10,
-            VisibilityTimeout=INITIAL_MESSAGE_VISIBILITY,
+            VisibilityTimeout=MAXIMUM_MESSAGE_VISIBILITY,
             MessageAttributeNames=["All"],
         )
 
         if response.get("Messages") is None or len(response["Messages"]) == 0:
             if no_messages_found_in_previous_iteration:
                 cx_logger().info("no batches left in queue, exiting...")
-                break
+                return
             else:
                 no_messages_found_in_previous_iteration = True
                 continue
@@ -243,22 +178,13 @@ def sqs_loop():
         receipt_handle = message["ReceiptHandle"]
 
         if "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]:
+            # sometimes on_job_complete message will be released if there are other messages still to be processed
             handle_on_complete(message)
             continue
 
-        start_time = time.time()
-
-        renewer = PeriodicGeneratorRunner(
-            MESSAGE_RENEWAL_PERIOD,
-            renew_message_visibility,
-            queue_url,
-            receipt_handle,
-            INITIAL_MESSAGE_VISIBILITY,
-            MESSAGE_RENEWAL_PERIOD,
-        )
-
-        renewer.start()
         try:
+            start_time = time.time()
+
             payload = json.loads(message["Body"])
             batch_id = message["MessageId"]
             predictor_impl.predict(**build_predict_args(payload, batch_id))
@@ -267,12 +193,11 @@ def sqs_loop():
                 [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
         except Exception:
-            cx_logger().exception("failed to process batch")
             api_spec.post_metrics(
                 [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
+            cx_logger().exception("failed to process batch")
         finally:
-            renewer.stop()
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
 
@@ -303,37 +228,28 @@ def start():
                 json.dump(used_ports, f)
                 f.truncate()
 
-    try:
-        raw_api_spec = get_spec(provider, storage, cache_dir, api_spec_path)
-        api = API(
-            provider=provider,
-            storage=storage,
-            model_dir=model_dir,
-            cache_dir=cache_dir,
-            **raw_api_spec,
-        )
+    raw_api_spec = get_spec(provider, storage, cache_dir, api_spec_path)
+    job_spec = get_job_spec(storage, cache_dir, job_spec_path)
 
-        job_spec = get_job_spec(storage, cache_dir, job_spec_path)
-        if job_spec.get("config") is not None:
-            util.merge_dicts_in_place_overwrite(
-                raw_api_spec["predictor"]["config"], job_spec["config"]
-            )
+    if job_spec.get("config") is not None:
+        util.merge_dicts_in_place_overwrite(raw_api_spec["predictor"]["config"], job_spec["config"])
 
-        client = api.predictor.initialize_client(
-            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
-        )
-        cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(project_dir, client, raw_api_spec, job_spec)
+    api = API(
+        provider=provider, storage=storage, model_dir=model_dir, cache_dir=cache_dir, **raw_api_spec
+    )
 
-        local_cache["api"] = api
-        local_cache["provider"] = provider
-        local_cache["job"] = job_spec
-        local_cache["predictor_impl"] = predictor_impl
-        local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
-        local_cache["sqs"] = boto3.client("sqs", region_name=os.environ["AWS_REGION"])
-    except:
-        cx_logger().exception("failed to start api")
-        sys.exit(1)
+    client = api.predictor.initialize_client(
+        tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+    )
+    cx_logger().info("loading the predictor from {}".format(api.predictor.path))
+    predictor_impl = api.predictor.initialize_impl(project_dir, client, raw_api_spec, job_spec)
+
+    local_cache["api_spec"] = api
+    local_cache["provider"] = provider
+    local_cache["job_spec"] = job_spec
+    local_cache["predictor_impl"] = predictor_impl
+    local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+    local_cache["sqs_client"] = boto3.client("sqs", region_name=os.environ["AWS_REGION"])
 
     cx_logger().info("polling for batches...")
     sqs_loop()

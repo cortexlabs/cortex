@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
@@ -53,7 +52,7 @@ func DryRun(submission *schema.JobSubmission) ([]string, error) {
 	if submission.FilePathLister != nil {
 		s3Files, err := listFilesDryRun(&submission.FilePathLister.S3Lister)
 		if err != nil {
-			return nil, errors.Wrap(err, userconfig.FilePathListerKey)
+			return nil, errors.Wrap(err, schema.FilePathListerKey)
 		}
 
 		return s3Files, nil
@@ -62,7 +61,7 @@ func DryRun(submission *schema.JobSubmission) ([]string, error) {
 	if submission.DelimitedFiles != nil {
 		s3Files, err := listFilesDryRun(&submission.DelimitedFiles.S3Lister)
 		if err != nil {
-			return nil, errors.Wrap(err, userconfig.DelimitedFilesKey)
+			return nil, errors.Wrap(err, schema.DelimitedFilesKey)
 		}
 
 		return s3Files, nil
@@ -77,7 +76,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	virtualService, err := getVirtualService(apiName)
+	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
 	if err != nil {
 		return nil, err
 	}
@@ -121,13 +120,19 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	err = createLogGroupForJob(jobSpec.JobKey)
+	err = createOperatorLogStreamForJob(jobSpec.JobKey)
 	if err != nil {
 		deleteQueueByURL(queueURL)
 		return nil, err
 	}
 
 	err = writeToJobLogGroup(jobSpec.JobKey, "started enqueuing batches")
+	if err != nil {
+		deleteQueueByURL(queueURL)
+		return nil, err
+	}
+
+	err = setEnqueuingStatus(jobKey)
 	if err != nil {
 		deleteQueueByURL(queueURL)
 		return nil, err
@@ -140,7 +145,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 
 func downloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
 	jobSpec := spec.Job{}
-	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.FileSpecKey())
+	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.SpecFilePath())
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
 	}
@@ -148,7 +153,7 @@ func downloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
 }
 
 func uploadJobSpec(jobSpec *spec.Job) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.FileSpecKey())
+	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath())
 	if err != nil {
 		return err
 	}

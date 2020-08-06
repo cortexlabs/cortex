@@ -52,14 +52,14 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.FileSpecKey(),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(),
 			})
 		}
 	}
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(*job.Workers),
+		Parallelism: int32(job.Workers),
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -99,14 +99,14 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.FileSpecKey(),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(),
 			})
 		}
 	}
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(*job.Workers),
+		Parallelism: int32(job.Workers),
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -147,14 +147,14 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.FileSpecKey(),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(),
 			})
 		}
 	}
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(*job.Workers),
+		Parallelism: int32(job.Workers),
 		Labels: map[string]string{
 			"apiName": api.Name,
 			"apiID":   api.ID,
@@ -201,7 +201,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiName":   api.Name,
 			"apiID":     api.ID,
 			"apiKind":   api.Kind.String(),
-			"computeID": hash.String(api.Compute.UserStr()),
+			"computeID": hash.String(api.Compute.UserStr()), // Including computeID to determine updating
 		},
 	})
 }

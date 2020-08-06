@@ -44,14 +44,6 @@ var _jobCodes = []string{
 	"status_stopped",
 }
 
-func (code JobCode) IsInProgress() bool {
-	return code == JobEnqueuing || code == JobRunning
-}
-
-func (code JobCode) IsCompleted() bool {
-	return code == JobEnqueueFailed || code == JobCompletedWithFailures || code == JobSucceeded || code == JobUnexpectedError || code == JobWorkerError || code == JobWorkerOOM || code == JobStopped
-}
-
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodes)-1)] // Ensure list length matches
 
 var _jobCodeMessages = []string{
@@ -68,6 +60,14 @@ var _jobCodeMessages = []string{
 }
 
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodeMessages)-1)] // Ensure list length matches
+
+func (code JobCode) IsInProgress() bool {
+	return code == JobEnqueuing || code == JobRunning
+}
+
+func (code JobCode) IsCompleted() bool {
+	return code == JobEnqueueFailed || code == JobCompletedWithFailures || code == JobSucceeded || code == JobUnexpectedError || code == JobWorkerError || code == JobWorkerOOM || code == JobStopped
+}
 
 func (code JobCode) String() string {
 	if int(code) < 0 || int(code) >= len(_jobCodes) {

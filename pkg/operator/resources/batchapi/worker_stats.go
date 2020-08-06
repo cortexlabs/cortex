@@ -27,51 +27,51 @@ import (
 
 const _stalledPodTimeout = 10 * time.Minute
 
-func getWorkerStatsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerStats {
+func getWorkerCountsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerCounts {
 	if k8sJob.Status.Failed > 0 {
-		return status.WorkerStats{
-			Failed: *k8sJob.Spec.Parallelism,
+		return status.WorkerCounts{
+			Failed: *k8sJob.Spec.Parallelism, // When one worker fails, the rest of the pods get deleted so you won't be able to get their statuses
 		}
 	}
 
-	workerStats := status.WorkerStats{}
+	workerCounts := status.WorkerCounts{}
 	for _, pod := range pods {
-		addPodToReplicaCounts(&pod, &workerStats)
+		addPodToWorkerCounts(&pod, &workerCounts)
 	}
 
-	return workerStats
+	return workerCounts
 }
 
-func addPodToReplicaCounts(pod *kcore.Pod, counts *status.WorkerStats) {
+func addPodToWorkerCounts(pod *kcore.Pod, workerCounts *status.WorkerCounts) {
 	if k8s.IsPodReady(pod) {
-		counts.Running++
+		workerCounts.Running++
 		return
 	}
 
 	switch k8s.GetPodStatus(pod) {
 	case k8s.PodStatusPending:
 		if time.Since(pod.CreationTimestamp.Time) > _stalledPodTimeout {
-			counts.Stalled++
+			workerCounts.Stalled++
 		} else {
-			counts.Pending++
+			workerCounts.Pending++
 		}
 	case k8s.PodStatusInitializing:
-		counts.Initializing++
+		workerCounts.Initializing++
 	case k8s.PodStatusRunning:
-		counts.Initializing++
+		workerCounts.Initializing++
 	case k8s.PodStatusErrImagePull:
-		counts.Failed++
+		workerCounts.Failed++
 	case k8s.PodStatusTerminating:
-		counts.Failed++
+		workerCounts.Failed++
 	case k8s.PodStatusFailed:
-		counts.Failed++
+		workerCounts.Failed++
 	case k8s.PodStatusKilled:
-		counts.Failed++
+		workerCounts.Failed++
 	case k8s.PodStatusKilledOOM:
-		counts.Failed++
+		workerCounts.Failed++
 	case k8s.PodStatusSucceeded:
-		counts.Succeeded++
+		workerCounts.Succeeded++
 	default:
-		counts.Unknown++
+		workerCounts.Unknown++
 	}
 }

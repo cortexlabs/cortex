@@ -215,26 +215,26 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	} else {
 		out += titleStr("worker stats")
 
-		if job.WorkerStats != nil {
+		if job.WorkerCounts != nil {
 			t := table.Table{
 				Headers: []table.Header{
 					{Title: "requested"},
-					{Title: "pending", Hidden: job.WorkerStats.Pending == 0},
-					{Title: "initializing", Hidden: job.WorkerStats.Initializing == 0},
-					{Title: "stalled", Hidden: job.WorkerStats.Stalled == 0},
+					{Title: "pending", Hidden: job.WorkerCounts.Pending == 0},
+					{Title: "initializing", Hidden: job.WorkerCounts.Initializing == 0},
+					{Title: "stalled", Hidden: job.WorkerCounts.Stalled == 0},
 					{Title: "running"},
-					{Title: "failed", Hidden: job.WorkerStats.Failed == 0},
+					{Title: "failed", Hidden: job.WorkerCounts.Failed == 0},
 					{Title: "succeeded"},
 				},
 				Rows: [][]interface{}{
 					{
-						*job.Workers,
-						job.WorkerStats.Pending,
-						job.WorkerStats.Initializing,
-						job.WorkerStats.Stalled,
-						job.WorkerStats.Running,
-						job.WorkerStats.Failed,
-						job.WorkerStats.Succeeded,
+						job.Workers,
+						job.WorkerCounts.Pending,
+						job.WorkerCounts.Initializing,
+						job.WorkerCounts.Stalled,
+						job.WorkerCounts.Running,
+						job.WorkerCounts.Failed,
+						job.WorkerCounts.Succeeded,
 					},
 				},
 			}

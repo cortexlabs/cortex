@@ -16,7 +16,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
-    config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
+    config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overriden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/python-predictor-cpu or cortexlabs/python-predictor-gpu based on compute)
     env: <string: string>  # dictionary of environment variables
@@ -30,7 +30,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [parallelism](parallelism.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [compute](compute.md), [networking](networking.md), and [overriding API images](system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -47,9 +47,7 @@ See additional documentation for [parallelism](parallelism.md), [compute](comput
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
-    processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
-    threads_per_process: <int>  # the number of threads per process (default: 1)
-    config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
+    config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overriden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
     tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: cortexlabs/tensorflow-serving-gpu or cortexlabs/tensorflow-serving-cpu based on compute)
@@ -64,7 +62,7 @@ See additional documentation for [parallelism](parallelism.md), [compute](comput
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [parallelism](parallelism.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [compute](compute.md), [networking](networking.md), and [overriding API images](system-packages.md).
 
 ## ONNX Predictor
 
@@ -80,9 +78,7 @@ See additional documentation for [parallelism](parallelism.md), [compute](comput
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
-    processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
-    threads_per_process: <int>  # the number of threads per process (default: 1)
-    config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
+    config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overriden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-gpu or cortexlabs/onnx-predictor-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
@@ -95,4 +91,4 @@ See additional documentation for [parallelism](parallelism.md), [compute](comput
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [parallelism](parallelism.md), [compute](compute.md), [networking](networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](system-packages.md).
+See additional documentation for [compute](compute.md), [networking](networking.md), and [overriding API images](system-packages.md).

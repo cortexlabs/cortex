@@ -35,13 +35,13 @@ func (j JobKey) UserString() string {
 	return fmt.Sprintf("%s (%s api)", j.ID, j.APIName)
 }
 
-// e.g. /jobs/<cortex version>/<api name>/<job id>/spec.json
-func (j JobKey) FileSpecKey() string {
-	return path.Join(j.PrefixKey(), "spec.json")
+// e.g. /jobs/<cortex version>/<api_name>/<job_id>/spec.json
+func (j JobKey) SpecFilePath() string {
+	return path.Join(j.Prefix(), "spec.json")
 }
 
 // e.g. /jobs/<cortex version>/<api_name>/<job_id>
-func (j JobKey) PrefixKey() string {
+func (j JobKey) Prefix() string {
 	return s.EnsureSuffix(path.Join(BatchAPIJobPrefix(j.APIName), j.ID), "/")
 }
 
@@ -50,7 +50,7 @@ func (j JobKey) K8sName() string {
 }
 
 type RuntimeJobConfig struct {
-	Workers *int                   `json:"workers,omitifempty"`
+	Workers int                    `json:"workers"`
 	Config  map[string]interface{} `json:"config"`
 }
 

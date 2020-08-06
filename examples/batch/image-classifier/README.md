@@ -11,6 +11,7 @@ This example shows how to deploy a batch image classification api that accepts a
 1. Create a Python file `predictor.py`.
 1. Define a Predictor class with a constructor that loads and initializes a model.
 1. Add a predict function that will accept a list of images urls, downloads them, performs inference and writes the prediction to S3.
+1. After the batch job is done, it aggregates the results into a single file and writes it to S3.
 
 ```python
 # predictor.py
@@ -42,6 +43,7 @@ class PythonPredictor:
         ).text.split("\n")[1:]
 
         self.s3 = boto3.client("s3")
+
         self.bucket = config["bucket"]
         self.key = os.path.join(config["key"], job_spec["job_id"])
 
@@ -93,7 +95,7 @@ You can skip dependencies that are [pre-installed](../../../docs/deployments/pre
 
 ## Configure your API
 
-Create a `cortex.yaml` file and add the configuration below and replace `cortex-examples` with your S3 bucket. An `api` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve real-time predictions:
+Create a `cortex.yaml` file and add the configuration below. An `api` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
@@ -141,6 +143,8 @@ endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
 
 ## Submit a Job
 
+Before submitting a job, you must need to specify where you should write the output to.
+
 ```bash
 $ curl http://localhost:8888/batch/image-classifier \
 -X POST -H "Content-Type: application/json" \
@@ -153,6 +157,9 @@ $ curl http://localhost:8888/batch/image-classifier \
             "https://i.imgur.com/E4cOSLw.jpg"
         ],
         "batch_size": 1
+    },
+    "config": {
+        "s3_dir": "s3://cortex-vishal/job_testing"
     }
 }
 BODY
@@ -203,8 +210,6 @@ requested   initializing   running   failed   succeeded
 1           1              0         0        0
 
 job endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier/69da5bd5b2f87258
-
-results dir (if used): s3://<YOUR_BUCKET>/job_results/image-classifier/69da5bd5b2f87258
 ```
 
 Take note of `results dir` and the `job endpoint`. The `job_endpoint` is a url join of your batch api endpoint and job id: `<batch_api_endpoint>/<job_id>` You can make a GET request to endpoint to get the same information:

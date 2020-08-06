@@ -93,15 +93,4 @@ const (
 	MaxUpscaleFactorAnnotationKey             = "autoscaling.cortex.dev/max-upscale-factor"
 	DownscaleToleranceAnnotationKey           = "autoscaling.cortex.dev/downscale-tolerance"
 	UpscaleToleranceAnnotationKey             = "autoscaling.cortex.dev/upscale-tolerance"
-
-	// Job Submission
-	BatchSizeKey      = "batch_size"
-	ItemsKey          = "items"
-	ItemListKey       = "item_list"
-	FilePathListerKey = "file_path_lister"
-	DelimitedFilesKey = "delimited_files"
-	S3PathsKey        = "s3_paths"
-	IncludesKey       = "includes"
-	ExcludesKey       = "exludes"
-	WorkersKey        = "workers"
 )

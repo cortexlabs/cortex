@@ -29,31 +29,53 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func logGroupNameForJob(jobKey spec.JobKey) string {
-	return fmt.Sprintf("%s/%s.%s", config.Cluster.LogGroup, jobKey.APIName, jobKey.ID)
+func logGroupNameForAPI(apiName string) string {
+	return fmt.Sprintf("%s/%s", config.Cluster.LogGroup, apiName)
 }
 
-func createLogGroupForJob(jobKey spec.JobKey) error {
+func logGroupNameForJob(jobKey spec.JobKey) string {
+	return logGroupNameForAPI(jobKey.APIName)
+}
+
+func operatorLogStream(jobKey spec.JobKey) string {
+	return fmt.Sprintf("%s_%s", jobKey.ID, _operatorService)
+}
+
+// Checks if log group exists before creating it
+func createLogGroupForAPI(apiName string) error {
 	tags := map[string]string{
-		"apiName": jobKey.APIName,
-		"jobID":   jobKey.ID,
+		"apiName": apiName,
 	}
 
 	for key, value := range config.Cluster.Tags {
 		tags[key] = value
 	}
 
-	_, err := config.AWS.CloudWatchLogs().CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
-		LogGroupName: aws.String(logGroupNameForJob(jobKey)),
-		Tags:         aws.StringMap(tags),
+	output, err := config.AWS.CloudWatchLogs().DescribeLogGroups(&cloudwatchlogs.DescribeLogGroupsInput{
+		Limit:              aws.Int64(1),
+		LogGroupNamePrefix: aws.String(logGroupNameForAPI(apiName)),
 	})
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	_, err = config.AWS.CloudWatchLogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
+	if len(output.LogGroups) == 0 {
+		_, err := config.AWS.CloudWatchLogs().CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
+			LogGroupName: aws.String(apiName),
+			Tags:         aws.StringMap(tags),
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	return nil
+}
+
+func createOperatorLogStreamForJob(jobKey spec.JobKey) error {
+	_, err := config.AWS.CloudWatchLogs().CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroupNameForJob(jobKey)),
-		LogStreamName: aws.String(_operatorService),
+		LogStreamName: aws.String(operatorLogStream(jobKey)),
 	})
 	if err != nil {
 		return errors.WithStack(err)
@@ -65,14 +87,14 @@ func createLogGroupForJob(jobKey spec.JobKey) error {
 func writeToJobLogGroup(jobKey spec.JobKey, logLine string, logLines ...string) error {
 	logStreams, err := config.AWS.CloudWatchLogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(logGroupNameForJob(jobKey)),
-		LogStreamNamePrefix: aws.String(_operatorService),
+		LogStreamNamePrefix: aws.String(operatorLogStream(jobKey)),
 	})
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	if len(logStreams.LogStreams) == 0 {
-		return errors.ErrorUnexpected(fmt.Sprintf("unable to find log stream named '%s' in log group %s", _operatorService, logGroupNameForJob(jobKey)))
+		return errors.ErrorUnexpected(fmt.Sprintf("unable to find log stream named '%s' in log group %s", operatorLogStream(jobKey), logGroupNameForJob(jobKey)))
 	}
 
 	logLines = append([]string{logLine}, logLines...)
@@ -89,7 +111,7 @@ func writeToJobLogGroup(jobKey spec.JobKey, logLine string, logLines ...string) 
 
 	_, err = config.AWS.CloudWatchLogs().PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
 		LogGroupName:  aws.String(logGroupNameForJob(jobKey)),
-		LogStreamName: aws.String(_operatorService),
+		LogStreamName: aws.String(operatorLogStream(jobKey)),
 		LogEvents:     inputLogEvents,
 		SequenceToken: logStreams.LogStreams[0].UploadSequenceToken,
 	},
