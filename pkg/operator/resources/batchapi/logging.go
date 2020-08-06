@@ -84,7 +84,7 @@ func createOperatorLogStreamForJob(jobKey spec.JobKey) error {
 	return nil
 }
 
-func writeToJobLogGroup(jobKey spec.JobKey, logLine string, logLines ...string) error {
+func writeToJobLogStream(jobKey spec.JobKey, logLine string, logLines ...string) error {
 	logStreams, err := config.AWS.CloudWatchLogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(logGroupNameForJob(jobKey)),
 		LogStreamNamePrefix: aws.String(operatorLogStream(jobKey)),

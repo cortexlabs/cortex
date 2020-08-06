@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -93,7 +92,41 @@ func ManageJobResources() error {
 
 		k8sJob := k8sJobMap[jobKey.ID]
 
-		err := reconcileInProgressJob(jobKey, queueURL, k8sJob)
+		jobState, err := getJobState(jobKey)
+		if err != nil {
+			return err
+		}
+
+		if !jobState.Status.IsInProgress() {
+			// best effort cleanup
+			err := errors.FirstError(
+				deleteInProgressFile(jobKey),
+				deleteJobRuntimeResources(jobKey),
+			)
+			if err != nil {
+				telemetry.Error(err)
+				errors.PrintError(err)
+			}
+		}
+
+		newStatusCode, msg, err := reconcileInProgressJob(jobState, queueURL, k8sJob)
+		if err != nil {
+			telemetry.Error(err)
+			errors.PrintError(err)
+		}
+
+		if newStatusCode != jobState.Status {
+			err = errors.FirstError(
+				writeToJobLogStream(jobKey, msg),
+				setStatusForJob(jobKey, newStatusCode),
+			)
+			if err != nil {
+				telemetry.Error(err)
+				errors.PrintError(err)
+			}
+		}
+
+		err = checkJobCompletion(jobKey, *queueURL, k8sJob)
 		if err != nil {
 			telemetry.Error(err)
 			errors.PrintError(err)
@@ -151,81 +184,63 @@ func ManageJobResources() error {
 	return nil
 }
 
-func reconcileInProgressJob(jobKey spec.JobKey, queueURL *string, k8sJob *kbatch.Job) error {
-	jobState, err := getJobState(jobKey)
-	if err != nil {
-		return err
-	}
-
+// verifies that queue exists for an in progress job and k8s job exists for a job in running status, if verification fails return the a job code to reflect the state
+func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch.Job) (status.JobCode, string, error) {
+	jobKey := jobState.JobKey
 	if !jobState.Status.IsInProgress() {
 		// best effort cleanup
-		return errors.FirstError(
-			deleteInProgressFile(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
+		return jobState.Status, "", nil
 	}
 
 	if queueURL == nil {
 		if time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) <= _doesQueueExistGracePeriod {
-			return nil
+			return jobState.Status, "", nil
 		}
 
 		expectedQueueURL, err := getJobQueueURL(jobKey)
 		if err != nil {
-			return err
+			return jobState.Status, "", err
 		}
 
 		// unexpected queue missing error
-		return errors.FirstError(
-			writeToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), expectedQueueURL)),
-			setUnexpectedErrorStatus(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
+		return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), expectedQueueURL), nil
 	}
 
 	if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_EnqueuingLivenessFile]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
-		return errors.FirstError(
-			writeToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString())),
-			setEnqueueFailedStatus(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
+		return status.JobEnqueueFailed, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()), nil
 	}
 
 	if jobState.Status == status.JobRunning {
 		if time.Now().Sub(jobState.LastUpdatedMap[status.JobRunning.String()]) <= _k8sJobExistenceGracePeriod {
-			return nil
+			return jobState.Status, "", nil
 		}
 
 		if k8sJob == nil { // unexpected k8s job missing
-			return errors.FirstError(
-				writeToJobLogGroup(jobKey, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobKey.UserString())),
-				setUnexpectedErrorStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		}
-
-		err := checkJobCompletion(jobKey, *queueURL, k8sJob)
-		if err != nil {
-			return err
+			return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobKey.UserString()), nil
 		}
 	}
 
-	return nil
+	return jobState.Status, "", nil
 }
 
 func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {
+	if int(k8sJob.Status.Failed) > 0 {
+		return investigateJobFailure(jobKey, k8sJob)
+	}
+
 	queueMetrics, err := getQueueMetricsFromURL(queueURL)
 	if err != nil {
 		return err
-
 	}
 
-	if !queueMetrics.IsEmpty() {
+	if !queueMetrics.IsEmpty() { // Give time for queue metrics to reach
 		if int(k8sJob.Status.Active) == 0 {
-			return investigateJobFailure(jobKey, k8sJob)
+			if jobsToDelete.Has(jobKey.ID) {
+				jobsToDelete.Remove(jobKey.ID)
+				return investigateJobFailure(jobKey, k8sJob)
+			}
+			jobsToDelete.Add(jobKey.ID)
 		}
-
-		return nil
 	}
 
 	batchMetrics, err := getRealTimeBatchMetrics(jobKey)
@@ -236,10 +251,6 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 	jobSpec, err := downloadJobSpec(jobKey)
 	if err != nil {
 		return err
-	}
-
-	if int(k8sJob.Status.Failed) > 0 {
-		return investigateJobFailure(jobKey, k8sJob)
 	}
 
 	if jobSpec.TotalBatchCount == batchMetrics.TotalCompleted() {
@@ -260,7 +271,7 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 	if jobsToDelete.Has(jobKey.ID) {
 		jobsToDelete.Remove(jobKey.ID)
 		return errors.FirstError(
-			writeToJobLogGroup(jobKey, "unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress"),
+			writeToJobLogStream(jobKey, "unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress"),
 			setUnexpectedErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
@@ -279,23 +290,22 @@ func investigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 	for _, pod := range pods {
 		if k8s.WasPodOOMKilled(&pod) {
 			return errors.FirstError(
-				writeToJobLogGroup(jobKey, "at least one worker was killed because it ran out of out of memory"),
+				writeToJobLogStream(jobKey, "at least one worker was killed because it ran out of out of memory"),
 				setWorkerOOMStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
 			)
 		}
 		podStatus := k8s.GetPodStatus(&pod)
-		debug.Pp(podStatus)
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.LastTerminationState.Terminated != nil {
 				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
 				reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-				writeToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+				writeToJobLogStream(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
 				reasonFound = true
 			} else if containerStatus.State.Terminated != nil {
 				exitCode := containerStatus.State.Terminated.ExitCode
 				reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-				writeToJobLogGroup(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
+				writeToJobLogStream(jobKey, fmt.Sprintf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode))
 				reasonFound = true
 			}
 		}
@@ -303,7 +313,8 @@ func investigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 
 	var err error
 	if !reasonFound {
-		err = writeToJobLogGroup(jobKey, "workers were killed for unknown reason")
+		errors.PrintStacktrace(ErrorNoDataFoundInJobSubmission())
+		err = writeToJobLogStream(jobKey, "workers were killed for unknown reason")
 	}
 
 	return errors.FirstError(

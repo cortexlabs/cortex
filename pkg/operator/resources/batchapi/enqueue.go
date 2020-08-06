@@ -110,7 +110,7 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 		batchCount++
 	}
 
-	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(itemList.Items), batchCount, *itemList.BatchSize))
+	writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(itemList.Items), batchCount, *itemList.BatchSize))
 
 	uploader := newSQSBatchUploader(jobSpec.SQSUrl)
 
@@ -137,7 +137,7 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 			return 0, errors.Wrap(err, fmt.Sprintf("items with index between %d to %d", min, max))
 		}
 		if uploader.TotalBatches%100 == 0 {
-			writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
+			writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
 		}
 	}
 
@@ -165,7 +165,7 @@ func enqueueS3Paths(jobSpec *spec.Job, s3PathsLister *schema.FilePathLister) (in
 			s3PathList = nil
 
 			if uploader.TotalBatches%100 == 0 {
-				writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
+				writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
 			}
 		}
 
@@ -234,7 +234,7 @@ func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFi
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	err := s3IteratorFromLister(delimitedFiles.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
-		writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueuing contents from file %s", s3Path))
+		writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("enqueuing contents from file %s", s3Path))
 
 		itemIndex := 0
 		err := config.AWS.S3FileIterator(bucket, s3Obj, _S3DownloadChunkSize, func(readCloser io.ReadCloser, isLastChunk bool) (bool, error) {
@@ -303,7 +303,7 @@ func streamJSONToQueue(jobSpec *spec.Job, uploader *sqsBatchUploader, bytesBuffe
 			jsonMessageList.Clear()
 
 			if uploader.TotalBatches%100 == 0 {
-				writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
+				writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("enqueued %d batches", uploader.TotalBatches))
 			}
 		}
 	}

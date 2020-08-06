@@ -111,7 +111,7 @@ def handle_on_complete(message):
     try:
         if not getattr(predictor_impl, "on_job_complete", None):
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-            return
+            return True
 
         should_run_on_job_complete = False
 
@@ -123,7 +123,7 @@ def handle_on_complete(message):
                 sqs_client.change_message_visibility(
                     QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=0
                 )
-                return
+                return False
 
             if should_run_on_job_complete:
                 # double check that the queue is still empty (except for the job_complete message)
@@ -131,7 +131,7 @@ def handle_on_complete(message):
                     cx_logger().info("executing on_job_complete")
                     predictor_impl.on_job_complete()
                     sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-                    return
+                    return True
                 else:
                     should_run_on_job_complete = False
 
@@ -178,9 +178,12 @@ def sqs_loop():
         receipt_handle = message["ReceiptHandle"]
 
         if "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]:
-            # sometimes on_job_complete message will be released if there are other messages still to be processed
-            handle_on_complete(message)
-            continue
+            handled_on_complete = handle_on_complete(message)
+            if handled_on_complete:
+                return
+            else:
+                # sometimes on_job_complete message will be released if there are other messages still to be processed
+                continue
 
         try:
             start_time = time.time()

@@ -94,7 +94,7 @@ func validateJobSubmission(submission *schema.JobSubmission) error {
 	}
 
 	if submission.FilePathLister != nil {
-		err := validateS3Lister(&submission.DelimitedFiles.S3Lister)
+		err := validateS3Lister(&submission.FilePathLister.S3Lister)
 		if err != nil {
 			return errors.Wrap(err, schema.FilePathListerKey)
 		}

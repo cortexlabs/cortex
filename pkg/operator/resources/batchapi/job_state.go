@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -173,6 +172,30 @@ func getMostRecentlySubmittedJobStates(apiName string, count int) ([]*JobState, 
 	return jobStates, nil
 }
 
+func setStatusForJob(jobKey spec.JobKey, jobStatus status.JobCode) error {
+	switch jobStatus {
+	case status.JobEnqueuing:
+		return setEnqueuingStatus(jobKey)
+	case status.JobRunning:
+		return setRunningStatus(jobKey)
+	case status.JobEnqueueFailed:
+		return setEnqueueFailedStatus(jobKey)
+	case status.JobCompletedWithFailures:
+		return setCompletedWithFailuresStatus(jobKey)
+	case status.JobSucceeded:
+		return setSucceededStatus(jobKey)
+	case status.JobUnexpectedError:
+		return setUnexpectedErrorStatus(jobKey)
+	case status.JobWorkerError:
+		return setWorkerErrorStatus(jobKey)
+	case status.JobWorkerOOM:
+		return setWorkerOOMStatus(jobKey)
+	case status.JobStopped:
+		return setStoppedStatus(jobKey)
+	}
+	return nil
+}
+
 func setEnqueuingStatus(jobKey spec.JobKey) error {
 	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(), status.JobEnqueuing.String()))
 	if err != nil {
@@ -299,29 +322,47 @@ func setUnexpectedErrorStatus(jobKey spec.JobKey) error {
 	return nil
 }
 
-func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
-	jobKey := jobState.JobKey
+func getJobStatusFromJobState(initialJobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
+	jobKey := initialJobState.JobKey
 
 	jobSpec, err := downloadJobSpec(jobKey)
 	if err != nil {
 		return nil, err
 	}
 
-	statusCode := jobState.Status
+	latestJobState := initialJobState
+
+	if initialJobState.Status.IsInProgress() {
+		queueURL, err := getJobQueueURL(jobKey)
+		if err != nil {
+			return nil, err
+		}
+
+		latestJobCode, _, err := reconcileInProgressJob(initialJobState, &queueURL, k8sJob)
+		if err != nil {
+			return nil, err
+		}
+
+		if latestJobCode != initialJobState.Status {
+			err := setStatusForJob(jobKey, latestJobCode)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		latestJobState, err = getJobState(jobKey)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	jobStatus := status.JobStatus{
 		Job:     *jobSpec,
-		EndTime: jobState.EndTime,
-		Status:  statusCode,
+		EndTime: latestJobState.EndTime,
+		Status:  latestJobState.Status,
 	}
 
-	jobState, err := getJobState(jobKey)
-	if err != nil {
-		return nil, err
-	}
-
-	debug.Pp(jobState)
-	if statusCode.IsInProgress() {
+	if latestJobState.Status.IsInProgress() {
 		queueMetrics, err := getQueueMetrics(jobKey)
 		if err != nil {
 			return nil, err
@@ -329,11 +370,11 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 
 		jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
 
-		if statusCode == status.JobEnqueuing {
+		if latestJobState.Status == status.JobEnqueuing {
 			jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
 		}
 
-		if statusCode == status.JobRunning {
+		if latestJobState.Status == status.JobRunning {
 			metrics, err := getRealTimeBatchMetrics(jobKey)
 			if err != nil {
 				return nil, err
@@ -346,7 +387,7 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 					return nil, err
 				}
 
-				writeToJobLogGroup(jobKey, fmt.Sprintf("unexpected: kubernetes job not found"))
+				writeToJobLogStream(jobKey, fmt.Sprintf("unexpected: kubernetes job not found"))
 				deleteJobRuntimeResources(jobKey)
 
 				jobStatus.Status = status.JobUnexpectedError
@@ -358,8 +399,8 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 		}
 	}
 
-	if statusCode.IsCompleted() {
-		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *jobState.EndTime)
+	if latestJobState.Status.IsCompleted() {
+		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *latestJobState.EndTime)
 		if err != nil {
 			return nil, err
 		}
@@ -370,20 +411,13 @@ func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kco
 }
 
 func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
-	queueURL, err := getJobQueueURL(jobKey)
+	jobState, err := getJobState(jobKey)
 	if err != nil {
 		return nil, err
 	}
 
 	var k8sJob *kbatch.Job
 	k8sJob, err = config.K8s.GetJob(jobKey.K8sName())
-	if err != nil {
-		return nil, err
-	}
-
-	reconcileInProgressJob(jobKey, &queueURL, k8sJob)
-
-	jobState, err := getJobState(jobKey)
 	if err != nil {
 		return nil, err
 	}
@@ -397,13 +431,6 @@ func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
 }
 
 func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
-	queueURL, err := getJobQueueURL(jobKey)
-	if err != nil {
-		return nil, err
-	}
-
-	reconcileInProgressJob(jobKey, &queueURL, k8sJob)
-
 	jobState, err := getJobState(jobKey)
 	if err != nil {
 		return nil, err

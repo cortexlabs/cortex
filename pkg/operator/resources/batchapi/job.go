@@ -126,13 +126,13 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	err = writeToJobLogGroup(jobSpec.JobKey, "started enqueuing batches")
+	err = setEnqueuingStatus(jobKey)
 	if err != nil {
 		deleteQueueByURL(queueURL)
 		return nil, err
 	}
 
-	err = setEnqueuingStatus(jobKey)
+	err = writeToJobLogStream(jobSpec.JobKey, "started enqueuing batches")
 	if err != nil {
 		deleteQueueByURL(queueURL)
 		return nil, err
@@ -164,7 +164,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 	totalBatches, err := enqueue(jobSpec, submission)
 	if err != nil {
 		err := errors.FirstError(
-			writeToJobLogGroup(jobSpec.JobKey, errors.Wrap(err, "failed to enqueue all batches").Error()),
+			writeToJobLogStream(jobSpec.JobKey, errors.Wrap(err, "failed to enqueue all batches").Error()),
 			setEnqueueFailedStatus(jobSpec.JobKey),
 			deleteJobRuntimeResources(jobSpec.JobKey),
 		)
@@ -177,9 +177,9 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 
 	if totalBatches == 0 {
 		var errs []error
-		writeToJobLogGroup(jobSpec.JobKey, ErrorNoDataFoundInJobSubmission().Error())
+		writeToJobLogStream(jobSpec.JobKey, ErrorNoDataFoundInJobSubmission().Error())
 		if submission.DelimitedFiles != nil {
-			errs = append(errs, writeToJobLogGroup(jobSpec.JobKey, "please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission"))
+			errs = append(errs, writeToJobLogStream(jobSpec.JobKey, "please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission"))
 		}
 		errs = append(errs, setEnqueueFailedStatus(jobSpec.JobKey))
 		errs = append(errs, deleteJobRuntimeResources(jobSpec.JobKey))
@@ -192,7 +192,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		return
 	}
 
-	writeToJobLogGroup(jobSpec.JobKey, fmt.Sprintf("completed enqueuing a total of %d batches", totalBatches), "spinning up workers...")
+	writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("completed enqueuing a total of %d batches", totalBatches), "spinning up workers...")
 
 	jobSpec.TotalBatchCount = totalBatches
 
@@ -216,7 +216,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 	err := errors.FirstError(
-		writeToJobLogGroup(jobKey, jobErr.Error()),
+		writeToJobLogStream(jobKey, jobErr.Error()),
 		setUnexpectedErrorStatus(jobKey),
 		deleteJobRuntimeResources(jobKey),
 	)
@@ -276,7 +276,7 @@ func StopJob(jobKey spec.JobKey) error {
 		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
 	}
 
-	writeToJobLogGroup(jobKey, "request received to stop job; performing cleanup...")
+	writeToJobLogStream(jobKey, "request received to stop job; performing cleanup...")
 	return errors.FirstError(
 		deleteJobRuntimeResources(jobKey),
 		setStoppedStatus(jobKey),
