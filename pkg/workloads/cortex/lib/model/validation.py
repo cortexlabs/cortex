@@ -17,6 +17,7 @@ from typing import List
 
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.log import cx_logger
+from cortex.lib.exceptions import CortexException
 from cortex.lib.model import ModelsTree
 from cortex.lib.api import (
     PythonPredictorType,
@@ -110,9 +111,6 @@ SinglePlaceholder = TemplatePlaceholder(
 ExclAlternativePlaceholder = TemplatePlaceholder(
     "exclusive"
 )  # can either be this template xor anything else at the same level
-UniquePlaceholder = TemplatePlaceholder(
-    "unique"
-)  # like AnyPlaceholder, but cannot have subfolders (means that it's either a file or a directory)
 
 
 # to be used when predictor:model_path or predictor:models:paths is used
@@ -154,21 +152,21 @@ def json_model_template_representation(model_template) -> dict:
         return str(model_template)
 
 
-def dirs_model_pattern(predictor_type: PredictorType) -> dict:
+def dir_models_pattern(predictor_type: PredictorType) -> dict:
     """
     To be used when predictor:models:dir in cortex.yaml is used.
     """
-    return {UniquePlaceholder: model_template[predictor_type]}
+    return {SinglePlaceholder: model_template[predictor_type]}
 
 
-def model_pattern(predictor_type: PredictorType) -> dict:
+def single_model_pattern(predictor_type: PredictorType) -> dict:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
     """
     return model_template[predictor_type]
 
 
-def validate_s3_models_dir_paths(s3_top_paths: List[str], predictor_type: PredictorType) -> dict:
+def validate_s3_models_dir_paths(s3_top_paths: List[str], predictor_type: PredictorType) -> list:
     """
     To be used when predictor:models:dir in cortex.yaml is used.
     """
@@ -177,8 +175,67 @@ def validate_s3_models_dir_paths(s3_top_paths: List[str], predictor_type: Predic
     return {}
 
 
-def validate_s3_model_paths(s3_path: List[str], predictor_type: PredictorType) -> dict:
+def validate_s3_model_paths(s3_paths: List[str], predictor_type: PredictorType) -> list:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
     """
-    return {}
+    pattern = single_model_pattern(predictor_type)
+    keys = pattern.keys()
+    paths = os.path.relpath(s3_paths, os.path.commonprefix(s3_paths))
+    objects = [get_leftmost_part_of_path(path) for path in paths]
+    visited_objects = len(objects) * [False]
+
+    for key in keys:
+        if key == IntegerPlaceholder:
+            validate_integer_placeholder(keys, objects, visited_objects)
+        elif key == AnyPlaceholder:
+            validate_any_placeholder(keys, objects, visited_objects)
+        elif key == SinglePlaceholder:
+            validate_single_placeholder(keys, objects, visited_objects)
+        elif key == PlaceholderGroup(""):
+            validate_group_placeholder(keys, objects, visited_objects)
+        elif key == ExclAlternativePlaceholder:
+            validate_exclusive_placeholder(keys, objects, visited_objects)
+        else:
+            return []
+
+
+def get_leftmost_part_of_path(path: str) -> str:
+    basename = ""
+    while rel_path:
+        rel_path, basename = os.path.split(rel_path)
+    return basename
+
+
+def validate_integer_placeholder(
+    placeholders: list, objects: List[str], visited: List[bool]
+) -> None:
+    appearances = 0
+    for idx, obj in enumerate(objects):
+        if obj.isnumeric():
+            visited[idx] = True
+            appearances += 1
+
+    if appearances > 1 and len(placeholders) == 1:
+        raise CortexException()
+
+
+def validate_any_placeholder(placeholders: list, objects: List[str], visited: List[bool]) -> None:
+    visited = len(visited) * [True]
+
+
+def validate_single_placeholder(
+    placeholders: list, objects: List[str], visited: List[bool]
+) -> None:
+    if len(placeholders) > 1 or len(objects) > 1:
+        raise CortexException()
+
+
+def validate_group_placeholder(placeholders: list, objects: List[str], visited: List[bool]) -> None:
+    pass
+
+
+def validate_exclusive_placeholder(
+    placeholders: list, objects: List[str], visited: List[bool]
+) -> None:
+    pass
