@@ -522,7 +522,7 @@ func serverSideBatchingValidation() *cr.StructFieldValidation {
 					Int32Validation: &cr.Int32Validation{
 						Required:             true,
 						GreaterThanOrEqualTo: pointer.Int32(2),
-						LessThanOrEqualTo:    pointer.Int32(1024),
+						LessThanOrEqualTo:    pointer.Int32(1024), // this is an arbitrary limit
 					},
 				},
 				{
@@ -745,10 +745,10 @@ func validateTensorFlowPredictor(api *userconfig.API, providerType types.Provide
 
 	if predictor.ServerSideBatching != nil {
 		if api.Compute.Inf == 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
-			return ErrorInsufficientBatchConcurrencyLevel()
+			return ErrorInsufficientBatchConcurrencyLevel(predictor.ServerSideBatching.MaxBatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
 		}
 		if api.Compute.Inf > 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ThreadsPerProcess {
-			return ErrorInsufficientBatchConcurrencyLevelInf()
+			return ErrorInsufficientBatchConcurrencyLevelInf(predictor.ServerSideBatching.MaxBatchSize, predictor.ThreadsPerProcess)
 		}
 	}
 

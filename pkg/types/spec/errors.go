@@ -361,22 +361,22 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	})
 }
 
-func ErrorInsufficientBatchConcurrencyLevel() error {
+func ErrorInsufficientBatchConcurrencyLevel(maxBatchSize int32, processesPerReplica int32, threadsPerProcess int32) error {
 	return errors.WithStack(&errors.Error{
 		Kind: ErrInsufficientBatchConcurrencyLevel,
 		Message: fmt.Sprintf(
-			"%s must be greater than or equal to %s * %s",
-			userconfig.MaxBatchSizeKey, userconfig.ProcessesPerReplicaKey, userconfig.ThreadsPerProcessKey,
+			"%s (%d) must be less than or equal to %s * %s (%d * %d = %d)",
+			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ProcessesPerReplicaKey, userconfig.ThreadsPerProcessKey, processesPerReplica, threadsPerProcess, processesPerReplica*threadsPerProcess,
 		),
 	})
 }
 
-func ErrorInsufficientBatchConcurrencyLevelInf() error {
+func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerProcess int32) error {
 	return errors.WithStack(&errors.Error{
 		Kind: ErrInsufficientBatchConcurrencyLevelInf,
 		Message: fmt.Sprintf(
-			"%s must be greater than or equal to %s",
-			userconfig.MaxBatchSizeKey, userconfig.ThreadsPerProcessKey,
+			"%s (%d) must be less than or equal to %s (%d)",
+			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ThreadsPerProcessKey, threadsPerProcess,
 		),
 	})
 }

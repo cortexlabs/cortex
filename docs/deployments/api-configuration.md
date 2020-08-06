@@ -67,9 +67,9 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
-    server_side_batching: # (optional)
-      max_batch_size: <int> # the number of samples that will be propagated transparently through the model in one go
-      batch_interval: <duration> # the time to wait before executing a batch of samples aggregated from multiple requests
+    server_side_batching:  # (optional)
+      max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
+      batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on a request
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)

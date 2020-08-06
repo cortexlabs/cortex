@@ -12,17 +12,17 @@ Replica parallelism can be configured with the following fields in the `predicto
 
 `processes_per_replica` * `threads_per_process` represents the total number of requests that your replica can work on concurrently. For example, if `processes_per_replica` is 2 and `threads_per_process` is 2, and the replica was hit with 5 concurrent requests, 4 would immediately begin to be processed, and 1 would be waiting for a thread to become available. If the replica were hit with 3 concurrent requests, all three would begin processing immediately.
 
-## Batching
+## Server-side batching
 
-Server-side batching is the process of aggregating multiple requests into one. Once a threshold is hit, it runs the inference on the received samples and then returns the responses back to the clients. The threshold can either be based on a maximum number of requests (or samples) that can be aggregated together or can be interval-based. This process is totally transparent to the user. The benefit of server-side batching is that it increases the throughput at the expense of latency.
+Server-side batching is the process of aggregating multiple real-time requests into a single batch inference, which increases throughput at the expense of latency. Inference is triggered when either a maximum number of requests have been received, or when a certain amount of time has passed since receiving the first request, whichever comes first. Once a threshold is reached, inference is run on the received requests and responses are returned individually back to the clients. This process is transparent to the clients.
 
-The [TensorFlow Predictor](predictors.md#tensorflow-predictor) also allows for the use of the following 2 fields in the `server_side_batching` configuration:
+The [TensorFlow Predictor](predictors.md#tensorflow-predictor) allows for the use of the following 2 fields in the `server_side_batching` configuration:
 
-* `max_batch_size`: Maximum batch size when aggregating multiple requests in one. Looking at the TensorFlow Predictor's implementation, it still appears like a single prediction is made. This is an instrument for controlling the throughput. The maximum size can be achieved if `batch_interval` is big enough to collect all requests.
+* `max_batch_size`: The maximum number of requests to aggregate before running inference. This is an instrument for controlling throughput. The maximum size can be achieved if `batch_interval` is long enough to collect `max_batch_size` requests.
 
-* `batch_interval`: How many seconds the API replica should wait to fill a batch with requests. If the batch's size `max_batch_size` isn't fulfilled in `batch_interval` seconds, then just run the predictions on what it's got at that moment. This is an instrument for controlling the latency.
+* `batch_interval`: The maximum amount of time to spend waiting for additional requests before running inference on a request. If fewer than `max_batch_size` requests are received after waiting the full `batch_interval`, then inference will run on the requests that have been received. This is an instrument for controlling latency.
 
-In order for batches to be enabled on your API, the model(s)'(s) graph must be built such that batches can be accepted as input/output. The following is an example of how the input `x` and the output `y` of the graph would have to be shaped to be compatible with batching on Cortex.
+In order to use server-side batching, the model's graph must be built such that batches can be accepted as input/output. The following is an example of how the input `x` and the output `y` of the graph could be shaped to be compatible with server-side batching:
 
 ```python
 batch_size = None
@@ -38,17 +38,15 @@ with graph.as_default():
 
 ### Optimization
 
+When optimizing for both throughput and latency, you will likely want keep the `max_batch_size` to a relatively small value. Even though a higher `max_batch_size` with a low `batch_interval` (when there are many requests coming in) can offer a significantly higher throughput, the overall latency could be quite large. The reason is that for a request to get back a response, it has to wait until the entire batch is processed, which means that the added latency due to the `batch_interval` can pale in comparison. For instance, let's assume that a single prediction takes 50ms, and that when the batch size is set to 128, the processing time for a batch is 1280ms (i.e. 10ms per sample). So while the throughput is now 5 times higher, it takes 1280ms + `batch_interval` to get back a response (instead of 50ms). This is the trade-off with server-side batching.
+
 When optimizing for maximum throughput, a good rule of thumb is to follow these steps:
 
-1. Find the maximum throughput of one API replica when the `max_batch_size` is not set (same as if `max_batch_size` were set to 1).
-1. Determine the highest `batch_interval` with which you are still comfortable for your application. Keep in mind that the batch timeout is not the only component of the overall latency - the inference on the batch also has to take place.
-1. Multiply the maximum throughput you got with `batch_interval`. The result is a number which you can assign to `max_batch_size`. If the model fails operating with that batch size (when it runs out of video or RAM memory), then reduce it to a level that's still works. Reduce `batch_interval` by as many times as you had to reduce `max_batch_size` from its initial calculation.
+1. Determine the maximum throughput of one API replica when `server_side_batching` is not enabled (same as if `max_batch_size` were set to 1). This can be done with a load test (make sure to set `max_replicas` to 1 to disable autoscaling).
+1. Determine the highest `batch_interval` with which you are still comfortable for your application. Keep in mind that the batch timeout is not the only component of the overall latency - the inference on the batch and the pre/post processing also have to occur.
+1. Multiply the maximum throughput from step 1 by the `batch_interval` from step 2. The result is a number which you can assign to `max_batch_size`.
+1. Run the load test again. If the inference fails with that batch size (e.g. due to running out of GPU or RAM memory), then reduce `max_batch_size` to a level that works (reduce `batch_interval` by the same factor).
+1. Use the load test to determine the peak throughput of the API replica. Multiply the observed throughput by the `batch_interval` to calculate the average batch size. If the average batch size coincides with `max_batch_size`, then it might mean that the throughput could still be further increased by increasing `max_batch_size`. If it's lower, then it means that `batch_interval` is triggering the inference before `max_batch_size` requests have been aggregated. If modifying both `max_batch_size` and `batch_interval` doesn't improve the throughput, then the service may be bottlenecked by something else (e.g. CPU, network IO, `processes_per_replica`, `threads_per_process`, etc).
 
 <!-- CORTEX_VERSION_MINOR x1 -->
-A batching example for the TensorFlow Predictor that has been benchmarked is found in [ResNet50 in TensorFlow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/image-classifier-resnet50#throughput-test).
-
-#### Throughput/latency trade-off
-
-To effectively determine what's the average batch size while serving, test an API replica for its throughput and multiply it with `batch_interval`. If the determined average batch size coincides with `max_batch_size`, then it might mean that the throughput could still be further increased by increasing `max_batch_size`. If it's lower, then it means `batch_interval` is reining in the tail latency. If modifying both fields `max_batch_size` and `batch_interval` doesn't improve the throughput, then it might mean that the service is bottlenecked by something else (i.e. CPU, network IO, `processes_per_replica`, `threads_per_process`, etc).
-
-When optimizing for both throughput and latency, try to keep the `max_batch_size` to small values. Even though a higher `max_batch_size` (i.e. 256) with a low `batch_interval` (in case there are many requests coming in) can offer a significantly higher throughput, the overall latency would be quite big. The reason is that for a request to get back a response, it has to wait until the whole batch is processed (i.e. 256 samples), which means that the value of `batch_interval` can pale in comparison. For instance, let's assume that a single prediction takes 50ms. When the batch size is set to a high value such as 128, the processing time per prediction within a batch can be 10ms, whereas the whole batch comes in at 1280ms. So when the throughput has been tweaked to be 50ms/10ms times higher, you have to wait 1280ms instead of 50ms to get back a response. This is the trade-off with batching.
+An example of server-side batching for the TensorFlow Predictor that has been benchmarked is found in [ResNet50 in TensorFlow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/image-classifier-resnet50#throughput-test).
