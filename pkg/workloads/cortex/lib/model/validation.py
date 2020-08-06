@@ -33,7 +33,7 @@ class TemplatePlaceholder(collections.namedtuple("TemplatePlaceholder", "placeho
     Placeholder type that denotes an operation, a text placeholder, etc.
     """
 
-    def __new__(cls, placeholder):
+    def __new__(cls, placeholder: str):
         return super(cls, TemplatePlaceholder).__new__(cls, "<" + placeholder + ">")
 
     def __str__(self) -> str:
@@ -53,9 +53,11 @@ class GenericPlaceholder(collections.namedtuple("GenericPlaceholder", "placehold
 
     Can hold any value.
     Can be of one type only: generic.
+
+    Accessible properties: value and placeholder.
     """
 
-    def __new__(cls, value):
+    def __new__(cls, value: str):
         return super(cls, GenericPlaceholder).__new__(cls, "<generic>", value)
 
     def __eq__(self, other) -> bool:
@@ -121,37 +123,62 @@ model_template = {
             AnyPlaceholder: None,
             GenericPlaceholder("saved_model.pb"): None,
             GenericPlaceholder("variables"): {
-                GenericPlaceholder("variables.index"),
-                PlaceholderGroup(GenericPlaceholder("variables.data-00000-of-"), AnyPlaceholder),
-                AnyPlaceholder,
+                GenericPlaceholder("variables.index"): None,
+                PlaceholderGroup(
+                    GenericPlaceholder("variables.data-00000-of-"), AnyPlaceholder
+                ): None,
+                AnyPlaceholder: None,
             },
         },
     },
     ONNXPredictorType: {
-        IntegerPlaceholder: {PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")),},
+        IntegerPlaceholder: {
+            PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+        },
         PlaceholderGroup(
             ExclAlternativePlaceholder, SinglePlaceholder, GenericPlaceholder(".onnx")
         ): None,
     },
 }
 
-# to be used when predictor:models:dir is used
+
+def json_model_template_representation(model_template) -> dict:
+    dct = {}
+    if model_template is None:
+        return None
+    if isinstance(model_template, dict):
+        for key in model_template:
+            dct[str(key)] = json_model_template_representation(model_template[key])
+        return dct
+    else:
+        return str(model_template)
+
+
 def dirs_model_pattern(predictor_type: PredictorType) -> dict:
+    """
+    To be used when predictor:models:dir in cortex.yaml is used.
+    """
     return {UniquePlaceholder: model_template[predictor_type]}
 
 
-# to be used when predictor:model_path or predictor:models:paths is used
 def model_pattern(predictor_type: PredictorType) -> dict:
+    """
+    To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
+    """
     return model_template[predictor_type]
 
 
-# to be used when predictor:models:dir is used
-def models_tree_from_s3_top_paths(s3_top_paths: List[str], predictor_type: PredictorType) -> dict:
+def validate_s3_models_dir_paths(s3_top_paths: List[str], predictor_type: PredictorType) -> dict:
+    """
+    To be used when predictor:models:dir in cortex.yaml is used.
+    """
     for s3_top_path in s3_top_paths:
         model_name = os.path.dirname(s3_top_path)
     return {}
 
 
-# to be used when predictor:model_path or predictor:models:paths is used
-def models_tree_from_s3_path(s3_path: List[str], predictor_type: PredictorType) -> dict:
+def validate_s3_model_paths(s3_path: List[str], predictor_type: PredictorType) -> dict:
+    """
+    To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
+    """
     return {}
