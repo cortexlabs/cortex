@@ -113,8 +113,8 @@ IntegerPlaceholder = TemplatePlaceholder("integer", priority=1)  # the path name
 SinglePlaceholder = TemplatePlaceholder(
     "single", priority=2
 )  # can only have a single occurrence of this, but its name can take any form
-ExclAlternativePlaceholder = TemplatePlaceholder(
-    "exclusive", priority=3
+OneOfAllPlaceholder = TemplatePlaceholder(
+    "oneofall", priority=-1
 )  # can either be this template xor anything else at the same level
 AnyPlaceholder = TemplatePlaceholder(
     "any", priority=4
@@ -138,12 +138,14 @@ model_template = {
         },
     },
     ONNXPredictorType: {
-        IntegerPlaceholder: {
+        OneOfAllPlaceholder: {
+            IntegerPlaceholder: {
+                PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+            },
+        }
+        OneOfAllPlaceholder: {
             PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
         },
-        PlaceholderGroup(
-            ExclAlternativePlaceholder, SinglePlaceholder, GenericPlaceholder(".onnx")
-        ): None,
     },
 }
 
@@ -236,8 +238,8 @@ def validate_s3_model_paths(
                     validate_generic_placeholder(keys, key_id, objects, visited_objects, key)
                 elif isinstance(key, PlaceholderGroup):
                     validate_group_placeholder(keys, key_id, objects, visited_objects)
-                elif key == ExclAlternativePlaceholder:
-                    validate_exclusive_placeholder(keys, key_id, objects, visited_objects)
+                elif key == OneOfAllPlaceholder:
+                    validate_oneofall_placeholder(keys, key_id, objects, visited_objects)
                 else:
                     raise CortexException("found a non-placeholder object in model template")
         except CortexException as e:
@@ -330,7 +332,7 @@ def validate_group_placeholder(
     pass
 
 
-def validate_exclusive_placeholder(
+def validate_oneofall_placeholder(
     placeholders: list, key_id: int, objects: List[str], visited: list
 ) -> None:
     pass
