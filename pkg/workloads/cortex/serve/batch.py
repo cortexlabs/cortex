@@ -180,12 +180,15 @@ def sqs_loop():
         if "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]:
             handled_on_complete = handle_on_complete(message)
             if handled_on_complete:
+                cx_logger().info("no batches left in queue, job has been completed")
                 return
             else:
                 # sometimes on_job_complete message will be released if there are other messages still to be processed
                 continue
 
         try:
+            cx_logger().info(f"processing batch {message['MessageId']}")
+
             start_time = time.time()
 
             payload = json.loads(message["Body"])

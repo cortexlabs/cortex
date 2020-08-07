@@ -43,14 +43,6 @@ func operatorLogStream(jobKey spec.JobKey) string {
 
 // Checks if log group exists before creating it
 func createLogGroupForAPI(apiName string) error {
-	tags := map[string]string{
-		"apiName": apiName,
-	}
-
-	for key, value := range config.Cluster.Tags {
-		tags[key] = value
-	}
-
 	output, err := config.AWS.CloudWatchLogs().DescribeLogGroups(&cloudwatchlogs.DescribeLogGroupsInput{
 		Limit:              aws.Int64(1),
 		LogGroupNamePrefix: aws.String(logGroupNameForAPI(apiName)),
@@ -62,7 +54,7 @@ func createLogGroupForAPI(apiName string) error {
 	if len(output.LogGroups) == 0 {
 		_, err := config.AWS.CloudWatchLogs().CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
 			LogGroupName: aws.String(apiName),
-			Tags:         aws.StringMap(tags),
+			Tags:         aws.StringMap(config.Cluster.Tags),
 		})
 		if err != nil {
 			return errors.WithStack(err)

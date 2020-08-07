@@ -338,13 +338,16 @@ func getJobStatusFromJobState(initialJobState *JobState, k8sJob *kbatch.Job, pod
 			return nil, err
 		}
 
-		latestJobCode, _, err := reconcileInProgressJob(initialJobState, &queueURL, k8sJob)
+		latestJobCode, message, err := reconcileInProgressJob(initialJobState, &queueURL, k8sJob)
 		if err != nil {
 			return nil, err
 		}
 
 		if latestJobCode != initialJobState.Status {
-			err := setStatusForJob(jobKey, latestJobCode)
+			err := errors.FirstError(
+				writeToJobLogStream(jobKey, message),
+				setStatusForJob(jobKey, latestJobCode),
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -416,8 +419,7 @@ func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
 		return nil, err
 	}
 
-	var k8sJob *kbatch.Job
-	k8sJob, err = config.K8s.GetJob(jobKey.K8sName())
+	k8sJob, err := config.K8s.GetJob(jobKey.K8sName())
 	if err != nil {
 		return nil, err
 	}

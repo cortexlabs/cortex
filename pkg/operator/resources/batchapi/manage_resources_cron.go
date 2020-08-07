@@ -94,7 +94,11 @@ func ManageJobResources() error {
 
 		jobState, err := getJobState(jobKey)
 		if err != nil {
-			return err
+			if err != nil {
+				telemetry.Error(err)
+				errors.PrintError(err)
+				continue
+			}
 		}
 
 		if !jobState.Status.IsInProgress() {
@@ -106,6 +110,7 @@ func ManageJobResources() error {
 			if err != nil {
 				telemetry.Error(err)
 				errors.PrintError(err)
+				continue
 			}
 		}
 
@@ -113,6 +118,7 @@ func ManageJobResources() error {
 		if err != nil {
 			telemetry.Error(err)
 			errors.PrintError(err)
+			continue
 		}
 
 		if newStatusCode != jobState.Status {
@@ -123,10 +129,11 @@ func ManageJobResources() error {
 			if err != nil {
 				telemetry.Error(err)
 				errors.PrintError(err)
+				continue
 			}
 		}
 
-		err = checkJobCompletion(jobKey, *queueURL, k8sJob)
+		err = checkIfJobCompleted(jobKey, *queueURL, k8sJob)
 		if err != nil {
 			telemetry.Error(err)
 			errors.PrintError(err)
@@ -187,8 +194,8 @@ func ManageJobResources() error {
 // verifies that queue exists for an in progress job and k8s job exists for a job in running status, if verification fails return the a job code to reflect the state
 func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch.Job) (status.JobCode, string, error) {
 	jobKey := jobState.JobKey
+
 	if !jobState.Status.IsInProgress() {
-		// best effort cleanup
 		return jobState.Status, "", nil
 	}
 
@@ -223,24 +230,27 @@ func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch
 	return jobState.Status, "", nil
 }
 
-func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {
+func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {
 	if int(k8sJob.Status.Failed) > 0 {
 		return investigateJobFailure(jobKey, k8sJob)
 	}
 
-	queueMetrics, err := getQueueMetricsFromURL(queueURL)
+	queueMessages, err := getQueueMetricsFromURL(queueURL)
 	if err != nil {
 		return err
 	}
 
-	if !queueMetrics.IsEmpty() { // Give time for queue metrics to reach
+	if !queueMessages.IsEmpty() {
+		// Give time for queue metrics to reach consistency
 		if int(k8sJob.Status.Active) == 0 {
 			if jobsToDelete.Has(jobKey.ID) {
 				jobsToDelete.Remove(jobKey.ID)
 				return investigateJobFailure(jobKey, k8sJob)
 			}
 			jobsToDelete.Add(jobKey.ID)
+			return nil
 		}
+		return nil
 	}
 
 	batchMetrics, err := getRealTimeBatchMetrics(jobKey)
@@ -254,6 +264,7 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 	}
 
 	if jobSpec.TotalBatchCount == batchMetrics.TotalCompleted() {
+		jobsToDelete.Remove(jobKey.ID)
 		if batchMetrics.Failed != 0 {
 			return errors.FirstError(
 				setCompletedWithFailuresStatus(jobKey),
@@ -261,7 +272,6 @@ func checkJobCompletion(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job)
 			)
 		}
 
-		jobsToDelete.Remove(jobKey.ID)
 		return errors.FirstError(
 			setSucceededStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
