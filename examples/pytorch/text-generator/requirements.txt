@@ -1,2 +1,2 @@
 torch
-transformers==2.11.*
+transformers==3.0.*
