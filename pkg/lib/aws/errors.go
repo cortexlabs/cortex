@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -36,6 +37,8 @@ const (
 	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
 	ErrReadCredentials              = "aws.read_credentials"
 	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
+	ErrDashboardWidthOutOfRange     = "aws.dashboard_width_ouf_of_range"
+	ErrDashboardHeightOutOfRange    = "aws.dashboard_height_out_of_range"
 )
 
 func IsNotFoundErr(err error) bool {
@@ -43,15 +46,11 @@ func IsNotFoundErr(err error) bool {
 }
 
 func IsNoSuchKeyErr(err error) bool {
-	return IsErrCode(err, "NoSuchKey")
+	return IsErrCode(err, s3.ErrCodeNoSuchKey)
 }
 
 func IsNoSuchBucketErr(err error) bool {
-	return IsErrCode(err, "NoSuchBucket")
-}
-
-func IsForbiddenErr(err error) bool {
-	return IsErrCode(err, "Forbidden")
+	return IsErrCode(err, s3.ErrCodeNoSuchBucket)
 }
 
 func IsGenericNotFoundErr(err error) bool {
@@ -154,5 +153,19 @@ func ErrorECRExtractingCredentials() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrECRExtractingCredentials,
 		Message: "unable to extract ECR credentials",
+	})
+}
+
+func ErrorDashboardWidthOutOfRange(width int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDashboardWidthOutOfRange,
+		Message: fmt.Sprintf("dashboard width %d out of range; width must be between %d and %d", width, _dashboardMinWidthUnits, _dashboardMaxWidthUnits),
+	})
+}
+
+func ErrorDashboardHeightOutOfRange(height int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDashboardHeightOutOfRange,
+		Message: fmt.Sprintf("dashboard height %d out of range; height must be between %d and %d", height, _dashboardMinHeightUnits, _dashboardMaxHeightUnits),
 	})
 }

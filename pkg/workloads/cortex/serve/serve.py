@@ -28,21 +28,15 @@ from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, PlainTextResponse, JSONResponse
 from starlette.background import BackgroundTasks
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from cortex import consts
 from cortex.lib import util
 from cortex.lib.type import API, get_spec
 from cortex.lib.log import cx_logger
 from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import UserRuntimeException
-
-if os.environ["CORTEX_VERSION"] != consts.CORTEX_VERSION:
-    errMsg = f"your Cortex operator version ({os.environ['CORTEX_VERSION']}) doesn't match your predictor image version ({consts.CORTEX_VERSION}); please update your predictor image by modifying the `image` field in your API configuration file (e.g. cortex.yaml) and re-running `cortex deploy`, or update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update"
-    raise ValueError(errMsg)
-
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
@@ -166,9 +160,15 @@ async def parse_payload(request: Request, call_next):
     if content_type.startswith("multipart/form") or content_type.startswith(
         "application/x-www-form-urlencoded"
     ):
-        request.state.payload = await request.form()
+        try:
+            request.state.payload = await request.form()
+        except Exception as e:
+            return PlainTextResponse(content=str(e), status_code=400)
     elif content_type.startswith("application/json"):
-        request.state.payload = await request.json()
+        try:
+            request.state.payload = await request.json()
+        except json.JSONDecodeError as e:
+            return JSONResponse(content={"error": str(e)}, status_code=400)
     else:
         request.state.payload = await request.body()
 
@@ -285,7 +285,7 @@ def start_fn():
             **raw_api_spec,
         )
         client = api.predictor.initialize_client(
-            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port,
+            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
         cx_logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)

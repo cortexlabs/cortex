@@ -18,11 +18,13 @@ package resources
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -35,32 +37,43 @@ import (
 
 type ProjectFiles struct {
 	ProjectByteMap map[string][]byte
-	ConfigFilePath string
+	ConfigFileName string
 }
 
-func (projectFiles ProjectFiles) GetAllPaths() []string {
-	files := make([]string, len(projectFiles.ProjectByteMap))
-
-	i := 0
+func (projectFiles ProjectFiles) AllPaths() []string {
+	files := make([]string, 0, len(projectFiles.ProjectByteMap))
 	for path := range projectFiles.ProjectByteMap {
-		files[i] = path
-		i++
+		files = append(files, path)
 	}
-
 	return files
 }
 
-func (projectFiles ProjectFiles) GetFile(fileName string) ([]byte, error) {
-	bytes, ok := projectFiles.ProjectByteMap[fileName]
+func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {
+	bytes, ok := projectFiles.ProjectByteMap[path]
 	if !ok {
-		return nil, files.ErrorFileDoesNotExist(fileName)
+		return nil, files.ErrorFileDoesNotExist(path)
 	}
-
 	return bytes, nil
 }
 
-func (projectFiles ProjectFiles) GetConfigFilePath() string {
-	return projectFiles.ConfigFilePath
+func (projectFiles ProjectFiles) HasFile(path string) bool {
+	_, ok := projectFiles.ProjectByteMap[path]
+	return ok
+}
+
+func (projectFiles ProjectFiles) HasDir(path string) bool {
+	path = s.EnsureSuffix(path, "/")
+	for projectFilePath := range projectFiles.ProjectByteMap {
+		if strings.HasPrefix(projectFilePath, path) {
+			return true
+		}
+	}
+	return false
+}
+
+// This should not be called, since it's only relevant for the local environment
+func (projectFiles ProjectFiles) ProjectDir() string {
+	return "./"
 }
 
 func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
@@ -75,26 +88,38 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 	didPrintWarning := false
 
+	withoutAPISplitter := InclusiveFilterAPIsByKind(apis, userconfig.SyncAPIKind)
 	for i := range apis {
 		api := &apis[i]
-		if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
-			return err
-		}
-		if err := validateK8s(api, virtualServices, maxMem); err != nil {
-			return err
-		}
+		if api.Kind == userconfig.SyncAPIKind {
+			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
+			if err := validateK8s(api, virtualServices, maxMem); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
 
-		if !didPrintWarning && api.Networking.LocalPort != nil {
-			fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
-			didPrintWarning = true
+			if !didPrintWarning && api.Networking.LocalPort != nil {
+				fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
+				didPrintWarning = true
+			}
+		}
+		if api.Kind == userconfig.APISplitterKind {
+			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
+			if err := checkIfAPIExists(api.APIs, withoutAPISplitter); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
+			if err := validateEndpointCollisions(api, virtualServices); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
 		}
 	}
-
 	dups := spec.FindDuplicateNames(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateName(dups)
 	}
-
 	dups = findDuplicateEndpoints(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateEndpointInOneDeploy(dups)
@@ -103,7 +128,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	return nil
 }
 
-func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem *kresource.Quantity) error {
+func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem kresource.Quantity) error {
 	if err := validateK8sCompute(api.Compute, maxMem); err != nil {
 		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
 	}
@@ -141,7 +166,7 @@ var _nvidiaMemReserve = kresource.MustParse("100Mi")
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
-func validateK8sCompute(compute *userconfig.Compute, maxMem *kresource.Quantity) error {
+func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -210,9 +235,9 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	return nil
 }
 
-func getValidationK8sResources() ([]istioclientnetworking.VirtualService, *kresource.Quantity, error) {
+func getValidationK8sResources() ([]istioclientnetworking.VirtualService, kresource.Quantity, error) {
 	var virtualServices []istioclientnetworking.VirtualService
-	var maxMem *kresource.Quantity
+	var maxMem kresource.Quantity
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -228,4 +253,55 @@ func getValidationK8sResources() ([]istioclientnetworking.VirtualService, *kreso
 	)
 
 	return virtualServices, maxMem, err
+}
+
+// InclusiveFilterAPIsByKind includes only provided Kinds
+func InclusiveFilterAPIsByKind(apis []userconfig.API, kindsToInclude ...userconfig.Kind) []userconfig.API {
+	kindsToIncludeSet := strset.New()
+	for _, kind := range kindsToInclude {
+		kindsToIncludeSet.Add(kind.String())
+	}
+	fileredAPIs := []userconfig.API{}
+	for _, api := range apis {
+		if kindsToIncludeSet.Has(api.Kind.String()) {
+			fileredAPIs = append(fileredAPIs, api)
+		}
+	}
+	return fileredAPIs
+}
+
+// checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
+func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API) error {
+	deployedSyncAPIs, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.SyncAPIKind.String())
+	if err != nil {
+		return err
+	}
+
+	var missingAPIs []string
+	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
+	for _, trafficSplitAPI := range trafficSplitterAPIs {
+		deployed := false
+		//check if already deployed
+		for _, deployedSyncAPI := range deployedSyncAPIs {
+			// API resources in k8s are prefixed with api-
+			// to compare we need to prepend api- to the trafficSplitterAPIs
+			if operator.K8sName(trafficSplitAPI.Name) == deployedSyncAPI.Name {
+				deployed = true
+			}
+		}
+		// check defined apis
+		for _, definedAPI := range apis {
+			if trafficSplitAPI.Name == definedAPI.Name {
+				deployed = true
+			}
+		}
+		if deployed == false {
+			missingAPIs = append(missingAPIs, trafficSplitAPI.Name)
+		}
+	}
+	if len(missingAPIs) != 0 {
+		return ErrorNotDeployedAPIsAPISplitter(missingAPIs)
+	}
+	return nil
+
 }

@@ -132,7 +132,7 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			inter = make(map[interface{}]interface{}, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return []error{ErrorCannotBeNull(v.Required)}
+				return []error{ErrorCannotBeEmptyOrNull(v.Required)}
 			}
 			return nil
 		}
@@ -376,7 +376,7 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 			inter = make([]interface{}, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return nil, []error{ErrorCannotBeNull(v.Required)}
+				return nil, []error{ErrorCannotBeEmptyOrNull(v.Required)}
 			}
 			return nil, nil
 		}
@@ -413,7 +413,7 @@ func InterfaceStruct(inter interface{}, v *InterfaceStructValidation) (interface
 			inter = make(map[interface{}]interface{}, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return nil, []error{ErrorCannotBeNull(v.Required)}
+				return nil, []error{ErrorCannotBeEmptyOrNull(v.Required)}
 			}
 			return nil, nil
 		}
@@ -496,7 +496,7 @@ func InterfaceStructList(dest interface{}, inter interface{}, v *InterfaceStruct
 			inter = make([]interface{}, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return nil, []error{ErrorCannotBeNull(v.Required)}
+				return nil, []error{ErrorCannotBeEmptyOrNull(v.Required)}
 			}
 			return nil, nil
 		}
@@ -694,7 +694,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 			strMap = make(map[string]string, 0)
 		} else {
 			if !v.AllowExplicitNull {
-				return []error{ErrorCannotBeNull(v.Required)}
+				return []error{ErrorCannotBeEmptyOrNull(v.Required)}
 			}
 			return nil
 		}

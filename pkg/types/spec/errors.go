@@ -44,6 +44,8 @@ const (
 	ErrSurgeAndUnavailableBothZero          = "spec.surge_and_unavailable_both_zero"
 	ErrFileNotFound                         = "spec.file_not_found"
 	ErrDirIsEmpty                           = "spec.dir_is_empty"
+	ErrMustBeRelativeProjectPath            = "spec.must_be_relative_project_path"
+	ErrPythonPathNotFound                   = "spec.python_path_not_found"
 	ErrS3FileNotFound                       = "spec.s3_file_not_found"
 	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
 	ErrInvalidNeuronTensorFlowDir           = "operator.invalid_neuron_tensorflow_dir"
@@ -63,6 +65,9 @@ const (
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
+	ErrIncorrectAPISplitterWeight           = "spec.incorrect_api_splitter_weight"
+	ErrAPISplitterNotSupported              = "spec.apisplitter_not_supported"
+	ErrAPISplitterAPIsNotUnique             = "spec.apisplitter_apis_not_unique"
 )
 
 func ErrorMalformedConfig() error {
@@ -82,7 +87,7 @@ func ErrorNoAPIs() error {
 func ErrorDuplicateName(apis []userconfig.API) error {
 	filePaths := strset.New()
 	for _, api := range apis {
-		filePaths.Add(api.FilePath)
+		filePaths.Add(api.FileName)
 	}
 
 	return errors.WithStack(&errors.Error{
@@ -193,6 +198,20 @@ func ErrorDirIsEmpty(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDirIsEmpty,
 		Message: fmt.Sprintf("%s: directory is empty", path),
+	})
+}
+
+func ErrorMustBeRelativeProjectPath(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMustBeRelativeProjectPath,
+		Message: fmt.Sprintf("%s: must be a relative path (relative to the directory containing your API configuration file)", path),
+	})
+}
+
+func ErrorPythonPathNotFound(pythonPath string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrPythonPathNotFound,
+		Message: fmt.Sprintf("%s: path does not exist, or has been excluded from your project directory", pythonPath),
 	})
 }
 
@@ -337,5 +356,26 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfInfs,
 		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
+	})
+}
+
+func ErrorIncorrectAPISplitterWeightTotal(totalWeight int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIncorrectAPISplitterWeight,
+		Message: fmt.Sprintf("expected api splitter weights to sum to 100 but found %d", totalWeight),
+	})
+}
+
+func ErrorAPISplitterNotSupported() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPISplitterNotSupported,
+		Message: fmt.Sprintf("kind APISplitter is not supported for local provider"),
+	})
+}
+
+func ErrorAPISplitterAPIsNotUnique(names []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPISplitterAPIsNotUnique,
+		Message: fmt.Sprintf("api splitter %s not unique: %s", s.PluralS("API", len(names)), s.StrsSentence(names, "")),
 	})
 }

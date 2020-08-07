@@ -27,7 +27,7 @@ import (
 func Deploy(w http.ResponseWriter, r *http.Request) {
 	force := getOptionalBoolQParam("force", false, r)
 
-	configPath, err := getRequiredQueryParam("configPath", r)
+	configFileName, err := getRequiredQueryParam("configFileName", r)
 	if err != nil {
 		respondError(w, r, errors.WithStack(err))
 		return
@@ -48,7 +48,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := resources.Deploy(projectBytes, configPath, configBytes, force)
+	response, err := resources.Deploy(projectBytes, configFileName, configBytes, force)
 	if err != nil {
 		respondError(w, r, err)
 		return

@@ -93,9 +93,15 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_THREADS_PER_PROCESS="+s.Int32(api.Predictor.ThreadsPerProcess),
 		// add 1 because it was required to achieve the target concurrency for 1 process, 1 thread
 		"CORTEX_MAX_PROCESS_CONCURRENCY="+s.Int64(1+int64(math.Round(float64(consts.DefaultMaxReplicaConcurrency)/float64(api.Predictor.ProcessesPerReplica)))),
-		"CORTEX_SO_MAX_CONN=1000",
+		"CORTEX_SO_MAX_CONN="+s.Int64(consts.DefaultMaxReplicaConcurrency+100), // add a buffer to be safe
 		"AWS_REGION="+awsClient.Region,
 	)
+
+	cortexPythonPath := _projectDir
+	if api.Predictor.PythonPath != nil {
+		cortexPythonPath = filepath.Join(_projectDir, *api.Predictor.PythonPath)
+	}
+	envs = append(envs, "CORTEX_PYTHON_PATH="+cortexPythonPath)
 
 	if awsAccessKeyID := awsClient.AccessKeyID(); awsAccessKeyID != nil {
 		envs = append(envs, "AWS_ACCESS_KEY_ID="+*awsAccessKeyID)

@@ -34,7 +34,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -49,18 +48,21 @@ import (
 )
 
 const (
-	_titleEnvironment = "env"
-	_titleAPI         = "api"
-	_titleStatus      = "status"
-	_titleUpToDate    = "up-to-date"
-	_titleStale       = "stale"
-	_titleRequested   = "requested"
-	_titleFailed      = "failed"
-	_titleLastupdated = "last update"
-	_titleAvgRequest  = "avg request"
-	_title2XX         = "2XX"
-	_title4XX         = "4XX"
-	_title5XX         = "5XX"
+	_titleEnvironment   = "env"
+	_titleAPI           = "api"
+	_titleAPISplitter   = "api splitter"
+	_titleAPIs          = "apis"
+	_apiSplitterWeights = "weights"
+	_titleStatus        = "status"
+	_titleUpToDate      = "up-to-date"
+	_titleStale         = "stale"
+	_titleRequested     = "requested"
+	_titleFailed        = "failed"
+	_titleLastupdated   = "last update"
+	_titleAvgRequest    = "avg request"
+	_title2XX           = "2XX"
+	_title4XX           = "4XX"
+	_title5XX           = "5XX"
 )
 
 var (
@@ -80,7 +82,7 @@ var _getCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
-		if len(args) == 1 || wasEnvFlagProvided() {
+		if len(args) == 1 || wasEnvFlagProvided(cmd) {
 			env, err := ReadOrConfigureEnv(_flagGetEnv)
 			if err != nil {
 				telemetry.Event("cli.get")
@@ -98,7 +100,7 @@ var _getCmd = &cobra.Command{
 					exit.Error(err)
 				}
 
-				out, err := envStringIfNotSpecified(_flagGetEnv)
+				out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
 				if err != nil {
 					return "", err
 				}
@@ -110,13 +112,13 @@ var _getCmd = &cobra.Command{
 				return out + apiTable, nil
 			}
 
-			if wasEnvFlagProvided() {
+			if wasEnvFlagProvided(cmd) {
 				env, err := ReadOrConfigureEnv(_flagGetEnv)
 				if err != nil {
 					exit.Error(err)
 				}
 
-				out, err := envStringIfNotSpecified(_flagGetEnv)
+				out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
 				if err != nil {
 					return "", err
 				}
@@ -146,8 +148,11 @@ func getAPIsInAllEnvironments() (string, error) {
 	}
 
 	var allSyncAPIs []schema.SyncAPI
-	var allEnvs []string
+	var allAPISplitters []schema.APISplitter
+	var allEnvsSyncAPI []string
+	var allEnvsAPISplitter []string
 	errorsMap := map[string]error{}
+	// get apis from both environments
 	for _, env := range cliConfig.Environments {
 		var apisRes schema.GetAPIsResponse
 		var err error
@@ -159,34 +164,35 @@ func getAPIsInAllEnvironments() (string, error) {
 
 		if err == nil {
 			for range apisRes.SyncAPIs {
-				allEnvs = append(allEnvs, env.Name)
+				allEnvsSyncAPI = append(allEnvsSyncAPI, env.Name)
 			}
-
+			for range apisRes.APISplitter {
+				allEnvsAPISplitter = append(allEnvsAPISplitter, env.Name)
+			}
 			allSyncAPIs = append(allSyncAPIs, apisRes.SyncAPIs...)
+			if env.Provider == types.AWSProviderType {
+				allAPISplitters = append(allAPISplitters, apisRes.APISplitter...)
+			}
 		} else {
 			errorsMap[env.Name] = err
 		}
 	}
 
 	out := ""
+	var apiSplitTable table.Table
+	var syncAPITable table.Table
 
+	// build different table depending on kinds that are deployed
 	if len(allSyncAPIs) == 0 {
-		if len(errorsMap) == 1 {
-			// Print the error if there is just one
-			exit.Error(errors.FirstErrorInMap(errorsMap))
-		}
-		// if all envs errored, skip it "no apis are deployed" since it's misleading
-		if len(errorsMap) != len(cliConfig.Environments) {
-			out += console.Bold("no apis are deployed") + "\n"
-		}
+		apiSplitTable = apiSplitterListTable(allAPISplitters, allEnvsAPISplitter)
+		out = apiSplitTable.MustFormat()
+	} else if len(allAPISplitters) == 0 {
+		syncAPITable = apiTable(allSyncAPIs, allEnvsSyncAPI)
+		out = syncAPITable.MustFormat()
 	} else {
-		t := apiTable(allSyncAPIs, allEnvs)
-
-		if strset.New(allEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
-			hideReplicaCountColumns(&t)
-		}
-
-		out += t.MustFormat()
+		apiSplitTable = apiSplitterListTable(allAPISplitters, allEnvsAPISplitter)
+		syncAPITable = apiTable(allSyncAPIs, allEnvsSyncAPI)
+		out = syncAPITable.MustFormat() + "\n" + apiSplitTable.MustFormat()
 	}
 
 	if len(errorsMap) == 1 {
@@ -229,7 +235,7 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(apisRes.SyncAPIs) == 0 {
+	if len(apisRes.SyncAPIs) == 0 && len(apisRes.APISplitter) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
@@ -238,14 +244,30 @@ func getAPIs(env cliconfig.Environment, printEnv bool) (string, error) {
 		envNames = append(envNames, env.Name)
 	}
 
-	t := apiTable(apisRes.SyncAPIs, envNames)
+	var apiSplitTable table.Table
+	var syncAPITable table.Table
+	var out string
 
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-
-	out := t.MustFormat()
+	// build different table depending on kinds that are deployed
+	if len(apisRes.SyncAPIs) == 0 {
+		apiSplitTable = apiSplitterListTable(apisRes.APISplitter, envNames)
+		apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
+		out = apiSplitTable.MustFormat()
+	} else if len(apisRes.APISplitter) == 0 {
+		syncAPITable = apiTable(apisRes.SyncAPIs, envNames)
+		syncAPITable.FindHeaderByTitle(_titleEnvironment).Hidden = true
+		out = syncAPITable.MustFormat()
+	} else {
+		apiSplitTable = apiSplitterListTable(apisRes.APISplitter, envNames)
+		syncAPITable = apiTable(apisRes.SyncAPIs, envNames)
+		apiSplitTable.FindHeaderByTitle(_titleEnvironment).Hidden = true
+		syncAPITable.FindHeaderByTitle(_titleEnvironment).Hidden = true
+		out = syncAPITable.MustFormat() + "\n" + apiSplitTable.MustFormat()
+	}
 
 	if env.Provider == types.LocalProviderType {
-		hideReplicaCountColumns(&t)
+		// apisplitter not supported in local
+		hideReplicaCountColumns(&syncAPITable)
 		mismatchedVersionAPIsErrorMessage, _ := getLocalVersionMismatchedAPIsMessage()
 		if len(mismatchedVersionAPIsErrorMessage) > 0 {
 			out += "\n" + mismatchedVersionAPIsErrorMessage
@@ -292,7 +314,111 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			return "", err
 		}
 	}
-	return syncAPITable(apiRes.SyncAPI, env)
+	if apiRes.SyncAPI != nil {
+		return syncAPITable(apiRes.SyncAPI, env)
+	}
+	if apiRes.APISplitter != nil {
+		return apiSplitterTable(apiRes.APISplitter, env)
+	}
+	return "", nil
+}
+
+func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment) (string, error) {
+	var out string
+
+	lastUpdated := time.Unix(apiSplitter.Spec.LastUpdated, 0)
+	out += console.Bold("kind: ") + apiSplitter.Spec.Kind.String() + "\n\n"
+	out += console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated) + "\n\n"
+
+	t, err := trafficSplitTable(*apiSplitter, env)
+	if err != nil {
+		return "", err
+	}
+	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+
+	out += t.MustFormat()
+
+	apiEndpoint := apiSplitter.BaseURL
+	if env.Provider == types.AWSProviderType {
+		apiEndpoint = urls.Join(apiSplitter.BaseURL, *apiSplitter.Spec.Networking.Endpoint)
+		if apiSplitter.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
+		}
+	}
+
+	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
+
+	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
+
+	out += titleStr("configuration") + strings.TrimSpace(apiSplitter.Spec.UserStr(env.Provider))
+
+	return out, nil
+}
+
+func trafficSplitTable(apiSplitter schema.APISplitter, env cliconfig.Environment) (table.Table, error) {
+	rows := make([][]interface{}, 0, len(apiSplitter.Spec.APIs))
+
+	for _, api := range apiSplitter.Spec.APIs {
+		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), api.Name)
+		if err != nil {
+			return table.Table{}, err
+		}
+		lastUpdated := time.Unix(apiRes.SyncAPI.Spec.LastUpdated, 0)
+		rows = append(rows, []interface{}{
+			env.Name,
+			apiRes.SyncAPI.Spec.Name,
+			api.Weight,
+			apiRes.SyncAPI.Status.Message(),
+			apiRes.SyncAPI.Status.Requested,
+			libtime.SinceStr(&lastUpdated),
+			latencyStr(&apiRes.SyncAPI.Metrics),
+			code2XXStr(&apiRes.SyncAPI.Metrics),
+			code5XXStr(&apiRes.SyncAPI.Metrics),
+		})
+	}
+
+	return table.Table{
+		Headers: []table.Header{
+			{Title: _titleEnvironment},
+			{Title: _titleAPIs},
+			{Title: _apiSplitterWeights},
+			{Title: _titleStatus},
+			{Title: _titleRequested},
+			{Title: _titleLastupdated},
+			{Title: _titleAvgRequest},
+			{Title: _title2XX},
+			{Title: _title5XX},
+		},
+		Rows: rows,
+	}, nil
+}
+
+func apiSplitterListTable(apiSplitter []schema.APISplitter, envNames []string) table.Table {
+	rows := make([][]interface{}, 0, len(apiSplitter))
+	for i, splitAPI := range apiSplitter {
+		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
+		var apis []string
+		for _, api := range splitAPI.Spec.APIs {
+			apis = append(apis, api.Name+":"+s.Int(api.Weight))
+		}
+		apisStr := s.TruncateEllipses(strings.Join(apis, " "), 100)
+		rows = append(rows, []interface{}{
+			envNames[i],
+			splitAPI.Spec.Name,
+			apisStr,
+			libtime.SinceStr(&lastUpdated),
+		})
+	}
+
+	return table.Table{
+		Headers: []table.Header{
+			{Title: _titleEnvironment},
+			{Title: _titleAPISplitter},
+			{Title: _titleAPIs},
+			{Title: _titleLastupdated},
+		},
+		Rows: rows,
+	}
 }
 
 func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, error) {
@@ -301,6 +427,8 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 	t := apiTable([]schema.SyncAPI{*syncAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 	t.FindHeaderByTitle(_titleAPI).Hidden = true
+
+	out += console.Bold("kind: ") + syncAPI.Spec.Kind.String() + "\n\n"
 
 	out += t.MustFormat()
 
@@ -340,7 +468,6 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 
 func apiTable(syncAPIs []schema.SyncAPI, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(syncAPIs))
-
 	var totalFailed int32
 	var totalStale int32
 	var total4XX int
