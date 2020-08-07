@@ -282,7 +282,7 @@ def validate_integer_placeholder(
             visited[idx] = key_id
             appearances += 1
 
-    if appearances > 1 and len(placeholders) == 1:
+    if appearances > 1 and len(placeholders) > 0:
         raise CortexException(f"too many {IntegerPlaceholder} appearances in path")
     if appearances == 0:
         raise CortexException(f"{IntegerPlaceholder} not found in path")
