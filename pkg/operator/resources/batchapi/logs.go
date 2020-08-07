@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cache"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -32,7 +33,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/websocket"
-	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
 )
 
 const (
@@ -52,33 +52,6 @@ type fluentdLog struct {
 	Log string `json:"log"`
 }
 
-type eventCache struct {
-	size       int
-	seen       strset.Set
-	eventQueue *deque.Deque
-}
-
-func newEventCache(cacheSize int) eventCache {
-	return eventCache{
-		size:       cacheSize,
-		seen:       strset.New(),
-		eventQueue: deque.New(),
-	}
-}
-
-func (c *eventCache) Has(eventID string) bool {
-	return c.seen.Has(eventID)
-}
-
-func (c *eventCache) Add(eventID string) {
-	if c.eventQueue.Size() == c.size {
-		eventID := c.eventQueue.PopLeft().(string)
-		c.seen.Remove(eventID)
-	}
-	c.seen.Add(eventID)
-	c.eventQueue.PushRight(eventID)
-}
-
 func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	jobStatus, err := GetJobStatus(jobKey)
 	if err != nil {
@@ -92,10 +65,6 @@ func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	if jobStatus.Status.IsInProgress() {
 		go streamFromCloudWatch(jobKey, podCheckCancel, socket)
 	} else {
-		if err != nil {
-			writeAndCloseSocket(socket, "error: "+errors.Message(err))
-			return
-		}
 		go fetchLogsFromCloudWatch(jobStatus, podCheckCancel, socket)
 	}
 
@@ -152,7 +121,7 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 
 func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	logGroupName := logGroupNameForJob(jobKey)
-	eventCache := newEventCache(_maxCacheSize)
+	eventCache := cache.NewFifoCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}
 	logStreamNames := strset.New()
 	lastLogTime := time.Now()
@@ -268,10 +237,10 @@ func getLogStreams(jobKey spec.JobKey) (strset.Set, error) {
 		},
 	)
 	if err != nil {
-		if !awslib.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
-			return nil, err
+		if awslib.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
+			return strset.New(), nil
 		}
-		return nil, nil
+		return nil, err
 	}
 
 	return streams, nil
