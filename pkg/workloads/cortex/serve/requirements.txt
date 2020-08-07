@@ -7,4 +7,4 @@ numpy==1.18.4
 python-multipart==0.0.5
 pyyaml==5.3.1
 requests==2.23.0
-uvicorn==0.11.5
+uvicorn==0.11.7
