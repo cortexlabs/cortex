@@ -31,6 +31,7 @@ func AddAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayTyp
 		return nil
 	}
 
+	// TODO
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
 	// check if API Gateway route already exists
@@ -75,6 +76,7 @@ func RemoveAPIFromAPIGateway(endpoint string, apiGatewayType userconfig.APIGatew
 		return nil
 	}
 
+	// TODO
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
 	route, err := config.AWS.DeleteRoute(apiGatewayID, endpoint)

@@ -154,9 +154,11 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
-		if err != nil {
-			exit.Error(err)
+		if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+			err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
+			if err != nil {
+				exit.Error(err)
+			}
 		}
 
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
@@ -321,6 +323,7 @@ var _downCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
 
+		// if clusterConfig.APIGateway == clusterconfig.EnabledAPIGateway {
 		fmt.Print("￮ deleting api gateway ")
 		_, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
@@ -337,6 +340,7 @@ var _downCmd = &cobra.Command{
 		} else {
 			fmt.Println()
 		}
+		// }
 
 		fmt.Print("￮ deleting dashboard ")
 		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
