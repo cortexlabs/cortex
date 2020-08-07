@@ -13,8 +13,8 @@ class PythonPredictor:
 
     def predict(self, payload, query_params):
         text = payload["text"]
-        new_words_to_generate = int(query_params.get("words", 20))
-        total_words = len(text.split(" ")) + new_words_to_generate
+        num_words_to_generate = int(query_params.get("words", 20))
+        total_words = len(text.split(" ")) + num_words_to_generate
 
         tokens = self.tokenizer.encode(text, return_tensors="pt").to(self.device)
         prediction = self.model.generate(tokens, max_length=total_words, do_sample=True)
