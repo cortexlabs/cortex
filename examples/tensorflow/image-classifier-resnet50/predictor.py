@@ -4,19 +4,9 @@ import os
 import cv2
 import numpy as np
 import requests
+import imageio
 import json
 import base64
-
-
-def get_url_image(url_image):
-    """
-    Get numpy image from URL image.
-    """
-    resp = requests.get(url_image, stream=True).raw
-    image = np.asarray(bytearray(resp.read()), dtype="uint8")
-    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return image
 
 
 def decode_image(image):
@@ -57,7 +47,7 @@ class TensorFlowPredictor:
             img = payload["img"]
             img = decode_image(img)
         elif "url" in payload_keys:
-            img = get_url_image(payload["url"])
+            img = imageio.imread(payload["url"])
         else:
             return None
         img = prepare_image(img, self.input_shape, self.input_key)

@@ -30,5 +30,5 @@ The same payload `PAYLOAD` is attached to all requests the script makes.
 The [throughput_test.py](throughput_test.py) CLI has been tested with Python 3.6.9. To install the CLI's dependencies, run the following:
 
 ```bash
-pip install requests click opencv-contrib-python numpy validator-collection
+pip install requests click opencv-contrib-python numpy validator-collection imageio
 ```

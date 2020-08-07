@@ -5,6 +5,7 @@ import sys
 import click
 import concurrent.futures
 import requests
+import imageio
 import json
 import time
 import itertools
@@ -57,7 +58,7 @@ def main(payload, endpoint, processes, threads, samples, time_based):
             payload_data = requests.get(payload).json()
         elif payload.lower().endswith(".jpg"):
             file_type = "jpg"
-            payload_data = get_url_image(payload)
+            payload_data = imageio.imread(payload)
     elif checkers.is_file(payload):
         if payload.lower().endswith(".json"):
             file_type = "json"
@@ -168,16 +169,6 @@ def image_to_jpeg_bytes(image, quality=[int(cv2.IMWRITE_JPEG_QUALITY), 95]):
     buf = image_to_jpeg_nparray(image, quality)
     byte_im = buf.tobytes()
     return byte_im
-
-
-def get_url_image(url_image):
-    """
-    Get numpy image from URL image.
-    """
-    resp = requests.get(url_image, stream=True).raw
-    image = np.asarray(bytearray(resp.read()), dtype="uint8")
-    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-    return image
 
 
 if __name__ == "__main__":
