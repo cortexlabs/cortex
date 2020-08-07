@@ -67,7 +67,7 @@ pip install --extra-index-url=https://pip.repos.neuron.amazonaws.com \
   tensorflow-neuron==1.15.0.1.0.1333.0
 ```
 
-The [generate_resnet50_models.ipynb](generate_resnet50_models.ipynb) notebook will generate 2 SavedModels. One will be saved in the `resnet50` directory which can be run on GPU or on CPU and another in the `resnet50_neuron` directory which can only be run on `inf1` instances.
+The [generate_resnet50_models.ipynb](generate_resnet50_models.ipynb) notebook will generate 2 SavedModels. One will be saved in the `resnet50` directory which can be run on GPU or on CPU and another in the `resnet50_neuron` directory which can only be run on `inf1` instances. For server-side batching on `inf1` instances, a different compilation of the model is required. To compile ResNet50 model for a batch size of 5, run `run_all` from [this directory](https://github.com/aws/aws-neuron-sdk/tree/master/src/examples/tensorflow/keras_resnet50).
 
 If you'd also like to build the TensorRT version of the GPU model, run the following command in a new Python environment to install the pip dependencies required for the [generate_gpu_resnet50_model.ipynb](generate_gpu_resnet50_model.ipynb) notebook:
 
