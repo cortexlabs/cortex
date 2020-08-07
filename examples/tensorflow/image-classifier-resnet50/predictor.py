@@ -48,6 +48,7 @@ class TensorFlowPredictor:
 
         self.input_shape = tuple(config["input_shape"])
         self.input_key = str(config["input_key"])
+        self.output_key = str(config["output_key"])
 
     def predict(self, payload):
         # preprocess image
@@ -62,7 +63,7 @@ class TensorFlowPredictor:
         img = prepare_image(img, self.input_shape, self.input_key)
 
         # predict
-        results = self.client.predict(img)["output"]
+        results = self.client.predict(img)[self.output_key]
         results = np.argsort(results)
 
         # Lookup and print the top 5 labels
