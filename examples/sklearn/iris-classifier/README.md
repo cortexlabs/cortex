@@ -90,7 +90,7 @@ class PythonPredictor:
         return labels[label_id]
 ```
 
-Here are the complete [Predictor docs](../../../docs/deployments/predictors).
+Here are the complete [Predictor docs](../../../docs/deployments/syncapi/predictors).
 
 <br>
 
@@ -104,7 +104,7 @@ Create a `requirements.txt` file to specify the dependencies needed by `predicto
 boto3
 ```
 
-You can skip dependencies that are [pre-installed](../../../docs/deployments/predictors) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
+You can skip dependencies that are [pre-installed](../../../docs/deployments/syncapi/predictors) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
 
 <br>
 
@@ -125,7 +125,7 @@ Create a `cortex.yaml` file and add the configuration below and replace `cortex-
       key: sklearn/iris-classifier/model.pkl
 ```
 
-Here are the complete [API configuration docs](../../../docs/deployments/api-configuration.md).
+Here are the complete [API configuration docs](../../../docs/deployments/syncapi/api-configuration.md).
 
 <br>
 

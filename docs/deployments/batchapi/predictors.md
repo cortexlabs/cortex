@@ -50,12 +50,13 @@ class PythonPredictor:
 # initialization code and variables can be declared here in global scope
 
 class PythonPredictor:
-    def __init__(self, config, job_spec):
+    def __init__(self, config, api_spec, job_spec):
         """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec: Dictionary containing the submitted job request and additional information such as the job_id
+            api_spec: Dictionary containing the yaml configuration specified in cortex.yaml (optional)
+            job_spec: Dictionary containing the submitted job request and additional information such as the job_id (optional)
         """
         pass
 
@@ -203,13 +204,14 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config, job_spec):
+    def __init__(self, tensorflow_client, config, api_spec, job_spec):
         """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             tensorflow_client: TensorFlow client which is used to make predictions. This should be saved for use in predict().
             config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec: Dictionary containing the submitted job request and additional information such as the job_id
+            api_spec: Dictionary containing the yaml configuration specified in cortex.yaml (optional)
+            job_spec: Dictionary containing the submitted job request and additional information such as the job_id (optional)
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
@@ -288,19 +290,20 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class ONNXPredictor:
-    def __init__(self, onnx_client, config, job_spec):
+    def __init__(self, onnx_client, config, api_spec, job_spec):
         """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             onnx_client: ONNX client which is used to make predictions. This should be saved for use in predict().
             config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec: Dictionary containing the submitted job request and additional information such as the job_id
+            api_spec: Dictionary containing the yaml configuration specified in cortex.yaml (optional)
+            job_spec: Dictionary containing the submitted job request and additional information such as the job_id (optional)
         """
         self.client = onnx_client
         # Additional initialization may be done here
 
     def predict(self, payload, batch_id):
-        """Called once per request. Preprocesses the request payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), and postprocesses the inference output (if necessary).
+        """Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary) and writes the predictions to storage (i.e. S3 or a database).
 
         Args:
             payload: a batch, a list of one or more samples (required).

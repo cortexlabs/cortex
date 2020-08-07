@@ -73,14 +73,14 @@ const (
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration for Sync API documentation and see https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
+		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration for Sync API documentation and see https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 

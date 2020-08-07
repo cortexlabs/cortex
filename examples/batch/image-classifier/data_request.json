@@ -1,0 +1,16 @@
+{
+    "workers": 1,
+    "item_list": {
+        "items": [
+            "https://i.imgur.com/PzXprwl.jpg",
+            "https://i.imgur.com/E4cOSLw.jpg",
+            "http://farm1.static.flickr.com/13/17868690_fe11bdc16e.jpg",
+            "https://i.imgur.com/jDimNTZ.jpg",
+            "http://farm2.static.flickr.com/1140/950904728_0d84ac956b.jpg"
+        ],
+        "batch_size": 2
+    },
+    "config": {
+        "dest_s3_dir": INSERT_S3_DIRECTORY_IN_QUOTES
+    }
+}

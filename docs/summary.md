@@ -21,18 +21,15 @@
   * [Autoscaling](deployments/syncapi/autoscaling.md)
   * [Networking](deployments/networking.md)
   * [Compute](deployments/compute.md)
-  * [Using GPUs](deployments/gpus.md)
-  * [Using Inferentia](deployments/inferentia.md)
   * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
 * [Batch API](deployments/batchapi.md)
   * [Exporting models](deployments/exporting.md)
   * [Predictor implementation](deployments/batchapi/predictors.md)
   * [API configuration](deployments/batchapi/api-configuration.md)
   * [API deployment](deployments/batchapi/deployment.md)
+  * [Endpoints](deployments/batchapi/endpoints.md)
   * [Job statuses](deployments/batchapi/statuses.md)
   * [Compute](deployments/compute.md)
-  * [Using GPUs](deployments/gpus.md)
-  * [Using Inferentia](deployments/inferentia.md)
   * [Networking](deployments/networking.md)
 
 ## Advanced
@@ -73,7 +70,6 @@
 * [View API metrics](guides/metrics.md)
 * [Set up a custom domain](guides/custom-domain.md)
 * [Set up VPC peering](guides/vpc-peering.md)
-* [Add a batch runner API](guides/batch-runner.md)
 * [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
 

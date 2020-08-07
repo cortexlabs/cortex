@@ -1,0 +1,16 @@
+{"url": "s3://cortex-examples/image-classifier/samples/img_4.jpg", "class": "terrapin"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_5.jpg", "class": "tabby"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_0.jpg", "class": "kit fox"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_1.jpg", "class": "ping-pong ball"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_10.jpg", "class": "hotdog"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_11.jpg", "class": "tabby"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_2.jpg", "class": "boxer"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_3.jpg", "class": "Chihuahua"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_8.jpg", "class": "American black bear"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_9.jpg", "class": "Egyptian cat"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_6.jpg", "class": "hare"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_7.jpg", "class": "golden retriever"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_14.jpg", "class": "tabby"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_15.jpg", "class": "Cardigan"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_12.jpg", "class": "Eskimo dog"}
+{"url": "s3://cortex-examples/image-classifier/samples/img_13.jpg", "class": "Angora"}

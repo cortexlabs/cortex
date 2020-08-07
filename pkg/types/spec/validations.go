@@ -522,7 +522,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration and for Batch API at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor, consts.CortexVersionMinor))
 		}
 
 		if resourceStruct.Kind == userconfig.BatchAPIKind {
@@ -538,7 +538,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration and for Batch API at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor, consts.CortexVersionMinor))
 		}
 
 		api.Index = i

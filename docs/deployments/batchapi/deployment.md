@@ -21,7 +21,7 @@ After deploying a Batch API you can make the following requests to the API:
 1. Get the status of a job
 1. Stop a job
 
-You can find the API Documentation [here](endpoints.md).
+You can find the documentation for your deployed Batch API Endpoint Documentation [here](endpoints.md).
 
 ## `cortex get`
 
@@ -59,14 +59,9 @@ Appending the `--watch` flag will re-run the `cortex get` command every 2 second
 
 ## Job commands
 
-A Batch API provides the following endpoints:
+Once a job has been submitted to your Batch API (see [here](endpoints.md#submit-a-job)), you can use the Job ID from job submission to get the status, stream logs and stop a running job using the CLI.
 
-
-
-
-You can stop a job using the CLI via `cortex delete <api_name> <job_id>
-
-## `cortex get <api_name> <job_id>`
+### `cortex get <api_name> <job_id>`
 
 After a submitting a job (see [Batch API endpoint documentation](endpoints.md)), you can use the
 
@@ -91,7 +86,7 @@ requested   running   failed   succeeded
 job endpoint: https://://***..amazonaws.com/image-classifier/69d9c0013c2d0d97
 ```
 
-## `cortex logs <api_name> <job_id>`
+### `cortex logs <api_name> <job_id>`
 
 ```bash
 $ cortex logs image-classifier 69d9c0013c2d0d97
@@ -105,7 +100,7 @@ spinning up workers...
 ....
 ```
 
-## `cortex delete <api_name> <job_id>`
+### `cortex delete <api_name> <job_id>`
 
 ```bash
 $ cortex delete image-classifier 69d9c0013c2d0d97

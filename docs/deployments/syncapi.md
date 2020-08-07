@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-You can deploy a Sync API on Cortex to serve model predictions via an HTTP endpoint. You provide a Predictor implementation in Python that defines how to apply your model to the incoming request and Cortex will provide:
+You can deploy a Sync API on Cortex to serve model predictions via an HTTP endpoint. A Sync API deployed in Cortex has the following features:
 
 - request based autoscaling
 - rolling updates to enable you to update the model/Predictor code without downtime
@@ -12,9 +12,7 @@ You can deploy a Sync API on Cortex to serve model predictions via an HTTP endpo
 - traffic splitting/ A/B testing
 - post_predict hooks that can run after a request has been responded to
 
-
-
-Traffic to the endpoints will be loadbalanced across autoscaling servers that scale based on incoming request traffic. You can implement a custom Predictor class in Python to perform preprocessing on incoming requests and postprocessing on requests to customize the interface to your model's API. You can safely update your model or your Predictor class without experiencing downtime because your updates will be rolled automatically. Request metrics and logs will automatically be aggregated and be accessible via the Cortex CLI (`cortex logs <api_name>`) or on your AWS console.
+To deploy a Sync API on Cortex, you need to specify a custom Predictor class that defines how to initialize your model and apply your model to incoming requests. You can use the Cortex CLI to deploy your Sync API. Your predictor implementation along with the rest of your code and dependencies will automatically be containerized as a web server. An endpoint will be created to allow access to your Sync API web server. Cortex will automatically spin up more copies of the webserver based on incoming traffic to your endpoint. You can safely update your model or your Predictor class without experiencing downtime because your updates will be rolled automatically. Request metrics and logs will automatically be aggregated and be accessible via the Cortex CLI (`cortex logs <api_name>`) or on your AWS console.
 
 ## When should I use Sync API
 

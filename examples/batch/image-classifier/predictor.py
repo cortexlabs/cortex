@@ -9,7 +9,6 @@ from PIL import Image
 from io import BytesIO
 import boto3
 import json
-import os
 import re
 
 
@@ -26,8 +25,12 @@ class PythonPredictor:
             "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
         ).text.split("\n")[1:]
 
+        if len(config["dest_s3_dir"]) == 0:
+            raise Exception("'dest_s3_dir' field was not provided in job submission")
+
         self.s3 = boto3.client("s3")
-        self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["s3_dir"]).groups()
+
+        self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
         self.key = os.path.join(self.key, job_spec["job_id"])
 
     def predict(self, payload, batch_id):
@@ -35,8 +38,13 @@ class PythonPredictor:
 
         # download and preprocess each image
         for image_url in payload:
-            image = requests.get(image_url).content
-            img_pil = Image.open(BytesIO(image))
+            if image_url.startswith("s3://"):
+                bucket, image_key = re.match("s3://(.+?)/(.+)", image_url).groups()
+                image_bytes = self.s3.get_object(Bucket=bucket, Key=image_key)["Body"].read()
+            else:
+                image_bytes = requests.get(image_url).content
+
+            img_pil = Image.open(BytesIO(image_bytes))
             tensor_list.append(self.preprocess(img_pil))
 
         # classify the batch of images
@@ -45,7 +53,10 @@ class PythonPredictor:
             prediction = self.model(img_tensor)
         _, indices = prediction.max(1)
 
-        results = [self.labels[index] for index in indices]
+        results = [
+            {"url": payload[i], "class": self.labels[class_idx]}
+            for i, class_idx in enumerate(indices)
+        ]
         json_output = json.dumps(results)
 
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json_output)
@@ -56,9 +67,8 @@ class PythonPredictor:
         # download all of the results
         for obj in self.s3.list_objects_v2(Bucket=self.bucket, Prefix=self.key)["Contents"]:
             if obj["Size"] > 0:
-                print(obj)
                 body = self.s3.get_object(Bucket=self.bucket, Key=obj["Key"])["Body"]
-                all_results.append(json.loads(body.read().decode("utf8")))
+                all_results += json.loads(body.read().decode("utf8"))
 
         newline_delimited_results = "\n".join(json.dumps(result) for result in all_results)
         self.s3.put_object(
