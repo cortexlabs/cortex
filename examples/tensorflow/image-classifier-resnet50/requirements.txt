@@ -1,1 +1,1 @@
-imageio==2.9.0
+imageio==2.9.*
