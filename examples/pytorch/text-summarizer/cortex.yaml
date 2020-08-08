@@ -7,5 +7,5 @@
     path: predictor.py
   compute:
     cpu: 1
-    gpu: 1 # This is optional, since the API will run on CPUs (albeit slower)
+    gpu: 1 # this is optional, since the api can also run on cpu
     mem: 6G

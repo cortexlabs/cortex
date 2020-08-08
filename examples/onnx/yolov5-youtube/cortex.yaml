@@ -10,5 +10,4 @@
       iou_threshold: 0.5
       confidence_threshold: 0.6
   compute:
-    # GPU requirement is optional. Comment out next line to run on CPUs (albeit slower)
-    gpu: 1
+    gpu: 1 # this is optional, since the api can also run on cpu
