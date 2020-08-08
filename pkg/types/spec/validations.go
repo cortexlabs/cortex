@@ -632,10 +632,10 @@ func ValidateAPISplitter(
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 	if err := verifyTotalWeight(api.APIs); err != nil {
-		return err
+		return errors.Wrap(err, api.Identify())
 	}
 	if err := areAPISplitterAPIsUnique(api.APIs); err != nil {
-		return err
+		return errors.Wrap(err, api.Identify())
 	}
 
 	return nil

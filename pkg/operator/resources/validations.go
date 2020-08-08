@@ -93,10 +93,10 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		api := &apis[i]
 		if api.Kind == userconfig.SyncAPIKind {
 			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
-				return errors.Wrap(err, api.Identify())
+				return err
 			}
 			if err := validateK8s(api, virtualServices, maxMem); err != nil {
-				return errors.Wrap(err, api.Identify())
+				return err
 			}
 
 			if !didPrintWarning && api.Networking.LocalPort != nil {
@@ -106,13 +106,13 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 		if api.Kind == userconfig.APISplitterKind {
 			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
-				return errors.Wrap(err, api.Identify())
+				return err
 			}
 			if err := checkIfAPIExists(api.APIs, withoutAPISplitter); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
-				return errors.Wrap(err, api.Identify())
+				return err
 			}
 		}
 	}
@@ -211,7 +211,7 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclie
 		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService)
 		for endpoint := range endpoints {
 			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Networking.Endpoint, "/") && virtualService.Labels["apiName"] != api.Name {
-				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.Labels["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
+				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.Labels["apiName"]), api.Identify(), userconfig.NetworkingKey, userconfig.EndpointKey, endpoint)
 			}
 		}
 	}
