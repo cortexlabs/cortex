@@ -327,9 +327,8 @@ var _downCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
 
-		// if clusterConfig.APIGateway == clusterconfig.EnabledAPIGateway {
 		fmt.Print("￮ deleting api gateway ")
-		_, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
+		deletedAPIGateway, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if errAPIGateway != nil {
 			fmt.Printf("\n\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis\n", *accessConfig.Region)
@@ -340,11 +339,14 @@ var _downCmd = &cobra.Command{
 			errors.PrintError(errVPCLink)
 		}
 		if errAPIGateway == nil && errVPCLink == nil {
-			fmt.Println("✓")
+			if deletedAPIGateway != nil {
+				fmt.Println("✓")
+			} else {
+				fmt.Println("(n/a)")
+			}
 		} else {
 			fmt.Println()
 		}
-		// }
 
 		fmt.Print("￮ deleting dashboard ")
 		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
