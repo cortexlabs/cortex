@@ -27,11 +27,14 @@ import (
 )
 
 func AddAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
+	if config.Cluster.APIGateway == nil {
+		return nil
+	}
+
 	if apiGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}
 
-	// TODO
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
 	// check if API Gateway route already exists
@@ -72,11 +75,14 @@ func AddAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayTyp
 }
 
 func RemoveAPIFromAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
+	if config.Cluster.APIGateway == nil {
+		return nil
+	}
+
 	if apiGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}
 
-	// TODO
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
 	route, err := config.AWS.DeleteRoute(apiGatewayID, endpoint)
@@ -103,6 +109,10 @@ func UpdateAPIGateway(
 	newEndpoint string,
 	newAPIGatewayType userconfig.APIGatewayType,
 ) error {
+
+	if config.Cluster.APIGateway == nil {
+		return nil
+	}
 
 	if prevAPIGatewayType == userconfig.NoneAPIGatewayType && newAPIGatewayType == userconfig.NoneAPIGatewayType {
 		return nil

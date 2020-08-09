@@ -160,8 +160,7 @@ func areVirtualServiceEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool
 
 // APIBaseURL returns BaseURL of the API without resource endpoint
 func APIBaseURL(api *spec.API) (string, error) {
-	// TODO
-	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
+	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
 		return *config.Cluster.APIGateway.ApiEndpoint, nil
 	}
 	return operator.APILoadBalancerURL()
