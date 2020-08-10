@@ -62,7 +62,7 @@ class GenericPlaceholder(
     Can hold any value.
     Can be of one type only: generic.
 
-    Accessible properties: placeholder, value, priority.
+    Accessible properties: placeholder, value, type, priority.
     """
 
     def __new__(cls, value: str):
@@ -91,7 +91,7 @@ class PlaceholderGroup:
     """
     Order-based addition of placeholder types (Groups, Generics or Templates).
 
-    Accessible properties: parts, priority.
+    Accessible properties: parts, type, priority.
     """
 
     def __init__(self, *args, priority=0):
@@ -115,8 +115,13 @@ class PlaceholderGroup:
         return str(self.parts)
 
 
-# can either be this template xor anything else at the same level
 class OneOfAllPlaceholder:
+    """
+    Can be any of the provided alternatives.
+
+    Accessible properties: parts, type, priority.
+    """
+
     def __init__(self):
         self._placeholder = TemplatePlaceholder("oneofall", priority=-1)
 
@@ -143,6 +148,7 @@ AnyPlaceholder = TemplatePlaceholder(
     "any", priority=4
 )  # the path can be any file or any directory (with multiple subdirectories)
 
+TensorFlowNeuronPredictor = PredictorType("tensorflow-neuron")
 
 # to be used when predictor:model_path or predictor:models:paths is used
 ModelTemplate = {
@@ -160,6 +166,7 @@ ModelTemplate = {
             },
         },
     },
+    TensorFlowNeuronPredictor: {IntegerPlaceholder: {GenericPlaceholder("saved_model.pb"): None}},
     ONNXPredictorType: {
         OneOfAllPlaceholder(): {
             IntegerPlaceholder: {
