@@ -16,6 +16,7 @@ import os
 import operator
 from typing import List, Any
 
+from cortex.lib import util
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
@@ -28,6 +29,7 @@ from cortex.lib.api import (
 )
 
 import collections
+from fnmatch import fnmatchcase
 
 
 class TemplatePlaceholder(collections.namedtuple("TemplatePlaceholder", "placeholder priority")):
@@ -75,10 +77,10 @@ class GenericPlaceholder(
         return hash((self.placeholder, self.value))
 
     def __str__(self) -> str:
-        return str(self.value)
+        return f"<{self.type}>" + str(self.value) + f"</{self.type}>"
 
     def __repr__(self) -> str:
-        return str(self.value)
+        return f"<{self.type}>" + str(self.value) + f"</{self.type}>"
 
     @property
     def type(self) -> str:
@@ -103,9 +105,13 @@ class PlaceholderGroup:
         return len(self.parts)
 
     def __str__(self) -> str:
-        return str(self.parts)
+        return "<group>" + str(self.parts) + "</group>"
 
     def __repr__(self) -> str:
+        return "<group>" + str(self.parts) + "</group>"
+
+    @property
+    def type(self) -> str:
         return str(self.parts)
 
 
@@ -155,29 +161,17 @@ model_template = {
         },
     },
     ONNXPredictorType: {
-        OneOfAllPlaceholder(): {
-            IntegerPlaceholder: {
-                PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
-            },
-        },
-        OneOfAllPlaceholder(): {
-            # PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
-            GenericPlaceholder("modelx.onnx"): None
-        },
-        OneOfAllPlaceholder(): {GenericPlaceholder("models.onnx"): None},
+        # OneOfAllPlaceholder(): {
+        #     IntegerPlaceholder: {
+        #         PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+        #     },
+        # },
+        # OneOfAllPlaceholder(): {
+        #     PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+        # },
+        PlaceholderGroup(AnyPlaceholder, GenericPlaceholder(".onnx")): None,
     },
 }
-
-# model_template = {
-#     PythonPredictorType: {
-#         IntegerPlaceholder: None,
-#         AnyPlaceholder: None,
-#         GenericPlaceholder("0model.onnx"): {
-#             GenericPlaceholder("123"): None,
-#             IntegerPlaceholder: None,
-#         },
-#     }
-# }
 
 
 def json_model_template_representation(model_template) -> dict:
@@ -282,10 +276,8 @@ def validate_s3_model_paths(
                     validate_group_placeholder(keys, key_id, objects, visited_objects)
                 elif isinstance(key, OneOfAllPlaceholder):
                     try:
-                        print(pattern[key])
                         _validate_s3_model_paths(pattern[key], s3_paths, commonprefix)
                     except CortexException:
-                        print("exception for", pattern[key])
                         num_validation_failures += 1
                 else:
                     raise CortexException("found a non-placeholder object in model template")
@@ -387,6 +379,65 @@ def validate_generic_placeholder(
 def validate_group_placeholder(
     placeholders: list, key_id: int, objects: List[str], visited: list
 ) -> None:
-    for idx in range(len(visited)):
-        if visited[idx] is False:
+    """
+    Can use AnyPlaceholder, GenericPlaceholder, SinglePlaceholder.
+
+    The minimum number of placeholders a group must hold is 2.
+
+    The accepted formats are:
+    - ... AnyPlaceholder, GenericPlaceholder, AnyPlaceholder, ...
+    - ... SinglePlaceholder, GenericPlaceholder, SinglePlaceholder, ...
+
+    AnyPlaceholder and GenericPlaceholder cannot be mixed together in one group.
+    """
+
+    placeholder_group = placeholders[key_id]
+
+    if len(placeholder_group) < 2:
+        raise CortexException(f"{placeholder_group} must come with at least 2 placeholders")
+
+    for placeholder in placeholder_group:
+        if placeholder not in [AnyPlaceholder, SinglePlaceholder] and not isinstance(
+            placeholder, GenericPlaceholder
+        ):
+            raise CortexException(
+                f'{placeholder_group} must have a combination of the following placeholder types: {AnyPlaceholder}, {SinglePlaceholder}, {GenericPlaceholder("").placeholder}'
+            )
+
+    if util.is_subset([AnyPlaceholder, SinglePlaceholder], placeholder_group):
+        raise CortexException(
+            f"{placeholder_group} cannot have a mix of the following placeholder types: {AnyPlaceholder} and {SinglePlaceholder}"
+        )
+
+    group_len = len(placeholder_group)
+    found_same_kind_together = False
+    for idx in range(group_len):
+        if idx + 1 < group_len:
+            a = placeholder_group[idx]
+            b = placeholder_group[idx + 1]
+            if a == b:
+                found_same_kind_together = True
+                break
+
+    if found_same_kind_together:
+        raise CortexException(
+            f'{placeholder_group} cannot accept the same type to be specified consecutively ({AnyPlaceholder}, {SinglePlaceholder} or {GenericPlaceholder("").placeholder})'
+        )
+
+    pattern = ""
+    for placeholder in placeholder_group:
+        if placeholder in [AnyPlaceholder, SinglePlaceholder]:
+            pattern += "*"
+        if isinstance(placeholder, GenericPlaceholder):
+            pattern += str(placeholder.value)
+
+    num_occurences = 0
+    for idx, obj in enumerate(objects):
+        if visited[idx] is False and fnmatchcase(obj, pattern):
             visited[idx] = key_id
+            num_occurences += 1
+
+    if SinglePlaceholder in placeholder_group and num_occurences > 1:
+        raise CortexException(
+            f"{placeholder_group} must match once (not {num_occurences} times) because {SinglePlaceholder} is present"
+        )

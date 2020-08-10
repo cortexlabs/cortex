@@ -225,3 +225,13 @@ def is_float_or_int_list(var):
         if not is_float_or_int(item):
             return False
     return True
+
+
+def is_subset(subset, superset):
+    """
+    Checks if subset is a sub set of superset.
+    """
+    sub = set(subset)
+    sup = set(superset)
+
+    return len(sub.intersection(sup)) == len(sub)
