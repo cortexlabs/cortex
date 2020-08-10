@@ -109,13 +109,30 @@ class PlaceholderGroup:
         return str(self.parts)
 
 
+# can either be this template xor anything else at the same level
+class OneOfAllPlaceholder:
+    def __init__(self):
+        self._placeholder = TemplatePlaceholder("oneofall", priority=-1)
+
+    def __str__(self) -> str:
+        return str(self._placeholder)
+
+    def __repr__(self) -> str:
+        return str(self._placeholder)
+
+    @property
+    def type(self) -> str:
+        return str(self._placeholder).strip("<>")
+
+    @property
+    def priority(self) -> int:
+        return self._placeholder.priority
+
+
 IntegerPlaceholder = TemplatePlaceholder("integer", priority=1)  # the path name must be an integer
 SinglePlaceholder = TemplatePlaceholder(
     "single", priority=2
 )  # can only have a single occurrence of this, but its name can take any form
-OneOfAllPlaceholder = TemplatePlaceholder(
-    "oneofall", priority=-1
-)  # can either be this template xor anything else at the same level
 AnyPlaceholder = TemplatePlaceholder(
     "any", priority=4
 )  # the path can be any file or any directory (with multiple subdirectories)
@@ -138,27 +155,29 @@ model_template = {
         },
     },
     ONNXPredictorType: {
-        OneOfAllPlaceholder: {
+        OneOfAllPlaceholder(): {
             IntegerPlaceholder: {
                 PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
             },
-        }
-        OneOfAllPlaceholder: {
-            PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
         },
+        OneOfAllPlaceholder(): {
+            # PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+            GenericPlaceholder("modelx.onnx"): None
+        },
+        OneOfAllPlaceholder(): {GenericPlaceholder("models.onnx"): None},
     },
 }
 
-model_template = {
-    PythonPredictorType: {
-        IntegerPlaceholder: None,
-        AnyPlaceholder: None,
-        GenericPlaceholder("0model.onnx"): {
-            GenericPlaceholder("123"): None,
-            IntegerPlaceholder: None,
-        },
-    }
-}
+# model_template = {
+#     PythonPredictorType: {
+#         IntegerPlaceholder: None,
+#         AnyPlaceholder: None,
+#         GenericPlaceholder("0model.onnx"): {
+#             GenericPlaceholder("123"): None,
+#             IntegerPlaceholder: None,
+#         },
+#     }
+# }
 
 
 def json_model_template_representation(model_template) -> dict:
@@ -166,8 +185,16 @@ def json_model_template_representation(model_template) -> dict:
     if model_template is None:
         return None
     if isinstance(model_template, dict):
+        if any(isinstance(x, OneOfAllPlaceholder) for x in model_template):
+            oneofall_placeholder_index = 0
         for key in model_template:
-            dct[str(key)] = json_model_template_representation(model_template[key])
+            if isinstance(key, OneOfAllPlaceholder):
+                dct[
+                    str(key) + f"-{oneofall_placeholder_index}"
+                ] = json_model_template_representation(model_template[key])
+                oneofall_placeholder_index += 1
+            else:
+                dct[str(key)] = json_model_template_representation(model_template[key])
         return dct
     else:
         return str(model_template)
@@ -227,6 +254,19 @@ def validate_s3_model_paths(
         keys.sort(key=operator.attrgetter("priority"))
 
         try:
+            if (
+                any(isinstance(x, OneOfAllPlaceholder) for x in keys)
+                and not all(isinstance(x, OneOfAllPlaceholder) for x in keys)
+                and len(set(keys)) > 1
+            ):
+                raise CortexException(
+                    f"{predictor_type} predictor at '{commonprefix}'",
+                    f"{OneOfAllPlaceholder()} is a mutual-exclusive key with all other keys",
+                )
+            elif all(isinstance(x, OneOfAllPlaceholder) for x in keys):
+                num_keys = len(keys)
+                num_validation_failures = 0
+
             for key_id, key in enumerate(keys):
                 if key == IntegerPlaceholder:
                     validate_integer_placeholder(keys, key_id, objects, visited_objects)
@@ -238,12 +278,28 @@ def validate_s3_model_paths(
                     validate_generic_placeholder(keys, key_id, objects, visited_objects, key)
                 elif isinstance(key, PlaceholderGroup):
                     validate_group_placeholder(keys, key_id, objects, visited_objects)
-                elif key == OneOfAllPlaceholder:
-                    validate_oneofall_placeholder(keys, key_id, objects, visited_objects)
+                elif isinstance(key, OneOfAllPlaceholder):
+                    try:
+                        print(pattern[key])
+                        _validate_s3_model_paths(pattern[key], s3_paths, commonprefix)
+                    except CortexException:
+                        print("exception for", pattern[key])
+                        num_validation_failures += 1
                 else:
                     raise CortexException("found a non-placeholder object in model template")
+
         except CortexException as e:
             raise CortexException(f"{predictor_type} predictor at '{commonprefix}'", str(e))
+
+        if (
+            all(isinstance(x, OneOfAllPlaceholder) for x in keys)
+            and num_validation_failures == num_keys
+        ):
+            raise CortexException(
+                f"couldn't validate for any of the {OneOfAllPlaceholder()} placeholders"
+            )
+        if all(isinstance(x, OneOfAllPlaceholder) for x in keys):
+            return
 
         unvisited_paths = []
         for idx, visited in enumerate(visited_objects):
@@ -329,10 +385,6 @@ def validate_generic_placeholder(
 def validate_group_placeholder(
     placeholders: list, key_id: int, objects: List[str], visited: list
 ) -> None:
-    pass
-
-
-def validate_oneofall_placeholder(
-    placeholders: list, key_id: int, objects: List[str], visited: list
-) -> None:
-    pass
+    for idx in range(len(visited)):
+        if visited[idx] is False:
+            visited[idx] = key_id
