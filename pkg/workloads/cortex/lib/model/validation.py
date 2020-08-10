@@ -249,6 +249,8 @@ def validate_s3_model_paths(
                 f"{predictor_type} predictor at '{commonprefix}'",
                 "template doesn't specify a substructure for the given path",
             )
+        if not isinstance(pattern, dict):
+            pattern = {pattern: None}
 
         keys = list(pattern.keys())
         keys.sort(key=operator.attrgetter("priority"))
@@ -347,10 +349,10 @@ def validate_integer_placeholder(
 
 
 def validate_any_placeholder(
-    placeholders: list, key_id: int, objects: List[str], visited: list
+    placeholders: list, key_id: int, objects: List[str], visited: list,
 ) -> None:
-    for idx in range(len(visited)):
-        if visited[idx] is False:
+    for idx, obj in enumerate(objects):
+        if visited[idx] is False and obj != ".":
             visited[idx] = key_id
 
 
