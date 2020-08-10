@@ -94,9 +94,9 @@ class PlaceholderGroup:
     Accessible properties: parts, priority.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, priority=0):
         self.parts = args
-        self.priority = kwargs.get("priority")
+        self.priority = priority
 
     def __getitem__(self, index: int):
         return self.parts[index]
@@ -145,7 +145,7 @@ AnyPlaceholder = TemplatePlaceholder(
 
 
 # to be used when predictor:model_path or predictor:models:paths is used
-model_template = {
+ModelTemplate = {
     PythonPredictorType: {IntegerPlaceholder: AnyPlaceholder},
     TensorFlowPredictorType: {
         IntegerPlaceholder: {
@@ -161,15 +161,14 @@ model_template = {
         },
     },
     ONNXPredictorType: {
-        # OneOfAllPlaceholder(): {
-        #     IntegerPlaceholder: {
-        #         PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
-        #     },
-        # },
-        # OneOfAllPlaceholder(): {
-        #     PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
-        # },
-        PlaceholderGroup(AnyPlaceholder, GenericPlaceholder(".onnx")): None,
+        OneOfAllPlaceholder(): {
+            IntegerPlaceholder: {
+                PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+            },
+        },
+        OneOfAllPlaceholder(): {
+            PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+        },
     },
 }
 
@@ -198,14 +197,14 @@ def dir_models_pattern(predictor_type: PredictorType) -> dict:
     """
     To be used when predictor:models:dir in cortex.yaml is used.
     """
-    return {SinglePlaceholder: model_template[predictor_type]}
+    return {SinglePlaceholder: ModelTemplate[predictor_type]}
 
 
 def single_model_pattern(predictor_type: PredictorType) -> dict:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
     """
-    return model_template[predictor_type]
+    return ModelTemplate[predictor_type]
 
 
 def validate_s3_models_dir_paths(s3_top_paths: List[str], predictor_type: PredictorType) -> list:
