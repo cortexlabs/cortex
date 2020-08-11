@@ -82,8 +82,13 @@ func ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs []string) error {
 }
 
 func ErrorAPIGatewayDisabled(apiGatewayType userconfig.APIGatewayType) error {
+	msg := fmt.Sprintf("%s is not permitted because api gateway is disabled cluster-wide (i.e. `api_gateway: disabled` is set in the cluster configration file)", s.UserStr(apiGatewayType))
+	if apiGatewayType == userconfig.PublicAPIGatewayType {
+		msg += fmt.Sprintf("; note that %s is the default value, and the valid values are %s", s.UserStr(userconfig.PublicAPIGatewayType), s.UserStrsAnd(userconfig.APIGatewayTypeStrings()))
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIGatewayDisabled,
-		Message: fmt.Sprintf("%s is not permitted because api gateway is disabled cluster-wide (i.e. `api_gateway: disabled` is set in the cluster configration file)", s.UserStr(apiGatewayType)),
+		Message: msg,
 	})
 }
