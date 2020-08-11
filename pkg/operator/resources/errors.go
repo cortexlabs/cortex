@@ -31,6 +31,7 @@ const (
 	ErrNoAvailableNodeComputeLimit   = "resources.no_available_node_compute_limit"
 	ErrAPIUsedByAPISplitter          = "resources.syncapi_used_by_apisplitter"
 	ErrNotDeployedAPIsAPISplitter    = "resources.trafficsplit_apis_not_deployed"
+	ErrAPIGatewayDisabled            = "resources.api_gateway_disabled"
 )
 
 func ErrorOperationNotSupportedForKind(kind userconfig.Kind) error {
@@ -76,5 +77,12 @@ func ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotDeployedAPIsAPISplitter,
 		Message: fmt.Sprintf("unable to find specified %s: %s", strings.PluralS("api", len(notDeployedAPIs)), strings.StrsAnd(notDeployedAPIs)),
+	})
+}
+
+func ErrorAPIGatewayDisabled(apiGatewayType userconfig.APIGatewayType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPIGatewayDisabled,
+		Message: fmt.Sprintf("%s is not permitted since api gateway is disabled cluster-wide (i.e. `api_gateway: disabled` is set in the cluster configration file)", apiGatewayType),
 	})
 }
