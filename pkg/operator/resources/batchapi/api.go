@@ -62,7 +62,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		err := createLogGroupForAPI(api.Name)
+		err := ensureLogGroupForAPI(api.Name)
 		if err != nil {
 			return nil, "", err
 		}

@@ -129,7 +129,6 @@ func getQueueMetrics(jobKey spec.JobKey) (*metrics.QueueMetrics, error) {
 func getQueueMetricsFromURL(queueURL string) (*metrics.QueueMetrics, error) {
 	attributes, err := config.AWS.GetAllQueueAttributes(queueURL)
 	if err != nil {
-		errors.PrintStacktrace(err)
 		return nil, errors.Wrap(err, "failed to get queue metrics")
 	}
 

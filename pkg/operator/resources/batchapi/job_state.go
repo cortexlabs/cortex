@@ -330,7 +330,7 @@ func getJobStatusFromJobState(initialJobState *JobState, k8sJob *kbatch.Job, pod
 		return nil, err
 	}
 
-	latestJobState := initialJobState
+	latestJobState := initialJobState // Refetch the state of an in progress job in case the cron modifies the job state between the time the initial fetch and now
 
 	if initialJobState.Status.IsInProgress() {
 		queueURL, err := getJobQueueURL(jobKey)

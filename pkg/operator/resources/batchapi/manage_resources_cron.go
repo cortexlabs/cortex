@@ -40,11 +40,7 @@ const (
 	_k8sJobExistenceGracePeriod  = 10 * time.Second
 )
 
-var jobsToDelete strset.Set
-
-func init() {
-	jobsToDelete = strset.New()
-}
+var jobsToDelete strset.Set = strset.New()
 
 func ManageJobResources() error {
 	inProgressJobKeys, err := listAllInProgressJobKeys()
@@ -213,7 +209,7 @@ func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch
 		return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), expectedQueueURL), nil
 	}
 
-	if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_EnqueuingLivenessFile]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
+	if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_enqueuingLivenessFile]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
 		return status.JobEnqueueFailed, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()), nil
 	}
 

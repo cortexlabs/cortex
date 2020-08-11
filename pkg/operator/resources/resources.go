@@ -41,13 +41,26 @@ import (
 
 // Returns an error if resource doesn't exist
 func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource, error) {
+	resource, err := GetDeployedResourceByNameOrNil(resourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	if resource == nil {
+		return nil, ErrorAPINotDeployed(resourceName)
+	}
+
+	return resource, nil
+}
+
+func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedResource, error) {
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
 	if err != nil {
 		return nil, err
 	}
 
 	if virtualService == nil {
-		return nil, ErrorAPINotDeployed(resourceName)
+		return nil, nil
 	}
 
 	return &operator.DeployedResource{
@@ -57,19 +70,6 @@ func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource,
 		},
 		VirtualService: virtualService,
 	}, nil
-}
-
-func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedResource, error) {
-	resource, err := GetDeployedResourceByName(resourceName)
-	if err != nil {
-		if errors.GetKind(err) == ErrAPINotDeployed {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return resource, nil
 }
 
 func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) (*schema.DeployResponse, error) {

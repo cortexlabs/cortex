@@ -39,9 +39,9 @@ import (
 )
 
 const (
-	_EnqueuingLivenessFile   = "enqueuing_liveness"
+	_enqueuingLivenessFile   = "enqueuing_liveness"
 	_enqueuingLivenessPeriod = 20 * time.Second
-	_S3DownloadChunkSize     = 32 * 1024 * 1024
+	_s3DownloadChunkSize     = 32 * 1024 * 1024
 )
 
 func randomMessageID() string {
@@ -49,7 +49,7 @@ func randomMessageID() string {
 }
 
 func updateLiveness(jobKey spec.JobKey) error {
-	s3Key := path.Join(jobKey.Prefix(), _EnqueuingLivenessFile)
+	s3Key := path.Join(jobKey.Prefix(), _enqueuingLivenessFile)
 	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
 	if err != nil {
 		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
@@ -237,7 +237,7 @@ func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFi
 		writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("enqueuing contents from file %s", s3Path))
 
 		itemIndex := 0
-		err := config.AWS.S3FileIterator(bucket, s3Obj, _S3DownloadChunkSize, func(readCloser io.ReadCloser, isLastChunk bool) (bool, error) {
+		err := config.AWS.S3FileIterator(bucket, s3Obj, _s3DownloadChunkSize, func(readCloser io.ReadCloser, isLastChunk bool) (bool, error) {
 			_, err := bytesBuffer.ReadFrom(readCloser)
 			if err != nil {
 				return false, err

@@ -63,7 +63,7 @@ func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	defer close(podCheckCancel)
 
 	if jobStatus.Status.IsInProgress() {
-		go streamFromCloudWatch(jobKey, podCheckCancel, socket)
+		go streamFromCloudWatch(jobStatus, podCheckCancel, socket)
 	} else {
 		go fetchLogsFromCloudWatch(jobStatus, podCheckCancel, socket)
 	}
@@ -93,6 +93,10 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 	}
 
 	endTime := jobStatus.EndTime.Add(time.Minute * 10)
+	if time.Now().Before(endTime) {
+		endTime = time.Now()
+	}
+
 	config.AWS.CloudWatchLogs().FilterLogEventsPages(&cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName:   aws.String(logGroupName),
 		StartTime:      aws.Int64(libtime.ToMillis(jobStatus.StartTime)),
@@ -119,21 +123,16 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 	closeSocket(socket)
 }
 
-func streamFromCloudWatch(jobKey spec.JobKey, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	logGroupName := logGroupNameForJob(jobKey)
+func streamFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
+	jobKey := jobStatus.JobKey
+	jobSpec := jobStatus.Job
+	logGroupName := logGroupNameForJob(jobStatus.JobKey)
 	eventCache := cache.NewFifoCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}
 	logStreamNames := strset.New()
 	lastLogTime := time.Now()
 	didShowFetchingMessage := false
 	didFetchLogs := false
-	var jobSpec *spec.Job
-
-	jobSpec, err := downloadJobSpec(jobKey)
-	if err != nil {
-		writeAndCloseSocket(socket, "\nunable to find job "+jobKey.UserString()+"")
-		return
-	}
 
 	timer := time.NewTimer(0)
 	defer timer.Stop()
