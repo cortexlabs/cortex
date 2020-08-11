@@ -15,10 +15,11 @@
 # limitations under the License.
 
 import os, fcntl, time
+from cortex.lib.exceptions import CortexException
 
 
 class FileLock:
-    def __init__(self, lock_file, timeout=None, reader_lock=False):
+    def __init__(self, lock_file: str, timeout: float = None, reader_lock: bool = False):
         """
         Lock for files. Not thread-safe. Instantiate one lock per thread.
 
@@ -96,3 +97,37 @@ class FileLock:
     def __del__(self):
         self.release()
         return None
+
+
+class LockedFile:
+    """
+    Create a lock-based file.
+    """
+
+    def __init__(self, filename: str, mode: str, timeout: float = None, reader_lock: bool = False):
+        self.dir_path, self.basename = os.path.split(filename)
+        if self.basename == "":
+            raise CortexException(f"{filename} does not represent a path to file")
+        if not self.basename.startswith("."):
+            self.lockname = "."
+        self.lockname += self.basename
+
+        self.filename = filename
+        self.mode = mode
+        self.timeout = timeout
+        self.reader_lock = reader_lock
+
+    def __enter__(self):
+        lockfilepath = os.path.join(self.dir_path, self.lockname + ".lock")
+        self._lock = FileLock(lockfilepath, self.timeout, self.reader_lock)
+        self._lock.acquire()
+        self._fd = open(self.filename, self.mode)
+        return self._fd
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        close(self._fd)
+        self._lock.release()
+
+    def __del__(self):
+        close(self._fd)
+        self._lock.release()

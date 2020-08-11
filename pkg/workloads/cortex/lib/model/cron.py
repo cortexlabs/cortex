@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Dict, List, Tuple, Any
-from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.storage import S3, LocalStorage, FileLock
 from cortex.lib.exceptions import CortexException
 from cortex.lib.model import (
     PythonPredictorType,
@@ -37,7 +37,9 @@ class SimpleModelMonitor(mp.Process):
     When a new model is found, it updates the tree and downloads it - likewise when a model is removed.
     """
 
-    def __init__(self, interval: int, api_spec: dict):
+    def __init__(
+        self, interval: int, api_spec: dict, download_dir: str, lock_dir: str = "/run/cron"
+    ):
         """
         Args:
             interval (int): How often to update the models tree. Measured in seconds.
@@ -46,14 +48,19 @@ class SimpleModelMonitor(mp.Process):
 
         mp.Process.__init__(self)
         self._interval = interval
-
         self._api_spec = api_spec
+        self._download_dir = download_dir
+        self._lock_dir = lock_dir
+
         self._paths = []
         self._model_names = []
+        self._local_model_names = []
         for curated_model in self._api_spec["curated_model_resources"]:
             if curated_model["s3_path"]:
                 self._paths.append(curated_model["model_path"])
                 self._model_names.append(curated_model["name"])
+            else:
+                self._local_model_names.append(curated_model["name"])
         if (
             self._api_spec["predictor"]["model_path"] is None
             and self._api_spec["predictor"]["models"]["dir"] is not None
@@ -72,6 +79,11 @@ class SimpleModelMonitor(mp.Process):
                 self._predictor_type = TensorFlowPredictorType
         if self._api_spec["predictor"]["type"] == "onnx":
             self._predictor_type = ONNXPredictorType
+
+        try:
+            os.mkdir(self._lock_dir)
+        except FileExistsError:
+            pass
 
         self._event_stopper = mp.Event()
         self._stopped = mp.Event()
@@ -114,6 +126,14 @@ class SimpleModelMonitor(mp.Process):
                         model_names.append(self._model_names[idx])
                     except CortexException:
                         continue
+
+        if self._is_dir_used:
+            model_names = list(set(model_names).difference(self._local_model_names))
+            model_paths = [
+                model_path
+                for model_path in models_path
+                if os.path.basename(model_path) in model_names
+            ]
 
         print("model names", model_names)
         print("model paths", model_paths)

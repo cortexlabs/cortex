@@ -35,7 +35,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from cortex.lib import util
 from cortex.lib.api import API, get_api
 from cortex.lib.log import cx_logger
-from cortex.lib.storage import S3, LocalStorage, FileLock
+from cortex.lib.storage import S3, LocalStorage, LockedFile
 from cortex.lib.exceptions import UserRuntimeException
 
 API_SUMMARY_MESSAGE = (
@@ -255,17 +255,16 @@ def start_fn():
 
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
-        with FileLock("/run/used_ports.json.lock"):
-            with open("/run/used_ports.json", "r+") as f:
-                used_ports = json.load(f)
-                for port in used_ports.keys():
-                    if not used_ports[port]:
-                        tf_serving_port = port
-                        used_ports[port] = True
-                        break
-                f.seek(0)
-                json.dump(used_ports, f)
-                f.truncate()
+        with LockedFile("/run/used_ports", "r+") as f:
+            used_ports = json.load(f)
+            for port in used_ports.keys():
+                if not used_ports[port]:
+                    tf_serving_port = port
+                    used_ports[port] = True
+                    break
+            f.seek(0)
+            json.dump(used_ports, f)
+            f.truncate()
 
     try:
         api = get_api()
