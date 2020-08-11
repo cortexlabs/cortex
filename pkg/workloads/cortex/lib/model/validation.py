@@ -200,14 +200,14 @@ def json_model_template_representation(model_template) -> dict:
         return str(model_template)
 
 
-def dir_models_pattern(predictor_type: PredictorType) -> dict:
+def _dir_models_pattern(predictor_type: PredictorType) -> dict:
     """
     To be used when predictor:models:dir in cortex.yaml is used.
     """
     return {SinglePlaceholder: ModelTemplate[predictor_type]}
 
 
-def single_model_pattern(predictor_type: PredictorType) -> dict:
+def _single_model_pattern(predictor_type: PredictorType) -> dict:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
     """
@@ -233,12 +233,12 @@ def validate_s3_models_dir_paths(
             f"{predictor_type} predictor at '{commonprefix}'", "model top path can't be empty"
         )
 
-    pattern = dir_models_pattern(predictor_type)
+    pattern = _dir_models_pattern(predictor_type)
 
     paths = [os.path.relpath(s3_top_path, commonprefix) for s3_top_path in s3_paths]
     paths = [path for path in paths if not path.startswith("../")]
 
-    model_names = [get_leftmost_part_of_path(path) for path in paths]
+    model_names = [_get_leftmost_part_of_path(path) for path in paths]
     model_names = list(set(model_names))
 
     valid_model_prefixes = []
@@ -275,7 +275,7 @@ def validate_s3_model_paths(
         paths = [os.path.relpath(s3_path, commonprefix) for s3_path in s3_paths]
         paths = [path for path in paths if not path.startswith("../")]
 
-        objects = [get_leftmost_part_of_path(path) for path in paths]
+        objects = [_get_leftmost_part_of_path(path) for path in paths]
         objects = list(set(objects))
         visited_objects = len(objects) * [False]
 
@@ -308,15 +308,15 @@ def validate_s3_model_paths(
 
             for key_id, key in enumerate(keys):
                 if key == IntegerPlaceholder:
-                    validate_integer_placeholder(keys, key_id, objects, visited_objects)
+                    _validate_integer_placeholder(keys, key_id, objects, visited_objects)
                 elif key == AnyPlaceholder:
-                    validate_any_placeholder(keys, key_id, objects, visited_objects)
+                    _validate_any_placeholder(keys, key_id, objects, visited_objects)
                 elif key == SinglePlaceholder:
-                    validate_single_placeholder(keys, key_id, objects, visited_objects)
+                    _validate_single_placeholder(keys, key_id, objects, visited_objects)
                 elif key == GenericPlaceholder(""):
-                    validate_generic_placeholder(keys, key_id, objects, visited_objects, key)
+                    _validate_generic_placeholder(keys, key_id, objects, visited_objects, key)
                 elif isinstance(key, PlaceholderGroup):
-                    validate_group_placeholder(keys, key_id, objects, visited_objects)
+                    _validate_group_placeholder(keys, key_id, objects, visited_objects)
                 elif isinstance(key, OneOfAllPlaceholder):
                     try:
                         _validate_s3_model_paths(pattern[key], s3_paths, commonprefix)
@@ -367,18 +367,18 @@ def validate_s3_model_paths(
             if key != AnyPlaceholder:
                 _validate_s3_model_paths(sub_pattern, s3_paths, new_commonprefix)
 
-    pattern = single_model_pattern(predictor_type)
+    pattern = _single_model_pattern(predictor_type)
     _validate_s3_model_paths(pattern, s3_paths, commonprefix)
 
 
-def get_leftmost_part_of_path(path: str) -> str:
+def _get_leftmost_part_of_path(path: str) -> str:
     basename = ""
     while path:
         path, basename = os.path.split(path)
     return basename
 
 
-def validate_integer_placeholder(
+def _validate_integer_placeholder(
     placeholders: list, key_id: int, objects: List[str], visited: list
 ) -> None:
     appearances = 0
@@ -393,7 +393,7 @@ def validate_integer_placeholder(
         raise CortexException(f"{IntegerPlaceholder} not found in path")
 
 
-def validate_any_placeholder(
+def _validate_any_placeholder(
     placeholders: list, key_id: int, objects: List[str], visited: list,
 ) -> None:
     for idx, obj in enumerate(objects):
@@ -401,7 +401,7 @@ def validate_any_placeholder(
             visited[idx] = key_id
 
 
-def validate_single_placeholder(
+def _validate_single_placeholder(
     placeholders: list, key_id: int, objects: List[str], visited: list
 ) -> None:
     if len(placeholders) > 1 or len(objects) > 1:
@@ -410,7 +410,7 @@ def validate_single_placeholder(
         visited[0] = key_id
 
 
-def validate_generic_placeholder(
+def _validate_generic_placeholder(
     placeholders: list,
     key_id: int,
     objects: List[str],
@@ -429,7 +429,7 @@ def validate_generic_placeholder(
         raise CortexException(f"{generical.type} placeholder for {generical} wasn't found")
 
 
-def validate_group_placeholder(
+def _validate_group_placeholder(
     placeholders: list, key_id: int, objects: List[str], visited: list
 ) -> None:
     """
