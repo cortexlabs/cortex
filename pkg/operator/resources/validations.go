@@ -106,7 +106,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 		if api.Kind == userconfig.APISplitterKind {
 			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
-				return err
+				return errors.Wrap(err, api.Identify())
 			}
 			if err := checkIfAPIExists(api.APIs, withoutAPISplitter); err != nil {
 				return errors.Wrap(err, api.Identify())
