@@ -13,3 +13,11 @@
 # limitations under the License.
 
 from cortex.lib.model.tree import ModelsTree, create_dict_tree
+from cortex.lib.model.validation import (
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+    ONNXPredictorType,
+    validate_s3_models_dir_paths,
+    validate_s3_model_paths,
+)

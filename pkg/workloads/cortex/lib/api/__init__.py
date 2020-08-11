@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex.lib.api.api import API, get_api
+from cortex.lib.api.api import API, get_api, get_spec
 from cortex.lib.api.predictor import Predictor
 from cortex.lib.api.monitoring import Monitoring
 from cortex.lib.api.model import (

@@ -148,7 +148,7 @@ AnyPlaceholder = TemplatePlaceholder(
     "any", priority=4
 )  # the path can be any file or any directory (with multiple subdirectories)
 
-TensorFlowNeuronPredictor = PredictorType("tensorflow-neuron")
+TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")
 
 # to be used when predictor:model_path or predictor:models:paths is used
 ModelTemplate = {
@@ -166,7 +166,9 @@ ModelTemplate = {
             },
         },
     },
-    TensorFlowNeuronPredictor: {IntegerPlaceholder: {GenericPlaceholder("saved_model.pb"): None}},
+    TensorFlowNeuronPredictorType: {
+        IntegerPlaceholder: {GenericPlaceholder("saved_model.pb"): None}
+    },
     ONNXPredictorType: {
         OneOfAllPlaceholder(): {
             IntegerPlaceholder: {
