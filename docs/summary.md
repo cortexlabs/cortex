@@ -19,9 +19,10 @@
   * [API statuses](deployments/syncapi/statuses.md)
   * [Parellelism](deployments/parallelism.md)
   * [Autoscaling](deployments/syncapi/autoscaling.md)
-  * [Networking](deployments/networking.md)
   * [Compute](deployments/compute.md)
   * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
+  * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
+  * [Tutorial](../examples/sklearn/iris-classifier/README.md)
 * [Batch API](deployments/batchapi.md)
   * [Exporting models](deployments/exporting.md)
   * [Predictor implementation](deployments/batchapi/predictors.md)
@@ -30,7 +31,8 @@
   * [Endpoints](deployments/batchapi/endpoints.md)
   * [Job statuses](deployments/batchapi/statuses.md)
   * [Compute](deployments/compute.md)
-  * [Networking](deployments/networking.md)
+  * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
+  * [Tutorial](../examples/batch/image-classifier/README.md)
 
 ## Advanced
 

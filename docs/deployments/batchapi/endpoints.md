@@ -8,19 +8,17 @@ A deployed Batch API endpoint supports the following:
 1. Getting the status of a job
 1. Stopping a job
 
-You can find the url for your BatchAPI using Cortex CLI command `cortex get <batch_api_name>`.
+You can find the url for your Batch API using Cortex CLI command `cortex get <batch_api_name>`.
 
-## Endpoints
-
-### Submit a Job
+## Submit a Job
 
 There are three options for providing the dataset for your job:
 
-1. Include the dataset directly in the JSON request
-1. Provide a list of S3 file paths
-1. Provide a list newline delimited JSON files on S3 containing the input dataset
+1. [Include the dataset directly in the JSON request](#dataset-in-the-request)
+1. [Provide a list of S3 file paths](#s3-files-paths)
+1. [Provide a list newline delimited JSON files on S3 containing the input dataset](#newline-delimited-json-files-in-s3)
 
-#### Dataset in the request
+### Dataset in the request
 
 The dataset for your job can be included directly in your job submission request providing an `item_list` in your request payload. Each item can be any type (object, list, string, etc.) and is treated as a single sample. `item_list.batch_size` determines how many items are included in a single batch. Make sure that the total size of a batch is less than 256 KiB.
 
@@ -32,9 +30,8 @@ Submitting data in the request can be useful in the following use cases:
 - small request
 - each item in the request is small (e.g. urls to images/videos)
 
-Request: POST <batch_api_url>
-
 ```yaml
+POST <batch_api_url>/:
 {
     "workers": int,        # the number of workers you want to allocate for this job
     "item_list": {
@@ -49,11 +46,7 @@ Request: POST <batch_api_url>
     }
 }
 
-```
-
-Response:
-
-```yaml
+RESPONSE:
 {
     "job_id": string,
     "api_name": string,
@@ -65,7 +58,7 @@ Response:
 }
 ```
 
-#### S3 file paths
+### S3 file paths
 
 If your input dataset is a list of files such as images/videos in an s3 directory, you can define `file_path_lister` in your request payload to generate a list of S3 file paths. You can use `file_path_lister.s3_paths` to specify a list of files or prefixes and`file_path_lister.includes` and `file_path_lister.excludes` to remove unwanted files. The list of s3 file paths will be broken up into batches of size `file_path_lister.batch_size`. To learn more about fine grained S3 file filtering see the [filter files](#filtering-files) section.
 
@@ -78,9 +71,9 @@ This submission pattern can be useful in the following scenarios:
 
 If a single S3 file contains a lot of samples/rows, try this submission strategy. // TODO
 
-Request: POST <batch_api_url>
-
 ```yaml
+
+POST <batch_api_url>/:
 {
     "workers": int,        # the number of workers you want to allocate for this job
     "file_path_lister": {
@@ -94,11 +87,7 @@ Request: POST <batch_api_url>
     }
 }
 
-```
-
-Response:
-
-```yaml
+RESPONSE:
 {
     "job_id": string,
     "api_name": string,
@@ -110,7 +99,7 @@ Response:
 }
 ```
 
-#### Newline delimited JSON files in S3
+### Newline delimited JSON files in S3
 
 If your input dataset is a list new line delimited json files in an s3 directory, you can define `delimited_files` in your request payload to break up the files into batches of size `delimited_files.batch_size` and submitted to your workers. Make sure that the total size of a batch is less than 256 KiB.
 
@@ -123,9 +112,8 @@ This submission pattern is useful in the following scenarios:
 - you have a list of JSON files in S3 that need
 - an s3 file contains a large number of samples and must be broken down into batches.
 
-Request: POST <batch_api_url>
-
 ```yaml
+POST <batch_api_url>/:
 {
     "workers": int,            # the number of workers you want to allocate for this job
     "delimited_files": {
@@ -139,11 +127,7 @@ Request: POST <batch_api_url>
     }
 }
 
-```
-
-Response:
-
-```yaml
+RESPONSE:
 {
     "job_id": string,
     "api_name": string,
@@ -157,11 +141,13 @@ Response:
 
 ## Job status
 
-Request: GET <batch_api_url>/<job_id>
 
 Response:
 
 ```yaml
+GET <batch_api_url>/<job_id>:
+
+RESPONSE:
 {
     "job_status": {
         "job_id": string,
@@ -193,15 +179,15 @@ Response:
 }
 ```
 
-### Stop a Job
+## Stop a Job
 
-Request: DELETE <batch_api_url>/<job_id>
+```yaml
+DELETE <batch_api_url>/<job_id>:
 
-Response:
-
-```json
+RESPONSE:
 {"message":"stopped job <job_id>"}
 ```
+
 
 ## Additional Information
 
@@ -227,34 +213,34 @@ For a folder structure like this:
         └── img_4.gif
 ```
 
-The following configuration:
+1. Select all files
 
 ```yaml
 {
     "s3_paths": ["s3://bucket/images/img"]
 }
+
+# Would select the following files:
+# s3://bucket/images/img_1.png
+# s3://bucket/images/img_2.jpg
+# s3://bucket/images/img_3.jpg
+# s3://bucket/images/img_4.gif
 ```
 
-Would select the following files:
-s3://bucket/images/img_1.png
-s3://bucket/images/img_2.jpg
-s3://bucket/images/img_3.jpg
-s3://bucket/images/img_4.gif
-
-2. The following configuration:
+1. Only select JPGs
 
 ```yaml
 {
     "s3_paths": ["s3://bucket/images/img"],
     "includes": ["**.jpg"]
 }
+
+# Would select the following files:
+# s3://bucket/images/img_2.jpg
+# s3://bucket/images/img_3.jpg
 ```
 
-Would select the following files:
-s3://bucket/images/img_2.jpg
-s3://bucket/images/img_3.jpg
-
-3. The following configuration:
+1. Select all JPGs but one
 
 ```yaml
 {
@@ -262,22 +248,20 @@ s3://bucket/images/img_3.jpg
     "includes": ["**.jpg"],
     "excludes": ["**_3.jpg"]
 }
+
+# Would select the file:
+# s3://bucket/images/img_2.jpg
 ```
 
-Would select the file:
-s3://bucket/images/img_2.jpg
-
-
-4. The following configuration:
-
+1. Select everything but GIFs
 ```yaml
 {
     "s3_paths": ["s3://bucket/images/img"],
     "excludes": ["**.gif"]
 }
-```
 
-Would select the files:
-s3://bucket/images/img_1.png
-s3://bucket/images/img_2.jpg
-s3://bucket/images/img_3.jpg
+# Would select the files:
+# s3://bucket/images/img_1.png
+# s3://bucket/images/img_2.jpg
+# s3://bucket/images/img_3.jpg
+```

@@ -64,15 +64,14 @@ class PythonPredictor:
     def on_job_complete(self):
         all_results = []
 
-        # download all of the results
-        for obj in self.s3.list_objects_v2(Bucket=self.bucket, Prefix=self.key)["Contents"]:
-            if obj["Size"] > 0:
+        paginator = self.s3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self.bucket, Prefix=self.key):
+            for obj in page["Contents"]:
                 body = self.s3.get_object(Bucket=self.bucket, Key=obj["Key"])["Body"]
                 all_results += json.loads(body.read().decode("utf8"))
 
-        newline_delimited_results = "\n".join(json.dumps(result) for result in all_results)
         self.s3.put_object(
             Bucket=self.bucket,
-            Key=os.path.join(self.key, "aggregated_results.csv"),
-            Body=str(newline_delimited_results),
+            Key=os.path.join(self.key, "aggregated_results.json"),
+            Body=json.dumps(all_results),
         )
