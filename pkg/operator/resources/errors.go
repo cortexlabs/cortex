@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -83,6 +84,6 @@ func ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs []string) error {
 func ErrorAPIGatewayDisabled(apiGatewayType userconfig.APIGatewayType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIGatewayDisabled,
-		Message: fmt.Sprintf("%s is not permitted since api gateway is disabled cluster-wide (i.e. `api_gateway: disabled` is set in the cluster configration file)", apiGatewayType),
+		Message: fmt.Sprintf("%s is not permitted because api gateway is disabled cluster-wide (i.e. `api_gateway: disabled` is set in the cluster configration file)", s.UserStr(apiGatewayType)),
 	})
 }
