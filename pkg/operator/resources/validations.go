@@ -93,7 +93,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		api := &apis[i]
 		if api.Kind == userconfig.SyncAPIKind {
 			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
-				return err
+				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateK8s(api, virtualServices, maxMem); err != nil {
 				return err
