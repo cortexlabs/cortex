@@ -188,11 +188,9 @@ RESPONSE:
 {"message":"stopped job <job_id>"}
 ```
 
-
 ## Additional Information
 
 ### Filtering files
-
 
 When submitting a job using `delimited_files` or `file_path_lister`, you can use `s3_paths` in conjunction with in `includes` and `excludes` to precisely filter files.
 
@@ -213,7 +211,7 @@ For a folder structure like this:
         └── img_4.gif
 ```
 
-1. Select all files
+Select all files
 
 ```yaml
 {
@@ -227,7 +225,7 @@ For a folder structure like this:
 # s3://bucket/images/img_4.gif
 ```
 
-1. Only select JPGs
+Only select JPG files
 
 ```yaml
 {
@@ -240,7 +238,7 @@ For a folder structure like this:
 # s3://bucket/images/img_3.jpg
 ```
 
-1. Select all JPGs but one
+Select all JPG files except one specific JPG file
 
 ```yaml
 {
@@ -253,7 +251,8 @@ For a folder structure like this:
 # s3://bucket/images/img_2.jpg
 ```
 
-1. Select everything but GIFs
+Select all files except GIFs
+
 ```yaml
 {
     "s3_paths": ["s3://bucket/images/img"],
