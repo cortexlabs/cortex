@@ -92,15 +92,10 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 		return
 	}
 
-	endTime := jobStatus.EndTime.Add(time.Minute * 10)
-	if time.Now().Before(endTime) {
-		endTime = time.Now()
-	}
-
 	config.AWS.CloudWatchLogs().FilterLogEventsPages(&cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName:   aws.String(logGroupName),
 		StartTime:      aws.Int64(libtime.ToMillis(jobStatus.StartTime)),
-		EndTime:        aws.Int64(libtime.ToMillis(endTime)),
+		EndTime:        aws.Int64(libtime.ToMillis(time.Now())),
 		LogStreamNames: aws.StringSlice(logStreamNames.Slice()),
 	}, func(logEventsOutput *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
 		select {
