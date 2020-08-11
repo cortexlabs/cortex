@@ -214,13 +214,42 @@ def single_model_pattern(predictor_type: PredictorType) -> dict:
     return ModelTemplate[predictor_type]
 
 
-def validate_s3_models_dir_paths(s3_top_paths: List[str], predictor_type: PredictorType) -> list:
+def validate_s3_models_dir_paths(
+    s3_paths: List[str], predictor_type: PredictorType, commonprefix: str
+) -> List[str]:
     """
     To be used when predictor:models:dir in cortex.yaml is used.
+
+    Args:
+        s3_paths: A list of all paths for a given S3 prefix. Must be the top directory of multiple models.
+        predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
+        commonprefix: The commonprefix of the directory which holds all models.
+
+    Returns:
+        A list with the prefix of each model that's valid.
     """
-    for s3_top_path in s3_top_paths:
-        model_name = os.path.dirname(s3_top_path)
-    return {}
+    if len(s3_paths) == 0:
+        raise CortexException(
+            f"{predictor_type} predictor at '{commonprefix}'", "model top path can't be empty"
+        )
+
+    pattern = dir_models_pattern(predictor_type)
+
+    paths = [os.path.relpath(s3_top_path, commonprefix) for s3_top_path in s3_paths]
+    paths = [path for path in paths if not path.startswith("../")]
+
+    model_names = [get_leftmost_part_of_path(path) for path in paths]
+    model_names = list(set(model_names))
+
+    valid_model_prefixes = []
+    for idx, model_name in enumerate(model_names):
+        try:
+            validate_s3_model_paths(paths, predictor_type, model_name)
+            valid_model_prefixes.append(os.path.join(commonprefix, model_name))
+        except CortexException as e:
+            continue
+
+    return valid_model_prefixes
 
 
 def validate_s3_model_paths(
@@ -228,6 +257,14 @@ def validate_s3_model_paths(
 ) -> None:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
+
+    Args:
+        s3_top_paths: A list of all paths for a given S3 prefix. Must be the top directory of a model.
+        predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
+        commonprefix: The commonprefix of the directory which holds all models.
+
+    Exception:
+        CortexException if the paths don't match the model's template.
     """
     if len(s3_paths) == 0:
         raise CortexException(
@@ -304,7 +341,16 @@ def validate_s3_model_paths(
         unvisited_paths = []
         for idx, visited in enumerate(visited_objects):
             if visited is False:
-                unvisited_paths.append(paths[idx])
+                untraced_common_prefix = os.path.join(commonprefix, objects[idx])
+                untraced_paths = [
+                    os.path.relpath(path, untraced_common_prefix) for path in s3_paths
+                ]
+                untraced_paths = [
+                    os.path.join(objects[idx], path)
+                    for path in untraced_paths
+                    if not path.startswith("../")
+                ]
+                unvisited_paths += untraced_paths
         if len(unvisited_paths) > 0:
             raise CortexException(
                 f"{predictor_type} predictor model at '{commonprefix}'",
@@ -318,7 +364,8 @@ def validate_s3_model_paths(
             new_commonprefix = os.path.join(commonprefix, obj)
             sub_pattern = pattern[key]
 
-            _validate_s3_model_paths(sub_pattern, s3_paths, new_commonprefix)
+            if key != AnyPlaceholder:
+                _validate_s3_model_paths(sub_pattern, s3_paths, new_commonprefix)
 
     pattern = single_model_pattern(predictor_type)
     _validate_s3_model_paths(pattern, s3_paths, commonprefix)
