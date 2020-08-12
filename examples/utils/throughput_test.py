@@ -11,7 +11,6 @@ import time
 import itertools
 import cv2
 import numpy as np
-import base64
 
 from validator_collection import checkers
 
@@ -75,9 +74,7 @@ def main(payload, endpoint, processes, threads, samples, time_based):
         print(f"'{payload}' doesn't point to a jpg image or to a json file")
         sys.exit(1)
     if file_type == "jpg":
-        image_bytes = image_to_jpeg_bytes(payload_data)
-        image_enc = base64.b64encode(image_bytes).decode("utf-8")
-        data = json.dumps({"img": image_enc})
+        data = image_to_jpeg_bytes(payload_data)
     if file_type == "json":
         data = json.dumps(payload_data)
 
@@ -121,15 +118,17 @@ def executor_submitter(executor, workers, *args, **kwargs):
 def task(data, endpoint, samples, time_based):
     timeout = 60
 
+    if isinstance(data, str):
+        headers = {"content-type": "application/json"}
+    elif isinstance(data, bytes):
+        headers = {"content-type": "application/octet-stream"}
+    else:
+        return
+
     if time_based == 0.0:
         for i in range(samples):
             try:
-                resp = requests.post(
-                    endpoint,
-                    data=data,
-                    headers={"content-type": "application/json"},
-                    timeout=timeout,
-                )
+                resp = requests.post(endpoint, data=data, headers=headers, timeout=timeout,)
             except Exception as e:
                 print(e)
                 break
@@ -140,12 +139,7 @@ def task(data, endpoint, samples, time_based):
         counter = 0
         while start + time_based >= time.time():
             try:
-                resp = requests.post(
-                    endpoint,
-                    data=data,
-                    headers={"content-type": "application/json"},
-                    timeout=timeout,
-                )
+                resp = requests.post(endpoint, data=data, headers=headers, timeout=timeout,)
             except Exception as e:
                 print(e)
                 break

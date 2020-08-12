@@ -20,8 +20,8 @@ Options:
 
 `PAYLOAD` can either be a local file or an URL resource that points to a file. The allowed extension types for the file are `json` and `jpg`. This argument can also be exported as an environment variable instead of being passed to the CLI.
 
-* `json` files are generally `sample.json`s as they are found in most Cortex examples. Each of these is attached to the request as payload.
-* `jpg` images get converted to base64 format and then are assigned to the `img` key in a dictionary of this format `{"key": <image in base64 format>}` - this dictionary is the request's payload.
+* `json` files are generally `sample.json`s as they are found in most Cortex examples. Each of these is attached to the request as payload. The content type of the request is `"application/json"`.
+* `jpg` images are read as numpy arrays and then are converted to a bytes object using `cv2.imencode` function. The content type of the request is `"application/octet-stream"`.
 
 The same payload `PAYLOAD` is attached to all requests the script makes.
 

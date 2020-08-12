@@ -9,13 +9,17 @@ import json
 import base64
 
 
-def decode_image(image):
+def read_image(payload):
     """
-    Decode the image from the payload.
+    Read JPG image from {"url": "https://..."} or from a bytes object.
     """
-    img = base64.b64decode(image)
-    jpg_as_np = np.frombuffer(img, dtype=np.uint8)
-    img = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
+    if isinstance(payload, bytes):
+        jpg_as_np = np.frombuffer(payload, dtype=np.uint8)
+        img = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
+    elif isinstance(payload, dict) and "url" in payload.keys():
+        img = imageio.imread(payload["url"])
+    else:
+        return None
     return img
 
 
@@ -42,13 +46,8 @@ class TensorFlowPredictor:
 
     def predict(self, payload):
         # preprocess image
-        payload_keys = payload.keys()
-        if "img" in payload_keys:
-            img = payload["img"]
-            img = decode_image(img)
-        elif "url" in payload_keys:
-            img = imageio.imread(payload["url"])
-        else:
+        img = read_image(payload)
+        if img is None:
             return None
         img = prepare_image(img, self.input_shape, self.input_key)
 
