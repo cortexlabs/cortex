@@ -1,17 +1,19 @@
 <!-- Delete on release branches -->
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='64'>
+<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
 
-<!-- Delete on release branches -->
-<!-- CORTEX_VERSION_README_MINOR -->
-[install](https://docs.cortex.dev/install) • [docs](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
+<br>
 
 # Build machine learning APIs
 
 Cortex makes deploying, scaling, and managing machine learning systems in production simple. We believe that developers in any organization should be able to add natural language processing, computer vision, and other machine learning capabilities to their applications without having to worry about infrastructure.
 
+<!-- Delete on release branches -->
+<!-- CORTEX_VERSION_README_MINOR -->
+[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
+
 <br>
 
-## Key features
+# Key features
 
 ### Deploy
 
@@ -33,7 +35,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 <br>
 
-## How it works
+# How it works
 
 Implement your predictor in `predictor.py`, configure your deployment in `cortex.yaml`, and run `cortex deploy`.
 
@@ -43,7 +45,7 @@ Here's how to deploy GPT-2 as a scalable text generation API:
 
 <br>
 
-## Get started
+# Get started
 
 ### Install
 
