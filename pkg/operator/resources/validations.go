@@ -130,7 +130,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem kresource.Quantity) error {
 	if err := validateK8sCompute(api.Compute, maxMem); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
+		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
 	if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -211,7 +211,7 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclie
 		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService)
 		for endpoint := range endpoints {
 			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Networking.Endpoint, "/") && virtualService.Labels["apiName"] != api.Name {
-				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.Labels["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
+				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.Labels["apiName"]), userconfig.NetworkingKey, userconfig.EndpointKey, endpoint)
 			}
 		}
 	}
