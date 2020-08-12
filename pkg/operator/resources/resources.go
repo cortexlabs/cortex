@@ -186,7 +186,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 				telemetry.Error(err)
 			}
 		}()
-		return nil, err
+		return nil, ErrorAPINotDeployed(apiName)
 	}
 
 	switch deployedResource.Kind {
