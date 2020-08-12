@@ -15,7 +15,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 <br>
 
-## Key features
+# Key features
 
 ### Deploy
 
@@ -37,7 +37,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 <br>
 
-## How it works
+# How it works
 
 Implement your predictor in `predictor.py`, configure your deployment in `cortex.yaml`, and run `cortex deploy`.
 
@@ -47,7 +47,7 @@ Here's how to deploy GPT-2 as a scalable text generation API:
 
 <br>
 
-## Get started
+# Get started
 
 ### Install
 
