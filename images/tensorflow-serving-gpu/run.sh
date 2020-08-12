@@ -14,10 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[program:tensorflow-$process]
-command=tensorflow_model_server_neuron --port=$port --model_config_file=$TF_EMPTY_MODEL_CONFIG $TF_EXTRA_CMD_ARGS
-stdout_logfile=/dev/fd/1
-stdout_logfile_maxbytes=0
-redirect_stderr=true
-killasgroup=true
-stopasgroup=true
+set -e
+
+# empty model config list
+mkdir /etc/tfs
+echo "model_config_list {}" > /etc/tfs/model_config_server.conf
+
+# configure batching if specified
+if [[ -n ${TF_MAX_BATCH_SIZE} && -n ${TF_BATCH_TIMEOUT_MICROS} ]]; then
+    echo "max_batch_size { value: ${TF_MAX_BATCH_SIZE} }" > /etc/tfs/batch_config.conf
+    echo "batch_timeout_micros { value: ${TF_BATCH_TIMEOUT_MICROS} }" >> /etc/tfs/batch_config.conf
+    echo "num_batch_threads { value: ${TF_NUM_BATCHED_THREADS} }" >> /etc/tfs/batch_config.conf
+fi
+
+# launch TFS
+tensorflow_model_server "$@"
