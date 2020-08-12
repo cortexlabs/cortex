@@ -86,8 +86,4 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-if [ "$CORTEX_KIND" == "SyncAPI" ]; then
-    /opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py
-else
-    /opt/conda/envs/env/bin/python /src/cortex/serve/batch.py
-fi
+/opt/conda/envs/env/bin/python /src/cortex/serve/start.py
