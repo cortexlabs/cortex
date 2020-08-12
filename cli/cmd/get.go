@@ -172,7 +172,6 @@ func getAPIsInAllEnvironments() (string, error) {
 			for range apisRes.BatchAPIs {
 				allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)
 			}
-
 			for range apisRes.SyncAPIs {
 				allSyncAPIEnvs = append(allSyncAPIEnvs, env.Name)
 			}
@@ -185,10 +184,6 @@ func getAPIsInAllEnvironments() (string, error) {
 		} else {
 			errorsMap[env.Name] = err
 		}
-	}
-
-	if len(allSyncAPIs) == 0 && len(allAPISplitters) == 0 {
-		return console.Bold("no apis are deployed"), nil
 	}
 
 	out := ""
