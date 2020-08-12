@@ -122,7 +122,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		api := &apis[i]
 
 		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
-			return err
+			return errors.Wrap(err, api.Identify())
 		}
 
 		if api.Compute.CPU != nil && (api.Compute.CPU.MilliValue() > int64(dockerClient.Info.NCPU)*1000) {

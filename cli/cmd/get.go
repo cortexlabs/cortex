@@ -178,6 +178,10 @@ func getAPIsInAllEnvironments() (string, error) {
 		}
 	}
 
+	if len(allSyncAPIs) == 0 && len(allAPISplitters) == 0 {
+		return console.Bold("no apis are deployed"), nil
+	}
+
 	out := ""
 	var apiSplitTable table.Table
 	var syncAPITable table.Table

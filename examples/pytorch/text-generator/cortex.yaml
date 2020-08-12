@@ -5,8 +5,6 @@
   predictor:
     type: python
     path: predictor.py
-    config:
-      num_words: 50
   compute:
     cpu: 1
-    gpu: 1
+    gpu: 1 # this is optional, since the api can also run on cpu
