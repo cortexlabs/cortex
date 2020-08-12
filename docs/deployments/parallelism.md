@@ -20,7 +20,7 @@ The [TensorFlow Predictor](predictors.md#tensorflow-predictor) allows for the us
 
 * `max_batch_size`: The maximum number of requests to aggregate before running inference. This is an instrument for controlling throughput. The maximum size can be achieved if `batch_interval` is long enough to collect `max_batch_size` requests.
 
-* `batch_interval`: The maximum amount of time to spend waiting for additional requests before running inference on a request. If fewer than `max_batch_size` requests are received after waiting the full `batch_interval`, then inference will run on the requests that have been received. This is an instrument for controlling latency.
+* `batch_interval`: The maximum amount of time to spend waiting for additional requests before running inference on the batch of requests. If fewer than `max_batch_size` requests are received after waiting the full `batch_interval`, then inference will run on the requests that have been received. This is an instrument for controlling latency.
 
 In order to use server-side batching, the model's graph must be built such that batches can be accepted as input/output. The following is an example of how the input `x` and the output `y` of the graph could be shaped to be compatible with server-side batching:
 

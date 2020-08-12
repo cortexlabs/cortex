@@ -69,7 +69,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
       ...
     server_side_batching:  # (optional)
       max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
-      batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on a request
+      batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
