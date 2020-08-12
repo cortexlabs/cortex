@@ -319,7 +319,6 @@ func investigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 
 	var err error
 	if !reasonFound {
-		errors.PrintStacktrace(ErrorNoDataFoundInJobSubmission())
 		err = writeToJobLogStream(jobKey, "workers were killed for unknown reason")
 	}
 

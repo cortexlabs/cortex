@@ -88,10 +88,11 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 	didPrintWarning := false
 
-	withoutAPISplitter := InclusiveFilterAPIsByKind(apis, userconfig.SyncAPIKind)
+	syncAPIs := InclusiveFilterAPIsByKind(apis, userconfig.SyncAPIKind)
+
 	for i := range apis {
 		api := &apis[i]
-		if api.Kind == userconfig.SyncAPIKind {
+		if api.Kind == userconfig.SyncAPIKind || api.Kind == userconfig.BatchAPIKind {
 			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
@@ -108,7 +109,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-			if err := checkIfAPIExists(api.APIs, withoutAPISplitter); err != nil {
+			if err := checkIfAPIExists(api.APIs, syncAPIs); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -264,6 +265,21 @@ func InclusiveFilterAPIsByKind(apis []userconfig.API, kindsToInclude ...userconf
 	fileredAPIs := []userconfig.API{}
 	for _, api := range apis {
 		if kindsToIncludeSet.Has(api.Kind.String()) {
+			fileredAPIs = append(fileredAPIs, api)
+		}
+	}
+	return fileredAPIs
+}
+
+// InclusiveFilterAPIsByKind includes only provided Kinds
+func ExclusiveFilterAPIsByKind(apis []userconfig.API, kindsToExclude ...userconfig.Kind) []userconfig.API {
+	kindsToExcludeSet := strset.New()
+	for _, kind := range kindsToExclude {
+		kindsToExcludeSet.Add(kind.String())
+	}
+	fileredAPIs := []userconfig.API{}
+	for _, api := range apis {
+		if !kindsToExcludeSet.Has(api.Kind.String()) {
 			fileredAPIs = append(fileredAPIs, api)
 		}
 	}

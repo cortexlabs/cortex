@@ -107,9 +107,8 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		}
 	}
 
-	// order SyncAPIs apiconfigs first then APISplitters
 	// This is done if user specifies SyncAPIs in same file as APISplitter
-	apiConfigs = append(InclusiveFilterAPIsByKind(apiConfigs, userconfig.SyncAPIKind), InclusiveFilterAPIsByKind(apiConfigs, userconfig.APISplitterKind)...)
+	apiConfigs = append(ExclusiveFilterAPIsByKind(apiConfigs, userconfig.APISplitterKind), InclusiveFilterAPIsByKind(apiConfigs, userconfig.APISplitterKind)...)
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {

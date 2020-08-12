@@ -22,19 +22,19 @@ type BatchMetrics struct {
 	AverageTimePerBatch *float64 `json:"average_time_per_batch"`
 }
 
-func (b BatchMetrics) TotalCompleted() int {
-	return b.Succeeded + b.Failed
+func (batchMetrics BatchMetrics) TotalCompleted() int {
+	return batchMetrics.Succeeded + batchMetrics.Failed
 }
 
-func (left BatchMetrics) Merge(right BatchMetrics) BatchMetrics {
+func (batchMetrics BatchMetrics) Merge(right BatchMetrics) BatchMetrics {
 	newBatchMetrics := BatchMetrics{}
-	newBatchMetrics.MergeInPlace(left)
+	newBatchMetrics.MergeInPlace(batchMetrics)
 	newBatchMetrics.MergeInPlace(right)
 	return newBatchMetrics
 }
 
-func (left *BatchMetrics) MergeInPlace(right BatchMetrics) {
-	left.AverageTimePerBatch = mergeAvg(left.AverageTimePerBatch, left.TotalCompleted(), right.AverageTimePerBatch, right.TotalCompleted())
-	left.Succeeded = left.Succeeded + right.Succeeded
-	left.Failed = left.Failed + right.Failed
+func (batchMetrics *BatchMetrics) MergeInPlace(right BatchMetrics) {
+	batchMetrics.AverageTimePerBatch = mergeAvg(batchMetrics.AverageTimePerBatch, batchMetrics.TotalCompleted(), right.AverageTimePerBatch, right.TotalCompleted())
+	batchMetrics.Succeeded = batchMetrics.Succeeded + right.Succeeded
+	batchMetrics.Failed = batchMetrics.Failed + right.Failed
 }

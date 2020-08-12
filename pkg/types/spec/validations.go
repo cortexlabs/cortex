@@ -273,6 +273,7 @@ func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			},
 		},
 	}
+
 	if kind == userconfig.SyncAPIKind {
 		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
 			StructField: "LocalPort",
@@ -282,6 +283,7 @@ func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			},
 		})
 	}
+
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
