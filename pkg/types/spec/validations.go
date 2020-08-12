@@ -601,22 +601,22 @@ func ValidateAPI(
 	}
 
 	if err := validatePredictor(api, projectFiles, providerType, awsClient); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
+		return errors.Wrap(err, userconfig.PredictorKey)
 	}
 
 	if api.Autoscaling != nil { // should only be nil for local provider
 		if err := validateAutoscaling(api); err != nil {
-			return errors.Wrap(err, api.Identify(), userconfig.AutoscalingKey)
+			return errors.Wrap(err, userconfig.AutoscalingKey)
 		}
 	}
 
 	if err := validateCompute(api, providerType); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
+		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
 	if api.UpdateStrategy != nil { // should only be nil for local provider
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
-			return errors.Wrap(err, api.Identify(), userconfig.UpdateStrategyKey)
+			return errors.Wrap(err, userconfig.UpdateStrategyKey)
 		}
 	}
 
