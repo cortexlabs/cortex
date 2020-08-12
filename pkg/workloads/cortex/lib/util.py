@@ -77,6 +77,13 @@ def ensure_suffix(string, suffix):
     return string + suffix
 
 
+def get_leftmost_part_of_path(path: str) -> str:
+    basename = ""
+    while path:
+        path, basename = os.path.split(path)
+    return basename
+
+
 def merge_dicts_in_place_overwrite(*dicts):
     """Merge dicts, right into left, with overwriting. First dict is updated in place"""
     dicts = list(dicts)

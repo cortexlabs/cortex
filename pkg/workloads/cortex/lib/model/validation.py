@@ -240,7 +240,7 @@ def validate_s3_models_dir_paths(
     paths = [os.path.relpath(s3_top_path, commonprefix) for s3_top_path in s3_paths]
     paths = [path for path in paths if not path.startswith("../")]
 
-    model_names = [_get_leftmost_part_of_path(path) for path in paths]
+    model_names = [util.get_leftmost_part_of_path(path) for path in paths]
     model_names = list(set(model_names))
 
     valid_model_prefixes = []
@@ -277,7 +277,7 @@ def validate_s3_model_paths(
         paths = [os.path.relpath(s3_path, commonprefix) for s3_path in s3_paths]
         paths = [path for path in paths if not path.startswith("../")]
 
-        objects = [_get_leftmost_part_of_path(path) for path in paths]
+        objects = [util.get_leftmost_part_of_path(path) for path in paths]
         objects = list(set(objects))
         visited_objects = len(objects) * [False]
 
@@ -371,13 +371,6 @@ def validate_s3_model_paths(
 
     pattern = _single_model_pattern(predictor_type)
     _validate_s3_model_paths(pattern, s3_paths, commonprefix)
-
-
-def _get_leftmost_part_of_path(path: str) -> str:
-    basename = ""
-    while path:
-        path, basename = os.path.split(path)
-    return basename
 
 
 def _validate_integer_placeholder(

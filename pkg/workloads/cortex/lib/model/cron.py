@@ -13,7 +13,10 @@
 # limitations under the License.
 
 from typing import Dict, List, Tuple, Any
-from cortex.lib.storage import S3, LocalStorage, FileLock
+
+from cortex.lib import util
+from cortex.lib.log import cx_logger
+from cortex.lib.storage import S3, LocalStorage, LockedFile
 from cortex.lib.exceptions import CortexException
 from cortex.lib.model import (
     PythonPredictorType,
@@ -61,6 +64,8 @@ class SimpleModelMonitor(mp.Process):
                 self._model_names.append(curated_model["name"])
             else:
                 self._local_model_names.append(curated_model["name"])
+        self._curated_models = self._api_spec["curated_model_resources"]
+
         if (
             self._api_spec["predictor"]["model_path"] is None
             and self._api_spec["predictor"]["models"]["dir"] is not None
@@ -89,6 +94,7 @@ class SimpleModelMonitor(mp.Process):
         self._stopped = mp.Event()
 
     def run(self):
+        self.logger = cx_logger()
         while not self._event_stopper.is_set():
             self._update_models_tree()
             time.sleep(self._interval)
@@ -111,6 +117,13 @@ class SimpleModelMonitor(mp.Process):
             model_paths = validate_s3_models_dir_paths(sub_paths, self._predictor_type, models_path)
             model_names = [os.path.basename(model_path) for model_path in model_paths]
 
+            model_names = list(set(model_names).difference(self._local_model_names))
+            model_paths = [
+                model_path
+                for model_path in models_path
+                if os.path.basename(model_path) in model_names
+            ]
+
         if not self._is_dir_used:
             sub_paths = []
             model_paths = []
@@ -127,13 +140,39 @@ class SimpleModelMonitor(mp.Process):
                     except CortexException:
                         continue
 
-        if self._is_dir_used:
-            model_names = list(set(model_names).difference(self._local_model_names))
-            model_paths = [
-                model_path
-                for model_path in models_path
-                if os.path.basename(model_path) in model_names
-            ]
+        versions = {}
+        for model_path, model_name in zip(model_paths, model_names):
+            model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in sub_paths]
+            model_sub_paths = [path for path in model_sub_paths if not path.startswith("../")]
+            # make isnumeric verification because for ONNX models, the model path can be the actual ONNX file
+            model_versions = [version for version in model_sub_paths if version.isnumeric()]
+            versions[model_name] = model_versions
+
+        # at this point there are 4 variables
+        #
+        # model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
+        # versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
+        #   For ONNX model paths that are not versioned, the list will be empty
+        # model_paths - a list with the prefix of each model
+        # sub_paths - a list of filepaths for each file of each model all grouped into a single list
+
+        for model_name in model_names:
+            for version in versions[model_name]:
+                # compare the on-disk version of the model (if there's one)
+                # with that on the s3 bucket and then decide if the newer one should be downloaded
+                resource = model_name + "-" + version + ".txt"
+                with LockedFile(resource, "w+") as f:
+                    # number 1
+                    # download the model to a temporary location
+
+                    # number 2
+                    # then validate the saved model and if it checks out
+                    # move it to its definite location, otherwise just remove it
+                    # and leave the f file untouched (maybe emit a warning)
+                    pass
+
+            if len(versions[model_name]) == 0:
+                pass
 
         print("model names", model_names)
         print("model paths", model_paths)

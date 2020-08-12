@@ -40,7 +40,7 @@ class FileLock:
 
     def acquire(self):
         """
-        To acquire r/rw lock to resource.
+        To acquire the lock to resource.
         """
         if self._file_handle:
             return
@@ -76,7 +76,7 @@ class FileLock:
 
     def release(self):
         """
-        To release r/rw lock to resource.
+        To release the lock to resource.
         """
         if not self._file_handle:
             return
@@ -121,7 +121,11 @@ class LockedFile:
         lockfilepath = os.path.join(self.dir_path, self.lockname + ".lock")
         self._lock = FileLock(lockfilepath, self.timeout, self.reader_lock)
         self._lock.acquire()
-        self._fd = open(self.filename, self.mode)
+        try:
+            self._fd = open(self.filename, self.mode)
+        except Exception as e:
+            self._lock.release()
+            raise e
         return self._fd
 
     def __exit__(self, exc_type, exc_value, traceback):
