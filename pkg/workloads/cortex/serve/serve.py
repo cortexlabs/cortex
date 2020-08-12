@@ -212,11 +212,13 @@ def predict(request: Request):
         except:
             cx_logger().warn("unable to record prediction metric", exc_info=True)
 
-    if has_method(predictor_impl, "post_predict"):
+    if util.has_method(predictor_impl, "post_predict"):
         kwargs = build_post_predict_kwargs(prediction, request)
         tasks.add_task(predictor_impl.post_predict, **kwargs)
 
-    response.background = tasks
+    if len(tasks.tasks) > 0:
+        response.background = tasks
+
     return response
 
 
@@ -246,10 +248,6 @@ def build_post_predict_kwargs(response, request: Request):
         kwargs["response"] = response
 
     return kwargs
-
-
-def has_method(object, method: str):
-    return callable(getattr(object, method, None))
 
 
 def get_summary():
@@ -318,7 +316,7 @@ def start_fn():
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
         local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
-        if has_method(predictor_impl, "post_predict"):
+        if util.has_method(predictor_impl, "post_predict"):
             local_cache["post_predict_fn_args"] = inspect.getfullargspec(
                 predictor_impl.post_predict
             ).args
