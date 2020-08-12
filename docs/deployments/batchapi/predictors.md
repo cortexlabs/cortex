@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](exporting.md), you can implement one of Cortex's Predictor classes to deploy your model. A Predictor is a Python class that describes how to initialize your model and use it to make predictions.
+Once your model is [exported](../exporting.md), you can implement one of Cortex's Predictor classes to deploy your model. A Predictor is a Python class that describes how to initialize your model and use it to make predictions.
 
 Which Predictor you use depends on how your model is exported:
 
@@ -72,7 +72,7 @@ class PythonPredictor:
         pass
 
     def on_job_complete(self):
-        """Called once after all of the batches have been processed. Runs job completion processes such as coalescing results and triggers completion webhooks.
+        """Called once after all of the batches in the job queue have been processed. Performs post job completion tasks such as aggregating results, executing web hooks or triggering other jobs.
         """
         pass
 ```
@@ -183,7 +183,7 @@ class TensorFlowPredictor:
         pass
 
     def on_job_complete(self):
-        """Called once after all of the batches have been processed. Runs job completion processes such as coalescing results and triggers completion webhooks.
+        """Called once after all of the batches in the job queue have been processed. Performs post job completion tasks such as aggregating results, executing web hooks or triggering other jobs.
         """
         pass
 ```
@@ -253,7 +253,7 @@ class ONNXPredictor:
         pass
 
     def on_job_complete(self):
-        """Called once after all of the batches have been processed. Runs job completion processes such as coalescing results and triggers completion webhooks.
+        """Called once after all of the batches in the job queue have been processed. Performs post job completion tasks such as aggregating results, executing web hooks or triggering other jobs.
         """
         pass
 ```
