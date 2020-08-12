@@ -55,7 +55,7 @@ var _predictCmd = &cobra.Command{
 		}
 		telemetry.Event("cli.predict", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagPredictEnv)
+		err = printEnvIfNotSpecified(_flagPredictEnv, cmd)
 		if err != nil {
 			exit.Error(err)
 		}

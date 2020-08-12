@@ -67,7 +67,7 @@ var _getCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
-		if len(args) == 1 || wasEnvFlagProvided() {
+		if len(args) == 1 || wasEnvFlagProvided(cmd) {
 			env, err := ReadOrConfigureEnv(_flagGetEnv)
 			if err != nil {
 				telemetry.Event("cli.get")
@@ -85,7 +85,7 @@ var _getCmd = &cobra.Command{
 					exit.Error(err)
 				}
 
-				out, err := envStringIfNotSpecified(_flagGetEnv)
+				out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
 				if err != nil {
 					return "", err
 				}
@@ -100,7 +100,7 @@ var _getCmd = &cobra.Command{
 					exit.Error(err)
 				}
 
-				out, err := envStringIfNotSpecified(_flagGetEnv)
+				out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
 				if err != nil {
 					return "", err
 				}
@@ -115,13 +115,13 @@ var _getCmd = &cobra.Command{
 				}
 				return out + apiTable, nil
 			} else {
-				if wasEnvFlagProvided() {
+				if wasEnvFlagProvided(cmd) {
 					env, err := ReadOrConfigureEnv(_flagGetEnv)
 					if err != nil {
 						exit.Error(err)
 					}
 
-					out, err := envStringIfNotSpecified(_flagGetEnv)
+					out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
 					if err != nil {
 						return "", err
 					}
@@ -154,7 +154,11 @@ func getAPIsInAllEnvironments() (string, error) {
 	var allSyncAPIEnvs []string
 	var allBatchAPIs []schema.BatchAPI
 	var allBatchAPIEnvs []string
+	var allAPISplitters []schema.APISplitter
+	var allAPISplitterEnvs []string
+
 	errorsMap := map[string]error{}
+	// get apis from both environments
 	for _, env := range cliConfig.Environments {
 		var apisRes schema.GetAPIsResponse
 		var err error
@@ -172,22 +176,29 @@ func getAPIsInAllEnvironments() (string, error) {
 			for range apisRes.SyncAPIs {
 				allSyncAPIEnvs = append(allSyncAPIEnvs, env.Name)
 			}
-
+			for range apisRes.APISplitters {
+				allAPISplitterEnvs = append(allAPISplitterEnvs, env.Name)
+			}
 			allSyncAPIs = append(allSyncAPIs, apisRes.SyncAPIs...)
 			allBatchAPIs = append(allBatchAPIs, apisRes.BatchAPIs...)
+			allAPISplitters = append(allAPISplitters, apisRes.APISplitters...)
 		} else {
 			errorsMap[env.Name] = err
 		}
 	}
 
+	if len(allSyncAPIs) == 0 && len(allAPISplitters) == 0 {
+		return console.Bold("no apis are deployed"), nil
+	}
+
 	out := ""
 
-	if len(allSyncAPIs) == 0 && len(allBatchAPIs) == 0 {
+	if len(allSyncAPIs) == 0 && len(allBatchAPIs) == 0 && len(allAPISplitters) == 0 {
 		if len(errorsMap) == 1 {
 			// Print the error if there is just one
 			exit.Error(errors.FirstErrorInMap(errorsMap))
 		}
-		// if all envs errored, skip it "no apis are deployed" since it's misleading
+		// if all envs errored, skip "no apis are deployed" since it's misleading
 		if len(errorsMap) != len(cliConfig.Environments) {
 			out += console.Bold("no apis are deployed") + "\n"
 		}
@@ -204,6 +215,16 @@ func getAPIsInAllEnvironments() (string, error) {
 			}
 
 			if len(allBatchAPIs) > 0 {
+				out += "\n"
+			}
+
+			out += t.MustFormat()
+		}
+
+		if len(allAPISplitters) > 0 {
+			t := apiSplitterListTable(allAPISplitters, allAPISplitterEnvs)
+
+			if len(allSyncAPIs) > 0 || len(allBatchAPIs) > 0 {
 				out += "\n"
 			}
 
@@ -251,7 +272,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(apisRes.SyncAPIs) == 0 && len(apisRes.BatchAPIs) == 0 {
+	if len(apisRes.SyncAPIs) == 0 && len(apisRes.BatchAPIs) == 0 && len(apisRes.APISplitters) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
@@ -284,6 +305,22 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 
 		if env.Provider == types.LocalProviderType {
 			hideReplicaCountColumns(&t)
+		}
+
+		out += t.MustFormat()
+	}
+
+	if len(apisRes.APISplitters) > 0 {
+		envNames := []string{}
+		for range apisRes.APISplitters {
+			envNames = append(envNames, env.Name)
+		}
+
+		t := apiSplitterListTable(apisRes.APISplitters, envNames)
+		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+
+		if len(apisRes.BatchAPIs) > 0 || len(apisRes.SyncAPIs) > 0 {
+			out += "\n"
 		}
 
 		out += t.MustFormat()
@@ -324,8 +361,12 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			}
 			return "", err
 		}
+
 		if apiRes.SyncAPI != nil {
 			return syncAPITable(apiRes.SyncAPI, env)
+		}
+		if apiRes.APISplitter != nil {
+			return apiSplitterTable(apiRes.APISplitter, env)
 		}
 		return batchAPITable(*apiRes.BatchAPI), nil
 	}

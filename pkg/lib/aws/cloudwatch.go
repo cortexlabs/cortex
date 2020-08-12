@@ -25,12 +25,41 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
+var (
+	_dashboardMinWidthUnits  = 1
+	_dashboardMaxWidthUnits  = 24
+	_dashboardMinHeightUnits = 1
+	_dashboardMaxHeightUnits = 1000
+)
+
 type CloudWatchDashboard struct {
 	Start          string             `json:"start"`
 	PeriodOverride string             `json:"periodOverride"`
 	Widgets        []CloudWatchWidget `json:"widgets"`
 }
 
+// Example:
+// CloudWatchWidget{
+// 	"type":"metric",
+// 	"x":0,
+// 	"y":0,
+// 	"width":12,
+// 	"height":6,
+// 	"properties":{
+// 	   "metrics":[
+// 		  [
+// 			 "AWS/EC2",
+// 			 "CPUUtilization",
+// 			 "InstanceId",
+// 			 "i-012345"
+// 		  ]
+// 	   ],
+// 	   "period":300,
+// 	   "stat":"Average",
+// 	   "region":"us-east-1",
+// 	   "title":"EC2 Instance CPU"
+// 	}
+//  }
 type CloudWatchWidget struct {
 	Type       string                 `json:"type"`
 	X          int                    `json:"x"`
@@ -38,6 +67,16 @@ type CloudWatchWidget struct {
 	Width      int                    `json:"width"`
 	Height     int                    `json:"height"`
 	Properties map[string]interface{} `json:"properties"`
+}
+
+type CloudWatchWidgetGrid struct {
+	XOrigin      int                `json:"x_origin"`
+	YOrigin      int                `json:"y_origin"`
+	NumColumns   int                `json:"num_columns"`
+	NumRows      int                `json:"num_rows"`
+	WidgetHeight int                `json:"widget_height"`
+	WidgetWidth  int                `json:"widget_width"`
+	Widgets      []CloudWatchWidget `json:"widgets"`
 }
 
 func (c *Client) DoesLogGroupExist(logGroup string) (bool, error) {
@@ -200,54 +239,94 @@ func TextWidget(x int, y int, width int, height int, markdown string) CloudWatch
 	return CloudWatchWidget{Type: "text", X: x, Y: y, Width: width, Height: height, Properties: map[string]interface{}{"markdown": markdown}}
 }
 
-// MetricWidget creates new metrics widget
-// Example:
-// metric_widget={
-// 	"type":"metric",
-// 	"x":0,
-// 	"y":0,
-// 	"width":12,
-// 	"height":6,
-// 	"properties":{
-// 	   "metrics":[
-// 		  [
-// 			 "AWS/EC2",
-// 			 "CPUUtilization",
-// 			 "InstanceId",
-// 			 "i-012345"
-// 		  ]
-// 	   ],
-// 	   "period":300,
-// 	   "stat":"Average",
-// 	   "region":"us-east-1",
-// 	   "title":"EC2 Instance CPU"
-// 		}
-//  }
-func MetricWidget(
-	x int,
-	y int,
-	width int,
-	height int,
+// NewHorizontalGrid sets a CloudWatch Dashboard grid to be filled from left to right, row by row
+func NewHorizontalGrid(xOrigin, yOrigin, widgetHeight, widgetWidth, numColumns int) (*CloudWatchWidgetGrid, error) {
+	if widgetHeight < 1 || widgetHeight > _dashboardMaxHeightUnits {
+		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(widgetHeight)
+	}
+	if widgetWidth < 1 || widgetWidth > _dashboardMaxWidthUnits {
+		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(widgetWidth)
+	}
+	if xOrigin+numColumns*widgetWidth > _dashboardMaxWidthUnits {
+		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(xOrigin + numColumns*widgetWidth)
+	}
+	return &CloudWatchWidgetGrid{
+		XOrigin:      xOrigin,
+		YOrigin:      yOrigin,
+		WidgetHeight: widgetHeight,
+		WidgetWidth:  widgetWidth,
+		NumColumns:   numColumns,
+		Widgets:      make([]CloudWatchWidget, 0),
+	}, nil
+}
+
+// NewVerticalGrid sets a CloudWatch Dashboard grid to be filled from top to bottom, column by column
+func NewVerticalGrid(xOrigin, yOrigin, widgetHeight, widgetWidth, numRows int) (*CloudWatchWidgetGrid, error) {
+	if widgetHeight < 1 || widgetHeight > _dashboardMaxHeightUnits {
+		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(widgetHeight)
+	}
+	if widgetWidth < 1 || widgetWidth > _dashboardMaxWidthUnits {
+		return &CloudWatchWidgetGrid{}, ErrorDashboardWidthOutOfRange(widgetWidth)
+	}
+	if yOrigin+numRows*widgetHeight > _dashboardMaxHeightUnits {
+		return &CloudWatchWidgetGrid{}, ErrorDashboardHeightOutOfRange(yOrigin + numRows*widgetHeight)
+	}
+	return &CloudWatchWidgetGrid{
+		XOrigin:      xOrigin,
+		YOrigin:      yOrigin,
+		WidgetHeight: widgetHeight,
+		WidgetWidth:  widgetWidth,
+		NumRows:      numRows,
+		Widgets:      make([]CloudWatchWidget, 0),
+	}, nil
+}
+
+// AddWidget adds a widget to the configured grid
+func (grid *CloudWatchWidgetGrid) AddWidget(
 	metric []interface{},
 	title string,
 	stat string,
 	period int,
 	region string,
-) CloudWatchWidget {
-	return CloudWatchWidget{
-		Type:   "metric",
-		X:      x,
-		Y:      y,
-		Width:  width,
-		Height: height,
-		Properties: map[string]interface{}{
-			"metrics": metric,
-			"period":  period,
-			"title":   title,
-			"stat":    stat,
-			"region":  region,
-			"view":    "timeSeries",
-		}}
+) error {
+	var currentColumn, currentRow int
+	if grid.NumColumns > 0 {
+		currentRow = len(grid.Widgets) / grid.NumColumns
+		currentColumn = len(grid.Widgets) - currentRow*grid.NumColumns
+	}
+	if grid.NumRows > 0 {
+		currentColumn = len(grid.Widgets) / grid.NumRows
+		currentRow = len(grid.Widgets) - currentColumn*grid.NumRows
+	}
+	x := grid.XOrigin + currentColumn*grid.WidgetWidth
+	y := grid.YOrigin + currentRow*grid.WidgetHeight
+
+	if x+grid.WidgetWidth > _dashboardMaxWidthUnits {
+		return ErrorDashboardWidthOutOfRange(x + grid.WidgetWidth)
+	}
+	if y+grid.WidgetHeight > _dashboardMaxHeightUnits {
+		return ErrorDashboardHeightOutOfRange(y + grid.WidgetHeight)
+	}
+
+	grid.Widgets = append(grid.Widgets,
+		CloudWatchWidget{
+			Type:   "metric",
+			X:      x,
+			Y:      y,
+			Width:  grid.WidgetWidth,
+			Height: grid.WidgetHeight,
+			Properties: map[string]interface{}{
+				"metrics": metric,
+				"title":   title,
+				"stat":    stat,
+				"period":  period,
+				"region":  region,
+				"view":    "timeSeries",
+			},
+		},
+	)
+
+	return nil
 }
 
 // HighestY returns the largest Y coordinate of a widget on the dashboard (i.e. the lowest widget)

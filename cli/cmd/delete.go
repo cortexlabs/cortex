@@ -56,7 +56,7 @@ var _deleteCmd = &cobra.Command{
 		}
 		telemetry.Event("cli.delete", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagDeleteEnv)
+		err = printEnvIfNotSpecified(_flagDeleteEnv, cmd)
 		if err != nil {
 			exit.Error(err)
 		}

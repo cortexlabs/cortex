@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/apisplitter"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -84,6 +85,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		ProjectByteMap: projectFileMap,
 		ConfigFileName: configFileName,
 	}
+
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName)
 	if err != nil {
 		return nil, err
@@ -104,6 +106,10 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 			return nil, err
 		}
 	}
+
+	// order SyncAPIs apiconfigs first then APISplitters
+	// This is done if user specifies SyncAPIs in same file as APISplitter
+	apiConfigs = append(InclusiveFilterAPIsByKind(apiConfigs, userconfig.SyncAPIKind), InclusiveFilterAPIsByKind(apiConfigs, userconfig.APISplitterKind)...)
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
@@ -136,8 +142,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return syncapi.UpdateAPI(apiConfig, projectID, force)
 	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, projectID)
+	case userconfig.APISplitterKind:
+		return apisplitter.UpdateAPI(apiConfig, projectID, force)
 	default:
-		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
+		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind, userconfig.APISplitterKind) // unexpected
 	}
 }
 
@@ -156,8 +164,13 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
-	deployedResource, err := GetDeployedResourceByName(apiName)
+	deployedResource, err := GetDeployedResourceByNameOrNil(apiName)
 	if err != nil {
+		return nil, err
+	}
+
+	if deployedResource == nil {
+		// Delete anyways just to be sure everything is deleted
 		go func() {
 			err := parallel.RunFirstErr(
 				func() error {
@@ -166,18 +179,29 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 				func() error {
 					return batchapi.DeleteAPI(apiName, keepCache)
 				},
+				func() error {
+					return apisplitter.DeleteAPI(apiName, keepCache)
+				},
 			)
 			if err != nil {
 				telemetry.Error(err)
 			}
 		}()
-
 		return nil, err
 	}
 
 	switch deployedResource.Kind {
 	case userconfig.SyncAPIKind:
-		err := syncapi.DeleteAPI(apiName, keepCache)
+		err := checkIfUsedByAPISplitter(apiName)
+		if err != nil {
+			return nil, err
+		}
+		err = syncapi.DeleteAPI(apiName, keepCache)
+		if err != nil {
+			return nil, err
+		}
+	case userconfig.APISplitterKind:
+		err := apisplitter.DeleteAPI(apiName, keepCache)
 		if err != nil {
 			return nil, err
 		}
@@ -187,7 +211,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			return nil, err
 		}
 	default:
-		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
+		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind, userconfig.APISplitterKind) // unexpected
 	}
 
 	return &schema.DeleteResponse{
@@ -248,9 +272,15 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		return nil, err
 	}
 
+	apiSplitterList, err := apisplitter.GetAllAPIs(virtualServices)
+	if err != nil {
+		return nil, err
+	}
+
 	return &schema.GetAPIsResponse{
-		BatchAPIs: batchAPIList,
-		SyncAPIs:  syncAPIList,
+		BatchAPIs:    batchAPIList,
+		SyncAPIs:     syncAPIList,
+		APISplitters: apiSplitterList,
 	}, nil
 }
 
@@ -265,7 +295,34 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 		return syncapi.GetAPIByName(deployedResource)
 	case userconfig.BatchAPIKind:
 		return batchapi.GetAPIByName(deployedResource)
+	case userconfig.APISplitterKind:
+		return apisplitter.GetAPIByName(deployedResource)
 	default:
 		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
+}
+
+// checks if api is used by a deployed APISplitter
+func checkIfUsedByAPISplitter(apiName string) error {
+	virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.APISplitterKind.String())
+	if err != nil {
+		return err
+	}
+
+	var usedByAPISplitters []string
+	for _, vs := range virtualServices {
+		apiSplitterSpec, err := operator.DownloadAPISpec(vs.Labels["apiName"], vs.Labels["apiID"])
+		if err != nil {
+			return err
+		}
+		for _, api := range apiSplitterSpec.APIs {
+			if apiName == api.Name {
+				usedByAPISplitters = append(usedByAPISplitters, apiSplitterSpec.Name)
+			}
+		}
+	}
+	if len(usedByAPISplitters) > 0 {
+		return ErrorAPIUsedByAPISplitter(usedByAPISplitters)
+	}
+	return nil
 }

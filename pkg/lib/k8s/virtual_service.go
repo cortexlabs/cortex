@@ -33,15 +33,25 @@ var _virtualServiceTypeMeta = kmeta.TypeMeta{
 }
 
 type VirtualServiceSpec struct {
-	Name        string
-	Gateways    []string
+	Name         string
+	Gateways     []string
+	ExactPath    *string // either this or PrefixPath
+	PrefixPath   *string // either this or ExactPath
+	Destinations []Destination
+	Path         string
+	Rewrite      *string
+	Labels       map[string]string
+	Annotations  map[string]string
+}
+
+type Destination struct {
 	ServiceName string
 	ServicePort int32
-	ExactPath   *string // either this or PrefixPath
-	PrefixPath  *string // either this or ExactPath
 	Rewrite     *string
 	Labels      map[string]string
 	Annotations map[string]string
+	Weight      int32
+	Port        uint32
 }
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
@@ -61,6 +71,19 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 		}
 	}
 
+	destinations := []*istionetworking.HTTPRouteDestination{}
+	for _, destination := range spec.Destinations {
+		destinations = append(destinations, &istionetworking.HTTPRouteDestination{
+			Destination: &istionetworking.Destination{
+				Host: destination.ServiceName,
+				Port: &istionetworking.PortSelector{
+					Number: destination.Port,
+				},
+			},
+			Weight: destination.Weight,
+		})
+	}
+
 	virtualService := &istioclientnetworking.VirtualService{
 		TypeMeta: _virtualServiceTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
@@ -78,16 +101,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 							Uri: stringMatch,
 						},
 					},
-					Route: []*istionetworking.HTTPRouteDestination{
-						{
-							Destination: &istionetworking.Destination{
-								Host: spec.ServiceName,
-								Port: &istionetworking.PortSelector{
-									Number: uint32(spec.ServicePort),
-								},
-							},
-						},
-					},
+					Route: destinations,
 				},
 			},
 		},

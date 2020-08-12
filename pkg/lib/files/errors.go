@@ -24,18 +24,21 @@ import (
 )
 
 const (
-	ErrCreateDir         = "files.create_dir"
-	ErrDeleteDir         = "files.delete_dir"
-	ErrReadFormFile      = "files.read_form_file"
-	ErrCreateFile        = "files.create_file"
-	ErrReadDir           = "files.read_dir"
-	ErrReadFile          = "files.read_file"
-	ErrFileAlreadyExists = "files.file_already_exists"
-	ErrUnexpected        = "files.unexpected"
-	ErrFileDoesNotExist  = "files.file_does_not_exist"
-	ErrDirDoesNotExist   = "files.dir_does_not_exist"
-	ErrNotAFile          = "files.not_a_file"
-	ErrNotADir           = "files.not_a_dir"
+	ErrCreateDir                    = "files.create_dir"
+	ErrDeleteDir                    = "files.delete_dir"
+	ErrReadFormFile                 = "files.read_form_file"
+	ErrCreateFile                   = "files.create_file"
+	ErrReadDir                      = "files.read_dir"
+	ErrReadFile                     = "files.read_file"
+	ErrFileAlreadyExists            = "files.file_already_exists"
+	ErrInsufficientMemoryToReadFile = "files.insufficient_memory_to_read_file"
+	ErrFileSizeLimit                = "files.file_size_limit"
+	ErrProjectSizeLimit             = "files.project_size_limit"
+	ErrUnexpected                   = "files.unexpected"
+	ErrFileDoesNotExist             = "files.file_does_not_exist"
+	ErrDirDoesNotExist              = "files.dir_does_not_exist"
+	ErrNotAFile                     = "files.not_a_file"
+	ErrNotADir                      = "files.not_a_dir"
 )
 
 func ErrorCreateDir(path string) error {
@@ -84,6 +87,27 @@ func ErrorFileAlreadyExists(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileAlreadyExists,
 		Message: fmt.Sprintf("%s: file already exists", path),
+	})
+}
+
+func ErrorInsufficientMemoryToReadFile(fileSizeBytes, availableMemBytes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInsufficientMemoryToReadFile,
+		Message: fmt.Sprintf("unable to read file due to insufficient system memory; needs %s but is only allowed to use %s", s.Int64ToBase2Byte(fileSizeBytes), s.Int64ToBase2Byte(availableMemBytes)),
+	})
+}
+
+func ErrorFileSizeLimit(maxFileSizeBytes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFileSizeLimit,
+		Message: fmt.Sprintf("file size cannot be greater than %s", s.Int64ToBase2Byte(maxFileSizeBytes)),
+	})
+}
+
+func ErrorProjectSizeLimit(maxProjectSizeBytes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProjectSizeLimit,
+		Message: fmt.Sprintf("project size cannot exceed %s", s.Int64ToBase2Byte(maxProjectSizeBytes)),
 	})
 }
 

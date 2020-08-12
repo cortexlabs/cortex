@@ -190,10 +190,13 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:        operator.K8sName(api.Name),
-		Gateways:    []string{"apis-gateway"},
-		ServiceName: _operatorService,
-		ServicePort: operator.DefaultPortInt32,
+		Name:     operator.K8sName(api.Name),
+		Gateways: []string{"apis-gateway"},
+		Destinations: []k8s.Destination{{
+			ServiceName: operator.K8sName(api.Name),
+			Weight:      100,
+			Port:        uint32(operator.DefaultPortInt32),
+		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String(path.Join("batch", api.Name)),
 		Annotations: api.ToK8sAnnotations(),

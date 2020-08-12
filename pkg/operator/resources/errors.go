@@ -20,9 +20,9 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/strings"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -32,6 +32,8 @@ const (
 	ErrCannotChangeTypeOfDeployedAPI   = "resources.cannot_change_kind_of_deployed_api"
 	ErrNoAvailableNodeComputeLimit     = "resources.no_available_node_compute_limit"
 	ErrJobIDRequired                   = "resources.job_id_required"
+	ErrAPIUsedByAPISplitter            = "resources.syncapi_used_by_apisplitter"
+	ErrNotDeployedAPIsAPISplitter      = "resources.trafficsplit_apis_not_deployed"
 )
 
 func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -70,5 +72,19 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		Message: message,
+	})
+}
+
+func ErrorAPIUsedByAPISplitter(apiSplitters []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPIUsedByAPISplitter,
+		Message: fmt.Sprintf("cannot delete api because it is used by the following %s: %s", strings.PluralS("APISplitter", len(apiSplitters)), strings.StrsSentence(apiSplitters, "")),
+	})
+}
+
+func ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNotDeployedAPIsAPISplitter,
+		Message: fmt.Sprintf("unable to find specified %s: %s", strings.PluralS("api", len(notDeployedAPIs)), strings.StrsAnd(notDeployedAPIs)),
 	})
 }

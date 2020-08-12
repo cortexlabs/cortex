@@ -27,6 +27,10 @@ const (
 	AutoscalingKey    = "autoscaling"
 	UpdateStrategyKey = "update_strategy"
 
+	// APISplitter
+	APIsKey   = "apis"
+	WeightKey = "weight"
+
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"

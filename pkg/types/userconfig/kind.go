@@ -22,12 +22,14 @@ const (
 	UnknownKind Kind = iota
 	SyncAPIKind
 	BatchAPIKind
+	APISplitterKind
 )
 
 var _kinds = []string{
 	"unknown",
 	"SyncAPI",
 	"BatchAPI",
+	"APISplitter",
 }
 
 func KindFromString(s string) Kind {
