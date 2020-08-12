@@ -1,9 +1,0 @@
-{
-    "workers": 1,
-    "item_list": {
-        "items": [
-            "https://i.imgur.com/PzXprwl.jpg"
-        ],
-        "batch_size": 1
-    }
-}
