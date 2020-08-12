@@ -9,7 +9,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
-[Install](https://docs.cortex.dev/install)  •  [Documentation](https://docs.cortex.dev)  •  [Examples](https://github.com/cortexlabs/cortex/tree/0.18/examples)  •  [We're hiring](https://angel.co/cortex-labs-inc/jobs)  •  [Chat with us](https://gitter.im/cortexlabs/cortex)
+[install](https://docs.cortex.dev/install)  •  [documentation](https://docs.cortex.dev)  •  [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples)  •  [we're hiring](https://angel.co/cortex-labs-inc/jobs)  •  [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
