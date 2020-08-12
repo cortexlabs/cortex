@@ -29,6 +29,6 @@ You may want to consider deploying your model as a [Batch API](#batchapi.md) if 
 
 <!-- CORTEX_VERSION_MINOR -->
 * Try the [tutorial](../../examples/sklearn/iris-classifier/README.md) to deploy a Sync API locally in just a few minutes and on AWS.
-* See our [exporting docs](../deployments/exporting.md) for how to export your model to use in a Sync API.
+* See our [exporting docs](deployments/exporting.md) for how to export your model to use in a Sync API.
 * See the [Predictor docs](syncapi/predictors.md) to begin implementing your own Predictor class.
 * See the [API configuration docs](syncapi/api-configuration.md) for a full list of features that can be used to deploy your custom Sync API.

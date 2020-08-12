@@ -82,52 +82,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-Many of the [examples](https://github.com/cortexlabs/cortex/tree/master/examples) use the Python Predictor, including all of the PyTorch examples.
-
-<!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/pytorch/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/iris-classifier):
-
-```python
-import re
-import torch
-import boto3
-from model import IrisNet
-
-labels = ["setosa", "versicolor", "virginica"]
-
-class PythonPredictor: // TODO update this example
-    def __init__(self, config):
-        # download the model
-        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
-        s3 = boto3.client("s3")
-        s3.download_file(bucket, key, "model.pth")
-
-        # initialize the model
-        model = IrisNet()
-        model.load_state_dict(torch.load("model.pth"))
-        model.eval()
-
-        self.model = model
-
-    def predict(self, payload):
-        # Convert the request to a tensor and pass it into the model
-        input_tensor = torch.FloatTensor(
-            [
-                [
-                    payload["sepal_length"],
-                    payload["sepal_width"],
-                    payload["petal_length"],
-                    payload["petal_width"],
-                ]
-            ]
-        )
-
-        # Run the prediction
-        output = self.model(input_tensor)
-
-        # Translate the model output to the corresponding label string
-        return labels[torch.argmax(output[0])]
-```
+You can find an example of a BatchAPI using a PythonPredictor in [examples/batch/image-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/batch/image-classifier)
 
 ### Pre-installed packages
 
@@ -243,23 +198,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-Most of the examples in [examples/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow) use the TensorFlow Predictor.
-
-<!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/iris-classifier):
-
-```python
-labels = ["setosa", "versicolor", "virginica"]
-
-class TensorFlowPredictor: // TODO update this example
-    def __init__(self, tensorflow_client, config):
-        self.client = tensorflow_client
-
-    def predict(self, payload):
-        prediction = self.client.predict(payload)
-        predicted_class_id = int(prediction["class_ids"][0])
-        return labels[predicted_class_id]
-```
+You can find an example of a BatchAPI using a TensorFlowPredictor in [examples/batch/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/batch/tensorflow)
 
 ### Pre-installed packages
 
@@ -329,29 +268,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-[examples/onnx/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/onnx/iris-classifier) uses the ONNX Predictor:
-
-```python
-labels = ["setosa", "versicolor", "virginica"]
-
-class ONNXPredictor: // TODO update this example
-    def __init__(self, onnx_client, config):
-        self.client = onnx_client
-
-    def predict(self, payload, batch_id):
-        model_input = []
-        for iris in payload:
-            model_input.append([
-                payload["sepal_length"],
-                payload["sepal_width"],
-                payload["petal_length"],
-                payload["petal_width"],
-            ])
-
-        prediction = self.client.predict(model_input)
-        predicted_class_id = prediction[0][0]
-        return labels[predicted_class_id]
-```
+You can find an example of a BatchAPI using an ONNXPredictor in [examples/batch/onnx](https://github.com/cortexlabs/cortex/tree/master/examples/batch/onnx)
 
 ### Pre-installed packages
 

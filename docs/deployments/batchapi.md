@@ -27,9 +27,7 @@ You may want to consider deploying your model as a [Sync API](#syncapi.md) if th
 ## Next steps
 
 <!-- CORTEX_VERSION_MINOR -->
-* Try the [tutorial](../../examples/sklearn/iris-classifier/README.md) to deploy a Batch API on your Cortex cluster.
-* See our [exporting docs](../deployments/exporting.md) for how to export your model to use in a Batch API.
+* Try the [tutorial](../../examples/batch/image-classifier/README.md) to deploy a Batch API on your Cortex cluster.
+* See our [exporting docs](deployments/exporting.md) for how to export your model to use in a Batch API.
 * See the [Predictor docs](batchapi/predictors.md) to begin implementing your own Predictor class.
 * See the [API configuration docs](batchapi/api-configuration.md) for a full list of features that can be used to deploy your custom Batch API.
-
-

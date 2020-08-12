@@ -167,7 +167,7 @@ endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
 
 ## Setup destination S3 directory
 
-Our `predictor.py` implementation writes results to an S3 directory. Before submitting a job, we need to create or provide an S3 directory to store the output of the batch job. The S3 directory should be accessible by your cluster.
+Our `predictor.py` implementation writes results to an S3 directory. Before submitting a job, we need to create or provide an S3 directory to store the output of the batch job. The S3 directory should be accessible by the credentials used to create your Cortex cluster.
 
 Export the S3 directory to an environment variable:
 
@@ -404,7 +404,7 @@ After submitting this job, you should get a response like this:
 {"job_id":"69d6faf82e4660d3","api_name":"image-classifier", "config":{"dest_s3_dir": "YOUR_S3_BUCKET_HERE"}}
 ```
 
-### Verify results
+### Find results
 
 Wait for the job to complete by streaming the logs with `cortex logs <BATCH_API_NAME> <JOB_ID>` or watching for the job status to change with `cortex get <BATCH_API_NAME> <JOB_ID> --watch`.
 
