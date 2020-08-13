@@ -35,6 +35,7 @@ const (
 	TypeKey                   = "type"
 	PathKey                   = "path"
 	ModelPathKey              = "model_path"
+	ServerSideBatchingKey     = "server_side_batching"
 	ProcessesPerReplicaKey    = "processes_per_replica"
 	ThreadsPerProcessKey      = "threads_per_process"
 	ModelsKey                 = "models"
@@ -44,6 +45,10 @@ const (
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
 	SignatureKeyKey           = "signature_key"
+
+	// ServerSideBatching
+	MaxBatchSizeKey  = "max_batch_size"
+	BatchIntervalKey = "batch_interval"
 
 	// ModelResource
 	ModelsNameKey = "name"

@@ -58,6 +58,7 @@ const (
 	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
 	_tfServingHost                                 = "localhost"
 	_tfServingEmptyModelConfig                     = "/etc/tfs/model_config_server.conf"
+	_tfServingBatchConfig                          = "/etc/tfs/batch_config.conf"
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
@@ -442,6 +443,33 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 	}
 
+	if container == _tfServingContainerName {
+		if api.Predictor.ServerSideBatching != nil {
+			var numBatchedThreads int32
+			if api.Compute.Inf > 0 {
+				// because there are processes_per_replica TF servers
+				numBatchedThreads = 1
+			} else {
+				numBatchedThreads = api.Predictor.ProcessesPerReplica
+			}
+
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "TF_MAX_BATCH_SIZE",
+					Value: s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
+				},
+				kcore.EnvVar{
+					Name:  "TF_BATCH_TIMEOUT_MICROS",
+					Value: s.Int64(api.Predictor.ServerSideBatching.BatchInterval.Microseconds()),
+				},
+				kcore.EnvVar{
+					Name:  "TF_NUM_BATCHED_THREADS",
+					Value: s.Int32(numBatchedThreads),
+				},
+			)
+		}
+	}
+
 	if api.Compute.Inf > 0 {
 		if (api.Predictor.Type == userconfig.PythonPredictorType && container == _apiContainerName) ||
 			(api.Predictor.Type == userconfig.TensorFlowPredictorType && container == _tfServingContainerName) {
@@ -586,7 +614,7 @@ func onnxDownloadArgs(api *spec.API) string {
 }
 
 func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
-	var args []string
+	var cmdArgs []string
 	ports := []kcore.ContainerPort{
 		{
 			ContainerPort: _tfBaseServingPortInt32,
@@ -604,9 +632,15 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 
 	if api.Compute.Inf == 0 {
 		// the entrypoint is different for Inferentia-based APIs
-		args = []string{
+		cmdArgs = []string{
 			"--port=" + _tfBaseServingPortStr,
 			"--model_config_file=" + _tfServingEmptyModelConfig,
+		}
+		if api.Predictor.ServerSideBatching != nil {
+			cmdArgs = append(cmdArgs,
+				"--enable_batching=true",
+				"--batching_parameters_file="+_tfServingBatchConfig,
+			)
 		}
 	}
 
@@ -631,7 +665,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		Name:            _tfServingContainerName,
 		Image:           api.Predictor.TensorFlowServingImage,
 		ImagePullPolicy: kcore.PullAlways,
-		Args:            args,
+		Args:            cmdArgs,
 		Env:             getEnvVars(api, _tfServingContainerName),
 		EnvFrom:         BaseEnvVars,
 		VolumeMounts:    volumeMounts,
