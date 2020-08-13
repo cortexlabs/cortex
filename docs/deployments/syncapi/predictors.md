@@ -3,6 +3,7 @@
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
 [exported1](/deployments/syncapi/exporting)
+[exported6](deployments/syncapi/exporting)
 [exported2](syncapi/exporting)
 [exported3](/syncapi/exporting)
 [exported4](/exporting)
