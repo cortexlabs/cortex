@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](docs/deployments/exporting.md) and you've implemented a [Predictor](predictors.md), you can configure your API via a yaml file (typically named `cortex.yaml`).
+Once your model is [exported](/docs/deployments/exporting.md) and you've implemented a [Predictor](predictors.md), you can configure your API via a yaml file (typically named `cortex.yaml`).
 
 Reference the section below which corresponds to your Predictor type: [Python](#python-predictor), [TensorFlow](#tensorflow-predictor), or [ONNX](#onnx-predictor).
 
@@ -30,7 +30,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [compute](docs/deployments/compute.md), [networking](networking.md), and [overriding API images](system-packages.md).
+See additional documentation for [compute](/docs/deployments/compute.md), [networking](networking.md), and [overriding API images](system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -62,7 +62,7 @@ See additional documentation for [compute](docs/deployments/compute.md), [networ
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [compute](docs/deployments/compute.md), [networking](networking.md), and [overriding API images](system-packages.md).
+See additional documentation for [compute](/docs/deployments/compute.md), [networking](networking.md), and [overriding API images](system-packages.md).
 
 ## ONNX Predictor
 
@@ -91,4 +91,4 @@ See additional documentation for [compute](docs/deployments/compute.md), [networ
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [compute](docs/deployments/compute.md), [networking](networking.md), and [overriding API images](system-packages.md).
+See additional documentation for [compute](/docs/deployments/compute.md), [networking](networking.md), and [overriding API images](system-packages.md).
