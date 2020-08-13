@@ -21,6 +21,7 @@ import pathlib
 import inspect
 from inspect import Parameter
 from copy import deepcopy
+from typing import List
 
 
 def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
@@ -82,6 +83,28 @@ def get_leftmost_part_of_path(path: str) -> str:
     while path:
         path, basename = os.path.split(path)
     return basename
+
+
+def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
+    """
+    Eliminates dir paths from the tree that are not empty.
+
+    If paths looks like:
+    models/tensorflow/
+    models/tensorflow/iris/1569001258
+    models/tensorflow/iris/1569001258/saved_model.pb
+
+    Then after calling this function, it will look like:
+    models/tensorflow/iris/1569001258/saved_model.pb
+    """
+    new_paths = []
+    for path in paths:
+        matches = [p.find(path) for p in paths]
+        matches = [match for match in matches if match != -1]
+        if len(matches) == 1:
+            new_paths.append(path)
+
+    return new_paths
 
 
 def merge_dicts_in_place_overwrite(*dicts):

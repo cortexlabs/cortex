@@ -216,14 +216,14 @@ def _single_model_pattern(predictor_type: PredictorType) -> dict:
     return ModelTemplate[predictor_type]
 
 
-def validate_s3_models_dir_paths(
+def validate_models_dir_paths(
     s3_paths: List[str], predictor_type: PredictorType, commonprefix: str
 ) -> List[str]:
     """
     To be used when predictor:models:dir in cortex.yaml is used.
 
     Args:
-        s3_paths: A list of all paths for a given S3 prefix. Must be the top directory of multiple models.
+        s3_paths: A list of all paths for a given S3/local prefix. Must be the top directory of multiple models.
         predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
         commonprefix: The commonprefix of the directory which holds all models.
 
@@ -246,7 +246,7 @@ def validate_s3_models_dir_paths(
     valid_model_prefixes = []
     for idx, model_name in enumerate(model_names):
         try:
-            validate_s3_model_paths(paths, predictor_type, model_name)
+            validate_model_paths(paths, predictor_type, model_name)
             valid_model_prefixes.append(os.path.join(commonprefix, model_name))
         except CortexException as e:
             continue
@@ -254,14 +254,14 @@ def validate_s3_models_dir_paths(
     return valid_model_prefixes
 
 
-def validate_s3_model_paths(
+def validate_model_paths(
     s3_paths: List[str], predictor_type: PredictorType, commonprefix: str
 ) -> None:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
 
     Args:
-        s3_top_paths: A list of all paths for a given S3 prefix. Must be the top directory of a model.
+        s3_top_paths: A list of all paths for a given S3/local prefix. Must be the top directory of a model.
         predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
         commonprefix: The commonprefix of the directory which holds all models.
 
@@ -273,7 +273,7 @@ def validate_s3_model_paths(
             f"{predictor_type} predictor at '{commonprefix}'", "model path can't be empty"
         )
 
-    def _validate_s3_model_paths(pattern: Any, s3_paths: List[str], commonprefix: str) -> None:
+    def _validate_model_paths(pattern: Any, s3_paths: List[str], commonprefix: str) -> None:
         paths = [os.path.relpath(s3_path, commonprefix) for s3_path in s3_paths]
         paths = [path for path in paths if not path.startswith("../")]
 
@@ -321,7 +321,7 @@ def validate_s3_model_paths(
                     _validate_group_placeholder(keys, key_id, objects, visited_objects)
                 elif isinstance(key, OneOfAllPlaceholder):
                     try:
-                        _validate_s3_model_paths(pattern[key], s3_paths, commonprefix)
+                        _validate_model_paths(pattern[key], s3_paths, commonprefix)
                     except CortexException:
                         num_validation_failures += 1
                 else:
@@ -367,10 +367,10 @@ def validate_s3_model_paths(
             sub_pattern = pattern[key]
 
             if key != AnyPlaceholder:
-                _validate_s3_model_paths(sub_pattern, s3_paths, new_commonprefix)
+                _validate_model_paths(sub_pattern, s3_paths, new_commonprefix)
 
     pattern = _single_model_pattern(predictor_type)
-    _validate_s3_model_paths(pattern, s3_paths, commonprefix)
+    _validate_model_paths(pattern, s3_paths, commonprefix)
 
 
 def _validate_integer_placeholder(
