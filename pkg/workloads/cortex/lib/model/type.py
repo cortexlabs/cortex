@@ -1,0 +1,81 @@
+# Copyright 2020 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import List
+
+
+class CuratedModelResources:
+    def __init__(self, curated_model_resources: List[dict]):
+        """
+        curated_model_resources must have the format enforced by the CLI's validation process of cortex.yaml.
+        curated_model_resources is an identical copy of pkg.type.spec.api.API.CuratedModelResources.
+
+        An example of curated_model_resources object:
+        [
+            {
+                'model_path': 's3://cortex-0/models/tensorflow/transformer/',
+                'name': 'modelB',
+                's3_path': True,
+                'signature_key': None,
+                'versions': [1554540232]
+            },
+            ...
+        ]
+        """
+        self._models = models
+
+    def is_local(self, name: str) -> bool:
+        """
+        Checks if the model has been made available from the local disk.
+
+        Args:
+            name: Name of the model as specified in predictor:models:paths:name or if a single model is specified, _cortex_default.
+
+        Returns:
+            If the model is local. None if the model is not available.
+        """
+        for model in self._models:
+            if model["name"] == name:
+                return not model["s3_path"]
+        return None
+
+    def get_field(self, field: str) -> List[str]:
+        """
+        Get a list of the values of each models' specified field.
+
+        Args:
+            field: name, s3_path, signature_key or versions.
+
+        Returns:
+            A list with the specified value of each model.
+        """
+        return [model[field] for model in self._models]
+
+    def get_versions_for(self, name: str, only_local: bool = False) -> List[str]:
+        """
+        Get versions for a given model name.
+
+        Args:
+            name: Name of the model (_cortex_default for predictor:model_path) or predictor:models:paths:name.
+            only_local: Versions for models that were made available from the local disk.
+
+        Returns:
+            Versions for a given model. Empty if the model wasn't found.
+        """
+        versions = []
+        for i, _ in enumerate(self._models):
+            if self._models[i]["name"] == name and not (only_local and self._models[i]["s3_path"]):
+                versions = self._models[i]["versions"]
+                break
+        return [str(version) for version in versions]

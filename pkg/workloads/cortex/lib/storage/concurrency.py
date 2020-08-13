@@ -104,7 +104,24 @@ class LockedFile:
     Create a lock-based file.
     """
 
-    def __init__(self, filename: str, mode: str, timeout: float = None, reader_lock: bool = False):
+    def __init__(
+        self,
+        filename: str,
+        mode: str,
+        timeout: float = None,
+        reader_lock: bool = False,
+        create_file_if_not_found: bool = True,
+    ):
+        """
+        Open file with locked access to it - either with exclusive or shared lock.
+
+        Args:
+            filename: Name of the file to open.
+            mode: Open mode for the file - same modes as for the built-in open function.
+            timeout: If set, it will try to acquire the lock for this amount of seconds.
+            reader_lock: Whether to use a shared lock or not.
+            create_file_if_not_found: Creates the file if it doesn't already exist.
+        """
         self.dir_path, self.basename = os.path.split(filename)
         if self.basename == "":
             raise CortexException(f"{filename} does not represent a path to file")
@@ -123,14 +140,27 @@ class LockedFile:
         self._lock.acquire()
         try:
             self._fd = open(self.filename, self.mode)
+            not_found = False
+        except FileNotFoundError:
+            not_found = True
         except Exception as e:
             self._lock.release()
             raise e
+        if not_found:
+            try:
+                open(self.filename, "w+").close()
+                self._fd = open(self.filename, self.mode)
+            except Exception as e:
+                self._lock.release()
+                raise e
         return self._fd
 
     def __exit__(self, exc_type, exc_value, traceback):
         close(self._fd)
         self._lock.release()
+
+        if exc_value is not None:
+            raise exc_type(exc_value).with_traceback(traceback)
 
     def __del__(self):
         close(self._fd)

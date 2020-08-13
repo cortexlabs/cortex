@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Tuple, Any
+from typing import List, Any
 
 import os
 import threading as td
@@ -22,7 +22,7 @@ class ModelsTree:
     """
     A class to hold models in memory.
 
-    For a model to be removed from memory, it must not hold any references to the model outside of this class.
+    For a model to be removed from memory, it must not hold any references to the model outside this class.
     """
 
     def __init__(self):
@@ -37,6 +37,7 @@ class ModelsTree:
         try:
             self._locks[model_id].acquire()
         except:
+            self._locks[model_id].release()
             return None
         model = self._models[model_id]
         self._locks[model_id].release()
@@ -48,6 +49,7 @@ class ModelsTree:
         try:
             self._locks[model_id].acquire()
         except:
+            self._locks[model_id].release()
             return
         del self._models[model_id]
         self._locks[model_id].release()
@@ -67,3 +69,10 @@ class ModelsTree:
 
         self._models[model_id] = model
         self._locks[model_id].release()
+
+    def get_model_names(self) -> List[str]:
+        model_names = [model_name.split("-") for model_name in self._models.keys()]
+        return list(set(model_names))
+
+    def get_model_versions(self, model_name) -> List[str]:
+        return [model.split("-")[1] for model in models if model.startswith(model_name)]

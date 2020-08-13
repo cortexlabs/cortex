@@ -12,71 +12,170 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import onnxruntime as rt
 import numpy as np
+
+from typing import Any
 
 from cortex.lib.log import cx_logger
 from cortex.lib import util
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException
-from cortex.lib.api.model import Model, get_model_names
+from cortex.lib.model import ModelsTree, CuratedModelResources, find_ondisk_model_versions
+from cortex.lib.storage import LockedFile
 from cortex import consts
+
+logger = cx_logger()
 
 
 class ONNXClient:
-    def __init__(self, models):
-        """Setup ONNX runtime session.
+    def __init__(
+        self, models: ModelsTree, model_dir: str, api_spec: dict, lock_dir: str = "/run/cron"
+    ):
+        """
+        Setup ONNX runtime session.
 
         Args:
-            models ([Model]): List of models deployed with ONNX container.
+            model_dir: Where the models are saved on disk.
+            api_spec: API configuration.
+            lock_dir: Where the resource locks are found.
         """
+
         self._models = models
-        self._model_names = get_model_names(models)
+        self._model_dir = model_dir
+        self._api_spec = api_spec
+        self._lock_dir = lock_dir
 
-        self._sessions = {}
-        self._signatures = {}
-        self._input_signatures = {}
-        for model in models:
-            self._sessions[model.name] = rt.InferenceSession(model.base_path)
-            self._signatures[model.name] = self._sessions[model.name].get_inputs()
+        self._spec_models = CuratedModelResources(api_spec["curated_model_resources"])
 
-            metadata = {}
-            for meta in self._signatures[model.name]:
-                numpy_type = ONNX_TO_NP_TYPE.get(meta.type, meta.type)
-                metadata[meta.name] = {"shape": meta.shape, "type": numpy_type}
-            self._input_signatures[model.name] = metadata
+        if self._api_spec["predictor"]["models"]["dir"] is not None:
+            self._models_dir = True
+        else:
+            self._models_dir = False
+            self._spec_model_names = self._spec_models.get_field("name")
 
-    def predict(self, model_input, model_name=None):
-        """Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
+    def predict(self, model_input: Any, model_name: str = None, model_version: str = None):
+        """
+        Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
 
         Args:
             model_input: Input to the model.
             model_name: Model to use when multiple models are deployed in a single API.
+            model_version: Model version to use. If not specified, it will default to the latest version.
 
         Returns:
-            numpy.ndarray: The prediction returned from the model.
+            The prediction returned from the model.
         """
-        if consts.SINGLE_MODEL_NAME in self._model_names:
-            return self._run_inference(model_input, consts.SINGLE_MODEL_NAME)
 
-        if model_name is None:
-            raise UserRuntimeException(
-                "model_name was not specified, choose one of the following: {}".format(
-                    self._model_names
+        # when predictor:model_path or predictor:models:paths is specified
+        if self._models_dir is None:
+
+            # when predictor:model_path is provided
+            if consts.SINGLE_MODEL_NAME in self._spec_model_names:
+                version = self.get_highest_model_version(consts.SINGLE_MODEL_NAME)
+
+                # run prediction here / capture exceptions if model is not available
+
+            if model_name is None:
+                raise UserRuntimeException(
+                    "model_name was not specified, choose one of the following: {}".format(
+                        self._spec_model_names
+                    )
                 )
-            )
 
-        if model_name not in self._model_names:
-            raise UserRuntimeException(
-                "'{}' model wasn't found in the list of available models: {}".format(
-                    model_name, self._model_names
+            if model_name not in self._spec_model_names:
+                raise UserRuntimeException(
+                    "'{}' model wasn't found in the list of available models: {}".format(
+                        model_name, self._spec_model_names
+                    )
                 )
-            )
 
-        return self._run_inference(model_input, model_name)
+            if model_version is None:
+                model_version = self.get_highest_model_version(model_name)
+
+            # run the inference here and return
+
+        # when predictor:models:dir is specified
+        if self._models_dir:
+            pass
 
     def _run_inference(self, model_input, model_name):
         input_dict = convert_to_onnx_input(model_input, self._signatures[model_name], model_name)
         return self._sessions[model_name].run([], input_dict)
+
+    def _get_model(self, model_name: str, model_version: str) -> Any:
+        """
+        Checks if versioned model is on disk, then checks if model is in memory,
+        and if not, it loads it into memory, and returns the model.
+
+        Args:
+            model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are called on disk.
+            model_version: Version of the model, as they are found on disk.
+
+        Exceptions:
+            RuntimeException: if another thread to load the model at the very same time.
+
+        Returns:
+            The model as returned by self._load_model method.
+            None if the model wasn't found.
+        """
+
+        found_model = True
+        resource = model_name + "-" + model_version
+
+        with LockedFile(resource, "r", reader_lock=True) as f:
+            status = f.read()
+            if status == "" or status == "not available":
+                found_model = False
+            else:
+                if not self._models.has_model(model_name, model_version):
+                    model_path = os.path.join(self._model_dir, model_name, model_version)
+                    model = self._load_model(model_path)
+                    self._models.load_model(model, model_name, model_version)
+                else:
+                    model = self._get_model(model_name, model_version)
+
+        if found_model:
+            return model
+        return None
+
+    def _load_model(self, model_path: str) -> None:
+        """
+        Load ONNX model from disk.
+
+        Args:
+            model_path: Directory path to a model's version on disk.
+
+        Not thread-safe, so this method cannot be called on its own. Must only be called by self._get_model method.
+        """
+
+        model_path = os.listdir(model_path)[0]
+        model = {
+            "session": rt.InferenceSession(model_path),
+        }
+        model["signatures"] = model["session"].get_inputs()
+        metadata = {}
+        for meta in model["signatures"]:
+            numpy_type = ONNX_TO_NP_TYPE.get(meta.type, meta.type)
+            metadata[meta.name] = {
+                "shape": meta.shape,
+                "type": numpy_type,
+            }
+        model["input_signatures"] = metadata
+
+        return model
+
+    def get_highest_model_version(self, model_name: str) -> str:
+        versions = find_ondisk_model_versions(self._lock_dir, model_name)
+        if len(versions) == 0:
+            raise UserRuntimeException(
+                "'{}' model's versions have been removed; add at least a version to the model to resume operations".format(
+                    model_name
+                )
+            )
+
+        highest = max(versions)
+        return highest
 
     @property
     def sessions(self):

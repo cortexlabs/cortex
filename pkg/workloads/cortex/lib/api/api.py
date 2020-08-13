@@ -37,19 +37,21 @@ from cortex.lib.storage import S3
 
 
 class API:
-    def __init__(self, provider, storage, model_dir, cache_dir=".", **kwargs):
+    def __init__(self, provider, storage, api_spec, model_dir, cache_dir="."):
         self.provider = provider
-        self.id = kwargs["id"]
-        self.key = kwargs["key"]
-        self.metadata_root = kwargs["metadata_root"]
-        self.name = kwargs["name"]
-        self.predictor = Predictor(provider, model_dir, cache_dir, **kwargs["predictor"])
+        self.storage = storage
+        self.api_spec = api_spec
+        self.cache_dir = cache_dir
+
+        self.id = api_spec["id"]
+        self.key = api_spec["key"]
+        self.metadata_root = api_spec["metadata_root"]
+        self.name = api_spec["name"]
+        self.predictor = Predictor(provider, model_dir, cache_dir, api_spec)
+
         self.monitoring = None
         if kwargs.get("monitoring") is not None:
             self.monitoring = Monitoring(**kwargs["monitoring"])
-
-        self.cache_dir = cache_dir
-        self.storage = storage
 
         if provider != "local":
             host_ip = os.environ["HOST_IP"]
@@ -184,9 +186,9 @@ def get_api(cache_dir: str, provider: str, spec_path: str, bucket: str, region: 
     api = API(
         provider=provider,
         storage=storage,
+        api_spec=raw_api_spec,
         model_dir=model_dir,
         cache_dir=cache_dir,
-        **raw_api_spec,
     )
 
     return api

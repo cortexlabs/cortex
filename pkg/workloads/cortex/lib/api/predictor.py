@@ -20,33 +20,24 @@ import dill
 
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
-from cortex.lib.api.model import Model, get_model_signature_map
 from cortex import consts
+
+from typing import Any
 
 
 class Predictor:
-    def __init__(self, provider, model_dir, cache_dir, **kwargs):
+    def __init__(self, provider, model_dir, cache_dir, api_spec):
         self.provider = provider
-        self.type = kwargs["type"]
-        self.path = kwargs["path"]
-        self.python_path = kwargs.get("python_path")
-        self.config = kwargs.get("config", {})
-        self.env = kwargs.get("env")
+
+        self.type = api_spec["predictor"]["type"]
+        self.path = api_spec["predictor"]["path"]
+        self.python_path = api_spec["predictor"].get("python_path")
+        self.config = api_spec["predictor"].get("config", {})
+        self.env = api_spec["predictor"].get("env")
 
         self.model_dir = model_dir
-        self.models = []
-        if kwargs.get("models"):
-            for model in kwargs["models"]:
-                self.models += [
-                    Model(
-                        name=model["name"],
-                        model_path=model["model_path"],
-                        base_path=self._compute_model_basepath(model["model_path"], model["name"]),
-                        signature_key=model.get("signature_key"),
-                    )
-                ]
-
         self.cache_dir = cache_dir
+        self.api_spec = api_spec
 
     def initialize_client(self, tf_serving_host=None, tf_serving_port=None):
         signature_message = None
@@ -131,7 +122,7 @@ class Predictor:
             if predictor_class is None:
                 raise UserException("{} class is not defined".format(target_class_name))
 
-            _validate_impl(predictor_class, validations)
+            _validate_impl(predictor_class, validations, self._api_spec)
         except CortexException as e:
             e.wrap("error in " + self.path)
             raise
@@ -163,15 +154,36 @@ class Predictor:
         return base_path
 
 
+def _condition_specified_models(impl: Any, api_spec: dict) -> bool:
+    if (
+        api_spec["predictor"]["model_path"] is not None
+        or api_spec["predictor"]["models"]["dir"] is not None
+        or len(api_spec["predictor"]["models"]["paths"]) > 0
+    ):
+        return True
+    return False
+
+
 PYTHON_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "required_args": ["self", "config"]},
+        {
+            "name": "__init__",
+            "required_args": ["self", "config"],
+            "condition_args": {"python_client": _condition_specified_models},
+        },
         {
             "name": "predict",
             "required_args": ["self"],
             "optional_args": ["payload", "query_params", "headers"],
         },
-    ]
+    ],
+    "conditional": [
+        {
+            "name": "load_model",
+            "required_args": ["self", "model_path"],
+            "condition": _condition_specified_models,
+        }
+    ],
 }
 
 TENSORFLOW_CLASS_VALIDATION = {
@@ -197,12 +209,16 @@ ONNX_CLASS_VALIDATION = {
 }
 
 
-def _validate_impl(impl, impl_req):
+def _validate_impl(impl, impl_req, api_spec):
     for optional_func_signature in impl_req.get("optional", []):
         _validate_optional_fn_args(impl, optional_func_signature)
 
     for required_func_signature in impl_req.get("required", []):
         _validate_required_fn_args(impl, required_func_signature)
+
+    for required_func_signature in impl_req.get("conditional", []):
+        if required_func_signature["condition"](impl, api_spec):
+            _validate_required_fn_args(impl, required_func_signature)
 
 
 def _validate_optional_fn_args(impl, func_signature):
@@ -218,10 +234,15 @@ def _validate_required_fn_args(impl, func_signature):
     if not callable(fn):
         raise UserException(f'"{func_signature["name"]}" is defined, but is not a function')
 
-    argspec = inspect.getfullargspec(fn)
-
     required_args = func_signature.get("required_args", [])
     optional_args = func_signature.get("optional_args", [])
+
+    if func_signature.get("condition_args"):
+        for arg_name in func_signature["condition_args"]:
+            if func_signature["condition_args"][arg_name](impl, api_spec):
+                required_args.append(arg_name)
+
+    argspec = inspect.getfullargspec(fn)
     fn_str = f'{func_signature["name"]}({", ".join(argspec.args)})'
 
     for arg_name in required_args:

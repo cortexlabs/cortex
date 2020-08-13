@@ -273,6 +273,7 @@ def start_fn():
 
     try:
         api = get_api(cache_dir, provider, spec_path, bucket, region)
+
         client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )

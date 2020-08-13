@@ -36,6 +36,11 @@ def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
         rm_file(zip_path)
 
 
+def touch_file(filename: str):
+    if not os.path.exists(filename):
+        open(filename, "w").close()
+
+
 def mkdir_p(dir_path):
     pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
 

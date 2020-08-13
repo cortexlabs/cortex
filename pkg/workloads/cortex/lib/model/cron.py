@@ -52,8 +52,11 @@ class SimpleModelMonitor(mp.Process):
     ):
         """
         Args:
-            interval (int): How often to update the models tree. Measured in seconds.
-            kwargs: Named parameters.
+            interval: How often to update the models tree. Measured in seconds.
+            api_spec: Identical copy of pkg.type.spec.api.API.
+            download_dir: Path to where the models are stored.
+            temp_dir: Path to where the models are temporarily stored.
+            lock_dir: Path to where the resource locks are stored.
         """
 
         mp.Process.__init__(self)
@@ -351,3 +354,31 @@ class CachedModelMonitor(td.Thread):
 
     def _update_models_tree(self):
         pass
+
+
+def find_ondisk_model_versions(lock_dir: str, model_name: str) -> List[str]:
+    """
+    Returns all available versions of the model from the disk.
+
+    This function should never be used for determining whether a model has to be loaded or not.
+    Use it only for showing to the user the available versions of the model.
+
+    Args:
+        lock_dir: Path to where the resource locks are stored.
+        model_name: Name of the model as specified in predictor:models:paths:name, _cortex_default when predictor:model_path is set or the discovered model names when predictor:models:dir is used.
+
+    Returns:
+        List with the available versions. Empty when the model is not available.
+    """
+
+    files = [os.path.basename(file) for file in os.listdir(lock_dir)]
+    locks = [f for f in files if f.endswith(".lock")]
+    versions = []
+    for lock in locks:
+        with LockedFile(os.path.join(lock_dir, lock), reader_lock=True) as f:
+            status = f.read()
+        if status == "available":
+            version = os.path.splitext(lock).split("-")[1]
+            versions.append(version)
+
+    return versions
