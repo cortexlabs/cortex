@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 
 
-Once your APIs are deployed you can deploy an APISplitter to split traffic between different predictor APIs.
+Once your APIs are deployed you can deploy an APISplitter to split traffic between different SyncAPIs.
 
 ## `cortex deploy`
 
@@ -16,11 +16,11 @@ $ cortex deploy apisplitter.yaml
 creating my-apisplitter
 ```
 
-APISplitters are declarative, so to update your APISplitter, you can modify your source code and/or configuration and run `cortex deploy` again.
+APISplitters are declarative, so to update your APISplitter, you can modify the configuration and run `cortex deploy` again.
 
 ## `cortex get`
 
-The `cortex get` command displays the status of your APIs and APISplitters, and `cortex get <api_name>` shows additional information about a specific API.
+The `cortex get` command displays the status of your SyncAPIs and APISplitters, and `cortex get <api_name>` shows additional information about a specific APISplitter.
 
 ```bash
 $ cortex get my-apisplitter
@@ -40,7 +40,7 @@ curl: curl https://******.execute-api.eu-central-1.amazonaws.com/my-apisplitter 
 
 ## Making a prediction
 
-You can use `curl` to test your prediction service. This will distribute the requests across the defined APIs in the APISplitter:
+You can use `curl` to test your APISplitter service. This will distribute the requests across the defined SyncAPIs in the APISplitter:
 
 ```bash
 $ curl http://***.amazonaws.com/my-apisplitter \
@@ -50,7 +50,7 @@ $ curl http://***.amazonaws.com/my-apisplitter \
 
 ## `cortex delete`
 
-Use the `cortex delete` command to delete your API:
+Use the `cortex delete` command to delete your APISplitter:
 
 ```bash
 $ cortex delete my-apisplitter
