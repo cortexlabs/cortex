@@ -271,7 +271,6 @@ func InclusiveFilterAPIsByKind(apis []userconfig.API, kindsToInclude ...userconf
 	return fileredAPIs
 }
 
-// InclusiveFilterAPIsByKind includes only provided Kinds
 func ExclusiveFilterAPIsByKind(apis []userconfig.API, kindsToExclude ...userconfig.Kind) []userconfig.API {
 	kindsToExcludeSet := strset.New()
 	for _, kind := range kindsToExclude {

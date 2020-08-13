@@ -71,7 +71,6 @@ func apiValidation(provider types.ProviderType, resource userconfig.Resource) *c
 			networkingValidation(resource.Kind),
 		)
 	}
-
 	return &cr.StructValidation{
 		StructFieldValidations: structFieldValidations,
 	}
@@ -221,6 +220,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
 				multiModelValidation(),
+				serverSideBatchingValidation(),
 			},
 		},
 	}
@@ -273,7 +273,6 @@ func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			},
 		},
 	}
-
 	if kind == userconfig.SyncAPIKind {
 		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
 			StructField: "LocalPort",
@@ -283,7 +282,6 @@ func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			},
 		})
 	}
-
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
@@ -515,6 +513,36 @@ func multiModelValidation() *cr.StructFieldValidation {
 	}
 }
 
+func serverSideBatchingValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "ServerSideBatching",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			DefaultNil:        true,
+			AllowExplicitNull: true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "MaxBatchSize",
+					Int32Validation: &cr.Int32Validation{
+						Required:             true,
+						GreaterThanOrEqualTo: pointer.Int32(2),
+						LessThanOrEqualTo:    pointer.Int32(1024), // this is an arbitrary limit
+					},
+				},
+				{
+					StructField: "BatchInterval",
+					StringValidation: &cr.StringValidation{
+						Required: true,
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThan: pointer.Duration(libtime.MustParseDuration("0s")),
+					}),
+				},
+			},
+		},
+	}
+}
+
 func surgeOrUnavailableValidator(str string) (string, error) {
 	if strings.HasSuffix(str, "%") {
 		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
@@ -568,7 +596,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration and for Batch API at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor, consts.CortexVersionMinor))
 		}
 
-		if resourceStruct.Kind == userconfig.BatchAPIKind {
+		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.APISplitterKind {
 			if provider == types.LocalProviderType {
 				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, types.LocalProviderType), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}
@@ -586,17 +614,9 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 		api.Index = i
 		api.FileName = configFileName
 
-		if provider == types.LocalProviderType {
-			if resourceStruct.Kind == userconfig.APISplitterKind || resourceStruct.Kind == userconfig.BatchAPIKind {
-				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, types.LocalProviderType), api.Identify())
-			}
-		}
-
 		if resourceStruct.Kind == userconfig.SyncAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
 			api.ApplyDefaultDockerPaths()
 		}
-
-		apis[i] = api
 	}
 
 	return apis, nil
@@ -709,7 +729,11 @@ func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerT
 
 func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
+	}
+
+	if predictor.ServerSideBatching != nil {
+		ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
 	}
 
 	if predictor.ModelPath != nil {
@@ -717,11 +741,11 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	}
 
 	if len(predictor.Models) > 0 {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, predictor.Type)
 	}
 
 	if predictor.TensorFlowServingImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
 	}
 
 	return nil
@@ -729,6 +753,15 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 
 func validateTensorFlowPredictor(api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
+
+	if predictor.ServerSideBatching != nil {
+		if api.Compute.Inf == 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevel(predictor.ServerSideBatching.MaxBatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
+		}
+		if api.Compute.Inf > 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevelInf(predictor.ServerSideBatching.MaxBatchSize, predictor.ThreadsPerProcess)
+		}
+	}
 
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(predictor.Type)
@@ -831,6 +864,11 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
+
+	if predictor.ServerSideBatching != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
+	}
+
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(predictor.Type)
 	} else if predictor.ModelPath != nil && len(predictor.Models) > 0 {

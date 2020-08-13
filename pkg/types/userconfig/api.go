@@ -47,11 +47,12 @@ type Predictor struct {
 	Path                   string                 `json:"path" yaml:"path"`
 	ModelPath              *string                `json:"model_path" yaml:"model_path"`
 	Models                 []*ModelResource       `json:"models" yaml:"models"`
+	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
+	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
+	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
-	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
-	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
@@ -71,6 +72,11 @@ type ModelResource struct {
 type Monitoring struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
+}
+
+type ServerSideBatching struct {
+	MaxBatchSize  int32         `json:"max_batch_size" yaml:"max_batch_size"`
+	BatchInterval time.Duration `json:"batch_interval" yaml:"batch_interval"`
 }
 
 type Networking struct {
@@ -343,8 +349,10 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 
 func (predictor *Predictor) UserStr() string {
 	var sb strings.Builder
+
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
+
 	if predictor.ModelPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
 	}
@@ -357,8 +365,15 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
+
+	if predictor.Type == TensorFlowPredictorType && predictor.ServerSideBatching != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ServerSideBatchingKey))
+		sb.WriteString(s.Indent(predictor.ServerSideBatching.UserStr(), "  "))
+	}
+
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(predictor.ThreadsPerProcess)))
+
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&predictor.Config)
@@ -376,6 +391,13 @@ func (predictor *Predictor) UserStr() string {
 		d, _ := yaml.Marshal(&predictor.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
+	return sb.String()
+}
+
+func (batch *ServerSideBatching) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxBatchSizeKey, s.Int32(batch.MaxBatchSize)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", BatchIntervalKey, batch.BatchInterval))
 	return sb.String()
 }
 

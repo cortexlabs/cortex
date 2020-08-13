@@ -167,7 +167,6 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if deployedResource == nil {
 		// Delete anyways just to be sure everything is deleted
 		go func() {
@@ -186,6 +185,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 				telemetry.Error(err)
 			}
 		}()
+		fmt.Println("hi")
 		return nil, ErrorAPINotDeployed(apiName)
 	}
 
@@ -275,7 +275,6 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &schema.GetAPIsResponse{
 		BatchAPIs:    batchAPIList,
 		SyncAPIs:     syncAPIList,
@@ -301,7 +300,7 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 	}
 }
 
-// checks if api is used by a deployed APISplitter
+//checkIfUsedByAPISplitter checks if api is used by a deployed APISplitter
 func checkIfUsedByAPISplitter(apiName string) error {
 	virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.APISplitterKind.String())
 	if err != nil {
