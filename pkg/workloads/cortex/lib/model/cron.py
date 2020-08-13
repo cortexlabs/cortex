@@ -102,6 +102,10 @@ class SimpleModelMonitor(mp.Process):
         self._stopped = mp.Event()
 
     def run(self):
+        """
+        mp.Process-specific method.
+        """
+
         self.logger = cx_logger()
         while not self._event_stopper.is_set():
             self._update_models_tree()
@@ -109,11 +113,22 @@ class SimpleModelMonitor(mp.Process):
         self._stopped.set()
 
     def stop(self, blocking: bool = False):
+        """
+        Trigger the process of stopping the process.
+
+        Args:
+            blocking: Whether to wait until the process is stopped or not.
+        """
+
         self._event_stopper.set()
         if blocking:
             self.join()
 
     def join(self):
+        """
+        Block until the process exits.
+        """
+
         while not self._stopped.is_set():
             time.sleep(0.001)
 
@@ -305,17 +320,32 @@ class CachedModelMonitor(td.Thread):
         self._stopped = False
 
     def run(self):
+        """
+        mp.Process-specific method.
+        """
+
         while not self._event_stopper.is_set():
             self._update_models_tree()
             time.sleep(self._interval)
         self._stopped = True
 
     def stop(self, blocking: bool = False):
+        """
+        Trigger the process of stopping the process.
+
+        Args:
+            blocking: Whether to wait until the process is stopped or not.
+        """
+
         self._event_stopper.set()
         if blocking:
             self.join()
 
     def join(self):
+        """
+        Block until the process exits.
+        """
+
         while not self._stopped:
             time.sleep(0.001)
 
