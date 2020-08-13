@@ -1,6 +1,8 @@
-# Batch API endpoints
+# Batch API endpoint
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
+Once your model is [exported](docs/deployments/exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](endpoints.md), you can make HTTP requests your Batch API endpoint.
 
 A deployed Batch API endpoint supports the following:
 

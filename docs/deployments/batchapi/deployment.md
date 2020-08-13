@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](../exporting.md), you've implemented a [Predictor](predictors.md), and you've [configured your API](api-configuration.md), you're ready to deploy a Batch API.
+Once your model is [exported](docs/deployments/exporting.md), you've implemented a [Predictor](predictors.md), and you've [configured your API](api-configuration.md), you're ready to deploy a Batch API.
 
 ## `cortex deploy`
 
@@ -16,7 +16,7 @@ created image-classifier
 
 APIs are declarative, so to update your API, you can modify your source code and/or configuration and run `cortex deploy` again.
 
-After deploying a Batch API you can make the following requests to the API:
+After deploying a Batch API you can use `cortex get <api_name>` to get the Batch API endpoint make the following requests to the API:
 1. Submit a batch job
 1. Get the status of a job
 1. Stop a job
