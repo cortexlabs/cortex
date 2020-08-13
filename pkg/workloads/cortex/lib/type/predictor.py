@@ -198,12 +198,12 @@ PYTHON_CLASS_VALIDATION = {
         },
     ],
     "optional": [
-        {"name": "on_job_complete", "required_args": ["self"]}
+        {"name": "on_job_complete", "required_args": ["self"]},
         {
             "name": "post_predict",
             "required_args": ["self"],
             "optional_args": ["response", "payload", "query_params", "headers"],
-        }
+        },
     ],
 }
 
@@ -226,7 +226,7 @@ TENSORFLOW_CLASS_VALIDATION = {
             "name": "post_predict",
             "required_args": ["self"],
             "optional_args": ["response", "payload", "query_params", "headers"],
-        }
+        },
     ],
 }
 
@@ -249,7 +249,7 @@ ONNX_CLASS_VALIDATION = {
             "name": "post_predict",
             "required_args": ["self"],
             "optional_args": ["response", "payload", "query_params", "headers"],
-        }
+        },
     ],
 }
 
