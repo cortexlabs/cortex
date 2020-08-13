@@ -17,6 +17,6 @@ APISplitter expects the specified SyncAPIs to be already deployed. The traffic i
     endpoint: <string>  # the endpoint for the APISplitter (aws only) (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this APISplitter (if not, the load balancer will be accessed directly) (default: public)
   apis:  # list of SyncAPIs to use in APISplitter
-    - name: <string>  # name of predictor API
+    - name: <string>  # name of SyncAPI
       weight: <int>   # proportion of traffic (all SyncAPIs add up to 100)
 ```
