@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](/docs/deployments/exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](endpoints.md), you can make HTTP requests your Batch API endpoint.
+Once your model is [exported](/docs/deployments/exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](endpoints.md), you can submit and manage jobs by making HTTP requests to your Batch API endpoint.
 
 A deployed Batch API endpoint supports the following:
 
@@ -16,13 +16,13 @@ You can find the url for your Batch API using Cortex CLI command `cortex get <ba
 
 There are three options for providing the dataset for your job:
 
-1. [Include the dataset directly in the JSON request](#dataset-in-the-request)
-1. [Provide a list of S3 file paths](#s3-files-paths)
-1. [Provide a list newline delimited JSON files on S3 containing the input dataset](#newline-delimited-json-files-in-s3)
+1. [Data in the request](#data-in-the-request)
+1. [List S3 file paths](#s3-files-paths)
+1. [Newline delimited JSON files in S3](#newline-delimited-json-files-in-s3)
 
-### Dataset in the request
+### Data in the request
 
-The dataset for your job can be included directly in your job submission request providing an `item_list` in your request payload. Each item can be any type (object, list, string, etc.) and is treated as a single sample. `item_list.batch_size` determines how many items are included in a single batch. Make sure that the total size of a batch is less than 256 KiB.
+The dataset for your job can be included directly in your job submission request by specifying an `item_list` in your request payload. Each item can be any type (object, list, string, etc.) and is treated as a single sample. `item_list.batch_size` determines how many items are included in a single batch. __The total size of a batch is less than 256 KiB.__
 
 __The total request size must be less than 10 MiB.__ If you want to submit more data, explore some of the other methods.
 
@@ -33,7 +33,7 @@ Submitting data in the request can be useful in the following use cases:
 - each item in the request is small (e.g. urls to images/videos)
 
 ```yaml
-POST <batch_api_url>/:
+POST <batch_api_endpoint>/:
 {
     "workers": int,        # the number of workers you want to allocate for this job
     "item_list": {
@@ -43,7 +43,7 @@ POST <batch_api_url>/:
         ],
         "batch_size": int, # the number of items in the items_list that should be in a batch
     }
-    "config": {            # fields custom for this specific job (will override values specified in your api configuration)
+    "config": {            # custom fields for this specific job (will override values in `config` specified in your api configuration)
         "string": <any>
     }
 }
@@ -62,29 +62,28 @@ RESPONSE:
 
 ### S3 file paths
 
-If your input dataset is a list of files such as images/videos in an s3 directory, you can define `file_path_lister` in your request payload to generate a list of S3 file paths. You can use `file_path_lister.s3_paths` to specify a list of files or prefixes and`file_path_lister.includes` and `file_path_lister.excludes` to remove unwanted files. The list of s3 file paths will be broken up into batches of size `file_path_lister.batch_size`. To learn more about fine grained S3 file filtering see the [filter files](#filtering-files) section.
+If your input dataset is a list of files such as images/videos in an s3 directory, you can define `file_path_lister` in your request payload to create an input dataset consisting of a list of S3 file paths. You can use `file_path_lister.s3_paths` to specify a list of files or prefixes and `file_path_lister.includes` and `file_path_lister.excludes` to remove unwanted files. The list of s3 file paths will be broken up into batches of size `file_path_lister.batch_size`. To learn more about fine grained S3 file filtering see the [filter files](#filtering-files) section.
 
-Make sure that the total size of a batch is less than 256 KiB.
+__The total size of a batch is less than 256 KiB.__
 
 This submission pattern can be useful in the following scenarios:
 
 - you have a list of images/videos in an s3 directory
 - each s3 file represents a single sample or a small number of samples
 
-If a single S3 file contains a lot of samples/rows, try this submission strategy. // TODO
+If a single S3 file contains a lot of samples/rows, try the next submission strategy.
 
 ```yaml
-
-POST <batch_api_url>/:
+POST <batch_api_endpoint>/:
 {
     "workers": int,        # the number of workers you want to allocate for this job
     "file_path_lister": {
         "s3_paths": [string],  # can be s3 prefixes or complete s3 paths
-        "includes": [string],  # (optional) glob patterns (delimited by "/"), any s3 file that satisfies at least one glob pattern in this list will be included in the dataset
-        "excludes": [string],  # (optional) glob patterns (delimited by "/"), any s3 file that satisfies at least one glob pattern will be excluded from the dataset
-        "batch_size": int, # the number of items in the items_list that should be in a batch
+        "includes": [string],  # glob patterns (delimited by "/") (optional)
+        "excludes": [string],  # glob patterns (delimited by "/") (optional)
+        "batch_size": int, # the number of s3 file paths in a batch
     }
-    "config": {            # fields custom for this specific job (will override values specified in api configuration)
+    "config": {            # custom fields for this specific job (will override values in `config` specified in your api configuration)
         "string": <any>
     }
 }
@@ -107,24 +106,24 @@ If your input dataset is a list new line delimited json files in an s3 directory
 
 Upon receiving `delimited_files` your Batch API will iterate through the `delimited_files.s3_paths` and generate a collection of s3 files. You can use `delimited_files.includes` and `delimited_files.excludes` to filter out unwanted files. Each S3 file will be parsed as a newline delimited JSON file. Each JSON object will be treated as a single sample. The S3 file will be broken down into batches of specified size `delimited_files.batch_size` and submitted to your workers. To learn more about fine grained S3 file filtering see the [filter files](#filtering-files) section.
 
-Make sure that the total size of a batch is less than 256 KiB.
+__The total size of a batch is less than 256 KiB.__
 
 This submission pattern is useful in the following scenarios:
 
 - you have a list of JSON files in S3 that need
-- an s3 file contains a large number of samples and must be broken down into batches.
+- an s3 file contains a large number of samples and must be broken down into batches
 
 ```yaml
-POST <batch_api_url>/:
+POST <batch_api_endpoint>/:
 {
     "workers": int,            # the number of workers you want to allocate for this job
     "delimited_files": {
         "s3_paths": [string],  # can be s3 prefixes or complete s3 paths
-        "includes": [string],  # glob patterns (delimited by "/"), any s3 file that satisfies at least one glob pattern in this list will be included in the dataset (optional)
-        "excludes": [string],  # glob patterns (delimited by "/"), any s3 file that satisfies at least one glob pattern will be excluded from the dataset (optional)
-        "batch_size": int,     # the number of items in the items_list that should be in a batch (default: 1)
+        "includes": [string],  # glob patterns (delimited by "/") (optional)
+        "excludes": [string],  # glob patterns (delimited by "/") (optional)
+        "batch_size": int,     # the number of json objects that should be in a batch (default: 1)
     }
-    "config": {                # fields custom for this specific job (will override values specified in api configuration)
+    "config": {                # custom fields for this specific job (will override values in `config` specified in your api configuration)
         "string": <any>
     }
 }
@@ -143,11 +142,12 @@ RESPONSE:
 
 ## Job status
 
+Get the status of a job. You can also use the Cortex CLI command `cortex get <api_name> <job_id>`.
 
-Response:
+See [Job Status Codes](statuses.md) to get a list of the possible job statuses and what they mean.
 
 ```yaml
-GET <batch_api_url>/<job_id>:
+GET <batch_api_endpoint>/<job_id>:
 
 RESPONSE:
 {
@@ -183,8 +183,10 @@ RESPONSE:
 
 ## Stop a Job
 
+Stop a job in progress. You can also use the Cortex CLI command `cortex delete <api_name> <job_id>`
+
 ```yaml
-DELETE <batch_api_url>/<job_id>:
+DELETE <batch_api_endpoint>/<job_id>:
 
 RESPONSE:
 {"message":"stopped job <job_id>"}
@@ -196,13 +198,11 @@ RESPONSE:
 
 When submitting a job using `delimited_files` or `file_path_lister`, you can use `s3_paths` in conjunction with in `includes` and `excludes` to precisely filter files.
 
-The Batch API will iterate through each s3 path in `s3_paths`. If the s3 path is a prefix, it iterates through each file in that prefix. For each file, if the `includes` is non empty, it will discard the s3 path if the s3 file doesn't match any of the glob patterns provided in `includes`. Then, if the `excludes` is non empty, it will discard the s3 path if the s3 files matches any of the glob patterns provided in `excludes`. The order matters.
+The Batch API will iterate through each s3 path in `s3_paths`. If the s3 path is a prefix, it iterates through each file in that prefix. For each file, if the `includes` is non empty, it will discard the s3 path if the s3 file doesn't match any of the glob patterns provided in `includes`. After passing the `includes` filter if specified, if the `excludes` is non empty, it will discard the s3 path if the s3 files matches any of the glob patterns provided in `excludes`.
 
 If you aren't sure which files will be processed in your request, specify `dryRun=true` query parameter to get the target list.
 
-Here are a few scenarios:
-
-For a folder structure like this:
+Here are a few filtering scenarios for a folder structure like this:
 
 ```
 ├── s3://bucket
@@ -225,6 +225,21 @@ Select all files
 # s3://bucket/images/img_2.jpg
 # s3://bucket/images/img_3.jpg
 # s3://bucket/images/img_4.gif
+```
+
+Select specific files
+
+```yaml
+{
+    "s3_paths": [
+        "s3://bucket/images/img_1.png",
+        "s3://bucket/images/img_2.jpg"
+    ]
+}
+
+# Would select the following files:
+# s3://bucket/images/img_1.png
+# s3://bucket/images/img_2.jpg
 ```
 
 Only select JPG files

@@ -17,7 +17,10 @@ limitations under the License.
 package batchapi
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -90,7 +93,7 @@ func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
 func validateJobSubmission(submission *schema.JobSubmission) error {
 	err := validateJobSubmissionSchema(submission)
 	if err != nil {
-		return err
+		return errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/endpoints", consts.CortexVersionMinor))
 	}
 
 	if submission.FilePathLister != nil {

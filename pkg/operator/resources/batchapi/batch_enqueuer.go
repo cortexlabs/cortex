@@ -59,7 +59,6 @@ func (uploader *sqsBatchUploader) AddToBatch(id string, body *string) error {
 		MessageGroupId:         aws.String(id), // aws recommends message group id per message to improve chances of exactly-once
 	}
 
-	// TODO test what happens if 2 separate message bodies add up to 256 KB
 	if len(*message.MessageBody)+uploader.totalBytes > _messageSizeLimit || len(uploader.messageList) == _maxMessagesPerBatch {
 		err := uploader.Flush()
 		if err != nil {

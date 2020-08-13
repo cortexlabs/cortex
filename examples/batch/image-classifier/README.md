@@ -21,7 +21,7 @@ This example shows how to deploy a batch image classification api that accepts a
 1. Add a `predict()` function that will accept a list of images urls (http or s3), downloads them, performs inference, and writes the prediction to S3.
 1. Specify an `on_job_complete()` function that aggregates the results and writes it to a single file named `aggregated_results.json` in S3.
 
-```python // TODO update this
+```python
 # predictor.py
 
 import os
@@ -99,7 +99,6 @@ class PythonPredictor:
             Key=os.path.join(self.key, "aggregated_results.json"),
             Body=json.dumps(all_results),
         )
-
 ```
 
 Here are the complete [Predictor docs](../../../docs/deployments/batchapi/predictors).
@@ -172,14 +171,14 @@ Our `predictor.py` implementation writes results to an S3 directory. Before subm
 Export the S3 directory to an environment variable:
 
 ```bash
-$ export CORTEX_DEST_S3_DIR=<YOUR_S3_DIRECTORY>
+$ export CORTEX_DEST_S3_DIR=<YOUR_S3_DIRECTORY> # e.g. export CORTEX_DEST_S3_DIR=s3://my-bucket/dir
 ```
 
 <br>
 
 ## Submit a job
 
-There are three ways to provide image urls as to submit in a job. See [endpoint documentation](../../../docs/deployment/batchapi/endpoints#submit-a-job) for more details.
+Now that you've deployed a Batch API, you are ready to submit jobs. There are three ways to provide image urls as to submit in a job. See [endpoint documentation](../../../docs/deployment/batchapi/endpoints.md#submit-a-job) for more details.
 
 1. [Image urls in request](#image-urls-in-request)
 1. [Image urls in files](#image-urls-in-files)
@@ -226,7 +225,7 @@ After submitting this job, you should get a response like this:
 
 Take note of the job id in the response.
 
-### List the jobs for API
+### List the jobs for your Batch API
 
 ```bash
 $ cortex get image-classifier --env aws
@@ -237,7 +236,7 @@ job id             status    progress   start time                 duration
 endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
 ```
 
-### Get job status using HTTP request
+### Get the job status with an HTTP request
 
 You can make a GET request to your `<BATCH_API_ENDPOINT>/JOB_ID` to get the status of your job.
 
@@ -279,9 +278,9 @@ requested   initializing   running   failed   succeeded
 job endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier/69d6faf82e4660d3
 ```
 
-### Get the logs for the Job
+### Stream logs
 
-You can stream logs realtime for debugging and monitoring purposes until your job is done using `cortex logs <BATCH_API_NAME> <JOB_ID>`
+You can stream logs realtime for debugging and monitoring purposes with `cortex logs <BATCH_API_NAME> <JOB_ID>`
 
 ```bash
 $ cortex logs image-classifier 69d6fdeb2d8e6647 --env aws
@@ -300,7 +299,7 @@ spinning up workers...
 
 Wait for the job to complete by streaming the logs with `cortex logs <BATCH_API_NAME> <JOB_ID>` or watching for the job status to change with `cortex get <BATCH_API_NAME> <JOB_ID> --watch`.
 
-The status of your job should change `cortex get <BATCH_API_NAME> <JOB_ID>` from `running` to `succeeded`. If it changes to another status, you may be able to find the stacktrace using `cortex logs <BATCH_API_NAME> <JOB_ID>`. If your job has completed successfully, you can the results of the image classification in the S3 directory on AWS console or using AWS CLI you specified in the job submission.
+The status of your job, which you can get from `cortex get <BATCH_API_NAME> <JOB_ID>`, should change from `running` to `succeeded` once the job has completed. If it changes to a different status, you may be able to find the stacktrace using `cortex logs <BATCH_API_NAME> <JOB_ID>`. If your job has completed successfully, you can the results of the image classification in the S3 directory on AWS console or using AWS CLI you specified in the job submission.
 
 Using the AWS CLI:
 
@@ -421,7 +420,7 @@ spinning up workers...
 2020-08-07 15:11:45.461032:cortex:pid-25:INFO:no batches left in queue, job has been completed
 ```
 
-The status of your job should change `cortex get <BATCH_API_NAME> <JOB_ID>` from `running` to `succeeded`. If it changes to another status, you may be able to find the stacktrace using `cortex logs <BATCH_API_NAME> <JOB_ID>`. If your job has completed successfully, you can the results of the image classification in the S3 directory on AWS console or using AWS CLI you specified in the job submission.
+The status of your job, which you can get from `cortex get <BATCH_API_NAME> <JOB_ID>`, should change from `running` to `succeeded` once the job has completed. If it changes to a different status, you may be able to find the stacktrace using `cortex logs <BATCH_API_NAME> <JOB_ID>`. If your job has completed successfully, you can the results of the image classification in the S3 directory on AWS console or using AWS CLI you specified in the job submission.
 
 Using AWS CLI:
 
@@ -530,7 +529,7 @@ spinning up workers...
 2020-08-07 15:49:31.362053:cortex:pid-25:INFO:no batches left in queue, job has been completed
 ```
 
-The status of your job should change `cortex get <BATCH_API_NAME> <JOB_ID>` from `running` to `succeeded`. If it changes to another status, you may be able to find the stacktrace using `cortex logs <BATCH_API_NAME> <JOB_ID>`. If your job has completed successfully, you can the results of the image classification in the S3 directory on AWS console or using AWS CLI you specified in the job submission.
+The status of your job, which you can get from `cortex get <BATCH_API_NAME> <JOB_ID>`, should change from `running` to `succeeded` once the job has completed. If it changes to a different status, you may be able to find the stacktrace using `cortex logs <BATCH_API_NAME> <JOB_ID>`. If your job has completed successfully, you can the results of the image classification in the S3 directory on AWS console or using AWS CLI you specified in the job submission.
 
 Using AWS CLI:
 
@@ -549,18 +548,19 @@ You can download the file with `aws s3 cp $CORTEX_DEST_S3_DIR/<JOB_ID>/aggregate
 
 ## Stopping a Job
 
-You can stop a running job by sending DELETE request:
+You can stop a running job by sending DELETE request to `<BATCH_API_ENDPOINT>/<JOB_ID>`.
 
 ```bash
-$ curl http://localhost:8888/batch/image-classifier/<JOB_ID> -X DELETE
+$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT> # e.g. export BATCH_API_ENDPOINT=https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+$ curl $BATCH_API_ENDPOINT/69d96a01ea55da8c -X DELETE
 
 stopped job 69d96a01ea55da8c
 ```
 
-You can also use the Cortex CLI.
+You can also use the Cortex CLI `cortex delete <BATCH_API_NAME> <JOB_ID>`.
 
 ```bash
-$ cortex delete image-classifier <JOB_ID> --env aws
+$ cortex delete image-classifier 69d96a01ea55da8c --env aws
 
 stopped job 69d96a01ea55da8c
 ```

@@ -18,10 +18,13 @@ package endpoints
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -57,7 +60,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
-		respondError(w, r, err) // TODO point to job submission documentation here
+		respondError(w, r, errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/endpoints", consts.CortexVersionMinor)))
 		return
 	}
 
