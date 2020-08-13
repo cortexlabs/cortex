@@ -7,4 +7,4 @@
     path: predictor.py
     model_path: s3://cortex-examples/image-classifier/alexnet_batch.onnx
   compute:
-    mem: 500Mi
+    cpu: 1

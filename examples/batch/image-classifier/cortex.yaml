@@ -6,4 +6,4 @@
     type: python
     path: predictor.py
   compute:
-    mem: 500Mi
+    cpu: 1

@@ -21,6 +21,8 @@ The following files can also be added at the root of the project's directory:
 * `.cortexignore` file, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
 * `.env` file, which exports environment variables that can be used in the predictor. Each line of this file must follow the `VARIABLE=value` format.
 
+For example, if your directory looks like this:
+
 ```text
 ./iris-classifier/
 ├── cortex.yaml
@@ -54,8 +56,8 @@ class PythonPredictor:
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
-            config (Required): Dictionary passed from API configuration (if specified). This may contain information on where to download the model and/or metadata.
-            api_spec (optional) : Dictionary containing the yaml configuration specified in cortex.yaml (optional)
+            config (required): Dictionary passed from API configuration (if specified). This may contain information on where to download the model and/or metadata.
+            api_spec (optional): Dictionary containing the yaml configuration specified in cortex.yaml.
         """
         pass
 
@@ -221,7 +223,7 @@ class TensorFlowPredictor:
         Args:
             tensorflow_client (required): TensorFlow client which is used to make predictions. This should be saved for use in predict().
             config (required): Dictionary passed from API configuration (if specified).
-            api_spec (optional): Dictionary containing the yaml configuration specified in cortex.yaml (optional)
+            api_spec (optional): Dictionary containing the yaml configuration specified in cortex.yaml.
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
@@ -318,7 +320,7 @@ class ONNXPredictor:
         Args:
             onnx_client (required): ONNX client which is used to make predictions. This should be saved for use in predict().
             config (required): Dictionary passed from API configuration (if specified).
-            api_spec (optional): Dictionary containing the yaml configuration specified in cortex.yaml (optional)
+            api_spec (optional): Dictionary containing the yaml configuration specified in cortex.yaml.
         """
         self.client = onnx_client
         # Additional initialization may be done here

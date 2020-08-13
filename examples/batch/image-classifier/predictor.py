@@ -25,7 +25,7 @@ class PythonPredictor:
             "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
         ).text.split("\n")[1:]
 
-        if len(config["dest_s3_dir"]) == 0:
+        if len(config.get("dest_s3_dir", "")) == 0:
             raise Exception("'dest_s3_dir' field was not provided in job submission")
 
         self.s3 = boto3.client("s3")
@@ -53,23 +53,27 @@ class PythonPredictor:
             prediction = self.model(img_tensor)
         _, indices = prediction.max(1)
 
+        # extract predicted classes
         results = [
             {"url": payload[i], "class": self.labels[class_idx]}
             for i, class_idx in enumerate(indices)
         ]
         json_output = json.dumps(results)
 
+        # save results
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json_output)
 
     def on_job_complete(self):
         all_results = []
 
+        # aggregate all classifications
         paginator = self.s3.get_paginator("list_objects_v2")
         for page in paginator.paginate(Bucket=self.bucket, Prefix=self.key):
             for obj in page["Contents"]:
                 body = self.s3.get_object(Bucket=self.bucket, Key=obj["Key"])["Body"]
                 all_results += json.loads(body.read().decode("utf8"))
 
+        # save single file containing aggregated classifications
         self.s3.put_object(
             Bucket=self.bucket,
             Key=os.path.join(self.key, "aggregated_results.json"),

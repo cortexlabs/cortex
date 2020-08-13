@@ -16,12 +16,13 @@ created image-classifier
 
 APIs are declarative, so to update your API, you can modify your source code and/or configuration and run `cortex deploy` again.
 
-After deploying a Batch API you can use `cortex get <api_name>` to get the Batch API endpoint make the following requests to the API:
+After deploying a Batch API you can use `cortex get <api_name>` to display the Batch API endpoint, which you can use to make the following requests:
+
 1. Submit a batch job
 1. Get the status of a job
 1. Stop a job
 
-You can find the documentation for your deployed Batch API Endpoint Documentation [here](endpoints.md).
+You can find documentation for the Batch API endpoint [here](endpoints.md).
 
 ## `cortex get`
 
@@ -32,15 +33,11 @@ $ cortex get
 
 env   batch api          running jobs   latest job id                          last update
 aws   image-classifier   1              69d9c0013c2d0d97 (submitted 30s ago)   46s
-
-env     sync api          status   last update   avg request   2XX
-aws     iris-classifier   live     10s           -             -
-local   iris-classifier   live     11s           -             -
 ```
 
 ## `cortex get <api_name>`
 
- and `cortex get <api_name>` shows additional information about your Batch API and lists a summary of all of the currently running jobs and the most recently submitted jobs.
+`cortex get <api_name>` shows additional information about a specific Batch API and lists a summary of all currently running / recently submitted jobs.
 
 ```bash
 $ cortex get image-classifier
@@ -59,11 +56,11 @@ Appending the `--watch` flag will re-run the `cortex get` command every 2 second
 
 ## Job commands
 
-Once a job has been submitted to your Batch API (see [here](endpoints.md#submit-a-job)), you can use the Job ID from job submission to get the status, stream logs and stop a running job using the CLI.
+Once a job has been submitted to your Batch API (see [here](endpoints.md#submit-a-job)), you can use the Job ID from job submission response to get the status, stream logs, and stop a running job using the CLI.
 
 ### `cortex get <api_name> <job_id>`
 
-After a submitting a job (see [Batch API endpoint documentation](endpoints.md)), you can use the
+After a submitting a job, you can use the `cortex get <api_name> <job_id>` command to show information about the job:
 
 ```bash
 $ cortex get image-classifier 69d9c0013c2d0d97
@@ -83,10 +80,12 @@ worker stats
 requested   running   failed   succeeded
 2           2         0        0
 
-job endpoint: https://://***..amazonaws.com/image-classifier/69d9c0013c2d0d97
+job endpoint: https://***..amazonaws.com/image-classifier/69d9c0013c2d0d97
 ```
 
 ### `cortex logs <api_name> <job_id>`
+
+You can use `cortex logs <api_name> <job_id>` to stream logs from a job:
 
 ```bash
 $ cortex logs image-classifier 69d9c0013c2d0d97
@@ -101,6 +100,8 @@ spinning up workers...
 ```
 
 ### `cortex delete <api_name> <job_id>`
+
+You can use `cortex delete <api_name> <job_id>` to stop a running job:
 
 ```bash
 $ cortex delete image-classifier 69d9c0013c2d0d97
@@ -121,6 +122,6 @@ deleting my-api
 ## Additional resources
 
 <!-- CORTEX_VERSION_MINOR -->
-* [Tutorial](../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthough of deploying an iris classifier API
-* [CLI documentation](../miscellaneous/cli.md) lists all CLI commands
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples) demonstrate how to deploy models from common ML libraries
+* [Tutorial](../../../examples/batch/image-classifier/README.md) provides a step-by-step walkthough of deploying an iris classifier API
+* [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
+* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples/batch) demonstrate how to deploy models from common ML libraries

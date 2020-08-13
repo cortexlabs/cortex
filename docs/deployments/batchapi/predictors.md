@@ -10,8 +10,6 @@ Which Predictor you use depends on how your model is exported:
 * [ONNX Predictor](#onnx-predictor) if your model is exported in the ONNX format
 * [Python Predictor](#python-predictor) for all other cases
 
-The response type of the predictor can vary depending on your requirements, see [API responses](#api-responses) below.
-
 ## Project files
 
 Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api configuration file (e.g. `cortex.yaml`) are excluded.
@@ -20,6 +18,8 @@ The following files can also be added at the root of the project's directory:
 
 * `.cortexignore` file, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
 * `.env` file, which exports environment variables that can be used in the predictor. Each line of this file must follow the `VARIABLE=value` format.
+
+For example, if your directory looks like this:
 
 ```text
 ./iris-classifier/
@@ -50,34 +50,34 @@ class PythonPredictor:
 # initialization code and variables can be declared here in global scope
 
 class PythonPredictor:
-    def __init__(self, config, api_spec, job_spec):
-        """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+    def __init__(self, config, job_spec, api_spec):
+        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
-            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            api_spec: Dictionary containing the yaml configuration specified in cortex.yaml (optional)
-            job_spec: Dictionary containing the submitted job request and additional information such as the job_id (optional)
+            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            api_spec (optional): Dictionary containing the API configuration specified in cortex.yaml.
         """
         pass
 
     def predict(self, payload, batch_id):
-        """Called once per batch. Preprocesses the batch payload (if necessary), runs inference, postprocesses the inference output (if necessary) and writes the predictions to storage (i.e. S3 or a database).
+        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference, postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
 
         Args:
-            payload: a batch, a list of one or more samples (required).
-            batch_id: uuid assigned to this batch
+            payload (required): a batch (i.e. a list of one or more samples).
+            batch_id (optional): uuid assigned to this batch.
         Returns:
-            Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
+            Nothing
         """
         pass
 
     def on_job_complete(self):
-        """Called once after all of the batches in the job queue have been processed. Performs post job completion tasks such as aggregating results, executing web hooks or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
 
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overriden by providing `config` in the job submission requests.
+For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
 
 ### Examples
 
@@ -159,31 +159,31 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config, api_spec, job_spec):
-        """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+    def __init__(self, tensorflow_client, config, job_spec, api_spec):
+        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
-            tensorflow_client: TensorFlow client which is used to make predictions. This should be saved for use in predict().
-            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            api_spec: Dictionary containing the yaml configuration specified in cortex.yaml (optional)
-            job_spec: Dictionary containing the submitted job request and additional information such as the job_id (optional)
+            tensorflow_client (required): TensorFlow client which is used to make predictions. This should be saved for use in predict().
+            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            api_spec (optional): Dictionary containing the API configuration specified in cortex.yaml.
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
 
     def predict(self, payload, batch_id):
-        """Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary) and writes the predictions to storage (i.e. S3 or a database).
+        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
 
         Args:
-            payload: a batch, a list of one or more samples (required).
-            batch_id: uuid assigned to this batch
+            payload (required): a batch (i.e. a list of one or more samples).
+            batch_id (optional): uuid assigned to this batch.
         Returns:
-            Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
+            Nothing
         """
         pass
 
     def on_job_complete(self):
-        """Called once after all of the batches in the job queue have been processed. Performs post job completion tasks such as aggregating results, executing web hooks or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
@@ -193,7 +193,7 @@ Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorfl
 
 When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "iris-classifier")`). See the [multi model guide](../guides/multi-model.md#tensorflow-predictor) for more information.
 
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overriden by providing `config` in the job submission requests.
+For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
 
 ### Examples
 
@@ -229,31 +229,31 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class ONNXPredictor:
-    def __init__(self, onnx_client, config, api_spec, job_spec):
-        """Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+    def __init__(self, onnx_client, config, job_spec, api_spec):
+        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
-            onnx_client: ONNX client which is used to make predictions. This should be saved for use in predict().
-            config: Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            api_spec: Dictionary containing the yaml configuration specified in cortex.yaml (optional)
-            job_spec: Dictionary containing the submitted job request and additional information such as the job_id (optional)
+            onnx_client (required): ONNX client which is used to make predictions. This should be saved for use in predict().
+            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            api_spec (optional): Dictionary containing the API configuration specified in cortex.yaml.
         """
         self.client = onnx_client
         # Additional initialization may be done here
 
     def predict(self, payload, batch_id):
-        """Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary) and writes the predictions to storage (i.e. S3 or a database).
+        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
 
         Args:
-            payload: a batch, a list of one or more samples (required).
-            batch_id: uuid assigned to this batch
+            payload (required): a batch (i.e. a list of one or more samples).
+            batch_id (optional): uuid assigned to this batch.
         Returns:
-            Nothing if the function body writes the predictions to storage, otherwise, the prediction or batch of predictions
+            Nothing
         """
         pass
 
     def on_job_complete(self):
-        """Called once after all of the batches in the job queue have been processed. Performs post job completion tasks such as aggregating results, executing web hooks or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
@@ -263,7 +263,7 @@ Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` 
 
 When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "iris-classifier")`). See the [multi model guide](../guides/multi-model.md#onnx-predictor) for more information.
 
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overriden by providing `config` in the job submission requests.
+For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
 
 ### Examples
 

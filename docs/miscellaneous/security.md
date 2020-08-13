@@ -52,7 +52,6 @@ The operator requires read permissions for any S3 bucket containing exported mod
                 "ecr:BatchGetImage",
                 "elasticloadbalancing:Describe*",
                 "apigateway:*",
-                "logs:*",
                 "cloudwatch:*",
                 "logs:*",
                 "sqs:*"

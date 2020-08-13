@@ -26,7 +26,7 @@ class ONNXPredictor:
             [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize]
         )
 
-        if len(config["dest_s3_dir"]) == 0:
+        if len(config.get("dest_s3_dir", "")) == 0:
             raise Exception("'dest_s3_dir' field was not provided in job submission")
 
         self.s3 = boto3.client("s3")
@@ -51,13 +51,14 @@ class ONNXPredictor:
         # classify the batch of images
         imgs_arr = np.stack(arr_list, axis=0)
         result = self.client.predict(imgs_arr)
-        predicted_classes = np.argmax(result[0], axis=1)
 
+        # extract predicted classes
+        predicted_classes = np.argmax(result[0], axis=1)
         results = [
             {"url": payload[i], "class": self.labels[class_idx]}
             for i, class_idx in enumerate(predicted_classes)
         ]
 
+        # save results
         json_output = json.dumps(results)
-
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json_output)
