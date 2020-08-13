@@ -8,6 +8,8 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 [exported3](/syncapi/exporting)
 [exported4](/exporting)
 [exported5](../exporting.md)
+[exported7](/deployments/exporting.md)
+
 
 
 Once your model is [exported1](/deployments/syncapi/exporting), you can implement one of Cortex's Predictor classes to deploy your model. A Predictor is a Python class that describes how to initialize your model and use it to make predictions.
