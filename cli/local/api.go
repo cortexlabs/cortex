@@ -114,7 +114,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 	if prevAPISpec == nil && len(prevAPIContainers) == 0 {
 		if encounteredVersionMismatch {
 			return newAPISpec, fmt.Sprintf(
-				"re-deploying api %s with current CLI version %s",
+				"creating api %s with current CLI version %s",
 				newAPISpec.Name,
 				consts.CortexVersion,
 			), nil
