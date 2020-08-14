@@ -42,15 +42,15 @@ func Delete(apiName string, keepCache, deleteForce bool) (schema.DeleteResponse,
 				return schema.DeleteResponse{}, err
 			}
 
-			minorVersionMismatch := strings.Join(strings.Split(incompatibleVersion, ".")[:2], ".")
-			if consts.CortexVersionMinor != minorVersionMismatch && !deleteForce {
+			incompatibleMinorVersion := strings.Join(strings.Split(incompatibleVersion, ".")[:2], ".")
+			if consts.CortexVersionMinor != incompatibleMinorVersion && !deleteForce {
 				prompt.YesOrExit(
 					fmt.Sprintf(
 						"api %s was deployed using CLI version %s but the current CLI version is %s; "+
 							"deleting %s with current CLI version %s might lead to an unexpected state; any cached models won't be deleted\n\n"+
 							"it is recommended to download version %s of the CLI from https://docs.cortex.dev/v/%s/install, delete the API using version %s of the CLI and then re-deploy the API using the latest version of the CLI\n\n"+
 							"do you still want to delete?",
-						apiName, minorVersionMismatch, consts.CortexVersionMinor, apiName, consts.CortexVersionMinor, minorVersionMismatch, minorVersionMismatch, minorVersionMismatch),
+						apiName, incompatibleMinorVersion, consts.CortexVersionMinor, apiName, consts.CortexVersionMinor, incompatibleMinorVersion, incompatibleMinorVersion, incompatibleMinorVersion),
 					"", "",
 				)
 			}
@@ -63,9 +63,7 @@ func Delete(apiName string, keepCache, deleteForce bool) (schema.DeleteResponse,
 			}, nil
 		}
 
-		if !keepCache {
-			return schema.DeleteResponse{}, err
-		}
+		return schema.DeleteResponse{}, DeleteAPI(apiName)
 	}
 
 	if keepCache {

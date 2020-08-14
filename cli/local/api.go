@@ -46,15 +46,15 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 				return nil, "", err
 			}
 
-			minorVersionMismatch := strings.Join(strings.Split(incompatibleVersion, ".")[:2], ".")
-			if consts.CortexVersionMinor != minorVersionMismatch && !deployDisallowPrompt {
+			incompatibleMinorVersion := strings.Join(strings.Split(incompatibleVersion, ".")[:2], ".")
+			if consts.CortexVersionMinor != incompatibleMinorVersion && !deployDisallowPrompt {
 				prompt.YesOrExit(
 					fmt.Sprintf(
 						"api %s was deployed using CLI version %s but the current CLI version is %s; "+
 							"re-deploying %s with current CLI version %s might yield an unexpected outcome; any cached models won't be deleted\n\n"+
 							"it is recommended to download version %s of the CLI from https://docs.cortex.dev/v/%s/install, delete the API using version %s of the CLI and then re-deploy the API using the latest version of the CLI\n\n"+
 							"do you still want to re-deploy?",
-						apiConfig.Name, minorVersionMismatch, consts.CortexVersionMinor, apiConfig.Name, consts.CortexVersionMinor, minorVersionMismatch, minorVersionMismatch, minorVersionMismatch),
+						apiConfig.Name, incompatibleMinorVersion, consts.CortexVersionMinor, apiConfig.Name, consts.CortexVersionMinor, incompatibleMinorVersion, incompatibleMinorVersion, incompatibleMinorVersion),
 					"", "",
 				)
 			}
