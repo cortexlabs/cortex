@@ -45,6 +45,9 @@ See additional documentation for [compute](/docs/deployments/compute.md), [netwo
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
+    server_side_batching:  # (optional)
+      max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
+      batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
