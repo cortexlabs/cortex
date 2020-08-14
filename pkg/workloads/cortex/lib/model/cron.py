@@ -356,12 +356,41 @@ class CachedModelMonitor(td.Thread):
         pass
 
 
-def find_ondisk_model_versions(lock_dir: str, model_name: str) -> List[str]:
+def find_ondisk_models(lock_dir: str) -> List[str]:
     """
-    Returns all available versions of the model from the disk.
+    Returns all available models from the disk.
 
     This function should never be used for determining whether a model has to be loaded or not.
-    Use it only for showing to the user the available versions of the model.
+    Can be used for Python/TensorFlow/ONNX clients.
+
+    Args:
+        lock_dir: Path to where the resource locks are stored.
+    
+    Returns:
+        List with the available models from disk. Just the model, no versions.
+    """
+
+    files = [os.path.basename(file) for file in os.listdir(lock_dir)]
+    locks = [f for f in files if f.endswith(".lock")]
+    models = []
+
+    for lock in locks:
+        _model_name, _ = os.path.splitext(lock).split("-")
+        with LockedFile(os.path.join(lock_dir, lock), reader_lock=True) as f:
+            status = f.read()
+        if status == "available":
+            if _model_name not in models:
+                models.append(_model_name)
+
+    return models
+
+
+def find_ondisk_model_versions(lock_dir: str, model_name: str) -> List[str]:
+    """
+    Returns all available versions of a model from the disk.
+
+    This function should never be used for determining whether a model has to be loaded or not.
+    Can be used for Python/TensorFlow/ONNX clients.
 
     Args:
         lock_dir: Path to where the resource locks are stored.
@@ -374,11 +403,13 @@ def find_ondisk_model_versions(lock_dir: str, model_name: str) -> List[str]:
     files = [os.path.basename(file) for file in os.listdir(lock_dir)]
     locks = [f for f in files if f.endswith(".lock")]
     versions = []
+
     for lock in locks:
-        with LockedFile(os.path.join(lock_dir, lock), reader_lock=True) as f:
-            status = f.read()
-        if status == "available":
-            version = os.path.splitext(lock).split("-")[1]
-            versions.append(version)
+        _model_name, version = os.path.splitext(lock).split("-")
+        if _model_name == model_name:
+            with LockedFile(os.path.join(lock_dir, lock), reader_lock=True) as f:
+                status = f.read()
+            if status == "available":
+                versions.append(version)
 
     return versions

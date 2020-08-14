@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex.lib.model.cron import find_ondisk_model_versions
+from cortex.lib.model.cron import find_ondisk_model_versions, find_ondisk_models
 from cortex.lib.model.tree import ModelsTree, create_dict_tree
 from cortex.lib.model.type import CuratedModelResources
 from cortex.lib.model.validation import (

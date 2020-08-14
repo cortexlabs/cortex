@@ -21,7 +21,12 @@ from typing import Any
 from cortex.lib.log import cx_logger
 from cortex.lib import util
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException
-from cortex.lib.model import ModelsTree, CuratedModelResources, find_ondisk_model_versions
+from cortex.lib.model import (
+    ModelsTree,
+    CuratedModelResources,
+    find_ondisk_model_versions,
+    find_ondisk_models,
+)
 from cortex.lib.storage import LockedFile
 from cortex import consts
 
@@ -73,9 +78,10 @@ class ONNXClient:
             # when predictor:model_path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
                 if model_version is None:
-                    model_version = self.get_highest_model_version(consts.SINGLE_MODEL_NAME)
-                return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, version)
+                    model_version = self._get_highest_model_version(consts.SINGLE_MODEL_NAME)
+                return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, model_version)
 
+            # when predictor:models:paths is specified
             if model_name is None:
                 raise UserRuntimeException(
                     f"model_name was not specified, choose one of the following: {self._spec_model_names}"
@@ -86,14 +92,20 @@ class ONNXClient:
                     f"'{model_name}' model wasn't found in the list of available models"
                 )
 
-            # when predictor:models:paths is specified
-            if model_version is None:
-                model_version = self.get_highest_model_version(model_name)
-            return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, version)
-
         # when predictor:models:dir is specified
         if self._models_dir:
-            pass
+            if model_name is None:
+                raise UserRuntimeException("model_name was not specified")
+
+            available_models = find_ondisk_models(self._lock_dir)
+            if model_name not in available_models:
+                raise UserRuntimeException(
+                    f"'{model_name}' model wasn't found in the list of available models"
+                )
+
+        if model_version is None:
+            model_version = self._get_highest_model_version(model_name)
+        return self._run_inference(model_input, model_name, model_version)
 
     def _run_inference(self, model_input: Any, model_name: str, model_version: str) -> Any:
         """
@@ -170,7 +182,7 @@ class ONNXClient:
 
         return model
 
-    def get_highest_model_version(self, model_name: str) -> str:
+    def _get_highest_model_version(self, model_name: str) -> str:
         versions = find_ondisk_model_versions(self._lock_dir, model_name)
         if len(versions) == 0:
             raise UserRuntimeException(
@@ -182,10 +194,12 @@ class ONNXClient:
         highest = max(versions)
         return highest
 
+    # TODO retrieve sessions properly for cortex get
     @property
     def sessions(self):
         return self._sessions
 
+    # TODO retrieve input_signatures properly for cortex get
     @property
     def input_signatures(self):
         return self._input_signatures
