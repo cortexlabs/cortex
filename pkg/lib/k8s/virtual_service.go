@@ -46,10 +46,6 @@ type VirtualServiceSpec struct {
 
 type Destination struct {
 	ServiceName string
-	ServicePort int32
-	Rewrite     *string
-	Labels      map[string]string
-	Annotations map[string]string
 	Weight      int32
 	Port        uint32
 }
