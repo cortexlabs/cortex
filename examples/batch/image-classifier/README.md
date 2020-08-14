@@ -106,7 +106,7 @@ class PythonPredictor:
         )
 ```
 
-Here are the complete [Predictor docs](../../../docs/deployments/batchapi/predictors).
+Here are the complete [Predictor docs](../../../docs/deployments/batchapi/predictors.md).
 
 <br>
 
