@@ -50,7 +50,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](/docs/deployments/compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
 
 ## TensorFlow Predictor
 
