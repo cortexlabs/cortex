@@ -50,13 +50,12 @@ class PythonPredictor:
 # initialization code and variables can be declared here in global scope
 
 class PythonPredictor:
-    def __init__(self, config, job_spec, api_spec):
+    def __init__(self, config, job_spec):
         """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
             job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
-            api_spec (optional): Dictionary containing the API configuration specified in cortex.yaml.
         """
         pass
 
@@ -161,14 +160,13 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config, job_spec, api_spec):
+    def __init__(self, tensorflow_client, config, job_spec):
         """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             tensorflow_client (required): TensorFlow client which is used to make predictions. This should be saved for use in predict().
             config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
             job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
-            api_spec (optional): Dictionary containing the API configuration specified in cortex.yaml.
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
@@ -231,14 +229,13 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class ONNXPredictor:
-    def __init__(self, onnx_client, config, job_spec, api_spec):
+    def __init__(self, onnx_client, config, job_spec):
         """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             onnx_client (required): ONNX client which is used to make predictions. This should be saved for use in predict().
             config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
             job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
-            api_spec (optional): Dictionary containing the API configuration specified in cortex.yaml.
         """
         self.client = onnx_client
         # Additional initialization may be done here

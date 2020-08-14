@@ -15,6 +15,7 @@
 import os
 import imp
 import inspect
+from copy import deepcopy
 
 import dill
 
@@ -22,6 +23,7 @@ from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex.lib.type.model import Model, get_model_signature_map
 from cortex import consts
+from cortex.lib import util
 
 
 class Predictor:
@@ -89,10 +91,12 @@ class Predictor:
 
         args = {}
 
+        config = deepcopy(api_spec["predictor"]["config"])
+        if job_spec is not None and job_spec.get("config") is not None:
+            util.merge_dicts_in_place_overwrite(config, job_spec["config"])
+
         if "config" in constructor_args:
-            args["config"] = self.config
-        if "api_spec" in constructor_args:
-            args["api_spec"] = api_spec
+            args["config"] = config
         if "job_spec" in constructor_args:
             args["job_spec"] = job_spec
 
@@ -186,11 +190,7 @@ class Predictor:
 
 PYTHON_CLASS_VALIDATION = {
     "required": [
-        {
-            "name": "__init__",
-            "required_args": ["self", "config"],
-            "optional_args": ["api_spec", "job_spec"],
-        },
+        {"name": "__init__", "required_args": ["self", "config"], "optional_args": ["job_spec"]},
         {
             "name": "predict",
             "required_args": ["self"],
@@ -212,7 +212,7 @@ TENSORFLOW_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "tensorflow_client", "config"],
-            "optional_args": ["api_spec", "job_spec"],
+            "optional_args": ["job_spec"],
         },
         {
             "name": "predict",
@@ -235,7 +235,7 @@ ONNX_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "onnx_client", "config"],
-            "optional_args": ["api_spec", "job_spec"],
+            "optional_args": ["job_spec"],
         },
         {
             "name": "predict",

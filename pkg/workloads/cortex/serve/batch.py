@@ -21,6 +21,7 @@ import json
 import msgpack
 import threading
 import math
+from copy import deepcopy
 
 import boto3
 import botocore
@@ -236,9 +237,6 @@ def start():
 
     raw_api_spec = get_spec(provider, storage, cache_dir, api_spec_path)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
-
-    if job_spec.get("config") is not None:
-        util.merge_dicts_in_place_overwrite(raw_api_spec["predictor"]["config"], job_spec["config"])
 
     api = API(
         provider=provider, storage=storage, model_dir=model_dir, cache_dir=cache_dir, **raw_api_spec

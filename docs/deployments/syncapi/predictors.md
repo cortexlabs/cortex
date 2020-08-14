@@ -52,12 +52,11 @@ class PythonPredictor:
 # initialization code and variables can be declared here in global scope
 
 class PythonPredictor:
-    def __init__(self, config, api_spec):
+    def __init__(self, config):
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing the model or downloading a vocabulary.
 
         Args:
             config (required): Dictionary passed from API configuration (if specified). This may contain information on where to download the model and/or metadata.
-            api_spec (optional): Dictionary containing the yaml configuration specified in cortex.yaml.
         """
         pass
 
@@ -219,13 +218,12 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config, api_spec):
+    def __init__(self, tensorflow_client, config):
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
 
         Args:
             tensorflow_client (required): TensorFlow client which is used to make predictions. This should be saved for use in predict().
             config (required): Dictionary passed from API configuration (if specified).
-            api_spec (optional): Dictionary containing the yaml configuration specified in cortex.yaml.
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
@@ -316,13 +314,12 @@ If your application requires additional dependencies, you can install additional
 
 ```python
 class ONNXPredictor:
-    def __init__(self, onnx_client, config, api_spec):
+    def __init__(self, onnx_client, config):
         """(Required) Called once before the API becomes available. Performs setup such as downloading/initializing a vocabulary.
 
         Args:
             onnx_client (required): ONNX client which is used to make predictions. This should be saved for use in predict().
             config (required): Dictionary passed from API configuration (if specified).
-            api_spec (optional): Dictionary containing the yaml configuration specified in cortex.yaml.
         """
         self.client = onnx_client
         # Additional initialization may be done here
