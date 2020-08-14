@@ -879,14 +879,10 @@ func APIEndpoint(api *spec.API) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
 	}
 
-	apiEndpoint := urls.Join(baseAPIEndpoint, *api.Networking.Endpoint)
-	if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
-	}
-
-	return apiEndpoint, nil
+	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
 }
 
 func GetEndpointFromVirtualService(virtualService *istioclientnetworking.VirtualService) (string, error) {

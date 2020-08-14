@@ -16,7 +16,7 @@
   * [API configuration](deployments/syncapi/api-configuration.md)
   * [API deployment](deployments/syncapi/deployment.md)
   * [API statuses](deployments/syncapi/statuses.md)
-  * [Parellelism](deployments/syncapi/parallelism.md)
+  * [Parallelism](deployments/syncapi/parallelism.md)
   * [Autoscaling](deployments/syncapi/autoscaling.md)
   * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
   * [Tutorial](../examples/sklearn/iris-classifier/README.md)
@@ -63,6 +63,7 @@
 * [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
 
 ## Guides
+
 * [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)

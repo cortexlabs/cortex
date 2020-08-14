@@ -21,7 +21,6 @@ import json
 import msgpack
 import threading
 import math
-from copy import deepcopy
 
 import boto3
 import botocore
