@@ -871,7 +871,8 @@ func APILoadBalancerURL() (string, error) {
 func APIEndpoint(api *spec.API) (string, error) {
 	var err error
 	baseAPIEndpoint := ""
-	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
+
+	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
 		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
 	} else {
 		baseAPIEndpoint, err = APILoadBalancerURL()

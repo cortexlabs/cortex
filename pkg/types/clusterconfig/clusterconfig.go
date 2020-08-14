@@ -65,6 +65,7 @@ type Config struct {
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	APIGatewaySetting          APIGatewaySetting  `json:"api_gateway" yaml:"api_gateway"`
 	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
 	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
 	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
@@ -100,7 +101,7 @@ type InternalConfig struct {
 	APIVersion         string                    `json:"api_version"`
 	OperatorInCluster  bool                      `json:"operator_in_cluster"`
 	InstanceMetadata   aws.InstanceMetadata      `json:"instance_metadata"`
-	APIGateway         apigatewayv2.Api          `json:"api_gateway"`
+	APIGateway         *apigatewayv2.Api         `json:"api_gateway"`
 	VPCLink            *apigatewayv2.VpcLink     `json:"vpc_link"`
 	VPCLinkIntegration *apigatewayv2.Integration `json:"vpc_link_integration"`
 }
@@ -315,6 +316,16 @@ var UserValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return LoadBalancerSchemeFromString(str), nil
+			},
+		},
+		{
+			StructField: "APIGatewaySetting",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: APIGatewaySettingStrings(),
+				Default:       EnabledAPIGatewaySetting.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return APIGatewaySettingFromString(str), nil
 			},
 		},
 		{
@@ -1069,6 +1080,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(NATGatewayUserKey, cc.NATGateway)
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
 	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
+	items.Add(APIGatewaySettingUserKey, cc.APIGatewaySetting)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)

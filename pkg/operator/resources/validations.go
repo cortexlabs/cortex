@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -111,6 +112,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 				didPrintWarning = true
 			}
 		}
+
 		if api.Kind == userconfig.APISplitterKind {
 			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
@@ -122,7 +124,12 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 				return errors.Wrap(err, api.Identify())
 			}
 		}
+
+		if api.Networking.APIGateway != userconfig.NoneAPIGatewayType && config.Cluster.APIGatewaySetting == clusterconfig.DisabledAPIGatewaySetting {
+			return errors.Wrap(ErrorAPIGatewayDisabled(api.Networking.APIGateway), api.Identify(), userconfig.NetworkingKey, userconfig.APIGatewayKey)
+		}
 	}
+
 	dups := spec.FindDuplicateNames(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateName(dups)

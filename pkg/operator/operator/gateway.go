@@ -57,6 +57,10 @@ func getRouteToIntegrationMapping(apiEndpoint string, isRoutePrefix bool) []rout
 }
 
 func AddAPIToAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGatewayType, isRoutePrefix bool) error {
+	if config.Cluster.APIGateway == nil {
+		return nil
+	}
+
 	if apiGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}
@@ -111,6 +115,10 @@ func AddAPIToAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGateway
 }
 
 func RemoveAPIFromAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGatewayType, isRoutePrefix bool) error {
+	if config.Cluster.APIGateway == nil {
+		return nil
+	}
+
 	if apiGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}
@@ -147,6 +155,10 @@ func UpdateAPIGateway(
 	newAPIGatewayType userconfig.APIGatewayType,
 	isRoutePrefix bool,
 ) error {
+	if config.Cluster.APIGateway == nil {
+		return nil
+	}
+
 	if prevAPIGatewayType == userconfig.NoneAPIGatewayType && newAPIGatewayType == userconfig.NoneAPIGatewayType {
 		return nil
 	}

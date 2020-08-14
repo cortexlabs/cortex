@@ -111,7 +111,7 @@ func (c *Client) GetAPIGatewayByTag(tagName string, tagValue string) (*apigatewa
 	return nil, nil
 }
 
-// DeleteVPCLinkByTag Deletes a VPC Link by tag (returns the deleted VPC Link, or nil if it was not found )
+// DeleteVPCLinkByTag Deletes a VPC Link by tag (returns the deleted VPC Link, or nil if it was not found)
 func (c *Client) DeleteVPCLinkByTag(tagName string, tagValue string) (*apigatewayv2.VpcLink, error) {
 	vpcLink, err := c.GetVPCLinkByTag(tagName, tagValue)
 	if err != nil {
@@ -130,7 +130,7 @@ func (c *Client) DeleteVPCLinkByTag(tagName string, tagValue string) (*apigatewa
 	return vpcLink, nil
 }
 
-// DeleteAPIGatewayByTag Deletes an API Gateway by tag (returns whether or not the API Gateway existed)
+// DeleteAPIGatewayByTag Deletes an API Gateway by tag (returns the deleted API Gateway, or nil if it was not found)
 func (c *Client) DeleteAPIGatewayByTag(tagName string, tagValue string) (*apigatewayv2.Api, error) {
 	apiGateway, err := c.GetAPIGatewayByTag(tagName, tagValue)
 	if err != nil {

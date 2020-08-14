@@ -34,6 +34,7 @@ const (
 	ErrJobIDRequired                   = "resources.job_id_required"
 	ErrAPIUsedByAPISplitter            = "resources.syncapi_used_by_apisplitter"
 	ErrNotDeployedAPIsAPISplitter      = "resources.trafficsplit_apis_not_deployed"
+	ErrAPIGatewayDisabled              = "resources.api_gateway_disabled"
 )
 
 func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -86,5 +87,17 @@ func ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotDeployedAPIsAPISplitter,
 		Message: fmt.Sprintf("unable to find specified %s: %s", strings.PluralS("api", len(notDeployedAPIs)), strings.StrsAnd(notDeployedAPIs)),
+	})
+}
+
+func ErrorAPIGatewayDisabled(apiGatewayType userconfig.APIGatewayType) error {
+	msg := fmt.Sprintf("%s is not permitted because api gateway is disabled cluster-wide", s.UserStr(apiGatewayType))
+	if apiGatewayType == userconfig.PublicAPIGatewayType {
+		msg += fmt.Sprintf(" (%s is the default value, and the valid values are %s)", s.UserStr(userconfig.PublicAPIGatewayType), s.UserStrsAnd(userconfig.APIGatewayTypeStrings()))
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPIGatewayDisabled,
+		Message: msg,
 	})
 }
