@@ -188,7 +188,7 @@ class SimpleModelMonitor(mp.Process):
                             shutil.rmtree(ondisk_model_version)
                         os.path.makedirs(ondisk_model_version)
                         shutil.copytree(temp_dest, ondisk_model_version)
-                        f.write("available".encode("utf-8"))
+                        f.write("available")
 
                     # cleanup
                     shutil.rmtree(temp_dest)
@@ -206,7 +206,7 @@ class SimpleModelMonitor(mp.Process):
                     ondisk_model_version_path = os.path.join(ondisk_model_path, ondisk_version)
                     with LockedFile(resource, "w+") as f:
                         shutil.rmtree(ondisk_model_version_path)
-                        f.write("not available".encode("utf-8"))
+                        f.write("not available")
 
             if len(glob.glob(ondisk_model_path + "*/**")) == 0:
                 shutil.rmtree(ondisk_model_path)
@@ -235,7 +235,7 @@ class SimpleModelMonitor(mp.Process):
                         shutil.rmtree(ondisk_model_version)
                     os.path.makedirs(ondisk_model_version)
                     shutil.copytree(temp_dest, ondisk_model_version)
-                    f.write("available".encode("utf-8"))
+                    f.write("available")
 
                 # cleanup
                 shutil.rmtree(temp_dest)
@@ -365,7 +365,7 @@ def find_ondisk_models(lock_dir: str) -> List[str]:
 
     Args:
         lock_dir: Path to where the resource locks are stored.
-    
+
     Returns:
         List with the available models from disk. Just the model, no versions.
     """
