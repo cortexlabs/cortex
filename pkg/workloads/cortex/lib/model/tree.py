@@ -37,7 +37,6 @@ class ModelsTree:
         try:
             self._locks[model_id].acquire()
         except:
-            self._locks[model_id].release()
             return None
         model = self._models[model_id]
         self._locks[model_id].release()
@@ -49,7 +48,6 @@ class ModelsTree:
         try:
             self._locks[model_id].acquire()
         except:
-            self._locks[model_id].release()
             return
         del self._models[model_id]
         self._locks[model_id].release()

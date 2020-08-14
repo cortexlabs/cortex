@@ -72,36 +72,41 @@ class ONNXClient:
 
             # when predictor:model_path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
-                version = self.get_highest_model_version(consts.SINGLE_MODEL_NAME)
-
-                # run prediction here / capture exceptions if model is not available
+                if model_version is None:
+                    model_version = self.get_highest_model_version(consts.SINGLE_MODEL_NAME)
+                return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, version)
 
             if model_name is None:
                 raise UserRuntimeException(
-                    "model_name was not specified, choose one of the following: {}".format(
-                        self._spec_model_names
-                    )
+                    f"model_name was not specified, choose one of the following: {self._spec_model_names}"
                 )
 
             if model_name not in self._spec_model_names:
                 raise UserRuntimeException(
-                    "'{}' model wasn't found in the list of available models: {}".format(
-                        model_name, self._spec_model_names
-                    )
+                    f"'{model_name}' model wasn't found in the list of available models"
                 )
 
+            # when predictor:models:paths is specified
             if model_version is None:
                 model_version = self.get_highest_model_version(model_name)
-
-            # run the inference here and return
+            return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, version)
 
         # when predictor:models:dir is specified
         if self._models_dir:
             pass
 
-    def _run_inference(self, model_input, model_name):
-        input_dict = convert_to_onnx_input(model_input, self._signatures[model_name], model_name)
-        return self._sessions[model_name].run([], input_dict)
+    def _run_inference(self, model_input: Any, model_name: str, model_version: str) -> Any:
+        """
+        Run the inference on model model_name of version model_version.
+        """
+
+        model = self._models.get_model(model_name, model_version)
+        if model is None:
+            raise UserRuntimeException(
+                f"model {model_name} of version {model_version} wasn't found"
+            )
+        input_dict = convert_to_onnx_input(model_input, model["signatures"], model_name)
+        return model["session"].run([], input_dict)
 
     def _get_model(self, model_name: str, model_version: str) -> Any:
         """
