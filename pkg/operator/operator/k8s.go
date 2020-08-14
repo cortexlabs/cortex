@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -867,12 +868,24 @@ func APILoadBalancerURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
-// APIBaseURL returns BaseURL of the API without resource endpoint
-func APIBaseURL(api *spec.API) (string, error) {
+func APIEndpoint(api *spec.API) (string, error) {
+	var err error
+	baseAPIEndpoint := ""
 	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType {
-		return *config.Cluster.APIGateway.ApiEndpoint, nil
+		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
+	} else {
+		baseAPIEndpoint, err = APILoadBalancerURL()
+		if err != nil {
+			return "", err
+		}
 	}
-	return APILoadBalancerURL()
+
+	apiEndpoint := urls.Join(baseAPIEndpoint, *api.Networking.Endpoint)
+	if api.Networking.APIGateway == userconfig.NoneAPIGatewayType {
+		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
+	}
+
+	return apiEndpoint, nil
 }
 
 func GetEndpointFromVirtualService(virtualService *istioclientnetworking.VirtualService) (string, error) {

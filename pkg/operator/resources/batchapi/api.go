@@ -192,7 +192,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			return nil, err
 		}
 
-		baseURL, err := operator.APIBaseURL(api)
+		endpoint, err := operator.APIEndpoint(api)
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +211,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 		batchAPIsMap[apiName] = &schema.BatchAPI{
 			Spec:        *api,
-			BaseURL:     baseURL,
+			Endpoint:    endpoint,
 			JobStatuses: jobStatuses,
 		}
 	}
@@ -272,7 +272,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 		jobIDToK8sJobMap[job.Labels["jobID"]] = &job
 	}
 
-	baseURL, err := operator.APIBaseURL(api)
+	endpoint, err := operator.APIEndpoint(api)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +331,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 		BatchAPI: &schema.BatchAPI{
 			Spec:        *api,
 			JobStatuses: jobStatuses,
-			BaseURL:     baseURL,
+			Endpoint:    endpoint,
 		},
 	}, nil
 }

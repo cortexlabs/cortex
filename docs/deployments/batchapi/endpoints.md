@@ -176,7 +176,9 @@ RESPONSE:
         "created_time": <string>         # e.g. 2020-07-16T14:56:10.276007415Z
         "start_time": <string>           # e.g. 2020-07-16T14:56:10.276007415Z
         "end_time": <string> (optional)  # e.g. 2020-07-16T14:56:10.276007415Z (only present if the job has completed)
-    }
+    },
+    "api_spec": <string>,  # a base64 encoded string of your api configuration yaml that has been encoded in msgpack
+    "endpoint": <string>   # endpoint for this job
 }
 ```
 

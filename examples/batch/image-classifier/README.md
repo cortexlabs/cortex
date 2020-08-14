@@ -242,7 +242,7 @@ $ curl https://abcdefg.execute-api.us-west-2.amazonaws.com/69d6faf82e4660d3
         "api_name":"image-classifier",
         ...
     },
-    "base_url":"https://abcdefg.execute-api.us-west-2.amazonaws.com"
+    "endpoint":"https://abcdefg.execute-api.us-west-2.amazonaws.com"
 }
 ```
 

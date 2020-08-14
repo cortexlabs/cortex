@@ -34,7 +34,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
@@ -60,24 +59,16 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 		}
 	}
 
-	apiEndpoint := syncAPI.BaseURL
-	if env.Provider == types.AWSProviderType {
-		apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Networking.Endpoint)
-		if syncAPI.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
-		}
-	}
-
 	if syncAPI.DashboardURL != "" {
 		out += "\n" + console.Bold("metrics dashboard: ") + syncAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
+	out += "\n" + console.Bold("endpoint: ") + syncAPI.Endpoint
 
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), syncAPI.Endpoint)
 
 	if syncAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || syncAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(&syncAPI.Status, apiEndpoint)
+		out += "\n" + describeModelInput(&syncAPI.Status, syncAPI.Endpoint)
 	}
 
 	out += titleStr("configuration") + strings.TrimSpace(syncAPI.Spec.UserStr(env.Provider))

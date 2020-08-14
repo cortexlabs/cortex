@@ -19,6 +19,7 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
@@ -57,7 +58,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseURL, err := operator.APIBaseURL(spec)
+	endpoint, err := operator.APIEndpoint(spec)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -66,7 +67,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 	response := schema.GetJobResponse{
 		JobStatus: *jobStatus,
 		APISpec:   *spec,
-		BaseURL:   baseURL,
+		Endpoint:  urls.Join(endpoint, jobKey.ID),
 	}
 
 	respond(w, response)

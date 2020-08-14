@@ -214,16 +214,16 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Sync
 	syncAPIs := make([]schema.SyncAPI, len(apis))
 
 	for i, api := range apis {
-		baseURL, err := operator.APIBaseURL(&api)
+		endpoint, err := operator.APIEndpoint(&api)
 		if err != nil {
 			return nil, err
 		}
 
 		syncAPIs[i] = schema.SyncAPI{
-			Spec:    api,
-			Status:  statuses[i],
-			Metrics: allMetrics[i],
-			BaseURL: baseURL,
+			Spec:     api,
+			Status:   statuses[i],
+			Metrics:  allMetrics[i],
+			Endpoint: endpoint,
 		}
 	}
 
@@ -258,7 +258,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 		return nil, err
 	}
 
-	baseURL, err := operator.APIBaseURL(api)
+	apiEndpoint, err := operator.APIEndpoint(api)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +268,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 			Spec:         *api,
 			Status:       *status,
 			Metrics:      *metrics,
-			BaseURL:      baseURL,
+			Endpoint:     apiEndpoint,
 			DashboardURL: DashboardURL(),
 		},
 	}, nil

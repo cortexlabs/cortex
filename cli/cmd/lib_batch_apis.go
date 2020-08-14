@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
@@ -29,11 +28,9 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -134,12 +131,7 @@ func batchAPITable(batchAPI schema.BatchAPI) string {
 		out += t.MustFormat()
 	}
 
-	apiEndpoint := urls.Join(batchAPI.BaseURL, *batchAPI.Spec.Networking.Endpoint)
-	if batchAPI.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-		apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
-	}
-
-	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
+	out += "\n" + console.Bold("endpoint: ") + batchAPI.Endpoint
 
 	out += "\n" + titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
 	return out
@@ -244,12 +236,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		}
 	}
 
-	jobEndpoint := urls.Join(resp.BaseURL, *resp.APISpec.Networking.Endpoint, job.ID)
-	if resp.APISpec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-		jobEndpoint = strings.Replace(jobEndpoint, "https://", "http://", 1)
-	}
-
-	out += "\n" + console.Bold("job endpoint: ") + jobEndpoint + "\n"
+	out += "\n" + console.Bold("job endpoint: ") + resp.Endpoint + "\n"
 
 	jobSpecStr, err := json.Pretty(job.Job)
 	if err != nil {

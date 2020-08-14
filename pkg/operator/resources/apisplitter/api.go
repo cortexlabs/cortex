@@ -158,14 +158,14 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 	}
 
 	for _, apiSplitter := range apis {
-		baseURL, err := operator.APIBaseURL(&apiSplitter)
+		endpoint, err := operator.APIEndpoint(&apiSplitter)
 		if err != nil {
 			return nil, err
 		}
 
 		apiSplitters = append(apiSplitters, schema.APISplitter{
-			Spec:    apiSplitter,
-			BaseURL: baseURL,
+			Spec:     apiSplitter,
+			Endpoint: endpoint,
 		})
 	}
 
@@ -178,15 +178,15 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 		return nil, err
 	}
 
-	baseURL, err := operator.APIBaseURL(api)
+	endpoint, err := operator.APIEndpoint(api)
 	if err != nil {
 		return nil, err
 	}
 
 	return &schema.GetAPIResponse{
 		APISplitter: &schema.APISplitter{
-			Spec:    *api,
-			BaseURL: baseURL,
+			Spec:     *api,
+			Endpoint: endpoint,
 		},
 	}, nil
 }

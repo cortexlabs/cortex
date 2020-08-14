@@ -27,10 +27,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -54,17 +51,9 @@ func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment
 
 	out += t.MustFormat()
 
-	apiEndpoint := apiSplitter.BaseURL
-	if env.Provider == types.AWSProviderType {
-		apiEndpoint = urls.Join(apiSplitter.BaseURL, *apiSplitter.Spec.Networking.Endpoint)
-		if apiSplitter.Spec.Networking.APIGateway == userconfig.NoneAPIGatewayType {
-			apiEndpoint = strings.Replace(apiEndpoint, "https://", "http://", 1)
-		}
-	}
+	out += "\n" + console.Bold("endpoint: ") + apiSplitter.Endpoint
 
-	out += "\n" + console.Bold("endpoint: ") + apiEndpoint
-
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
+	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiSplitter.Endpoint)
 
 	out += titleStr("configuration") + strings.TrimSpace(apiSplitter.Spec.UserStr(env.Provider))
 
