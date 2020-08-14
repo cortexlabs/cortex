@@ -86,6 +86,12 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		return err
 	}
 
+	deployedSyncAPIs := strset.New()
+
+	for _, virtualService := range virtualServices {
+		deployedSyncAPIs.Add(virtualService.Labels["apiName"])
+	}
+
 	didPrintWarning := false
 
 	syncAPIs := InclusiveFilterAPIsByKind(apis, userconfig.SyncAPIKind)
@@ -109,7 +115,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-			if err := checkIfAPIExists(api.APIs, syncAPIs); err != nil {
+			if err := checkIfAPIExists(api.APIs, syncAPIs, deployedSyncAPIs); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -286,24 +292,13 @@ func ExclusiveFilterAPIsByKind(apis []userconfig.API, kindsToExclude ...userconf
 }
 
 // checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
-func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API) error {
-	deployedSyncAPIs, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.SyncAPIKind.String())
-	if err != nil {
-		return err
-	}
-
+func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, deployedSyncAPIs strset.Set) error {
 	var missingAPIs []string
 	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
-		deployed := false
 		//check if already deployed
-		for _, deployedSyncAPI := range deployedSyncAPIs {
-			// API resources in k8s are prefixed with api-
-			// to compare we need to prepend api- to the trafficSplitterAPIs
-			if operator.K8sName(trafficSplitAPI.Name) == deployedSyncAPI.Name {
-				deployed = true
-			}
-		}
+		deployed := deployedSyncAPIs.Has(trafficSplitAPI.Name)
+
 		// check defined apis
 		for _, definedAPI := range apis {
 			if trafficSplitAPI.Name == definedAPI.Name {

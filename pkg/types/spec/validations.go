@@ -617,6 +617,8 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 		if resourceStruct.Kind == userconfig.SyncAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
 			api.ApplyDefaultDockerPaths()
 		}
+
+		apis[i] = api
 	}
 
 	return apis, nil

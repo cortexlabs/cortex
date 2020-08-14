@@ -185,7 +185,6 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 				telemetry.Error(err)
 			}
 		}()
-		fmt.Println("hi")
 		return nil, ErrorAPINotDeployed(apiName)
 	}
 
