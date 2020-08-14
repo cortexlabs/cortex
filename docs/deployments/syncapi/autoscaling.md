@@ -16,7 +16,7 @@ Cortex autoscales your web services on a per-API basis based on your configurati
 
   The autoscaler uses this formula to determine the number of desired replicas:
 
-  `desired replicas = sum(in-flight requests accross all replicas) / target_replica_concurrency`
+  `desired replicas = sum(in-flight requests across all replicas) / target_replica_concurrency`
 
   For example, setting `target_replica_concurrency` to `processes_per_replica` * `threads_per_process` (the default) causes the cluster to adjust the number of replicas so that on average, requests are immediately processed without waiting in a queue, and processes/threads are never idle.
 
@@ -40,4 +40,4 @@ Cortex autoscales your web services on a per-API basis based on your configurati
 
 ## Autoscaling Instances
 
-Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../cluster-management/config.md) and modifiable via `cortex cluster configure`).
+Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../../cluster-management/config.md) and modifiable via `cortex cluster configure`).

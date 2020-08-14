@@ -63,5 +63,5 @@ You can now run the same commands shown above to deploy the iris classifier to A
 <!-- CORTEX_VERSION_MINOR -->
 * Try the [tutorial](../../examples/sklearn/iris-classifier/README.md) to learn more about how to use Cortex.
 * Deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
-* See our [exporting docs](/docs/deployments/exporting.md) for how to export your model to use in an API.
+* See our [exporting guide](../guides/exporting.md) for how to export your model to use in an API.
 * See [uninstall](uninstall.md) if you'd like to spin down your cluster.

@@ -28,7 +28,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [compute](/docs/deployments/compute.md), [networking](../networking.md), and [overriding API images](../system-packages.md).
+See additional documentation for [compute](../compute.md), [networking](../networking.md), and [overriding API images](../system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -63,7 +63,7 @@ See additional documentation for [compute](/docs/deployments/compute.md), [netwo
     mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [compute](/docs/deployments/compute.md), [networking](../networking.md), and [overriding API images](../system-packages.md).
+See additional documentation for [compute](../compute.md), [networking](../networking.md), and [overriding API images](../system-packages.md).
 
 ## ONNX Predictor
 
@@ -92,4 +92,4 @@ See additional documentation for [compute](/docs/deployments/compute.md), [netwo
     mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [compute](/docs/deployments/compute.md), [networking](../networking.md), and [overriding API images](../system-packages.md).
+See additional documentation for [compute](../compute.md), [networking](../networking.md), and [overriding API images](../system-packages.md).

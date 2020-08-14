@@ -41,6 +41,6 @@ The Cortex Cluster will automatically scale based on the incoming traffic and th
 ## Next steps
 
 * Try the [tutorial](../../examples/sklearn/iris-classifier/README.md) to deploy a Sync API locally or on AWS.
-* See our [exporting docs](exporting.md) for how to export your model to use in a Sync API.
+* See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Sync API.
 * See the [Predictor docs](syncapi/predictors.md) for how to implement a Predictor class.
 * See the [API configuration docs](syncapi/api-configuration.md) for a full list of features that can be used to deploy your Sync API.

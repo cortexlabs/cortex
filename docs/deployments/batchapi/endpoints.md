@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](/docs/deployments/exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](endpoints.md), you can submit and manage jobs by making HTTP requests to your Batch API endpoint.
+Once your model is [exported](../../exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](endpoints.md), you can submit and manage jobs by making HTTP requests to your Batch API endpoint.
 
 A deployed Batch API endpoint supports the following:
 
@@ -17,7 +17,7 @@ You can find the url for your Batch API using Cortex CLI command `cortex get <ba
 There are three options for providing the dataset for your job:
 
 1. [Data in the request](#data-in-the-request)
-1. [List S3 file paths](#s3-files-paths)
+1. [List S3 file paths](#s3-file-paths)
 1. [Newline delimited JSON file(s) in S3](#newline-delimited-json-files-in-s3)
 
 ### Data in the request

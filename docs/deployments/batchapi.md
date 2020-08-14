@@ -38,6 +38,6 @@ At any point, you can use the Job ID that was provided upon job submission to ma
 ## Next steps
 
 * Try the [tutorial](../../examples/batch/image-classifier/README.md) to deploy a Batch API on your Cortex cluster.
-* See our [exporting docs](exporting.md) for how to export your model to use in a Batch API.
+* See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Batch API.
 * See the [Predictor docs](batchapi/predictors.md) for how to implement a Predictor class.
 * See the [API configuration docs](batchapi/api-configuration.md) for a full list of features that can be used to deploy your Batch API.

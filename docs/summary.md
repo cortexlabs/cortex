@@ -16,7 +16,7 @@
   * [API configuration](deployments/syncapi/api-configuration.md)
   * [API deployment](deployments/syncapi/deployment.md)
   * [API statuses](deployments/syncapi/statuses.md)
-  * [Parellelism](deployments/parallelism.md)
+  * [Parellelism](deployments/syncapi/parallelism.md)
   * [Autoscaling](deployments/syncapi/autoscaling.md)
   * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
   * [Tutorial](../examples/sklearn/iris-classifier/README.md)
