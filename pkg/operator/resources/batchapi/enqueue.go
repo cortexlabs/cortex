@@ -105,25 +105,25 @@ func enqueue(jobSpec *spec.Job, submission *schema.JobSubmission) (int, error) {
 }
 
 func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
-	batchCount := len(itemList.Items) / *itemList.BatchSize
-	if len(itemList.Items)%*itemList.BatchSize != 0 {
+	batchCount := len(itemList.Items) / itemList.BatchSize
+	if len(itemList.Items)%itemList.BatchSize != 0 {
 		batchCount++
 	}
 
-	writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(itemList.Items), batchCount, *itemList.BatchSize))
+	writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("partitioning %d items found in job submission into %d batches of size %d", len(itemList.Items), batchCount, itemList.BatchSize))
 
 	uploader := newSQSBatchUploader(jobSpec.SQSUrl)
 
 	for i := 0; i < batchCount; i++ {
-		min := i * (*itemList.BatchSize)
-		max := (i + 1) * (*itemList.BatchSize)
+		min := i * (itemList.BatchSize)
+		max := (i + 1) * (itemList.BatchSize)
 		if max > len(itemList.Items) {
 			max = len(itemList.Items)
 		}
 
 		jsonBytes, err := json.Marshal(itemList.Items[min:max])
 		if err != nil {
-			if *itemList.BatchSize == 1 {
+			if itemList.BatchSize == 1 {
 				return 0, errors.Wrap(err, fmt.Sprintf("item %d", i))
 			}
 			return 0, errors.Wrap(err, fmt.Sprintf("items with index between %d to %d", min, max))
@@ -131,7 +131,7 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 
 		err = uploader.AddToBatch(randomMessageID(), pointer.String(string(jsonBytes)))
 		if err != nil {
-			if *itemList.BatchSize == 1 {
+			if itemList.BatchSize == 1 {
 				return 0, errors.Wrap(err, fmt.Sprintf("item %d", i))
 			}
 			return 0, errors.Wrap(err, fmt.Sprintf("items with index between %d to %d", min, max))
@@ -157,7 +157,7 @@ func enqueueS3Paths(jobSpec *spec.Job, s3PathsLister *schema.FilePathLister) (in
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
 
 		s3PathList = append(s3PathList, s3Path)
-		if len(s3PathList) == *s3PathsLister.BatchSize {
+		if len(s3PathList) == s3PathsLister.BatchSize {
 			err := addS3PathsToQueue(uploader, s3PathList)
 			if err != nil {
 				return false, err
@@ -228,7 +228,7 @@ func (j *jsonBuffer) Length() int {
 }
 
 func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFiles) (int, error) {
-	jsonMessageList := newJSONBuffer(*delimitedFiles.BatchSize)
+	jsonMessageList := newJSONBuffer(delimitedFiles.BatchSize)
 	uploader := newSQSBatchUploader(jobSpec.SQSUrl)
 
 	bytesBuffer := bytes.NewBuffer([]byte{})

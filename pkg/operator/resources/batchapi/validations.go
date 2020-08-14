@@ -24,7 +24,6 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gobwas/glob"
 )
@@ -60,26 +59,20 @@ func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
 			}
 		}
 
-		if submission.ItemList.BatchSize == nil {
-			submission.ItemList.BatchSize = pointer.Int(1)
-		} else if *submission.ItemList.BatchSize < 1 {
-			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.ItemList.BatchSize, 1), schema.ItemListKey, schema.BatchSizeKey)
+		if submission.ItemList.BatchSize < 1 {
+			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(submission.ItemList.BatchSize, 1), schema.ItemListKey, schema.BatchSizeKey)
 		}
 	}
 
 	if submission.FilePathLister != nil {
-		if submission.FilePathLister.BatchSize == nil {
-			submission.FilePathLister.BatchSize = pointer.Int(1)
-		} else if *submission.FilePathLister.BatchSize < 1 {
-			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.FilePathLister.BatchSize, 1), schema.FilePathListerKey, schema.BatchSizeKey)
+		if submission.FilePathLister.BatchSize < 1 {
+			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(submission.FilePathLister.BatchSize, 1), schema.FilePathListerKey, schema.BatchSizeKey)
 		}
 	}
 
 	if submission.DelimitedFiles != nil {
-		if submission.DelimitedFiles.BatchSize == nil {
-			submission.DelimitedFiles.BatchSize = pointer.Int(1)
-		} else if *submission.DelimitedFiles.BatchSize < 1 {
-			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(*submission.DelimitedFiles.BatchSize, 1), schema.DelimitedFilesKey, schema.BatchSizeKey)
+		if submission.DelimitedFiles.BatchSize < 1 {
+			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(submission.DelimitedFiles.BatchSize, 1), schema.DelimitedFilesKey, schema.BatchSizeKey)
 		}
 	}
 

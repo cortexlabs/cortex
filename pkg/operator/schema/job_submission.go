@@ -24,7 +24,7 @@ import (
 
 type ItemList struct {
 	Items     []json.RawMessage `json:"items"`
-	BatchSize *int              `json:"batch_size"`
+	BatchSize int               `json:"batch_size"`
 }
 
 type S3Lister struct {
@@ -35,12 +35,12 @@ type S3Lister struct {
 
 type FilePathLister struct {
 	S3Lister
-	BatchSize *int `json:"batch_size"`
+	BatchSize int `json:"batch_size"`
 }
 
 type DelimitedFiles struct {
 	S3Lister
-	BatchSize *int `json:"batch_size"`
+	BatchSize int `json:"batch_size"`
 }
 
 type JobSubmission struct {
