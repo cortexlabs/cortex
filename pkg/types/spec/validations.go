@@ -216,6 +216,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
 				multiModelValidation(),
+				serverSideBatchingValidation(),
 			},
 		},
 	}
@@ -508,6 +509,36 @@ func multiModelValidation() *cr.StructFieldValidation {
 	}
 }
 
+func serverSideBatchingValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "ServerSideBatching",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			DefaultNil:        true,
+			AllowExplicitNull: true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "MaxBatchSize",
+					Int32Validation: &cr.Int32Validation{
+						Required:             true,
+						GreaterThanOrEqualTo: pointer.Int32(2),
+						LessThanOrEqualTo:    pointer.Int32(1024), // this is an arbitrary limit
+					},
+				},
+				{
+					StructField: "BatchInterval",
+					StringValidation: &cr.StringValidation{
+						Required: true,
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThan: pointer.Duration(libtime.MustParseDuration("0s")),
+					}),
+				},
+			},
+		},
+	}
+}
+
 func surgeOrUnavailableValidator(str string) (string, error) {
 	if strings.HasSuffix(str, "%") {
 		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
@@ -687,7 +718,11 @@ func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerT
 
 func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
+	}
+
+	if predictor.ServerSideBatching != nil {
+		ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
 	}
 
 	if predictor.ModelPath != nil {
@@ -695,11 +730,11 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 	}
 
 	if len(predictor.Models) > 0 {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, predictor.Type)
 	}
 
 	if predictor.TensorFlowServingImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, userconfig.PythonPredictorType)
+		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
 	}
 
 	return nil
@@ -707,6 +742,15 @@ func validatePythonPredictor(predictor *userconfig.Predictor) error {
 
 func validateTensorFlowPredictor(api *userconfig.API, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
+
+	if predictor.ServerSideBatching != nil {
+		if api.Compute.Inf == 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevel(predictor.ServerSideBatching.MaxBatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
+		}
+		if api.Compute.Inf > 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevelInf(predictor.ServerSideBatching.MaxBatchSize, predictor.ThreadsPerProcess)
+		}
+	}
 
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(predictor.Type)
@@ -809,6 +853,11 @@ func validateONNXPredictor(predictor *userconfig.Predictor, providerType types.P
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
+
+	if predictor.ServerSideBatching != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
+	}
+
 	if predictor.ModelPath == nil && len(predictor.Models) == 0 {
 		return ErrorMissingModel(predictor.Type)
 	} else if predictor.ModelPath != nil && len(predictor.Models) > 0 {

@@ -65,6 +65,8 @@ const (
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
+	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
+	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
 	ErrIncorrectAPISplitterWeight           = "spec.incorrect_api_splitter_weight"
 	ErrAPISplitterNotSupported              = "spec.apisplitter_not_supported"
 	ErrAPISplitterAPIsNotUnique             = "spec.apisplitter_apis_not_unique"
@@ -356,6 +358,26 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfInfs,
 		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
+	})
+}
+
+func ErrorInsufficientBatchConcurrencyLevel(maxBatchSize int32, processesPerReplica int32, threadsPerProcess int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInsufficientBatchConcurrencyLevel,
+		Message: fmt.Sprintf(
+			"%s (%d) must be less than or equal to %s * %s (%d * %d = %d)",
+			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ProcessesPerReplicaKey, userconfig.ThreadsPerProcessKey, processesPerReplica, threadsPerProcess, processesPerReplica*threadsPerProcess,
+		),
+	})
+}
+
+func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerProcess int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInsufficientBatchConcurrencyLevelInf,
+		Message: fmt.Sprintf(
+			"%s (%d) must be less than or equal to %s (%d)",
+			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ThreadsPerProcessKey, threadsPerProcess,
+		),
 	})
 }
 
