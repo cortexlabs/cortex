@@ -12,7 +12,6 @@
 ## Deployments
 
 * [Sync API](deployments/syncapi.md)
-  * [Exporting models](deployments/exporting.md)
   * [Predictor implementation](deployments/syncapi/predictors.md)
   * [API configuration](deployments/syncapi/api-configuration.md)
   * [API deployment](deployments/syncapi/deployment.md)
@@ -23,7 +22,6 @@
   * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
   * [Tutorial](../examples/sklearn/iris-classifier/README.md)
 * [Batch API](deployments/batchapi.md)
-  * [Exporting models](deployments/exporting.md)
   * [Predictor implementation](deployments/batchapi/predictors.md)
   * [API configuration](deployments/batchapi/api-configuration.md)
   * [API deployment](deployments/batchapi/deployment.md)
@@ -66,7 +64,7 @@
 * [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
 
 ## Guides
-
+* [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
 * [Set up a custom domain](guides/custom-domain.md)
