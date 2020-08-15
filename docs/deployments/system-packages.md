@@ -56,7 +56,7 @@ Cortex's base Docker images are listed below. Depending on the Cortex Predictor 
 * ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu-slim:master`
 * ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu-slim:master`
 
-The `-slim` Python Predictor (GPU) image comes in different flavors of CUDA/CUDNN as well. If the `-cudaX.Y` version is not appended to the Python Predictor (GPU) image's tag, then CUDA 10.1 and CUDNN 7 is assumed:
+The Python Predictor (GPU) image (not including the non-`slim` version) comes in different flavors of CUDA/CUDNN as well. If the `-cudaX.Y` version is not appended to the Python Predictor (GPU) image's tag, then for both the `-slim` and non-`slim` images, CUDA 10.1 and CUDNN 7 are assumed:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x4 -->
 * Python Predictor (GPU) for CUDA 10.0 and CUDNN 7: `cortexlabs/python-predictor-gpu-slim:master-cuda10.0`
