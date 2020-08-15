@@ -56,6 +56,14 @@ Cortex's base Docker images are listed below. Depending on the Cortex Predictor 
 * ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu-slim:master`
 * ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu-slim:master`
 
+The `-slim` Python Predictor (GPU) image comes in different flavors of CUDA/CUDNN as well. If the `-cudaX.Y` version is not appended to the Python Predictor (GPU) image's tag, then CUDA 10.1 and CUDNN 7 is assumed:
+
+<!-- CORTEX_VERSION_BRANCH_STABLE x4 -->
+* Python Predictor (GPU) for CUDA 10.0 and CUDNN 7: `cortexlabs/python-predictor-gpu-slim:master-cuda10.0`
+* Python Predictor (GPU) for CUDA 10.1 and CUDNN 7: `cortexlabs/python-predictor-gpu-slim:master-cuda10.1`
+* Python Predictor (GPU) for CUDA 10.2 and CUDNN 7: `cortexlabs/python-predictor-gpu-slim:master-cuda10.2`
+* Python Predictor (GPU) for CUDA 11.0 and CUDNN 8: `cortexlabs/python-predictor-gpu-slim:master-cuda11.0`
+
 Note: the images listed above use the `-slim` suffix; Cortex's default API images are not `-slim`, since they have additional dependencies installed to cover common use cases. If you are building your own Docker image, starting with a `-slim` Predictor image will result in a smaller image size.
 
 The sample Dockerfile below inherits from Cortex's Python CPU serving image, and installs 3 packages. `tree` is a system package and `pandas` and `rdkit` are Python packages.
