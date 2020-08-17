@@ -15,7 +15,121 @@
 from typing import List, Any
 
 import os
+import time
 import threading as td
+
+
+class ReadWriteLock:
+    """
+    Locking object allowing for write once, read many.
+
+    The lock cannot be acquired multiple times in a single thread without its paired release call.
+    """
+
+    def __init__(self):
+        self._read_allowed = td.Condition(td.RLock())
+        self._readers = []
+        self._writers = []
+
+    def acquire(self, mode: str) -> bool:
+        """
+        Acquire a lock.
+
+        Args:
+            mode: "r" for read lock, "w" for write lock.
+
+        Returns:
+            Whether the mode was valid or not.
+        """
+        if mode == "r":
+            self._read_allowed.acquire()
+            try:
+                while len(self._writers) > 0:
+                    self._read_allowed.wait()
+            finally:
+                self._readers.append(td.get_ident())
+                self._read_allowed.release()
+
+        elif mode == "w":
+            self._read_allowed.acquire()
+            self._writers.append(td.get_ident())
+            while len(self._readers) > 0:
+                self._read_allowed.wait()
+        else:
+            return False
+
+        return True
+
+    def release(self, mode: str) -> bool:
+        """
+        Releases a lock.
+
+        Args:
+            mode: "r" for read lock, "w" for write lock.
+
+        Returns:
+            Whether the mode was valid or not.
+        """
+        if mode == "r":
+            self._read_allowed.acquire()
+            try:
+                if not len(self._readers) - 1:
+                    self._read_allowed.notifyAll()
+            finally:
+                self._readers.remove(td.get_ident())
+                self._read_allowed.release()
+
+        elif mode == "w":
+            self._writers.remove(td.get_ident())
+            self._read_allowed.notifyAll()
+            self._read_allowed.release()
+
+        else:
+            return False
+
+        return True
+
+
+class ReadLock:
+    """
+    To be used as:
+
+    rw_lock = ReadWriteLock()
+    with ReadLock(rw_lock):
+        # code
+    """
+
+    def __init__(self, lock: ReadWriteLock):
+        self._lock = lock
+
+    def __enter__(self):
+        self._lock.acquire("r")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self_lock.release("r")
+        return False
+
+
+class WriteLock:
+    """
+    To be used as:
+
+    rw_lock = ReadWriteLock()
+    with WriteLock(rw_lock):
+        # code
+    """
+
+    def __init__(self, lock: ReadWriteLock):
+        self._lock = lock
+
+    def __enter__(self):
+        self._lock.acquire("w")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self_lock.release("w")
+        return False
 
 
 class ModelsDict:
@@ -74,3 +188,10 @@ class ModelsDict:
 
     def get_model_versions(self, model_name) -> List[str]:
         return [model.split("-")[1] for model in models if model.startswith(model_name)]
+
+
+class ModelLRU:
+    def __init__(
+        self, in_memory_tag: str = "mem", on_disk_tag: str = "disk",
+    ):
+        pass

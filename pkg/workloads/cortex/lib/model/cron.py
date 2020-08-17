@@ -316,8 +316,9 @@ class CachedModelMonitor(td.Thread):
         interval: int,
         api_spec: dict,
         download_dir: str,
-        temp_dir: str = "/tmp/cron",
+        states: dict,
         models: ModelsDict,
+        temp_dir: str = "/tmp/cron",
     ):
         """
         Args:
@@ -362,7 +363,7 @@ class CachedModelMonitor(td.Thread):
 
     def _update_models_tree(self):
         # remove models from LRU in-memory/on-disk
-        # 
+        # updates the model states from S3
 
 
 def find_ondisk_models(lock_dir: str) -> List[str]:
