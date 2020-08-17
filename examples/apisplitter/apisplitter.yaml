@@ -12,3 +12,4 @@
       weight: 20
     - name: another-iris-classifier
       weight: 80
+      
