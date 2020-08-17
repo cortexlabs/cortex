@@ -1,3 +1,4 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
 # !!!!!
 # before deploying the APISplitter the APIs "iris-classifier" and "another-iris-classifier" should be deployed.
