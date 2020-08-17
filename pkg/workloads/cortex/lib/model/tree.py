@@ -18,7 +18,7 @@ import os
 import threading as td
 
 
-class ModelsTree:
+class ModelsDict:
     """
     A class to hold models in memory.
 

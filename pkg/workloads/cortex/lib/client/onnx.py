@@ -22,7 +22,7 @@ from cortex.lib.log import cx_logger
 from cortex.lib import util
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException
 from cortex.lib.model import (
-    ModelsTree,
+    ModelsDict,
     CuratedModelResources,
     find_ondisk_model_versions,
     find_ondisk_models,
@@ -35,7 +35,7 @@ logger = cx_logger()
 
 class ONNXClient:
     def __init__(
-        self, models: ModelsTree, model_dir: str, api_spec: dict, lock_dir: str = "/run/cron"
+        self, models: ModelsDict, model_dir: str, api_spec: dict, lock_dir: str = "/run/cron"
     ):
         """
         Setup ONNX runtime session.

@@ -25,6 +25,7 @@ from cortex.lib.model import (
     ONNXPredictorType,
     validate_s3_models_dir_paths,
     validate_s3_model_paths,
+    ModelsDict,
 )
 
 import os
@@ -310,14 +311,21 @@ class CachedModelMonitor(td.Thread):
     Does the same for the disk cache size.
     """
 
-    def __init__(self, interval: int, **kwargs):
+    def __init__(
+        self,
+        interval: int,
+        api_spec: dict,
+        download_dir: str,
+        temp_dir: str = "/tmp/cron",
+        models: ModelsDict,
+    ):
         """
         Args:
             interval (int): How often to update the models tree. Measured in seconds.
             kwargs: Named parameters.
         """
 
-        mp.Thread.__init__(self, **kwargs)
+        mp.Thread.__init__(self)
         self._interval = interval
         self._event_stopper = thread.Event()
         self._stopped = False
@@ -353,12 +361,14 @@ class CachedModelMonitor(td.Thread):
             time.sleep(0.001)
 
     def _update_models_tree(self):
-        pass
+        # remove models from LRU in-memory/on-disk
+        # 
 
 
 def find_ondisk_models(lock_dir: str) -> List[str]:
     """
     Returns all available models from the disk.
+    To be used in conjunction with SimpleModelMonitor.
 
     This function should never be used for determining whether a model has to be loaded or not.
     Can be used for Python/TensorFlow/ONNX clients.
@@ -388,6 +398,7 @@ def find_ondisk_models(lock_dir: str) -> List[str]:
 def find_ondisk_model_versions(lock_dir: str, model_name: str) -> List[str]:
     """
     Returns all available versions of a model from the disk.
+    To be used in conjunction with SimpleModelMonitor.
 
     This function should never be used for determining whether a model has to be loaded or not.
     Can be used for Python/TensorFlow/ONNX clients.
