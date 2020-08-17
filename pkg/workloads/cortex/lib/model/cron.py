@@ -16,7 +16,8 @@ from typing import Dict, List, Tuple, Any
 
 from cortex.lib import util
 from cortex.lib.log import cx_logger
-from cortex.lib.storage import S3, LocalStorage, LockedFile
+from cortex.lib.concurrency import LockedFile
+from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException
 from cortex.lib.model import (
     PythonPredictorType,
@@ -25,7 +26,7 @@ from cortex.lib.model import (
     ONNXPredictorType,
     validate_s3_models_dir_paths,
     validate_s3_model_paths,
-    ModelsDict,
+    ModelsHolder,
 )
 
 import os
@@ -317,7 +318,7 @@ class CachedModelMonitor(td.Thread):
         api_spec: dict,
         download_dir: str,
         states: dict,
-        models: ModelsDict,
+        models: ModelsHolder,
         temp_dir: str = "/tmp/cron",
     ):
         """

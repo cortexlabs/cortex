@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,14 +14,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex.lib.model.cron import find_ondisk_model_versions, find_ondisk_models
-from cortex.lib.model.tree import ModelsHolder
-from cortex.lib.model.type import CuratedModelResources
-from cortex.lib.model.validation import (
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
-    validate_s3_models_dir_paths,
-    validate_s3_model_paths,
-)
+from cortex.lib.concurrency.files import FileLock
+from cortex.lib.concurrency.threading import ReadWriteLock, ReadLock, WriteLock
