@@ -57,4 +57,3 @@ $ cortex delete my-apisplitter
 
 deleting my-apisplitter
 ```
-
