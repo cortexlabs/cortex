@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
@@ -37,6 +38,7 @@ type clients struct {
 	s3Uploader     *s3manager.Uploader
 	s3Downloader   *s3manager.Downloader
 	sts            *sts.STS
+	sqs            *sqs.SQS
 	ec2            *ec2.EC2
 	ecr            *ecr.ECR
 	acm            *acm.ACM
@@ -75,6 +77,13 @@ func (c *Client) STS() *sts.STS {
 		c.clients.sts = sts.New(c.sess)
 	}
 	return c.clients.sts
+}
+
+func (c *Client) SQS() *sqs.SQS {
+	if c.clients.sqs == nil {
+		c.clients.sqs = sqs.New(c.sess)
+	}
+	return c.clients.sqs
 }
 
 func (c *Client) EC2() *ec2.EC2 {

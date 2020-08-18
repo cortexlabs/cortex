@@ -170,10 +170,10 @@ func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 
 	return schema.GetAPIResponse{
 		SyncAPI: &schema.SyncAPI{
-			Spec:    *apiSpec,
-			Status:  apiStatus,
-			Metrics: apiMetrics,
-			BaseURL: "http://localhost:" + apiPort,
+			Spec:     *apiSpec,
+			Status:   apiStatus,
+			Metrics:  apiMetrics,
+			Endpoint: "http://localhost:" + apiPort,
 		},
 	}, nil
 }

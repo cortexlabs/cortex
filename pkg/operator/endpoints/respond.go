@@ -26,6 +26,7 @@ import (
 )
 
 func respond(w http.ResponseWriter, response interface{}) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
@@ -51,6 +52,7 @@ func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err erro
 		errors.PrintError(err)
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
 	response := schema.ErrorResponse{

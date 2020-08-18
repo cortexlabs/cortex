@@ -35,6 +35,16 @@ torch.onnx.export(
 )
 ```
 
+For some ONNX exports, you may need to manually add a dynamic axis to represent batch size:
+
+```python
+import onnx
+
+model = onnx.load('my_model.onnx')
+model.graph.input[0].type.tensor_type.shape.dim[0].dim_param = '?'
+onnx.save(model, 'my_model.onnx')
+```
+
 ## TensorFlow / Keras
 
 ### `SavedModel`
