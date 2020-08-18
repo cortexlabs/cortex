@@ -19,9 +19,48 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
+arg1="${1:-""}"
+
 git_branch="${CIRCLE_BRANCH:-""}"
 if [ "$git_branch" = "" ]; then
   git_branch=$(cd "$ROOT" && git rev-parse --abbrev-ref HEAD)
+fi
+
+if [ -z "$git_branch" ]; then
+  echo "error: unable to determine git branch"
+  exit 1
+fi
+
+if [ "$git_branch" = "master" ]; then
+  if [ -z "$arg1" ]; then
+    echo "error: use \`./dev/update_version_comments.sh <minor_version>\` to update all docs and examples warnings"
+    exit 1
+  fi
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    cd "$ROOT" && find . -type f \
+    ! -path "./build/lint.sh" \
+    ! -path "./dev/update_version_comments.sh" \
+    ! -path "./vendor/*" \
+    ! -path "./bin/*" \
+    ! -path "./.git/*" \
+    ! -name ".*" \
+    -print0 | \
+    xargs -0 sed -i '' -e "s/WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` [(]e\.g\. for version [0-9]*\.[0-9]*\.\*, run \`git checkout -b [0-9]*\.[0-9]*\` or switch to the \`[0-9]*\.[0-9]*\` branch on GitHub[)]/WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` (e.g. for version ${arg1}.*, run \`git checkout -b ${arg1}\` or switch to the \`${arg1}\` branch on GitHub)/"
+  else
+    cd "$ROOT" && find . -type f \
+    ! -path "./build/lint.sh" \
+    ! -path "./dev/update_version_comments.sh" \
+    ! -path "./vendor/*" \
+    ! -path "./bin/*" \
+    ! -path "./.git/*" \
+    ! -name ".*" \
+    -print0 | \
+    xargs -0 sed -i "s/WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` [(]e\.g\. for version [0-9]*\.[0-9]*\.\*, run \`git checkout -b [0-9]*\.[0-9]*\` or switch to the \`[0-9]*\.[0-9]*\` branch on GitHub[)]/WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` (e.g. for version ${arg1}.*, run \`git checkout -b ${arg1}\` or switch to the \`${arg1}\` branch on GitHub)/"
+  fi
+
+  echo "done"
+  exit 0
 fi
 
 if ! echo "$git_branch" | grep -Eq ^[0-9]+.[0-9]+$; then
@@ -60,7 +99,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   ! -path "./.git/*" \
   ! -name ".*" \
   -print0 | \
-  xargs -0 sed -i '' -e "s/WARNING: you are on the master branch, please refer to the examples on the branch that matches your \`cortex version\`/this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex/"
+  xargs -0 sed -i '' -e "s/WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` [(]e\.g\. for version [0-9]*\.[0-9]*\.\*, run \`git checkout -b [0-9]*\.[0-9]*\` or switch to the \`[0-9]*\.[0-9]*\` branch on GitHub[)]/this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex/"
 else
   cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
@@ -70,7 +109,7 @@ else
   ! -path "./.git/*" \
   ! -name ".*" \
   -print0 | \
-  xargs -0 sed -i "s/WARNING: you are on the master branch, please refer to the examples on the branch that matches your \`cortex version\`/this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex/"
+  xargs -0 sed -i "s/WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` [(]e\.g\. for version [0-9]*\.[0-9]*\.\*, run \`git checkout -b [0-9]*\.[0-9]*\` or switch to the \`[0-9]*\.[0-9]*\` branch on GitHub[)]/this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex/"
 fi
 
 echo "done"
