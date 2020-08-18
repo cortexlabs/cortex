@@ -38,12 +38,11 @@ aws   iris-classifier-apisplitter   iris-classifier-onnx:30 iris-classifier-tf:7
 ```bash
 $ cortex get iris-classifier-apisplitter --env aws
 
-last updated: 1m
-
 apis                   weights   status   requested   last update   avg request   2XX   5XX
 iris-classifier-onnx   30        live     1           1m            -             -     -
 iris-classifier-tf     70        live     1           1m            -             -     -
 
+last updated: 1m
 endpoint: https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier-apisplitter
 curl: curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier-apisplitter -X POST -H "Content-Type: application/json" -d @sample.json
 ...
@@ -80,12 +79,12 @@ $ cortex get iris-classifier-apisplitter --env aws
 
 using aws environment
 
-last updated: 4m
 
 apis                   weights   status   requested   last update   avg request   2XX   5XX
 iris-classifier-onnx   30        live     1           4m            6.00791 ms    1     -
 iris-classifier-tf     70        live     1           4m            5.81867 ms    5     -
 
+last updated: 4m
 endpoint: https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier-apisplitter
 curl: curl https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier-apisplitter -X POST -H "Content-Type: application/json" -d @sample.json
 ...

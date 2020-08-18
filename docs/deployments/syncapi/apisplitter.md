@@ -42,12 +42,11 @@ The `cortex get` command displays the status of your Sync APIs and API Splitters
 ```bash
 $ cortex get my-apisplitter
 
-last updated: 4m
-
 apis             weights   status   requested   last update   avg request   2XX   5XX
 another-my-api   80        live     1           5m            -             -     -
 my-api           20        live     1           6m            -             -     -
 
+last updated: 4m
 endpoint: https://******.execute-api.eu-central-1.amazonaws.com/my-apisplitter
 curl: curl https://******.execute-api.eu-central-1.amazonaws.com/my-apisplitter -X POST -H "Content-Type: application/json" -d @sample.json
 ...
