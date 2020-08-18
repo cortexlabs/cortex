@@ -1,0 +1,29 @@
+# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+
+- name: iris-classifier
+  kind: SyncAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/another-model.pkl
+
+- name: another-iris-classifier
+  kind: SyncAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/another-model.pkl
+
+- name: iris-classifier-apisplitter
+  kind: APISplitter
+  networking:
+    endpoint: iris-classifier-splitter
+  apis:
+    - name: iris-classifier
+      weight: 20
+    - name: another-iris-classifier
+      weight: 80
