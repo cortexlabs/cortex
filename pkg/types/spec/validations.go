@@ -593,7 +593,12 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration and for Batch API at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor, consts.CortexVersionMinor))
+			switch provider {
+			case types.LocalProviderType:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration", consts.CortexVersionMinor))
+			case types.AWSProviderType:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nSync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration\nAPI Splitter can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/apisplitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+			}
 		}
 
 		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.APISplitterKind {
@@ -613,6 +618,8 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration", consts.CortexVersionMinor))
 			case userconfig.BatchAPIKind:
 				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Batch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor))
+			case userconfig.APISplitterKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for API Splitter can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/apisplitter", consts.CortexVersionMinor))
 			}
 		}
 
