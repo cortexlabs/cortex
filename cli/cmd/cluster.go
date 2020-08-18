@@ -154,20 +154,26 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
-		if err != nil {
-			exit.Error(err)
+		if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+			err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
+			if err != nil {
+				exit.Error(err)
+			}
 		}
 
 		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
-			awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
-			awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
+			if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
+				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
+			}
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
-			awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
+			if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
+				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
+			}
 			helpStr := "\nDebugging tips (may or may not apply to this error):"
 			helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
@@ -322,7 +328,7 @@ var _downCmd = &cobra.Command{
 		}
 
 		fmt.Print("￮ deleting api gateway ")
-		_, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
+		deletedAPIGateway, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if errAPIGateway != nil {
 			fmt.Printf("\n\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis\n", *accessConfig.Region)
@@ -333,7 +339,11 @@ var _downCmd = &cobra.Command{
 			errors.PrintError(errVPCLink)
 		}
 		if errAPIGateway == nil && errVPCLink == nil {
-			fmt.Println("✓")
+			if deletedAPIGateway != nil {
+				fmt.Println("✓")
+			} else {
+				fmt.Println("(n/a)")
+			}
 		} else {
 			fmt.Println()
 		}
