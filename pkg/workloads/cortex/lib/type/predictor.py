@@ -97,7 +97,10 @@ class Predictor:
         finally:
             refresh_logger()
 
-    def class_impl(self, project_dir):
+    def get_target_and_validations(self):
+        target_class_name = None
+        validations = None
+
         if self.type == "tensorflow":
             target_class_name = "TensorFlowPredictor"
             validations = TENSORFLOW_CLASS_VALIDATION
@@ -107,6 +110,11 @@ class Predictor:
         elif self.type == "python":
             target_class_name = "PythonPredictor"
             validations = PYTHON_CLASS_VALIDATION
+
+        return target_class_name, validations
+
+    def class_impl(self, project_dir):
+        target_class_name, validations = self.get_target_and_validations()
 
         try:
             impl = self._load_module("cortex_predictor", os.path.join(project_dir, self.path))
@@ -171,7 +179,14 @@ PYTHON_CLASS_VALIDATION = {
             "required_args": ["self"],
             "optional_args": ["payload", "query_params", "headers"],
         },
-    ]
+    ],
+    "optional": [
+        {
+            "name": "post_predict",
+            "required_args": ["self"],
+            "optional_args": ["response", "payload", "query_params", "headers"],
+        }
+    ],
 }
 
 TENSORFLOW_CLASS_VALIDATION = {
@@ -182,7 +197,14 @@ TENSORFLOW_CLASS_VALIDATION = {
             "required_args": ["self"],
             "optional_args": ["payload", "query_params", "headers"],
         },
-    ]
+    ],
+    "optional": [
+        {
+            "name": "post_predict",
+            "required_args": ["self"],
+            "optional_args": ["response", "payload", "query_params", "headers"],
+        }
+    ],
 }
 
 ONNX_CLASS_VALIDATION = {
@@ -193,7 +215,14 @@ ONNX_CLASS_VALIDATION = {
             "required_args": ["self"],
             "optional_args": ["payload", "query_params", "headers"],
         },
-    ]
+    ],
+    "optional": [
+        {
+            "name": "post_predict",
+            "required_args": ["self"],
+            "optional_args": ["response", "payload", "query_params", "headers"],
+        }
+    ],
 }
 
 

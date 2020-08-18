@@ -16,8 +16,6 @@ RUN apt-get update -qq && apt-get install -y -q \
 
 ENV PATH=/opt/aws/neuron/bin/:$PATH
 
-RUN mkdir /etc/tfs && echo "model_config_list {}" > /etc/tfs/model_config_server.conf
-
 COPY images/tensorflow-serving-inf/run.sh /src/
 COPY images/tensorflow-serving-inf/supervisord.conf /tmp/supervisord.conf
 COPY images/tensorflow-serving-inf/template.conf /tmp/template.conf

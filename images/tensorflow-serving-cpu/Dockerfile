@@ -1,3 +1,6 @@
 FROM tensorflow/serving:2.1.0
 
-RUN mkdir /etc/tfs && echo "model_config_list {}" > /etc/tfs/model_config_server.conf
+COPY images/tensorflow-serving-cpu/run.sh /src/
+RUN chmod +x /src/run.sh
+
+ENTRYPOINT ["/src/run.sh"]

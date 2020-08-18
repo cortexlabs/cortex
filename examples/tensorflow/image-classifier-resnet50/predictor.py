@@ -4,46 +4,32 @@ import os
 import cv2
 import numpy as np
 import requests
+import imageio
 import json
 import base64
 
 
-def get_url_image(url_image):
+def read_image(payload):
     """
-    Get numpy image from URL image.
+    Read JPG image from {"url": "https://..."} or from a bytes object.
     """
-    resp = requests.get(url_image, stream=True).raw
-    image = np.asarray(bytearray(resp.read()), dtype="uint8")
-    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return image
-
-
-def decode_images(images):
-    """
-    Decodes the images from the payload.
-    """
-    output = []
-    for image in images:
-        img = base64.b64decode(image)
-        jpg_as_np = np.frombuffer(img, dtype=np.uint8)
+    if isinstance(payload, bytes):
+        jpg_as_np = np.frombuffer(payload, dtype=np.uint8)
         img = cv2.imdecode(jpg_as_np, flags=cv2.IMREAD_COLOR)
-        output.append(img)
+    elif isinstance(payload, dict) and "url" in payload.keys():
+        img = imageio.imread(payload["url"])
+    else:
+        return None
+    return img
 
-    return output
 
-
-def prepare_images(images, input_shape, input_key):
+def prepare_image(image, input_shape, input_key):
     """
-    Prepares images for the TFS client.
+    Prepares an image for the TFS client.
     """
-    output = []
-    for image in images:
-        img = cv2.resize(image, input_shape, interpolation=cv2.INTER_NEAREST)
-        img = {input_key: img[np.newaxis, ...]}
-        output.append(img)
-
-    return output
+    img = cv2.resize(image, input_shape, interpolation=cv2.INTER_NEAREST)
+    img = {input_key: img[np.newaxis, ...]}
+    return img
 
 
 class TensorFlowPredictor:
@@ -56,30 +42,22 @@ class TensorFlowPredictor:
 
         self.input_shape = tuple(config["input_shape"])
         self.input_key = str(config["input_key"])
+        self.output_key = str(config["output_key"])
 
     def predict(self, payload):
         # preprocess image
-        payload_keys = payload.keys()
-        if "imgs" in payload_keys:
-            imgs = payload["imgs"]
-            imgs = decode_images(imgs)
-        elif "url" in payload_keys:
-            imgs = [get_url_image(payload["url"])]
-        else:
+        img = read_image(payload)
+        if img is None:
             return None
-        prepared_imgs = prepare_images(imgs, self.input_shape, self.input_key)
+        img = prepare_image(img, self.input_shape, self.input_key)
 
-        # batch sized images
-        top5_list_imgs = []
-        for img in prepared_imgs:
-            # predict
-            results = self.client.predict(img)["output"]
-            results = np.argsort(results)
+        # predict
+        results = self.client.predict(img)[self.output_key]
+        results = np.argsort(results)
 
-            # Lookup and print the top 5 labels
-            top5_idx = results[-5:]
-            top5_labels = [self.idx2label[idx] for idx in top5_idx]
-            top5_labels = top5_labels[::-1]
-            top5_list_imgs.append(top5_labels)
+        # Lookup and print the top 5 labels
+        top5_idx = results[-5:]
+        top5_labels = [self.idx2label[idx] for idx in top5_idx]
+        top5_labels = top5_labels[::-1]
 
-        return top5_list_imgs
+        return top5_labels
