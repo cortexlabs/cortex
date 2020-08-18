@@ -153,11 +153,12 @@ else
 
   # Check for version warning comments in examples
   output=$(cd "$ROOT/examples" && find . -type f \
-  ! -name "README.md" \
+  ! -path "./README.md" \
+  ! -path "./utils/README.md" \
   ! -name "*.json" \
   ! -name "*.txt" \
   ! -name ".*" \
-  -exec grep -L "WARNING: you are on the master branch, please refer to the examples on the branch that matches your \`cortex version\`" {} \;)
+  -exec grep -L "WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` (e\.g\. for version [0-9]*\.[0-9]*\.\*, run \`git checkout -b [0-9]*\.[0-9]*\` or switch to the \`[0-9]*\.[0-9]*\` branch on GitHub)" {} \;)
   if [[ $output ]]; then
     echo "example file(s) are missing version appropriate comment:"
     echo "$output"
