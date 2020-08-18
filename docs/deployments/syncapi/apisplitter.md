@@ -78,6 +78,6 @@ Note that this will not delete the Sync APIs targeted by the API Splitter.
 ## Additional resources
 
 <!-- CORTEX_VERSION_MINOR -->
-* [API Splitter Tutorial](../../examples/apisplitter/README.md) provides a step-by-step walkthrough for deploying an API Splitter
-* [Sync API Tutorial](../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthough of deploying an iris classifier Sync API
-* [CLI documentation](../miscellaneous/cli.md) lists all CLI commands
+* [API Splitter Tutorial](../../../examples/apisplitter/README.md) provides a step-by-step walkthrough for deploying an API Splitter
+* [Sync API Tutorial](../../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthough of deploying an iris classifier Sync API
+* [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
