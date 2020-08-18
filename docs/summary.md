@@ -7,7 +7,6 @@
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [Chat with us](https://gitter.im/cortexlabs/cortex)
 * [Email us](mailto:hello@cortex.dev)
-* [We're hiring](https://angel.co/cortex-labs-inc/jobs)
 
 ## Deployments
 
