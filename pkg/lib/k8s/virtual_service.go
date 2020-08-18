@@ -38,7 +38,6 @@ type VirtualServiceSpec struct {
 	ExactPath    *string // either this or PrefixPath
 	PrefixPath   *string // either this or ExactPath
 	Destinations []Destination
-	Path         string
 	Rewrite      *string
 	Labels       map[string]string
 	Annotations  map[string]string
@@ -62,7 +61,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 	} else {
 		stringMatch = &istionetworking.StringMatch{
 			MatchType: &istionetworking.StringMatch_Prefix{
-				Prefix: urls.CanonicalizeEndpoint(*spec.PrefixPath) + "/",
+				Prefix: urls.CanonicalizeEndpoint(*spec.PrefixPath),
 			},
 		}
 	}
