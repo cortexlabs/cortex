@@ -15,6 +15,10 @@
 from collections import deque
 
 
+class WithBreak(RuntimeException):
+    pass
+
+
 class CortexException(Exception):
     def __init__(self, *messages):
         super().__init__(": ".join(messages))

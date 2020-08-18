@@ -20,9 +20,11 @@ from typing import Any
 
 from cortex.lib.log import cx_logger
 from cortex.lib import util
-from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException
+from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException, WithBreak
 from cortex.lib.model import (
     ModelsHolder,
+    LockedGlobalModelsGC,
+    LockedModel,
     CuratedModelResources,
     find_ondisk_model_versions,
     find_ondisk_models,
@@ -112,7 +114,7 @@ class ONNXClient:
         Run the inference on model model_name of version model_version.
         """
 
-        model = self._models.get_model(model_name, model_version)
+        model = self._get_model(model_name, model_version)
         if model is None:
             raise UserRuntimeException(
                 f"model {model_name} of version {model_version} wasn't found"
@@ -144,13 +146,28 @@ class ONNXClient:
             status = f.read()
             if status == "" or status == "not available":
                 found_model = False
-            else:
-                if not self._models.has_model(model_name, model_version):
-                    model_path = os.path.join(self._model_dir, model_name, model_version)
-                    model = self._load_model(model_path)
-                    self._models.load_model(model, model_name, model_version)
-                else:
-                    model = self._get_model(model_name, model_version)
+                raise WithBreak()
+
+            current_upstream_ts = 123435  # must be extracted from status
+            update_model = False
+            with LockedModel(self._models, "r", model_name, model_version):
+                present, upstream_ts = self._models.has_model(model_name, model_version)
+                if not present or (present and upstream_ts < current_upstream_ts):
+                    update_model = True
+                    raise WithBreak()
+                model, _ = self._models.get_model(model_name, model_version)
+
+            if update_model:
+                with LockedModel(self._models, "w", model_name, model_version):
+                    present, _ = self._models.has_model(model_name, model_version)
+                    if not present:
+                        model_path = os.path.join(self._model_dir, model_name, model_version)
+                        model = self._load_model(model_path)
+                        self._models.load_model(
+                            model_name, model_version, model, model_path, current_upstream_ts
+                        )
+                    else:
+                        model, _ = self._models.get_model(model_name, model_version)
 
         if found_model:
             return model

@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import os, fcntl, time
-from cortex.lib.exceptions import CortexException
+from cortex.lib.exceptions import CortexException, WithBreak
 
 
 class FileLock:
@@ -159,7 +159,7 @@ class LockedFile:
         close(self._fd)
         self._lock.release()
 
-        if exc_value is not None:
+        if exc_value is not None and exc_type is not WithBreak:
             raise exc_type(exc_value).with_traceback(traceback)
 
     def __del__(self):

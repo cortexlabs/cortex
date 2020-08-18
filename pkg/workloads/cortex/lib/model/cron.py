@@ -365,6 +365,7 @@ class CachedModelMonitor(td.Thread):
     def _update_models_tree(self):
         # remove models from LRU in-memory/on-disk
         # updates the model states from S3
+        pass
 
 
 def find_ondisk_models(lock_dir: str) -> List[str]:
