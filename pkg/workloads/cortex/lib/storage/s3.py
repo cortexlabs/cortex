@@ -89,8 +89,8 @@ class S3(object):
         for obj in self._get_matching_s3_objects_generator(prefix, suffix):
             yield obj["Key"]
 
-    def _upload_string_to_s3(self, string, key):
-        self.s3.put_object(Bucket=self.bucket, Key=key, Body=string)
+    def put_object(self, body, key):
+        self.s3.put_object(Bucket=self.bucket, Key=key, Body=body)
 
     def _read_bytes_from_s3(
         self, key, allow_missing=False, ext_bucket=None, num_retries=0, retry_delay_sec=2
@@ -130,10 +130,10 @@ class S3(object):
         return list(self._get_matching_s3_keys_generator(prefix, suffix))
 
     def put_str(self, str_val, key):
-        self._upload_string_to_s3(str_val, key)
+        self.put_object(str_val, key)
 
     def put_json(self, obj, key):
-        self._upload_string_to_s3(json.dumps(obj), key)
+        self.put_object(json.dumps(obj), key)
 
     def get_json(self, key, allow_missing=False, num_retries=0, retry_delay_sec=2):
         obj = self._read_bytes_from_s3(
@@ -147,7 +147,7 @@ class S3(object):
         return json.loads(obj.decode("utf-8"))
 
     def put_msgpack(self, obj, key):
-        self._upload_string_to_s3(msgpack.dumps(obj), key)
+        self.put_object(msgpack.dumps(obj), key)
 
     def get_msgpack(self, key, allow_missing=False, num_retries=0, retry_delay_sec=2):
         obj = self._read_bytes_from_s3(

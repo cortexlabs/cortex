@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
@@ -76,6 +77,9 @@ func SplitS3Path(s3Path string) (string, string, error) {
 	}
 	fullPath := s3Path[len("s3://"):]
 	slashIndex := strings.Index(fullPath, "/")
+	if slashIndex == -1 {
+		return fullPath, "", nil
+	}
 	bucket := fullPath[0:slashIndex]
 	key := fullPath[slashIndex+1:]
 
@@ -99,10 +103,10 @@ func IsValidS3Path(s3Path string) bool {
 		return false
 	}
 	parts := strings.Split(s3Path[5:], "/")
-	if len(parts) < 2 {
+	if len(parts) == 0 {
 		return false
 	}
-	if parts[0] == "" || parts[1] == "" {
+	if parts[0] == "" {
 		return false
 	}
 	return true
@@ -432,6 +436,15 @@ func (c *Client) ReadBytesFromS3Path(s3Path string) ([]byte, error) {
 	return c.ReadBytesFromS3(bucket, key)
 }
 
+func (c *Client) ReadMsgpackFromS3Path(objPtr interface{}, s3Path string) error {
+	bucket, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return err
+	}
+
+	return c.ReadMsgpackFromS3(objPtr, bucket, key)
+}
+
 // overwrites existing file
 func (c *Client) DownloadFileFromS3(bucket string, key string, localPath string) error {
 	file, err := files.Create(localPath)
@@ -534,6 +547,46 @@ func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath
 	return nil
 }
 
+func (c *Client) S3FileIterator(bucket string, s3Obj *s3.Object, partSize int, fn func(buffer io.ReadCloser, isLastPart bool) (bool, error)) error {
+	size := int(*s3Obj.Size)
+
+	iters := size / partSize
+	if size%partSize != 0 {
+		iters++
+	}
+
+	for i := 0; i < iters; i++ {
+		min := i * (partSize)
+		max := (i + 1) * (partSize)
+		if max > size {
+			max = size
+		}
+		max--
+
+		byteRange := fmt.Sprintf("bytes=%d-%d", min, max)
+		obj, err := c.S3().GetObject(&s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    s3Obj.Key,
+			Range:  aws.String(byteRange), // use range instead of part numbers because only files uploaded using multipart have parts
+		})
+		if err != nil {
+			return errors.Wrap(err, S3Path(bucket, *s3Obj.Key), "range "+byteRange)
+		}
+
+		isLastChunk := i+1 == iters
+		shouldContinue, err := fn(obj.Body, isLastChunk)
+		if err != nil {
+			return errors.Wrap(err, S3Path(bucket, *s3Obj.Key))
+		}
+
+		if !shouldContinue {
+			break
+		}
+	}
+
+	return nil
+}
+
 func (c *Client) ListS3Dir(bucket string, s3Dir string, includeDirObjects bool, maxResults *int64) ([]*s3.Object, error) {
 	prefix := s.EnsureSuffix(s3Dir, "/")
 	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults)
@@ -565,6 +618,20 @@ func (c *Client) ListS3PathPrefix(s3Path string, includeDirObjects bool, maxResu
 		return nil, err
 	}
 	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults)
+}
+
+func (c *Client) DeleteS3File(bucket string, key string) error {
+	_, err := c.S3().DeleteObject(
+		&s3.DeleteObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		},
+	)
+
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func (c *Client) DeleteS3Dir(bucket string, s3Dir string, continueIfFailure bool) error {

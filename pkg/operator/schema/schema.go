@@ -52,26 +52,40 @@ type DeployResult struct {
 }
 
 type GetAPIsResponse struct {
-	SyncAPIs    []SyncAPI     `json:"sync_apis"`
-	APISplitter []APISplitter `json:"api_splitters"`
+	SyncAPIs     []SyncAPI     `json:"sync_apis"`
+	BatchAPIs    []BatchAPI    `json:"batch_apis"`
+	APISplitters []APISplitter `json:"api_splitters"`
 }
 
 type SyncAPI struct {
 	Spec         spec.API        `json:"spec"`
 	Status       status.Status   `json:"status"`
 	Metrics      metrics.Metrics `json:"metrics"`
-	BaseURL      string          `json:"base_url"`
+	Endpoint     string          `json:"endpoint"`
 	DashboardURL string          `json:"dashboard_url"`
 }
 
 type APISplitter struct {
-	Spec    spec.API `json:"spec"`
-	BaseURL string   `json:"base_url"`
+	Spec     spec.API `json:"spec"`
+	Endpoint string   `json:"endpoint"`
 }
 
 type GetAPIResponse struct {
 	SyncAPI     *SyncAPI     `json:"sync_api"`
+	BatchAPI    *BatchAPI    `json:"batch_api"`
 	APISplitter *APISplitter `json:"api_splitter"`
+}
+
+type BatchAPI struct {
+	Spec        spec.API           `json:"spec"`
+	JobStatuses []status.JobStatus `json:"job_statuses"`
+	Endpoint    string             `json:"endpoint"`
+}
+
+type GetJobResponse struct {
+	APISpec   spec.API         `json:"api_spec"`
+	JobStatus status.JobStatus `json:"job_status"`
+	Endpoint  string           `json:"endpoint"`
 }
 
 type DeleteResponse struct {

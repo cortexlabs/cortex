@@ -20,14 +20,14 @@ Flags:
 ## get
 
 ```text
-get information about apis
+get information about apis or jobs
 
 Usage:
-  cortex get [API_NAME] [flags]
+  cortex get [API_NAME] [JOB_ID] [flags]
 
 Flags:
   -e, --env string   environment to use (default "local")
-  -w, --watch        re-run the command every second
+  -w, --watch        re-run the command every 2 seconds
   -h, --help         help for get
 ```
 
@@ -37,7 +37,7 @@ Flags:
 stream logs from an api
 
 Usage:
-  cortex logs API_NAME [flags]
+  cortex logs API_NAME [JOB_ID] [flags]
 
 Flags:
   -e, --env string   environment to use (default "local")
@@ -74,10 +74,10 @@ Flags:
 ## delete
 
 ```text
-delete an api
+delete any kind of api or stop a batch job
 
 Usage:
-  cortex delete API_NAME [flags]
+  cortex delete API_NAME [JOB_ID] [flags]
 
 Flags:
   -e, --env string   environment to use (default "local")

@@ -42,12 +42,11 @@ The `cortex get` command displays the status of your Sync APIs and API Splitters
 ```bash
 $ cortex get my-apisplitter
 
-last updated: 4m
-
 apis             weights   status   requested   last update   avg request   2XX   5XX
 another-my-api   80        live     1           5m            -             -     -
 my-api           20        live     1           6m            -             -     -
 
+last updated: 4m
 endpoint: https://******.execute-api.eu-central-1.amazonaws.com/my-apisplitter
 curl: curl https://******.execute-api.eu-central-1.amazonaws.com/my-apisplitter -X POST -H "Content-Type: application/json" -d @sample.json
 ...
@@ -78,6 +77,6 @@ Note that this will not delete the Sync APIs targeted by the API Splitter.
 ## Additional resources
 
 <!-- CORTEX_VERSION_MINOR -->
-* [API Splitter Tutorial](../../examples/apisplitter/README.md) provides a step-by-step walkthrough for deploying an API Splitter
-* [Sync API Tutorial](../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthough of deploying an iris classifier Sync API
-* [CLI documentation](../miscellaneous/cli.md) lists all CLI commands
+* [API Splitter Tutorial](../../../examples/apisplitter/README.md) provides a step-by-step walkthrough for deploying an API Splitter
+* [Sync API Tutorial](../../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthrough of deploying an iris classifier Sync API
+* [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands

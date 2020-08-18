@@ -85,7 +85,7 @@ spot: false
 ssl_certificate_arn:
 ```
 
-The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [API configuration](../deployments/api-configuration.md).
+The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Sync API configuration](../deployments/syncapi/api-configuration.md) and in your [Batch API configuration](../deployments/batchapi/api-configuration.md).
 
 The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
 

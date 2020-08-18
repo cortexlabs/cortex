@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](exporting.md), you've implemented a [Predictor](predictors.md), and you've [configured your API](api-configuration.md), you're ready to deploy!
+Once your model is [exported](../../guides/exporting.md), you've implemented a [Predictor](predictors.md), and you've [configured your API](api-configuration.md), you're ready to deploy!
 
 ## `cortex deploy`
 
@@ -11,7 +11,7 @@ The `cortex deploy` command collects your configuration and source code and depl
 ```bash
 $ cortex deploy
 
-creating my-api
+creating my-api (SyncAPI)
 ```
 
 APIs are declarative, so to update your API, you can modify your source code and/or configuration and run `cortex deploy` again.
@@ -30,7 +30,7 @@ endpoint: http://***.amazonaws.com/iris-classifier
 ...
 ```
 
-Appending the `--watch` flag will re-run the `cortex get` command every second.
+Appending the `--watch` flag will re-run the `cortex get` command every 2 seconds.
 
 ## `cortex logs`
 
@@ -63,6 +63,6 @@ deleting my-api
 ## Additional resources
 
 <!-- CORTEX_VERSION_MINOR -->
-* [Tutorial](../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthrough of deploying an iris classifier API
-* [CLI documentation](../miscellaneous/cli.md) lists all CLI commands
+* [Tutorial](../../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthrough of deploying an iris classifier API
+* [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples) demonstrate how to deploy models from common ML libraries
