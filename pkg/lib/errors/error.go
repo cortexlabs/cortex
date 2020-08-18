@@ -24,7 +24,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 )
 
-const ErrNotCortexError = "errors.not_cortex_error"
+const ErrNotCortexError = "error"
 
 type Error struct {
 	Kind        string
