@@ -87,12 +87,21 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		return err
 	}
 
+	deployedSyncAPIs := strset.New()
+
+	for _, virtualService := range virtualServices {
+		if virtualService.Labels["apiKind"] == userconfig.SyncAPIKind.String() {
+			deployedSyncAPIs.Add(virtualService.Labels["apiName"])
+		}
+	}
+
 	didPrintWarning := false
 
-	withoutAPISplitter := InclusiveFilterAPIsByKind(apis, userconfig.SyncAPIKind)
+	syncAPIs := InclusiveFilterAPIsByKind(apis, userconfig.SyncAPIKind)
+
 	for i := range apis {
 		api := &apis[i]
-		if api.Kind == userconfig.SyncAPIKind {
+		if api.Kind == userconfig.SyncAPIKind || api.Kind == userconfig.BatchAPIKind {
 			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
@@ -110,7 +119,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-			if err := checkIfAPIExists(api.APIs, withoutAPISplitter); err != nil {
+			if err := checkIfAPIExists(api.APIs, syncAPIs, deployedSyncAPIs); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -277,25 +286,28 @@ func InclusiveFilterAPIsByKind(apis []userconfig.API, kindsToInclude ...userconf
 	return fileredAPIs
 }
 
-// checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
-func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API) error {
-	deployedSyncAPIs, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.SyncAPIKind.String())
-	if err != nil {
-		return err
+func ExclusiveFilterAPIsByKind(apis []userconfig.API, kindsToExclude ...userconfig.Kind) []userconfig.API {
+	kindsToExcludeSet := strset.New()
+	for _, kind := range kindsToExclude {
+		kindsToExcludeSet.Add(kind.String())
 	}
+	fileredAPIs := []userconfig.API{}
+	for _, api := range apis {
+		if !kindsToExcludeSet.Has(api.Kind.String()) {
+			fileredAPIs = append(fileredAPIs, api)
+		}
+	}
+	return fileredAPIs
+}
 
+// checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
+func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, deployedSyncAPIs strset.Set) error {
 	var missingAPIs []string
 	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
-		deployed := false
 		//check if already deployed
-		for _, deployedSyncAPI := range deployedSyncAPIs {
-			// API resources in k8s are prefixed with api-
-			// to compare we need to prepend api- to the trafficSplitterAPIs
-			if operator.K8sName(trafficSplitAPI.Name) == deployedSyncAPI.Name {
-				deployed = true
-			}
-		}
+		deployed := deployedSyncAPIs.Has(trafficSplitAPI.Name)
+
 		// check defined apis
 		for _, definedAPI := range apis {
 			if trafficSplitAPI.Name == definedAPI.Name {

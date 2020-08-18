@@ -81,6 +81,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 	}
 
 	envs = append(envs,
+		"CORTEX_KIND="+api.Kind.String(),
 		"CORTEX_VERSION="+consts.CortexVersion,
 		"CORTEX_SERVING_PORT="+_defaultPortStr,
 		"CORTEX_PROVIDER="+"local",
@@ -364,7 +365,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Mounts: append([]mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: _cwd,
+				Source: api.LocalProjectDir,
 				Target: _projectDir,
 			},
 			{

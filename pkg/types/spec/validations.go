@@ -49,10 +49,9 @@ var AutoscalingTickInterval = 10 * time.Second
 
 func apiValidation(provider types.ProviderType, resource userconfig.Resource) *cr.StructValidation {
 	structFieldValidations := []*cr.StructFieldValidation{}
-	structFieldValidations = append(resourceStructValidations)
-
-	if resource.Kind == userconfig.SyncAPIKind {
-		structFieldValidations = append(structFieldValidations,
+	switch resource.Kind {
+	case userconfig.SyncAPIKind:
+		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
 			networkingValidation(resource.Kind),
 			computeValidation(provider),
@@ -60,9 +59,14 @@ func apiValidation(provider types.ProviderType, resource userconfig.Resource) *c
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
 		)
-	}
-	if resource.Kind == userconfig.APISplitterKind {
-		structFieldValidations = append(structFieldValidations,
+	case userconfig.BatchAPIKind:
+		structFieldValidations = append(resourceStructValidations,
+			predictorValidation(),
+			networkingValidation(resource.Kind),
+			computeValidation(provider),
+		)
+	case userconfig.APISplitterKind:
+		structFieldValidations = append(resourceStructValidations,
 			multiAPIsValidation(),
 			networkingValidation(resource.Kind),
 		)
@@ -589,7 +593,18 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			switch provider {
+			case types.LocalProviderType:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration", consts.CortexVersionMinor))
+			case types.AWSProviderType:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nSync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration\nAPI Splitter can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/apisplitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+			}
+		}
+
+		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.APISplitterKind {
+			if provider == types.LocalProviderType {
+				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, types.LocalProviderType), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
+			}
 		}
 
 		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct))
@@ -598,24 +613,24 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
-		}
-
-		if resourceStruct.Kind == userconfig.APISplitterKind {
-			if provider == types.LocalProviderType {
-				return nil, errors.Wrap(ErrorAPISplitterNotSupported(), api.Identify())
+			switch kind {
+			case userconfig.SyncAPIKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration", consts.CortexVersionMinor))
+			case userconfig.BatchAPIKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Batch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor))
+			case userconfig.APISplitterKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for API Splitter can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/apisplitter", consts.CortexVersionMinor))
 			}
-			api.Index = i
-			api.FileName = configFileName
-			apis[i] = api
-		}
-		if resourceStruct.Kind == userconfig.SyncAPIKind {
-			api.Index = i
-			api.FileName = configFileName
-			api.ApplyDefaultDockerPaths()
-			apis[i] = api
 		}
 
+		api.Index = i
+		api.FileName = configFileName
+
+		if resourceStruct.Kind == userconfig.SyncAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
+			api.ApplyDefaultDockerPaths()
+		}
+
+		apis[i] = api
 	}
 
 	return apis, nil
@@ -690,6 +705,16 @@ func validatePredictor(api *userconfig.API, projectFiles ProjectFiles, providerT
 	case userconfig.ONNXPredictorType:
 		if err := validateONNXPredictor(predictor, providerType, projectFiles, awsClient); err != nil {
 			return err
+		}
+	}
+
+	if api.Kind == userconfig.BatchAPIKind {
+		if predictor.ProcessesPerReplica > 1 {
+			return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, userconfig.BatchAPIKind)
+		}
+
+		if predictor.ThreadsPerProcess > 1 {
+			return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, userconfig.BatchAPIKind)
 		}
 	}
 
