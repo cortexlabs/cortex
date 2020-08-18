@@ -365,7 +365,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Mounts: append([]mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: _cwd,
+				Source: api.LocalProjectDir,
 				Target: _projectDir,
 			},
 			{
