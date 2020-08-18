@@ -53,7 +53,8 @@ The operator requires read permissions for any S3 bucket containing exported mod
                 "elasticloadbalancing:Describe*",
                 "apigateway:*",
                 "cloudwatch:*",
-                "logs:*"
+                "logs:*",
+                "sqs:*"
             ],
             "Effect": "Allow",
             "Resource": "*"

@@ -30,6 +30,7 @@ type KeyValuePairOpts struct {
 	NumSpaces     *int    // default: 1
 	RightJustify  *bool   // default: false
 	BoldFirstLine *bool   // default: false
+	BoldKeys      *bool   // default: false
 }
 
 type KeyValuePairs struct {
@@ -65,8 +66,13 @@ func (kvs KeyValuePairs) String(options ...*KeyValuePairOpts) string {
 	var b strings.Builder
 	for i, pair := range kvs.kvs {
 		keyStr := s.ObjFlatNoQuotes(pair.k)
-		valStr := s.ObjFlatNoQuotes(pair.v)
 		keyLen := len(keyStr)
+
+		if *opts.BoldKeys {
+			keyStr = console.Bold(keyStr)
+		}
+
+		valStr := s.ObjFlatNoQuotes(pair.v)
 		var str string
 		if *opts.RightJustify {
 			alignmentSpaces := strings.Repeat(" ", maxLen-keyLen)
@@ -107,6 +113,9 @@ func mergeOptions(options ...*KeyValuePairOpts) KeyValuePairOpts {
 		if opt != nil && opt.BoldFirstLine != nil {
 			mergedOpts.BoldFirstLine = opt.BoldFirstLine
 		}
+		if opt != nil && opt.BoldKeys != nil {
+			mergedOpts.BoldKeys = opt.BoldKeys
+		}
 	}
 
 	if mergedOpts.Delimiter == nil {
@@ -120,6 +129,9 @@ func mergeOptions(options ...*KeyValuePairOpts) KeyValuePairOpts {
 	}
 	if mergedOpts.BoldFirstLine == nil {
 		mergedOpts.BoldFirstLine = pointer.Bool(false)
+	}
+	if mergedOpts.BoldKeys == nil {
+		mergedOpts.BoldKeys = pointer.Bool(false)
 	}
 
 	return mergedOpts

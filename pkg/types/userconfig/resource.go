@@ -16,7 +16,13 @@ limitations under the License.
 
 package userconfig
 
+import "fmt"
+
 type Resource struct {
 	Name string `json:"name" yaml:"name"`
 	Kind Kind   `json:"kind" yaml:"kind"`
+}
+
+func (r Resource) UserString() string {
+	return fmt.Sprintf("%s (%s)", r.Name, r.Kind.String())
 }

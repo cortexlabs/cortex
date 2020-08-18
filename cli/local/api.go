@@ -85,7 +85,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 	newAPISpec.LocalProjectDir = files.Dir(configPath)
 
 	if areAPIsEqual(newAPISpec, prevAPISpec) {
-		return newAPISpec, fmt.Sprintf("%s is up to date", newAPISpec.Name), nil
+		return newAPISpec, fmt.Sprintf("%s is up to date", newAPISpec.Resource.UserString()), nil
 	}
 
 	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
@@ -119,10 +119,10 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 				consts.CortexVersion,
 			), nil
 		}
-		return newAPISpec, fmt.Sprintf("creating %s", newAPISpec.Name), nil
+		return newAPISpec, fmt.Sprintf("creating %s", newAPISpec.Resource.UserString()), nil
 	}
 
-	return newAPISpec, fmt.Sprintf("updating %s", newAPISpec.Name), nil
+	return newAPISpec, fmt.Sprintf("updating %s", newAPISpec.Resource.UserString()), nil
 }
 
 func writeAPISpec(apiSpec *spec.API) error {
