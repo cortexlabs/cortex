@@ -15,8 +15,6 @@
 * [Predictor implementation](deployments/predictors.md)
 * [API configuration](deployments/api-configuration.md)
 * [API deployment](deployments/deployment.md)
-* [APISplitter configuration](deployments/apisplitter-configuration.md)
-* [APISplitter deployment](deployments/apisplitter-deployment.md)
 * [Parellelism](deployments/parallelism.md)
 * [Autoscaling](deployments/autoscaling.md)
 * [Networking](deployments/networking.md)
@@ -27,6 +25,7 @@
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
 * [API statuses](deployments/statuses.md)
+* [API Splitter](deployments/apisplitter.md)
 
 ## Cluster management
 
