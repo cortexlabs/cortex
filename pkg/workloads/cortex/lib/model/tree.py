@@ -28,9 +28,21 @@ class ModelsTree:
         self._lock = ReadWriteLock()
 
     def acquire(self, mode: str) -> None:
+        """
+        Acquire lock on the model tree.
+
+        Args:
+            mode: "r" for read lock, "w" for write lock.
+        """
         self._lock.acquire(mode)
 
     def release(self, mode: str) -> None:
+        """
+        Release lock on the model tree.
+
+        Args:
+            mode: "r" for read lock, "w" for write lock.
+        """
         self._lock.release(mode)
 
     def update_models(
@@ -117,15 +129,31 @@ class ModelsTree:
 
 
 class ModelsHolder:
+    """
+    Class to hold models in memory and references for those on disk.
+    Can limit the number of models in memory/on-disk based on an LRU policy - by default, it's disabled.
+    """
+
     def __init__(
         self,
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
-        on_remove_callback: Callable[[List[str]], None],
+        on_remove_callback: Callable[[List[str]], None] = None,
     ):
+        """
+        Args:
+            mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
+            disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
+            on_remove_callback: Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.  
+        """
         if mem_cache_size > 0 and disk_cache_size > 0 and mem_cache_size > disk_cache_size:
             raise RuntimeException(
                 f"mem_cache_size ({mem_cache_size}) must be equal or smaller than disk_cache_size ({disk_cache_size})"
+            )
+
+        if mem_cache_size == 0 or disk_cache_size == 0:
+            raise RuntimeException(
+                "mem_cache_size or disk_cache_size can't be set to 0; must be negative to disable the cache or positive to have it enabled"
             )
 
         self._mem_cache_size = mem_cache_size
@@ -141,12 +169,42 @@ class ModelsHolder:
     #################
 
     def global_acquire(self, mode: str) -> None:
+        """
+        Acquire R/W access over all models.
+
+        The distinction between "r" and "w", is that for "w", any method of this class can be called, including the garbage_collect method.
+
+        Args:
+            mode: "r" for read lock, "w" for write lock.
+        """
         self._global_lock.acquire(mode)
 
     def global_release(self, mode: str) -> None:
+        """
+        Release R/W access over all models.
+
+        Args:
+            mode: "r" for read lock, "w" for write lock.
+        """
         self._global_lock.release(mode)
 
     def model_acquire(self, mode: str, model_name: str, model_version: str) -> None:
+        """
+        Acquire R/W access for a specific model.
+
+        Args:
+            mode: "r" for read lock, "w" for write lock.
+            model_name: The name of the model.
+            model_version: The version of the model.
+
+        When mode is "r", only the following methods should be called:
+        * has_model
+        * get_model
+
+        When mode is "w", the methods available for "r" can be called plus the following ones:
+        * load_model
+        * remove_model
+        """
         model_id = f"{model_name}-{model_version}"
 
         if not model_id in self._locks:
@@ -161,18 +219,49 @@ class ModelsHolder:
             self._locks[model_id].acquire(mode)
 
     def model_release(self, mode: str, model_name: str, model_version: str) -> None:
+        """
+        Release R/W access for a specific model.
+
+        Args:
+            mode: "r" for read lock, "w" for write lock.
+            model_name: The name of the model.
+            model_version: The version of the model.
+        """
         model_id = f"{model_name}-{model_version}"
         self._locks[model_id].release(mode)
 
     #################
 
     def has_model(self, model_name: str, model_version: str) -> Tuple[bool, int]:
+        """
+        Verifies if a model is loaded into memory.
+
+        Args:
+            model_name: The name of the model.
+            model_version: The version of the model.
+
+        Returns:
+            Whether the model has been found in memory and the upstream timestamp of the model.
+        """
         model_id = f"{model_name}-{model_version}"
         if model_id in self._models and self._models[model_id]["model"] is not None:
             return True, self._models[model_id]["upstream_timestamp"]
         return False, 0
 
     def get_model(self, model_name: str, model_version: str) -> Tuple[Any, int]:
+        """
+        Retrieves a model from memory.
+
+        If the returned model is None, but the upstream timestamp is positive, then it means the model is present on disk.
+        If the returned model is not None, then the upstream timestamp will also be positive.
+
+        Args:
+            model_name: The name of the model.
+            model_version: The version of the model.
+
+        Returns:
+            The model and the model's upstream timestamp.
+        """
         model_id = f"{model_name}-{model_version}"
         if model_id in self._models:
             self._timestamps[model_id] = time.time()
@@ -187,6 +276,16 @@ class ModelsHolder:
         disk_path: str,
         upstream_timestamp: int,
     ) -> None:
+        """
+        Loads a given model into memory.
+
+        Args:
+            model_name: The name of the model.
+            model_version: The version of the model.
+            model: The actual model - can be anything.
+            disk_path: Where the model was read from.
+            upstream_timestamp: When was this model last modified on the upstream source (e.g. S3).
+        """
 
         model_id = f"{model_name}-{model_version}"
         if model_id in self._timestamps:
@@ -213,7 +312,8 @@ class ModelsHolder:
         stale_mem_model_ids = self._lru_model_ids(self._mem_cache_size)
         stale_disk_model_ids = self._lru_model_ids(self._disk_cache_size)
 
-        self._callback(stale_mem_model_ids)
+        if self._callback:
+            self._callback(stale_mem_model_ids)
 
         for model_id in stale_mem_model_ids:
             self._remove_model(model_id, mem=True, disk=False)
@@ -247,6 +347,30 @@ class ModelsHolder:
             del self._timestamps[model_id]
 
     #################
+
+
+class LockedModelsTree:
+    """
+    When acquiring R/W access to a model resource (model name + version).
+
+    Locks the entire tree. When receiving requests, the read lock shall be applied.
+    When updating the tree in the cron, the write lock shall be applied. 
+    """
+
+    def __init__(self, tree: ModelsTree, mode: str):
+        self._tree = tree
+        self._mode = mode
+        self._lock = ReadWriteLock()
+
+    def __enter__(self):
+        self._lock.acquire(self._mode)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._lock.release(self._mode)
+
+        if exc_value is not None and exc_type is not WithBreak:
+            raise exc_type(exc_value).with_traceback(traceback)
 
 
 class LockedGlobalModelsGC:

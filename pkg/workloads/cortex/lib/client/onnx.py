@@ -142,6 +142,7 @@ class ONNXClient:
         found_model = True
         resource = model_name + "-" + model_version
 
+        # when caching is disabled
         with LockedFile(resource, "r", reader_lock=True) as f:
             status = f.read()
             if status == "" or status == "not available":
@@ -168,6 +169,9 @@ class ONNXClient:
                         )
                     else:
                         model, _ = self._models.get_model(model_name, model_version)
+
+        # when caching is enabled
+        # ...
 
         if found_model:
             return model
