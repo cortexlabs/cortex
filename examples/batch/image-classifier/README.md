@@ -152,7 +152,7 @@ Here are the complete [API configuration docs](../../../docs/deployments/batchap
 ```bash
 $ cortex deploy --env aws
 
-created image-classifier
+created image-classifier (BatchAPI)
 ```
 
 Get the endpoint for your Batch API with `cortex get image-classifier`:

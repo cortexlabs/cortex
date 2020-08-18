@@ -136,7 +136,7 @@ Here are the complete [API configuration docs](../../../docs/deployments/syncapi
 ```bash
 $ cortex deploy
 
-creating iris-classifier
+creating iris-classifier (SyncAPI)
 ```
 
 Monitor the status of your API using `cortex get`:
@@ -185,7 +185,7 @@ After your cluster is created, you can deploy your model to your cluster by usin
 ```bash
 $ cortex deploy --env aws
 
-creating iris-classifier
+creating iris-classifier (SyncAPI)
 ```
 
 You can then get your API's endpoint (along with other useful information about your API) using the `cortex get` command:
@@ -234,7 +234,7 @@ Run `cortex deploy` again to perform a rolling update to your API with the new c
 ```bash
 $ cortex deploy --env aws
 
-updating iris-classifier
+updating iris-classifier (SyncAPI)
 ```
 
 After making more predictions, your `cortex get` command will show information about your API's past predictions:
@@ -280,7 +280,7 @@ You could also configure GPU compute here if your cluster supports it. Adding co
 ```bash
 $ cortex deploy --env aws
 
-updating iris-classifier
+updating iris-classifier (SyncAPI)
 ```
 
 Run `cortex get` again:
@@ -340,8 +340,8 @@ Run `cortex deploy` to create the new API:
 ```bash
 $ cortex deploy --env aws
 
-iris-classifier is up to date
-creating another-iris-classifier
+iris-classifier (SyncAPI) is up to date
+creating another-iris-classifier (SyncAPI)
 ```
 
 `cortex deploy` is declarative so the `iris-classifier` API is unchanged while `another-iris-classifier` is created:
@@ -448,9 +448,9 @@ Run `cortex deploy` to create your batch API:
 ```bash
 $ cortex deploy --env aws
 
-updating iris-classifier
-updating another-iris-classifier
-creating batch-iris-classifier
+updating iris-classifier (SyncAPI)
+updating another-iris-classifier (SyncAPI)
+creating batch-iris-classifier (SyncAPI)
 ```
 
 Since a new file was added to the directory, and all files in the directory containing `cortex.yaml` are made available in your APIs, the previous two APIs were updated in addition to the the batch classifier being created.

@@ -11,7 +11,7 @@ The `cortex deploy` command collects your configuration and source code and depl
 ```bash
 $ cortex deploy
 
-creating my-api
+creating my-api (SyncAPI)
 ```
 
 APIs are declarative, so to update your API, you can modify your source code and/or configuration and run `cortex deploy` again.
