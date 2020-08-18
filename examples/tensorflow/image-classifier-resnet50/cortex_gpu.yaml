@@ -12,6 +12,7 @@
       classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
       input_shape: [224, 224]
       input_key: input
+      output_key: output
   compute:
     gpu: 1
     cpu: 3
