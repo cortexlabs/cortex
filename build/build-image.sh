@@ -46,32 +46,22 @@ docker build "$ROOT" \
   -t cortexlabs/${image}:${CORTEX_VERSION}
 
 if [ "$slim" == "true" ]; then
-  docker build "$ROOT" \
-    -f $dir/Dockerfile \
-    --build-arg SLIM=true \
-    -t cortexlabs/${image}-slim \
-    -t cortexlabs/${image}-slim:${CORTEX_VERSION}
-fi
+  if [ "${image}" == "python-predictor-gpu" ]; then
+    cuda=("10.0" "10.1" "10.2" "11.0")
+    cudnn=("7" "7" "7" "8")
 
-if [ "${image}" == "python-predictor-gpu" ]; then
-  cuda=("10.0" "10.1" "10.2" "11.0")
-  cudnn=("7" "7" "7" "8")
-
-  # the only tag for the fat version is for CUDA 10.1 and CUDNN 7
-  docker build "$ROOT" \
-    -f $dir/Dockerfile \
-    --build-arg CUDA_VERSION=${cuda[1]} \
-    --build-arg CUDNN=${cudnn[1]} \
-    -t cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[1]}
-
-  for i in ${!cudnn[@]}; do
-    if [ "$slim" == "true" ]; then
+    for i in ${!cudnn[@]}; do
       docker build "$ROOT" \
         -f $dir/Dockerfile \
         --build-arg SLIM=true \
         --build-arg CUDA_VERSION=${cuda[$i]} \
         --build-arg CUDNN=${cudnn[$i]} \
         -t cortexlabs/${image}-slim:${CORTEX_VERSION}-cuda${cuda[$i]}
-    fi
-  done
+    done
+  else
+    docker build "$ROOT" \
+    -f $dir/Dockerfile \
+    --build-arg SLIM=true \
+    -t cortexlabs/${image}-slim:${CORTEX_VERSION}
+  fi
 fi

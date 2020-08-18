@@ -48,15 +48,14 @@ mkdir my-api && cd my-api && touch Dockerfile
 
 Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
-<!-- CORTEX_VERSION_BRANCH_STABLE x6 -->
+<!-- CORTEX_VERSION_BRANCH_STABLE x5 -->
 * Python Predictor (CPU): `cortexlabs/python-predictor-cpu-slim:master`
-* Python Predictor (GPU): `cortexlabs/python-predictor-gpu-slim:master`
 * Python Predictor (Inferentia): `cortexlabs/python-predictor-inf-slim:master`
 * TensorFlow Predictor (CPU, GPU, Inferentia): `cortexlabs/tensorflow-predictor-slim:master`
 * ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu-slim:master`
 * ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu-slim:master`
 
-The Python Predictor (GPU) image (not including the non-`slim` version) comes in different flavors of CUDA/CUDNN as well. If the `-cudaX.Y` version is not appended to the Python Predictor (GPU) image's tag, then for both the `-slim` and non-`slim` images, CUDA 10.1 and CUDNN 7 are assumed:
+The slim Python Predictor (GPU) image comes in different flavors of CUDA/CUDNN:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x4 -->
 * Python Predictor (GPU) for CUDA 10.0 and CUDNN 7: `cortexlabs/python-predictor-gpu-slim:master-cuda10.0`

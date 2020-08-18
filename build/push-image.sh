@@ -42,18 +42,13 @@ echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 docker push cortexlabs/${image}:${CORTEX_VERSION}
 
 if [ "$slim" == "true" ]; then
-  docker push cortexlabs/${image}-slim:${CORTEX_VERSION}
-fi
+  if [ "$image" == "python-predictor-gpu" ]; then
+    cuda=("10.0" "10.1" "10.2" "11.0")
 
-if [ "$image" == "python-predictor-gpu" ]; then
-  cuda=("10.0" "10.1" "10.2" "11.0")
-
-  # the only tag for the fat version is for CUDA 10.1 and CUDNN 7
-  docker push cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[1]}
-
-  for i in ${!cuda[@]}; do
-    if [ "$slim" == "true" ]; then
+    for i in ${!cuda[@]}; do
       docker push cortexlabs/${image}-slim:${CORTEX_VERSION}-cuda${cuda[$i]}
-    fi
-  done
+    done
+  else
+    docker push cortexlabs/${image}-slim:${CORTEX_VERSION}
+  fi
 fi
