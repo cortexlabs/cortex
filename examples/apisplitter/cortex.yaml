@@ -9,7 +9,7 @@
   monitoring:
     model_type: classification
 
-- name: iris-classifier-tensorflow
+- name: iris-classifier-tf
   kind: SyncAPI
   predictor:
     type: tensorflow
@@ -23,5 +23,5 @@
   apis:
     - name: iris-classifier-onnx
       weight: 30
-    - name: iris-classifier-tensorflow
+    - name: iris-classifier-tf
       weight: 70
