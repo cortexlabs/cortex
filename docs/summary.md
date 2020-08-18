@@ -25,6 +25,7 @@
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
 * [API statuses](deployments/statuses.md)
+* [API Splitter](deployments/apisplitter.md)
 
 ## Cluster management
 
