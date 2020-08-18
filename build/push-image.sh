@@ -43,10 +43,8 @@ docker push cortexlabs/${image}:${CORTEX_VERSION}
 
 if [ "$slim" == "true" ]; then
   if [ "$image" == "python-predictor-gpu" ]; then
-    cuda=("10.0" "10.1" "10.2" "11.0")
-
-    for i in ${!cuda[@]}; do
-      docker push cortexlabs/${image}-slim:${CORTEX_VERSION}-cuda${cuda[$i]}
+    for cuda in 10.0 10.1 10.2 11.0; do
+      docker push cortexlabs/${image}-slim:${CORTEX_VERSION}-cuda${cuda}
     done
   else
     docker push cortexlabs/${image}-slim:${CORTEX_VERSION}
