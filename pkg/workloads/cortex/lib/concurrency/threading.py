@@ -92,9 +92,11 @@ class ReadLock:
     """
     To be used as:
 
+    ```python
     rw_lock = ReadWriteLock()
     with ReadLock(rw_lock):
         # code
+    ```
     """
 
     def __init__(self, lock: ReadWriteLock):
@@ -113,9 +115,11 @@ class WriteLock:
     """
     To be used as:
 
+    ```python
     rw_lock = ReadWriteLock()
     with WriteLock(rw_lock):
         # code
+    ```
     """
 
     def __init__(self, lock: ReadWriteLock):
