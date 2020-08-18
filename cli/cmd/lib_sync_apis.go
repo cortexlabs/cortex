@@ -47,6 +47,9 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 	t := syncAPIsTable([]schema.SyncAPI{*syncAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 	t.FindHeaderByTitle(_titleSyncAPI).Hidden = true
+	if env.Provider == types.LocalProviderType {
+		hideReplicaCountColumns(&t)
+	}
 
 	out += t.MustFormat()
 
