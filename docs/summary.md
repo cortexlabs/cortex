@@ -20,6 +20,7 @@
   * [Autoscaling](deployments/syncapi/autoscaling.md)
   * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
   * [Tutorial](../examples/sklearn/iris-classifier/README.md)
+  * [API Splitter](deployments/syncapi/apisplitter.md)
 * [Batch API](deployments/batchapi.md)
   * [Predictor implementation](deployments/batchapi/predictors.md)
   * [API configuration](deployments/batchapi/api-configuration.md)
@@ -35,7 +36,6 @@
 * [Using Inferentia](deployments/inferentia.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
-* [Networking](deployments/networking.md)
 
 ## Cluster management
 

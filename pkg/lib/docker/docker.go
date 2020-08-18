@@ -161,12 +161,34 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		jsonmessage.DisplayJSONMessagesStream(pullOutput, os.Stderr, termFd, isTerm, nil)
 		fmt.Println()
 	case PrintDots:
+		var err error
 		fmt.Printf("￮ downloading docker image %s ", image)
-		defer fmt.Print(" ✓\n")
+		defer func() {
+			if err == nil {
+				fmt.Print(" ✓\n")
+			} else {
+				fmt.Print(" x\n")
+			}
+		}()
+		d := json.NewDecoder(pullOutput)
+		var result jsonmessage.JSONMessage
 		dotCron := cron.Run(print.Dot, nil, 2*time.Second)
 		defer dotCron.Cancel()
-		// wait until the pull has completed
-		if _, err := ioutil.ReadAll(pullOutput); err != nil {
+		for {
+			if e := d.Decode(&result); e != nil {
+				if e == io.EOF {
+					return true, nil
+				}
+				err = e
+				return false, err
+			}
+
+			if result.Error != nil {
+				err = result.Error
+				break
+			}
+		}
+		if err != nil {
 			return false, err
 		}
 	default:
