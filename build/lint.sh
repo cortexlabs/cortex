@@ -154,7 +154,7 @@ else
   # Check for version warning comments in examples
   output=$(cd "$ROOT/examples" && find . -type f \
   ! -path "./README.md" \
-  ! -path "./utils/README.md" \
+  ! -path "./utils/*" \
   ! -name "*.json" \
   ! -name "*.txt" \
   ! -name ".*" \
