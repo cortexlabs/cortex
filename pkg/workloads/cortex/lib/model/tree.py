@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Any, Callable
+from typing import List, Any, Callable, AbstractSet
 from cortex.lib.concurrency import LockedFile, ReadWriteLock, ReadLock, WriteLock
 
 import os
@@ -78,8 +78,91 @@ class ModelsHolder:
         return [model.split("-")[1] for model in models if model.startswith(model_name)]
 
 
-class ModelsStates:
-    pass
+class ModelsTree:
+    def __init__(self):
+        self._models = {}
+
+    def update_models(
+        self,
+        model_names: List[str],
+        model_versions: List[List[str]],
+        model_paths: List[str],
+        timestamps: List[List[int]],
+    ) -> AbstractSet[str], AbstractSet[str]:
+        """
+        Updates the model tree with the latest from the upstream.
+
+        Args:
+            model_names: The unique names of the models as discovered in models:dir or specified in models:paths.
+            model_versions: The detected versions of each model. "none" if no version is found.
+            model_paths: S3 model paths to each model.
+            timestamps: When was each versioned model updated the last time on the upstream.
+        
+        Returns:
+            The model IDs ("<model-name>-<model-version") that haven't been found in the passed parameters.
+            Which model IDs have been updated. If these model IDs are in memory or on disk already, then they should get updated as well.
+        """
+
+        current_model_ids = set()
+        updated_model_ids = set()
+        for idx in range(len(model_names)):
+            model_name = model_names[idx]
+            if len(model_versions[idx]) == 0:
+                model_id = f"{model_name}-none"
+                updated = self.update_model(
+                    model_name, "none", model_paths[idx], timestamps[idx][0]
+                )
+                current_model_ids.add(model_id)
+                if updated:
+                    updated_model_ids.add(model_id)
+            for model_version in model_versions[idx]:
+                model_id = f"{model_name}-{model_version}"
+                updated = self.update_model(
+                    model_name,
+                    model_version,
+                    os.path.join(model_paths[idx], model_version),
+                    timestamps[idx][model_version],
+                )
+                current_model_ids.add(model_id)
+                if updated:
+                    updated_model_ids.add(model_id)
+
+        old_model_ids = set(self._models.keys()) - current_model_ids
+        for old_model_id in old_model_ids:
+            del self._models[old_model_id]
+
+        return old_model_ids, updated_model_ids
+
+    def update_model(
+        self, model_name: str, model_version: str, model_path: str, timestamp: int,
+    ) -> None:
+        """
+        Updates the model tree with the given model.
+
+        Args:
+            model_name: The unique name of the model as discovered in models:dir or specified in models:paths.
+            model_version: A detected version of the model. "none" if no version is found.
+            model_paths: S3 model path to the versioned model.
+            timestamp: When was the model path updated the last time.
+
+        Returns:
+            True if the model has been updated. False otherwise.
+        """
+
+        model_id = f"{model_name}-{model_version}"
+        changed = False
+        if model_id not in self._models:
+            changed = True
+        elif self._models[model_id]["timestamp"] < timestamp:
+            changed = True
+
+        if changed or model_id in self._models:
+            self._models[model_id] = {
+                "path": model_path,
+                "timestamp": timestamp,
+            }
+
+        return changed
 
 
 class ModelsLRU:
@@ -103,7 +186,7 @@ class ModelsLRU:
         model_id = f"{model_name}-{model_version}"
 
         if not model_id in self._locks:
-            lock = ReadWriteLock
+            lock = ReadWriteLock()
             lock_id = id(lock)
             self._locks[model_id] = lock
             self._locks[model_id].acquire(mode)
@@ -124,34 +207,9 @@ class ModelsLRU:
 
     def load_model(self, model: Any, model_name: str, model_version: str) -> None:
         model_id = f"{model_name}-{model_version}"
-        self._timestamps[model_id] = time.time()
         self._models[model_id] = model
 
-    def remove_model(self, model_name: str, model_name: str) -> None:
+    def remove_model(self, model_name: str, model_version: str) -> None:
         model_id = f"{model_name}-{model_version}"
         del self._models[model_id]
 
-
-class LockedStateAndLRU:
-    def __init__(
-        self,
-        mode: str,
-        states: ModelsStates,
-        models: ModelsLRU,
-        model_name: str,
-        model_version: str,
-    ):
-        self._mode = mode
-        self._states = states
-        self._models = models
-        self.model_name = model_name
-        self.model_version = model_version
-
-    def __enter__(self):
-        self._states.acquire(self._mode, self.model_name, self.model_version)
-        self._models.acquire(self._mode, self.model_name, self.model_version)
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._states.release(self._mode, self.model_name, self.model_version)
-        self._models.release(self._mode, self.model_name, self.model_version)
