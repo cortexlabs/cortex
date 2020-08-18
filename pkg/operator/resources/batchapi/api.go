@@ -67,7 +67,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		return api, fmt.Sprintf("created %s", api.Name), nil
+		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
 	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
@@ -84,10 +84,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		return api, fmt.Sprintf("updated %s", api.Name), nil
+		return api, fmt.Sprintf("updated %s", api.Resource.UserString()), nil
 	}
 
-	return api, fmt.Sprintf("%s is up to date", api.Name), nil
+	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
 func areAPIsEqual(v1, v2 *istioclientnetworking.VirtualService) bool {

@@ -52,7 +52,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("created %s", api.Name), nil
+		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
 	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api)) {
@@ -65,9 +65,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, false); err != nil {
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("updated %s", api.Name), nil
+		return api, fmt.Sprintf("updated %s", api.Resource.UserString()), nil
 	}
-	return api, fmt.Sprintf("%s is up to date", api.Name), nil
+	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
