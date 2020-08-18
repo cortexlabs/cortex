@@ -53,7 +53,7 @@ func ensureLogGroupForAPI(apiName string) error {
 
 	if len(output.LogGroups) == 0 {
 		_, err := config.AWS.CloudWatchLogs().CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
-			LogGroupName: aws.String(apiName),
+			LogGroupName: aws.String(logGroupNameForAPI(apiName)),
 			Tags:         aws.StringMap(config.Cluster.Tags),
 		})
 		if err != nil {
