@@ -17,7 +17,7 @@ This example shows how to deploy a batch image classification api that accepts a
 
 ## Implement your predictor
 
-1. Create a Python file `predictor.py`.
+1. Create a Python file named `predictor.py`.
 1. Define a Predictor class with a constructor that loads and initializes an image-classifier from `torchvision`.
 1. Add a `predict()` function that will accept a list of images urls (http:// or s3://), downloads them, performs inference, and writes the predictions to S3.
 1. Specify an `on_job_complete()` function that aggregates the results and writes them to a single file named `aggregated_results.json` in S3.
