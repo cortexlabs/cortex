@@ -60,8 +60,8 @@ if [ "$slim" == "true" ]; then
     done
   else
     docker build "$ROOT" \
-    -f $dir/Dockerfile \
-    --build-arg SLIM=true \
-    -t cortexlabs/${image}-slim:${CORTEX_VERSION}
+      -f $dir/Dockerfile \
+      --build-arg SLIM=true \
+      -t cortexlabs/${image}-slim:${CORTEX_VERSION}
   fi
 fi
