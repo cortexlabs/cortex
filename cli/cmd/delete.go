@@ -79,8 +79,8 @@ var _deleteCmd = &cobra.Command{
 				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot delete job %s for api %s", args[1], args[0]))
 			}
 
-			// local only supports deploying 1 replica at a time so _flagDeleteForce will be ignored
-			deleteResponse, err = local.Delete(args[0], _flagDeleteKeepCache)
+			// local only supports deploying 1 replica at a time, so _flagDeleteForce is only useful when attempting to delete an API that has been deployed with different CLI version
+			deleteResponse, err = local.Delete(args[0], _flagDeleteKeepCache, _flagDeleteForce)
 			if err != nil {
 				exit.Error(err)
 			}

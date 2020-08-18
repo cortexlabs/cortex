@@ -104,7 +104,7 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			deployResponse, err = local.Deploy(env, configPath, projectFiles)
+			deployResponse, err = local.Deploy(env, configPath, projectFiles, _flagDeployDisallowPrompt)
 			if err != nil {
 				exit.Error(err)
 			}
