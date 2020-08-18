@@ -11,20 +11,31 @@
 
 ## Deployments
 
-* [Exporting models](deployments/exporting.md)
-* [Predictor implementation](deployments/predictors.md)
-* [API configuration](deployments/api-configuration.md)
-* [API deployment](deployments/deployment.md)
-* [Parellelism](deployments/parallelism.md)
-* [Autoscaling](deployments/autoscaling.md)
-* [Networking](deployments/networking.md)
+* [Sync API](deployments/syncapi.md)
+  * [Predictor implementation](deployments/syncapi/predictors.md)
+  * [API configuration](deployments/syncapi/api-configuration.md)
+  * [API deployment](deployments/syncapi/deployment.md)
+  * [API statuses](deployments/syncapi/statuses.md)
+  * [Parallelism](deployments/syncapi/parallelism.md)
+  * [Autoscaling](deployments/syncapi/autoscaling.md)
+  * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
+  * [Tutorial](../examples/sklearn/iris-classifier/README.md)
+  * [API Splitter](deployments/syncapi/apisplitter.md)
+* [Batch API](deployments/batchapi.md)
+  * [Predictor implementation](deployments/batchapi/predictors.md)
+  * [API configuration](deployments/batchapi/api-configuration.md)
+  * [API deployment](deployments/batchapi/deployment.md)
+  * [Endpoints](deployments/batchapi/endpoints.md)
+  * [Job statuses](deployments/batchapi/statuses.md)
+  * [Tutorial](../examples/batch/image-classifier/README.md)
+
+## Advanced
+
 * [Compute](deployments/compute.md)
 * [Using GPUs](deployments/gpus.md)
 * [Using Inferentia](deployments/inferentia.md)
-* [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
-* [API statuses](deployments/statuses.md)
 
 ## Cluster management
 
@@ -53,11 +64,11 @@
 
 ## Guides
 
+* [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
 * [Set up a custom domain](guides/custom-domain.md)
 * [Set up VPC peering](guides/vpc-peering.md)
-* [Add a batch runner API](guides/batch-runner.md)
 * [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
 

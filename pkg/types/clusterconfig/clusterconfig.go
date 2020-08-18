@@ -519,6 +519,16 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 	}
 }
 
+func SQSNamePrefix(clusterName string) string {
+	// 10 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
+	return hash.String(clusterName)[:10] + "-"
+}
+
+// returns hash of cluster name and adds trailing "-"
+func (cc *Config) SQSNamePrefix() string {
+	return SQSNamePrefix(cc.ClusterName)
+}
+
 func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
