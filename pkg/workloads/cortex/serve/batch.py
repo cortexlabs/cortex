@@ -254,6 +254,8 @@ def start():
     local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
     local_cache["sqs_client"] = boto3.client("sqs", region_name=os.environ["AWS_REGION"])
 
+    open("/mnt/workspace/api_readiness.txt", "a").close()
+
     cx_logger().info("polling for batches...")
     sqs_loop()
 
