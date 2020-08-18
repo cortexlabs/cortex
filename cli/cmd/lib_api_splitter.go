@@ -104,7 +104,7 @@ func apiSplitterListTable(apiSplitter []schema.APISplitter, envNames []string) t
 		for _, api := range splitAPI.Spec.APIs {
 			apis = append(apis, api.Name+":"+s.Int(api.Weight))
 		}
-		apisStr := s.TruncateEllipses(strings.Join(apis, " "), 100)
+		apisStr := s.TruncateEllipses(strings.Join(apis, " "), 50)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			splitAPI.Spec.Name,
