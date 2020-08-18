@@ -40,8 +40,6 @@ func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment
 	var out string
 
 	lastUpdated := time.Unix(apiSplitter.Spec.LastUpdated, 0)
-	out += console.Bold("kind: ") + apiSplitter.Spec.Kind.String() + "\n\n"
-	out += console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated) + "\n\n"
 
 	t, err := trafficSplitTable(*apiSplitter, env)
 	if err != nil {
@@ -51,8 +49,8 @@ func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment
 
 	out += t.MustFormat()
 
+	out += "\n" + console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated)
 	out += "\n" + console.Bold("endpoint: ") + apiSplitter.Endpoint
-
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiSplitter.Endpoint)
 
 	out += titleStr("configuration") + strings.TrimSpace(apiSplitter.Spec.UserStr(env.Provider))
