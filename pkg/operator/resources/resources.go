@@ -241,7 +241,7 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		},
 		func() error {
 			var err error
-			virtualServices, err = config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.BatchAPIKind.String())
+			virtualServices, err = config.K8s.ListVirtualServicesWithLabelKeys("apiName")
 			return err
 		},
 	)
@@ -260,17 +260,29 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		}
 	}
 
+	var batchAPIVirtualServices []istioclientnetworking.VirtualService
+	var apiSplitterVirtualServices []istioclientnetworking.VirtualService
+
+	for _, vs := range virtualServices {
+		switch vs.Labels["apiKind"] {
+		case userconfig.BatchAPIKind.String():
+			batchAPIVirtualServices = append(batchAPIVirtualServices, vs)
+		case userconfig.APISplitterKind.String():
+			apiSplitterVirtualServices = append(apiSplitterVirtualServices, vs)
+		}
+	}
+
 	syncAPIList, err := syncapi.GetAllAPIs(syncAPIPods, deployments)
 	if err != nil {
 		return nil, err
 	}
 
-	batchAPIList, err := batchapi.GetAllAPIs(virtualServices, k8sJobs, batchAPIPods)
+	batchAPIList, err := batchapi.GetAllAPIs(batchAPIVirtualServices, k8sJobs, batchAPIPods)
 	if err != nil {
 		return nil, err
 	}
 
-	apiSplitterList, err := apisplitter.GetAllAPIs(virtualServices)
+	apiSplitterList, err := apisplitter.GetAllAPIs(apiSplitterVirtualServices)
 	if err != nil {
 		return nil, err
 	}

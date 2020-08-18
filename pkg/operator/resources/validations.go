@@ -90,7 +90,9 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	deployedSyncAPIs := strset.New()
 
 	for _, virtualService := range virtualServices {
-		deployedSyncAPIs.Add(virtualService.Labels["apiName"])
+		if virtualService.Labels["apiKind"] == userconfig.SyncAPIKind.String() {
+			deployedSyncAPIs.Add(virtualService.Labels["apiName"])
+		}
 	}
 
 	didPrintWarning := false

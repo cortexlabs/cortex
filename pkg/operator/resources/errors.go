@@ -86,7 +86,7 @@ func ErrorAPIUsedByAPISplitter(apiSplitters []string) error {
 func ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotDeployedAPIsAPISplitter,
-		Message: fmt.Sprintf("unable to find specified %s: %s", strings.PluralS("api", len(notDeployedAPIs)), strings.StrsAnd(notDeployedAPIs)),
+		Message: fmt.Sprintf("unable to find specified %s: %s", strings.PluralS("SyncAPI", len(notDeployedAPIs)), strings.StrsAnd(notDeployedAPIs)),
 	})
 }
 

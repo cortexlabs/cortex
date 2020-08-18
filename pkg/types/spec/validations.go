@@ -66,7 +66,7 @@ func apiValidation(provider types.ProviderType, resource userconfig.Resource) *c
 			computeValidation(provider),
 		)
 	case userconfig.APISplitterKind:
-		structFieldValidations = append(structFieldValidations,
+		structFieldValidations = append(resourceStructValidations,
 			multiAPIsValidation(),
 			networkingValidation(resource.Kind),
 		)
@@ -608,7 +608,12 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration and for Batch API at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor, consts.CortexVersionMinor))
+			switch kind {
+			case userconfig.SyncAPIKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration", consts.CortexVersionMinor))
+			case userconfig.BatchAPIKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Batch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor))
+			}
 		}
 
 		api.Index = i
