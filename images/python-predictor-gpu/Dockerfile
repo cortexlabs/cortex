@@ -1,4 +1,6 @@
-FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
+ARG CUDA_VERSION=10.1
+ARG CUDNN=7
+FROM nvidia/cuda:$CUDA_VERSION-cudnn$CUDNN-devel-ubuntu18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \

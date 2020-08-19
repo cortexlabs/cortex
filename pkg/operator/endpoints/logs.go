@@ -20,6 +20,7 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -33,12 +34,12 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource == nil {
-		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
+
+	if deployedResource.Kind == userconfig.BatchAPIKind {
+		respondError(w, r, ErrorLogsJobIDRequired(*deployedResource))
 		return
-	}
-	if deployedResource.Kind != userconfig.SyncAPIKind {
-		respondError(w, r, resources.ErrorOperationNotSupportedForKind(deployedResource.Kind))
+	} else if deployedResource.Kind != userconfig.SyncAPIKind {
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind))
 		return
 	}
 
@@ -50,9 +51,5 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	err = resources.StreamLogs(*deployedResource, socket)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
+	syncapi.ReadLogs(apiName, socket)
 }

@@ -17,6 +17,8 @@ limitations under the License.
 package cluster
 
 import (
+	"path"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -47,4 +49,19 @@ func GetAPI(operatorConfig OperatorConfig, apiName string) (schema.GetAPIRespons
 	}
 
 	return apiRes, nil
+}
+
+func GetJob(operatorConfig OperatorConfig, apiName string, jobID string) (schema.GetJobResponse, error) {
+	endpoint := path.Join("/batch", apiName, jobID)
+	httpRes, err := HTTPGet(operatorConfig, endpoint)
+	if err != nil {
+		return schema.GetJobResponse{}, err
+	}
+
+	var jobRes schema.GetJobResponse
+	if err = json.Unmarshal(httpRes, &jobRes); err != nil {
+		return schema.GetJobResponse{}, errors.Wrap(err, endpoint, string(httpRes))
+	}
+
+	return jobRes, nil
 }

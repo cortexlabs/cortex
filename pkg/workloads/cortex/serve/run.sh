@@ -52,9 +52,11 @@ export PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH
 export PYTHONUNBUFFERED=TRUE
 
 if [ "$CORTEX_PROVIDER" != "local" ]; then
-    sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
-    sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
-    sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
+    if [ "$CORTEX_KIND" == "SyncAPI" ]; then
+        sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
+        sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
+        sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
+    fi
 fi
 
 # execute script if present in project's directory
@@ -84,5 +86,4 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-# run webserver
-/opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py
+/opt/conda/envs/env/bin/python /src/cortex/serve/start.py

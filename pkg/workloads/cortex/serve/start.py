@@ -81,19 +81,24 @@ def main():
     if raw_api_spec["predictor"]["type"] == "tensorflow":
         load_tensorflow_serving_models()
 
-    # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
-    uvicorn.run(
-        "cortex.serve.wsgi:app",
-        host="0.0.0.0",
-        port=int(os.environ["CORTEX_SERVING_PORT"]),
-        workers=int(os.environ["CORTEX_PROCESSES_PER_REPLICA"]),
-        limit_concurrency=int(
-            os.environ["CORTEX_MAX_PROCESS_CONCURRENCY"]
-        ),  # this is a per process limit
-        backlog=int(os.environ["CORTEX_SO_MAX_CONN"]),
-        log_config=log_config,
-        log_level="info",
-    )
+    if raw_api_spec["kind"] == "SyncAPI":
+        # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
+        uvicorn.run(
+            "cortex.serve.wsgi:app",
+            host="0.0.0.0",
+            port=int(os.environ["CORTEX_SERVING_PORT"]),
+            workers=int(os.environ["CORTEX_PROCESSES_PER_REPLICA"]),
+            limit_concurrency=int(
+                os.environ["CORTEX_MAX_PROCESS_CONCURRENCY"]
+            ),  # this is a per process limit
+            backlog=int(os.environ["CORTEX_SO_MAX_CONN"]),
+            log_config=log_config,
+            log_level="info",
+        )
+    else:
+        from cortex.serve import batch
+
+        batch.start()
 
 
 if __name__ == "__main__":

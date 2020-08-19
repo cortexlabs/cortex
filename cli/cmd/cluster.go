@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -352,6 +351,16 @@ var _downCmd = &cobra.Command{
 		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
 		if err != nil {
 			fmt.Printf("\n\nunable to delete cortex's api dashboard (see error below); if it still exists after the cluster has been deleted, please delete it via the cloudwatch console: https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:\n", *accessConfig.Region)
+			errors.PrintError(err)
+			fmt.Println()
+		} else {
+			fmt.Println("✓")
+		}
+
+		fmt.Print("￮ deleting sqs queues ")
+		err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(*accessConfig.ClusterName))
+		if err != nil {
+			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home", clusterconfig.SQSNamePrefix(*accessConfig.ClusterName), *accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
@@ -768,30 +777,27 @@ func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[s
 	}
 	if !logGroupFound {
 		fmt.Print("￮ creating a new cloudwatch log group: ", logGroup)
-		err = awsClient.CreateLogGroup(logGroup)
+		err = awsClient.CreateLogGroup(logGroup, tags)
 		if err != nil {
 			fmt.Print("\n\n")
 			return err
 		}
-	} else {
-		fmt.Print("￮ using existing cloudwatch log group:", logGroup)
+		fmt.Println(" ✓")
+		return nil
 	}
+
+	fmt.Print("￮ using existing cloudwatch log group: ", logGroup)
 
 	// retry since it's possible that it takes some time for the new log group to be registered by AWS
-	for i := 0; i < 10; i++ {
-		err = awsClient.TagLogGroup(logGroup, tags)
-		if err == nil {
-			fmt.Println(" ✓")
-			return nil
-		}
-		if !aws.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
-			break
-		}
-		time.Sleep(1 * time.Second)
+	err = awsClient.TagLogGroup(logGroup, tags)
+	if err != nil {
+		fmt.Print("\n\n")
+		return err
 	}
 
-	fmt.Print("\n\n")
-	return err
+	fmt.Println(" ✓")
+
+	return nil
 }
 
 // createOrClearDashboard creates a new dashboard (or clears an existing one if it already exists)

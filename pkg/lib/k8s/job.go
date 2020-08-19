@@ -31,20 +31,18 @@ var _jobTypeMeta = kmeta.TypeMeta{
 }
 
 type JobSpec struct {
-	Name        string
-	PodSpec     PodSpec
-	Labels      map[string]string
-	Annotations map[string]string
+	Name         string
+	PodSpec      PodSpec
+	Parallelism  int32
+	BackoffLimit int32
+	Labels       map[string]string
+	Annotations  map[string]string
 }
 
 func Job(spec *JobSpec) *kbatch.Job {
 	if spec.PodSpec.Name == "" {
 		spec.PodSpec.Name = spec.Name
 	}
-
-	parallelism := int32(1)
-	backoffLimit := int32(0)
-	completions := int32(1)
 
 	job := &kbatch.Job{
 		TypeMeta: _jobTypeMeta,
@@ -54,9 +52,8 @@ func Job(spec *JobSpec) *kbatch.Job {
 			Annotations: spec.Annotations,
 		},
 		Spec: kbatch.JobSpec{
-			BackoffLimit: &backoffLimit,
-			Parallelism:  &parallelism,
-			Completions:  &completions,
+			BackoffLimit: &spec.BackoffLimit,
+			Parallelism:  &spec.Parallelism,
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
 					Name:   spec.PodSpec.Name,
@@ -115,9 +112,23 @@ func (c *Client) DeleteJob(name string) (bool, error) {
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
+
 	if err != nil {
 		return false, errors.WithStack(err)
 	}
+	return true, nil
+}
+
+func (c *Client) DeleteJobs(opts *kmeta.ListOptions) (bool, error) {
+	if opts == nil {
+		opts = &kmeta.ListOptions{}
+	}
+
+	err := c.jobClient.DeleteCollection(_deleteOpts, *opts)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
 	return true, nil
 }
 

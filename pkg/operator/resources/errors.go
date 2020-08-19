@@ -22,23 +22,32 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/strings"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
-	ErrOperationNotSupportedForKind  = "resources.operation_not_supported_for_kind"
-	ErrAPINotDeployed                = "resources.api_not_deployed"
-	ErrCannotChangeTypeOfDeployedAPI = "resources.cannot_change_kind_of_deployed_api"
-	ErrNoAvailableNodeComputeLimit   = "resources.no_available_node_compute_limit"
-	ErrAPIUsedByAPISplitter          = "resources.syncapi_used_by_apisplitter"
-	ErrNotDeployedAPIsAPISplitter    = "resources.trafficsplit_apis_not_deployed"
-	ErrAPIGatewayDisabled            = "resources.api_gateway_disabled"
+	ErrOperationIsOnlySupportedForKind = "resources.operation_is_only_supported_for_kind"
+	ErrAPINotDeployed                  = "resources.api_not_deployed"
+	ErrCannotChangeTypeOfDeployedAPI   = "resources.cannot_change_kind_of_deployed_api"
+	ErrNoAvailableNodeComputeLimit     = "resources.no_available_node_compute_limit"
+	ErrJobIDRequired                   = "resources.job_id_required"
+	ErrAPIUsedByAPISplitter            = "resources.syncapi_used_by_apisplitter"
+	ErrNotDeployedAPIsAPISplitter      = "resources.trafficsplit_apis_not_deployed"
+	ErrAPIGatewayDisabled              = "resources.api_gateway_disabled"
 )
 
-func ErrorOperationNotSupportedForKind(kind userconfig.Kind) error {
+func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
+	supportedKindsSlice := append(make([]string, 0, 1+len(supportedKinds)), supportedKind.String())
+	for _, kind := range supportedKinds {
+		supportedKindsSlice = append(supportedKindsSlice, kind.String())
+	}
+
+	msg := fmt.Sprintf("%s %s", s.StrsOr(supportedKindsSlice), s.PluralS(userconfig.KindKey, len(supportedKindsSlice)))
+
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperationNotSupportedForKind,
-		Message: fmt.Sprintf("this operation is not supported for %s kind", kind),
+		Kind:    ErrOperationIsOnlySupportedForKind,
+		Message: fmt.Sprintf("this operation is only allowed for %s and is not supported for %s of kind %s", msg, resource.Name, resource.Kind),
 	})
 }
 
@@ -52,7 +61,7 @@ func ErrorAPINotDeployed(apiName string) error {
 func ErrorCannotChangeKindOfDeployedAPI(name string, newKind, prevKind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotChangeTypeOfDeployedAPI,
-		Message: fmt.Sprintf("cannot change the kind of %s to %s because it has already been deployed with kind %s; please delete it with `cortex delete %s` and redeploy to change the kind", name, newKind.String(), prevKind.String(), name),
+		Message: fmt.Sprintf("cannot change the kind of %s to %s because it has already been deployed with kind %s; please delete it with `cortex delete %s` and redeploy after updating the api configuration appropriately", name, newKind.String(), prevKind.String(), name),
 	})
 }
 
@@ -77,7 +86,7 @@ func ErrorAPIUsedByAPISplitter(apiSplitters []string) error {
 func ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotDeployedAPIsAPISplitter,
-		Message: fmt.Sprintf("unable to find specified %s: %s", strings.PluralS("api", len(notDeployedAPIs)), strings.StrsAnd(notDeployedAPIs)),
+		Message: fmt.Sprintf("unable to find specified %s: %s", strings.PluralS("SyncAPI", len(notDeployedAPIs)), strings.StrsAnd(notDeployedAPIs)),
 	})
 }
 

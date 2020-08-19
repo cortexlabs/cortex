@@ -1,0 +1,4 @@
+torch
+torchvision
+boto3
+pillow
