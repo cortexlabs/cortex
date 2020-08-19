@@ -595,9 +595,9 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			switch provider {
 			case types.LocalProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/api-configuration", consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 			case types.AWSProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nRealtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration\nTraffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nRealtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\nTraffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
 			}
 		}
 
@@ -615,11 +615,11 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			switch kind {
 			case userconfig.RealtimeAPIKind:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/api-configuration", consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 			case userconfig.BatchAPIKind:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Batch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Batch API can be found at https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration", consts.CortexVersionMinor))
 			case userconfig.TrafficSplitterKind:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Traffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/traffic-splitter", consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Traffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor))
 			}
 		}
 

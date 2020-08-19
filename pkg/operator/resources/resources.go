@@ -93,7 +93,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	err = ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nRealtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration\nTraffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/trafficsplitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nRealtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\nTraffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/trafficsplitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
 		return nil, err
 	}
 
