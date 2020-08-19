@@ -319,7 +319,7 @@ func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []use
 		}
 	}
 	if len(missingAPIs) != 0 {
-		return ErrorNotDeployedAPIsTrafficSplitter(missingAPIs)
+		return ErrorAPIsNotDeployed(missingAPIs)
 	}
 	return nil
 

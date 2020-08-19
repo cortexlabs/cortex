@@ -73,7 +73,7 @@ type TrafficSplitter struct {
 type GetAPIResponse struct {
 	RealtimeAPI     *RealtimeAPI     `json:"realtime_api"`
 	BatchAPI        *BatchAPI        `json:"batch_api"`
-	TrafficSplitter *TrafficSplitter `json:"traffic_splitters"`
+	TrafficSplitter *TrafficSplitter `json:"traffic_splitter"`
 }
 
 type BatchAPI struct {
