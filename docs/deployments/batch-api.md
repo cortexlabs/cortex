@@ -13,7 +13,7 @@ You may want to deploy your model as a Batch API if any of the following scenari
 * inference is a part of internal data pipelines that may be chained together
 * a small number of requests are received, but each request takes minutes or hours to complete
 
-You may want to consider deploying your model as a [Realtime API](realtimeapi.md) if these scenarios don't apply to you.
+You may want to consider deploying your model as a [Realtime API](realtime-api.md) if these scenarios don't apply to you.
 
 A Batch API deployed in Cortex will create/support the following:
 
@@ -39,5 +39,5 @@ At any point, you can use the Job ID that was provided upon job submission to ma
 
 * Try the [tutorial](../../examples/batch/image-classifier/README.md) to deploy a Batch API on your Cortex cluster.
 * See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Batch API.
-* See the [Predictor docs](batchapi/predictors.md) for how to implement a Predictor class.
-* See the [API configuration docs](batchapi/api-configuration.md) for a full list of features that can be used to deploy your Batch API.
+* See the [Predictor docs](batch-api/predictors.md) for how to implement a Predictor class.
+* See the [API configuration docs](batch-api/api-configuration.md) for a full list of features that can be used to deploy your Batch API.

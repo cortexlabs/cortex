@@ -13,7 +13,7 @@ You may want to deploy your model as a Realtime API if any of the following scen
 * predictions need to be made on an individual basis
 * predictions are served directly to consumers
 
-You may want to consider deploying your model as a [Batch API](batchapi.md) if these scenarios don't apply to you.
+You may want to consider deploying your model as a [Batch API](batch-api.md) if these scenarios don't apply to you.
 
 A Realtime API deployed in Cortex has the following features:
 
@@ -42,5 +42,5 @@ The Cortex Cluster will automatically scale based on the incoming traffic and th
 
 * Try the [tutorial](../../examples/sklearn/iris-classifier/README.md) to deploy a Realtime API locally or on AWS.
 * See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Realtime API.
-* See the [Predictor docs](realtimeapi/predictors.md) for how to implement a Predictor class.
-* See the [API configuration docs](realtimeapieapi/api-configuration.md) for a full list of features that can be used to deploy your Realtime API.
+* See the [Predictor docs](realtime-api/predictors.md) for how to implement a Predictor class.
+* See the [API configuration docs](realtime-api/api-configuration.md) for a full list of features that can be used to deploy your Realtime API.

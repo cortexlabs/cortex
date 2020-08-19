@@ -70,7 +70,7 @@ const (
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
 	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
-	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitters_weight"
+	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
 	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
 )
 
@@ -397,7 +397,6 @@ func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerPro
 	})
 }
 
-// TODO test this error
 func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorrectTrafficSplitterWeight,
@@ -405,7 +404,6 @@ func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int) error {
 	})
 }
 
-// TODO test this error
 func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrTrafficSplitterAPIsNotUnique,

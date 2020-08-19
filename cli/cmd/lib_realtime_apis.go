@@ -47,6 +47,9 @@ func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment
 	t := realtimeAPIsTable([]schema.RealtimeAPI{*realtimeAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 	t.FindHeaderByTitle(_titleRealtimeAPI).Hidden = true
+	if env.Provider == types.LocalProviderType {
+		hideReplicaCountColumns(&t)
+	}
 
 	out += t.MustFormat()
 
