@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-When `max_batch_size` and `batch_interval` fields are set for the [TensorFlow Predictor](../deployments/predictors.md#tensorflow-predictor), errors can be encountered if the associated model hasn't been built for batching.
+When `max_batch_size` and `batch_interval` fields are set for the [Sync API TensorFlow Predictor](../deployments/syncapi/predictors.md#tensorflow-predictor), errors can be encountered if the associated model hasn't been built for batching.
 
 The following error is an example of what happens when the input shape doesn't accommodate batching - e.g. when its shape is `[height, width, 3]` instead of `[batch_size, height, width, 3]`:
 

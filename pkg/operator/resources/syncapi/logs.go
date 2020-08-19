@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cache"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -31,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/gorilla/websocket"
-	"gopkg.in/karalabe/cookiejar.v2/collections/deque"
 	kapps "k8s.io/api/apps/v1"
 )
 
@@ -51,33 +51,6 @@ const (
 
 type fluentdLog struct {
 	Log string `json:"log"`
-}
-
-type eventCache struct {
-	size       int
-	seen       strset.Set
-	eventQueue *deque.Deque
-}
-
-func newEventCache(cacheSize int) eventCache {
-	return eventCache{
-		size:       cacheSize,
-		seen:       strset.New(),
-		eventQueue: deque.New(),
-	}
-}
-
-func (c *eventCache) Has(eventID string) bool {
-	return c.seen.Has(eventID)
-}
-
-func (c *eventCache) Add(eventID string) {
-	if c.eventQueue.Size() == c.size {
-		eventID := c.eventQueue.PopLeft().(string)
-		c.seen.Remove(eventID)
-	}
-	c.seen.Add(eventID)
-	c.eventQueue.PushRight(eventID)
 }
 
 func ReadLogs(apiName string, socket *websocket.Conn) {
@@ -100,7 +73,7 @@ func pumpStdin(socket *websocket.Conn) {
 
 func streamFromCloudWatch(apiName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	logGroupName := getLogGroupName(apiName)
-	eventCache := newEventCache(_maxCacheSize)
+	eventCache := cache.NewFifoCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}
 	lastDeploymentRefresh := time.Time{}
 	lastLogTime := time.Now()

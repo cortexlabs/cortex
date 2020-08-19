@@ -1,0 +1,27 @@
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.18.*, run `git checkout -b 0.18` or switch to the `0.18` branch on GitHub)
+
+- name: iris-classifier-onnx
+  kind: SyncAPI
+  predictor:
+    type: onnx
+    path: onnx_predictor.py
+    model_path: s3://cortex-examples/onnx/iris-classifier/gbtree.onnx
+  monitoring:
+    model_type: classification
+
+- name: iris-classifier-tf
+  kind: SyncAPI
+  predictor:
+    type: tensorflow
+    path: tensorflow_predictor.py
+    model_path: s3://cortex-examples/tensorflow/iris-classifier/nn
+  monitoring:
+    model_type: classification
+
+- name: iris-classifier-apisplitter
+  kind: APISplitter
+  apis:
+    - name: iris-classifier-onnx
+      weight: 30
+    - name: iris-classifier-tf
+      weight: 70

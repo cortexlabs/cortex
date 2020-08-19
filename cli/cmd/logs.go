@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
@@ -38,9 +39,9 @@ func logsInit() {
 }
 
 var _logsCmd = &cobra.Command{
-	Use:   "logs API_NAME",
+	Use:   "logs API_NAME [JOB_ID]",
 	Short: "stream logs from an api",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		env, err := ReadOrConfigureEnv(_flagLogsEnv)
 		if err != nil {
@@ -56,7 +57,8 @@ var _logsCmd = &cobra.Command{
 
 		apiName := args[0]
 		if env.Provider == types.AWSProviderType {
-			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), apiName)
+			logPath := path.Join(args...)
+			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), logPath)
 			if err != nil {
 				// note: if modifying this string, search the codebase for it and change all occurrences
 				if strings.HasSuffix(errors.Message(err), "is not deployed") {
@@ -66,6 +68,9 @@ var _logsCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		} else {
+			if len(args) == 2 {
+				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot stream logs for job %s for api %s", args[1], args[0]))
+			}
 			err := local.StreamLogs(apiName)
 			if err != nil {
 				exit.Error(err)

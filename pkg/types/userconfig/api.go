@@ -188,23 +188,30 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
-	return map[string]string{
-		EndpointAnnotationKey:                     *api.Networking.Endpoint,
-		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
-		ProcessesPerReplicaAnnotationKey:          s.Int32(api.Predictor.ProcessesPerReplica),
-		ThreadsPerProcessAnnotationKey:            s.Int32(api.Predictor.ThreadsPerProcess),
-		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
-		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
-		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*api.Autoscaling.TargetReplicaConcurrency),
-		MaxReplicaConcurrencyAnnotationKey:        s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-		WindowAnnotationKey:                       api.Autoscaling.Window.String(),
-		DownscaleStabilizationPeriodAnnotationKey: api.Autoscaling.DownscaleStabilizationPeriod.String(),
-		UpscaleStabilizationPeriodAnnotationKey:   api.Autoscaling.UpscaleStabilizationPeriod.String(),
-		MaxDownscaleFactorAnnotationKey:           s.Float64(api.Autoscaling.MaxDownscaleFactor),
-		MaxUpscaleFactorAnnotationKey:             s.Float64(api.Autoscaling.MaxUpscaleFactor),
-		DownscaleToleranceAnnotationKey:           s.Float64(api.Autoscaling.DownscaleTolerance),
-		UpscaleToleranceAnnotationKey:             s.Float64(api.Autoscaling.UpscaleTolerance),
+	annotations := map[string]string{
+		ProcessesPerReplicaAnnotationKey: s.Int32(api.Predictor.ProcessesPerReplica),
+		ThreadsPerProcessAnnotationKey:   s.Int32(api.Predictor.ThreadsPerProcess),
 	}
+
+	if api.Networking != nil {
+		annotations[EndpointAnnotationKey] = *api.Networking.Endpoint
+		annotations[APIGatewayAnnotationKey] = api.Networking.APIGateway.String()
+	}
+
+	if api.Autoscaling != nil {
+		annotations[MinReplicasAnnotationKey] = s.Int32(api.Autoscaling.MinReplicas)
+		annotations[MaxReplicasAnnotationKey] = s.Int32(api.Autoscaling.MaxReplicas)
+		annotations[TargetReplicaConcurrencyAnnotationKey] = s.Float64(*api.Autoscaling.TargetReplicaConcurrency)
+		annotations[MaxReplicaConcurrencyAnnotationKey] = s.Int64(api.Autoscaling.MaxReplicaConcurrency)
+		annotations[WindowAnnotationKey] = api.Autoscaling.Window.String()
+		annotations[DownscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.DownscaleStabilizationPeriod.String()
+		annotations[UpscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.UpscaleStabilizationPeriod.String()
+		annotations[MaxDownscaleFactorAnnotationKey] = s.Float64(api.Autoscaling.MaxDownscaleFactor)
+		annotations[MaxUpscaleFactorAnnotationKey] = s.Float64(api.Autoscaling.MaxUpscaleFactor)
+		annotations[DownscaleToleranceAnnotationKey] = s.Float64(api.Autoscaling.DownscaleTolerance)
+		annotations[UpscaleToleranceAnnotationKey] = s.Float64(api.Autoscaling.UpscaleTolerance)
+	}
+	return annotations
 }
 
 func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
