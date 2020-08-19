@@ -26,7 +26,7 @@ $ cortex get my-api
 status   up-to-date   requested   last update   avg request   2XX
 live     1            1           1m            -             -
 
-endpoint: http://***.amazonaws.com/iris-classifier
+endpoint: http://***.amazonaws.com/text-generator
 ...
 ```
 
@@ -63,6 +63,6 @@ deleting my-api
 ## Additional resources
 
 <!-- CORTEX_VERSION_MINOR -->
-* [Tutorial](../../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthrough of deploying an iris classifier API
+* [Tutorial](../../../examples/pytorch/text-generator/README.md) provides a step-by-step walkthrough of deploying a text generation API
 * [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples) demonstrate how to deploy models from common ML libraries

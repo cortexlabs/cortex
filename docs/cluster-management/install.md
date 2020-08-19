@@ -18,8 +18,8 @@ You must have [Docker](https://docs.docker.com/install) installed to run Cortex 
 # clone the Cortex repository
 git clone -b master https://github.com/cortexlabs/cortex.git
 
-# navigate to the TensorFlow iris classification example
-cd cortex/examples/tensorflow/iris-classifier
+# navigate to the Pytorch text generator example
+cd cortex/examples/pytorch/text-generator
 
 # deploy the model as a sync api
 cortex deploy
@@ -28,18 +28,18 @@ cortex deploy
 cortex get --watch
 
 # stream logs from the api
-cortex logs iris-classifier
+cortex logs text-generator
 
 # get the api's endpoint
-cortex get iris-classifier
+cortex get text-generator
 
 # classify a sample
-curl -X POST -H "Content-Type: application/json" \
-  -d '{ "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 }' \
-  <API endpoint>
+curl <API endpoint> \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"text": "machine learning is"}' \
 
 # delete the api
-cortex delete iris-classifier
+cortex delete text-generator
 ```
 
 ## Running at scale on AWS
@@ -56,7 +56,7 @@ cortex cluster up
 cortex env default aws
 ```
 
-You can now run the same commands shown above to deploy the iris classifier to AWS (if you didn't set the default CLI environment, add `--env aws` to the `cortex` commands).
+You can now run the same commands shown above to deploy the text generator to AWS (if you didn't set the default CLI environment, add `--env aws` to the `cortex` commands).
 
 ## Next steps
 

@@ -7,7 +7,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 You can install your required PyPI packages and import them in your Python files using pip. Cortex looks for a `requirements.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
 ```text
-./iris-classifier/
+./my-classifier/
 ├── cortex.yaml
 ├── predictor.py
 ├── ...
@@ -56,7 +56,7 @@ On GitHub, you can generate a personal access token by following [these steps](h
 Python packages can also be installed by providing a `setup.py` that describes your project's modules. Here's an example directory structure:
 
 ```text
-./iris-classifier/
+./my-classifier/
 ├── cortex.yaml
 ├── predictor.py
 ├── ...
@@ -78,7 +78,7 @@ In this case, `requirements.txt` will have this form:
 Cortex supports installing Conda packages. We recommend only using Conda when your required packages are not available in PyPI. Cortex looks for a `conda-packages.txt` file in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`):
 
 ```text
-./iris-classifier/
+./my-classifier/
 ├── cortex.yaml
 ├── predictor.py
 ├── ...

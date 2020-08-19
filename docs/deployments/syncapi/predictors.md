@@ -24,7 +24,7 @@ The following files can also be added at the root of the project's directory:
 For example, if your directory looks like this:
 
 ```text
-./iris-classifier/
+./my-classifier/
 ├── cortex.yaml
 ├── values.json
 ├── predictor.py
@@ -97,48 +97,25 @@ Your `predictor` method can return different types of objects such as `JSON`-par
 Many of the [examples](https://github.com/cortexlabs/cortex/tree/master/examples) use the Python Predictor, including all of the PyTorch examples.
 
 <!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/pytorch/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/iris-classifier):
+Here is the Predictor for [examples/pytorch/text-generator](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/text-generator):
 
 ```python
-import re
 import torch
-import boto3
-from model import IrisNet
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
-labels = ["setosa", "versicolor", "virginica"]
 
 class PythonPredictor:
     def __init__(self, config):
-        # download the model
-        bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
-        s3 = boto3.client("s3")
-        s3.download_file(bucket, key, "model.pth")
-
-        # initialize the model
-        model = IrisNet()
-        model.load_state_dict(torch.load("model.pth"))
-        model.eval()
-
-        self.model = model
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"using device: {self.device}")
+        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+        self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
 
     def predict(self, payload):
-        # Convert the request to a tensor and pass it into the model
-        input_tensor = torch.FloatTensor(
-            [
-                [
-                    payload["sepal_length"],
-                    payload["sepal_width"],
-                    payload["petal_length"],
-                    payload["petal_width"],
-                ]
-            ]
-        )
-
-        # Run the prediction
-        output = self.model(input_tensor)
-
-        # Translate the model output to the corresponding label string
-        return labels[torch.argmax(output[0])]
+        input_length = len(payload["text"].split())
+        tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
+        prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
+        return self.tokenizer.decode(prediction[0])
 ```
 
 ### Pre-installed packages
@@ -256,7 +233,7 @@ class TensorFlowPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "iris-classifier")`). See the [multi model guide](../../guides/multi-model.md#tensorflow-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`). See the [multi model guide](../../guides/multi-model.md#tensorflow-predictor) for more information.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
@@ -352,7 +329,7 @@ class ONNXPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "iris-classifier")`). See the [multi model guide](../../guides/multi-model.md#onnx-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). See the [multi model guide](../../guides/multi-model.md#onnx-predictor) for more information.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 

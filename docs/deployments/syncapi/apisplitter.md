@@ -78,5 +78,5 @@ Note that this will not delete the Sync APIs targeted by the API Splitter.
 
 <!-- CORTEX_VERSION_MINOR -->
 * [API Splitter Tutorial](../../../examples/apisplitter/README.md) provides a step-by-step walkthrough for deploying an API Splitter
-* [Sync API Tutorial](../../../examples/sklearn/iris-classifier/README.md) provides a step-by-step walkthrough of deploying an iris classifier Sync API
+* [Sync API Tutorial](../../../examples/pytorch/text-generator/README.md) provides a step-by-step walkthrough of deploying a realtime API for text generation
 * [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands

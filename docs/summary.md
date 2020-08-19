@@ -2,7 +2,7 @@
 
 * [Build machine learning APIs](../README.md)
 * [Install](cluster-management/install.md)
-* [Tutorial](../examples/sklearn/iris-classifier/README.md)
+* [Tutorial](../examples/pytorch/text-generator/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [Chat with us](https://gitter.im/cortexlabs/cortex)
@@ -19,7 +19,7 @@
   * [Parallelism](deployments/syncapi/parallelism.md)
   * [Autoscaling](deployments/syncapi/autoscaling.md)
   * [Prediction monitoring](deployments/syncapi/prediction-monitoring.md)
-  * [Tutorial](../examples/sklearn/iris-classifier/README.md)
+  * [Tutorial](../examples/pytorch/text-generator/README.md)
   * [API Splitter](deployments/syncapi/apisplitter.md)
 * [Batch API](deployments/batchapi.md)
   * [Predictor implementation](deployments/batchapi/predictors.md)
