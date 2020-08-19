@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -70,4 +71,24 @@ func getReadySyncAPIReplicasOrNil(operatorConfig OperatorConfig, apiName string)
 
 	totalReady := apiRes.SyncAPI.Status.Updated.Ready + apiRes.SyncAPI.Status.Stale.Ready
 	return &totalReady
+}
+
+func StopJob(operatorConfig OperatorConfig, apiName string, jobID string) (schema.DeleteResponse, error) {
+	params := map[string]string{
+		"apiName": apiName,
+		"jobID":   jobID,
+	}
+
+	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch", apiName, jobID), params)
+	if err != nil {
+		return schema.DeleteResponse{}, err
+	}
+
+	var deleteRes schema.DeleteResponse
+	err = json.Unmarshal(httpRes, &deleteRes)
+	if err != nil {
+		return schema.DeleteResponse{}, errors.Wrap(err, string(httpRes))
+	}
+
+	return deleteRes, nil
 }

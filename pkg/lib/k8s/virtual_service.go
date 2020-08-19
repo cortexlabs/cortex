@@ -35,8 +35,9 @@ var _virtualServiceTypeMeta = kmeta.TypeMeta{
 type VirtualServiceSpec struct {
 	Name         string
 	Gateways     []string
+	ExactPath    *string // either this or PrefixPath
+	PrefixPath   *string // either this or ExactPath
 	Destinations []Destination
-	Path         string
 	Rewrite      *string
 	Labels       map[string]string
 	Annotations  map[string]string
@@ -49,6 +50,22 @@ type Destination struct {
 }
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
+	var stringMatch *istionetworking.StringMatch
+
+	if spec.ExactPath != nil {
+		stringMatch = &istionetworking.StringMatch{
+			MatchType: &istionetworking.StringMatch_Exact{
+				Exact: urls.CanonicalizeEndpoint(*spec.ExactPath),
+			},
+		}
+	} else {
+		stringMatch = &istionetworking.StringMatch{
+			MatchType: &istionetworking.StringMatch_Prefix{
+				Prefix: urls.CanonicalizeEndpoint(*spec.PrefixPath),
+			},
+		}
+	}
+
 	destinations := []*istionetworking.HTTPRouteDestination{}
 	for _, destination := range spec.Destinations {
 		destinations = append(destinations, &istionetworking.HTTPRouteDestination{
@@ -76,11 +93,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 				{
 					Match: []*istionetworking.HTTPMatchRequest{
 						{
-							Uri: &istionetworking.StringMatch{
-								MatchType: &istionetworking.StringMatch_Exact{
-									Exact: urls.CanonicalizeEndpoint(spec.Path),
-								},
-							},
+							Uri: stringMatch,
 						},
 					},
 					Route: destinations,
@@ -89,7 +102,15 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 		},
 	}
 
-	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(spec.Path) {
+	var path string
+
+	if spec.ExactPath != nil {
+		path = *spec.ExactPath
+	} else {
+		path = *spec.PrefixPath
+	}
+
+	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(path) {
 		virtualService.Spec.Http[0].Rewrite = &istionetworking.HTTPRewrite{
 			Uri: urls.CanonicalizeEndpoint(*spec.Rewrite),
 		}
@@ -192,7 +213,13 @@ func ExtractVirtualServiceEndpoints(virtualService *istioclientnetworking.Virtua
 	endpoints := strset.New()
 	for _, http := range virtualService.Spec.Http {
 		for _, match := range http.Match {
-			endpoints.Add(urls.CanonicalizeEndpoint(match.Uri.GetExact()))
+			if match.Uri.GetExact() != "" {
+				endpoints.Add(urls.CanonicalizeEndpoint(match.Uri.GetExact()))
+			}
+
+			if match.Uri.GetPrefix() != "" {
+				endpoints.Add(urls.CanonicalizeEndpoint(match.Uri.GetPrefix()))
+			}
 		}
 	}
 	return endpoints

@@ -15,6 +15,7 @@
 import os
 import imp
 import inspect
+from copy import deepcopy
 
 import dill
 
@@ -22,6 +23,7 @@ from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex.lib.type.model import Model, get_model_signature_map
 from cortex import consts
+from cortex.lib import util
 
 
 class Predictor:
@@ -83,15 +85,30 @@ class Predictor:
 
         return None
 
-    def initialize_impl(self, project_dir, client=None):
+    def initialize_impl(self, project_dir, client=None, api_spec=None, job_spec=None):
         class_impl = self.class_impl(project_dir)
+        constructor_args = inspect.getfullargspec(class_impl.__init__).args
+
+        args = {}
+
+        config = deepcopy(api_spec["predictor"]["config"])
+        if job_spec is not None and job_spec.get("config") is not None:
+            util.merge_dicts_in_place_overwrite(config, job_spec["config"])
+
+        if "config" in constructor_args:
+            args["config"] = config
+        if "job_spec" in constructor_args:
+            args["job_spec"] = job_spec
+
         try:
             if self.type == "onnx":
-                return class_impl(onnx_client=client, config=self.config)
+                args["onnx_client"] = client
+                return class_impl(**args)
             elif self.type == "tensorflow":
-                return class_impl(tensorflow_client=client, config=self.config)
+                args["tensorflow_client"] = client
+                return class_impl(**args)
             else:
-                return class_impl(config=self.config)
+                return class_impl(**args)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
         finally:
@@ -173,55 +190,66 @@ class Predictor:
 
 PYTHON_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "required_args": ["self", "config"]},
+        {"name": "__init__", "required_args": ["self", "config"], "optional_args": ["job_spec"]},
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id"],
         },
     ],
     "optional": [
+        {"name": "on_job_complete", "required_args": ["self"]},
         {
             "name": "post_predict",
             "required_args": ["self"],
             "optional_args": ["response", "payload", "query_params", "headers"],
-        }
+        },
     ],
 }
 
 TENSORFLOW_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "required_args": ["self", "tensorflow_client", "config"]},
+        {
+            "name": "__init__",
+            "required_args": ["self", "tensorflow_client", "config"],
+            "optional_args": ["job_spec"],
+        },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id"],
         },
     ],
     "optional": [
+        {"name": "on_job_complete", "required_args": ["self"]},
         {
             "name": "post_predict",
             "required_args": ["self"],
             "optional_args": ["response", "payload", "query_params", "headers"],
-        }
+        },
     ],
 }
 
 ONNX_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "required_args": ["self", "onnx_client", "config"]},
+        {
+            "name": "__init__",
+            "required_args": ["self", "onnx_client", "config"],
+            "optional_args": ["job_spec"],
+        },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id"],
         },
     ],
     "optional": [
+        {"name": "on_job_complete", "required_args": ["self"]},
         {
             "name": "post_predict",
             "required_args": ["self"],
             "optional_args": ["response", "payload", "query_params", "headers"],
-        }
+        },
     ],
 }
 

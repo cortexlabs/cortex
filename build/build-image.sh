@@ -41,14 +41,27 @@ dir=$1
 image=$2
 
 docker build "$ROOT" \
-    -f $dir/Dockerfile \
-    -t cortexlabs/${image} \
-    -t cortexlabs/${image}:${CORTEX_VERSION}
+  -f $dir/Dockerfile \
+  -t cortexlabs/${image} \
+  -t cortexlabs/${image}:${CORTEX_VERSION}
 
 if [ "$slim" == "true" ]; then
-    docker build "$ROOT" \
+  if [ "${image}" == "python-predictor-gpu" ]; then
+    cuda=("10.0" "10.1" "10.2" "11.0")
+    cudnn=("7" "7" "7" "8")
+
+    for i in ${!cudnn[@]}; do
+      docker build "$ROOT" \
         -f $dir/Dockerfile \
         --build-arg SLIM=true \
-        -t cortexlabs/${image}-slim \
-        -t cortexlabs/${image}-slim:${CORTEX_VERSION}
+        --build-arg CUDA_VERSION=${cuda[$i]} \
+        --build-arg CUDNN=${cudnn[$i]} \
+        -t cortexlabs/${image}-slim:${CORTEX_VERSION}-cuda${cuda[$i]}
+    done
+  else
+    docker build "$ROOT" \
+      -f $dir/Dockerfile \
+      --build-arg SLIM=true \
+      -t cortexlabs/${image}-slim:${CORTEX_VERSION}
+  fi
 fi

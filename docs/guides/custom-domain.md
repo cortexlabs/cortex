@@ -100,9 +100,11 @@ Take note of the certificate's ARN. The certificate is ineligible for renewal be
 
 ![step 14](https://user-images.githubusercontent.com/4365343/82222684-9e613d80-98ef-11ea-98c0-5a20b457f062.png)
 
-If you are using API Gateway, continue to the next section. Otherwise (i.e. clients connect directly to your API load balancer) proceed to [configure the API load balancer](#configure-the-api-load-balancer).
+If you are using API Gateway, continue to the next section to [configure API Gateway](#configure-api-gateway). Otherwise (i.e. clients connect directly to your API load balancer) skip to [configure the API load balancer](#configure-the-api-load-balancer).
 
 ## Configure API Gateway
+
+_If you aren't using API Gateway (i.e. clients connect directly to your API load balancer), skip this section and [configure the API load balancer](#configure-the-api-load-balancer) instead._
 
 ### Step 1
 
@@ -140,9 +142,11 @@ Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#ho
 
 ![step 6](https://user-images.githubusercontent.com/808475/84083366-54232780-a996-11ea-9bc6-2c9945a160d4.png)
 
-Proceed to [using your new endpoint](#using-your-new-endpoint)
+Proceed to [using your new endpoint](#using-your-new-endpoint).
 
 ## Configure the API load balancer
+
+_If you are using API Gateway, this section does not apply; follow the instructions above to [configure API Gateway](#configure-api-gateway) instead._
 
 ### Step 1
 

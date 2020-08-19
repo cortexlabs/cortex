@@ -65,3 +65,33 @@ func (code Code) Message() string {
 	}
 	return _codeMessages[code]
 }
+
+// MarshalText satisfies TextMarshaler
+func (code Code) MarshalText() ([]byte, error) {
+	return []byte(code.String()), nil
+}
+
+// UnmarshalText satisfies TextUnmarshaler
+func (code *Code) UnmarshalText(text []byte) error {
+	enum := string(text)
+	for i := 0; i < len(_codes); i++ {
+		if enum == _codes[i] {
+			*code = Code(i)
+			return nil
+		}
+	}
+
+	*code = Unknown
+	return nil
+}
+
+// UnmarshalBinary satisfies BinaryUnmarshaler
+// Needed for msgpack
+func (code *Code) UnmarshalBinary(data []byte) error {
+	return code.UnmarshalText(data)
+}
+
+// MarshalBinary satisfies BinaryMarshaler
+func (code Code) MarshalBinary() ([]byte, error) {
+	return []byte(code.String()), nil
+}

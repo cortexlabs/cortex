@@ -140,7 +140,7 @@ func queryMetrics(api *spec.API, period int64, startTime *time.Time, endTime *ti
 	}
 	output, err := config.AWS.CloudWatch().GetMetricData(&metricsDataQuery)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return output.MetricDataResults, nil
 }
