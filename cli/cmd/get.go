@@ -37,7 +37,7 @@ import (
 
 const (
 	_titleEnvironment = "env"
-	_titleSyncAPI     = "sync api"
+	_titleRealtimeAPI = "realtime api"
 	_titleStatus      = "status"
 	_titleUpToDate    = "up-to-date"
 	_titleStale       = "stale"
@@ -150,12 +150,12 @@ func getAPIsInAllEnvironments() (string, error) {
 		return "", err
 	}
 
-	var allSyncAPIs []schema.SyncAPI
-	var allSyncAPIEnvs []string
+	var allRealtimeAPIs []schema.RealtimeAPI
+	var allRealtimeAPIEnvs []string
 	var allBatchAPIs []schema.BatchAPI
 	var allBatchAPIEnvs []string
-	var allAPISplitters []schema.APISplitter
-	var allAPISplitterEnvs []string
+	var allTrafficSplitters []schema.TrafficSplitter
+	var allTrafficSplitterEnvs []string
 
 	errorsMap := map[string]error{}
 	// get apis from both environments
@@ -172,15 +172,15 @@ func getAPIsInAllEnvironments() (string, error) {
 			for range apisRes.BatchAPIs {
 				allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)
 			}
-			for range apisRes.SyncAPIs {
-				allSyncAPIEnvs = append(allSyncAPIEnvs, env.Name)
+			for range apisRes.RealtimeAPIs {
+				allRealtimeAPIEnvs = append(allRealtimeAPIEnvs, env.Name)
 			}
-			for range apisRes.APISplitters {
-				allAPISplitterEnvs = append(allAPISplitterEnvs, env.Name)
+			for range apisRes.TrafficSplitters {
+				allTrafficSplitterEnvs = append(allTrafficSplitterEnvs, env.Name)
 			}
-			allSyncAPIs = append(allSyncAPIs, apisRes.SyncAPIs...)
+			allRealtimeAPIs = append(allRealtimeAPIs, apisRes.RealtimeAPIs...)
 			allBatchAPIs = append(allBatchAPIs, apisRes.BatchAPIs...)
-			allAPISplitters = append(allAPISplitters, apisRes.APISplitters...)
+			allTrafficSplitters = append(allTrafficSplitters, apisRes.TrafficSplitters...)
 		} else {
 			errorsMap[env.Name] = err
 		}
@@ -188,7 +188,7 @@ func getAPIsInAllEnvironments() (string, error) {
 
 	out := ""
 
-	if len(allSyncAPIs) == 0 && len(allBatchAPIs) == 0 && len(allAPISplitters) == 0 {
+	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 {
 		if len(errorsMap) == 1 {
 			// Print the error if there is just one
 			exit.Error(errors.FirstErrorInMap(errorsMap))
@@ -203,9 +203,9 @@ func getAPIsInAllEnvironments() (string, error) {
 			out += t.MustFormat()
 		}
 
-		if len(allSyncAPIs) > 0 {
-			t := syncAPIsTable(allSyncAPIs, allSyncAPIEnvs)
-			if strset.New(allSyncAPIEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
+		if len(allRealtimeAPIs) > 0 {
+			t := realtimeAPIsTable(allRealtimeAPIs, allRealtimeAPIEnvs)
+			if strset.New(allRealtimeAPIEnvs...).IsEqual(strset.New(types.LocalProviderType.String())) {
 				hideReplicaCountColumns(&t)
 			}
 
@@ -216,10 +216,10 @@ func getAPIsInAllEnvironments() (string, error) {
 			out += t.MustFormat()
 		}
 
-		if len(allAPISplitters) > 0 {
-			t := apiSplitterListTable(allAPISplitters, allAPISplitterEnvs)
+		if len(allTrafficSplitters) > 0 {
+			t := trafficSplitterListTable(allTrafficSplitters, allTrafficSplitterEnvs)
 
-			if len(allSyncAPIs) > 0 || len(allBatchAPIs) > 0 {
+			if len(allRealtimeAPIs) > 0 || len(allBatchAPIs) > 0 {
 				out += "\n"
 			}
 
@@ -267,7 +267,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(apisRes.SyncAPIs) == 0 && len(apisRes.BatchAPIs) == 0 && len(apisRes.APISplitters) == 0 {
+	if len(apisRes.RealtimeAPIs) == 0 && len(apisRes.BatchAPIs) == 0 && len(apisRes.TrafficSplitters) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
@@ -285,13 +285,13 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		out += t.MustFormat()
 	}
 
-	if len(apisRes.SyncAPIs) > 0 {
+	if len(apisRes.RealtimeAPIs) > 0 {
 		envNames := []string{}
-		for range apisRes.SyncAPIs {
+		for range apisRes.RealtimeAPIs {
 			envNames = append(envNames, env.Name)
 		}
 
-		t := syncAPIsTable(apisRes.SyncAPIs, envNames)
+		t := realtimeAPIsTable(apisRes.RealtimeAPIs, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
 		if len(apisRes.BatchAPIs) > 0 {
@@ -305,16 +305,16 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		out += t.MustFormat()
 	}
 
-	if len(apisRes.APISplitters) > 0 {
+	if len(apisRes.TrafficSplitters) > 0 {
 		envNames := []string{}
-		for range apisRes.APISplitters {
+		for range apisRes.TrafficSplitters {
 			envNames = append(envNames, env.Name)
 		}
 
-		t := apiSplitterListTable(apisRes.APISplitters, envNames)
+		t := trafficSplitterListTable(apisRes.TrafficSplitters, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-		if len(apisRes.BatchAPIs) > 0 || len(apisRes.SyncAPIs) > 0 {
+		if len(apisRes.BatchAPIs) > 0 || len(apisRes.RealtimeAPIs) > 0 {
 			out += "\n"
 		}
 
@@ -357,11 +357,11 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			return "", err
 		}
 
-		if apiRes.SyncAPI != nil {
-			return syncAPITable(apiRes.SyncAPI, env)
+		if apiRes.RealtimeAPI != nil {
+			return realtimeAPITable(apiRes.RealtimeAPI, env)
 		}
-		if apiRes.APISplitter != nil {
-			return apiSplitterTable(apiRes.APISplitter, env)
+		if apiRes.TrafficSplitter != nil {
+			return trafficSplitterTable(apiRes.TrafficSplitter, env)
 		}
 		return batchAPITable(*apiRes.BatchAPI), nil
 	}
@@ -375,7 +375,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return "", err
 	}
 
-	return syncAPITable(apiRes.SyncAPI, env)
+	return realtimeAPITable(apiRes.RealtimeAPI, env)
 }
 
 func titleStr(title string) string {

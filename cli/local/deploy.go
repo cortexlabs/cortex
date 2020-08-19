@@ -69,7 +69,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 
 	err = ValidateLocalAPIs(apiConfigs, projectFiles, awsClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/api-configuration", consts.CortexVersionMinor))
 		return schema.DeployResponse{}, err
 	}
 

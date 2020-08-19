@@ -1,4 +1,4 @@
-# Deploy models as Sync APIs
+# Deploy models as Realtime APIs
 
 _WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.18.*, run `git checkout -b 0.18` or switch to the `0.18` branch on GitHub)_
 
@@ -90,7 +90,7 @@ class PythonPredictor:
         return labels[label_id]
 ```
 
-Here are the complete [Predictor docs](../../../docs/deployments/syncapi/predictors.md).
+Here are the complete [Predictor docs](../../../docs/deployments/realtimeapi/predictors.md).
 
 <br>
 
@@ -104,7 +104,7 @@ Create a `requirements.txt` file to specify the dependencies needed by `predicto
 boto3
 ```
 
-You can skip dependencies that are [pre-installed](../../../docs/deployments/syncapi/predictors.md) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
+You can skip dependencies that are [pre-installed](../../../docs/deployments/realtimeapi/predictors.md) to speed up the deployment process. Note that `pickle` is part of the Python standard library so it doesn't need to be included.
 
 <br>
 
@@ -116,7 +116,7 @@ Create a `cortex.yaml` file and add the configuration below and replace `cortex-
 # cortex.yaml
 
 - name: iris-classifier
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -125,7 +125,7 @@ Create a `cortex.yaml` file and add the configuration below and replace `cortex-
       key: sklearn/iris-classifier/model.pkl
 ```
 
-Here are the complete [API configuration docs](../../../docs/deployments/syncapi/api-configuration.md).
+Here are the complete [API configuration docs](../../../docs/deployments/realtimeapi/api-configuration.md).
 
 <br>
 
@@ -136,7 +136,7 @@ Here are the complete [API configuration docs](../../../docs/deployments/syncapi
 ```bash
 $ cortex deploy
 
-creating iris-classifier (SyncAPI)
+creating iris-classifier (RealtimeAPI)
 ```
 
 Monitor the status of your API using `cortex get`:
@@ -185,7 +185,7 @@ After your cluster is created, you can deploy your model to your cluster by usin
 ```bash
 $ cortex deploy --env aws
 
-creating iris-classifier (SyncAPI)
+creating iris-classifier (RealtimeAPI)
 ```
 
 You can then get your API's endpoint (along with other useful information about your API) using the `cortex get` command:
@@ -218,7 +218,7 @@ Add `monitoring` to your `cortex.yaml` and specify that this is a classification
 # cortex.yaml
 
 - name: iris-classifier
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -234,7 +234,7 @@ Run `cortex deploy` again to perform a rolling update to your API with the new c
 ```bash
 $ cortex deploy --env aws
 
-updating iris-classifier (SyncAPI)
+updating iris-classifier (RealtimeAPI)
 ```
 
 After making more predictions, your `cortex get` command will show information about your API's past predictions:
@@ -261,7 +261,7 @@ This model is fairly small but larger models may require more compute resources.
 # cortex.yaml
 
 - name: iris-classifier
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -280,7 +280,7 @@ You could also configure GPU compute here if your cluster supports it. Adding co
 ```bash
 $ cortex deploy --env aws
 
-updating iris-classifier (SyncAPI)
+updating iris-classifier (RealtimeAPI)
 ```
 
 Run `cortex get` again:
@@ -307,7 +307,7 @@ If you trained another model and want to A/B test it with your previous model, s
 # cortex.yaml
 
 - name: iris-classifier
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -321,7 +321,7 @@ If you trained another model and want to A/B test it with your previous model, s
     mem: 100M
 
 - name: another-iris-classifier
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -340,8 +340,8 @@ Run `cortex deploy` to create the new API:
 ```bash
 $ cortex deploy --env aws
 
-iris-classifier (SyncAPI) is up to date
-creating another-iris-classifier (SyncAPI)
+iris-classifier (RealtimeAPI) is up to date
+creating another-iris-classifier (RealtimeAPI)
 ```
 
 `cortex deploy` is declarative so the `iris-classifier` API is unchanged while `another-iris-classifier` is created:
@@ -403,7 +403,7 @@ Next, add the `api` to `cortex.yaml`:
 # cortex.yaml
 
 - name: iris-classifier
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -417,7 +417,7 @@ Next, add the `api` to `cortex.yaml`:
     mem: 100M
 
 - name: another-iris-classifier
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -431,7 +431,7 @@ Next, add the `api` to `cortex.yaml`:
     mem: 100M
 
 - name: batch-iris-classifier
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: batch-predictor.py
@@ -448,9 +448,9 @@ Run `cortex deploy` to create your batch API:
 ```bash
 $ cortex deploy --env aws
 
-updating iris-classifier (SyncAPI)
-updating another-iris-classifier (SyncAPI)
-creating batch-iris-classifier (SyncAPI)
+updating iris-classifier (RealtimeAPI)
+updating another-iris-classifier (RealtimeAPI)
+creating batch-iris-classifier (RealtimeAPI)
 ```
 
 Since a new file was added to the directory, and all files in the directory containing `cortex.yaml` are made available in your APIs, the previous two APIs were updated in addition to the the batch classifier being created.

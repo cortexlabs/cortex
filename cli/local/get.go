@@ -41,7 +41,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 		return schema.GetAPIsResponse{}, err
 	}
 
-	syncAPIs := make([]schema.SyncAPI, len(apiSpecList))
+	realtimeAPIs := make([]schema.RealtimeAPI, len(apiSpecList))
 	for i, apiSpec := range apiSpecList {
 		apiStatus, err := GetAPIStatus(&apiSpec)
 		if err != nil {
@@ -53,7 +53,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 			return schema.GetAPIsResponse{}, err
 		}
 
-		syncAPIs[i] = schema.SyncAPI{
+		realtimeAPIs[i] = schema.RealtimeAPI{
 			Spec:    apiSpec,
 			Status:  apiStatus,
 			Metrics: metrics,
@@ -61,7 +61,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 	}
 
 	return schema.GetAPIsResponse{
-		SyncAPIs: syncAPIs,
+		RealtimeAPIs: realtimeAPIs,
 	}, nil
 }
 
@@ -169,7 +169,7 @@ func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 	}
 
 	return schema.GetAPIResponse{
-		SyncAPI: &schema.SyncAPI{
+		RealtimeAPI: &schema.RealtimeAPI{
 			Spec:     *apiSpec,
 			Status:   apiStatus,
 			Metrics:  apiMetrics,

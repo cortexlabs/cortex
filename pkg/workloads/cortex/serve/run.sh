@@ -52,7 +52,7 @@ export PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH
 export PYTHONUNBUFFERED=TRUE
 
 if [ "$CORTEX_PROVIDER" != "local" ]; then
-    if [ "$CORTEX_KIND" == "SyncAPI" ]; then
+    if [ "$CORTEX_KIND" == "RealtimeAPI" ]; then
         sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
         sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
         sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null

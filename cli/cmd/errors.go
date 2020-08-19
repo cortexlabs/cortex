@@ -347,6 +347,6 @@ func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.Provid
 	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
-		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/deployments/syncapi/predictors#project-files for Sync API and https://docs.cortex.dev/v/%s/deployments/batchapi/predictors#project-files for Batch API); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/deployments/realtimeapi/predictors#project-files for Realtime API and https://docs.cortex.dev/v/%s/deployments/batchapi/predictors#project-files for Batch API); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }

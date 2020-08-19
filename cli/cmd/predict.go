@@ -75,18 +75,18 @@ var _predictCmd = &cobra.Command{
 			}
 		}
 
-		if apiRes.SyncAPI == nil {
+		if apiRes.RealtimeAPI == nil {
 			exit.Error(errors.ErrorUnexpected("unable to get api", apiName)) // unexpected
 		}
 
-		syncAPI := apiRes.SyncAPI
+		realtimeAPI := apiRes.RealtimeAPI
 
-		totalReady := syncAPI.Status.Updated.Ready + syncAPI.Status.Stale.Ready
+		totalReady := realtimeAPI.Status.Updated.Ready + realtimeAPI.Status.Stale.Ready
 		if totalReady == 0 {
-			exit.Error(ErrorAPINotReady(apiName, syncAPI.Status.Message()))
+			exit.Error(ErrorAPINotReady(apiName, realtimeAPI.Status.Message()))
 		}
 
-		predictResponse, err := makePredictRequest(syncAPI.Endpoint, jsonPath)
+		predictResponse, err := makePredictRequest(realtimeAPI.Endpoint, jsonPath)
 		if err != nil {
 			exit.Error(err)
 		}

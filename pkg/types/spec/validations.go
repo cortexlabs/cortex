@@ -50,7 +50,7 @@ var AutoscalingTickInterval = 10 * time.Second
 func apiValidation(provider types.ProviderType, resource userconfig.Resource) *cr.StructValidation {
 	structFieldValidations := []*cr.StructFieldValidation{}
 	switch resource.Kind {
-	case userconfig.SyncAPIKind:
+	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
 			networkingValidation(resource.Kind),
@@ -65,7 +65,7 @@ func apiValidation(provider types.ProviderType, resource userconfig.Resource) *c
 			networkingValidation(resource.Kind),
 			computeValidation(provider),
 		)
-	case userconfig.APISplitterKind:
+	case userconfig.TrafficSplitterKind:
 		structFieldValidations = append(resourceStructValidations,
 			multiAPIsValidation(),
 			networkingValidation(resource.Kind),
@@ -273,7 +273,7 @@ func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			},
 		},
 	}
-	if kind == userconfig.SyncAPIKind {
+	if kind == userconfig.RealtimeAPIKind {
 		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
 			StructField: "LocalPort",
 			IntPtrValidation: &cr.IntPtrValidation{
@@ -595,13 +595,13 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			switch provider {
 			case types.LocalProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration", consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/api-configuration", consts.CortexVersionMinor))
 			case types.AWSProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nSync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration\nAPI Splitter can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/apisplitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nRealtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration\nTraffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
 			}
 		}
 
-		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.APISplitterKind {
+		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
 			if provider == types.LocalProviderType {
 				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, types.LocalProviderType), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}
@@ -614,19 +614,19 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			switch kind {
-			case userconfig.SyncAPIKind:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Sync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration", consts.CortexVersionMinor))
+			case userconfig.RealtimeAPIKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/api-configuration", consts.CortexVersionMinor))
 			case userconfig.BatchAPIKind:
 				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Batch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration", consts.CortexVersionMinor))
-			case userconfig.APISplitterKind:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for API Splitter can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/apisplitter", consts.CortexVersionMinor))
+			case userconfig.TrafficSplitterKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Traffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtimeapi/traffic-splitter", consts.CortexVersionMinor))
 			}
 		}
 
 		api.Index = i
 		api.FileName = configFileName
 
-		if resourceStruct.Kind == userconfig.SyncAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
+		if resourceStruct.Kind == userconfig.RealtimeAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
 			api.ApplyDefaultDockerPaths()
 		}
 
@@ -669,7 +669,7 @@ func ValidateAPI(
 	return nil
 }
 
-func ValidateAPISplitter(
+func ValidateTrafficSplitter(
 	api *userconfig.API,
 	providerType types.ProviderType,
 	awsClient *aws.Client,
@@ -680,7 +680,7 @@ func ValidateAPISplitter(
 	if err := verifyTotalWeight(api.APIs); err != nil {
 		return err
 	}
-	if err := areAPISplitterAPIsUnique(api.APIs); err != nil {
+	if err := areTrafficSplitterAPIsUnique(api.APIs); err != nil {
 		return err
 	}
 
@@ -1274,11 +1274,11 @@ func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
 	if totalWeight == 100 {
 		return nil
 	}
-	return ErrorIncorrectAPISplitterWeightTotal(totalWeight)
+	return errors.Wrap(ErrorIncorrectTrafficSplitterWeightTotal(totalWeight), userconfig.APIsKey)
 }
 
-// areAPISplitterAPIsUnique gives error if the same API is used multiple times in APISplitter
-func areAPISplitterAPIsUnique(apis []*userconfig.TrafficSplit) error {
+// areTrafficSplitterAPIsUnique gives error if the same API is used multiple times in TrafficSplitter
+func areTrafficSplitterAPIsUnique(apis []*userconfig.TrafficSplit) error {
 	names := make(map[string][]userconfig.TrafficSplit)
 	for _, api := range apis {
 		names[api.Name] = append(names[api.Name], *api)
@@ -1290,7 +1290,7 @@ func areAPISplitterAPIsUnique(apis []*userconfig.TrafficSplit) error {
 		}
 	}
 	if len(notUniqueAPIs) > 0 {
-		return ErrorAPISplitterAPIsNotUnique(notUniqueAPIs)
+		return errors.Wrap(ErrorTrafficSplitterAPIsNotUnique(notUniqueAPIs), userconfig.APIsKey)
 	}
 	return nil
 }

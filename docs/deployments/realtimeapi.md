@@ -1,12 +1,12 @@
-# Sync API Overview
+# Realtime API Overview
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-You can deploy a Sync API on Cortex to serve your model via an HTTP endpoint for on-demand inferences.
+You can deploy a Realtime API on Cortex to serve your model via an HTTP endpoint for on-demand inferences.
 
-## When should I use a Sync API
+## When should I use a Realtime API
 
-You may want to deploy your model as a Sync API if any of the following scenarios apply to your use case:
+You may want to deploy your model as a Realtime API if any of the following scenarios apply to your use case:
 
 * predictions are served on demand
 * predictions need to be made in the time of a single web request
@@ -15,7 +15,7 @@ You may want to deploy your model as a Sync API if any of the following scenario
 
 You may want to consider deploying your model as a [Batch API](batchapi.md) if these scenarios don't apply to you.
 
-A Sync API deployed in Cortex has the following features:
+A Realtime API deployed in Cortex has the following features:
 
 * request-based autoscaling
 * rolling updates to enable you to update the model/serving code without downtime
@@ -32,7 +32,7 @@ You specify the following:
 * a Cortex Predictor class in Python that defines how to initialize and serve your model
 * an API configuration yaml file that defines how your API will behave in production (autoscaling, monitoring, networking, compute, etc.)
 
-Once you've implemented your predictor and defined your API configuration, you can use the Cortex CLI to deploy a Sync API. The Cortex CLI will package your predictor implementation and the rest of the code and dependencies and upload it to the Cortex Cluster. The Cortex Cluster will set up an HTTP endpoint that routes traffic to multiple replicas/copies of web servers initialized with your code.
+Once you've implemented your predictor and defined your API configuration, you can use the Cortex CLI to deploy a Realtime API. The Cortex CLI will package your predictor implementation and the rest of the code and dependencies and upload it to the Cortex Cluster. The Cortex Cluster will set up an HTTP endpoint that routes traffic to multiple replicas/copies of web servers initialized with your code.
 
 When a request is made to the HTTP endpoint, it gets routed to one your API's replicas (at random). The replica receives the request, parses the payload and executes the inference code you've defined in your predictor implementation and sends a response.
 
@@ -40,7 +40,7 @@ The Cortex Cluster will automatically scale based on the incoming traffic and th
 
 ## Next steps
 
-* Try the [tutorial](../../examples/sklearn/iris-classifier/README.md) to deploy a Sync API locally or on AWS.
-* See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Sync API.
-* See the [Predictor docs](syncapi/predictors.md) for how to implement a Predictor class.
-* See the [API configuration docs](syncapi/api-configuration.md) for a full list of features that can be used to deploy your Sync API.
+* Try the [tutorial](../../examples/sklearn/iris-classifier/README.md) to deploy a Realtime API locally or on AWS.
+* See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Realtime API.
+* See the [Predictor docs](realtimeapi/predictors.md) for how to implement a Predictor class.
+* See the [API configuration docs](realtimeapieapi/api-configuration.md) for a full list of features that can be used to deploy your Realtime API.

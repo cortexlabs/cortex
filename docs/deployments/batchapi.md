@@ -13,7 +13,7 @@ You may want to deploy your model as a Batch API if any of the following scenari
 * inference is a part of internal data pipelines that may be chained together
 * a small number of requests are received, but each request takes minutes or hours to complete
 
-You may want to consider deploying your model as a [Sync API](syncapi.md) if these scenarios don't apply to you.
+You may want to consider deploying your model as a [Realtime API](realtimeapi.md) if these scenarios don't apply to you.
 
 A Batch API deployed in Cortex will create/support the following:
 

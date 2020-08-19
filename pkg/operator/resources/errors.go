@@ -32,8 +32,8 @@ const (
 	ErrCannotChangeTypeOfDeployedAPI   = "resources.cannot_change_kind_of_deployed_api"
 	ErrNoAvailableNodeComputeLimit     = "resources.no_available_node_compute_limit"
 	ErrJobIDRequired                   = "resources.job_id_required"
-	ErrAPIUsedByAPISplitter            = "resources.syncapi_used_by_apisplitter"
-	ErrNotDeployedAPIsAPISplitter      = "resources.trafficsplit_apis_not_deployed"
+	ErrAPIUsedByTrafficSplitter        = "resources.realtimeapi_used_by_traffic_splitter"
+	ErrNotDeployedAPIsTrafficSplitter  = "resources.trafficsplit_apis_not_deployed"
 	ErrAPIGatewayDisabled              = "resources.api_gateway_disabled"
 )
 
@@ -76,17 +76,21 @@ func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr str
 	})
 }
 
-func ErrorAPIUsedByAPISplitter(apiSplitters []string) error {
+func ErrorAPIUsedByTrafficSplitter(trafficSplitters []string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPIUsedByAPISplitter,
-		Message: fmt.Sprintf("cannot delete api because it is used by the following %s: %s", strings.PluralS("APISplitter", len(apiSplitters)), strings.StrsSentence(apiSplitters, "")),
+		Kind:    ErrAPIUsedByTrafficSplitter,
+		Message: fmt.Sprintf("cannot delete api because it is used by the following %s: %s", strings.PluralS("TrafficSplitter", len(trafficSplitters)), strings.StrsSentence(trafficSplitters, "")),
 	})
 }
 
-func ErrorNotDeployedAPIsAPISplitter(notDeployedAPIs []string) error {
+func ErrorNotDeployedAPIsTrafficSplitter(notDeployedAPIs []string) error {
+	message := fmt.Sprintf("apis %s were either not found or are not RealtimeAPI kind", strings.StrsAnd(notDeployedAPIs))
+	if len(notDeployedAPIs) == 1 {
+		message = fmt.Sprintf("api %s was either not found or is not RealtimeAPI kind", notDeployedAPIs[0])
+	}
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrNotDeployedAPIsAPISplitter,
-		Message: fmt.Sprintf("unable to find specified %s: %s", strings.PluralS("SyncAPI", len(notDeployedAPIs)), strings.StrsAnd(notDeployedAPIs)),
+		Kind:    ErrNotDeployedAPIsTrafficSplitter,
+		Message: message,
 	})
 }
 
