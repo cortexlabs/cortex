@@ -138,13 +138,18 @@ class ModelsHolder:
         self,
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
+        temp_dir: str = "/tmp/models",
+        on_download_callback: Callable[[str, str, str, List[str]], bool] = None,
+        on_load_callback: Callable[[str], Any] = None,
         on_remove_callback: Callable[[List[str]], None] = None,
     ):
         """
         Args:
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
-            on_remove_callback: Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.  
+            on_download_callback(bucket, s3_model_prefix, model_version, s3_prefixes): Function to be called for downloading a model to disk. Returns true if it worked, false otherwise.
+            on_load_callback(disk_model_path): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
+            on_remove_callback(list of model IDs to remove): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.  
         """
         if mem_cache_size > 0 and disk_cache_size > 0 and mem_cache_size > disk_cache_size:
             raise RuntimeException(
@@ -158,13 +163,31 @@ class ModelsHolder:
 
         self._mem_cache_size = mem_cache_size
         self._disk_cache_size = disk_cache_size
-        self._callback = on_remove_callback
+
+        self._download_callback = on_download_callback
+        self._load_callback = on_load_callback
+        self._remove_callback = on_remove_callback
 
         self._models = {}
         self._timestamps = {}
         self._locks = {}
 
         self._global_lock = ReadWriteLock()
+
+    def set_callback(self, ctype: str, callback: Callable) -> None:
+        """
+        Sets a callback.
+
+        Args:
+            ctype: "download", "load" or "remove" callback type - see the constructor to mark each one.
+            callback: The actual callback.
+        """
+        if ctype == "download":
+            self._download_callback = callback
+        if ctype == "load":
+            self._load_callback = callback
+        if ctype == "remove":
+            self._remove_callback = callback
 
     #################
 
@@ -308,8 +331,16 @@ class ModelsHolder:
     #################
 
     def garbage_collect(self) -> bool:
+        """
+        Removes stale in-memory and on-disk models.
+        Also calls the "remove" callback before removing the models from this object.
+
+        Returns:
+            True when models had to be collected. False otherwise.
+        """
+        collected = False
         if self._mem_cache_size <= 0 or self._disk_cache_size <= 0:
-            return True
+            return collected
 
         stale_mem_model_ids = self._lru_model_ids(self._mem_cache_size)
         stale_disk_model_ids = self._lru_model_ids(self._disk_cache_size)
@@ -322,7 +353,21 @@ class ModelsHolder:
         for model_id in stale_disk_model_ids:
             self._remove_model(model_id, mem=False, disk=True)
 
+        if len(stale_mem_model_ids) > 0 or len(stale_disk_model_ids) > 0:
+            collected = True
+
+        return collected
+
     def _lru_model_ids(self, threshold: int) -> List[str]:
+        """
+        Looking at the LRU, this method gets the model IDs which find themselves at higher indexes than the threshold.
+
+        Args:
+            threshold: The memory cache size or the disk cache size.
+
+        Returns:
+            A list of stale model IDs.
+        """
         self._timestamps = {
             k: v
             for k, v in sorted(self._timestamps.items(), key=lambda item: item[1], reverse=True)
@@ -336,6 +381,14 @@ class ModelsHolder:
         return model_ids
 
     def _remove_model(self, model_id: str, mem: bool, disk: bool) -> None:
+        """
+        Remove a model from this object and/or from disk.
+
+        Args:
+            model_id: The model ID to remove.
+            mem: Whether to remove the model from memory or not.
+            disk: Whether to remove the model from disk or not.
+        """
         if mem:
             self._models[model_id]["model"] = None
         if disk:

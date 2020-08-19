@@ -17,6 +17,9 @@
 import threading as td
 
 
+# TODO might have to implement a writer-preference RW lock.
+
+
 class ReadWriteLock:
     """
     Locking object allowing for write once, read many operations.

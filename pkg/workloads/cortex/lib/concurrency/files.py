@@ -17,6 +17,8 @@
 import os, fcntl, time
 from cortex.lib.exceptions import CortexException, WithBreak
 
+# TODO might have to implement a writer-preference RW file lock.
+
 
 class FileLock:
     def __init__(self, lock_file: str, timeout: float = None, reader_lock: bool = False):
