@@ -147,7 +147,7 @@ class ModelsHolder:
         Args:
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
-            on_download_callback(bucket, s3_model_prefix, model_version, s3_prefixes): Function to be called for downloading a model to disk. Returns true if it worked, false otherwise.
+            on_download_callback(model_name, model_version, model_path, s3_prefixes): Function to be called for downloading a model to disk. Returns true if it worked, false otherwise.
             on_load_callback(disk_model_path): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
             on_remove_callback(list of model IDs to remove): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.  
         """
@@ -255,27 +255,35 @@ class ModelsHolder:
 
     #################
 
-    def has_model(self, model_name: str, model_version: str) -> Tuple[bool, int]:
+    def has_model(self, model_name: str, model_version: str) -> Tuple[str, int]:
         """
-        Verifies if a model is loaded into memory.
+        Verifies if a model is loaded into memory / on disk.
 
         Args:
             model_name: The name of the model.
             model_version: The version of the model.
 
         Returns:
-            Whether the model has been found in memory and the upstream timestamp of the model.
+            "in-memory" and the upstream timestamp of the model when the model is loaded into memory. "in-memory" also implies "on-disk".
+            "on-disk" and the upstream timestamp of the model when the model is saved to disk.
+            "not-available" and 0 for the upstream timestamp when the model is not available.
         """
         model_id = f"{model_name}-{model_version}"
         if model_id in self._models and self._models[model_id]["model"] is not None:
             return True, self._models[model_id]["upstream_timestamp"]
-        return False, 0
+        if model_id in self._models:
+            if self._models[model_id]["model"] is not None:
+                return "in-memory", self._models[model_id]["upstream_timestamp"]
+            else:
+                return "on-disk", self._models[model_id]["upstream_timestamp"]
+        return "not-available", 0
 
     def get_model(self, model_name: str, model_version: str) -> Tuple[Any, int]:
         """
         Retrieves a model from memory.
 
         If the returned model is None, but the upstream timestamp is positive, then it means the model is present on disk.
+        If the returned model is None and the upstream timestamp is 0, then the model is not present.
         If the returned model is not None, then the upstream timestamp will also be positive.
 
         Args:
@@ -292,36 +300,55 @@ class ModelsHolder:
         return None, 0
 
     def load_model(
-        self,
-        model_name: str,
-        model_version: str,
-        model: Any,
-        disk_path: str,
-        upstream_timestamp: int,
+        self, model_name: str, model_version: str, disk_path: str, upstream_timestamp: int,
     ) -> None:
         """
         Loads a given model into memory.
-        It is assumed that the model exists on disk and has already been loaded externally.
-        This method just places it into this object.
+        It is assumed the model already exists on disk. The model must be downloaded externally or with download_model method.
 
         Args:
             model_name: The name of the model.
             model_version: The version of the model.
-            model: The actual model - can be anything.
-            disk_path: Where the model was read from.
+            disk_path: Where the model is found.
             upstream_timestamp: When was this model last modified on the upstream source (e.g. S3).
+
+        Raises:
+            RuntimeException if a load callback isn't set.
         """
 
-        model_id = f"{model_name}-{model_version}"
-        if model_id in self._timestamps:
-            del self._timestamps[model_id]
-        self._models[model_id] = {
-            "model": model,
-            "disk_path": disk_path,
-            "upstream_timestamp": upstream_timestamp,
-        }
+        if self._load_callback:
+            model_id = f"{model_name}-{model_version}"
+            self._models[model_id] = {
+                "model": self._load_callback(disk_path),
+                "disk_path": disk_path,
+                "upstream_timestamp": upstream_timestamp,
+            }
+        else:
+            raise RuntimeException(
+                "a load callback must be provided; use set_callback to set a callback"
+            )
+
+    def download_model(
+        self, model_name: str, model_version: str, model_path: str, s3_prefixes: List[str]
+    ) -> bool:
+        """
+        Download a model to disk. To be called after load_model method is called.
+
+        To be used when the caching is enabled.
+        It is assumed that when caching is disabled, a cron is responsible for downloading/removing models to/from disk.
+        """
+        if self._download_callback:
+            return self._download_callback(bucket, s3_model_prefix, model_version, s3_prefixes)
+        raise RuntimeException(
+            "a download callback must be provided; use set_callback to set a callback"
+        )
 
     def remove_model(self, model_name: str, model_version: str,) -> None:
+        """
+        Removes a model from memory if it exists.
+
+        Note: not required anywhere yet.
+        """
         model_id = f"{model_name}-{model_version}"
         if model_id in self._models:
             del self._models[model_id]
@@ -332,7 +359,7 @@ class ModelsHolder:
 
     def garbage_collect(self) -> bool:
         """
-        Removes stale in-memory and on-disk models.
+        Removes stale in-memory and on-disk models based on LRU policy.
         Also calls the "remove" callback before removing the models from this object.
 
         Returns:

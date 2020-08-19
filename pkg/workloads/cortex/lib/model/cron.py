@@ -301,6 +301,8 @@ class SimpleModelMonitor(mp.Process):
         print("model paths", model_paths)
         print("sub paths", sub_paths)
 
+        # TODO remove models that no longer appear in model_names, if there any, at all
+
 
 class CachedModelMonitor(td.Thread):
     """

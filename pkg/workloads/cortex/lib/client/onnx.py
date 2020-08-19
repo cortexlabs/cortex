@@ -61,6 +61,16 @@ class ONNXClient:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
 
+        if (
+            self._api_spec["predictor"]["models"]["cache_size"] is not None
+            and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
+        ):
+            self._cache_enabled = True
+        else:
+            self._cache_enabled = False
+
+        self._models.set_callback("load", self._load_model)
+
     def predict(self, model_input: Any, model_name: str = None, model_version: str = None):
         """
         Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
@@ -142,33 +152,37 @@ class ONNXClient:
         found_model = True
         resource = model_name + "-" + model_version
 
-        # when caching is disabled
-        with LockedFile(resource, "r", reader_lock=True) as f:
-            status = f.read()
-            if status == "" or status == "not available":
-                found_model = False
-                raise WithBreak()
-
-            current_upstream_ts = 123435  # must be extracted from status
-            update_model = False
-            with LockedModel(self._models, "r", model_name, model_version):
-                present, upstream_ts = self._models.has_model(model_name, model_version)
-                if not present or (present and upstream_ts < current_upstream_ts):
-                    update_model = True
+        if not self._cache_enabled:
+            with LockedFile(resource, "r", reader_lock=True) as f:
+                status = f.read()
+                if status == "" or status == "not available":
+                    found_model = False
                     raise WithBreak()
-                model, _ = self._models.get_model(model_name, model_version)
 
-            if update_model:
-                with LockedModel(self._models, "w", model_name, model_version):
-                    present, _ = self._models.has_model(model_name, model_version)
-                    if not present:
-                        model_path = os.path.join(self._model_dir, model_name, model_version)
-                        model = self._load_model(model_path)
-                        self._models.load_model(
-                            model_name, model_version, model, model_path, current_upstream_ts
-                        )
-                    else:
-                        model, _ = self._models.get_model(model_name, model_version)
+                current_upstream_ts = 123435  # must be extracted from status
+                update_model = False
+                with LockedModel(self._models, "r", model_name, model_version):
+                    present, upstream_ts = self._models.has_model(model_name, model_version)
+                    if present == "not-available" or (
+                        present == "in-memory" and upstream_ts < current_upstream_ts
+                    ):
+                        update_model = True
+                        raise WithBreak()
+                    model, _ = self._models.get_model(model_name, model_version)
+
+                if update_model:
+                    with LockedModel(self._models, "w", model_name, model_version):
+                        present, _ = self._models.has_model(model_name, model_version)
+                        if present == "not-available":
+                            model_path = os.path.join(self._model_dir, model_name, model_version)
+                            self._models.load_model(
+                                model_name, model_version, model, model_path, current_upstream_ts
+                            )
+                        else:
+                            model, _ = self._models.get_model(model_name, model_version)
+
+        if self._cache_enabled:
+            pass
 
         # when caching is enabled
         # ...
