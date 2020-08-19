@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](../../guides/exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](endpoints.md), you can submit and manage jobs by making HTTP requests to your Batch API endpoint.
+Once your model is [exported](../../guides/exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](deployment.md), you can submit and manage jobs by making HTTP requests to your Batch API endpoint.
 
 A deployed Batch API endpoint supports the following:
 
