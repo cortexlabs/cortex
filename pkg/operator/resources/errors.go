@@ -84,7 +84,7 @@ func ErrorAPIUsedByTrafficSplitter(trafficSplitters []string) error {
 }
 
 func ErrorAPIsNotDeployed(notDeployedAPIs []string) error {
-	message := fmt.Sprintf("apis %s were either not found or are not RealtimeAPI", strings.StrsAnd(notDeployedAPIs))
+	message := fmt.Sprintf("apis %s were either not found or are not RealtimeAPIs", strings.StrsAnd(notDeployedAPIs))
 	if len(notDeployedAPIs) == 1 {
 		message = fmt.Sprintf("api %s was either not found or is not a RealtimeAPI", notDeployedAPIs[0])
 	}
