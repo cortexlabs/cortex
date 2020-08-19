@@ -1,8 +1,8 @@
 # Splitting traffic between APIs
 
-_WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`_
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.18.*, run `git checkout -b 0.18` or switch to the `0.18` branch on GitHub)_
 
-This example shows how to split traffic between 2 different iris-classifiers deployed as RealtimeAPIs.
+This example shows how to split traffic between 2 different iris-classifiers deployed as Realtime APIs.
 
 To deploy this example:
 
@@ -72,7 +72,7 @@ setosa
 
 ## `cortex get traffic-splitter`
 
-Notice the requests being routed to the different RealtimeAPIs based on their weights (the output below may not match yours):
+Notice the requests being routed to the different Realtime APIs based on their weights (the output below may not match yours):
 
 ```bash
 $ cortex get traffic-splitter --env aws
@@ -92,7 +92,7 @@ curl: curl https://comtf6hs64.execute-api.us-west-2.amazonaws.com/traffic-splitt
 
 ## Cleanup
 
-Use `cortex delete <api_name>` to delete the Traffic Splitter and the two RealtimeAPIs (note that the Traffic Splitter and each Realtime API must be deleted by separate `cortex delete` commands):
+Use `cortex delete <api_name>` to delete the Traffic Splitter and the two Realtime APIs (note that the Traffic Splitter and each Realtime API must be deleted by separate `cortex delete` commands):
 
 ```bash
 $ cortex delete traffic-splitter --env aws
