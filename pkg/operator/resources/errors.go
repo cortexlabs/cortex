@@ -32,7 +32,7 @@ const (
 	ErrCannotChangeTypeOfDeployedAPI   = "resources.cannot_change_kind_of_deployed_api"
 	ErrNoAvailableNodeComputeLimit     = "resources.no_available_node_compute_limit"
 	ErrJobIDRequired                   = "resources.job_id_required"
-	ErrAPIUsedByTrafficSplitter        = "resources.realtimeapi_used_by_traffic_splitter"
+	ErrAPIUsedByTrafficSplitter        = "resources.realtime_api_used_by_traffic_splitter"
 	ErrNotDeployedAPIsTrafficSplitter  = "resources.trafficsplit_apis_not_deployed"
 	ErrAPIGatewayDisabled              = "resources.api_gateway_disabled"
 )
