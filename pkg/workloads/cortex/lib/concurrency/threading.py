@@ -19,9 +19,9 @@ import threading as td
 
 class ReadWriteLock:
     """
-    Locking object allowing for write once, read many.
+    Locking object allowing for write once, read many operations.
 
-    The lock cannot be acquired multiple times in a single thread without its paired release call.
+    The lock cannot be acquired multiple times in a single thread without paired release calls.
     """
 
     def __init__(self):

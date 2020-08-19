@@ -278,6 +278,8 @@ class ModelsHolder:
     ) -> None:
         """
         Loads a given model into memory.
+        It is assumed that the model exists on disk and has already been loaded externally.
+        This method just places it into this object.
 
         Args:
             model_name: The name of the model.
@@ -354,7 +356,9 @@ class LockedModelsTree:
     When acquiring R/W access to a model resource (model name + version).
 
     Locks the entire tree. When receiving requests, the read lock shall be applied.
-    When updating the tree in the cron, the write lock shall be applied. 
+    When updating the tree in the cron, the write lock shall be applied.
+
+    The context manager can be exited by raising cortex.lib.exceptions.WithBreak.
     """
 
     def __init__(self, tree: ModelsTree, mode: str):
