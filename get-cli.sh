@@ -152,7 +152,7 @@ function update_bash_profile() {
   fi
 
   if [ "$did_locate_shell_profile" = "false" ]; then
-    echo -e "\nIf your would like to enable cortex bash completion and the cx alias, run \`cortex completion --help\` for instructions"
+    echo -e "\nIf you would like to enable cortex bash completion and the cx alias, run \`cortex completion --help\` for instructions"
   fi
 }
 
