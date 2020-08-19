@@ -106,7 +106,7 @@ $ cortex logs text-generator
 ...
 ```
 
-Once your API is live, use `curl` to test your API:
+Once your API is live, use `curl` to test your API (it will take a few seconds to generate the text):
 
 ```bash
 $ curl http://localhost:8888 \
@@ -126,7 +126,7 @@ Cortex can automatically provision infrastructure on your AWS account and deploy
 $ cortex cluster up
 ```
 
-This creates a Cortex cluster in your AWS account, which will take approximately 15 minutes. Additional information about your cluster is shown on the command line.
+This creates a Cortex cluster in your AWS account, which will take approximately 15 minutes.
 
 After your cluster is created, you can deploy your model to your cluster by using the same code and configuration as before:
 
@@ -135,6 +135,8 @@ $ cortex deploy --env aws
 
 creating text-generator (RealtimeAPI)
 ```
+
+_Note that the `--env` flag specifies the name of the CLI environment to use. [CLI environments](../../../docs/miscellaneous/environments.md) contain the information necessary to connect to your cluster. The default environment is `local`, and when the cluster was created, a new environment named `aws` was created to point to the cluster. You can change the default environment with `cortex env default <env_name`)._
 
 Monitor the status of your APIs using `cortex get`:
 
