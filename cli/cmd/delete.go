@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -43,9 +45,9 @@ func deleteInit() {
 }
 
 var _deleteCmd = &cobra.Command{
-	Use:   "delete API_NAME",
-	Short: "delete an api",
-	Args:  cobra.ExactArgs(1),
+	Use:   "delete API_NAME [JOB_ID]",
+	Short: "delete any kind of api or stop a batch job",
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		env, err := ReadOrConfigureEnv(_flagDeleteEnv)
 		if err != nil {
@@ -61,11 +63,22 @@ var _deleteCmd = &cobra.Command{
 
 		var deleteResponse schema.DeleteResponse
 		if env.Provider == types.AWSProviderType {
-			deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagDeleteKeepCache, _flagDeleteForce)
-			if err != nil {
-				exit.Error(err)
+			if len(args) == 2 {
+				deleteResponse, err = cluster.StopJob(MustGetOperatorConfig(env.Name), args[0], args[1])
+				if err != nil {
+					exit.Error(err)
+				}
+			} else {
+				deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagDeleteKeepCache, _flagDeleteForce)
+				if err != nil {
+					exit.Error(err)
+				}
 			}
 		} else {
+			if len(args) == 2 {
+				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot delete job %s for api %s", args[1], args[0]))
+			}
+
 			// local only supports deploying 1 replica at a time, so _flagDeleteForce is only useful when attempting to delete an API that has been deployed with different CLI version
 			deleteResponse, err = local.Delete(args[0], _flagDeleteKeepCache, _flagDeleteForce)
 			if err != nil {

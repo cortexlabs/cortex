@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -46,12 +47,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
+		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, false)
 		if err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("created %s", api.Name), nil
+		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
 	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api)) {
@@ -61,12 +62,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
+		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, false); err != nil {
 			return nil, "", err
 		}
-		return api, fmt.Sprintf("updated %s", api.Name), nil
+		return api, fmt.Sprintf("updated %s", api.Resource.UserString()), nil
 	}
-	return api, fmt.Sprintf("%s is up to date", api.Name), nil
+	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
@@ -89,7 +90,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		},
 		// delete API from API Gateway
 		func() error {
-			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
+			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService, false)
 			if err != nil {
 				return err
 			}
@@ -139,6 +140,57 @@ func getAPISplitterDestinations(apiSplitter *spec.API) []k8s.Destination {
 	return destinations
 }
 
+func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.APISplitter, error) {
+	apiNames := []string{}
+	apiIDs := []string{}
+	apiSplitters := []schema.APISplitter{}
+
+	for _, virtualService := range virtualServices {
+		if virtualService.Labels["apiKind"] == userconfig.APISplitterKind.String() {
+			apiNames = append(apiNames, virtualService.Labels["apiName"])
+			apiIDs = append(apiIDs, virtualService.Labels["apiID"])
+		}
+	}
+
+	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, apiSplitter := range apis {
+		endpoint, err := operator.APIEndpoint(&apiSplitter)
+		if err != nil {
+			return nil, err
+		}
+
+		apiSplitters = append(apiSplitters, schema.APISplitter{
+			Spec:     apiSplitter,
+			Endpoint: endpoint,
+		})
+	}
+
+	return apiSplitters, nil
+}
+
+func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
+	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.VirtualService.Labels["apiID"])
+	if err != nil {
+		return nil, err
+	}
+
+	endpoint, err := operator.APIEndpoint(api)
+	if err != nil {
+		return nil, err
+	}
+
+	return &schema.GetAPIResponse{
+		APISplitter: &schema.APISplitter{
+			Spec:     *api,
+			Endpoint: endpoint,
+		},
+	}, nil
+}
+
 func deleteK8sResources(apiName string) error {
 	_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
 	return err
@@ -156,12 +208,4 @@ func areVirtualServiceEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool
 		reflect.DeepEqual(vs1.Spec.Http, vs2.Spec.Http) &&
 		reflect.DeepEqual(vs1.Spec.Gateways, vs2.Spec.Gateways) &&
 		reflect.DeepEqual(vs1.Spec.Hosts, vs2.Spec.Hosts)
-}
-
-// APIBaseURL returns BaseURL of the API without resource endpoint
-func APIBaseURL(api *spec.API) (string, error) {
-	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
-		return *config.Cluster.APIGateway.ApiEndpoint, nil
-	}
-	return operator.APILoadBalancerURL()
 }

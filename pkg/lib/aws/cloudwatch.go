@@ -93,9 +93,10 @@ func (c *Client) DoesLogGroupExist(logGroup string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) CreateLogGroup(logGroup string) error {
+func (c *Client) CreateLogGroup(logGroup string, tags map[string]string) error {
 	_, err := c.CloudWatchLogs().CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
 		LogGroupName: aws.String(logGroup),
+		Tags:         aws.StringMap(tags),
 	})
 	if err != nil {
 		return errors.Wrap(err, "creating log group "+logGroup)

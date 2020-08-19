@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
@@ -82,19 +81,12 @@ var _predictCmd = &cobra.Command{
 
 		syncAPI := apiRes.SyncAPI
 
-		var apiEndpoint string
-		if env.Provider == types.AWSProviderType {
-			apiEndpoint = urls.Join(syncAPI.BaseURL, *syncAPI.Spec.Networking.Endpoint)
-		} else {
-			apiEndpoint = syncAPI.BaseURL
-		}
-
 		totalReady := syncAPI.Status.Updated.Ready + syncAPI.Status.Stale.Ready
 		if totalReady == 0 {
 			exit.Error(ErrorAPINotReady(apiName, syncAPI.Status.Message()))
 		}
 
-		predictResponse, err := makePredictRequest(apiEndpoint, jsonPath)
+		predictResponse, err := makePredictRequest(syncAPI.Endpoint, jsonPath)
 		if err != nil {
 			exit.Error(err)
 		}

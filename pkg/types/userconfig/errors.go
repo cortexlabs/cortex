@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	ErrUnknownAPIGatewayType = "errors.unknown_api_gateway_type"
+	ErrUnknownAPIGatewayType = "userconfig.unknown_api_gateway_type"
 )
 
 func ErrorUnknownAPIGatewayType() error {

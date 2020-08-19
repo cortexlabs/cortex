@@ -24,6 +24,7 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -62,27 +63,28 @@ const (
 	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
+	ErrKindIsNotSupportedByProvider         = "spec.kind_is_not_supported_by_provider"
+	ErrKeyIsNotSupportedForKind             = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
 	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
 	ErrIncorrectAPISplitterWeight           = "spec.incorrect_api_splitter_weight"
-	ErrAPISplitterNotSupported              = "spec.apisplitter_not_supported"
 	ErrAPISplitterAPIsNotUnique             = "spec.apisplitter_apis_not_unique"
 )
 
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration for Sync API documentation and see https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
+		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration for Sync API documentation and see https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 
@@ -339,6 +341,20 @@ func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
 	})
 }
 
+func ErrorKindIsNotSupportedByProvider(kind userconfig.Kind, provider types.ProviderType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrKindIsNotSupportedByProvider,
+		Message: fmt.Sprintf("%s kind is not supported on %s provider", kind.String(), provider.String()),
+	})
+}
+
+func ErrorKeyIsNotSupportedForKind(key string, kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrKeyIsNotSupportedForKind,
+		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
+	})
+}
+
 func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrComputeResourceConflict,
@@ -385,13 +401,6 @@ func ErrorIncorrectAPISplitterWeightTotal(totalWeight int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorrectAPISplitterWeight,
 		Message: fmt.Sprintf("expected api splitter weights to sum to 100 but found %d", totalWeight),
-	})
-}
-
-func ErrorAPISplitterNotSupported() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPISplitterNotSupported,
-		Message: fmt.Sprintf("kind APISplitter is not supported for local provider"),
 	})
 }
 

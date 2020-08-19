@@ -42,5 +42,11 @@ echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 docker push cortexlabs/${image}:${CORTEX_VERSION}
 
 if [ "$slim" == "true" ]; then
-  docker push cortexlabs/${image}-slim:${CORTEX_VERSION}
+  if [ "$image" == "python-predictor-gpu" ]; then
+    for cuda in 10.0 10.1 10.2 11.0; do
+      docker push cortexlabs/${image}-slim:${CORTEX_VERSION}-cuda${cuda}
+    done
+  else
+    docker push cortexlabs/${image}-slim:${CORTEX_VERSION}
+  fi
 fi
