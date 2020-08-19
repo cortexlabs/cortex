@@ -25,6 +25,8 @@ from cortex.lib.model import (
     ModelsHolder,
     LockedGlobalModelsGC,
     LockedModel,
+    ModelsTree,
+    LockedModelsTree,
     CuratedModelResources,
     find_ondisk_model_versions,
     find_ondisk_models,

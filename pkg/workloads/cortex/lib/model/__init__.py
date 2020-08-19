@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from cortex.lib.model.cron import find_ondisk_model_versions, find_ondisk_models
-from cortex.lib.model.tree import ModelsHolder, LockedGlobalModelsGC, LockedModel
+from cortex.lib.model.lru import ModelsHolder, LockedGlobalModelsGC, LockedModel
+from cortex.lib.model.tree import ModelsTree, LockedModelsTree
 from cortex.lib.model.type import CuratedModelResources
 from cortex.lib.model.validation import (
     PythonPredictorType,
