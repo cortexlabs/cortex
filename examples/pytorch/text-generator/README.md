@@ -1,8 +1,8 @@
-# Deploy models as Sync APIs
+# Deploy models as Realtime APIs
 
 _WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.18.*, run `git checkout -b 0.18` or switch to the `0.18` branch on GitHub)_
 
-This example shows how to deploy a text generator using a GPT-2 model from Hugging Face's transformers library.
+This example shows how to deploy a realtime text generatation API using a GPT-2 model from Hugging Face's transformers library.
 
 <br>
 
@@ -33,7 +33,7 @@ class PythonPredictor:
         return self.tokenizer.decode(prediction[0])
 ```
 
-Here are the complete [Predictor docs](../../../docs/deployments/syncapi/predictors.md).
+Here are the complete [Predictor docs](../../../docs/deployments/realtime-api/predictors.md).
 
 <br>
 
@@ -52,19 +52,19 @@ transformers==3.0.*
 
 ## Configure your API
 
-Create a `cortex.yaml` file and add the configuration below. A `SyncAPI` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve real-time predictions:
+Create a `cortex.yaml` file and add the configuration below. A `RealtimeAPI` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve real-time predictions:
 
 ```yaml
 # cortex.yaml
 
 - name: text-generator
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
 ```
 
-Here are the complete [API configuration docs](../../../docs/deployments/syncapi/api-configuration.md).
+Here are the complete [API configuration docs](../../../docs/deployments/realtime-api/api-configuration.md).
 
 <br>
 
@@ -75,7 +75,7 @@ Here are the complete [API configuration docs](../../../docs/deployments/syncapi
 ```bash
 $ cortex deploy
 
-creating text-generator (SyncAPI)
+creating text-generator (RealtimeAPI)
 ```
 
 Monitor the status of your API using `cortex get`:
@@ -83,7 +83,7 @@ Monitor the status of your API using `cortex get`:
 ```bash
 $ cortex get --watch
 
-env     sync api         status     last update   avg request   2XX
+env     realtime api     status     last update   avg request   2XX
 local   text-generator   updating   8s            -             -
 ```
 
@@ -133,7 +133,7 @@ After your cluster is created, you can deploy your model to your cluster by usin
 ```bash
 $ cortex deploy --env aws
 
-creating text-generator (SyncAPI)
+creating text-generator (RealtimeAPI)
 ```
 
 Monitor the status of your APIs using `cortex get`:
@@ -141,7 +141,7 @@ Monitor the status of your APIs using `cortex get`:
 ```bash
 $ cortex get --watch
 
-env     sync api         status   up-to-date   requested   last update   avg request   2XX
+env     realtime api     status   up-to-date   requested   last update   avg request   2XX
 aws     text-generator   live     1            1           1m            -             -
 local   text-generator   live     1            1           17m           3.1285 s      1
 ```
@@ -206,7 +206,7 @@ Run `cortex deploy` to perform a rolling update of your API:
 ```bash
 $ cortex deploy --env aws
 
-updating text-generator (SyncAPI)
+updating text-generator (RealtimeAPI)
 ```
 
 You can track the status of your API using `cortex get`:
@@ -214,7 +214,7 @@ You can track the status of your API using `cortex get`:
 ```bash
 $ cortex get --env aws --watch
 
-sync api         status     up-to-date   stale   requested   last update   avg request   2XX
+realtime api     status     up-to-date   stale   requested   last update   avg request   2XX
 text-generator   updating   0            1       1           29s           -             -
 ```
 
@@ -240,7 +240,7 @@ If your cortex cluster is using GPU instances (configured during cluster creatio
 # cortex.yaml
 
 - name: text-generator
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -253,7 +253,7 @@ Run `cortex deploy` to update your API with this configuration:
 ```bash
 $ cortex deploy --env aws
 
-updating text-generator (SyncAPI)
+updating text-generator (RealtimeAPI)
 ```
 
 You can use `cortex get` to check the status of your API, and once it's live, prediction requests should be faster.
@@ -266,7 +266,7 @@ In development environments, you may wish to disable rolling updates since rolli
 # cortex.yaml
 
 - name: text-generator
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor.py
@@ -300,5 +300,5 @@ Running `cortex delete` will free up cluster resources and allow Cortex to scale
 * Deploy another one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
 * See our [exporting guide](../../../guides/exporting.md) for how to export your model to use in an API.
 * Try the [batch tutorial](../../batch/image-classifier/README.md) to learn how to deploy batch APIs in Cortex.
-* See our [api splitter example](../../apisplitter/README.md) for how to deploy multiple APIs and set up a traffic splitter.
+* See our [traffic splitter example](../../traffic-splitter/README.md) for how to deploy multiple APIs and set up a traffic splitter.
 * See [uninstall](uninstall.md) if you'd like to spin down your cluster.
