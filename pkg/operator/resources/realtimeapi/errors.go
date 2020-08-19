@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package syncapi
+package realtimeapi
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	ErrAPIUpdating = "syncapi.api_updating"
+	ErrAPIUpdating = "realtimeapi.api_updating"
 )
 
 func ErrorAPIUpdating(apiName string) error {

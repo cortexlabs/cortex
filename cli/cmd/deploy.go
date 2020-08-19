@@ -283,7 +283,7 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) string
 	items.Add(fmt.Sprintf("cortex get %s%s", apiName, envArg), "(show api info)")
 
 	for _, result := range results {
-		if result.API.Kind == userconfig.SyncAPIKind {
+		if result.API.Kind == userconfig.RealtimeAPIKind {
 			items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
 			break
 		}

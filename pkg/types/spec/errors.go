@@ -70,21 +70,21 @@ const (
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
 	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
-	ErrIncorrectAPISplitterWeight           = "spec.incorrect_api_splitter_weight"
-	ErrAPISplitterAPIsNotUnique             = "spec.apisplitter_apis_not_unique"
+	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
+	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
 )
 
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration for Sync API documentation and see https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration for Realtime API documentation and see https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration for Sync API documentation and see https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration for Realtime API documentation and see https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 
@@ -397,16 +397,16 @@ func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerPro
 	})
 }
 
-func ErrorIncorrectAPISplitterWeightTotal(totalWeight int) error {
+func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrIncorrectAPISplitterWeight,
-		Message: fmt.Sprintf("expected api splitter weights to sum to 100 but found %d", totalWeight),
+		Kind:    ErrIncorrectTrafficSplitterWeight,
+		Message: fmt.Sprintf("expected weights to sum to 100 but found %d", totalWeight),
 	})
 }
 
-func ErrorAPISplitterAPIsNotUnique(names []string) error {
+func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPISplitterAPIsNotUnique,
-		Message: fmt.Sprintf("api splitter %s not unique: %s", s.PluralS("API", len(names)), s.StrsSentence(names, "")),
+		Kind:    ErrTrafficSplitterAPIsNotUnique,
+		Message: fmt.Sprintf("%s not unique: %s", s.PluralS("api", len(names)), s.StrsSentence(names, "")),
 	})
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package syncapi
+package realtimeapi
 
 import (
 	"fmt"
@@ -170,7 +170,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		},
 		// delete api from cloudwatch dashboard
 		func() error {
-			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.SyncAPIKind.String())
+			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.RealtimeAPIKind.String())
 			if err != nil {
 				return errors.Wrap(err, "failed to get virtual services")
 			}
@@ -194,7 +194,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.SyncAPI, error) {
+func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.RealtimeAPI, error) {
 	statuses, err := GetAllStatuses(deployments, pods)
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Sync
 		return nil, err
 	}
 
-	syncAPIs := make([]schema.SyncAPI, len(apis))
+	realtimeAPIs := make([]schema.RealtimeAPI, len(apis))
 
 	for i, api := range apis {
 		endpoint, err := operator.APIEndpoint(&api)
@@ -219,7 +219,7 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Sync
 			return nil, err
 		}
 
-		syncAPIs[i] = schema.SyncAPI{
+		realtimeAPIs[i] = schema.RealtimeAPI{
 			Spec:     api,
 			Status:   statuses[i],
 			Metrics:  allMetrics[i],
@@ -227,7 +227,7 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Sync
 		}
 	}
 
-	return syncAPIs, nil
+	return realtimeAPIs, nil
 }
 
 func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
@@ -264,7 +264,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 	}
 
 	return &schema.GetAPIResponse{
-		SyncAPI: &schema.SyncAPI{
+		RealtimeAPI: &schema.RealtimeAPI{
 			Spec:         *api,
 			Status:       *status,
 			Metrics:      *metrics,

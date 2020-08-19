@@ -87,21 +87,21 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		return err
 	}
 
-	deployedSyncAPIs := strset.New()
+	deployedRealtimeAPIs := strset.New()
 
 	for _, virtualService := range virtualServices {
-		if virtualService.Labels["apiKind"] == userconfig.SyncAPIKind.String() {
-			deployedSyncAPIs.Add(virtualService.Labels["apiName"])
+		if virtualService.Labels["apiKind"] == userconfig.RealtimeAPIKind.String() {
+			deployedRealtimeAPIs.Add(virtualService.Labels["apiName"])
 		}
 	}
 
 	didPrintWarning := false
 
-	syncAPIs := InclusiveFilterAPIsByKind(apis, userconfig.SyncAPIKind)
+	realtimeAPIs := InclusiveFilterAPIsByKind(apis, userconfig.RealtimeAPIKind)
 
 	for i := range apis {
 		api := &apis[i]
-		if api.Kind == userconfig.SyncAPIKind || api.Kind == userconfig.BatchAPIKind {
+		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind {
 			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
@@ -115,11 +115,11 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			}
 		}
 
-		if api.Kind == userconfig.APISplitterKind {
-			if err := spec.ValidateAPISplitter(api, types.AWSProviderType, config.AWS); err != nil {
+		if api.Kind == userconfig.TrafficSplitterKind {
+			if err := spec.ValidateTrafficSplitter(api, types.AWSProviderType, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-			if err := checkIfAPIExists(api.APIs, syncAPIs, deployedSyncAPIs); err != nil {
+			if err := checkIfAPIExists(api.APIs, realtimeAPIs, deployedRealtimeAPIs); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -301,12 +301,12 @@ func ExclusiveFilterAPIsByKind(apis []userconfig.API, kindsToExclude ...userconf
 }
 
 // checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
-func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, deployedSyncAPIs strset.Set) error {
+func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, deployedRealtimeAPIs strset.Set) error {
 	var missingAPIs []string
 	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
 		//check if already deployed
-		deployed := deployedSyncAPIs.Has(trafficSplitAPI.Name)
+		deployed := deployedRealtimeAPIs.Has(trafficSplitAPI.Name)
 
 		// check defined apis
 		for _, definedAPI := range apis {
@@ -319,7 +319,7 @@ func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []use
 		}
 	}
 	if len(missingAPIs) != 0 {
-		return ErrorNotDeployedAPIsAPISplitter(missingAPIs)
+		return ErrorAPIsNotDeployed(missingAPIs)
 	}
 	return nil
 

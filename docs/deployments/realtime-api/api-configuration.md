@@ -10,7 +10,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
@@ -56,7 +56,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
@@ -113,7 +113,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
 
 ```yaml
 - name: <string>  # API name (required)
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)

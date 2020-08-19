@@ -31,17 +31,17 @@ import (
 )
 
 const (
-	_titleAPISplitter   = "api splitter"
-	_apiSplitterWeights = "weights"
-	_titleAPIs          = "apis"
+	_titleTrafficSplitter   = "traffic splitter"
+	_trafficSplitterWeights = "weights"
+	_titleAPIs              = "apis"
 )
 
-func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment) (string, error) {
+func trafficSplitterTable(trafficSplitter *schema.TrafficSplitter, env cliconfig.Environment) (string, error) {
 	var out string
 
-	lastUpdated := time.Unix(apiSplitter.Spec.LastUpdated, 0)
+	lastUpdated := time.Unix(trafficSplitter.Spec.LastUpdated, 0)
 
-	t, err := trafficSplitTable(*apiSplitter, env)
+	t, err := trafficSplitTable(*trafficSplitter, env)
 	if err != nil {
 		return "", err
 	}
@@ -50,33 +50,33 @@ func apiSplitterTable(apiSplitter *schema.APISplitter, env cliconfig.Environment
 	out += t.MustFormat()
 
 	out += "\n" + console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated)
-	out += "\n" + console.Bold("endpoint: ") + apiSplitter.Endpoint
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiSplitter.Endpoint)
+	out += "\n" + console.Bold("endpoint: ") + trafficSplitter.Endpoint
+	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), trafficSplitter.Endpoint)
 
-	out += titleStr("configuration") + strings.TrimSpace(apiSplitter.Spec.UserStr(env.Provider))
+	out += titleStr("configuration") + strings.TrimSpace(trafficSplitter.Spec.UserStr(env.Provider))
 
 	return out, nil
 }
 
-func trafficSplitTable(apiSplitter schema.APISplitter, env cliconfig.Environment) (table.Table, error) {
-	rows := make([][]interface{}, 0, len(apiSplitter.Spec.APIs))
+func trafficSplitTable(trafficSplitter schema.TrafficSplitter, env cliconfig.Environment) (table.Table, error) {
+	rows := make([][]interface{}, 0, len(trafficSplitter.Spec.APIs))
 
-	for _, api := range apiSplitter.Spec.APIs {
+	for _, api := range trafficSplitter.Spec.APIs {
 		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), api.Name)
 		if err != nil {
 			return table.Table{}, err
 		}
-		lastUpdated := time.Unix(apiRes.SyncAPI.Spec.LastUpdated, 0)
+		lastUpdated := time.Unix(apiRes.RealtimeAPI.Spec.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			env.Name,
-			apiRes.SyncAPI.Spec.Name,
+			apiRes.RealtimeAPI.Spec.Name,
 			api.Weight,
-			apiRes.SyncAPI.Status.Message(),
-			apiRes.SyncAPI.Status.Requested,
+			apiRes.RealtimeAPI.Status.Message(),
+			apiRes.RealtimeAPI.Status.Requested,
 			libtime.SinceStr(&lastUpdated),
-			latencyStr(&apiRes.SyncAPI.Metrics),
-			code2XXStr(&apiRes.SyncAPI.Metrics),
-			code5XXStr(&apiRes.SyncAPI.Metrics),
+			latencyStr(&apiRes.RealtimeAPI.Metrics),
+			code2XXStr(&apiRes.RealtimeAPI.Metrics),
+			code5XXStr(&apiRes.RealtimeAPI.Metrics),
 		})
 	}
 
@@ -84,7 +84,7 @@ func trafficSplitTable(apiSplitter schema.APISplitter, env cliconfig.Environment
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
 			{Title: _titleAPIs},
-			{Title: _apiSplitterWeights},
+			{Title: _trafficSplitterWeights},
 			{Title: _titleStatus},
 			{Title: _titleRequested},
 			{Title: _titleLastupdated},
@@ -96,9 +96,9 @@ func trafficSplitTable(apiSplitter schema.APISplitter, env cliconfig.Environment
 	}, nil
 }
 
-func apiSplitterListTable(apiSplitter []schema.APISplitter, envNames []string) table.Table {
-	rows := make([][]interface{}, 0, len(apiSplitter))
-	for i, splitAPI := range apiSplitter {
+func trafficSplitterListTable(trafficSplitter []schema.TrafficSplitter, envNames []string) table.Table {
+	rows := make([][]interface{}, 0, len(trafficSplitter))
+	for i, splitAPI := range trafficSplitter {
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
 		var apis []string
 		for _, api := range splitAPI.Spec.APIs {
@@ -116,7 +116,7 @@ func apiSplitterListTable(apiSplitter []schema.APISplitter, envNames []string) t
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
-			{Title: _titleAPISplitter},
+			{Title: _titleTrafficSplitter},
 			{Title: _titleAPIs},
 			{Title: _titleLastupdated},
 		},

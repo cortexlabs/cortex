@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apisplitter
+package trafficsplitter
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -29,20 +29,20 @@ const (
 	_defaultPortInt32, _defaultPortStr = int32(8888), "8888"
 )
 
-func virtualServiceSpec(apiSplitter *spec.API) *istioclientnetworking.VirtualService {
+func virtualServiceSpec(trafficSplitter *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:         operator.K8sName(apiSplitter.Name),
+		Name:         operator.K8sName(trafficSplitter.Name),
 		Gateways:     []string{"apis-gateway"},
-		Destinations: getAPISplitterDestinations(apiSplitter),
-		ExactPath:    apiSplitter.Networking.Endpoint,
+		Destinations: getTrafficSplitterDestinations(trafficSplitter),
+		ExactPath:    trafficSplitter.Networking.Endpoint,
 		Rewrite:      pointer.String("predict"),
 		Annotations: map[string]string{
-			userconfig.EndpointAnnotationKey:   *apiSplitter.Networking.Endpoint,
-			userconfig.APIGatewayAnnotationKey: apiSplitter.Networking.APIGateway.String()},
+			userconfig.EndpointAnnotationKey:   *trafficSplitter.Networking.Endpoint,
+			userconfig.APIGatewayAnnotationKey: trafficSplitter.Networking.APIGateway.String()},
 		Labels: map[string]string{
-			"apiName": apiSplitter.Name,
-			"apiKind": apiSplitter.Kind.String(),
-			"apiID":   apiSplitter.ID,
+			"apiName": trafficSplitter.Name,
+			"apiKind": trafficSplitter.Kind.String(),
+			"apiID":   trafficSplitter.ID,
 		},
 	})
 }

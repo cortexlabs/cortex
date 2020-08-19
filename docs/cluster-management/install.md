@@ -21,7 +21,7 @@ git clone -b master https://github.com/cortexlabs/cortex.git
 # navigate to the TensorFlow iris classification example
 cd cortex/examples/tensorflow/iris-classifier
 
-# deploy the model as a sync api
+# deploy the model as a realtime api
 cortex deploy
 
 # view the status of the api
