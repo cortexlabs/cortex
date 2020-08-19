@@ -144,7 +144,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
 1. To determine the versions used in `images/python-predictor-inf/Dockerfile`, run `pip install --extra-index-url https://pip.repos.neuron.amazonaws.com neuron-cc tensorflow-neuron torch-neuron` from a clean environment and check what versions of all the dependencies are installed.
 1. Update versions in `pkg/workloads/cortex/serve/requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
-1. Update the versions listed in "Pre-installed packages" in `syncapi/predictors.md` and `batchapi/predictors.md` (look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`)
+1. Update the versions listed in "Pre-installed packages" in `realtime-api/predictors.md` and `batch-api/predictors.md` (look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`)
 1. Rerun all examples and check their logs
 
 ## Istio

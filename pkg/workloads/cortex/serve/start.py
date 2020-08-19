@@ -81,7 +81,7 @@ def main():
     if raw_api_spec["predictor"]["type"] == "tensorflow":
         load_tensorflow_serving_models()
 
-    if raw_api_spec["kind"] == "SyncAPI":
+    if raw_api_spec["kind"] == "RealtimeAPI":
         # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
         uvicorn.run(
             "cortex.serve.wsgi:app",

@@ -29,7 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
@@ -54,8 +54,8 @@ func main() {
 	}
 
 	for _, deployment := range deployments {
-		if userconfig.KindFromString(deployment.Labels["apiKind"]) == userconfig.SyncAPIKind {
-			if err := syncapi.UpdateAutoscalerCron(&deployment); err != nil {
+		if userconfig.KindFromString(deployment.Labels["apiKind"]) == userconfig.RealtimeAPIKind {
+			if err := realtimeapi.UpdateAutoscalerCron(&deployment); err != nil {
 				exit.Error(errors.Wrap(err, "init"))
 			}
 		}

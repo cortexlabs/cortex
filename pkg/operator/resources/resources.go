@@ -27,9 +27,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/apisplitter"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/syncapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/trafficsplitter"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -93,7 +93,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	err = ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nSync API can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batchapi/api-configuration\nAPI Splitter can be found at https://docs.cortex.dev/v/%s/deployments/syncapi/apisplitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nRealtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\nTraffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
 		return nil, err
 	}
 
@@ -107,8 +107,8 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		}
 	}
 
-	// This is done if user specifies SyncAPIs in same file as APISplitter
-	apiConfigs = append(ExclusiveFilterAPIsByKind(apiConfigs, userconfig.APISplitterKind), InclusiveFilterAPIsByKind(apiConfigs, userconfig.APISplitterKind)...)
+	// This is done if user specifies RealtimeAPIs in same file as TrafficSplitter
+	apiConfigs = append(ExclusiveFilterAPIsByKind(apiConfigs, userconfig.TrafficSplitterKind), InclusiveFilterAPIsByKind(apiConfigs, userconfig.TrafficSplitterKind)...)
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
@@ -137,14 +137,14 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	}
 
 	switch apiConfig.Kind {
-	case userconfig.SyncAPIKind:
-		return syncapi.UpdateAPI(apiConfig, projectID, force)
+	case userconfig.RealtimeAPIKind:
+		return realtimeapi.UpdateAPI(apiConfig, projectID, force)
 	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, projectID)
-	case userconfig.APISplitterKind:
-		return apisplitter.UpdateAPI(apiConfig, projectID, force)
+	case userconfig.TrafficSplitterKind:
+		return trafficsplitter.UpdateAPI(apiConfig, projectID, force)
 	default:
-		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind, userconfig.APISplitterKind) // unexpected
+		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 }
 
@@ -155,10 +155,10 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	}
 
 	switch deployedResource.Kind {
-	case userconfig.SyncAPIKind:
-		return syncapi.RefreshAPI(apiName, force)
+	case userconfig.RealtimeAPIKind:
+		return realtimeapi.RefreshAPI(apiName, force)
 	default:
-		return "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind)
+		return "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind)
 	}
 }
 
@@ -172,13 +172,13 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 		go func() {
 			err := parallel.RunFirstErr(
 				func() error {
-					return syncapi.DeleteAPI(apiName, keepCache)
+					return realtimeapi.DeleteAPI(apiName, keepCache)
 				},
 				func() error {
 					return batchapi.DeleteAPI(apiName, keepCache)
 				},
 				func() error {
-					return apisplitter.DeleteAPI(apiName, keepCache)
+					return trafficsplitter.DeleteAPI(apiName, keepCache)
 				},
 			)
 			if err != nil {
@@ -189,17 +189,17 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	}
 
 	switch deployedResource.Kind {
-	case userconfig.SyncAPIKind:
-		err := checkIfUsedByAPISplitter(apiName)
+	case userconfig.RealtimeAPIKind:
+		err := checkIfUsedByTrafficSplitter(apiName)
 		if err != nil {
 			return nil, err
 		}
-		err = syncapi.DeleteAPI(apiName, keepCache)
+		err = realtimeapi.DeleteAPI(apiName, keepCache)
 		if err != nil {
 			return nil, err
 		}
-	case userconfig.APISplitterKind:
-		err := apisplitter.DeleteAPI(apiName, keepCache)
+	case userconfig.TrafficSplitterKind:
+		err := trafficsplitter.DeleteAPI(apiName, keepCache)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +209,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			return nil, err
 		}
 	default:
-		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind, userconfig.APISplitterKind) // unexpected
+		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 
 	return &schema.DeleteResponse{
@@ -249,30 +249,30 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		return nil, err
 	}
 
-	syncAPIPods := []kcore.Pod{}
+	realtimeAPIPods := []kcore.Pod{}
 	batchAPIPods := []kcore.Pod{}
 	for _, pod := range pods {
 		switch pod.Labels["apiKind"] {
-		case userconfig.SyncAPIKind.String():
-			syncAPIPods = append(syncAPIPods, pod)
+		case userconfig.RealtimeAPIKind.String():
+			realtimeAPIPods = append(realtimeAPIPods, pod)
 		case userconfig.BatchAPIKind.String():
 			batchAPIPods = append(batchAPIPods, pod)
 		}
 	}
 
 	var batchAPIVirtualServices []istioclientnetworking.VirtualService
-	var apiSplitterVirtualServices []istioclientnetworking.VirtualService
+	var trafficSplitterVirtualServices []istioclientnetworking.VirtualService
 
 	for _, vs := range virtualServices {
 		switch vs.Labels["apiKind"] {
 		case userconfig.BatchAPIKind.String():
 			batchAPIVirtualServices = append(batchAPIVirtualServices, vs)
-		case userconfig.APISplitterKind.String():
-			apiSplitterVirtualServices = append(apiSplitterVirtualServices, vs)
+		case userconfig.TrafficSplitterKind.String():
+			trafficSplitterVirtualServices = append(trafficSplitterVirtualServices, vs)
 		}
 	}
 
-	syncAPIList, err := syncapi.GetAllAPIs(syncAPIPods, deployments)
+	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIPods, deployments)
 	if err != nil {
 		return nil, err
 	}
@@ -282,14 +282,14 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 		return nil, err
 	}
 
-	apiSplitterList, err := apisplitter.GetAllAPIs(apiSplitterVirtualServices)
+	trafficSplitterList, err := trafficsplitter.GetAllAPIs(trafficSplitterVirtualServices)
 	if err != nil {
 		return nil, err
 	}
 	return &schema.GetAPIsResponse{
-		BatchAPIs:    batchAPIList,
-		SyncAPIs:     syncAPIList,
-		APISplitters: apiSplitterList,
+		BatchAPIs:        batchAPIList,
+		RealtimeAPIs:     realtimeAPIList,
+		TrafficSplitters: trafficSplitterList,
 	}, nil
 }
 
@@ -300,38 +300,38 @@ func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
 	}
 
 	switch deployedResource.Kind {
-	case userconfig.SyncAPIKind:
-		return syncapi.GetAPIByName(deployedResource)
+	case userconfig.RealtimeAPIKind:
+		return realtimeapi.GetAPIByName(deployedResource)
 	case userconfig.BatchAPIKind:
 		return batchapi.GetAPIByName(deployedResource)
-	case userconfig.APISplitterKind:
-		return apisplitter.GetAPIByName(deployedResource)
+	case userconfig.TrafficSplitterKind:
+		return trafficsplitter.GetAPIByName(deployedResource)
 	default:
-		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.SyncAPIKind, userconfig.BatchAPIKind) // unexpected
+		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 }
 
-//checkIfUsedByAPISplitter checks if api is used by a deployed APISplitter
-func checkIfUsedByAPISplitter(apiName string) error {
-	virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.APISplitterKind.String())
+//checkIfUsedByTrafficSplitter checks if api is used by a deployed TrafficSplitter
+func checkIfUsedByTrafficSplitter(apiName string) error {
+	virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
 	if err != nil {
 		return err
 	}
 
-	var usedByAPISplitters []string
+	var usedByTrafficSplitters []string
 	for _, vs := range virtualServices {
-		apiSplitterSpec, err := operator.DownloadAPISpec(vs.Labels["apiName"], vs.Labels["apiID"])
+		trafficSplitterSpec, err := operator.DownloadAPISpec(vs.Labels["apiName"], vs.Labels["apiID"])
 		if err != nil {
 			return err
 		}
-		for _, api := range apiSplitterSpec.APIs {
+		for _, api := range trafficSplitterSpec.APIs {
 			if apiName == api.Name {
-				usedByAPISplitters = append(usedByAPISplitters, apiSplitterSpec.Name)
+				usedByTrafficSplitters = append(usedByTrafficSplitters, trafficSplitterSpec.Name)
 			}
 		}
 	}
-	if len(usedByAPISplitters) > 0 {
-		return ErrorAPIUsedByAPISplitter(usedByAPISplitters)
+	if len(usedByTrafficSplitters) > 0 {
+		return ErrorAPIUsedByTrafficSplitter(usedByTrafficSplitters)
 	}
 	return nil
 }
