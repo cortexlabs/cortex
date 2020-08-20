@@ -157,7 +157,7 @@ class ONNXClient:
             model_version: Version of the model, as they are found on disk.
 
         Exceptions:
-            RuntimeException: if another thread to load the model at the very same time.
+            RuntimeError: if another thread to load the model at the very same time.
 
         Returns:
             The model as returned by self._load_model method.

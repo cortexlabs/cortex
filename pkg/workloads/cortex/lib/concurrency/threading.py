@@ -25,9 +25,20 @@ class ReadWriteLock:
     Locking object allowing for write once, read many operations.
 
     The lock cannot be acquired multiple times in a single thread without paired release calls.
+
+    Can set different priority policies: "r" for read-preferring RW lock allowing for maximum concurrency
+    or can be set to "w" for write-preferring RW lock to prevent from starving the writer.
     """
 
-    def __init__(self):
+    def __init__(self, prefer: str):
+        """
+        "r" for read-preferring RW lock.
+        
+        "w" for write-preferring RW lock.
+        """
+        self._prefer = prefer
+        self._write_preferred = td.Event()
+        self._write_preferred.set()
         self._read_allowed = td.Condition(td.RLock())
         self._readers = []
         self._writers = []
@@ -43,19 +54,28 @@ class ReadWriteLock:
             Whether the mode was valid or not.
         """
         if mode == "r":
+            # wait until "w" has been released
+            if self._prefer == "w":
+                self._write_preferred.wait()
+
+            # finish acquiring once all writers have released
             self._read_allowed.acquire()
-            try:
+            if self._prefer == "r":
                 while len(self._writers) > 0:
                     self._read_allowed.wait()
-            finally:
-                self._readers.append(td.get_ident())
-                self._read_allowed.release()
+            self._readers.append(td.get_ident())
+            self._read_allowed.release()
 
         elif mode == "w":
+            # stop "r" acquirers from acquiring
+            if self._prefer == "w":
+                self._write_preferred.clear()
+
+            # acquire once all readers have released
             self._read_allowed.acquire()
-            self._writers.append(td.get_ident())
             while len(self._readers) > 0:
                 self._read_allowed.wait()
+            self._writers.append(td.get_ident())
         else:
             return False
 
@@ -72,19 +92,23 @@ class ReadWriteLock:
             Whether the mode was valid or not.
         """
         if mode == "r":
+            # release and let writers acquire
             self._read_allowed.acquire()
-            try:
-                if not len(self._readers) - 1:
-                    self._read_allowed.notifyAll()
-            finally:
-                self._readers.remove(td.get_ident())
-                self._read_allowed.release()
-
-        elif mode == "w":
-            self._writers.remove(td.get_ident())
-            self._read_allowed.notifyAll()
+            if not len(self._readers) - 1:
+                self._read_allowed.notifyAll()
+            self._readers.remove(td.get_ident())
             self._read_allowed.release()
 
+        elif mode == "w":
+            # release and let readers acquire
+            self._writers.remove(td.get_ident())
+            if self._prefer == "r":
+                self._read_allowed.notifyAll()
+            self._read_allowed.release()
+
+            # let "r" acquirers acquire again
+            if self._prefer == "w":
+                self._write_preferred.set()
         else:
             return False
 
