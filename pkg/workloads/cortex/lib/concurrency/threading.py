@@ -54,8 +54,6 @@ class ReadWriteLock:
             Whether the mode was valid or not.
         """
         if mode == "r":
-            # place where preference policy can be changed
-
             # wait until "w" has been released
             if self._prefer == "w":
                 self._write_preferred.wait()
@@ -70,8 +68,6 @@ class ReadWriteLock:
             self._read_allowed.release()
 
         elif mode == "w":
-            # place where preference policy can be changed
-
             # stop "r" acquirers from acquiring
             if self._prefer == "w":
                 self._write_preferred.clear()
@@ -104,8 +100,6 @@ class ReadWriteLock:
             self._readers.remove(td.get_ident())
             self._read_allowed.release()
 
-            # place where preference policy can be changed
-
         elif mode == "w":
             # release and let readers acquire
             self._writers.remove(td.get_ident())
@@ -117,13 +111,12 @@ class ReadWriteLock:
             # let "r" acquirers acquire again
             if self._prefer == "w":
                 self._write_preferred.set()
-
-            # place where preference policy can be changed
         else:
             return False
 
         return True
 
+    # TODO test set_preference_policy method
     def set_preference_policy(self, prefer: str) -> bool:
         """
         Change preference policy dynamically.
