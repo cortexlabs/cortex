@@ -34,7 +34,7 @@ class ModelsHolder:
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
         temp_dir: str = "/tmp/models",
-        on_download_callback: Callable[[str, str, str, List[str]], bool] = None,
+        on_download_callback: Callable[[str, str, str, List[str]], int] = None,
         on_load_callback: Callable[[str], Any] = None,
         on_remove_callback: Callable[[List[str]], None] = None,
     ):
@@ -42,7 +42,7 @@ class ModelsHolder:
         Args:
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
-            on_download_callback(model_name, model_version, model_path, s3_prefixes): Function to be called for downloading a model to disk. Returns true if it worked, false otherwise.
+            on_download_callback(model_name, model_version, model_path, sub_paths): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
             on_load_callback(disk_model_path): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
             on_remove_callback(list of model IDs to remove): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.  
         """
@@ -224,16 +224,31 @@ class ModelsHolder:
             )
 
     def download_model(
-        self, model_name: str, model_version: str, model_path: str, s3_prefixes: List[str]
-    ) -> bool:
+        self,
+        bucket: str,
+        model_name: str,
+        model_version: str,
+        model_path: str,
+        sub_paths: List[str],
+    ) -> int:
         """
-        Download a model to disk. To be called after load_model method is called.
+        Download a model to disk. To be called before load_model method is called.
 
         To be used when the caching is enabled.
-        It is assumed that when caching is disabled, a cron is responsible for downloading/removing models to/from disk.
+        It is assumed that when caching is disabled, an external mechanism is responsible for downloading/removing models to/from disk.
+
+        Args:
+            bucket: The upstream model's S3 bucket name.
+            model_name: The name of the model.
+            model_version: The version of the model.
+            model_path: Path to the model as discovered in models:dir or specified in models:paths.
+            sub_paths: A list of filepaths for each file of the model.
+
+        Returns:
+            Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
         """
         if self._download_callback:
-            return self._download_callback(bucket, s3_model_prefix, model_version, s3_prefixes)
+            return self._download_callback(bucket, model_name, model_version, model_path, sub_paths)
         raise RuntimeException(
             "a download callback must be provided; use set_callback to set a callback"
         )
@@ -328,8 +343,10 @@ class ModelsHolder:
 
 class LockedGlobalModelsGC:
     """
+    Applies global write lock on the models tree.
+
     For running the GC for all loaded models (or present on disk).
-    This is the locking implementation for a stop-the-world GC.
+    This is the locking implementation for the stop-the-world GC.
 
     The context manager can be exited by raising cortex.lib.exceptions.WithBreak.
     """
@@ -350,7 +367,8 @@ class LockedGlobalModelsGC:
 
 class LockedModel:
     """
-    For granting R/W access to a model resource (model name + model version).  
+    For granting R/W access to a model resource (model name + model version).
+    Also applies global read lock on the models tree.
 
     The context manager can be exited by raising cortex.lib.exceptions.WithBreak.
     """

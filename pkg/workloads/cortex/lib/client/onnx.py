@@ -39,20 +39,30 @@ logger = cx_logger()
 
 class ONNXClient:
     def __init__(
-        self, models: ModelsHolder, model_dir: str, api_spec: dict, lock_dir: str = "/run/cron"
+        self,
+        api_spec: dict,
+        models: ModelsHolder,
+        models_tree: ModelsTree,
+        model_dir: str,
+        lock_dir: str = "/run/cron",
     ):
         """
         Setup ONNX runtime session.
 
         Args:
-            model_dir: Where the models are saved on disk.
             api_spec: API configuration.
-            lock_dir: Where the resource locks are found.
+
+            models: Holding all models into memory.
+            models_tree: A tree of the available models from upstream. Only when caching is enabled. 
+            model_dir: Where the models are saved on disk.
+            
+            lock_dir: Where the resource locks are found. Only when caching is disabled.
         """
 
-        self._models = models
-        self._model_dir = model_dir
         self._api_spec = api_spec
+        self._models = models
+        self._models_tree = models_tree
+        self._model_dir = model_dir
         self._lock_dir = lock_dir
 
         self._spec_models = CuratedModelResources(api_spec["curated_model_resources"])
@@ -73,6 +83,7 @@ class ONNXClient:
 
         self._models.set_callback("load", self._load_model)
 
+    # TODO use "latest" for model version instead
     def predict(self, model_input: Any, model_name: str = None, model_version: str = None):
         """
         Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
@@ -121,6 +132,8 @@ class ONNXClient:
             model_version = self._get_highest_model_version(model_name)
         return self._run_inference(model_input, model_name, model_version)
 
+        # TODO handle the case when the caching is enabled
+
     def _run_inference(self, model_input: Any, model_name: str, model_version: str) -> Any:
         """
         Run the inference on model model_name of version model_version.
@@ -152,21 +165,22 @@ class ONNXClient:
         """
 
         found_model = True
-        resource = model_name + "-" + model_version
+        model_id = model_name + "-" + model_version
 
         if not self._cache_enabled:
-            with LockedFile(resource, "r", reader_lock=True) as f:
-                status = f.read()
-                if status == "" or status == "not available":
+            with LockedFile(model_id, "r", reader_lock=True) as f:
+                file_status = f.read()
+                if file_status == "" or file_status == "not available":
                     found_model = False
                     raise WithBreak()
 
-                current_upstream_ts = 123435  # must be extracted from status
+                current_upstream_ts = int(file_status.split(" ")[1])
                 update_model = False
+
                 with LockedModel(self._models, "r", model_name, model_version):
-                    present, upstream_ts = self._models.has_model(model_name, model_version)
-                    if present == "not-available" or (
-                        present == "in-memory" and upstream_ts < current_upstream_ts
+                    status, upstream_ts = self._models.has_model(model_name, model_version)
+                    if status == "not-available" or (
+                        status == "in-memory" and upstream_ts < current_upstream_ts
                     ):
                         update_model = True
                         raise WithBreak()
@@ -174,20 +188,50 @@ class ONNXClient:
 
                 if update_model:
                     with LockedModel(self._models, "w", model_name, model_version):
-                        present, _ = self._models.has_model(model_name, model_version)
-                        if present == "not-available":
-                            model_path = os.path.join(self._model_dir, model_name, model_version)
+                        status, _ = self._models.has_model(model_name, model_version)
+                        if status == "not-available":
+                            disk_path = os.path.join(self._model_dir, model_name, model_version)
                             self._models.load_model(
-                                model_name, model_version, model, model_path, current_upstream_ts
+                                model_name, model_version, model, disk_path, current_upstream_ts
                             )
                         else:
                             model, _ = self._models.get_model(model_name, model_version)
 
         if self._cache_enabled:
-            pass
+            with LockedModelsTree(self._models_tree, "r"):
+                if model_id not in self._models_tree:
+                    found_model = False
+                    raise WithBreak()
 
-        # when caching is enabled
-        # ...
+                upstream_model = self._models_tree[model_id]
+                current_upstream_ts = upstream_model["timestamp"]
+                update_model = False
+
+                with LockedModel(self._models, "r", model_name, model_version):
+                    status, upstream_ts = self._models.has_model(model_name, model_version)
+                    if status in ["not-available", "on-disk"] or (
+                        status != "not-available" and upstream_ts < current_upstream_ts
+                    ):
+                        update_model = True
+                        raise WithBreak()
+                    model, _ = self._models.get_model(model_name, model_version)
+
+                if update_model:
+                    with LockedModel(self._models, "w", model_name, model_version):
+                        status, _ = self._models.has_model(model_name, model_version)
+                        if status == "not-available":
+                            current_upstream_ts = self._models.download_model(
+                                upstream_model["bucket"],
+                                model_name,
+                                model_version,
+                                upstream_model["path"],
+                                upstream_model["sub_paths"],
+                            )
+                        disk_path = os.path.join(self._model_dir, model_name, model_version)
+                        self._models.load_model(
+                            model_name, model_version, disk_path, current_upstream_ts
+                        )
+                        model, _ = self._models.get_model(model_name, model_version)
 
         if found_model:
             return model

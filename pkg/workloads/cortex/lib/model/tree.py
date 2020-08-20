@@ -24,7 +24,7 @@ import threading as td
 
 class ModelsTree:
     def __init__(self):
-        self._models = {}
+        self.models = {}
         self._lock = ReadWriteLock()
 
     def acquire(self, mode: str) -> None:
@@ -47,18 +47,22 @@ class ModelsTree:
 
     def update_models(
         self,
+        buckets: List[str],
         model_names: List[str],
         model_versions: List[List[str]],
         model_paths: List[str],
+        sub_paths: List[str],
         timestamps: List[List[int]],
     ) -> Tuple[AbstractSet[str], AbstractSet[str]]:
         """
-        Updates the model tree with the latest from the upstream.
+        Updates the model tree with the latest from the upstream and removes stale models.
 
         Args:
+            buckets: A list with the buckets required for each model.
             model_names: The unique names of the models as discovered in models:dir or specified in models:paths.
-            model_versions: The detected versions of each model. "none" if no version is found.
+            model_versions: The detected versions of each model. "1" if no version is found.
             model_paths: S3 model paths to each model.
+            sub_paths: A list of filepaths for each file of each model all grouped into a single list.
             timestamps: When was each versioned model updated the last time on the upstream.
         
         Returns:
@@ -71,9 +75,9 @@ class ModelsTree:
         for idx in range(len(model_names)):
             model_name = model_names[idx]
             if len(model_versions[idx]) == 0:
-                model_id = f"{model_name}-none"
+                model_id = f"{model_name}-1"
                 updated = self.update_model(
-                    model_name, "none", model_paths[idx], timestamps[idx][0]
+                    buckets[idx], model_name, "1", model_paths[idx], sub_paths, timestamps[idx][0]
                 )
                 current_model_ids.add(model_id)
                 if updated:
@@ -84,28 +88,37 @@ class ModelsTree:
                     model_name,
                     model_version,
                     os.path.join(model_paths[idx], model_version),
+                    sub_paths,
                     timestamps[idx][model_version],
                 )
                 current_model_ids.add(model_id)
                 if updated:
                     updated_model_ids.add(model_id)
 
-        old_model_ids = set(self._models.keys()) - current_model_ids
+        old_model_ids = set(self.models.keys()) - current_model_ids
         for old_model_id in old_model_ids:
-            del self._models[old_model_id]
+            del self.models[old_model_id]
 
         return old_model_ids, updated_model_ids
 
     def update_model(
-        self, model_name: str, model_version: str, model_path: str, timestamp: int,
+        self,
+        bucket: str,
+        model_name: str,
+        model_version: str,
+        model_path: str,
+        sub_paths: List[str],
+        timestamp: int,
     ) -> None:
         """
         Updates the model tree with the given model.
 
         Args:
+            bucket: The S3 bucket on which the model is stored.
             model_name: The unique name of the model as discovered in models:dir or specified in models:paths.
-            model_version: A detected version of the model. "none" if no version is found.
-            model_paths: S3 model path to the versioned model.
+            model_version: A detected version of the model.
+            model_path: The model path to the versioned model.
+            sub_paths: A list of filepaths for each file of the model.
             timestamp: When was the model path updated the last time.
 
         Returns:
@@ -114,18 +127,44 @@ class ModelsTree:
 
         model_id = f"{model_name}-{model_version}"
         changed = False
-        if model_id not in self._models:
+        if model_id not in self.models:
             changed = True
-        elif self._models[model_id]["timestamp"] < timestamp:
+        elif self.models[model_id]["timestamp"] < timestamp:
             changed = True
 
-        if changed or model_id in self._models:
-            self._models[model_id] = {
+        if changed or model_id in self.models:
+            self.models[model_id] = {
+                "bucket": bucket,
                 "path": model_path,
+                "sub_paths": sub_paths,
                 "timestamp": timestamp,
             }
 
         return changed
+
+    def __getitem__(self, model_id):
+        """
+        Each value of a key (model ID) is a dictionary with the following format:
+        {
+            "bucket": <bucket-of-the-model>,
+            "path": <path-of-the-model>,
+            "sub_paths": <sub-path-of-each-file-of-the-model>,
+            "timestamp": <when-was-the-model-last-modified>
+        }
+        """
+        return self.models[model_id]
+
+    def __contains__(self, model_id):
+        """
+        Each value of a key (model ID) is a dictionary with the following format:
+        {
+            "bucket": <bucket-of-the-model>,
+            "path": <path-of-the-model>,
+            "sub_paths": <sub-path-of-each-file-of-the-model>,
+            "timestamp": <when-was-the-model-last-modified>
+        }
+        """
+        return model_id in self.models
 
 
 class LockedModelsTree:
@@ -139,6 +178,9 @@ class LockedModelsTree:
     """
 
     def __init__(self, tree: ModelsTree, mode: str):
+        """
+        mode can be "r" for read or "w" for write.
+        """
         self._tree = tree
         self._mode = mode
         self._lock = ReadWriteLock()
