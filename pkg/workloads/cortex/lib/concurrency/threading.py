@@ -54,19 +54,24 @@ class ReadWriteLock:
             Whether the mode was valid or not.
         """
         if mode == "r":
+            # place where preference policy can be changed
+
             # wait until "w" has been released
             if self._prefer == "w":
                 self._write_preferred.wait()
 
             # finish acquiring once all writers have released
             self._read_allowed.acquire()
-            if self._prefer == "r":
-                while len(self._writers) > 0:
-                    self._read_allowed.wait()
+            # while loop only relevant when prefer == "r"
+            # but it's necessary when the preference policy is changed
+            while len(self._writers) > 0:
+                self._read_allowed.wait()
             self._readers.append(td.get_ident())
             self._read_allowed.release()
 
         elif mode == "w":
+            # place where preference policy can be changed
+
             # stop "r" acquirers from acquiring
             if self._prefer == "w":
                 self._write_preferred.clear()
@@ -99,18 +104,46 @@ class ReadWriteLock:
             self._readers.remove(td.get_ident())
             self._read_allowed.release()
 
+            # place where preference policy can be changed
+
         elif mode == "w":
             # release and let readers acquire
             self._writers.remove(td.get_ident())
-            if self._prefer == "r":
-                self._read_allowed.notifyAll()
+            # notify all only relevant when prefer == "r"
+            # but it's necessary when the preference policy is changed
+            self._read_allowed.notifyAll()
             self._read_allowed.release()
 
             # let "r" acquirers acquire again
             if self._prefer == "w":
                 self._write_preferred.set()
+
+            # place where preference policy can be changed
         else:
             return False
+
+        return True
+
+    def set_preference_policy(self, prefer: str) -> bool:
+        """
+        Change preference policy dynamically.
+
+        When readers have acquired the lock, the policy change is immediate.
+        When a writer has acquired the lock, the policy change will block until the writer releases the lock.
+
+        Args:
+            prefer: "r" for read-preferring RW lock, "w" for write-preferring RW lock.
+
+        Returns:
+            True when the policy has been changed, false otherwise.
+        """
+        if self._prefer == prefer:
+            return False
+
+        self._read_allowed.acquire()
+        self._prefer = prefer
+        self._write_preferred.set()
+        self._read_allowed.release()
 
         return True
 
