@@ -30,7 +30,7 @@ A Realtime API deployed in Cortex has the following features:
 You specify the following:
 
 * a Cortex Predictor class in Python that defines how to initialize and serve your model
-* an API configuration yaml file that defines how your API will behave in production (autoscaling, monitoring, networking, compute, etc.)
+* an API configuration YAML file that defines how your API will behave in production (autoscaling, monitoring, networking, compute, etc.)
 
 Once you've implemented your predictor and defined your API configuration, you can use the Cortex CLI to deploy a Realtime API. The Cortex CLI will package your predictor implementation and the rest of the code and dependencies and upload it to the Cortex Cluster. The Cortex Cluster will set up an HTTP endpoint that routes traffic to multiple replicas/copies of web servers initialized with your code.
 
