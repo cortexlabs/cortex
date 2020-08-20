@@ -13,29 +13,3 @@
   compute:
     cpu: 0.2
     mem: 100M
-
-- name: another-iris-classifier
-  kind: RealtimeAPI
-  predictor:
-    type: python
-    path: predictor.py
-    config:
-      bucket: cortex-examples
-      key: sklearn/iris-classifier/another-model.pkl
-  monitoring:
-    model_type: classification
-  compute:
-    cpu: 0.2
-    mem: 100M
-
-- name: batch-iris-classifier
-  kind: RealtimeAPI
-  predictor:
-    type: python
-    path: batch-predictor.py
-    config:
-      bucket: cortex-examples
-      key: sklearn/iris-classifier/model.pkl
-  compute:
-    cpu: 0.2
-    mem: 100M

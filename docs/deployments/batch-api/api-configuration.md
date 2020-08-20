@@ -41,7 +41,7 @@ See additional documentation for [compute](../compute.md), [networking](../netwo
     model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'models' must be provided)
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
-      - name: <string> # unique name for the model (e.g. iris-classifier) (required)
+      - name: <string> # unique name for the model (e.g. text-generator) (required)
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
@@ -75,7 +75,7 @@ See additional documentation for [compute](../compute.md), [networking](../netwo
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
     model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (either this or 'models' must be provided)
     models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
-      - name: <string> # unique name for the model (e.g. iris-classifier) (required)
+      - name: <string> # unique name for the model (e.g. text-generator) (required)
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
         signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...

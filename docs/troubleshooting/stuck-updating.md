@@ -56,7 +56,7 @@ If you're running in a development environment, this rolling update behavior can
 You can disable rolling updates for your API in your API configuration (e.g. in `cortex.yaml`): set `max_surge` to 0 (in the `update_strategy` configuration). E.g.:
 
 ```yaml
-- name: iris-classifier
+- name: text-generator
   predictor:
     type: python
     ...

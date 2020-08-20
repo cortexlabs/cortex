@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/iris-classifier`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager (ACM).
+You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager (ACM).
 
 There are two methods for achieving this, and which method to use depends on whether you're using API Gateway or not (without API Gateway, requests are sent directly to the API load balancer instead). API Gateway is enabled by default.
 
@@ -185,14 +185,14 @@ Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#ho
 Wait a few minutes to allow the DNS changes to propagate. You may now use your subdomain in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
-curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 Would become:
 
 ```bash
 # replace loadbalancer url with your subdomain
-curl https://api.cortexlabs.dev/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+curl https://api.cortexlabs.dev/text-generator -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 ## Debugging connectivity issues
@@ -201,7 +201,7 @@ You could run into connectivity issues if you make a request to your API without
 
 To test connectivity, try the following steps:
 
-1. Deploy any api (e.g. iris-classifier).
+1. Deploy any api (e.g. examples/pytorch/iris-classifier).
 1. Make an HTTPS GET request to the your api e.g. `curl https://api.cortexlabs.dev/iris-classifier` or enter the url in your browser.
 1. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the HTTPS Get request from another device that hasn't made a request to that url in a while. A successful request looks like this:
 
