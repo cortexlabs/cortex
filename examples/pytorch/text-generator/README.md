@@ -195,7 +195,7 @@ class PythonPredictor:
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
 
-    def predict(self, payload, query_params):
+    def predict(self, payload, query_params):  # this line is updated
         input_length = len(payload["text"].split())
         output_length = int(query_params.get("length", 20))  # this line is added
         tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
