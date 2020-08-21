@@ -164,10 +164,15 @@ class ONNXClient:
         """
 
         model = None
+        tag = ""
+        tags = []
+        if model_version in ["latest", "highest"]:
+            tag = model_version
+            tags = ["latest", "highest"]
 
         if not self._cache_enabled:
-            if model_version in ["latest", "highest"]:
-                model_version = self._get_model_version_from_disk(model_name, model_version)
+            if tag != "":
+                model_version = self._get_model_version_from_disk(model_name, tag)
             model_id = model_name + "-" + model_version
 
             with LockedFile(model_id, "r", reader_lock=True) as f:
@@ -185,7 +190,7 @@ class ONNXClient:
                     ):
                         update_model = True
                         raise WithBreak()
-                    model, _ = self._models.get_model(model_name, model_version)
+                    model, _ = self._models.get_model(model_name, model_version, tag)
 
                 if update_model:
                     with LockedModel(self._models, "w", model_name, model_version):
@@ -193,18 +198,18 @@ class ONNXClient:
                         if status == "not-available":
                             disk_path = os.path.join(self._model_dir, model_name, model_version)
                             self._models.load_model(
-                                model_name, model_version, model, disk_path, current_upstream_ts
+                                model_name, model_version, disk_path, current_upstream_ts, tags,
                             )
                         else:
-                            model, _ = self._models.get_model(model_name, model_version)
+                            model, _ = self._models.get_model(model_name, model_version, tag)
 
         if self._cache_enabled:
             with LockedModelsTree(self._models_tree, "r"):
-                if model_version in ["latest", "highest"]:
+                if tag != "":
                     if model_name not in self._models_tree.info:
                         raise WithBreak()
                     model_version = self._get_model_version_from_tree(
-                        model_name, model_version, self._models_tree.info[model_name]
+                        model_name, tag, self._models_tree.info[model_name]
                     )
 
                 model_id = model_name + "-" + model_version
@@ -222,7 +227,7 @@ class ONNXClient:
                     ):
                         update_model = True
                         raise WithBreak()
-                    model, _ = self._models.get_model(model_name, model_version)
+                    model, _ = self._models.get_model(model_name, model_version, tag)
 
                 if update_model:
                     with LockedModel(self._models, "w", model_name, model_version):
@@ -237,9 +242,9 @@ class ONNXClient:
                             )
                         disk_path = os.path.join(self._model_dir, model_name, model_version)
                         self._models.load_model(
-                            model_name, model_version, disk_path, current_upstream_ts
+                            model_name, model_version, disk_path, current_upstream_ts, tags,
                         )
-                        model, _ = self._models.get_model(model_name, model_version)
+                        model, _ = self._models.get_model(model_name, model_version, tag)
 
         return model
 
@@ -271,7 +276,7 @@ class ONNXClient:
 
     def _get_model_version_from_disk(self, model_name: str, tag: str) -> str:
         """
-        Get the right version/timestamp for a specific model name based on the version tag - either "latest" or "highest".
+        Get the version for a specific model name based on the version tag - either "latest" or "highest".
         Must only be used when caching is disabled.
         """
 
@@ -294,7 +299,7 @@ class ONNXClient:
 
     def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
         """
-        Get the right version/timestamp for a specific model name based on the version tag - either "latest" or "highest".
+        Get the version for a specific model name based on the version tag - either "latest" or "highest".
         Must only be used when caching is enabled.
         """
 

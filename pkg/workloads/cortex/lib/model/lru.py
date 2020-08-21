@@ -150,6 +150,35 @@ class ModelsHolder:
 
     #################
 
+    def get_model_names_by_tag_count(self, tag: str, count: int) -> List[str]:
+        """
+        Filter model names by total tag count (from all versions).
+
+        Args:
+            tag: Tag as passed on in load_model method. If tag is not found, then the model is not considered.
+            count: How many appearances a tag has to make for a given model name to be selected.
+
+        Returns:
+            List of model names whose total count of the specified tag for a given model name is greater than or equal to the count argument.
+        """
+
+        models = {}
+        for model_id in self._models:
+            try:
+                tag_count = self._models[model_id]["metadata"]["consecutive_tag_count"][tag]
+            except KeyError:
+                continue
+            model_name = model_id.split("-")[0]
+            if model_name in models:
+                models[model_name] += tag_count
+
+        filtered_model_names = []
+        for model_name, tag_count in models:
+            if tag_count >= count:
+                filtered_model_names.append(model_name)
+
+        return filtered_model_names
+
     def has_model(self, model_name: str, model_version: str) -> Tuple[str, int]:
         """
         Verifies if a model is loaded into memory / on disk.
@@ -173,7 +202,9 @@ class ModelsHolder:
                 return "on-disk", self._models[model_id]["upstream_timestamp"]
         return "not-available", 0
 
-    def get_model(self, model_name: str, model_version: str) -> Tuple[Any, int]:
+    def get_model(
+        self, model_name: str, model_version: str, version_tag: str = ""
+    ) -> Tuple[Any, int]:
         """
         Retrieves a model from memory.
 
@@ -189,13 +220,27 @@ class ModelsHolder:
             The model and the model's upstream timestamp.
         """
         model_id = f"{model_name}-{model_version}"
+
         if model_id in self._models:
             self._timestamps[model_id] = time.time()
+
+            if version_tag in self._models[model_id]["metadata"]["consecutive_tag_count"]:
+                self._models[model_id]["metadata"]["consecutive_tag_count"][version_tag] += 1
+            else:
+                for tag in self._models[model_id]["metadata"]["consecutive_tag_count"]:
+                    self._models[model_id]["metadata"]["consecutive_tag_count"][tag] = 0
+
             return self._models[model_id]["model"], self._models[model_id]["upstream_timestamp"]
+
         return None, 0
 
     def load_model(
-        self, model_name: str, model_version: str, disk_path: str, upstream_timestamp: int,
+        self,
+        model_name: str,
+        model_version: str,
+        disk_path: str,
+        upstream_timestamp: int,
+        tags: List[str] = [],
     ) -> None:
         """
         Loads a given model into memory.
@@ -213,11 +258,18 @@ class ModelsHolder:
 
         if self._load_callback:
             model_id = f"{model_name}-{model_version}"
-            self._models[model_id] = {
+
+            model = {
                 "model": self._load_callback(disk_path),
                 "disk_path": disk_path,
                 "upstream_timestamp": upstream_timestamp,
+                "metadata": {"consecutive_tag_count": {},},
             }
+            if len(tags) > 0:
+                for tag in tags:
+                    model["metadata"]["consecutive_tag_count"][tag] = 0
+
+            self._models[model_id] = model
         else:
             raise RuntimeError(
                 "a load callback must be provided; use set_callback to set a callback"
