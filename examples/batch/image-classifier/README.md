@@ -415,7 +415,7 @@ spinning up workers...
 
 The status of your job, which you can get from `cortex get <BATCH_API_NAME> <JOB_ID>`, should change from `running` to `succeeded` once the job has completed. If it changes to a different status, you may be able to find the stacktrace using `cortex logs <BATCH_API_NAME> <JOB_ID>`. If your job has completed successfully, you can view the results of the image classification in the S3 directory you specified in the job submission.
 
-Using AWS CLI:
+Using the AWS CLI:
 
 ```bash
 $ aws s3 ls $CORTEX_DEST_S3_DIR/<JOB_ID>/
@@ -524,7 +524,7 @@ spinning up workers...
 
 The status of your job, which you can get from `cortex get <BATCH_API_NAME> <JOB_ID>`, should change from `running` to `succeeded` once the job has completed. If it changes to a different status, you may be able to find the stacktrace using `cortex logs <BATCH_API_NAME> <JOB_ID>`. If your job has completed successfully, you can view the results of the image classification in the S3 directory you specified in the job submission.
 
-Using AWS CLI:
+Using the AWS CLI:
 
 ```bash
 $ aws s3 ls $CORTEX_DEST_S3_DIR/<JOB_ID>/
