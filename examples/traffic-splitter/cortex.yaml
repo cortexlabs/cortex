@@ -18,7 +18,7 @@
   monitoring:
     model_type: classification
 
-- name: iris-classifier
+- name: traffic-splitter
   kind: TrafficSplitter
   apis:
     - name: iris-classifier-onnx
