@@ -50,22 +50,6 @@ type Destination struct {
 }
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
-	var stringMatch *istionetworking.StringMatch
-
-	if spec.ExactPath != nil {
-		stringMatch = &istionetworking.StringMatch{
-			MatchType: &istionetworking.StringMatch_Exact{
-				Exact: urls.CanonicalizeEndpoint(*spec.ExactPath),
-			},
-		}
-	} else {
-		stringMatch = &istionetworking.StringMatch{
-			MatchType: &istionetworking.StringMatch_Prefix{
-				Prefix: urls.CanonicalizeEndpoint(*spec.PrefixPath),
-			},
-		}
-	}
-
 	destinations := []*istionetworking.HTTPRouteDestination{}
 	for _, destination := range spec.Destinations {
 		destinations = append(destinations, &istionetworking.HTTPRouteDestination{
@@ -79,6 +63,56 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 		})
 	}
 
+	httpRoutes := []*istionetworking.HTTPRoute{}
+
+	if spec.ExactPath != nil {
+		httpRoutes = append(httpRoutes, &istionetworking.HTTPRoute{
+			Match: []*istionetworking.HTTPMatchRequest{
+				{
+					Uri: &istionetworking.StringMatch{
+						MatchType: &istionetworking.StringMatch_Exact{
+							Exact: urls.CanonicalizeEndpoint(*spec.ExactPath),
+						},
+					},
+				},
+			},
+			Route: destinations,
+			Rewrite: &istionetworking.HTTPRewrite{
+				Uri: urls.CanonicalizeEndpoint(*spec.Rewrite),
+			},
+		})
+	} else {
+		httpRoutes = append(httpRoutes, &istionetworking.HTTPRoute{
+			Match: []*istionetworking.HTTPMatchRequest{
+				{
+					Uri: &istionetworking.StringMatch{
+						MatchType: &istionetworking.StringMatch_Exact{
+							Exact: urls.CanonicalizeEndpoint(*spec.PrefixPath),
+						},
+					},
+				},
+			},
+			Route: destinations,
+			Rewrite: &istionetworking.HTTPRewrite{
+				Uri: urls.CanonicalizeEndpoint(*spec.Rewrite),
+			},
+		}, &istionetworking.HTTPRoute{
+			Match: []*istionetworking.HTTPMatchRequest{
+				{
+					Uri: &istionetworking.StringMatch{
+						MatchType: &istionetworking.StringMatch_Prefix{
+							Prefix: urls.CanonicalizeEndpoint(*spec.PrefixPath) + "/",
+						},
+					},
+				},
+			},
+			Route: destinations,
+			Rewrite: &istionetworking.HTTPRewrite{
+				Uri: urls.CanonicalizeEndpoint(*spec.Rewrite) + "/",
+			},
+		})
+	}
+
 	virtualService := &istioclientnetworking.VirtualService{
 		TypeMeta: _virtualServiceTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
@@ -89,31 +123,8 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 		Spec: istionetworking.VirtualService{
 			Hosts:    []string{"*"},
 			Gateways: spec.Gateways,
-			Http: []*istionetworking.HTTPRoute{
-				{
-					Match: []*istionetworking.HTTPMatchRequest{
-						{
-							Uri: stringMatch,
-						},
-					},
-					Route: destinations,
-				},
-			},
+			Http:     httpRoutes,
 		},
-	}
-
-	var path string
-
-	if spec.ExactPath != nil {
-		path = *spec.ExactPath
-	} else {
-		path = *spec.PrefixPath
-	}
-
-	if spec.Rewrite != nil && urls.CanonicalizeEndpoint(*spec.Rewrite) != urls.CanonicalizeEndpoint(path) {
-		virtualService.Spec.Http[0].Rewrite = &istionetworking.HTTPRewrite{
-			Uri: urls.CanonicalizeEndpoint(*spec.Rewrite),
-		}
 	}
 
 	return virtualService
