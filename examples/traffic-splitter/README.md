@@ -25,12 +25,12 @@ created iris-classifier (TrafficSplitter)
 ```bash
 $ cortex get
 
-env   realtime api               status     up-to-date   requested   last update   avg request   2XX
+env   realtime api           status     up-to-date   requested   last update   avg request   2XX
 aws   iris-classifier-onnx   updating   0            1           27s           -             -
 aws   iris-classifier-tf     updating   0            1           27s           -             -
 
 env   traffic splitter   apis                                            last update
-aws   iris-classifier   iris-classifier-onnx:30 iris-classifier-tf:70   27s
+aws   iris-classifier    iris-classifier-onnx:30 iris-classifier-tf:70   27s
 ```
 
 ## `cortex get iris-classifier`
