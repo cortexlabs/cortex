@@ -81,7 +81,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-You can find an example of a BatchAPI using a PythonPredictor in [examples/batch/image-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/batch/image-classifier)
+You can find an example of a BatchAPI using a PythonPredictor in [examples/batch/image-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/batch/image-classifier).
 
 ### Pre-installed packages
 
@@ -198,7 +198,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-You can find an example of a BatchAPI using a TensorFlowPredictor in [examples/batch/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/batch/tensorflow)
+You can find an example of a BatchAPI using a TensorFlowPredictor in [examples/batch/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/batch/tensorflow).
 
 ### Pre-installed packages
 
@@ -267,7 +267,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-You can find an example of a BatchAPI using an ONNXPredictor in [examples/batch/onnx](https://github.com/cortexlabs/cortex/tree/master/examples/batch/onnx)
+You can find an example of a BatchAPI using an ONNXPredictor in [examples/batch/onnx](https://github.com/cortexlabs/cortex/tree/master/examples/batch/onnx).
 
 ### Pre-installed packages
 
