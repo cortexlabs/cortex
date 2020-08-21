@@ -17,7 +17,7 @@ $ cortex deploy --env aws
 
 creating iris-classifier-onnx (RealtimeAPI)
 creating iris-classifier-tf (RealtimeAPI)
-created traffic-splitter (TrafficSplitter)
+created iris-classifier (TrafficSplitter)
 ```
 
 ## `cortex get`
@@ -30,52 +30,52 @@ aws   iris-classifier-onnx   updating   0            1           27s           -
 aws   iris-classifier-tf     updating   0            1           27s           -             -
 
 env   traffic splitter   apis                                            last update
-aws   traffic-splitter   iris-classifier-onnx:30 iris-classifier-tf:70   27s
+aws   iris-classifier   iris-classifier-onnx:30 iris-classifier-tf:70   27s
 ```
 
-## `cortex get traffic-splitter`
+## `cortex get iris-classifier`
 
 ```bash
-$ cortex get traffic-splitter --env aws
+$ cortex get iris-classifier --env aws
 
 apis                   weights   status   requested   last update   avg request   2XX   5XX
 iris-classifier-onnx   30        live     1           1m            -             -     -
 iris-classifier-tf     70        live     1           1m            -             -     -
 
 last updated: 1m
-endpoint: https://abcedefg.execute-api.us-west-2.amazonaws.com/traffic-splitter
-curl: curl https://abcedefg.execute-api.us-west-2.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+endpoint: https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier
+curl: curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 ...
 ```
 
 ## Make multiple requests
 
 ```bash
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 ```
 
-## `cortex get traffic-splitter`
+## `cortex get iris-classifier`
 
 Notice the requests being routed to the different Realtime APIs based on their weights (the output below may not match yours):
 
 ```bash
-$ cortex get traffic-splitter --env aws
+$ cortex get iris-classifier --env aws
 
 using aws environment
 
@@ -85,8 +85,8 @@ iris-classifier-onnx   30        live     1           4m            6.00791 ms  
 iris-classifier-tf     70        live     1           4m            5.81867 ms    5     -
 
 last updated: 4m
-endpoint: https://comtf6hs64.execute-api.us-west-2.amazonaws.com/traffic-splitter
-curl: curl https://comtf6hs64.execute-api.us-west-2.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+endpoint: https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier
+curl: curl https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 ...
 ```
 
@@ -95,9 +95,9 @@ curl: curl https://comtf6hs64.execute-api.us-west-2.amazonaws.com/traffic-splitt
 Use `cortex delete <api_name>` to delete the Traffic Splitter and the two Realtime APIs (note that the Traffic Splitter and each Realtime API must be deleted by separate `cortex delete` commands):
 
 ```bash
-$ cortex delete traffic-splitter --env aws
+$ cortex delete iris-classifier --env aws
 
-deleting traffic-splitter
+deleting iris-classifier
 
 $ cortex delete iris-classifier-onnx  --env aws
 
