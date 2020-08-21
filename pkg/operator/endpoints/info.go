@@ -117,14 +117,14 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		node.ComputeAvailable.Mem.SubQty(mem)
 		node.ComputeAvailable.GPU -= gpu
 
-		if !isAPIPod {
-			node.ComputeUserCapacity.CPU.SubQty(cpu)
-			node.ComputeUserCapacity.Mem.SubQty(mem)
-			node.ComputeUserCapacity.GPU -= gpu
-		} else {
+		if isAPIPod {
 			node.ComputeUserRequested.CPU.AddQty(cpu)
 			node.ComputeUserRequested.Mem.AddQty(mem)
 			node.ComputeUserRequested.GPU += gpu
+		} else {
+			node.ComputeUserCapacity.CPU.SubQty(cpu)
+			node.ComputeUserCapacity.Mem.SubQty(mem)
+			node.ComputeUserCapacity.GPU -= gpu
 		}
 	}
 
