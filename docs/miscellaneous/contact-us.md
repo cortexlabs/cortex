@@ -10,7 +10,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 [Email](mailto:hello@cortexlabs.dev) - Email us at `hello@cortexlabs.dev` to contact us privately.
 
-## Contribute to Cortex
+## Contributing
 
 Find instructions for how to set up your development environment in the [development guide](../contributing/development.md).
 
