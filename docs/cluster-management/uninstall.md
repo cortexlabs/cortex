@@ -33,10 +33,10 @@ To delete them:
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
-# identify the name of your cortex s3 bucket
+# identify the name of your cortex S3 bucket
 aws s3 ls
 
-# delete the s3 bucket
+# delete the S3 bucket
 aws s3 rb --force s3://<bucket>
 
 # delete the log group (replace <log_group> with what was configured during installation, default: cortex)
