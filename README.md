@@ -18,7 +18,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 ### Deploy
 
 * Run Cortex locally or as a production cluster on your AWS account.
-* Deploy TensorFlow, PyTorch, scikit-learn, and other models as web APIs.
+* Deploy TensorFlow, PyTorch, scikit-learn, and other models as a Realtime API or a Batch API
 * Define preprocessing and postprocessing steps in Python.
 
 ### Manage
@@ -26,6 +26,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 * Update APIs with no downtime.
 * Stream logs from your APIs to your CLI.
 * Monitor API performance and track predictions.
+* Perform A/B tests
 
 ### Scale
 
@@ -55,7 +56,7 @@ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.18/get
 ```
 
 <!-- CORTEX_VERSION_README_MINOR -->
-See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples) or bring your own models to build [custom APIs](https://docs.cortex.dev/guides/exporting).
+See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.18/examples) or bring your own models to build [Realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [Batch APIs](https://docs.cortex.dev/deployments/batch-api).
 
 ### Learn more
 
