@@ -27,7 +27,7 @@ const (
 	AutoscalingKey    = "autoscaling"
 	UpdateStrategyKey = "update_strategy"
 
-	// APISplitter
+	// TrafficSplitter
 	APIsKey   = "apis"
 	WeightKey = "weight"
 

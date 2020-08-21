@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apisplitter
+package trafficsplitter
 
 import (
 	"fmt"
@@ -116,8 +116,8 @@ func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualS
 	return virtualService, err
 }
 
-func applyK8sVirtualService(apiSplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
-	newVirtualService := virtualServiceSpec(apiSplitter)
+func applyK8sVirtualService(trafficSplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
+	newVirtualService := virtualServiceSpec(trafficSplitter)
 
 	if prevVirtualService == nil {
 		_, err := config.K8s.CreateVirtualService(newVirtualService)
@@ -128,9 +128,9 @@ func applyK8sVirtualService(apiSplitter *spec.API, prevVirtualService *istioclie
 	return err
 }
 
-func getAPISplitterDestinations(apiSplitter *spec.API) []k8s.Destination {
-	destinations := make([]k8s.Destination, len(apiSplitter.APIs))
-	for i, api := range apiSplitter.APIs {
+func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination {
+	destinations := make([]k8s.Destination, len(trafficSplitter.APIs))
+	for i, api := range trafficSplitter.APIs {
 		destinations[i] = k8s.Destination{
 			ServiceName: operator.K8sName(api.Name),
 			Weight:      int32(api.Weight),
@@ -140,13 +140,13 @@ func getAPISplitterDestinations(apiSplitter *spec.API) []k8s.Destination {
 	return destinations
 }
 
-func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.APISplitter, error) {
+func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.TrafficSplitter, error) {
 	apiNames := []string{}
 	apiIDs := []string{}
-	apiSplitters := []schema.APISplitter{}
+	trafficSplitters := []schema.TrafficSplitter{}
 
 	for _, virtualService := range virtualServices {
-		if virtualService.Labels["apiKind"] == userconfig.APISplitterKind.String() {
+		if virtualService.Labels["apiKind"] == userconfig.TrafficSplitterKind.String() {
 			apiNames = append(apiNames, virtualService.Labels["apiName"])
 			apiIDs = append(apiIDs, virtualService.Labels["apiID"])
 		}
@@ -157,19 +157,19 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 		return nil, err
 	}
 
-	for _, apiSplitter := range apis {
-		endpoint, err := operator.APIEndpoint(&apiSplitter)
+	for _, trafficSplitter := range apis {
+		endpoint, err := operator.APIEndpoint(&trafficSplitter)
 		if err != nil {
 			return nil, err
 		}
 
-		apiSplitters = append(apiSplitters, schema.APISplitter{
-			Spec:     apiSplitter,
+		trafficSplitters = append(trafficSplitters, schema.TrafficSplitter{
+			Spec:     trafficSplitter,
 			Endpoint: endpoint,
 		})
 	}
 
-	return apiSplitters, nil
+	return trafficSplitters, nil
 }
 
 func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
@@ -184,7 +184,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 	}
 
 	return &schema.GetAPIResponse{
-		APISplitter: &schema.APISplitter{
+		TrafficSplitter: &schema.TrafficSplitter{
 			Spec:     *api,
 			Endpoint: endpoint,
 		},

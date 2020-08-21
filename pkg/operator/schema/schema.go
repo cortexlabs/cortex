@@ -52,12 +52,12 @@ type DeployResult struct {
 }
 
 type GetAPIsResponse struct {
-	SyncAPIs     []SyncAPI     `json:"sync_apis"`
-	BatchAPIs    []BatchAPI    `json:"batch_apis"`
-	APISplitters []APISplitter `json:"api_splitters"`
+	RealtimeAPIs     []RealtimeAPI     `json:"realtime_apis"`
+	BatchAPIs        []BatchAPI        `json:"batch_apis"`
+	TrafficSplitters []TrafficSplitter `json:"traffic_splitters"`
 }
 
-type SyncAPI struct {
+type RealtimeAPI struct {
 	Spec         spec.API        `json:"spec"`
 	Status       status.Status   `json:"status"`
 	Metrics      metrics.Metrics `json:"metrics"`
@@ -65,15 +65,15 @@ type SyncAPI struct {
 	DashboardURL string          `json:"dashboard_url"`
 }
 
-type APISplitter struct {
+type TrafficSplitter struct {
 	Spec     spec.API `json:"spec"`
 	Endpoint string   `json:"endpoint"`
 }
 
 type GetAPIResponse struct {
-	SyncAPI     *SyncAPI     `json:"sync_api"`
-	BatchAPI    *BatchAPI    `json:"batch_api"`
-	APISplitter *APISplitter `json:"api_splitter"`
+	RealtimeAPI     *RealtimeAPI     `json:"realtime_api"`
+	BatchAPI        *BatchAPI        `json:"batch_api"`
+	TrafficSplitter *TrafficSplitter `json:"traffic_splitter"`
 }
 
 type BatchAPI struct {

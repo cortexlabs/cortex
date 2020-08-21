@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-There are a few possible causes for APIs getting stuck in the "updating" or "compute unavailable" state. Here are some things to check:
+If your API is stuck in the "updating" or "compute unavailable" state (which is displayed when running `cortex get`), there are a few possible causes. Here are some things to check:
 
 ## Check `cortex logs API_NAME`
 
@@ -56,7 +56,7 @@ If you're running in a development environment, this rolling update behavior can
 You can disable rolling updates for your API in your API configuration (e.g. in `cortex.yaml`): set `max_surge` to 0 (in the `update_strategy` configuration). E.g.:
 
 ```yaml
-- name: iris-classifier
+- name: text-generator
   predictor:
     type: python
     ...

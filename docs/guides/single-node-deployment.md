@@ -116,15 +116,16 @@ $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master
 
 You can now use Cortex to deploy your model:
 
+<!-- CORTEX_VERSION_MINOR -->
 ```bash
-$ git clone https://github.com/cortexlabs/cortex.git
+$ git clone -b master https://github.com/cortexlabs/cortex.git
 
-$ cd cortex/examples/tensorflow/iris-classifier
+$ cd cortex/examples/pytorch/text-generator
 
 $ cortex deploy
 
 # take note of the curl command
-$ cortex get iris-classifier
+$ cortex get text-generator
 ```
 
 ### Step 14
@@ -132,7 +133,7 @@ $ cortex get iris-classifier
 Make requests by replacing "localhost" in the curl command with your instance's public DNS:
 
 ```bash
-$ curl -X POST -H "Content-Type: application/json" \
-    -d '{ "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 }' \
-    <instance public DNS>:<Port>
+$ curl <instance public DNS>:<Port> \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"text": "machine learning is"}'
 ```
