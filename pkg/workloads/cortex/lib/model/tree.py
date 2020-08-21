@@ -30,7 +30,7 @@ class ModelsTree:
 
     def acquire(self, mode: str) -> None:
         """
-        Acquire lock on the model tree.
+        Acquire (shared/exclusive access) lock on the model tree.
 
         Args:
             mode: "r" for read lock, "w" for write lock.
@@ -39,7 +39,7 @@ class ModelsTree:
 
     def release(self, mode: str) -> None:
         """
-        Release lock on the model tree.
+        Release (shared/exclusive access) lock on the model tree.
 
         Args:
             mode: "r" for read lock, "w" for write lock.
@@ -193,7 +193,7 @@ class ModelsTree:
 
 class LockedModelsTree:
     """
-    When acquiring R/W access to a model resource (model name + version).
+    When acquiring shared/exclusive (R/W) access to a model resource (model name + version).
 
     Locks the entire tree. When receiving requests, the read lock shall be applied.
     When updating the tree in the cron, the write lock shall be applied.

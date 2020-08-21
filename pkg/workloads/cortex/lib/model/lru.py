@@ -88,9 +88,9 @@ class ModelsHolder:
 
     def global_acquire(self, mode: str) -> None:
         """
-        Acquire R/W access over all models.
-
-        The distinction between "r" and "w", is that for "w", any method of this class can be called, including the garbage_collect method.
+        Acquire shared/exclusive (R/W) access over all models.
+        
+        Use "w" when wanting to acquire exclusive access for the GC, or "r" when wanting to grant shared access for any other method to be called.
 
         Args:
             mode: "r" for read lock, "w" for write lock.
@@ -99,7 +99,7 @@ class ModelsHolder:
 
     def global_release(self, mode: str) -> None:
         """
-        Release R/W access over all models.
+        Release shared/exclusive (R/W) access over all models.
 
         Args:
             mode: "r" for read lock, "w" for write lock.
@@ -108,7 +108,7 @@ class ModelsHolder:
 
     def model_acquire(self, mode: str, model_name: str, model_version: str) -> None:
         """
-        Acquire R/W access for a specific model.
+        Acquire shared/exclusive (R/W) access for a specific model.
 
         Args:
             mode: "r" for read lock, "w" for write lock.
@@ -138,7 +138,7 @@ class ModelsHolder:
 
     def model_release(self, mode: str, model_name: str, model_version: str) -> None:
         """
-        Release R/W access for a specific model.
+        Release shared/exclusive (R/W) access for a specific model.
 
         Args:
             mode: "r" for read lock, "w" for write lock.
@@ -152,29 +152,38 @@ class ModelsHolder:
 
     def get_model_names_by_tag_count(self, tag: str, count: int) -> List[str]:
         """
-        Filter model names by total tag count (from all versions).
+        Filter model names by the tag count based on the latest recently used model version.
 
         Args:
             tag: Tag as passed on in load_model method. If tag is not found, then the model is not considered.
             count: How many appearances a tag has to make for a given model name to be selected.
 
         Returns:
-            List of model names whose total count of the specified tag for a given model name is greater than or equal to the count argument.
+            List of model names that abide by the method's selection rule.
+
+        For this method, just a global lock is expected.
         """
+
+        self._timestamps[model_id]
 
         models = {}
         for model_id in self._models:
             try:
                 tag_count = self._models[model_id]["metadata"]["consecutive_tag_count"][tag]
+                ts = self._timestamps[model_id]
             except KeyError:
                 continue
+
             model_name = model_id.split("-")[0]
-            if model_name in models:
-                models[model_name] += tag_count
+            if (
+                model_name in models and models[model_name]["timestamp"] < ts
+            ) or model_name not in models:
+                models[model_name]["timestamp"] = ts
+                models[model_name]["count"] = tag_count
 
         filtered_model_names = []
-        for model_name, tag_count in models:
-            if tag_count >= count:
+        for model_name, v in models:
+            if v["count"] >= count:
                 filtered_model_names.append(model_name)
 
         return filtered_model_names
@@ -395,7 +404,7 @@ class ModelsHolder:
 
 class LockedGlobalModelsGC:
     """
-    Applies global write lock on the models tree.
+    Applies global exclusive lock (W) on the models tree.
 
     For running the GC for all loaded models (or present on disk).
     This is the locking implementation for the stop-the-world GC.
@@ -419,7 +428,7 @@ class LockedGlobalModelsGC:
 
 class LockedModel:
     """
-    For granting R/W access to a model resource (model name + model version).
+    For granting shared/exclusive (R/W) access to a model resource (model name + model version).
     Also applies global read lock on the models tree.
 
     The context manager can be exited by raising cortex.lib.exceptions.WithBreak.
