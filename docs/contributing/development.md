@@ -207,7 +207,7 @@ make cluster-down
 ### Deploy an example
 
 ```bash
-cortex deploy examples/pytorch/iris-classifier --env aws
+cortex deploy examples/pytorch/iris-classifier/cortex.yaml --env aws
 ```
 
 ## Off-cluster operator
