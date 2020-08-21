@@ -5,9 +5,7 @@
 * [Tutorial](../examples/pytorch/text-generator/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [Chat with us](https://gitter.im/cortexlabs/cortex)
-* [Email us](mailto:hello@cortex.dev)
-* [We're hiring](https://angel.co/cortex-labs-inc/jobs)
+* [Contact us](miscellaneous/contact-us.md)
 
 ## Deployments
 
