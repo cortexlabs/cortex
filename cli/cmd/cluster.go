@@ -583,7 +583,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	var doesClusterHaveGPUs bool
 	for _, nodeInfo := range infoResponse.NodeInfos {
 		totalReplicas += nodeInfo.NumReplicas
-		if nodeInfo.ComputeCapacity.GPU > 0 {
+		if nodeInfo.ComputeUserCapacity.GPU > 0 {
 			doesClusterHaveGPUs = true
 		}
 	}
@@ -603,9 +603,9 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "instance type"},
 		{Title: "lifecycle"},
 		{Title: "replicas"},
-		{Title: "CPU (free / total)"},
-		{Title: "memory (free / total)"},
-		{Title: "GPU (free / total)", Hidden: !doesClusterHaveGPUs},
+		{Title: "CPU (requested / total allocatable)"},
+		{Title: "memory (requested / total allocatable)"},
+		{Title: "GPU (requested / total allocatable)", Hidden: !doesClusterHaveGPUs},
 	}
 
 	var rows [][]interface{}
@@ -614,9 +614,10 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		if nodeInfo.IsSpot {
 			lifecycle = "spot"
 		}
-		cpuStr := nodeInfo.ComputeAvailable.CPU.String() + " / " + nodeInfo.ComputeCapacity.CPU.String()
-		memStr := nodeInfo.ComputeAvailable.Mem.String() + " / " + nodeInfo.ComputeCapacity.Mem.String()
-		gpuStr := s.Int64(nodeInfo.ComputeAvailable.GPU) + " / " + s.Int64(nodeInfo.ComputeCapacity.GPU)
+
+		cpuStr := nodeInfo.ComputeUserRequested.CPU.MilliString() + " / " + nodeInfo.ComputeUserCapacity.CPU.MilliString()
+		memStr := nodeInfo.ComputeUserRequested.Mem.String() + " / " + nodeInfo.ComputeUserCapacity.Mem.String()
+		gpuStr := s.Int64(nodeInfo.ComputeUserRequested.GPU) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.GPU)
 		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, cpuStr, memStr, gpuStr})
 	}
 

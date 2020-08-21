@@ -81,13 +81,14 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		}
 
 		nodeInfoMap[node.Name] = &schema.NodeInfo{
-			Name:             node.Name,
-			InstanceType:     instanceType,
-			IsSpot:           isSpot,
-			Price:            price,
-			NumReplicas:      0,                             // will be added to below
-			ComputeCapacity:  nodeComputeAllocatable(&node), // will be subtracted from below
-			ComputeAvailable: nodeComputeAllocatable(&node), // will be subtracted from below
+			Name:                 node.Name,
+			InstanceType:         instanceType,
+			IsSpot:               isSpot,
+			Price:                price,
+			NumReplicas:          0,                             // will be added to below
+			ComputeUserCapacity:  nodeComputeAllocatable(&node), // will be subtracted from below
+			ComputeAvailable:     nodeComputeAllocatable(&node), // will be subtracted from below
+			ComputeUserRequested: userconfig.ZeroCompute(),      // will be added to below
 		}
 	}
 
@@ -116,10 +117,14 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		node.ComputeAvailable.Mem.SubQty(mem)
 		node.ComputeAvailable.GPU -= gpu
 
-		if !isAPIPod {
-			node.ComputeCapacity.CPU.SubQty(cpu)
-			node.ComputeCapacity.Mem.SubQty(mem)
-			node.ComputeCapacity.GPU -= gpu
+		if isAPIPod {
+			node.ComputeUserRequested.CPU.AddQty(cpu)
+			node.ComputeUserRequested.Mem.AddQty(mem)
+			node.ComputeUserRequested.GPU += gpu
+		} else {
+			node.ComputeUserCapacity.CPU.SubQty(cpu)
+			node.ComputeUserCapacity.Mem.SubQty(mem)
+			node.ComputeUserCapacity.GPU -= gpu
 		}
 	}
 

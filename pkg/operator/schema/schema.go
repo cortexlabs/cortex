@@ -32,13 +32,14 @@ type InfoResponse struct {
 }
 
 type NodeInfo struct {
-	Name             string             `json:"name"`
-	InstanceType     string             `json:"instance_type"`
-	IsSpot           bool               `json:"is_spot"`
-	Price            float64            `json:"price"`
-	NumReplicas      int                `json:"num_replicas"`
-	ComputeCapacity  userconfig.Compute `json:"compute_capacity"`  // the total resources available to the user on a node
-	ComputeAvailable userconfig.Compute `json:"compute_available"` // unused resources on a node
+	Name                 string             `json:"name"`
+	InstanceType         string             `json:"instance_type"`
+	IsSpot               bool               `json:"is_spot"`
+	Price                float64            `json:"price"`
+	NumReplicas          int                `json:"num_replicas"`
+	ComputeUserCapacity  userconfig.Compute `json:"compute_user_capacity"`  // the total resources available to the user on a node
+	ComputeAvailable     userconfig.Compute `json:"compute_available"`      // unused resources on a node
+	ComputeUserRequested userconfig.Compute `json:"compute_user_requested"` // total resources requested by user on a node
 }
 
 type DeployResponse struct {

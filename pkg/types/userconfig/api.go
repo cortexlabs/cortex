@@ -506,3 +506,11 @@ func (updateStrategy *UpdateStrategy) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUnavailableKey, updateStrategy.MaxUnavailable))
 	return sb.String()
 }
+
+func ZeroCompute() Compute {
+	return Compute{
+		CPU: &k8s.Quantity{},
+		Mem: &k8s.Quantity{},
+		GPU: 0,
+	}
+}
