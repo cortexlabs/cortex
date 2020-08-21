@@ -41,82 +41,82 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, error) {
+func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment) (string, error) {
 	var out string
 
-	t := syncAPIsTable([]schema.SyncAPI{*syncAPI}, []string{env.Name})
+	t := realtimeAPIsTable([]schema.RealtimeAPI{*realtimeAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	t.FindHeaderByTitle(_titleSyncAPI).Hidden = true
+	t.FindHeaderByTitle(_titleRealtimeAPI).Hidden = true
 	if env.Provider == types.LocalProviderType {
 		hideReplicaCountColumns(&t)
 	}
 
 	out += t.MustFormat()
 
-	if env.Provider != types.LocalProviderType && syncAPI.Spec.Monitoring != nil {
-		switch syncAPI.Spec.Monitoring.ModelType {
+	if env.Provider != types.LocalProviderType && realtimeAPI.Spec.Monitoring != nil {
+		switch realtimeAPI.Spec.Monitoring.ModelType {
 		case userconfig.ClassificationModelType:
-			out += "\n" + classificationMetricsStr(&syncAPI.Metrics)
+			out += "\n" + classificationMetricsStr(&realtimeAPI.Metrics)
 		case userconfig.RegressionModelType:
-			out += "\n" + regressionMetricsStr(&syncAPI.Metrics)
+			out += "\n" + regressionMetricsStr(&realtimeAPI.Metrics)
 		}
 	}
 
-	if syncAPI.DashboardURL != "" {
-		out += "\n" + console.Bold("metrics dashboard: ") + syncAPI.DashboardURL + "\n"
+	if realtimeAPI.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + realtimeAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + syncAPI.Endpoint
+	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint
 
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), syncAPI.Endpoint)
+	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), realtimeAPI.Endpoint)
 
-	if syncAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || syncAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(&syncAPI.Status, syncAPI.Endpoint)
+	if realtimeAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || realtimeAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
+		out += "\n" + describeModelInput(&realtimeAPI.Status, realtimeAPI.Endpoint)
 	}
 
-	out += titleStr("configuration") + strings.TrimSpace(syncAPI.Spec.UserStr(env.Provider))
+	out += titleStr("configuration") + strings.TrimSpace(realtimeAPI.Spec.UserStr(env.Provider))
 
 	return out, nil
 }
 
-func syncAPIsTable(syncAPIs []schema.SyncAPI, envNames []string) table.Table {
-	rows := make([][]interface{}, 0, len(syncAPIs))
+func realtimeAPIsTable(realtimeAPIs []schema.RealtimeAPI, envNames []string) table.Table {
+	rows := make([][]interface{}, 0, len(realtimeAPIs))
 
 	var totalFailed int32
 	var totalStale int32
 	var total4XX int
 	var total5XX int
 
-	for i, syncAPI := range syncAPIs {
-		lastUpdated := time.Unix(syncAPI.Spec.LastUpdated, 0)
+	for i, realtimeAPI := range realtimeAPIs {
+		lastUpdated := time.Unix(realtimeAPI.Spec.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			syncAPI.Spec.Name,
-			syncAPI.Status.Message(),
-			syncAPI.Status.Updated.Ready,
-			syncAPI.Status.Stale.Ready,
-			syncAPI.Status.Requested,
-			syncAPI.Status.Updated.TotalFailed(),
+			realtimeAPI.Spec.Name,
+			realtimeAPI.Status.Message(),
+			realtimeAPI.Status.Updated.Ready,
+			realtimeAPI.Status.Stale.Ready,
+			realtimeAPI.Status.Requested,
+			realtimeAPI.Status.Updated.TotalFailed(),
 			libtime.SinceStr(&lastUpdated),
-			latencyStr(&syncAPI.Metrics),
-			code2XXStr(&syncAPI.Metrics),
-			code4XXStr(&syncAPI.Metrics),
-			code5XXStr(&syncAPI.Metrics),
+			latencyStr(&realtimeAPI.Metrics),
+			code2XXStr(&realtimeAPI.Metrics),
+			code4XXStr(&realtimeAPI.Metrics),
+			code5XXStr(&realtimeAPI.Metrics),
 		})
 
-		totalFailed += syncAPI.Status.Updated.TotalFailed()
-		totalStale += syncAPI.Status.Stale.Ready
+		totalFailed += realtimeAPI.Status.Updated.TotalFailed()
+		totalStale += realtimeAPI.Status.Stale.Ready
 
-		if syncAPI.Metrics.NetworkStats != nil {
-			total4XX += syncAPI.Metrics.NetworkStats.Code4XX
-			total5XX += syncAPI.Metrics.NetworkStats.Code5XX
+		if realtimeAPI.Metrics.NetworkStats != nil {
+			total4XX += realtimeAPI.Metrics.NetworkStats.Code4XX
+			total5XX += realtimeAPI.Metrics.NetworkStats.Code5XX
 		}
 	}
 
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
-			{Title: _titleSyncAPI},
+			{Title: _titleRealtimeAPI},
 			{Title: _titleStatus},
 			{Title: _titleUpToDate},
 			{Title: _titleStale, Hidden: totalStale == 0},

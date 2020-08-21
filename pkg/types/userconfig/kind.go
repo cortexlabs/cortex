@@ -20,16 +20,16 @@ type Kind int
 
 const (
 	UnknownKind Kind = iota
-	SyncAPIKind
+	RealtimeAPIKind
 	BatchAPIKind
-	APISplitterKind
+	TrafficSplitterKind
 )
 
 var _kinds = []string{
 	"unknown",
-	"SyncAPI",
+	"RealtimeAPI",
 	"BatchAPI",
-	"APISplitter",
+	"TrafficSplitter",
 }
 
 func KindFromString(s string) Kind {

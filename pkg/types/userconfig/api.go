@@ -299,7 +299,7 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
 
-	if api.Kind == APISplitterKind {
+	if api.Kind == TrafficSplitterKind {
 		sb.WriteString(fmt.Sprintf("%s:\n", APIsKey))
 		for _, api := range api.APIs {
 			sb.WriteString(s.Indent(api.UserStr(), "  "))
