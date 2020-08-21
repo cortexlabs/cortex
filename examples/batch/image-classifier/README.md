@@ -8,10 +8,10 @@ This example shows how to deploy a batch image classification api that accepts a
 
 ## Pre-requisites
 
-- [Install Cortex CLI](../../../docs/cluster-management/install.md#install-the-cli)
-- [Create a Cortex Cluster](../../../docs/cluster-management/install.md#running-at-scale-on-aws)
-- Create an S3 bucket/directory to store the results of the batch job
-- AWS CLI (optional)
+* [Install Cortex CLI](../../../docs/cluster-management/install.md#install-the-cli)
+* [Create a Cortex Cluster](../../../docs/cluster-management/install.md#running-at-scale-on-aws)
+* Create an S3 bucket/directory to store the results of the batch job
+* AWS CLI (optional)
 
 <br>
 
@@ -571,3 +571,11 @@ deleting image-classifier
 ```
 
 Running `cortex delete` will stop all in progress jobs for the API and will delete job history for that API. It will not spin down your cluster.
+
+## Next steps
+
+<!-- CORTEX_VERSION_MINOR -->
+* Deploy another one of our [batch examples](https://github.com/cortexlabs/cortex/tree/master/examples/batch).
+* See our [exporting guide](../../../docs/guides/exporting.md) for how to export your model to use in an API.
+* Try the [realtime API tutorial](../../pytorch/text-generator/README.md) to learn how to deploy realtime APIs in Cortex.
+* See [uninstall](../../../docs/cluster-management/uninstall.md) if you'd like to spin down your cluster.
