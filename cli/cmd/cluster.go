@@ -616,7 +616,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		}
 
 		cpuStr := nodeInfo.ComputeUserRequested.CPU.MilliString() + " / " + nodeInfo.ComputeUserCapacity.CPU.MilliString()
-		memStr := nodeInfo.ComputeUserRequested.Mem.Base2String() + " / " + nodeInfo.ComputeUserCapacity.Mem.Base2String()
+		memStr := nodeInfo.ComputeUserRequested.Mem.String() + " / " + nodeInfo.ComputeUserCapacity.Mem.String()
 		gpuStr := s.Int64(nodeInfo.ComputeUserRequested.GPU) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.GPU)
 		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, cpuStr, memStr, gpuStr})
 	}
