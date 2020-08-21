@@ -95,6 +95,14 @@ func NewMilliQuantity(milliValue int64) *Quantity {
 	}
 }
 
+func (quantity *Quantity) MilliString() string {
+	return s.Int64(quantity.Quantity.MilliValue()) + "m"
+}
+
+func (quantity *Quantity) Base2String() string {
+	return s.Int64ToBase2Byte(quantity.Quantity.Value())
+}
+
 func (quantity *Quantity) ToFloat32() float32 {
 	return float32(quantity.Quantity.MilliValue()) / float32(1000)
 }
