@@ -400,9 +400,9 @@ def find_ondisk_models(lock_dir: str) -> List[str]:
     return models
 
 
-def find_ondisk_model_versions(lock_dir: str, model_name: str) -> List[str]:
+def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], List[int]]:
     """
-    Returns all available versions of a model from the disk.
+    Returns all available versions/timestamps of a model from the disk.
     To be used in conjunction with SimpleModelMonitor.
 
     This function should never be used for determining whether a model has to be loaded or not.
@@ -413,19 +413,22 @@ def find_ondisk_model_versions(lock_dir: str, model_name: str) -> List[str]:
         model_name: Name of the model as specified in predictor:models:paths:name, _cortex_default when predictor:model_path is set or the discovered model names when predictor:models:dir is used.
 
     Returns:
-        List with the available versions. Empty when the model is not available.
+        2-element tuple made of a list with the available versions and a list with the corresponding timestamps for each model. Empty when the model is not available.
     """
 
     files = [os.path.basename(file) for file in os.listdir(lock_dir)]
     locks = [f for f in files if f.endswith(".lock")]
     versions = []
+    timestamps = []
 
     for lock in locks:
         _model_name, version = os.path.splitext(lock).split("-")
         if _model_name == model_name:
             with LockedFile(os.path.join(lock_dir, lock), reader_lock=True) as f:
                 status = f.read()
-            if status == "available":
+            if status.startswith("available"):
+                current_upstream_ts = int(file_status.split(" ")[1])
                 versions.append(version)
+                timestamps.append(current_upstream_ts)
 
-    return versions
+    return (versions, timestamps)

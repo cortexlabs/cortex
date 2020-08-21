@@ -28,7 +28,7 @@ from cortex.lib.model import (
     ModelsTree,
     LockedModelsTree,
     CuratedModelResources,
-    find_ondisk_model_versions,
+    find_ondisk_model_info,
     find_ondisk_models,
 )
 from cortex.lib.concurrency import LockedFile
@@ -84,26 +84,29 @@ class ONNXClient:
         self._models.set_callback("load", self._load_model)
 
     # TODO use "latest" for model version instead
-    def predict(self, model_input: Any, model_name: str = None, model_version: str = None):
+    def predict(self, model_input: Any, model_name: str = None, model_version: str = "highest"):
         """
         Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
 
         Args:
             model_input: Input to the model.
             model_name: Model to use when multiple models are deployed in a single API.
-            model_version: Model version to use. If not specified, it will default to the latest version.
+            model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version. 
 
         Returns:
             The prediction returned from the model.
         """
+
+        if model_version not in ["highest", "latest"] or not model_version.isnumeric():
+            raise UserRuntimeException(
+                "model_version must be either a parse-able numeric value or 'highest' or 'latest'"
+            )
 
         # when predictor:model_path or predictor:models:paths is specified
         if self._models_dir is None:
 
             # when predictor:model_path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
-                if model_version is None:
-                    model_version = self._get_highest_model_version(consts.SINGLE_MODEL_NAME)
                 return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, model_version)
 
             # when predictor:models:paths is specified
@@ -121,18 +124,14 @@ class ONNXClient:
         if self._models_dir:
             if model_name is None:
                 raise UserRuntimeException("model_name was not specified")
+            if not self._cache_enabled:
+                available_models = find_ondisk_models(self._lock_dir)
+                if model_name not in available_models:
+                    raise UserRuntimeException(
+                        f"'{model_name}' model wasn't found in the list of available models"
+                    )
 
-            available_models = find_ondisk_models(self._lock_dir)
-            if model_name not in available_models:
-                raise UserRuntimeException(
-                    f"'{model_name}' model wasn't found in the list of available models"
-                )
-
-        if model_version is None:
-            model_version = self._get_highest_model_version(model_name)
         return self._run_inference(model_input, model_name, model_version)
-
-        # TODO handle the case when the caching is enabled
 
     def _run_inference(self, model_input: Any, model_name: str, model_version: str) -> Any:
         """
@@ -164,14 +163,16 @@ class ONNXClient:
             None if the model wasn't found.
         """
 
-        found_model = True
-        model_id = model_name + "-" + model_version
+        model = None
 
         if not self._cache_enabled:
+            if model_version in ["latest", "highest"]:
+                model_version = self._get_model_version_from_disk(model_name, model_version)
+            model_id = model_name + "-" + model_version
+
             with LockedFile(model_id, "r", reader_lock=True) as f:
                 file_status = f.read()
                 if file_status == "" or file_status == "not available":
-                    found_model = False
                     raise WithBreak()
 
                 current_upstream_ts = int(file_status.split(" ")[1])
@@ -199,8 +200,15 @@ class ONNXClient:
 
         if self._cache_enabled:
             with LockedModelsTree(self._models_tree, "r"):
+                if model_version in ["latest", "highest"]:
+                    if model_name not in self._models_tree.info:
+                        raise WithBreak()
+                    model_version = self._get_model_version_from_tree(
+                        model_name, model_version, self._models_tree.info[model_name]
+                    )
+
+                model_id = model_name + "-" + model_version
                 if model_id not in self._models_tree:
-                    found_model = False
                     raise WithBreak()
 
                 upstream_model = self._models_tree[model_id]
@@ -233,9 +241,7 @@ class ONNXClient:
                         )
                         model, _ = self._models.get_model(model_name, model_version)
 
-        if found_model:
-            return model
-        return None
+        return model
 
     def _load_model(self, model_path: str) -> None:
         """
@@ -263,8 +269,16 @@ class ONNXClient:
 
         return model
 
-    def _get_highest_model_version(self, model_name: str) -> str:
-        versions = find_ondisk_model_versions(self._lock_dir, model_name)
+    def _get_model_version_from_disk(self, model_name: str, tag: str) -> str:
+        """
+        Get the right version/timestamp for a specific model name based on the version tag - either "latest" or "highest".
+        Must only be used when caching is disabled.
+        """
+
+        if tag not in ["latest", "highest"]:
+            raise ValueError("invalid tag; must be either 'latest' or 'highest'")
+
+        versions, timestamps = find_ondisk_model_info(self._lock_dir, model_name)
         if len(versions) == 0:
             raise UserRuntimeException(
                 "'{}' model's versions have been removed; add at least a version to the model to resume operations".format(
@@ -272,8 +286,27 @@ class ONNXClient:
                 )
             )
 
-        highest = max(versions)
-        return highest
+        if tag == "latest":
+            index = timestamps.index(max(timestamps))
+            return versions[index]
+        else:
+            return max(versions)
+
+    def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
+        """
+        Get the right version/timestamp for a specific model name based on the version tag - either "latest" or "highest".
+        Must only be used when caching is enabled.
+        """
+
+        if tag not in ["latest", "highest"]:
+            raise ValueError("invalid tag; must be either 'latest' or 'highest'")
+
+        versions, timestamps = model_info["versions"], model_info["timestamps"]
+        if tag == "latest":
+            index = timestamps.index(max(timestamps))
+            return versions[index]
+        else:
+            return max(versions)
 
     # TODO retrieve sessions properly for cortex get
     @property

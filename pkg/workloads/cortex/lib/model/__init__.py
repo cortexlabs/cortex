@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex.lib.model.cron import find_ondisk_model_versions, find_ondisk_models
+from cortex.lib.model.cron import find_ondisk_model_info, find_ondisk_models
 from cortex.lib.model.lru import ModelsHolder, LockedGlobalModelsGC, LockedModel
 from cortex.lib.model.tree import ModelsTree, LockedModelsTree
 from cortex.lib.model.type import CuratedModelResources

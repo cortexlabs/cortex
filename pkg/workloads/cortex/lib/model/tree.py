@@ -25,6 +25,7 @@ import threading as td
 class ModelsTree:
     def __init__(self):
         self.models = {}
+        self.info = {}
         self._lock = ReadWriteLock()
 
     def acquire(self, mode: str) -> None:
@@ -68,12 +69,26 @@ class ModelsTree:
         Returns:
             The model IDs ("<model-name>-<model-version") that haven't been found in the passed parameters.
             Which model IDs have been updated. If these model IDs are in memory or on disk already, then they should get updated as well.
+
+        Also sets an info attribute which might look like this:
+        {
+            "<model-name>": {
+                "versions": [1,4,7, ...],
+                "timestamps": [12884999, 12874449, 12344931, ...]
+            },
+        }
+        And where "versions" represents the available versions of a model <model-name> and each "timestamps" element is the corresponding
+        last-edit time of each versioned model.
         """
 
         current_model_ids = set()
         updated_model_ids = set()
+        model_wide_info = {}
         for idx in range(len(model_names)):
             model_name = model_names[idx]
+
+            model_wide_info[model_name] = {"versions": [], "timestamps": []}
+
             if len(model_versions[idx]) == 0:
                 model_id = f"{model_name}-1"
                 updated = self.update_model(
@@ -82,6 +97,10 @@ class ModelsTree:
                 current_model_ids.add(model_id)
                 if updated:
                     updated_model_ids.add(model_id)
+
+                model_wide_info[model_name]["versions"] = [1]
+                model_wide_info[model_name]["timestamps"] = [timestamps[idx][0]]
+
             for model_version in model_versions[idx]:
                 model_id = f"{model_name}-{model_version}"
                 updated = self.update_model(
@@ -95,9 +114,14 @@ class ModelsTree:
                 if updated:
                     updated_model_ids.add(model_id)
 
+                model_wide_info[model_name]["versions"] += [model_version]
+                model_wide_info[model_name]["timestamps"] += [timestamps[idx][model_version]]
+
         old_model_ids = set(self.models.keys()) - current_model_ids
         for old_model_id in old_model_ids:
             del self.models[old_model_id]
+
+        self.info = model_wide_info
 
         return old_model_ids, updated_model_ids
 
@@ -142,7 +166,7 @@ class ModelsTree:
 
         return changed
 
-    def __getitem__(self, model_id):
+    def __getitem__(self, model_id: str) -> dict:
         """
         Each value of a key (model ID) is a dictionary with the following format:
         {
@@ -154,7 +178,7 @@ class ModelsTree:
         """
         return self.models[model_id]
 
-    def __contains__(self, model_id):
+    def __contains__(self, model_id: str) -> bool:
         """
         Each value of a key (model ID) is a dictionary with the following format:
         {

@@ -15,7 +15,7 @@
 from collections import deque
 
 
-class WithBreak(RuntimeError):
+class WithBreak(Exception):
     pass
 
 
