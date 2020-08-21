@@ -195,7 +195,7 @@ class PythonPredictor:
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
 
-    def predict(self, payload, query_params):
+    def predict(self, payload, query_params):  # this line is updated
         input_length = len(payload["text"].split())
         output_length = int(query_params.get("length", 20))  # this line is added
         tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
@@ -300,7 +300,7 @@ Running `cortex delete` will free up cluster resources and allow Cortex to scale
 
 <!-- CORTEX_VERSION_MINOR -->
 * Deploy another one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
-* See our [exporting guide](../../../guides/exporting.md) for how to export your model to use in an API.
-* Try the [batch tutorial](../../batch/image-classifier/README.md) to learn how to deploy batch APIs in Cortex.
+* See our [exporting guide](../../../docs/guides/exporting.md) for how to export your model to use in an API.
+* Try the [batch API tutorial](../../batch/image-classifier/README.md) to learn how to deploy batch APIs in Cortex.
 * See our [traffic splitter example](../../traffic-splitter/README.md) for how to deploy multiple APIs and set up a traffic splitter.
-* See [uninstall](uninstall.md) if you'd like to spin down your cluster.
+* See [uninstall](../../../docs/cluster-management/uninstall.md) if you'd like to spin down your cluster.

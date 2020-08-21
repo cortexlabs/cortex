@@ -207,39 +207,7 @@ make cluster-down
 ### Deploy an example
 
 ```bash
-cd examples/pytorch/iris-classifier
-```
-
-Take note of the following images:
-
-```bash
-# for Python Predictor
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-cpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-gpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-inf:latest
-
-# for TensorFlow Predictor
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-cpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-gpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-inf:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-predictor:latest
-
-# for ONNX Predictor
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-predictor-cpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-predictor-gpu:latest
-```
-
-Edit `cortex.yaml` and override `image`/`tensorflow_serving_image` with the appropriate image(s) for the given predictor type:
-
-```yaml
-# cortex.yaml
-
-- name: my-api
-  ...
-  predictor:
-    type: python
-    image: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-cpu:latest
-  ...
+cortex deploy examples/pytorch/iris-classifier --env aws
 ```
 
 ## Off-cluster operator
