@@ -114,10 +114,10 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 					},
 					{
 						StructField: "Weight",
-						IntValidation: &cr.IntValidation{
+						Int32Validation: &cr.Int32Validation{
 							Required:             true,
-							GreaterThanOrEqualTo: pointer.Int(0),
-							LessThanOrEqualTo:    pointer.Int(100),
+							GreaterThanOrEqualTo: pointer.Int32(0),
+							LessThanOrEqualTo:    pointer.Int32(100),
 						},
 					},
 				},
@@ -1267,7 +1267,7 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 }
 
 func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
-	totalWeight := 0
+	totalWeight := int32(0)
 	for _, api := range apis {
 		totalWeight += api.Weight
 	}

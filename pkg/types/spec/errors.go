@@ -397,7 +397,7 @@ func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerPro
 	})
 }
 
-func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int) error {
+func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorrectTrafficSplitterWeight,
 		Message: fmt.Sprintf("expected weights to sum to 100 but found %d", totalWeight),

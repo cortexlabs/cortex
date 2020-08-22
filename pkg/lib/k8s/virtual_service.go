@@ -17,6 +17,8 @@ limitations under the License.
 package k8s
 
 import (
+	"reflect"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -245,4 +247,24 @@ func ExtractVirtualServiceEndpoints(virtualService *istioclientnetworking.Virtua
 		}
 	}
 	return endpoints
+}
+
+func VirtualServicesMatch(vs1, vs2 istionetworking.VirtualService) bool {
+	if !strset.New(vs1.Hosts...).IsEqual(strset.New(vs2.Hosts...)) {
+		return false
+	}
+
+	if !strset.New(vs1.Gateways...).IsEqual(strset.New(vs2.Gateways...)) {
+		return false
+	}
+
+	if !strset.New(vs1.ExportTo...).IsEqual(strset.New(vs2.ExportTo...)) {
+		return false
+	}
+
+	if !reflect.DeepEqual(vs1.Http, vs2.Http) {
+		return false
+	}
+
+	return true
 }

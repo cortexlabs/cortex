@@ -19,7 +19,6 @@ package trafficsplitter
 import (
 	"fmt"
 	"path/filepath"
-	"reflect"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -33,7 +32,7 @@ import (
 )
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
-	prevVirtualService, err := getK8sResources(apiConfig)
+	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
@@ -55,7 +54,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
-	if !areVirtualServiceEqual(prevVirtualService, virtualServiceSpec(api)) {
+	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -67,6 +66,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 		return api, fmt.Sprintf("updated %s", api.Resource.UserString()), nil
 	}
+
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
@@ -105,17 +105,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func getK8sResources(apiConfig *userconfig.API) (*istioclientnetworking.VirtualService, error) {
-	var virtualService *istioclientnetworking.VirtualService
-
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
-	if err != nil {
-		return nil, err
-	}
-
-	return virtualService, err
-}
-
 func applyK8sVirtualService(trafficSplitter *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
 	newVirtualService := virtualServiceSpec(trafficSplitter)
 
@@ -133,7 +122,7 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 	for i, api := range trafficSplitter.APIs {
 		destinations[i] = k8s.Destination{
 			ServiceName: operator.K8sName(api.Name),
-			Weight:      int32(api.Weight),
+			Weight:      api.Weight,
 			Port:        uint32(_defaultPortInt32),
 		}
 	}
@@ -201,11 +190,10 @@ func deleteS3Resources(apiName string) error {
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 }
 
-func areVirtualServiceEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
-	return vs1.ObjectMeta.Name == vs2.ObjectMeta.Name &&
-		reflect.DeepEqual(vs1.ObjectMeta.Labels, vs2.ObjectMeta.Labels) &&
-		reflect.DeepEqual(vs1.ObjectMeta.Annotations, vs2.ObjectMeta.Annotations) &&
-		reflect.DeepEqual(vs1.Spec.Http, vs2.Spec.Http) &&
-		reflect.DeepEqual(vs1.Spec.Gateways, vs2.Spec.Gateways) &&
-		reflect.DeepEqual(vs1.Spec.Hosts, vs2.Spec.Hosts)
+func areAPIsEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
+	return vs1.Labels["apiName"] == vs2.Labels["apiName"] &&
+		vs1.Labels["apiKind"] == vs2.Labels["apiKind"] &&
+		vs1.Labels["apiID"] == vs2.Labels["apiID"] &&
+		k8s.VirtualServicesMatch(vs1.Spec, vs2.Spec) &&
+		operator.DoCortexAnnotationsMatch(vs1, vs2)
 }
