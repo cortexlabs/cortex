@@ -137,7 +137,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool) (st
 	return output, &info.State.ExitCode, nil
 }
 
-func runManagerUpdateCommand(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, envName string) (string, *int, error) {
+func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, envName string) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
