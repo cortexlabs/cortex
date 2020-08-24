@@ -176,6 +176,8 @@ class ONNXClient:
                 model_version = self._get_model_version_from_disk(model_name, tag)
             model_id = model_name + "-" + model_version
 
+            # TODO implement model loader/retriever for models found locally (which go through the CLI's caching mechanism)
+
             # grab shared access to versioned model
             with LockedFile(model_id, "r", reader_lock=True) as f:
 

@@ -33,8 +33,10 @@ import os
 import threading as td
 import multiprocessing as mp
 import time
+import datetime
 import glob
 import shutil
+import itertools
 
 
 class SimpleModelMonitor(mp.Process):
@@ -143,11 +145,12 @@ class SimpleModelMonitor(mp.Process):
         idx: int,
         model_name: str,
         versions: dict,
+        timestamps: List[datetime.datetime],
         model_paths: List[str],
         sub_paths: List[str],
     ):
         ondisk_model_path = os.path.join(self._download_dir, model_name)
-        for version in versions[model_name]:
+        for version, model_ts in zip(versions[model_name], timestamps):
 
             # check if a model update is mandated
             update_model = False
@@ -190,7 +193,7 @@ class SimpleModelMonitor(mp.Process):
                         if os.path.exists(ondisk_model_version):
                             shutil.rmtree(ondisk_model_version)
                         shutil.move(temp_dest, ondisk_model_version)
-                        f.write("available")
+                        f.write("available " + str(model_ts.timestamp()))
 
         # remove model versions if they are not found on the upstream
         # except when the model version found on disk is 1 and the number of detected versions on the upstream is 0,
@@ -233,7 +236,7 @@ class SimpleModelMonitor(mp.Process):
                     if os.path.exists(ondisk_model_version):
                         shutil.rmtree(ondisk_model_version)
                     shutil.move(temp_dest, ondisk_model_version)
-                    f.write("available")
+                    f.write("available " + str(timestamps[0].timestamp()))
 
                 # cleanup
                 shutil.rmtree(temp_dest)
@@ -243,7 +246,7 @@ class SimpleModelMonitor(mp.Process):
         if self._is_dir_used:
             bucket_name, models_path = S3.deconstruct_s3_path(self._models_dir)
             s3_client = S3(bucket_name, client_config={})
-            sub_paths = s3_client.search(models_path)
+            sub_paths, timestamps = s3_client.search(models_path)
             model_paths = validate_models_dir_paths(sub_paths, self._predictor_type, models_path)
             model_names = [os.path.basename(model_path) for model_path in model_paths]
 
@@ -259,11 +262,14 @@ class SimpleModelMonitor(mp.Process):
             sub_paths = []
             model_paths = []
             model_names = []
+            timestamps = []
             for idx, path in enumerate(self._paths):
                 if S3.is_valid_s3_path(path):
                     bucket_name, model_path = S3.deconstruct_s3_path(path)
                     s3_client = S3(bucket_name, client_config={})
-                    sub_paths += s3_client.search(model_path)
+                    sb, model_path_ts = s3_client.search(model_path)
+                    sub_paths += sb
+                    timestamps += model_path_ts
                     try:
                         validate_model_paths(sub_paths, self._predictor_type, model_path)
                         model_paths.append(model_path)
@@ -282,16 +288,37 @@ class SimpleModelMonitor(mp.Process):
             model_versions = [version for version in model_sub_paths if version.isnumeric()]
             versions[model_name] = model_versions
 
+        # curate timestamps for each versione model
+        aux_timestamps = []
+        for model_path, model_name in zip(model_paths, model_names):
+            model_ts = []
+            if len(versions[model_name]) == 0:
+                masks = list(map(lambda x: x.startswith(model_path), sub_paths))
+                model_ts = [max(itertools.compress(timestamps, masks))]
+                continue
+
+            for version in versions[model_name]:
+                masks = list(
+                    map(lambda x: x.startswith(os.path.join(model_path, version)), sub_paths)
+                )
+                model_ts.append(max(itertools.compress(timestamps, masks)))
+            aux_timestamps.append(model_ts)
+
+        timestamps = aux_timestamps  # type: List[List[datetime.datetime]]
+
         # model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
         # versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
         #   For ONNX model paths that are not versioned, the list will be empty
         # model_paths - a list with the prefix of each model
         # sub_paths - a list of filepaths for each file of each model all grouped into a single list
+        # timestamps - a list of timestamps lists representing the last edit time of each versioned model
 
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
         for idx, model_name in enumerate(model_names):
-            self._refresh_model(s3_client, idx, model_name, versions, model_paths, sub_paths)
+            self._refresh_model(
+                s3_client, idx, model_name, versions, timestamps[idx], model_paths, sub_paths
+            )
 
         print("model names", model_names)
         print("model paths", model_paths)
