@@ -27,6 +27,7 @@ from cortex.lib.model import (
     validate_s3_models_dir_paths,
     validate_s3_model_paths,
     ModelsHolder,
+    CuratedModelResources,
 )
 
 import os
@@ -70,16 +71,13 @@ class SimpleModelMonitor(mp.Process):
         self._temp_dir = temp_dir
         self._lock_dir = lock_dir
 
-        self._paths = []
-        self._model_names = []
-        self._local_model_names = []
-        for curated_model in self._api_spec["curated_model_resources"]:
-            if curated_model["s3_path"]:
-                self._paths.append(curated_model["model_path"])
-                self._model_names.append(curated_model["name"])
-            else:
-                self._local_model_names.append(curated_model["name"])
-        self._curated_models = self._api_spec["curated_model_resources"]
+        self._s3_paths = []
+        self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
+        self._local_model_names = self._spec_models.get_local_model_names()
+        self._s3_model_names = self._spec_models.get_s3_model_names()
+        for model_name in self._s3_model_names:
+            if not self._spec_models.is_local(model_name):
+                self._s3_paths.append(curated_model["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -114,6 +112,7 @@ class SimpleModelMonitor(mp.Process):
         """
 
         self.logger = cx_logger()
+        self._make_local_models_available()
         while not self._event_stopper.is_set():
             self._update_models_tree()
             time.sleep(self._interval)
@@ -139,6 +138,118 @@ class SimpleModelMonitor(mp.Process):
         while not self._stopped.is_set():
             time.sleep(0.001)
 
+    def _make_local_models_available(self) -> None:
+        if self._is_dir_used:
+            return
+
+        for local_model_name in self._local_model_names:
+            versions = self._spec_models[local_model_name]["versions"]
+            if len(versions) == 0:
+                resource = local_model_name + "-" + "1" + ".txt"
+                with LockedFile(resource, "w") as f:
+                    f.write("available")
+            for ondisk_version in versions:
+                resource = local_model_name + "-" + ondisk_version + ".txt"
+                with LockedFile(resource, "w") as f:
+                    f.write("available")
+
+    def _update_models_tree(self) -> None:
+        # validate models stored in S3 that were specified with predictor:models:dir field
+        if self._is_dir_used:
+            bucket_name, models_path = S3.deconstruct_s3_path(self._models_dir)
+            s3_client = S3(bucket_name, client_config={})
+            sub_paths, timestamps = s3_client.search(models_path)
+            model_paths = validate_models_dir_paths(sub_paths, self._predictor_type, models_path)
+            model_names = [os.path.basename(model_path) for model_path in model_paths]
+
+            model_names = list(set(model_names).difference(self._local_model_names))
+            model_paths = [
+                model_path
+                for model_path in models_path
+                if os.path.basename(model_path) in model_names
+            ]
+
+        # validate models stored in S3 that were specified with predictor:models:paths field
+        if not self._is_dir_used:
+            sub_paths = []
+            model_paths = []
+            model_names = []
+            timestamps = []
+            for idx, path in enumerate(self._s3_paths):
+                if S3.is_valid_s3_path(path):
+                    bucket_name, model_path = S3.deconstruct_s3_path(path)
+                    s3_client = S3(bucket_name, client_config={})
+                    sb, model_path_ts = s3_client.search(model_path)
+                    sub_paths += sb
+                    timestamps += model_path_ts
+                    try:
+                        validate_model_paths(sub_paths, self._predictor_type, model_path)
+                        model_paths.append(model_path)
+                        model_names.append(self._s3_model_names[idx])
+                    except CortexException:
+                        continue
+
+        # determine the detected versions for each model
+        # if the predictor type is ONNXPredictorType and the model contains a single *.onnx file,
+        # then leave the version list empty
+        versions = {}
+        for model_path, model_name in zip(model_paths, model_names):
+            model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in sub_paths]
+            model_sub_paths = [path for path in model_sub_paths if not path.startswith("../")]
+            # make isnumeric verification because for ONNX models, the model path can be the actual ONNX file
+            model_versions = [version for version in model_sub_paths if version.isnumeric()]
+            versions[model_name] = model_versions
+
+        # curate timestamps for each versione model
+        aux_timestamps = []
+        for model_path, model_name in zip(model_paths, model_names):
+            model_ts = []
+            if len(versions[model_name]) == 0:
+                masks = list(map(lambda x: x.startswith(model_path), sub_paths))
+                model_ts = [max(itertools.compress(timestamps, masks))]
+                continue
+
+            for version in versions[model_name]:
+                masks = list(
+                    map(lambda x: x.startswith(os.path.join(model_path, version)), sub_paths)
+                )
+                model_ts.append(max(itertools.compress(timestamps, masks)))
+            aux_timestamps.append(model_ts)
+
+        timestamps = aux_timestamps  # type: List[List[datetime.datetime]]
+
+        # model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
+        # versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
+        #   For ONNX model paths that are not versioned, the list will be empty
+        # model_paths - a list with the prefix of each model
+        # sub_paths - a list of filepaths for each file of each model all grouped into a single list
+        # timestamps - a list of timestamps lists representing the last edit time of each versioned model
+
+        # update models on the local disk if changes have been detected
+        # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
+        for idx, model_name in enumerate(model_names):
+            self._refresh_model(
+                s3_client, idx, model_name, versions, timestamps[idx], model_paths, sub_paths
+            )
+
+        #
+        for models, versions in find_ondisk_models(self._lock_dir, include_versions=True):
+            for model_name in models:
+                if model_name not in model_names:
+                    for ondisk_version in versions:
+                        resource = model_name + "-" + ondisk_version + ".txt"
+                        ondisk_model_version_path = os.path.join(
+                            self._models_dir, model_name, ondisk_version
+                        )
+                        with LockedFile(resource, "w+") as f:
+                            shutil.rmtree(ondisk_model_version_path)
+                            f.write("not available")
+                    shutil.rmtree(os.path.join(self._models_dir, model_name))
+
+        print("model names", model_names)
+        print("model paths", model_paths)
+        print("sub paths", sub_paths)
+
     def _refresh_model(
         self,
         s3_client: S3,
@@ -148,7 +259,7 @@ class SimpleModelMonitor(mp.Process):
         timestamps: List[datetime.datetime],
         model_paths: List[str],
         sub_paths: List[str],
-    ):
+    ) -> None:
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions[model_name], timestamps):
 
@@ -240,103 +351,6 @@ class SimpleModelMonitor(mp.Process):
 
                 # cleanup
                 shutil.rmtree(temp_dest)
-
-    def _update_models_tree(self):
-        # validate models stored in S3 that were specified with predictor:models:dir field
-        if self._is_dir_used:
-            bucket_name, models_path = S3.deconstruct_s3_path(self._models_dir)
-            s3_client = S3(bucket_name, client_config={})
-            sub_paths, timestamps = s3_client.search(models_path)
-            model_paths = validate_models_dir_paths(sub_paths, self._predictor_type, models_path)
-            model_names = [os.path.basename(model_path) for model_path in model_paths]
-
-            model_names = list(set(model_names).difference(self._local_model_names))
-            model_paths = [
-                model_path
-                for model_path in models_path
-                if os.path.basename(model_path) in model_names
-            ]
-
-        # validate models stored in S3 that were specified with predictor:models:paths field
-        if not self._is_dir_used:
-            sub_paths = []
-            model_paths = []
-            model_names = []
-            timestamps = []
-            for idx, path in enumerate(self._paths):
-                if S3.is_valid_s3_path(path):
-                    bucket_name, model_path = S3.deconstruct_s3_path(path)
-                    s3_client = S3(bucket_name, client_config={})
-                    sb, model_path_ts = s3_client.search(model_path)
-                    sub_paths += sb
-                    timestamps += model_path_ts
-                    try:
-                        validate_model_paths(sub_paths, self._predictor_type, model_path)
-                        model_paths.append(model_path)
-                        model_names.append(self._model_names[idx])
-                    except CortexException:
-                        continue
-
-        # determine the detected versions for each model
-        # if the predictor type is ONNXPredictorType and the model contains a single *.onnx file,
-        # then leave the version list empty
-        versions = {}
-        for model_path, model_name in zip(model_paths, model_names):
-            model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in sub_paths]
-            model_sub_paths = [path for path in model_sub_paths if not path.startswith("../")]
-            # make isnumeric verification because for ONNX models, the model path can be the actual ONNX file
-            model_versions = [version for version in model_sub_paths if version.isnumeric()]
-            versions[model_name] = model_versions
-
-        # curate timestamps for each versione model
-        aux_timestamps = []
-        for model_path, model_name in zip(model_paths, model_names):
-            model_ts = []
-            if len(versions[model_name]) == 0:
-                masks = list(map(lambda x: x.startswith(model_path), sub_paths))
-                model_ts = [max(itertools.compress(timestamps, masks))]
-                continue
-
-            for version in versions[model_name]:
-                masks = list(
-                    map(lambda x: x.startswith(os.path.join(model_path, version)), sub_paths)
-                )
-                model_ts.append(max(itertools.compress(timestamps, masks)))
-            aux_timestamps.append(model_ts)
-
-        timestamps = aux_timestamps  # type: List[List[datetime.datetime]]
-
-        # model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
-        # versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
-        #   For ONNX model paths that are not versioned, the list will be empty
-        # model_paths - a list with the prefix of each model
-        # sub_paths - a list of filepaths for each file of each model all grouped into a single list
-        # timestamps - a list of timestamps lists representing the last edit time of each versioned model
-
-        # update models on the local disk if changes have been detected
-        # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
-        for idx, model_name in enumerate(model_names):
-            self._refresh_model(
-                s3_client, idx, model_name, versions, timestamps[idx], model_paths, sub_paths
-            )
-
-        #
-        for models, versions in find_ondisk_models(self._lock_dir, include_versions=True):
-            for model_name in models:
-                if model_name not in model_names:
-                    for ondisk_version in versions:
-                        resource = model_name + "-" + ondisk_version + ".txt"
-                        ondisk_model_version_path = os.path.join(
-                            self._models_dir, model_name, ondisk_version
-                        )
-                        with LockedFile(resource, "w+") as f:
-                            shutil.rmtree(ondisk_model_version_path)
-                            f.write("not available")
-                    shutil.rmtree(os.path.join(self._models_dir, model_name))
-
-        print("model names", model_names)
-        print("model paths", model_paths)
-        print("sub paths", sub_paths)
 
 
 class CachedModelMonitor(td.Thread):

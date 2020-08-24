@@ -79,3 +79,47 @@ class CuratedModelResources:
                 versions = self._models[i]["versions"]
                 break
         return [str(version) for version in versions]
+
+    def get_local_model_names(self) -> List[str]:
+        """
+        Get locally-provided models as specified with predictor:model_path, predictor:models:paths or predictor:models:dir.
+
+        Returns:
+            A list of names of all local models.
+        """
+        local_model_names = []
+        for model_name in self.get_field("name"):
+            if self.is_local(model_name):
+                local_model_names.append(local_model_names)
+
+        return local_model_names
+
+    def get_s3_model_names(self) -> List[str]:
+        """
+        Get S3-provided models as specified with predictor:model_path, predictor:models:paths or predictor:models:dir.
+
+        Returns:
+            A list of names of all models available from S3.
+        """
+        s3_model_names = []
+        for model_name in self.get_field("name"):
+            if not self.is_local(model_name):
+                s3_model_names.append(s3_model_names)
+
+        return s3_model_names
+
+    def __getitem__(self, name: str) -> dict:
+        """
+        Gets the model resource for a given model name.
+        """
+        for model in self._models:
+            if model["name"] == name:
+                return model
+
+        return {}
+
+    def __contains__(self, name: str) -> bool:
+        """
+        Checks if there's a model resource whose name is the provided one.
+        """
+        return self.__getitem__(name) != {}

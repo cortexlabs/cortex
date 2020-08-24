@@ -332,7 +332,7 @@ class ModelsHolder:
             "a download callback must be provided; use set_callback to set a callback"
         )
 
-    def remove_model(self, model_name: str, model_version: str,) -> None:
+    def remove_model(self, model_name: str, model_version: str) -> None:
         """
         Removes a model from memory and disk if it exists.
         """
@@ -341,10 +341,13 @@ class ModelsHolder:
 
     #################
 
-    def garbage_collect(self) -> bool:
+    def garbage_collect(self, excluded_disk_model_ids: List[str]) -> bool:
         """
         Removes stale in-memory and on-disk models based on LRU policy.
         Also calls the "remove" callback before removing the models from this object. The callback must not raise any exceptions.
+
+        Args:
+            excluded_disk_model_ids: Supposedly stale model IDs to exclude from removing from disk. Necessary for locally-provided models.
 
         Returns:
             True when models had to be collected. False otherwise.
@@ -358,6 +361,12 @@ class ModelsHolder:
 
         if self._remove_callback:
             self._remove_callback(stale_mem_model_ids)
+
+        # don't delete excluded model IDs from disk
+        stale_disk_model_ids = list(set(stale_disk_model_ids) - set(excluded_model_ids))
+        stale_disk_model_ids = stale_disk_model_ids[
+            len(stale_disk_model_ids) - self._disk_cache_size :
+        ]
 
         for model_id in stale_mem_model_ids:
             self._remove_model(model_id, mem=True, disk=False)
