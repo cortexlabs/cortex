@@ -253,15 +253,15 @@ class ONNXClient:
 
                         # download model
                         if status == "not-available":
-                            current_upstream_ts = self._models.download_model(
+                            date = self._models.download_model(
                                 upstream_model["bucket"],
                                 model_name,
                                 model_version,
                                 upstream_model["path"],
                             )
-                            if not current_upstream_ts:
+                            if not date:
                                 raise WithBreak()
-                            current_upstream_ts = current_upstream_ts()
+                            current_upstream_ts = date.timestamp()
 
                         # load model
                         disk_path = os.path.join(self._model_dir, model_name, model_version)
