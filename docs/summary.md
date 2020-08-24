@@ -5,9 +5,7 @@
 * [Tutorial](../examples/pytorch/text-generator/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [Chat with us](https://gitter.im/cortexlabs/cortex)
-* [Email us](mailto:hello@cortex.dev)
-* [We're hiring](https://angel.co/cortex-labs-inc/jobs)
+* [Contact us](miscellaneous/contact-us.md)
 
 ## Deployments
 
@@ -20,14 +18,14 @@
   * [Autoscaling](deployments/realtime-api/autoscaling.md)
   * [Prediction monitoring](deployments/realtime-api/prediction-monitoring.md)
   * [Traffic Splitter](deployments/realtime-api/traffic-splitter.md)
-  * [Tutorial](../examples/pytorch/text-generator/README.md)
+  * [Realtime API tutorial](../examples/pytorch/text-generator/README.md)
 * [Batch API](deployments/batch-api.md)
   * [Predictor implementation](deployments/batch-api/predictors.md)
   * [API configuration](deployments/batch-api/api-configuration.md)
   * [API deployment](deployments/batch-api/deployment.md)
   * [Endpoints](deployments/batch-api/endpoints.md)
   * [Job statuses](deployments/batch-api/statuses.md)
-  * [Tutorial](../examples/batch/image-classifier/README.md)
+  * [Batch API tutorial](../examples/batch/image-classifier/README.md)
 
 ## Advanced
 

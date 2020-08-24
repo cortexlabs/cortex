@@ -60,7 +60,7 @@ type Predictor struct {
 
 type TrafficSplit struct {
 	Name   string `json:"name" yaml:"name"`
-	Weight int    `json:"weight" yaml:"weight "`
+	Weight int32  `json:"weight" yaml:"weight"`
 }
 
 type ModelResource struct {
@@ -188,9 +188,11 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
-	annotations := map[string]string{
-		ProcessesPerReplicaAnnotationKey: s.Int32(api.Predictor.ProcessesPerReplica),
-		ThreadsPerProcessAnnotationKey:   s.Int32(api.Predictor.ThreadsPerProcess),
+	annotations := map[string]string{}
+	if api.Predictor != nil {
+		annotations[ProcessesPerReplicaAnnotationKey] = s.Int32(api.Predictor.ProcessesPerReplica)
+		annotations[ThreadsPerProcessAnnotationKey] = s.Int32(api.Predictor.ThreadsPerProcess)
+
 	}
 
 	if api.Networking != nil {
@@ -343,7 +345,7 @@ func (api *API) UserStr(provider types.ProviderType) string {
 func (trafficSplit *TrafficSplit) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Int(trafficSplit.Weight)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Int32(trafficSplit.Weight)))
 	return sb.String()
 }
 
@@ -505,4 +507,12 @@ func (updateStrategy *UpdateStrategy) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxSurgeKey, updateStrategy.MaxSurge))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUnavailableKey, updateStrategy.MaxUnavailable))
 	return sb.String()
+}
+
+func ZeroCompute() Compute {
+	return Compute{
+		CPU: &k8s.Quantity{},
+		Mem: &k8s.Quantity{},
+		GPU: 0,
+	}
 }

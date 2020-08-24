@@ -62,14 +62,14 @@ RESPONSE:
 
 ### S3 file paths
 
-If your input data is a list of files such as images/videos in an s3 directory, you can define `file_path_lister` in your submission request payload. You can use `file_path_lister.s3_paths` to specify a list of files or prefixes, and `file_path_lister.includes` and/or `file_path_lister.excludes` to remove unwanted files. The s3 file paths will be aggregated into batches of size `file_path_lister.batch_size`. To learn more about fine-grained S3 file filtering see [filtering files](#filtering-files).
+If your input data is a list of files such as images/videos in an S3 directory, you can define `file_path_lister` in your submission request payload. You can use `file_path_lister.s3_paths` to specify a list of files or prefixes, and `file_path_lister.includes` and/or `file_path_lister.excludes` to remove unwanted files. The S3 file paths will be aggregated into batches of size `file_path_lister.batch_size`. To learn more about fine-grained S3 file filtering see [filtering files](#filtering-files).
 
 __The total size of a batch must be less than 256 KiB.__
 
 This submission pattern can be useful in the following scenarios:
 
-* you have a list of images/videos in an s3 directory
-* each s3 file represents a single sample or a small number of samples
+* you have a list of images/videos in an S3 directory
+* each S3 file represents a single sample or a small number of samples
 
 If a single S3 file contains a lot of samples/rows, try the next submission strategy.
 
@@ -78,10 +78,10 @@ POST <batch_api_endpoint>/:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
     "file_path_lister": {
-        "s3_paths": [<string>],  # can be s3 prefixes or complete s3 paths (required)
+        "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
         "excludes": [<string>],  # glob patterns (optional)
-        "batch_size": <int>,     # the number of s3 file paths per batch (the predict() function is called once per batch) (required)
+        "batch_size": <int>,     # the number of S3 file paths per batch (the predict() function is called once per batch) (required)
     }
     "config": {                  # custom fields for this specific job (will override values in `config` specified in your api configuration) (optional)
         "string": <any>
@@ -102,22 +102,22 @@ RESPONSE:
 
 ### Newline delimited JSON files in S3
 
-If your input dataset is a newline delimited json file in an s3 directory (or a list of them), you can define `delimited_files` in your request payload to break up the contents of the file into batches of size `delimited_files.batch_size`.
+If your input dataset is a newline delimited json file in an S3 directory (or a list of them), you can define `delimited_files` in your request payload to break up the contents of the file into batches of size `delimited_files.batch_size`.
 
-Upon receiving `delimited_files`, your Batch API will iterate through the `delimited_files.s3_paths` to generate the set of s3 files to process. You can use `delimited_files.includes` and `delimited_files.excludes` to filter out unwanted files. Each S3 file will be parsed as a newline delimited JSON file. Each line in the file should be a JSON object, which will be treated as a single sample. The S3 file will be broken down into batches of size `delimited_files.batch_size` and submitted to your workers. To learn more about fine-grained S3 file filtering see [filtering files](#filtering-files).
+Upon receiving `delimited_files`, your Batch API will iterate through the `delimited_files.s3_paths` to generate the set of S3 files to process. You can use `delimited_files.includes` and `delimited_files.excludes` to filter out unwanted files. Each S3 file will be parsed as a newline delimited JSON file. Each line in the file should be a JSON object, which will be treated as a single sample. The S3 file will be broken down into batches of size `delimited_files.batch_size` and submitted to your workers. To learn more about fine-grained S3 file filtering see [filtering files](#filtering-files).
 
 __The total size of a batch must be less than 256 KiB.__
 
 This submission pattern is useful in the following scenarios:
 
-* one or more s3 files contains a large number of samples and must be broken down into batches
+* one or more S3 files contains a large number of samples and must be broken down into batches
 
 ```yaml
 POST <batch_api_endpoint>/:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
     "delimited_files": {
-        "s3_paths": [<string>],  # can be s3 prefixes or complete s3 paths (required)
+        "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
         "excludes": [<string>],  # glob patterns (optional)
         "batch_size": <int>,     # the number of json objects per batch (the predict() function is called once per batch) (required)
@@ -177,7 +177,7 @@ RESPONSE:
         "start_time": <string>           # e.g. 2020-07-16T14:56:10.276007415Z
         "end_time": <string> (optional)  # e.g. 2020-07-16T14:56:10.276007415Z (only present if the job has completed)
     },
-    "api_spec": <string>,  # a base64 encoded string of your api configuration yaml that has been encoded in msgpack
+    "api_spec": <string>,  # a base64 encoded string of your api configuration YAML that has been encoded in msgpack
     "endpoint": <string>   # endpoint for this job
 }
 ```
@@ -201,7 +201,7 @@ RESPONSE:
 
 When submitting a job using `delimited_files` or `file_path_lister`, you can use `s3_paths` in conjunction with `includes` and `excludes` to precisely filter files.
 
-The Batch API will iterate through each s3 path in `s3_paths`. If the s3 path is a prefix, it iterates through each file in that prefix. For each file, if `includes` is non-empty, it will discard the s3 path if the s3 file doesn't match any of the glob patterns provided in `includes`. After passing the `includes` filter (if specified), if the `excludes` is non-empty, it will discard the s3 path if the s3 files matches any of the glob patterns provided in `excludes`.
+The Batch API will iterate through each S3 path in `s3_paths`. If the S3 path is a prefix, it iterates through each file in that prefix. For each file, if `includes` is non-empty, it will discard the S3 path if the S3 file doesn't match any of the glob patterns provided in `includes`. After passing the `includes` filter (if specified), if the `excludes` is non-empty, it will discard the S3 path if the S3 files matches any of the glob patterns provided in `excludes`.
 
 If you aren't sure which files will be processed in your request, specify the `dryRun=true` query parameter in the job submission request to see the target list.
 

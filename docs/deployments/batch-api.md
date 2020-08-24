@@ -27,7 +27,7 @@ A Batch API deployed in Cortex will create/support the following:
 You specify the following:
 
 * a Cortex Predictor class in Python that defines how to initialize your model run batch inference
-* an API configuration yaml file that defines how your API will behave in production (parallelism, networking, compute, etc.)
+* an API configuration YAML file that defines how your API will behave in production (parallelism, networking, compute, etc.)
 
 Once you've implemented your predictor and defined your API configuration, you can use the Cortex CLI to deploy a Batch API. The Cortex CLI will package your predictor implementation and the rest of the code and dependencies and upload it to the Cortex Cluster. The Cortex Cluster will setup an endpoint to a web service that can receive job submission requests and manage jobs.
 

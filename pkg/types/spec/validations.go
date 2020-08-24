@@ -114,10 +114,10 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 					},
 					{
 						StructField: "Weight",
-						IntValidation: &cr.IntValidation{
+						Int32Validation: &cr.Int32Validation{
 							Required:             true,
-							GreaterThanOrEqualTo: pointer.Int(0),
-							LessThanOrEqualTo:    pointer.Int(100),
+							GreaterThanOrEqualTo: pointer.Int32(0),
+							LessThanOrEqualTo:    pointer.Int32(100),
 						},
 					},
 				},
@@ -597,7 +597,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			case types.LocalProviderType:
 				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 			case types.AWSProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for:\n\nRealtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\nBatch API can be found at https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\nTraffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
 			}
 		}
 
@@ -1267,7 +1267,7 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 }
 
 func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
-	totalWeight := 0
+	totalWeight := int32(0)
 	for _, api := range apis {
 		totalWeight += api.Weight
 	}

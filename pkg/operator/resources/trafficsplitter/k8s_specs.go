@@ -21,7 +21,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
@@ -36,9 +35,7 @@ func virtualServiceSpec(trafficSplitter *spec.API) *istioclientnetworking.Virtua
 		Destinations: getTrafficSplitterDestinations(trafficSplitter),
 		ExactPath:    trafficSplitter.Networking.Endpoint,
 		Rewrite:      pointer.String("predict"),
-		Annotations: map[string]string{
-			userconfig.EndpointAnnotationKey:   *trafficSplitter.Networking.Endpoint,
-			userconfig.APIGatewayAnnotationKey: trafficSplitter.Networking.APIGateway.String()},
+		Annotations:  trafficSplitter.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName": trafficSplitter.Name,
 			"apiKind": trafficSplitter.Kind.String(),
