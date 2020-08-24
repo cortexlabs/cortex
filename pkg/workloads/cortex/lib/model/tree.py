@@ -25,7 +25,6 @@ import threading as td
 class ModelsTree:
     def __init__(self):
         self.models = {}
-        self.info = {}
         self._locks = {}
 
     def acquire(self, mode: str, model_name: str, model_version: str) -> None:
@@ -103,29 +102,38 @@ class ModelsTree:
 
             if len(model_versions[idx]) == 0:
                 model_id = f"{model_name}-1"
-                updated = self.update_model(
-                    buckets[idx], model_name, "1", model_paths[idx], sub_paths, timestamps[idx][0]
-                )
+                with LockedModelsTree(self, "w", model_name, "1"):
+                    updated = self.update_model(
+                        buckets[idx],
+                        model_name,
+                        "1",
+                        model_paths[idx],
+                        sub_paths,
+                        timestamps[idx][0],
+                    )
                 current_model_ids.add(model_id)
                 if updated:
                     updated_model_ids.add(model_id)
 
             for model_version in model_versions[idx]:
                 model_id = f"{model_name}-{model_version}"
-                updated = self.update_model(
-                    model_name,
-                    model_version,
-                    os.path.join(model_paths[idx], model_version),
-                    sub_paths,
-                    timestamps[idx][model_version],
-                )
+                with LockedModelsTree(self, "w", model_name, model_version):
+                    updated = self.update_model(
+                        model_name,
+                        model_version,
+                        os.path.join(model_paths[idx], model_version),
+                        sub_paths,
+                        timestamps[idx][model_version],
+                    )
                 current_model_ids.add(model_id)
                 if updated:
                     updated_model_ids.add(model_id)
 
         old_model_ids = set(self.models.keys()) - current_model_ids
         for old_model_id in old_model_ids:
-            del self.models[old_model_id]
+            model_name, model_version = old_model_id.rsplit("-")
+            with LockedModelsTree(self, "w", model_name, model_version):
+                del self.models[old_model_id]
 
         return old_model_ids, updated_model_ids
 
