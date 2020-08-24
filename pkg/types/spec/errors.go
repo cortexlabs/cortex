@@ -267,7 +267,7 @@ func ErrorInvalidTensorFlowModelPath() error {
 func ErrorMissingModel(predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingModel,
-		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
+		Message: fmt.Sprintf("at least one model must be specified for the %s predictor type; use fields %s.%s or %s.%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
 	})
 }
 
