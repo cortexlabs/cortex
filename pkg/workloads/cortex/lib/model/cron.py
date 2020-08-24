@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Optional
 
 from cortex.lib import util
 from cortex.lib.log import cx_logger
@@ -320,11 +320,23 @@ class SimpleModelMonitor(mp.Process):
                 s3_client, idx, model_name, versions, timestamps[idx], model_paths, sub_paths
             )
 
+        #
+        for models, versions in find_ondisk_models(self._lock_dir, include_versions=True):
+            for model_name in models:
+                if model_name not in model_names:
+                    for ondisk_version in versions:
+                        resource = model_name + "-" + ondisk_version + ".txt"
+                        ondisk_model_version_path = os.path.join(
+                            self._models_dir, model_name, ondisk_version
+                        )
+                        with LockedFile(resource, "w+") as f:
+                            shutil.rmtree(ondisk_model_version_path)
+                            f.write("not available")
+                    shutil.rmtree(os.path.join(self._models_dir, model_name))
+
         print("model names", model_names)
         print("model paths", model_paths)
         print("sub paths", sub_paths)
-
-        # TODO remove models that no longer appear in model_names, if there any, at all
 
 
 class CachedModelMonitor(td.Thread):
@@ -393,7 +405,9 @@ class CachedModelMonitor(td.Thread):
         pass
 
 
-def find_ondisk_models(lock_dir: str) -> List[str]:
+def find_ondisk_models(
+    lock_dir: str, include_versions: bool = False
+) -> Optional[List[str], Tuple[List[str], List[str]]]:
     """
     Returns all available models from the disk.
     To be used in conjunction with SimpleModelMonitor.
@@ -406,21 +420,28 @@ def find_ondisk_models(lock_dir: str) -> List[str]:
 
     Returns:
         List with the available models from disk. Just the model, no versions.
+        Or when include_versions is set, 2 paired lists, one containing the model names and the other one the versions: ["A", "B", "B"] w/ ["1", "1", "2"].
     """
 
     files = [os.path.basename(file) for file in os.listdir(lock_dir)]
     locks = [f for f in files if f.endswith(".lock")]
     models = []
+    versions = []
 
     for lock in locks:
-        _model_name, _ = os.path.splitext(lock).split("-")
+        _model_name, _model_version = os.path.splitext(lock).split("-")
+        status = ""
         with LockedFile(os.path.join(lock_dir, lock), reader_lock=True) as f:
             status = f.read()
         if status == "available":
             if _model_name not in models:
                 models.append(_model_name)
+                versions.append(_model_version)
 
-    return models
+    if include_versions:
+        return (models, versions)
+    else:
+        return list(set(models))
 
 
 def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], List[int]]:
