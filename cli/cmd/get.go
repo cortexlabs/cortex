@@ -189,13 +189,26 @@ func getAPIsInAllEnvironments() (string, error) {
 	out := ""
 
 	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 {
-		if len(errorsMap) == 1 {
-			// Print the error if there is just one
-			exit.Error(errors.FirstErrorInMap(errorsMap))
-		}
 		// if all envs errored, skip "no apis are deployed" since it's misleading
 		if len(errorsMap) != len(cliConfig.Environments) {
-			out += console.Bold("no apis are deployed") + "\n"
+			if len(errorsMap) == 0 {
+				return console.Bold("no apis are deployed"), nil
+			}
+
+			var successfulEnvs []string
+			for _, env := range cliConfig.Environments {
+				if _, ok := errorsMap[env.Name]; !ok {
+					successfulEnvs = append(successfulEnvs, env.Name)
+				}
+			}
+			fmt.Println(console.Bold(fmt.Sprintf("no apis are deployed in %s: %s", s.PluralS("environment", len(successfulEnvs)), s.StrsAnd(successfulEnvs))) + "\n")
+		}
+
+		// Print the first error
+		for name, err := range errorsMap {
+			if err != nil {
+				exit.Error(errors.Wrap(err, "env "+name))
+			}
 		}
 	} else {
 		if len(allBatchAPIs) > 0 {
