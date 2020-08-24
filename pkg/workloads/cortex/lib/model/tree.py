@@ -222,7 +222,7 @@ class ModelsTree:
 
         Locking is required.
         """
-        return self.models[model_id]
+        return self.models[model_id].copy()
 
     def __contains__(self, model_id: str) -> bool:
         """

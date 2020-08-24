@@ -221,59 +221,64 @@ class ONNXClient:
                 return None
 
             # grab shared access to model tree
+            available_model = True
             with LockedModelsTree(self._models_tree, "r", model_name, model_version):
 
                 # check if the versioned model exists
                 model_id = model_name + "-" + model_version
                 if model_id not in self._models_tree:
+                    available_model = False
                     raise WithBreak()
 
                 # retrieve model tree's metadata
                 upstream_model = self._models_tree[model_id]
                 current_upstream_ts = upstream_model["timestamp"]
-                update_model = False
 
-                # grab shared access to models holder and retrieve model
-                with LockedModel(self._models, "r", model_name, model_version):
-                    status, upstream_ts = self._models.has_model(model_name, model_version)
-                    if status in ["not-available", "on-disk"] or (
-                        status != "not-available" and upstream_ts < current_upstream_ts
-                    ):
-                        update_model = True
-                        raise WithBreak()
-                    model, _ = self._models.get_model(model_name, model_version, tag)
+            if not available_model:
+                return None
 
-                # download, load into memory the model and retrieve it
-                if update_model:
-                    # grab exclusive access to models holder
-                    with LockedModel(self._models, "w", model_name, model_version):
+            # grab shared access to models holder and retrieve model
+            update_model = False
+            with LockedModel(self._models, "r", model_name, model_version):
+                status, upstream_ts = self._models.has_model(model_name, model_version)
+                if status in ["not-available", "on-disk"] or (
+                    status != "not-available" and upstream_ts < current_upstream_ts
+                ):
+                    update_model = True
+                    raise WithBreak()
+                model, _ = self._models.get_model(model_name, model_version, tag)
 
-                        # check model status
-                        status, _ = self._models.has_model(model_name, model_version)
+            # download, load into memory the model and retrieve it
+            if update_model:
+                # grab exclusive access to models holder
+                with LockedModel(self._models, "w", model_name, model_version):
 
-                        # download model
-                        if status == "not-available":
-                            date = self._models.download_model(
-                                upstream_model["bucket"],
-                                model_name,
-                                model_version,
-                                upstream_model["path"],
-                            )
-                            if not date:
-                                raise WithBreak()
-                            current_upstream_ts = date.timestamp()
+                    # check model status
+                    status, _ = self._models.has_model(model_name, model_version)
 
-                        # load model
-                        disk_path = os.path.join(self._model_dir, model_name, model_version)
-                        try:
-                            self._models.load_model(
-                                model_name, model_version, disk_path, current_upstream_ts, tags,
-                            )
-                        except Exception:
+                    # download model
+                    if status == "not-available":
+                        date = self._models.download_model(
+                            upstream_model["bucket"],
+                            model_name,
+                            model_version,
+                            upstream_model["path"],
+                        )
+                        if not date:
                             raise WithBreak()
+                        current_upstream_ts = date.timestamp()
 
-                        # retrieve model
-                        model, _ = self._models.get_model(model_name, model_version, tag)
+                    # load model
+                    disk_path = os.path.join(self._model_dir, model_name, model_version)
+                    try:
+                        self._models.load_model(
+                            model_name, model_version, disk_path, current_upstream_ts, tags,
+                        )
+                    except Exception:
+                        raise WithBreak()
+
+                    # retrieve model
+                    model, _ = self._models.get_model(model_name, model_version, tag)
 
         return model
 
