@@ -160,7 +160,7 @@ var _upCmd = &cobra.Command{
 			}
 		}
 
-		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
@@ -234,7 +234,7 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -438,7 +438,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, disallowPrompt)
 
-	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds, _flagClusterEnv)
+	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, _flagClusterEnv)
 	if err != nil {
 		exit.Error(err)
 	}
