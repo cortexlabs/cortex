@@ -160,7 +160,9 @@ class SimpleModelMonitor(mp.Process):
             bucket_name, models_path = S3.deconstruct_s3_path(self._models_dir)
             s3_client = S3(bucket_name, client_config={})
             sub_paths, timestamps = s3_client.search(models_path)
-            model_paths = validate_models_dir_paths(sub_paths, self._predictor_type, models_path)
+            model_paths, ooa_ids = validate_models_dir_paths(
+                sub_paths, self._predictor_type, models_path
+            )
             model_names = [os.path.basename(model_path) for model_path in model_paths]
 
             model_names = list(set(model_names).difference(self._local_model_names))

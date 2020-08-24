@@ -23,4 +23,5 @@ from cortex.lib.model.validation import (
     ONNXPredictorType,
     validate_s3_models_dir_paths,
     validate_s3_model_paths,
+    ModelVersion,
 )

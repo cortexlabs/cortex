@@ -14,6 +14,8 @@
 
 import os
 import operator
+import uuid
+from enum import IntEnum
 from typing import List, Any
 
 from cortex.lib import util
@@ -119,11 +121,14 @@ class OneOfAllPlaceholder:
     """
     Can be any of the provided alternatives.
 
-    Accessible properties: parts, type, priority.
+    Accessible properties: parts, type, priority, ID.
     """
 
-    def __init__(self):
+    def __init__(self, ID: Any = None):
         self._placeholder = TemplatePlaceholder("oneofall", priority=-1)
+        if not ID:
+            ID = uuid.uuid4().int
+        self.ID = ID
 
     def __str__(self) -> str:
         return str(self._placeholder)
@@ -150,11 +155,33 @@ AnyPlaceholder = TemplatePlaceholder(
 
 TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")
 
+
+class ModelVersion(IntEnum):
+    NOT_PROVIDED = 0
+    PROVIDED = 1
+
+
 # to be used when predictor:model_path or predictor:models:paths is used
 ModelTemplate = {
-    PythonPredictorType: {IntegerPlaceholder: AnyPlaceholder},
+    PythonPredictorType: {
+        OneOfAllPlaceholder(ModelVersion.PROVIDED): {IntegerPlaceholder: AnyPlaceholder,},
+        OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {AnyPlaceholder: None,},
+    },
     TensorFlowPredictorType: {
-        IntegerPlaceholder: {
+        OneOfAllPlaceholder(ModelVersion.PROVIDED): {
+            IntegerPlaceholder: {
+                AnyPlaceholder: None,
+                GenericPlaceholder("saved_model.pb"): None,
+                GenericPlaceholder("variables"): {
+                    GenericPlaceholder("variables.index"): None,
+                    PlaceholderGroup(
+                        GenericPlaceholder("variables.data-00000-of-"), AnyPlaceholder
+                    ): None,
+                    AnyPlaceholder: None,
+                },
+            },
+        },
+        OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {
             AnyPlaceholder: None,
             GenericPlaceholder("saved_model.pb"): None,
             GenericPlaceholder("variables"): {
@@ -167,15 +194,20 @@ ModelTemplate = {
         },
     },
     TensorFlowNeuronPredictorType: {
-        IntegerPlaceholder: {GenericPlaceholder("saved_model.pb"): None}
+        OneOfAllPlaceholder(ModelVersion.PROVIDED): {
+            IntegerPlaceholder: GenericPlaceholder("saved_model.pb"),
+        },
+        OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {
+            GenericPlaceholder("saved_model.pb"): None,
+        },
     },
     ONNXPredictorType: {
-        OneOfAllPlaceholder(): {
+        OneOfAllPlaceholder(ModelVersion.PROVIDED): {
             IntegerPlaceholder: {
                 PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
             },
         },
-        OneOfAllPlaceholder(): {
+        OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {
             PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
         },
     },
@@ -218,7 +250,7 @@ def _single_model_pattern(predictor_type: PredictorType) -> dict:
 
 def validate_models_dir_paths(
     s3_paths: List[str], predictor_type: PredictorType, commonprefix: str
-) -> List[str]:
+) -> Tuple[List[str], List[List[int]]]:
     """
     To be used when predictor:models:dir in cortex.yaml is used.
 
@@ -228,7 +260,8 @@ def validate_models_dir_paths(
         commonprefix: The commonprefix of the directory which holds all models.
 
     Returns:
-        A list with the prefix of each model that's valid.
+        List with the prefix of each model that's valid.
+        List with the OneOfAllPlaceholder IDs validated for each valid model.
     """
     if len(s3_paths) == 0:
         raise CortexException(
@@ -244,19 +277,20 @@ def validate_models_dir_paths(
     model_names = list(set(model_names))
 
     valid_model_prefixes = []
+    ooa_valid_key_ids = []
     for idx, model_name in enumerate(model_names):
         try:
-            validate_model_paths(paths, predictor_type, model_name)
+            ooa_valid_key_ids.append(validate_model_paths(paths, predictor_type, model_name))
             valid_model_prefixes.append(os.path.join(commonprefix, model_name))
         except CortexException as e:
             continue
 
-    return valid_model_prefixes
+    return valid_model_prefixes, ooa_valid_key_ids
 
 
 def validate_model_paths(
     s3_paths: List[str], predictor_type: PredictorType, commonprefix: str
-) -> None:
+) -> List[int]:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
 
@@ -264,6 +298,9 @@ def validate_model_paths(
         s3_top_paths: A list of all paths for a given S3/local prefix. Must be the top directory of a model.
         predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
         commonprefix: The commonprefix of the directory which holds all models.
+
+    Returns:
+        List of all OneOfAllPlaceholder IDs that had been validated.
 
     Exception:
         CortexException if the paths don't match the model's template.
@@ -281,9 +318,11 @@ def validate_model_paths(
         objects = list(set(objects))
         visited_objects = len(objects) * [False]
 
+        ooa_valid_key_ids = []  # OneOfAllPlaceholder IDs that are valid
+
         if pattern is None:
             if len(objects) == 1 and objects[0] == ".":
-                return
+                return ooa_valid_key_ids
             raise CortexException(
                 f"{predictor_type} predictor at '{commonprefix}'",
                 "template doesn't specify a substructure for the given path",
@@ -322,6 +361,7 @@ def validate_model_paths(
                 elif isinstance(key, OneOfAllPlaceholder):
                     try:
                         _validate_model_paths(pattern[key], s3_paths, commonprefix)
+                        ooa_valid_key_ids.append(key.ID)
                     except CortexException:
                         num_validation_failures += 1
                 else:
@@ -338,7 +378,7 @@ def validate_model_paths(
                 f"couldn't validate for any of the {OneOfAllPlaceholder()} placeholders"
             )
         if all(isinstance(x, OneOfAllPlaceholder) for x in keys):
-            return
+            return ooa_valid_key_ids
 
         unvisited_paths = []
         for idx, visited in enumerate(visited_objects):
@@ -359,6 +399,7 @@ def validate_model_paths(
                 "unexpected path(s) for " + str(unvisited_paths),
             )
 
+        aggregated_ooa_valid_key_ids = []
         for obj_id, key_id in enumerate(visited_objects):
             obj = objects[obj_id]
             key = keys[key_id]
@@ -367,10 +408,14 @@ def validate_model_paths(
             sub_pattern = pattern[key]
 
             if key != AnyPlaceholder:
-                _validate_model_paths(sub_pattern, s3_paths, new_commonprefix)
+                aggregated_ooa_valid_key_ids += _validate_model_paths(
+                    sub_pattern, s3_paths, new_commonprefix
+                )
+
+        return aggregated_ooa_valid_key_ids
 
     pattern = _single_model_pattern(predictor_type)
-    _validate_model_paths(pattern, s3_paths, commonprefix)
+    return _validate_model_paths(pattern, s3_paths, commonprefix)
 
 
 def _validate_integer_placeholder(
