@@ -188,9 +188,11 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
-	annotations := map[string]string{
-		ProcessesPerReplicaAnnotationKey: s.Int32(api.Predictor.ProcessesPerReplica),
-		ThreadsPerProcessAnnotationKey:   s.Int32(api.Predictor.ThreadsPerProcess),
+	annotations := map[string]string{}
+	if api.Predictor != nil {
+		annotations[ProcessesPerReplicaAnnotationKey] = s.Int32(api.Predictor.ProcessesPerReplica)
+		annotations[ThreadsPerProcessAnnotationKey] = s.Int32(api.Predictor.ThreadsPerProcess)
+
 	}
 
 	if api.Networking != nil {
