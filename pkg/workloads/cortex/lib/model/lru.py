@@ -18,6 +18,7 @@
 from typing import List, Any, Tuple, Callable, AbstractSet
 from cortex.lib.exceptions import WithBreak, CortexException
 from cortex.lib.storage import S3
+from cortex.lib.api import PredictorType
 
 import os
 import time
@@ -34,23 +35,27 @@ class ModelsHolder:
 
     def __init__(
         self,
+        predictor_type: PredictorType,
         model_dir: str,
+        temp_dir: str,
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
-        temp_dir: str = "/tmp/models",
         on_download_callback: Callable[[str, str, str, int]] = model_dowloader,
         on_load_callback: Callable[[str], Any] = None,
         on_remove_callback: Callable[[List[str]], None] = None,
     ):
         """
         Args:
+            predictor_type: The predictor type. Can be PythonPredictor, TensorFlowPredictor or ONNXPredictor.
             model_dir: Where models are saved on disk.
+            temp_dir: Where models are temporary stored for validation.
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
-            on_download_callback(model_name, model_version, model_path, temp_dir, model_dir): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
+            on_download_callback(predictor_type, model_name, model_version, model_path, temp_dir, model_dir): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
             on_load_callback(disk_model_path): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
             on_remove_callback(list of model IDs to remove): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.  
         """
+        self._predictor_type = predictor_type
         self._model_dir = model_dir
         self._temp_dir = temp_dir
 
@@ -314,7 +319,15 @@ class ModelsHolder:
             Exceptions if the download callback raises any.
         """
         if self._download_callback:
-            return self._download_callback(bucket, model_name, model_version, model_path, sub_paths)
+            return self._download_callback(
+                self._predictor_type,
+                bucket,
+                model_name,
+                model_version,
+                model_path,
+                self._temp_dir,
+                self._model_dir,
+            )
         raise RuntimeError(
             "a download callback must be provided; use set_callback to set a callback"
         )
@@ -403,6 +416,7 @@ class ModelsHolder:
 
 
 def model_dowloader(
+    predictor_type: PredictorType,
     bucket_name: str,
     model_name: str,
     model_version: str,
@@ -427,7 +441,7 @@ def model_dowloader(
 
     s3_client = S3(bucket_name, client_config={})
 
-    # validate S3 model
+    # validate upstream S3 model
     sub_paths, ts = s3_client.search(model_path)
     try:
         validate_model_paths(sub_paths, predictor_type, model_path)
@@ -494,6 +508,9 @@ class LockedModel:
     """
 
     def __init__(self, models: ModelsHolder, mode: str, model_name: str, model_version: str):
+        """
+        mode can be "r" for read or "w" for write.
+        """
         self._models = models
         self._mode = mode
         self._model_name = model_name

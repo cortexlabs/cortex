@@ -160,7 +160,7 @@ class ONNXClient:
 
         Returns:
             The model as returned by self._load_model method.
-            None if the model wasn't found.
+            None if the model wasn't found or if it didn't pass the validation.
         """
 
         model = None
@@ -171,11 +171,15 @@ class ONNXClient:
             tags = ["latest", "highest"]
 
         if not self._cache_enabled:
+            # determine model version
             if tag != "":
                 model_version = self._get_model_version_from_disk(model_name, tag)
             model_id = model_name + "-" + model_version
 
+            # grab shared access to versioned model
             with LockedFile(model_id, "r", reader_lock=True) as f:
+
+                # check model status
                 file_status = f.read()
                 if file_status == "" or file_status == "not available":
                     raise WithBreak()
@@ -183,6 +187,7 @@ class ONNXClient:
                 current_upstream_ts = int(file_status.split(" ")[1])
                 update_model = False
 
+                # grab shared access to models holder and retrieve model
                 with LockedModel(self._models, "r", model_name, model_version):
                     status, upstream_ts = self._models.has_model(model_name, model_version)
                     if status == "not-available" or (
@@ -192,6 +197,7 @@ class ONNXClient:
                         raise WithBreak()
                     model, _ = self._models.get_model(model_name, model_version, tag)
 
+                # load model into memory and retrieve it
                 if update_model:
                     with LockedModel(self._models, "w", model_name, model_version):
                         status, _ = self._models.has_model(model_name, model_version)
@@ -204,22 +210,30 @@ class ONNXClient:
                             model, _ = self._models.get_model(model_name, model_version, tag)
 
         if self._cache_enabled:
-            with LockedModelsTree(self._models_tree, "r"):
+            # determine model version
+            try:
                 if tag != "":
-                    if model_name not in self._models_tree.info:
-                        raise WithBreak()
                     model_version = self._get_model_version_from_tree(
-                        model_name, tag, self._models_tree.info[model_name]
+                        model_name, tag, self._models_tree.model_info(model_name)
                     )
+            except ValueError:
+                # if model_name hasn't been found
+                return None
 
+            # grab shared access to model tree
+            with LockedModelsTree(self._models_tree, "r", model_name, model_version):
+
+                # check if the versioned model exists
                 model_id = model_name + "-" + model_version
                 if model_id not in self._models_tree:
                     raise WithBreak()
 
+                # retrieve model tree's metadata
                 upstream_model = self._models_tree[model_id]
                 current_upstream_ts = upstream_model["timestamp"]
                 update_model = False
 
+                # grab shared access to models holder and retrieve model
                 with LockedModel(self._models, "r", model_name, model_version):
                     status, upstream_ts = self._models.has_model(model_name, model_version)
                     if status in ["not-available", "on-disk"] or (
@@ -229,9 +243,15 @@ class ONNXClient:
                         raise WithBreak()
                     model, _ = self._models.get_model(model_name, model_version, tag)
 
+                # download, load into memory the model and retrieve it
                 if update_model:
+                    # grab exclusive access to models holder
                     with LockedModel(self._models, "w", model_name, model_version):
+
+                        # check model status
                         status, _ = self._models.has_model(model_name, model_version)
+
+                        # download model
                         if status == "not-available":
                             current_upstream_ts = self._models.download_model(
                                 upstream_model["bucket"],
@@ -243,10 +263,16 @@ class ONNXClient:
                                 raise WithBreak()
                             current_upstream_ts = current_upstream_ts()
 
+                        # load model
                         disk_path = os.path.join(self._model_dir, model_name, model_version)
-                        self._models.load_model(
-                            model_name, model_version, disk_path, current_upstream_ts, tags,
-                        )
+                        try:
+                            self._models.load_model(
+                                model_name, model_version, disk_path, current_upstream_ts, tags,
+                            )
+                        except Exception:
+                            raise WithBreak()
+
+                        # retrieve model
                         model, _ = self._models.get_model(model_name, model_version, tag)
 
         return model
