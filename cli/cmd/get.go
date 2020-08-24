@@ -189,7 +189,7 @@ func getAPIsInAllEnvironments() (string, error) {
 	out := ""
 
 	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 {
-		// if all envs errored, skip "no apis are deployed" since it's misleading
+		// check if any environments errorred
 		if len(errorsMap) != len(cliConfig.Environments) {
 			if len(errorsMap) == 0 {
 				return console.Bold("no apis are deployed"), nil
