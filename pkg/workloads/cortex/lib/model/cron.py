@@ -142,16 +142,17 @@ class SimpleModelMonitor(mp.Process):
         if self._is_dir_used:
             return
 
+        timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
         for local_model_name in self._local_model_names:
             versions = self._spec_models[local_model_name]["versions"]
             if len(versions) == 0:
                 resource = local_model_name + "-" + "1" + ".txt"
                 with LockedFile(resource, "w") as f:
-                    f.write("available")
+                    f.write("available " + str(timestamp_utc))
             for ondisk_version in versions:
                 resource = local_model_name + "-" + ondisk_version + ".txt"
                 with LockedFile(resource, "w") as f:
-                    f.write("available")
+                    f.write("available " + str(timestamp_utc))
 
     def _update_models_tree(self) -> None:
         # validate models stored in S3 that were specified with predictor:models:dir field
@@ -232,7 +233,7 @@ class SimpleModelMonitor(mp.Process):
                 s3_client, idx, model_name, versions, timestamps[idx], model_paths, sub_paths
             )
 
-        #
+        # remove models that no longer appear in model_names
         for models, versions in find_ondisk_models(self._lock_dir, include_versions=True):
             for model_name in models:
                 if model_name not in model_names:
