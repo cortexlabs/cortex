@@ -238,8 +238,11 @@ class ONNXClient:
                                 model_name,
                                 model_version,
                                 upstream_model["path"],
-                                upstream_model["sub_paths"],
                             )
+                            if not current_upstream_ts:
+                                raise WithBreak()
+                            current_upstream_ts = current_upstream_ts()
+
                         disk_path = os.path.join(self._model_dir, model_name, model_version)
                         self._models.load_model(
                             model_name, model_version, disk_path, current_upstream_ts, tags,

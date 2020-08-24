@@ -60,7 +60,7 @@ class API:
 
     def get_cached_classes(self):
         prefix = os.path.join(self.metadata_root, "classes") + "/"
-        class_paths = self.storage.search(prefix=prefix)
+        class_paths, _ = self.storage.search(prefix=prefix)
         class_set = set()
         for class_path in class_paths:
             encoded_class_name = class_path.split("/")[-1]

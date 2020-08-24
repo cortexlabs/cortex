@@ -139,6 +139,7 @@ class SimpleModelMonitor(mp.Process):
 
     def _refresh_model(
         self,
+        s3_client: S3,
         idx: int,
         model_name: str,
         versions: dict,
@@ -188,12 +189,8 @@ class SimpleModelMonitor(mp.Process):
                         ondisk_model_version = os.path.join(model_paths[idx], version)
                         if os.path.exists(ondisk_model_version):
                             shutil.rmtree(ondisk_model_version)
-                        os.path.makedirs(ondisk_model_version)
-                        shutil.copytree(temp_dest, ondisk_model_version)
+                        shutil.move(temp_dest, ondisk_model_version)
                         f.write("available")
-
-                    # cleanup
-                    shutil.rmtree(temp_dest)
 
         # remove model versions if they are not found on the upstream
         # except when the model version found on disk is 1 and the number of detected versions on the upstream is 0,
@@ -235,8 +232,7 @@ class SimpleModelMonitor(mp.Process):
                     ondisk_model_version = os.path.join(model_paths[idx], "1")
                     if os.path.exists(ondisk_model_version):
                         shutil.rmtree(ondisk_model_version)
-                    os.path.makedirs(ondisk_model_version)
-                    shutil.copytree(temp_dest, ondisk_model_version)
+                    shutil.move(temp_dest, ondisk_model_version)
                     f.write("available")
 
                 # cleanup
@@ -295,7 +291,7 @@ class SimpleModelMonitor(mp.Process):
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
         for idx, model_name in enumerate(model_names):
-            self._refresh_model(idx, model_name, versions, model_paths, sub_paths)
+            self._refresh_model(s3_client, idx, model_name, versions, model_paths, sub_paths)
 
         print("model names", model_names)
         print("model paths", model_paths)

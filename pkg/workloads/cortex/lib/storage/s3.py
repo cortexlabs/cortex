@@ -19,6 +19,7 @@ import pickle
 import json
 import msgpack
 import time
+import datetime
 
 from typing import Dict, List, Tuple
 from cortex.lib import util
@@ -99,7 +100,7 @@ class S3(object):
 
     def _get_matching_s3_keys_generator(self, prefix="", suffix=""):
         for obj in self._get_matching_s3_objects_generator(prefix, suffix):
-            yield obj["Key"]
+            yield obj["Key"], obj["LastModified"]
 
     def _upload_string_to_s3(self, string, key):
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=string)
@@ -138,8 +139,14 @@ class S3(object):
 
         return byte_array.strip()
 
-    def search(self, prefix="", suffix=""):
-        return list(self._get_matching_s3_keys_generator(prefix, suffix))
+    def search(self, prefix="", suffix="") -> Tuple[List[str], List[datetime.datetime]]:
+        paths = []
+        timestamps = []
+        for key, ts in self._get_matching_s3_keys_generator(prefix, suffix):
+            paths.append(key)
+            timestamps.append(ts)
+
+        return paths, timestamps
 
     def put_str(self, str_val, key):
         self._upload_string_to_s3(str_val, key)
@@ -197,7 +204,7 @@ class S3(object):
     def download_dir_contents(self, prefix, local_dir):
         util.mkdir_p(local_dir)
         prefix = util.ensure_suffix(prefix, "/")
-        for key in self._get_matching_s3_keys_generator(prefix):
+        for key, _ in self._get_matching_s3_keys_generator(prefix):
             if key.endswith("/"):
                 continue
             rel_path = util.trim_prefix(key, prefix)

@@ -16,11 +16,14 @@
 # ...
 
 from typing import List, Any, Tuple, Callable, AbstractSet
-from cortex.lib.exceptions import WithBreak
+from cortex.lib.exceptions import WithBreak, CortexException
+from cortex.lib.storage import S3
 
 import os
 import time
 import shutil
+import glob
+import datetime
 
 
 class ModelsHolder:
@@ -31,21 +34,26 @@ class ModelsHolder:
 
     def __init__(
         self,
+        model_dir: str,
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
         temp_dir: str = "/tmp/models",
-        on_download_callback: Callable[[str, str, str, List[str]], int] = None,
+        on_download_callback: Callable[[str, str, str, int]] = model_dowloader,
         on_load_callback: Callable[[str], Any] = None,
         on_remove_callback: Callable[[List[str]], None] = None,
     ):
         """
         Args:
+            model_dir: Where models are saved on disk.
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
-            on_download_callback(model_name, model_version, model_path, sub_paths): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
+            on_download_callback(model_name, model_version, model_path, temp_dir, model_dir): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
             on_load_callback(disk_model_path): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
             on_remove_callback(list of model IDs to remove): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.  
         """
+        self._model_dir = model_dir
+        self._temp_dir = temp_dir
+
         if mem_cache_size > 0 and disk_cache_size > 0 and mem_cache_size > disk_cache_size:
             raise RuntimeError(
                 f"mem_cache_size ({mem_cache_size}) must be equal or smaller than disk_cache_size ({disk_cache_size})"
@@ -262,7 +270,7 @@ class ModelsHolder:
             upstream_timestamp: When was this model last modified on the upstream source (e.g. S3).
 
         Raises:
-            RuntimeError if a load callback isn't set.
+            RuntimeError if a load callback isn't set. Can also raise exception if the load callback raises.
         """
 
         if self._load_callback:
@@ -285,13 +293,8 @@ class ModelsHolder:
             )
 
     def download_model(
-        self,
-        bucket: str,
-        model_name: str,
-        model_version: str,
-        model_path: str,
-        sub_paths: List[str],
-    ) -> int:
+        self, bucket: str, model_name: str, model_version: str, model_path: str,
+    ) -> datetime.datetime:
         """
         Download a model to disk. To be called before load_model method is called.
 
@@ -303,10 +306,12 @@ class ModelsHolder:
             model_name: The name of the model.
             model_version: The version of the model.
             model_path: Path to the model as discovered in models:dir or specified in models:paths.
-            sub_paths: A list of filepaths for each file of the model.
 
         Returns:
-            Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
+            Returns the downloaded model's upstream timestamp, otherwise None is returned if it fails.
+
+        Raises:
+            Exceptions if the download callback raises any.
         """
         if self._download_callback:
             return self._download_callback(bucket, model_name, model_version, model_path, sub_paths)
@@ -316,22 +321,17 @@ class ModelsHolder:
 
     def remove_model(self, model_name: str, model_version: str,) -> None:
         """
-        Removes a model from memory if it exists.
-
-        Note: not required anywhere yet.
+        Removes a model from memory and disk if it exists.
         """
         model_id = f"{model_name}-{model_version}"
-        if model_id in self._models:
-            del self._models[model_id]
-        if model_id in self._timestamps:
-            del self._timestamps[model_id]
+        self._remove_model(model_id, True, True)
 
     #################
 
     def garbage_collect(self) -> bool:
         """
         Removes stale in-memory and on-disk models based on LRU policy.
-        Also calls the "remove" callback before removing the models from this object.
+        Also calls the "remove" callback before removing the models from this object. The callback must not raise any exceptions.
 
         Returns:
             True when models had to be collected. False otherwise.
@@ -343,8 +343,8 @@ class ModelsHolder:
         stale_mem_model_ids = self._lru_model_ids(self._mem_cache_size)
         stale_disk_model_ids = self._lru_model_ids(self._disk_cache_size)
 
-        if self._callback:
-            self._callback(stale_mem_model_ids)
+        if self._remove_callback:
+            self._remove_callback(stale_mem_model_ids)
 
         for model_id in stale_mem_model_ids:
             self._remove_model(model_id, mem=True, disk=False)
@@ -402,9 +402,68 @@ class ModelsHolder:
     #################
 
 
+def model_dowloader(
+    bucket_name: str,
+    model_name: str,
+    model_version: str,
+    model_path: str,
+    temp_dir: str,
+    model_dir: str,
+) -> datetime.datetime:
+    """
+    Downloads model to disk. Validates the S3 model path and the downloaded model as well.
+
+    Args:
+        bucket_name: Name of the bucket where the model is stored.
+        model_name: Name of the model. Is part of the model's local path.
+        model_version: Version of the model. Is part of the model's local path.
+        model_path: S3 model prefix to the versioned model.
+        temp_dir: Where to temporarily store the model for validation.
+        model_dir: The top directory of where all models are stored locally.
+
+    Returns:
+        The model's timestamp. None if the model didn't pass the validation, if it doesn't exist or if there are not enough permissions.
+    """
+
+    s3_client = S3(bucket_name, client_config={})
+
+    # validate S3 model
+    sub_paths, ts = s3_client.search(model_path)
+    try:
+        validate_model_paths(sub_paths, predictor_type, model_path)
+    except CortexException:
+        shutil.rmtree(temp_dest)
+        return None
+
+    # download model to temp dir
+    temp_dest = os.path.join(temp_dir, model_name, model_version)
+    try:
+        s3_client.download_dir_contents(model_path, temp_dest)
+    except CortexException:
+        shutil.rmtree(temp_dest)
+        return None
+
+    # validate model
+    model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+    try:
+        validate_model_paths(model_contents, predictor_type, temp_dest)
+    except CortexException:
+        shutil.rmtree(temp_dest)
+        return None
+
+    # move model to dest dir
+    model_top_dir = os.path.join(model_dir, model_name)
+    ondisk_model_version = os.path.join(model_top_dir, model_version)
+    if os.path.isdir(ondisk_model_version):
+        shutil.rmtree(ondisk_model_version)
+    shutil.move(temp_dest, ondisk_model_version)
+
+    return max(ts)
+
+
 class LockedGlobalModelsGC:
     """
-    Applies global exclusive lock (W) on the models tree.
+    Applies global exclusive lock (W) on the models holder.
 
     For running the GC for all loaded models (or present on disk).
     This is the locking implementation for the stop-the-world GC.
@@ -429,7 +488,7 @@ class LockedGlobalModelsGC:
 class LockedModel:
     """
     For granting shared/exclusive (R/W) access to a model resource (model name + model version).
-    Also applies global read lock on the models tree.
+    Also applies global read lock on the models holder.
 
     The context manager can be exited by raising cortex.lib.exceptions.WithBreak.
     """
