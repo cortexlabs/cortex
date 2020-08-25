@@ -67,25 +67,25 @@ class ModelsTree:
 
     def update_models(
         self,
-        buckets: List[str],
         model_names: List[str],
         model_versions: List[List[str]],
         model_paths: List[str],
         sub_paths: List[str],
         timestamps: List[List[int]],
+        bucket_names: List[str],
     ) -> Tuple[AbstractSet[str], AbstractSet[str]]:
         """
         Updates the model tree with the latest from the upstream and removes stale models.
 
-        Locking is not required.
+        Locking is not required. Locking is already done within the method.
 
         Args:
-            buckets: A list with the buckets required for each model.
             model_names: The unique names of the models as discovered in models:dir or specified in models:paths.
             model_versions: The detected versions of each model. "1" if no version is found.
             model_paths: S3 model paths to each model.
             sub_paths: A list of filepaths for each file of each model all grouped into a single list.
             timestamps: When was each versioned model updated the last time on the upstream.
+            bucket_names: A list with the bucket_names required for each model.
         
         Returns:
             The model IDs ("<model-name>-<model-version") that haven't been found in the passed parameters.
@@ -108,7 +108,7 @@ class ModelsTree:
                 model_id = f"{model_name}-1"
                 with LockedModelsTree(self, "w", model_name, "1"):
                     updated = self.update_model(
-                        buckets[idx],
+                        bucket_names[idx],
                         model_name,
                         "1",
                         model_paths[idx],

@@ -103,7 +103,7 @@ class ModelsHolder:
         """
         Acquire shared/exclusive (R/W) access over all models.
         
-        Use "w" when wanting to acquire exclusive access for the GC, or "r" when wanting to grant shared access for any other method to be called.
+        Use "w" when wanting to acquire exclusive access for the GC, or "r" when wanting to grant shared access for any other method to be called (i.e. get_model_ids).
 
         Args:
             mode: "r" for read lock, "w" for write lock.
@@ -400,6 +400,8 @@ class ModelsHolder:
     def get_model_ids(self) -> List[str]:
         """
         Gets a list of all loaded model IDs (in memory or on disk).
+
+        Should only
         """
         return list(self._models.keys())
 
