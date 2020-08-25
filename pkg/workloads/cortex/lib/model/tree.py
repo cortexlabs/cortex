@@ -23,6 +23,10 @@ import threading as td
 
 
 class ModelsTree:
+    """
+    Model tree for S3-provided models.
+    """
+
     def __init__(self):
         self.models = {}
         self._locks = {}
@@ -182,7 +186,7 @@ class ModelsTree:
 
     def model_info(self, model_name: str) -> dict:
         """
-        Returns model info about the available versions and model timestamps.
+        Gets model info about the available versions and model timestamps.
 
         Locking is not required.
 
@@ -209,6 +213,23 @@ class ModelsTree:
                 info["timestamp"] += [models[model_id]["timestamp"]]
 
         return info
+
+    def get_model_names(self) -> List[str]:
+        """
+        Gets the available model names.
+
+        Locking is not required.
+
+        Returns:
+            List of all model names.
+        """
+        model_names = []
+        models = self.models.copy()
+        for model_id in models:
+            model_name = model_id.rsplit("-")[0]
+            model_names.append(model_name)
+
+        return model_names
 
     def __getitem__(self, model_id: str) -> dict:
         """

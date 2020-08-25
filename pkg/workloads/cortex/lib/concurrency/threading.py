@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import threading as td
+from typing import Optional
 
 
 # TODO might have to implement a writer-preference RW lock.
@@ -43,12 +44,13 @@ class ReadWriteLock:
         self._readers = []
         self._writers = []
 
-    def acquire(self, mode: str) -> bool:
+    def acquire(self, mode: str, timeout: Optional[float] = None) -> bool:
         """
         Acquire a lock.
 
         Args:
             mode: "r" for read lock, "w" for write lock.
+            timeout: How many seconds to wait to acquire the lock.
 
         Returns:
             Whether the mode was valid or not.
@@ -56,14 +58,20 @@ class ReadWriteLock:
         if mode == "r":
             # wait until "w" has been released
             if self._prefer == "w":
-                self._write_preferred.wait()
+                yes = self._write_preferred.wait(timeout)
+                if not yes:
+                    raise TimeoutError
 
             # finish acquiring once all writers have released
             self._read_allowed.acquire()
             # while loop only relevant when prefer == "r"
             # but it's necessary when the preference policy is changed
             while len(self._writers) > 0:
-                self._read_allowed.wait()
+                yes = self._read_allowed.wait(timeout)
+                if not yes:
+                    self._read_allowed.release()
+                    raise TimeoutError
+
             self._readers.append(td.get_ident())
             self._read_allowed.release()
 
@@ -75,7 +83,10 @@ class ReadWriteLock:
             # acquire once all readers have released
             self._read_allowed.acquire()
             while len(self._readers) > 0:
-                self._read_allowed.wait()
+                yes = self._read_allowed.wait(timeout)
+                if not yes:
+                    self._read_allowed.release()
+                    raise TimeoutError
             self._writers.append(td.get_ident())
         else:
             return False

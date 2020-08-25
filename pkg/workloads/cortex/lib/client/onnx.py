@@ -184,7 +184,7 @@ class ONNXClient:
                 # check model status
                 file_status = f.read()
                 if file_status == "" or file_status == "not available":
-                    raise WithBreak()
+                    raise WithBreak
 
                 current_upstream_ts = int(file_status.split(" ")[1])
                 update_model = False
@@ -196,7 +196,7 @@ class ONNXClient:
                         status == "in-memory" and upstream_ts < current_upstream_ts
                     ):
                         update_model = True
-                        raise WithBreak()
+                        raise WithBreak
                     model, _ = self._models.get_model(model_name, model_version, tag)
 
                 # load model into memory and retrieve it
@@ -230,7 +230,7 @@ class ONNXClient:
                 model_id = model_name + "-" + model_version
                 if model_id not in self._models_tree:
                     available_model = False
-                    raise WithBreak()
+                    raise WithBreak
 
                 # retrieve model tree's metadata
                 upstream_model = self._models_tree[model_id]
@@ -247,7 +247,7 @@ class ONNXClient:
                     status != "not-available" and upstream_ts < current_upstream_ts
                 ):
                     update_model = True
-                    raise WithBreak()
+                    raise WithBreak
                 model, _ = self._models.get_model(model_name, model_version, tag)
 
             # download, load into memory the model and retrieve it
@@ -267,7 +267,7 @@ class ONNXClient:
                             upstream_model["path"],
                         )
                         if not date:
-                            raise WithBreak()
+                            raise WithBreak
                         current_upstream_ts = date.timestamp()
 
                     # load model
@@ -277,7 +277,7 @@ class ONNXClient:
                             model_name, model_version, disk_path, current_upstream_ts, tags,
                         )
                     except Exception:
-                        raise WithBreak()
+                        raise WithBreak
 
                     # retrieve model
                     model, _ = self._models.get_model(model_name, model_version, tag)

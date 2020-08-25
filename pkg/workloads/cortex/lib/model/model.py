@@ -15,7 +15,7 @@
 # Implementation of memory/disk-based LRU class
 # ...
 
-from typing import List, Any, Tuple, Callable, AbstractSet
+from typing import List, Any, Tuple, Callable, AbstractSet, Optional
 from cortex.lib.exceptions import WithBreak, CortexException
 from cortex.lib.storage import S3
 from cortex.lib.api import PredictorType
@@ -161,6 +161,12 @@ class ModelsHolder:
         model_id = f"{model_name}-{model_version}"
         self._locks[model_id].release(mode)
 
+    def set_global_preference_policy(self, prefer: bool) -> bool:
+        """
+        Wrapper of cortex.lib.concurrency.ReadWriteLock.set_preference_policy.
+        """
+        return self._global_lock.set_preference_policy(prefer)
+
     #################
 
     def get_model_names_by_tag_count(self, tag: str, count: int) -> List[str]:
@@ -223,6 +229,13 @@ class ModelsHolder:
             else:
                 return "on-disk", self._models[model_id]["upstream_timestamp"]
         return "not-available", 0
+
+    def has_model_id(self, model_id: str) -> Tuple[str, int]:
+        """
+        Wrapper for has_model method.
+        """
+        model_name, model_version = model_id.rsplit("-")
+        return self.has_model(model_name, model_version)
 
     def get_model(
         self, model_name: str, model_version: str, version_tag: str = ""
@@ -341,13 +354,16 @@ class ModelsHolder:
 
     #################
 
-    def garbage_collect(self, excluded_disk_model_ids: List[str]) -> bool:
+    def garbage_collect(
+        self, exclude_disk_model_ids: List[str] = [], dry_run: bool = False
+    ) -> bool:
         """
         Removes stale in-memory and on-disk models based on LRU policy.
         Also calls the "remove" callback before removing the models from this object. The callback must not raise any exceptions.
 
         Args:
-            excluded_disk_model_ids: Supposedly stale model IDs to exclude from removing from disk. Necessary for locally-provided models.
+            exclude_disk_model_ids: Supposedly stale model IDs to exclude from removing from disk. Necessary for locally-provided models.
+            dry_run: Just test if there are any models to remove. Can apply shared lock (R) instead.
 
         Returns:
             True when models had to be collected. False otherwise.
@@ -357,26 +373,35 @@ class ModelsHolder:
             return collected
 
         stale_mem_model_ids = self._lru_model_ids(self._mem_cache_size)
-        stale_disk_model_ids = self._lru_model_ids(self._disk_cache_size)
+        stale_disk_model_ids = self._lru_model_ids(
+            self._disk_cache_size - len(exclude_disk_model_ids)
+        )
 
-        if self._remove_callback:
+        if self._remove_callback and not dry_run:
             self._remove_callback(stale_mem_model_ids)
 
         # don't delete excluded model IDs from disk
-        stale_disk_model_ids = list(set(stale_disk_model_ids) - set(excluded_model_ids))
+        stale_disk_model_ids = list(set(stale_disk_model_ids) - set(exclude_disk_model_ids))
         stale_disk_model_ids = stale_disk_model_ids[
             len(stale_disk_model_ids) - self._disk_cache_size :
         ]
 
-        for model_id in stale_mem_model_ids:
-            self._remove_model(model_id, mem=True, disk=False)
-        for model_id in stale_disk_model_ids:
-            self._remove_model(model_id, mem=False, disk=True)
+        if not dry_run:
+            for model_id in stale_mem_model_ids:
+                self._remove_model(model_id, mem=True, disk=False)
+            for model_id in stale_disk_model_ids:
+                self._remove_model(model_id, mem=False, disk=True)
 
         if len(stale_mem_model_ids) > 0 or len(stale_disk_model_ids) > 0:
             collected = True
 
         return collected
+
+    def get_model_ids(self) -> List[str]:
+        """
+        Gets a list of all loaded model IDs (in memory or on disk).
+        """
+        return list(self._models.keys())
 
     def _lru_model_ids(self, threshold: int) -> List[str]:
         """
@@ -388,12 +413,12 @@ class ModelsHolder:
         Returns:
             A list of stale model IDs.
         """
-        self._timestamps = {
+        timestamps = {
             k: v
             for k, v in sorted(self._timestamps.items(), key=lambda item: item[1], reverse=True)
         }
         model_ids = []
-        for counter, model_id in enumerate(self._timestamps):
+        for counter, model_id in enumerate(timestamps):
             counter += 1
             if counter > threshold:
                 model_ids.append(model_id)
@@ -415,8 +440,11 @@ class ModelsHolder:
             disk_path = self._models[model_id]["disk_path"]
             shutil.rmtree(disk_path)
             model_top_dir = os.path.dirname(disk_path)
-            if len(os.listdir(model_top_dir)) == 0:
-                shutil.rmtree(model_top_dir)
+            if os.path.isdir(model_top_dir) and len(os.listdir(model_top_dir)) == 0:
+                try:
+                    shutil.rmtree(model_top_dir)
+                except FileNotFoundError:
+                    pass
 
             del self._models[model_id]
             del self._timestamps[model_id]
@@ -494,15 +522,27 @@ class LockedGlobalModelsGC:
     The context manager can be exited by raising cortex.lib.exceptions.WithBreak.
     """
 
-    def __init__(self, models: ModelsHolder):
+    def __init__(
+        self,
+        models: ModelsHolder,
+        mode: str = "w",
+        prefer: str = "r",
+        timeout: Optional[float] = None,
+    ):
         self._models = models
+        self._mode = mode
+        self._timeout = timeout
 
     def __enter__(self):
-        self._models.global_acquire("w")
+        self.acquired = True
+        try:
+            self._models.global_acquire(self._mode, self._timeout)
+        except TimeoutError:
+            self.acquired = False
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._models.global_release("w")
+        self._models.global_release(self._mode)
 
         if exc_value is not None and exc_type is not WithBreak:
             raise exc_type(exc_value).with_traceback(traceback)

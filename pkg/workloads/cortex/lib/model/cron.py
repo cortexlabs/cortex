@@ -18,17 +18,29 @@ from cortex.lib import util
 from cortex.lib.log import cx_logger
 from cortex.lib.concurrency import LockedFile
 from cortex.lib.storage import S3, LocalStorage
-from cortex.lib.exceptions import CortexException
-from cortex.lib.model import (
+from cortex.lib.exceptions import CortexException, WithBreak
+
+import cortex.lib.model as clm
+from clm import (
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
     ONNXPredictorType,
+)
+from clm import (
     validate_s3_models_dir_paths,
     validate_s3_model_paths,
+)
+from clm import (
     ModelsHolder,
+    LockedGlobalModelsGC,
+    LockedModel,
     CuratedModelResources,
     ModelVersion,
+)
+from clm import (
+    ModelsTree,
+    LockedModelsTree,
 )
 
 import os
@@ -66,6 +78,7 @@ class SimpleModelMonitor(mp.Process):
         """
 
         mp.Process.__init__(self)
+
         self._interval = interval
         self._api_spec = api_spec
         self._download_dir = download_dir
@@ -361,72 +374,6 @@ class SimpleModelMonitor(mp.Process):
                 shutil.rmtree(temp_dest)
 
 
-class CachedModelMonitor(td.Thread):
-    """
-    Responsible for monitoring the S3 path(s)/dir and continuously update the tree.
-    The model paths are validated - the bad paths are ignored.
-    When a new model is found, it updates the tree - likewise when a model is removed.
-
-    Also has access to the shared models of all other threads and so if the cache size thresholds, then evict the LRU.
-    Does the same for the disk cache size.
-    """
-
-    def __init__(
-        self,
-        interval: int,
-        api_spec: dict,
-        download_dir: str,
-        states: dict,
-        models: ModelsHolder,
-        temp_dir: str = "/tmp/cron",
-    ):
-        """
-        Args:
-            interval (int): How often to update the models tree. Measured in seconds.
-            kwargs: Named parameters.
-        """
-
-        mp.Thread.__init__(self)
-        self._interval = interval
-        self._event_stopper = thread.Event()
-        self._stopped = False
-
-    def run(self):
-        """
-        mp.Process-specific method.
-        """
-
-        while not self._event_stopper.is_set():
-            self._update_models_tree()
-            time.sleep(self._interval)
-        self._stopped = True
-
-    def stop(self, blocking: bool = False):
-        """
-        Trigger the process of stopping the process.
-
-        Args:
-            blocking: Whether to wait until the process is stopped or not.
-        """
-
-        self._event_stopper.set()
-        if blocking:
-            self.join()
-
-    def join(self):
-        """
-        Block until the process exits.
-        """
-
-        while not self._stopped:
-            time.sleep(0.001)
-
-    def _update_models_tree(self):
-        # remove models from LRU in-memory/on-disk
-        # updates the model states from S3
-        pass
-
-
 def find_ondisk_models(
     lock_dir: str, include_versions: bool = False
 ) -> Optional[List[str], Tuple[List[str], List[str]]]:
@@ -498,3 +445,123 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
                 timestamps.append(current_upstream_ts)
 
     return (versions, timestamps)
+
+
+class ModelsGC(td.Thread):
+    """
+    GC for models loaded into memory and/or stored on disk.
+
+    If the number of models exceeds the cache size, then evict the LRU models.
+    Also removes models that are no longer present in the model tree.
+    """
+
+    def __init__(
+        self, interval: int, api_spec: dict, models: ModelsHolder, tree: ModelsTree,
+    ):
+        """
+        Args:
+            interval: How often to update the models tree. Measured in seconds.
+            api_spec: Identical copy of pkg.type.spec.api.API.
+        """
+
+        mp.Thread.__init__(self)
+
+        self._interval = interval
+        self._api_spec = api_spec
+        self._models = models
+        self._tree = tree
+
+        self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
+        self._local_model_names = self._spec_models.get_local_model_names()
+        self._local_model_versions = [
+            self._spec_models.get_versions_for(model_name) for model_name in self._local_model_names
+        ]
+        self._local_model_ids = []
+        for model_name, versions in zip(self._local_model_names, self._local_model_versions):
+            if len(versions) == 0:
+                self._local_model_ids.append(f"{model_name}-1")
+                continue
+            for version in versions:
+                self._local_model_ids.append(f"{model_name}-{version}")
+
+        # run the cron every 10 seconds
+        self._lock_timeout = 10.0
+
+        self._event_stopper = thread.Event()
+        self._stopped = False
+
+    def run(self):
+        """
+        mp.Thread-specific method.
+        """
+
+        while not self._event_stopper.is_set():
+            self._run_gc()
+            time.sleep(self._interval)
+        self._stopped = True
+
+    def stop(self, blocking: bool = False):
+        """
+        Trigger the process of stopping the process.
+
+        Args:
+            blocking: Whether to wait until the process is stopped or not.
+        """
+
+        self._event_stopper.set()
+        if blocking:
+            self.join()
+
+    def join(self):
+        """
+        Block until the process exits.
+        """
+
+        while not self._stopped:
+            time.sleep(0.001)
+
+    def _run_gc(self):
+        # are there any models to collect (aka remove) from cache
+        with LockedGlobalModelsGC(self._models, "r"):
+            collectible = self._models.garbage_collect(
+                exclude_disk_model_ids=self._local_model_ids, dry_run=True
+            )
+        if not collectible:
+            return
+
+        # try to grab exclusive access to all models with shared access preference
+        # and if it works, remove excess models from cache
+        self._models.set_global_preference_policy("r")
+        with LockedGlobalModelsGC(self._models, "w", self._lock_timeout) as lg:
+            acquired = lg.acquired
+            if not acquired:
+                raise WithBreak
+
+            self._models.garbage_collect(exclude_disk_model_ids=self._local_model_ids)
+
+        # otherwise, grab exclusive access to all models with exclusive access preference
+        # and remove excess models from cache
+        self._models.set_global_preference_policy("w")
+        with LockedGlobalModelsGC(self._models, "w"):
+            self._models.garbage_collect(exclude_disk_model_ids=self._local_model_ids)
+
+        # get available upstream S3 model IDs
+        s3_model_names = self._tree.get_model_names()
+        s3_model_versions = [self._tree.model_info(model_name) for model_name in s3_model_names]
+        s3_model_ids = []
+        for model_name, model_versions in zip(s3_model_names, s3_model_versions):
+            if len(model_versions) == 0:
+                continue
+            for model_version in model_versions:
+                s3_model_ids.append(f"{model_name}-{model_version}")
+
+        # get model IDs loaded into memory or on disk.
+        with LockedGlobalModelsGC(self._models, "r"):
+            present_model_ids = self.get_model_ids()
+
+        # remove models that don't exist in the S3 upstream
+        ghost_model_ids = list(set(s3_model_ids) - set(present_model_ids))
+        for model_id in ghost_model_ids:
+            model_name, model_version = model_id.rsplit("-")
+            with LockedModel(self._models, "w", model_name, model_version):
+                self._models.remove_model(model_name, model_version)
