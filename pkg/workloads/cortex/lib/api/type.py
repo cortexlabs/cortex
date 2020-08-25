@@ -26,3 +26,5 @@ class PredictorType(collections.namedtuple("PredictorType", "type")):
 PythonPredictorType = PredictorType("python")
 TensorFlowPredictorType = PredictorType("tensorflow")
 ONNXPredictorType = PredictorType("onnx")
+
+TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")

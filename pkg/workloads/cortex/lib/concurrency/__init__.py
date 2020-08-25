@@ -14,5 +14,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex.lib.concurrency.files import FileLock
+from cortex.lib.concurrency.files import FileLock, LockedFile
 from cortex.lib.concurrency.threading import ReadWriteLock, ReadLock, WriteLock

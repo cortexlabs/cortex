@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Tuple, Any, Optional, Callable
+from typing import Dict, List, Tuple, Any, Union, Callable
 
 from cortex.lib import util
 from cortex.lib.log import cx_logger
@@ -20,25 +20,24 @@ from cortex.lib.concurrency import LockedFile
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, WithBreak
 
-import cortex.lib.model as clm
-from clm import (
+from cortex.lib.api import (
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
     ONNXPredictorType,
 )
-from clm import (
-    validate_s3_models_dir_paths,
-    validate_s3_model_paths,
+from cortex.lib.model import (
+    validate_models_dir_paths,
+    validate_model_paths,
 )
-from clm import (
+from cortex.lib.model import (
     ModelsHolder,
     LockedGlobalModelsGC,
     LockedModel,
     CuratedModelResources,
     ModelVersion,
 )
-from clm import (
+from cortex.lib.model import (
     ModelsTree,
     LockedModelsTree,
 )
@@ -376,7 +375,7 @@ class SimpleModelMonitor(mp.Process):
 
 def find_ondisk_models(
     lock_dir: str, include_versions: bool = False
-) -> Optional[List[str], Tuple[List[str], List[str]]]:
+) -> Union[List[str], Tuple[List[str], List[str]]]:
     """
     Returns all available models from the disk.
     To be used in conjunction with SimpleModelMonitor.

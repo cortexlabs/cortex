@@ -17,11 +17,7 @@ from cortex.lib.model.model import ModelsHolder, LockedGlobalModelsGC, LockedMod
 from cortex.lib.model.tree import ModelsTree, LockedModelsTree
 from cortex.lib.model.type import CuratedModelResources
 from cortex.lib.model.validation import (
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
-    validate_s3_models_dir_paths,
-    validate_s3_model_paths,
+    validate_models_dir_paths,
+    validate_model_paths,
     ModelVersion,
 )

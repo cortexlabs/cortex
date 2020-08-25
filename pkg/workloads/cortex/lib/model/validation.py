@@ -26,6 +26,7 @@ from cortex.lib.model import ModelsHolder
 from cortex.lib.api import (
     PythonPredictorType,
     TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
     ONNXPredictorType,
     PredictorType,
 )
@@ -152,8 +153,6 @@ SinglePlaceholder = TemplatePlaceholder(
 AnyPlaceholder = TemplatePlaceholder(
     "any", priority=4
 )  # the path can be any file or any directory (with multiple subdirectories)
-
-TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")
 
 
 class ModelVersion(IntEnum):

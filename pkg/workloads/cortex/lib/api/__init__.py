@@ -15,14 +15,10 @@
 from cortex.lib.api.api import API, get_api, get_spec
 from cortex.lib.api.predictor import Predictor
 from cortex.lib.api.monitoring import Monitoring
-from cortex.lib.api.model import (
-    Model,
-    get_model_signature_map,
-    get_model_names,
-)
 from cortex.lib.api.type import (
     PythonPredictorType,
     TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
     ONNXPredictorType,
     PredictorType,
 )
