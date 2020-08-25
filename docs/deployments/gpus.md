@@ -1,7 +1,5 @@
 # Using GPUs
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 To use GPUs:
 
 1. Make sure your AWS account is subscribed to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM).

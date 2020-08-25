@@ -1,7 +1,5 @@
 # 404 or 503 error responses from API requests
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 When making prediction requests to your API, it's possible to get a `{"message":"Not Found"}` error message (with HTTP status code `404`), or a `no healthy upstream` error message (with HTTP status code `503`). This means that there are currently no live replicas running for your API. This could happen for a few reasons:
 
 1. It's possible that your API is simply not ready yet. You can check the status of your API with `cortex get API_NAME`, and stream the logs with `cortex logs API_NAME`.

@@ -1,7 +1,5 @@
 # Security
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 _The information on this page assumes you are running Cortex on AWS. If you're only deploying locally, this information does not apply (although AWS credentials can still be passed into your APIs, and can be specified with `cortex env configure local`)_
 
 ## Private cluster subnets

@@ -1,7 +1,5 @@
 # Contact us
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Support
 
 [GitHub](https://github.com/cortexlabs/cortex/issues) - Submit feature requests, file bugs, and track issues.
