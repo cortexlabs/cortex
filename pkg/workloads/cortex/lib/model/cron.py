@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any, Optional, Callable
 
 from cortex.lib import util
 from cortex.lib.log import cx_logger
@@ -447,7 +447,57 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
     return (versions, timestamps)
 
 
-class ModelsGC(td.Thread):
+class AbstractLoopingThread(td.Thread):
+    """
+    Abstract class of the td.Thread class.
+
+    Takes a function and keeps calling it in a loop at every certain interval.
+    """
+
+    def __init__(self, interval: int, runnable: Callable[[], None]):
+        td.Thread.__init__(self)
+
+        self._interval = interval
+        self._runnable = runnable
+
+        if not callable(self._runnable):
+            raise ValueError("runnable parameter must be a callable function")
+
+        self._event_stopper = thread.Event()
+        self._stopped = False
+
+    def run(self):
+        """
+        td.Thread-specific method.
+        """
+
+        while not self._event_stopper.is_set():
+            self.runnable()
+            time.sleep(self._interval)
+        self._stopped = True
+
+    def stop(self, blocking: bool = False):
+        """
+        Stop the thread.
+
+        Args:
+            blocking: Whether to wait until the thread is stopped or not.
+        """
+
+        self._event_stopper.set()
+        if blocking:
+            self.join()
+
+    def join(self):
+        """
+        Block until the thread finishes.
+        """
+
+        while not self._stopped:
+            time.sleep(0.001)
+
+
+class ModelsGC(AbstractLoopingThread):
     """
     GC for models loaded into memory and/or stored on disk.
 
@@ -464,7 +514,7 @@ class ModelsGC(td.Thread):
             api_spec: Identical copy of pkg.type.spec.api.API.
         """
 
-        mp.Thread.__init__(self)
+        td.AbstractLoopingThread.__init__(self, interval, self._run_gc)
 
         self._interval = interval
         self._api_spec = api_spec
@@ -489,36 +539,6 @@ class ModelsGC(td.Thread):
 
         self._event_stopper = thread.Event()
         self._stopped = False
-
-    def run(self):
-        """
-        mp.Thread-specific method.
-        """
-
-        while not self._event_stopper.is_set():
-            self._run_gc()
-            time.sleep(self._interval)
-        self._stopped = True
-
-    def stop(self, blocking: bool = False):
-        """
-        Trigger the process of stopping the process.
-
-        Args:
-            blocking: Whether to wait until the process is stopped or not.
-        """
-
-        self._event_stopper.set()
-        if blocking:
-            self.join()
-
-    def join(self):
-        """
-        Block until the process exits.
-        """
-
-        while not self._stopped:
-            time.sleep(0.001)
 
     def _run_gc(self):
         # are there any models to collect (aka remove) from cache
