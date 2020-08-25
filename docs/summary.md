@@ -4,7 +4,7 @@
 * [Install](cluster-management/install.md)
 * [Tutorial](../examples/pytorch/text-generator/README.md)
 * [GitHub](https://github.com/cortexlabs/cortex)
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
+* [Examples](https://github.com/cortexlabs/cortex/tree/0.19/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [Contact us](miscellaneous/contact-us.md)
 
 ## Deployments
