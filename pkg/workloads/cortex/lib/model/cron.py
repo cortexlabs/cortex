@@ -28,6 +28,7 @@ from cortex.lib.model import (
     validate_s3_model_paths,
     ModelsHolder,
     CuratedModelResources,
+    ModelVersion,
 )
 
 import os
@@ -175,6 +176,7 @@ class SimpleModelMonitor(mp.Process):
         # validate models stored in S3 that were specified with predictor:models:paths field
         if not self._is_dir_used:
             sub_paths = []
+            ooa_ids = []
             model_paths = []
             model_names = []
             timestamps = []
@@ -186,21 +188,24 @@ class SimpleModelMonitor(mp.Process):
                     sub_paths += sb
                     timestamps += model_path_ts
                     try:
-                        validate_model_paths(sub_paths, self._predictor_type, model_path)
+                        ooa_ids.append(
+                            validate_model_paths(sub_paths, self._predictor_type, model_path)
+                        )
                         model_paths.append(model_path)
                         model_names.append(self._s3_model_names[idx])
                     except CortexException:
                         continue
 
         # determine the detected versions for each model
-        # if the predictor type is ONNXPredictorType and the model contains a single *.onnx file,
-        # then leave the version list empty
+        # if the model was not versioned, then leave the version list empty
         versions = {}
-        for model_path, model_name in zip(model_paths, model_names):
+        for model_path, model_name, model_ooa_ids in zip(model_paths, model_names, ooa_ids):
+            if ModelVersion.PROVIDED not in model_ooa_ids:
+                versions[model_name] = []
+                continue
+
             model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in sub_paths]
-            model_sub_paths = [path for path in model_sub_paths if not path.startswith("../")]
-            # make isnumeric verification because for ONNX models, the model path can be the actual ONNX file
-            model_versions = [version for version in model_sub_paths if version.isnumeric()]
+            model_versions = [path for path in model_sub_paths if not path.startswith("../")]
             versions[model_name] = model_versions
 
         # curate timestamps for each versione model
@@ -223,7 +228,7 @@ class SimpleModelMonitor(mp.Process):
 
         # model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
         # versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
-        #   For ONNX model paths that are not versioned, the list will be empty
+        #   For non-versioned model paths ModelVersion.NOT_PROVIDED, the list will be empty
         # model_paths - a list with the prefix of each model
         # sub_paths - a list of filepaths for each file of each model all grouped into a single list
         # timestamps - a list of timestamps lists representing the last edit time of each versioned model
@@ -327,7 +332,7 @@ class SimpleModelMonitor(mp.Process):
             if len(glob.glob(ondisk_model_path + "*/**")) == 0:
                 shutil.rmtree(ondisk_model_path)
 
-        # if it's a model that came without version (i.e. like it's the case for ONNXPredictorType)
+        # if it's a non-versioned model ModelVersion.NOT_PROVIDED
         if len(versions[model_name]) == 0:
             # download to a temp directory
             temp_dest = os.path.join(self._temp_dir, model_name)

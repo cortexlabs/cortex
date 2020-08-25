@@ -157,8 +157,8 @@ TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")
 
 
 class ModelVersion(IntEnum):
-    NOT_PROVIDED = 0
-    PROVIDED = 1
+    NOT_PROVIDED = 0  # for models provided without a specific version
+    PROVIDED = 1  # for models provided with version directories (1, 2, 452, etc).
 
 
 # to be used when predictor:model_path or predictor:models:paths is used
