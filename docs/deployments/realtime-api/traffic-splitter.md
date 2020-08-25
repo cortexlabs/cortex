@@ -76,7 +76,6 @@ Note that this will not delete the Realtime APIs targeted by the Traffic Splitte
 
 ## Additional resources
 
-<!-- CORTEX_VERSION_MINOR -->
 * [Traffic Splitter Tutorial](../../../examples/traffic-splitter/README.md) provides a step-by-step walkthrough for deploying an Traffic Splitter
 * [Realtime API Tutorial](../../../examples/pytorch/text-generator/README.md) provides a step-by-step walkthrough of deploying a realtime API for text generation
 * [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
