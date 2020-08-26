@@ -24,7 +24,7 @@ Once the API has been successfully deployed, export the API's endpoint for conve
 export ENDPOINT=your-api-endpoint
 ```
 
-When making a prediction with [sample.json](sample.json), [this](https://www.youtube.com/watch?v=aUdKzb4LGJ) youtube video will be used.
+When making a prediction with [sample.json](sample.json), [this](https://www.youtube.com/watch?v=aUdKzb4LGJI) youtube video will be used.
 
 To make a request to the model:
 
