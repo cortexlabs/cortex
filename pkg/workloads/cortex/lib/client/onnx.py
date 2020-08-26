@@ -204,9 +204,8 @@ class ONNXClient:
                     with LockedModel(self._models, "w", model_name, model_version):
                         status, _ = self._models.has_model(model_name, model_version)
                         if status == "not-available":
-                            disk_path = os.path.join(self._model_dir, model_name, model_version)
                             self._models.load_model(
-                                model_name, model_version, disk_path, current_upstream_ts, tags,
+                                model_name, model_version, current_upstream_ts, tags,
                             )
                         else:
                             model, _ = self._models.get_model(model_name, model_version, tag)
@@ -271,10 +270,9 @@ class ONNXClient:
                         current_upstream_ts = date.timestamp()
 
                     # load model
-                    disk_path = os.path.join(self._model_dir, model_name, model_version)
                     try:
                         self._models.load_model(
-                            model_name, model_version, disk_path, current_upstream_ts, tags,
+                            model_name, model_version, current_upstream_ts, tags,
                         )
                     except Exception:
                         raise WithBreak

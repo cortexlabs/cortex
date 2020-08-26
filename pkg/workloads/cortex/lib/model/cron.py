@@ -631,9 +631,10 @@ class ModelTreeUpdater(AbstractLoopingThread):
 
     def __init__(self, interval: int, api_spec: dict, tree: ModelsTree):
         """
-        interval: How often to update the models tree. Measured in seconds.
-        api_spec: Identical copy of pkg.type.spec.api.API.
-        tree: Model tree representation of the available models on the S3 upstream.
+        Args:
+            interval: How often to update the models tree. Measured in seconds.
+            api_spec: Identical copy of pkg.type.spec.api.API.
+            tree: Model tree representation of the available models on the S3 upstream.
         """
 
         AbstractLoopingThread.__init__(self, interval, self._update_models_tree)
@@ -683,3 +684,90 @@ class ModelTreeUpdater(AbstractLoopingThread):
         self._tree.update_models(
             models_names, versions, model_paths, sub_paths, timestamps, bucket_names
         )
+
+
+class ModelPreloader(AbstractLoopingThread):
+    """
+    Model preloader for models that had only been called using either tag ("latest" or "highest") for at least a certain number of times.
+    """
+
+    def __init__(self, interval: int, caching: bool, models: ModelsHolder, tree: ModelsTree):
+        """
+        Args:
+            interval: How often to update the models tree. Measured in seconds.
+            caching: Whether caching is enabled or not. Can only set caching to True.
+            models: The object holding all models in memory / on disk.
+            tree: Model tree representation of the available models on the S3 upstream.
+        """
+        AbstractLoopingThread.__init__(self, interval, self._preload_models)
+
+        if not caching:
+            raise NotImplementedError(
+                "the model preloader hasn't been implement for when the caching is disabled"
+            )
+
+        if tree is not None and caching is False:
+            raise ValueError("tree must be None when caching is disabled")
+
+        self._cache_enabled = caching
+        self._models = models
+
+        if caching:
+            self._tree = tree
+
+    def _preload_models(self) -> None:
+        # preload new models that have only been called using the "latest" tag
+        latest_model_names, ts = self._models.get_model_names_by_tag_count("latest", 10)
+        for model_name, model_ts in zip(latest_model_names, ts):
+            if self._cache_enabled:
+                self._preload_model_when_caching("timestamps", model_name, model_ts)
+            else:
+                self._preload_model_when_not_caching("timestamps", model_name, model_ts)
+
+        # preload new models that have only been called using the "highest" tag
+        highest_model_names, ts = self._models.get_model_names_by_tag_count("highest", 10)
+        for model_name, model_ts in zip(latest_model_names, ts):
+            if self._cache_enabled:
+                self._preload_model_when_caching("versions", model_name, model_ts)
+            else:
+                self._preload_model_when_not_caching("timestamps", model_name, model_ts)
+
+    def _preload_model_when_caching(self, dict_key: str, model_name: str, model_ts: int) -> None:
+
+        # get the latest model info according to the model name and dict key selector
+        model_info = self._tree.model_info(model_name)
+        idx = model_info[dict_key].index(max(model_info[dict_key]))
+        model_version = model_info["versions"][idx]
+        model_path = model_info["model_paths"][idx]
+
+        # verify if the latest model has to be preloaded or not (maybe it already got loaded)
+        update_model = False
+        with LockedModel(self._models, "r", model_name, model_version):
+            status, current_ts = self._models.has_model(model_name, model_version)
+            if current_ts >= model_ts:
+                raise WithBreak
+            update_model = True
+
+        if not update_model:
+            return
+
+        # preload the model
+        with LockedModel(self._models, "w", model_name, model_version):
+            status, current_ts = self._models.has_model(model_name, model_version)
+            if current_ts >= model_ts:
+                raise WithBreak
+
+            if status == "in-memory":
+                self._models.remove_model(model_name, model_version)
+                self._models.download_model(
+                    model_info["bucket"], model_name, model_version, model_path
+                )
+
+            self._models.load_model(model_name, model_version, model_ts, ["latest", "highest"])
+
+    def _preload_model_when_not_caching(
+        self, dict_key: str, model_name: str, model_ts: int
+    ) -> None:
+
+        # TODO implement "latest"/"highest" model preloader when caching is disabled
+        pass

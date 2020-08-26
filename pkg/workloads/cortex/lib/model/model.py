@@ -103,7 +103,7 @@ class ModelsHolder:
         """
         Acquire shared/exclusive (R/W) access over all models.
         
-        Use "w" when wanting to acquire exclusive access for the GC, or "r" when wanting to grant shared access for any other method to be called (i.e. get_model_ids).
+        Use "w" when wanting to acquire exclusive access for the GC (method garbage_collect), or "r" when wanting to grant shared access for any other method to be called (i.e. get_model_ids).
 
         Args:
             mode: "r" for read lock, "w" for write lock.
@@ -128,12 +128,13 @@ class ModelsHolder:
             model_name: The name of the model.
             model_version: The version of the model.
 
-        When mode is "r", only the following methods should be called:
+        When mode is "r", only the following methods can be called:
         * has_model
         * get_model
 
         When mode is "w", the methods available for "r" can be called plus the following ones:
         * load_model
+        * download_model
         * remove_model
         """
         model_id = f"{model_name}-{model_version}"
@@ -169,9 +170,11 @@ class ModelsHolder:
 
     #################
 
-    def get_model_names_by_tag_count(self, tag: str, count: int) -> List[str]:
+    def get_model_names_by_tag_count(self, tag: str, count: int) -> Tuple[List[str], List[int]]:
         """
         Filter model names by the tag count based on the latest recently used model version.
+
+        Locking is already done within the method.
 
         Args:
             tag: Tag as passed on in load_model method. If tag is not found, then the model is not considered.
@@ -179,33 +182,37 @@ class ModelsHolder:
 
         Returns:
             List of model names that abide by the method's selection rule.
-
-        For this method, just a global lock is expected.
+            List of timestamps representing the latest upstream timestamp that abide by the method's selection rule.
         """
 
-        self._timestamps[model_id]
-
         models = {}
-        for model_id in self._models:
-            try:
+        with LockedGlobalModelsGC(self, "r"):
+            models_ids = self.get_model_ids()
+
+        for model_id in models_ids:
+
+            model_name, model_version = model_id.rsplit("-")
+            with LockedModel(self, "r", model_name, model_version):
+                if not self.has_model_id(model_id):
+                    raise WithBreak
+
                 tag_count = self._models[model_id]["metadata"]["consecutive_tag_count"][tag]
                 ts = self._timestamps[model_id]
-            except KeyError:
-                continue
 
-            model_name = model_id.split("-")[0]
-            if (
-                model_name in models and models[model_name]["timestamp"] < ts
-            ) or model_name not in models:
-                models[model_name]["timestamp"] = ts
-                models[model_name]["count"] = tag_count
+                if (
+                    model_name in models and models[model_name]["timestamp"] < ts
+                ) or model_name not in models:
+                    models[model_name]["timestamp"] = ts
+                    models[model_name]["count"] = tag_count
 
         filtered_model_names = []
+        filtered_model_ts = []
         for model_name, v in models:
             if v["count"] >= count:
                 filtered_model_names.append(model_name)
+                filtered_model_ts.append(v["timestamp"])
 
-        return filtered_model_names
+        return filtered_model_names, filtered_model_ts
 
     def has_model(self, model_name: str, model_version: str) -> Tuple[str, int]:
         """
@@ -270,12 +277,7 @@ class ModelsHolder:
         return None, 0
 
     def load_model(
-        self,
-        model_name: str,
-        model_version: str,
-        disk_path: str,
-        upstream_timestamp: int,
-        tags: List[str] = [],
+        self, model_name: str, model_version: str, upstream_timestamp: int, tags: List[str] = [],
     ) -> None:
         """
         Loads a given model into memory.
@@ -284,8 +286,8 @@ class ModelsHolder:
         Args:
             model_name: The name of the model.
             model_version: The version of the model.
-            disk_path: Where the model is found.
             upstream_timestamp: When was this model last modified on the upstream source (e.g. S3).
+            tags: List of tags to initialize the model with.
 
         Raises:
             RuntimeError if a load callback isn't set. Can also raise exception if the load callback raises.
@@ -293,6 +295,7 @@ class ModelsHolder:
 
         if self._load_callback:
             model_id = f"{model_name}-{model_version}"
+            disk_path = os.path.join(self._model_dir, model_name, model_version)
 
             model = {
                 "model": self._load_callback(disk_path),
@@ -400,8 +403,6 @@ class ModelsHolder:
     def get_model_ids(self) -> List[str]:
         """
         Gets a list of all loaded model IDs (in memory or on disk).
-
-        Should only
         """
         return list(self._models.keys())
 
@@ -415,9 +416,10 @@ class ModelsHolder:
         Returns:
             A list of stale model IDs.
         """
+        copied_timestamps = self._timestamps.copy()
         timestamps = {
             k: v
-            for k, v in sorted(self._timestamps.items(), key=lambda item: item[1], reverse=True)
+            for k, v in sorted(copied_timestamps.items(), key=lambda item: item[1], reverse=True)
         }
         model_ids = []
         for counter, model_id in enumerate(timestamps):
@@ -558,14 +560,24 @@ class LockedModel:
     The context manager can be exited by raising cortex.lib.exceptions.WithBreak.
     """
 
-    def __init__(self, models: ModelsHolder, mode: str, model_name: str, model_version: str):
+    def __init__(
+        self,
+        models: ModelsHolder,
+        mode: str,
+        model_name: str,
+        model_version: str,
+        model_id: str = "",
+    ):
         """
         mode can be "r" for read or "w" for write.
         """
         self._models = models
         self._mode = mode
-        self._model_name = model_name
-        self._model_version = model_version
+        if model_id != "":
+            self._model_name, self._model_version = model_id.rsplit("-")
+        else:
+            self._model_name = model_name
+            self._model_version = model_version
 
     def __enter__(self):
         self._models.global_acquire("r")

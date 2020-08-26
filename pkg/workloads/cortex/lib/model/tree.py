@@ -191,17 +191,25 @@ class ModelsTree:
         Locking is not required.
 
         Returns:
-            A dict with keys "versions" and "timestamps". "versions" represents the available versions of the model and each "timestamps" element is the corresponding last-edit time of each versioned model.
+            A dict with keys "bucket", "model_paths, "versions" and "timestamps".
+            "model_paths" contains the S3 prefixes of each versioned model, "versions" represents the available versions of the model,
+            and each "timestamps" element is the corresponding last-edit time of each versioned model.
+            
             Empty lists are returned if the model is not found.
 
         Example of returned dictionary for model_name.
+        ```json
         {
+            "bucket": "bucket-0",
+            "model_paths": ["modelA/1", "modelA/4", "modelA/7", ...],
             "versions": [1,4,7, ...],
             "timestamps": [12884999, 12874449, 12344931, ...]
         }
+        ```
         """
 
         info = {
+            "model_paths": [],
             "versions": [],
             "timestamps": [],
         }
@@ -209,6 +217,9 @@ class ModelsTree:
         models = self.models.copy()
         for model_id in models:
             if model_id.rsplit("-")[0] == model_name:
+                if "bucket" not in info:
+                    info["bucket"] = models[model_id]["bucket"]
+                info["model_paths"] += [models[model_id]["model_path"]]
                 info["versions"] += [model_id.rsplit("-")[1]]
                 info["timestamp"] += [models[model_id]["timestamp"]]
 
