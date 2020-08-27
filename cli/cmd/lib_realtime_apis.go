@@ -256,11 +256,22 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 			for idx, dim := range inputSignature.Shape {
 				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
 			}
+
+			shapeRowEntry := ""
+			if len(shapeStr) == 1 && shapeStr[0] == "scalar" {
+				shapeRowEntry = "scalar"
+			}
+			else if len(shapeStr) == 1 && shapeStr[0] == "unknown" {
+				shapeRowEntry = "unknown"
+			}
+			else {
+				shapeRowEntry = "(" + strings.Join(shapeStr, ", ") + ")"
+			}
 			rows[rowNum] = []interface{}{
 				modelName,
 				inputName,
 				inputSignature.Type,
-				"(" + strings.Join(shapeStr, ", ") + ")",
+				shapeRowEntry,
 			}
 			rowNum++
 		}
