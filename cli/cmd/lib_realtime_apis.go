@@ -260,11 +260,9 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 			shapeRowEntry := ""
 			if len(shapeStr) == 1 && shapeStr[0] == "scalar" {
 				shapeRowEntry = "scalar"
-			}
-			else if len(shapeStr) == 1 && shapeStr[0] == "unknown" {
+			} else if len(shapeStr) == 1 && shapeStr[0] == "unknown" {
 				shapeRowEntry = "unknown"
-			}
-			else {
+			} else {
 				shapeRowEntry = "(" + strings.Join(shapeStr, ", ") + ")"
 			}
 			rows[rowNum] = []interface{}{
