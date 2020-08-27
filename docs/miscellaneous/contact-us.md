@@ -6,7 +6,7 @@
 
 [Gitter](https://gitter.im/cortexlabs/cortex) - Chat with us in our community channel.
 
-[Email](mailto:hello@cortexlabs.dev) - Email us at `hello@cortexlabs.dev` to contact us privately.
+[Email](mailto:hello@cortex.dev) - Email us at `hello@cortexlabs.dev` to contact us privately.
 
 ## Contributing
 
