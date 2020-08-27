@@ -8,7 +8,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 [Gitter](https://gitter.im/cortexlabs/cortex) - Chat with us in our community channel.
 
-[Email](mailto:hello@cortexlabs.dev) - Email us at `hello@cortexlabs.dev` to contact us privately.
+[Email](mailto:hello@cortex.dev) - Email us at `hello@cortexlabs.dev` to contact us privately.
 
 ## Contributing
 
