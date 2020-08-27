@@ -249,7 +249,7 @@ def extract_signature(signature_def, signature_key, model_name):
             # a scalar with rank 0 and empty shape
             shape = "scalar"
         elif input_metadata["tensorShape"].get("unknownRank", False):
-            #  unknown rank and shape
+            # unknown rank and shape
             shape = "unknown"
         elif input_metadata["tensorShape"].get("dim", None):
             # known rank and known/unknown shape
