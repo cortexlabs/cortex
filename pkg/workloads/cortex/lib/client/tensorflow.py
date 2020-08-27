@@ -297,7 +297,7 @@ def create_prediction_request(signature_def, signature_key, model_name, model_in
                     'key "{}"'.format(column_name), "expected to be a scalar", str(e)
                 ) from e
             elif shape == "unknown":
-                raise UserExceptioon(
+                raise UserException(
                     'key "{}"'.format(column_name), "can be of any rank and shape", str(e)
                 ) from e
             else:
