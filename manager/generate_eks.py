@@ -201,7 +201,7 @@ def generate_eks(cluster_config_path):
         "metadata": {
             "name": cluster_config["cluster_name"],
             "region": cluster_config["region"],
-            "version": "1.16",
+            "version": "1.17",
             "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
