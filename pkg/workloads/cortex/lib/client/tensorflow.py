@@ -12,20 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import time
 import sys
 import grpc
+import threading as td
+from typing import Any, Optional, Callable
 
+# for TensorFlowClient
 import tensorflow as tf
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import get_model_metadata_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 from google.protobuf import json_format
 
-from cortex.lib.exceptions import UserRuntimeException, UserException, CortexException
+# for TensorFlowServingAPI
+from tensorflow_serving.apis import model_service_pb2_grpc
+from tensorflow_serving.apis import model_management_pb2
+from tensorflow_serving.config import model_server_config_pb2
+from tensorflow_serving.sources.storage_path.file_system_storage_path_source_pb2 import (
+    FileSystemStoragePathSourceConfig,
+)
+
+ServableVersionPolicy = FileSystemStoragePathSourceConfig.ServableVersionPolicy
+Specific = FileSystemStoragePathSourceConfig.ServableVersionPolicy.Specific
+
+from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException, WithBreak
+from cortex.lib.concurrency import LockedFile
+from cortex.lib.model import (
+    ModelsHolder,
+    LockedModel,
+    ModelsTree,
+    LockedModelsTree,
+    CuratedModelResources,
+    find_ondisk_model_info,
+    find_ondisk_models,
+)
 from cortex.lib.log import cx_logger
-from cortex.lib.api.model import Model, get_model_signature_map, get_model_names
 from cortex import consts
+
+logger = cx_logger()
 
 
 class TensorFlowClient:
@@ -289,3 +315,148 @@ def validate_model_input(input_signature, model_input, model_name):
     for input_name, _ in input_signature.items():
         if input_name not in model_input:
             raise UserException("missing key '{}' for model '{}'".format(input_name, model_name))
+
+
+class TensorFlowServingAPI:
+    def __init__(self, address: str):
+        self.address = address
+        self.model_platform = "tensorflow"
+        self.models = {}
+
+        self.channel = grpc.insecure_channel(self.address)
+        self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
+
+        self.timeout = 600  # gRPC timeout in seconds
+
+    def _remove_model_from_dict(self, model_name: str, model_version: str) -> bool:
+        model_id = f"{model_name}-{model_version}"
+        try:
+            del self.models[model_id]
+            return True
+        except KeyError:
+            pass
+        return False
+
+    def _add_model_to_dict(self, model_name: str, model_version: str, model_disk_path: str) -> bool:
+        model_id = f"{model_name}-{model_version}"
+        if model_id not in self.models:
+            self.models[model_id] = model_disk_path
+            return True
+        return False
+
+    def _get_model_names(self) -> List[str]:
+        return [model_id.rsplit("-")[0] for model_id in self.models]
+
+    def add_models(
+        self, model_names: List[str], model_versions: List[List[str]], model_disk_paths: List[str]
+    ) -> None:
+        updated = 0
+        for model_name, versions, model_disk_path in zip(
+            model_names, model_versions, model_disk_paths
+        ):
+            for model_version in versions:
+                versioned_model_disk_path = os.path.join(model_disk_path, model_version)
+                updated += self._add_model_to_dict(
+                    model_name, model_version, versioned_model_disk_path
+                )
+
+        if not updated:
+            return
+
+        request = model_management_pb2.ReloadConfigRequest()
+        model_server_config = model_server_config_pb2.ModelServerConfig()
+
+        config_list = model_server_config_pb2.ModelConfigList()
+        for model_id in self._get_model_names():
+            model_name
+
+    def remove_models(
+        self, model_names: List[str], model_versions: List[List[str]], model_disk_paths: List[str]
+    ) -> None:
+        pass
+
+    def refresh(self):
+        pass
+
+    model_config.model_version_policy.CopyFrom(
+        ServableVersionPolicy(specific=Specific(versions=[1, 2, 3]))
+    )
+
+    def add_models_config(self, names, base_paths, replace_models=False):
+        request = model_management_pb2.ReloadConfigRequest()
+        model_server_config = model_server_config_pb2.ModelServerConfig()
+
+        # create model(s) configuration
+        config_list = model_server_config_pb2.ModelConfigList()
+        for i, name in enumerate(names):
+            model_config = config_list.config.add()
+            model_config.name = name
+            model_config.base_path = base_paths[i]
+            model_config.model_platform = self.model_platform
+
+        if replace_models:
+            model_server_config.model_config_list.CopyFrom(config_list)
+            request.config.CopyFrom(model_server_config)
+        else:
+            model_server_config.model_config_list.MergeFrom(config_list)
+            request.config.MergeFrom(model_server_config)
+
+        loaded_models = threading.Event()
+
+        def log_loading_models():
+            while not loaded_models.is_set():
+                time.sleep(2)
+                cx_logger().info("model(s) still loading ...")
+
+        log_thread = threading.Thread(target=log_loading_models, daemon=True)
+        log_thread.start()
+
+        timeout_error_limit = 3
+        timeout_error_counter = 0
+        generic_error_limit = 200
+        generic_error_counter = 0
+
+        # request TFS to load models
+        response = None
+        while True:
+            try:
+                # this request doesn't return until all models have been successfully loaded
+                response = self.stub.HandleReloadConfigRequest(request, self.timeout)
+                break
+            except Exception as e:
+                if not (
+                    isinstance(e, grpc.RpcError)
+                    and e.code() in [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED]
+                ):
+                    print(e)  # unexpected error
+
+                if isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
+                    timeout_error_counter += 1
+                else:
+                    generic_error_counter += 1
+
+            if timeout_error_counter >= timeout_error_limit:
+                break
+            if generic_error_counter >= generic_error_limit:
+                break
+
+            time.sleep(1.0)
+
+        loaded_models.set()
+        log_thread.join()
+
+        # report error or success
+        if response and response.status.error_code == 0:
+            cx_logger().info("successfully loaded {} models into TF-Serving".format(names))
+        else:
+            if response:
+                raise CortexException(
+                    "couldn't load user-requested models - failed with error code {}: {}".format(
+                        response.status.error_code, response.status.error_message
+                    )
+                )
+            else:
+                raise CortexException("couldn't load user-requested models")
+
+    def add_model_config(self, name, base_path, replace_model=False):
+        self.add_models_config([name], [base_path], replace_model)
