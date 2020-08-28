@@ -86,7 +86,7 @@ class ModelsTree:
             sub_paths: A list of filepaths for each file of each model all grouped into a single list.
             timestamps: When was each versioned model updated the last time on the upstream.
             bucket_names: A list with the bucket_names required for each model.
-        
+
         Returns:
             The model IDs ("<model-name>-<model-version") that haven't been found in the passed parameters.
             Which model IDs have been updated. If these model IDs are in memory or on disk already, then they should get updated as well.
@@ -194,7 +194,7 @@ class ModelsTree:
             A dict with keys "bucket", "model_paths, "versions" and "timestamps".
             "model_paths" contains the S3 prefixes of each versioned model, "versions" represents the available versions of the model,
             and each "timestamps" element is the corresponding last-edit time of each versioned model.
-            
+
             Empty lists are returned if the model is not found.
 
         Example of returned dictionary for model_name.

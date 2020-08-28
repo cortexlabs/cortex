@@ -29,7 +29,7 @@ from cortex import consts
 
 
 class TensorFlowClient:
-    def __init__(self, tf_serving_url, models):
+    def __init__(self, tf_serving_url, models=None):
         """Setup gRPC connection to TensorFlow Serving container.
 
         Args:
@@ -183,7 +183,9 @@ def extract_signatures(signature_defs, signature_keys):
     parsed_signatures = {}
     for model_name in signature_defs:
         parsed_signature_key, parsed_signature = extract_signature(
-            signature_defs[model_name], signature_keys[model_name], model_name,
+            signature_defs[model_name],
+            signature_keys[model_name],
+            model_name,
         )
         parsed_signature_keys[model_name] = parsed_signature_key
         parsed_signatures[model_name] = parsed_signature
@@ -202,7 +204,8 @@ def extract_signature(signature_def, signature_key, model_name):
         if len(available_keys) == 1:
             cx_logger().info(
                 "signature_key was not configured by user, using signature key '{}' for model '{}' (found in the signature def map)".format(
-                    available_keys[0], model_name,
+                    available_keys[0],
+                    model_name,
                 )
             )
             signature_key = available_keys[0]

@@ -53,7 +53,7 @@ class ModelsHolder:
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
             on_download_callback(predictor_type, model_name, model_version, model_path, temp_dir, model_dir): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
             on_load_callback(disk_model_path): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
-            on_remove_callback(list of model IDs to remove): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.  
+            on_remove_callback(list of model IDs to remove): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.
         """
         self._predictor_type = predictor_type
         self._model_dir = model_dir
@@ -102,7 +102,7 @@ class ModelsHolder:
     def global_acquire(self, mode: str) -> None:
         """
         Acquire shared/exclusive (R/W) access over all models.
-        
+
         Use "w" when wanting to acquire exclusive access for the GC (method garbage_collect), or "r" when wanting to grant shared access for any other method to be called (i.e. get_model_ids).
 
         Args:
@@ -277,7 +277,11 @@ class ModelsHolder:
         return None, 0
 
     def load_model(
-        self, model_name: str, model_version: str, upstream_timestamp: int, tags: List[str] = [],
+        self,
+        model_name: str,
+        model_version: str,
+        upstream_timestamp: int,
+        tags: List[str] = [],
     ) -> None:
         """
         Loads a given model into memory.
@@ -301,7 +305,9 @@ class ModelsHolder:
                 "model": self._load_callback(disk_path),
                 "disk_path": disk_path,
                 "upstream_timestamp": upstream_timestamp,
-                "metadata": {"consecutive_tag_count": {},},
+                "metadata": {
+                    "consecutive_tag_count": {},
+                },
             }
             if len(tags) > 0:
                 for tag in tags:
@@ -314,7 +320,11 @@ class ModelsHolder:
             )
 
     def download_model(
-        self, bucket: str, model_name: str, model_version: str, model_path: str,
+        self,
+        bucket: str,
+        model_name: str,
+        model_version: str,
+        model_path: str,
     ) -> datetime.datetime:
         """
         Download a model to disk. To be called before load_model method is called.

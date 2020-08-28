@@ -21,4 +21,6 @@ from cortex.lib.api.type import (
     TensorFlowNeuronPredictorType,
     ONNXPredictorType,
     PredictorType,
+    predictor_type_from_string,
+    predictor_type_from_api_spec,
 )

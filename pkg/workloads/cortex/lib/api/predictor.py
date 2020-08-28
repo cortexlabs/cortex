@@ -15,64 +15,61 @@
 import os
 import imp
 import inspect
-
 import dill
 
+from typing import Any, Optional, Union
+
+from cortex.lib.api import (
+    predictor_type_from_api_spec,
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+    ONNXPredictorType,
+)
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex import consts
 
-from typing import Any
+logger = cx_logger()
 
 
 class Predictor:
-    def __init__(self, provider, model_dir, cache_dir, api_spec):
+    def __init__(self, provider: str, model_dir: str, api_spec: dict):
         self.provider = provider
 
-        self.type = api_spec["predictor"]["type"]
+        self.type = predictor_type_from_api_spec(api_spec)
         self.path = api_spec["predictor"]["path"]
-        self.python_path = api_spec["predictor"].get("python_path")
         self.config = api_spec["predictor"].get("config", {})
-        self.env = api_spec["predictor"].get("env")
 
         self.model_dir = model_dir
-        self.cache_dir = cache_dir
         self.api_spec = api_spec
 
-    def initialize_client(self, tf_serving_host=None, tf_serving_port=None):
+    def initialize_client(
+        self, tf_serving_host: Optional[str] = None, tf_serving_port: Optional[str] = None
+    ) -> Union[PythonClient, TensorFlowClient, ONNXClient]:
+    
         signature_message = None
-        if self.type == "onnx":
+        client = None
+
+        if self.type == PythonPredictorType:
+            from cortex.lib.client.python import PythonClient
+
+            client = PythonClient()
+
+        if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
+            from cortex.lib.client.tensorflow import TensorFlowClient
+
+            tf_serving_address = tf_serving_host + ":" + tf_serving_port
+            client = TensorFlowClient(tf_serving_address)
+
+        if self.type == ONNXPredictorType:
             from cortex.lib.client.onnx import ONNXClient
 
             client = ONNXClient(self.models)
-            if self.models[0].name == consts.SINGLE_MODEL_NAME:
-                signature_message = "ONNX model signature: {}".format(
-                    client.input_signatures[consts.SINGLE_MODEL_NAME]
-                )
-            else:
-                signature_message = "ONNX model signatures: {}".format(client.input_signatures)
-            cx_logger().info(signature_message)
-            return client
-        elif self.type == "tensorflow":
-            from cortex.lib.client.tensorflow import TensorFlowClient
 
-            for model in self.models:
-                validate_model_dir(model.base_path)
+        # show client.input_signatures with logger.info
 
-            tf_serving_address = tf_serving_host + ":" + tf_serving_port
-            client = TensorFlowClient(tf_serving_address, self.models)
-            if self.models[0].name == consts.SINGLE_MODEL_NAME:
-                signature_message = "TensorFlow model signature: {}".format(
-                    client.input_signatures[consts.SINGLE_MODEL_NAME]
-                )
-            else:
-                signature_message = "TensorFlow model signatures: {}".format(
-                    client.input_signatures
-                )
-            cx_logger().info(signature_message)
-            return client
-
-        return None
+        return client
 
     def initialize_impl(self, project_dir, client=None):
         class_impl = self.class_impl(project_dir)
@@ -270,65 +267,3 @@ def _validate_required_fn_args(impl, func_signature):
             )
 
         seen_args.append(arg_name)
-
-
-def uses_neuron_savedmodel():
-    return os.getenv("CORTEX_ACTIVE_NEURON") != None
-
-
-def get_expected_dir_structure():
-    if uses_neuron_savedmodel():
-        return neuron_tf_expected_dir_structure
-    return tf_expected_dir_structure
-
-
-tf_expected_dir_structure = """tensorflow model directories must have the following structure:
-  1523423423/ (version prefix, usually a timestamp)
-  ├── saved_model.pb
-  └── variables/
-      ├── variables.index
-      ├── variables.data-00000-of-00003
-      ├── variables.data-00001-of-00003
-      └── variables.data-00002-of-...`"""
-
-neuron_tf_expected_dir_structure = """neuron tensorflow model directories must have the following structure:
-  1523423423/ (version prefix, usually a timestamp)
-  └── saved_model.pb`"""
-
-
-def validate_model_dir(model_dir):
-    version = None
-    for file_name in os.listdir(model_dir):
-        if file_name.isdigit():
-            version = file_name
-            break
-
-    if version is None:
-        cx_logger().error(get_expected_dir_structure())
-        raise UserException("no top-level version folder found")
-
-    if not os.path.isdir(os.path.join(model_dir, version)):
-        cx_logger().error(get_expected_dir_structure())
-        raise UserException("no top-level version folder found")
-
-    if not os.path.isfile(os.path.join(model_dir, version, "saved_model.pb")):
-        cx_logger().error(get_expected_dir_structure())
-        raise UserException('expected a "saved_model.pb" file')
-
-    if not uses_neuron_savedmodel():
-        if not os.path.isdir(os.path.join(model_dir, version, "variables")):
-            cx_logger().error(tf_expected_dir_structure)
-            raise UserException('expected a "variables" directory')
-
-        if not os.path.isfile(os.path.join(model_dir, version, "variables", "variables.index")):
-            cx_logger().error(tf_expected_dir_structure)
-            raise UserException('expected a "variables/variables.index" file')
-
-        for file_name in os.listdir(os.path.join(model_dir, version, "variables")):
-            if file_name.startswith("variables.data-00000-of"):
-                return
-
-        cx_logger().error(tf_expected_dir_structure)
-        raise UserException(
-            'expected at least one variables data file, starting with "variables.data-00000-of-"'
-        )

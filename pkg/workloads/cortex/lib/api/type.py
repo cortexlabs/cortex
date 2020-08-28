@@ -28,3 +28,37 @@ TensorFlowPredictorType = PredictorType("tensorflow")
 ONNXPredictorType = PredictorType("onnx")
 
 TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")
+
+
+def predictor_type_from_string(predictor_type: str) -> PredictorType:
+    """
+    Get predictor type from string.
+
+    Args:
+        predictor_type: "python", "tensorflow", "onnx" or "tensorflow-neuron"
+
+    Raises:
+        ValueError if predictor_type does not hold the right value.
+    """
+    predictor_types = [
+        PythonPredictorType,
+        TensorFlowPredictorType,
+        ONNXPredictorType,
+        TensorFlowNeuronPredictorType,
+    ]
+    for candidate in predictor_types:
+        if str(candidate) == predictor_type:
+            return candidate
+    raise ValueError(
+        "predictor_type can only be 'python', 'tensorflow', 'onnx' or 'tensorflow-neuron'"
+    )
+
+
+def predictor_type_from_api_spec(api_spec: dict) -> PredictorType:
+    """
+    Get predictor type from API spec.
+    """
+    if api_spec["compute"]["inf"] > 0:
+        return predictor_type_from_string("tensorflow-neuron")
+    else:
+        return predictor_type_from_string(api_spec["predictor"]["type"])

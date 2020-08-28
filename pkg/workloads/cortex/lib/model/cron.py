@@ -542,7 +542,11 @@ class ModelsGC(AbstractLoopingThread):
     """
 
     def __init__(
-        self, interval: int, api_spec: dict, models: ModelsHolder, tree: ModelsTree,
+        self,
+        interval: int,
+        api_spec: dict,
+        models: ModelsHolder,
+        tree: ModelsTree,
     ):
         """
         Args:

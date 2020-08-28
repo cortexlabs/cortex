@@ -53,9 +53,9 @@ class ONNXClient:
             api_spec: API configuration.
 
             models: Holding all models into memory.
-            models_tree: A tree of the available models from upstream. Only when caching is enabled. 
+            models_tree: A tree of the available models from upstream. Only when caching is enabled.
             model_dir: Where the models are saved on disk.
-            
+
             lock_dir: Where the resource locks are found. Only when caching is disabled.
         """
 
@@ -91,7 +91,7 @@ class ONNXClient:
         Args:
             model_input: Input to the model.
             model_name: Model to use when multiple models are deployed in a single API.
-            model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version. 
+            model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
 
         Returns:
             The prediction returned from the model.
@@ -152,8 +152,8 @@ class ONNXClient:
         and if not, it loads it into memory, and returns the model.
 
         Args:
-            model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are called on disk.
-            model_version: Version of the model, as they are found on disk.
+            model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are named on disk.
+            model_version: Version of the model, as it's found on disk.
 
         Exceptions:
             RuntimeError: if another thread to load the model at the very same time.
@@ -205,7 +205,10 @@ class ONNXClient:
                         status, _ = self._models.has_model(model_name, model_version)
                         if status == "not-available":
                             self._models.load_model(
-                                model_name, model_version, current_upstream_ts, tags,
+                                model_name,
+                                model_version,
+                                current_upstream_ts,
+                                tags,
                             )
                         else:
                             model, _ = self._models.get_model(model_name, model_version, tag)
@@ -272,7 +275,10 @@ class ONNXClient:
                     # load model
                     try:
                         self._models.load_model(
-                            model_name, model_version, current_upstream_ts, tags,
+                            model_name,
+                            model_version,
+                            current_upstream_ts,
+                            tags,
                         )
                     except Exception:
                         raise WithBreak

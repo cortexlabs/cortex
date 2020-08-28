@@ -34,7 +34,7 @@ class ReadWriteLock:
     def __init__(self, prefer: str):
         """
         "r" for read-preferring RW lock.
-        
+
         "w" for write-preferring RW lock.
         """
         self._prefer = prefer

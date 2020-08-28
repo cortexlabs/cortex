@@ -163,8 +163,12 @@ class ModelVersion(IntEnum):
 # to be used when predictor:model_path or predictor:models:paths is used
 ModelTemplate = {
     PythonPredictorType: {
-        OneOfAllPlaceholder(ModelVersion.PROVIDED): {IntegerPlaceholder: AnyPlaceholder,},
-        OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {AnyPlaceholder: None,},
+        OneOfAllPlaceholder(ModelVersion.PROVIDED): {
+            IntegerPlaceholder: AnyPlaceholder,
+        },
+        OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {
+            AnyPlaceholder: None,
+        },
     },
     TensorFlowPredictorType: {
         OneOfAllPlaceholder(ModelVersion.PROVIDED): {
@@ -433,7 +437,10 @@ def _validate_integer_placeholder(
 
 
 def _validate_any_placeholder(
-    placeholders: list, key_id: int, objects: List[str], visited: list,
+    placeholders: list,
+    key_id: int,
+    objects: List[str],
+    visited: list,
 ) -> None:
     for idx, obj in enumerate(objects):
         if visited[idx] is False and obj != ".":
