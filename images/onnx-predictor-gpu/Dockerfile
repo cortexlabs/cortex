@@ -38,7 +38,7 @@ SHELL ["/bin/bash", "-c"]
 COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
 RUN pip install --no-cache-dir -r \
     /src/cortex/serve/requirements.txt \
-    onnxruntime-gpu==1.2.0
+    onnxruntime-gpu==1.4.0
 
 ARG SLIM="false"
 RUN test "${SLIM}" = "true" || ( \

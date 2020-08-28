@@ -121,7 +121,6 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 ## ONNX runtime
 
 1. Update the version in `images/onnx-predictor-cpu/Dockerfile` and `images/onnx-predictor-gpu/Dockerfile` ([releases](https://github.com/microsoft/onnxruntime/releases))
-1. Update the version listed for `onnxruntime` in "Pre-installed Packages" in `onnx.md`
 1. Search the codebase for the previous ONNX runtime version
 
 ## Nvidia device plugin
