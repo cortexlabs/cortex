@@ -41,8 +41,8 @@ class ModelsHolder:
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
         on_download_callback: Callable[[str, str, str, int]] = model_dowloader,
-        on_load_callback: Callable[[str], Any] = None,
-        on_remove_callback: Callable[[List[str]], None] = None,
+        on_load_callback: Optional[Callable[[str], Any]] = None,
+        on_remove_callback: Optional[Callable[[List[str]], None]] = None,
     ):
         """
         Args:

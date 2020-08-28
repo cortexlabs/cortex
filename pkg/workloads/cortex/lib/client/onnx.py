@@ -23,7 +23,6 @@ from cortex.lib import util
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException, WithBreak
 from cortex.lib.model import (
     ModelsHolder,
-    LockedGlobalModelsGC,
     LockedModel,
     ModelsTree,
     LockedModelsTree,
@@ -55,8 +54,8 @@ class ONNXClient:
             models: Holding all models into memory.
             model_dir: Where the models are saved on disk.
 
-            models_tree: A tree of the available models from upstream. Only when caching is enabled.
-            lock_dir: Where the resource locks are found. Only when caching is disabled.
+            models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1.
+            lock_dir: Where the resource locks are found. Only when processes_per_replica > 1.
         """
 
         self._api_spec = api_spec
@@ -73,18 +72,16 @@ class ONNXClient:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
 
-        if (
-            self._api_spec["predictor"]["models"]["cache_size"] is not None
-            and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
-        ):
-            self._cache_enabled = True
+        if self._api_spec["predictor"]["processes_per_replica"] > 1:
+            self._multiple_processes = True
         else:
-            self._cache_enabled = False
+            self._multiple_processes = False
 
         self._models.set_callback("load", self._load_model)
 
-    # TODO use "latest" for model version instead
-    def predict(self, model_input: Any, model_name: str = None, model_version: str = "highest"):
+    def predict(
+        self, model_input: Any, model_name: str = None, model_version: str = "highest"
+    ) -> Any:
         """
         Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
 
@@ -124,7 +121,7 @@ class ONNXClient:
         if self._models_dir:
             if model_name is None:
                 raise UserRuntimeException("model_name was not specified")
-            if not self._cache_enabled:
+            if self._multiple_processes:
                 available_models = find_ondisk_models(self._lock_dir)
                 if model_name not in available_models:
                     raise UserRuntimeException(
@@ -170,7 +167,7 @@ class ONNXClient:
             tag = model_version
             tags = ["latest", "highest"]
 
-        if not self._cache_enabled:
+        if self._multiple_processes:
             # determine model version
             if tag != "":
                 model_version = self._get_model_version_from_disk(model_name, tag)
@@ -211,7 +208,7 @@ class ONNXClient:
                         else:
                             model, _ = self._models.get_model(model_name, model_version, tag)
 
-        if self._cache_enabled:
+        if not self._multiple_processes:
             # determine model version
             try:
                 if tag != "":
@@ -315,7 +312,7 @@ class ONNXClient:
     def _get_model_version_from_disk(self, model_name: str, tag: str) -> str:
         """
         Get the version for a specific model name based on the version tag - either "latest" or "highest".
-        Must only be used when caching is disabled.
+        Must only be used when processes_per_replica > 1.
         """
 
         if tag not in ["latest", "highest"]:
@@ -338,7 +335,7 @@ class ONNXClient:
     def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
         """
         Get the version for a specific model name based on the version tag - either "latest" or "highest".
-        Must only be used when caching is enabled.
+        Must only be used when processes_per_replica = 1.
         """
 
         if tag not in ["latest", "highest"]:

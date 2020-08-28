@@ -115,18 +115,18 @@ class Predictor:
         if self.type == PythonPredictorType:
             from cortex.lib.client.python import PythonClient
 
-            # client = PythonClient()
+            client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
-            from cortex.lib.client.tensorflow import TensorFlowClient
-
+            pass
+            # from cortex.lib.client.tensorflow import TensorFlowClient
             # tf_serving_address = tf_serving_host + ":" + tf_serving_port
             # client = TensorFlowClient(tf_serving_address)
 
         if self.type == ONNXPredictorType:
             from cortex.lib.client.onnx import ONNXClient
 
-            client = ONNXClient(self.api_spec, self.models, self.models_tree, self.model_dir)
+            client = ONNXClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
         # show client.input_signatures with logger.info
 
@@ -142,12 +142,15 @@ class Predictor:
         # initialize predictor class
         class_impl = self.class_impl(project_dir)
         try:
-            if self.type == "onnx":
-                initialized_impl = class_impl(onnx_client=client, config=self.config)
-            elif self.type == "tensorflow":
+            if self.type == PythonPredictorType:
+                if _are_models_specified(None, self.api_spec):
+                    initialized_impl = class_impl(python_client=client, config=self.config)
+                else:
+                    initialized_impl = class_impl(config=self.config)
+            if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
                 initialized_impl = class_impl(tensorflow_client=client, config=self.config)
-            else:
-                initialized_impl = class_impl(config=self.config)
+            if self.type == ONNXPredictorType:
+                initialized_impl = class_impl(onnx_client=client, config=self.config)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
         finally:
@@ -164,7 +167,10 @@ class Predictor:
             self.crons = [
                 ModelTreeUpdater(interval=10, api_spec=self.api_spec, tree=self.models_tree),
                 ModelsGC(
-                    interval=10, api_spec=self.api_spec, models=self.models, tree=self.models_tree
+                    interval=10,
+                    api_spec=self.api_spec,
+                    models=self.models,
+                    tree=self.models_tree,
                 ),
             ]
             if self.model_caching:
@@ -242,6 +248,17 @@ class Predictor:
 
         return impl
 
+    def _is_model_caching_enabled(self) -> bool:
+        """
+        Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
+        """
+        if (
+            self.api_spec["predictor"]["models"]["cache_size"] is not None
+            and self.api_spec["predictor"]["models"]["disk_cache_size"] is not None
+        ):
+            return True
+        return False
+
     def __del__(self) -> None:
         for cron in self.crons:
             cron.stop()
@@ -249,21 +266,13 @@ class Predictor:
             cron.join()
 
 
-def _is_model_caching_enabled(api_spec: dict) -> bool:
-    """
-    Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
-    """
-    if (
-        api_spec["predictor"]["models"]["cache_size"] is not None
-        and api_spec["predictor"]["models"]["disk_cache_size"] is not None
-    ):
-        return True
-    return False
-
-
 def _are_models_specified(impl: Any, api_spec: dict) -> bool:
     """
     Checks if models have been specified when the API spec (cortex.yaml).
+
+    Args:
+        impl: Dummy argument for the predictor validation.
+        api_spec: API configuration.
     """
     if (
         api_spec["predictor"]["model_path"] is not None

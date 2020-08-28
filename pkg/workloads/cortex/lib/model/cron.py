@@ -579,12 +579,14 @@ class ModelsGC(AbstractLoopingThread):
         self._stopped = False
 
     def _run_gc(self) -> None:
+
         # are there any models to collect (aka remove) from cache
         with LockedGlobalModelsGC(self._models, "r"):
             collectible = self._models.garbage_collect(
                 exclude_disk_model_ids=self._local_model_ids, dry_run=True
             )
         if not collectible:
+            self._remove_stale_models()
             return
 
         # try to grab exclusive access to all models with shared access preference
@@ -599,9 +601,14 @@ class ModelsGC(AbstractLoopingThread):
 
         # otherwise, grab exclusive access to all models with exclusive access preference
         # and remove excess models from cache
-        self._models.set_global_preference_policy("w")
-        with LockedGlobalModelsGC(self._models, "w"):
-            self._models.garbage_collect(exclude_disk_model_ids=self._local_model_ids)
+        if acquired:
+            self._models.set_global_preference_policy("w")
+            with LockedGlobalModelsGC(self._models, "w"):
+                self._models.garbage_collect(exclude_disk_model_ids=self._local_model_ids)
+
+        self._remove_stale_models()
+
+    def _remove_stale_models(self) -> None:
 
         # get available upstream S3 model IDs
         s3_model_names = self._tree.get_model_names()
