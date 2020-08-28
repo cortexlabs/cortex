@@ -37,7 +37,7 @@ class ModelsHolder:
         self,
         predictor_type: PredictorType,
         model_dir: str,
-        temp_dir: str,
+        temp_dir: str = "/tmp/cron",
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
         on_download_callback: Callable[[str, str, str, int]] = model_dowloader,

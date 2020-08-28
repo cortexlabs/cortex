@@ -19,6 +19,7 @@ import dill
 
 from typing import Any, Optional, Union
 
+# types
 from cortex.lib.api import (
     predictor_type_from_api_spec,
     PythonPredictorType,
@@ -26,6 +27,21 @@ from cortex.lib.api import (
     TensorFlowNeuronPredictorType,
     ONNXPredictorType,
 )
+
+# crons
+from cortex.lib.model import (
+    FileBasedModelsTreeUpdater,  # only when num workers > 1
+    ModelsGC,
+    ModelTreeUpdater,
+    ModelPreloader,
+)
+
+# structures
+from cortex.lib.model import (
+    ModelsHolder,
+    ModelsTree,  # only when num workers = 1
+)
+
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex import consts
@@ -34,56 +50,138 @@ logger = cx_logger()
 
 
 class Predictor:
-    def __init__(self, provider: str, model_dir: str, api_spec: dict):
+    """
+    Class to validate/load the predictor class (PythonPredictor, TensorFlowPredictor, ONNXPredictor).
+    Also makes the specified models in cortex.yaml available to the predictor's implementation.
+    """
+
+    def __init__(self, provider: str, api_spec: dict, model_dir: str):
+        """
+        Args:
+            provider: "local" or "aws".
+            api_spec: API configuration.
+            model_dir: Where the models are stored on disk.
+        """
+
         self.provider = provider
 
         self.type = predictor_type_from_api_spec(api_spec)
         self.path = api_spec["predictor"]["path"]
         self.config = api_spec["predictor"].get("config", {})
 
-        self.model_dir = model_dir
         self.api_spec = api_spec
+        self.model_dir = model_dir
+
+        self.model_caching = self._is_model_caching_enabled(api_spec)
+        self.multiple_processes = self.api_spec["predictor"]["processes_per_replica"] > 1
+
+        # model caching can only be enabled when processes_per_replica is 1
+        # model side-reloading is supported for any number of processes_per_replica
+
+        if self.model_caching:
+            self.models = ModelsHolder(
+                self.type,
+                self.model_dir,
+                mem_cache_size=self.api_spec["predictor"]["models"]["cache_size"],
+                disk_cache_size=self.api_spec["predictor"]["models"]["disk_cache_size"],
+            )
+        else:
+            self.models = ModelsHolder(self.type, self.model_dir)
+
+        if self.multiple_processes:
+            self.models_tree = None
+        else:
+            self.models_tree = ModelsTree()
+
+        self.crons = []
 
     def initialize_client(
         self, tf_serving_host: Optional[str] = None, tf_serving_port: Optional[str] = None
     ) -> Union[PythonClient, TensorFlowClient, ONNXClient]:
-    
+        """
+        Initialize client that gives access to models specified in the API spec (cortex.yaml).
+
+        Args:
+            tf_serving_host: Host of TF serving server. To be only used when the TensorFlow predictor is used.
+            tf_serving_port: Port of TF serving server. To be only used when the TensorFlow predictor is used.
+
+        Return:
+            The client for the respective predictor type.
+        """
+
         signature_message = None
         client = None
 
         if self.type == PythonPredictorType:
             from cortex.lib.client.python import PythonClient
 
-            client = PythonClient()
+            # client = PythonClient()
 
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
             from cortex.lib.client.tensorflow import TensorFlowClient
 
-            tf_serving_address = tf_serving_host + ":" + tf_serving_port
-            client = TensorFlowClient(tf_serving_address)
+            # tf_serving_address = tf_serving_host + ":" + tf_serving_port
+            # client = TensorFlowClient(tf_serving_address)
 
         if self.type == ONNXPredictorType:
             from cortex.lib.client.onnx import ONNXClient
 
-            client = ONNXClient(self.models)
+            client = ONNXClient(self.api_spec, self.models, self.models_tree, self.model_dir)
 
         # show client.input_signatures with logger.info
 
         return client
 
-    def initialize_impl(self, project_dir, client=None):
+    def initialize_impl(
+        self, project_dir: str, client: Optional[Union[PythonClient, TensorFlowClient, ONNXClient]]
+    ):
+        """
+        Initialize predictor class as provided by the user.
+        """
+
+        # initialize predictor class
         class_impl = self.class_impl(project_dir)
         try:
             if self.type == "onnx":
-                return class_impl(onnx_client=client, config=self.config)
+                initialized_impl = class_impl(onnx_client=client, config=self.config)
             elif self.type == "tensorflow":
-                return class_impl(tensorflow_client=client, config=self.config)
+                initialized_impl = class_impl(tensorflow_client=client, config=self.config)
             else:
-                return class_impl(config=self.config)
+                initialized_impl = class_impl(config=self.config)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
         finally:
             refresh_logger()
+
+        # initialize the crons
+        if self.multiple_processes:
+            self.crons = [
+                FileBasedModelsTreeUpdater(
+                    interval=10, api_spec=self.api_spec, model_dir=self.model_dir
+                )
+            ]
+        else:
+            self.crons = [
+                ModelTreeUpdater(interval=10, api_spec=self.api_spec, tree=self.models_tree),
+                ModelsGC(
+                    interval=10, api_spec=self.api_spec, models=self.models, tree=self.models_tree
+                ),
+            ]
+            if self.model_caching:
+                self.crons.append(
+                    ModelPreloader(
+                        interval=10,
+                        caching=self.model_caching,
+                        models=self.models,
+                        tree=self.models_tree,
+                    ),
+                )
+
+        # start the crons
+        for cron in self.crons:
+            cron.start()
+
+        return initialized_impl
 
     def class_impl(self, project_dir):
         if self.type == "tensorflow":
@@ -144,14 +242,29 @@ class Predictor:
 
         return impl
 
-    def _compute_model_basepath(self, model_path, model_name):
-        base_path = os.path.join(self.model_dir, model_name)
-        if self.type == "onnx":
-            base_path = os.path.join(base_path, os.path.basename(model_path))
-        return base_path
+    def __del__(self) -> None:
+        for cron in self.crons:
+            cron.stop()
+        for cron in self.crons:
+            cron.join()
 
 
-def _condition_specified_models(impl: Any, api_spec: dict) -> bool:
+def _is_model_caching_enabled(api_spec: dict) -> bool:
+    """
+    Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
+    """
+    if (
+        api_spec["predictor"]["models"]["cache_size"] is not None
+        and api_spec["predictor"]["models"]["disk_cache_size"] is not None
+    ):
+        return True
+    return False
+
+
+def _are_models_specified(impl: Any, api_spec: dict) -> bool:
+    """
+    Checks if models have been specified when the API spec (cortex.yaml).
+    """
     if (
         api_spec["predictor"]["model_path"] is not None
         or api_spec["predictor"]["models"]["dir"] is not None
@@ -166,7 +279,7 @@ PYTHON_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "config"],
-            "condition_args": {"python_client": _condition_specified_models},
+            "condition_args": {"python_client": _are_models_specified},
         },
         {
             "name": "predict",
@@ -178,7 +291,7 @@ PYTHON_CLASS_VALIDATION = {
         {
             "name": "load_model",
             "required_args": ["self", "model_path"],
-            "condition": _condition_specified_models,
+            "condition": _are_models_specified,
         }
     ],
 }

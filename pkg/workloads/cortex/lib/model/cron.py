@@ -259,9 +259,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
             time.sleep(0.001)
 
     def _make_local_models_available(self) -> None:
-        if self._is_dir_used:
-            return
-
         timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
         for local_model_name in self._local_model_names:
             versions = self._spec_models[local_model_name]["versions"]
@@ -491,7 +488,7 @@ class AbstractLoopingThread(td.Thread):
     """
 
     def __init__(self, interval: int, runnable: Callable[[], None]):
-        td.Thread.__init__(self)
+        td.Thread.__init__(self, daemon=True)
 
         self._interval = interval
         self._runnable = runnable
@@ -648,7 +645,6 @@ class ModelTreeUpdater(AbstractLoopingThread):
 
         self._s3_paths = []
         self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
-        self._local_model_names = self._spec_models.get_local_model_names()
         self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
             if not self._spec_models.is_local(model_name):
@@ -673,6 +669,42 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 self._predictor_type = TensorFlowPredictorType
         if self._api_spec["predictor"]["type"] == "onnx":
             self._predictor_type = ONNXPredictorType
+
+        self._make_local_models_available()
+
+    def _make_local_models_available(self):
+        timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
+
+        for model_name in self._spec_models.get_local_model_names():
+            model = self._spec_models[model_name]
+
+            if len(model["versions"]) == 0:
+                ondisk_model_version_path = os.path.join(self._models_dir, model_name, "1")
+                ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                self._tree.update_model(
+                    bucket="",
+                    model_name=model_name,
+                    model_version=model_version,
+                    model_path=ondisk_model_version_path,
+                    sub_paths=ondisk_paths,
+                    timestamps=int(timestamp_utc),
+                    tree_removable=False,
+                )
+
+            for model_version in model["versions"]:
+                ondisk_model_version_path = os.path.join(
+                    self._models_dir, model_name, model_version
+                )
+                ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                self._tree.update_model(
+                    bucket="",
+                    model_name=model_name,
+                    model_version=model_version,
+                    model_path=ondisk_model_version_path,
+                    sub_paths=ondisk_paths,
+                    timestamps=int(timestamp_utc),
+                    tree_removable=False,
+                )
 
     def _update_models_tree(self) -> None:
         # get updated/validated paths/versions of the S3 models

@@ -30,6 +30,7 @@ class ModelsTree:
     def __init__(self):
         self.models = {}
         self._locks = {}
+        self._removable = set()
 
     def acquire(self, mode: str, model_name: str, model_version: str) -> None:
         """
@@ -114,6 +115,7 @@ class ModelsTree:
                         model_paths[idx],
                         sub_paths,
                         timestamps[idx][0],
+                        True,
                     )
                 current_model_ids.add(model_id)
                 if updated:
@@ -128,6 +130,7 @@ class ModelsTree:
                         os.path.join(model_paths[idx], model_version),
                         sub_paths,
                         timestamps[idx][model_version],
+                        True,
                     )
                 current_model_ids.add(model_id)
                 if updated:
@@ -137,7 +140,10 @@ class ModelsTree:
         for old_model_id in old_model_ids:
             model_name, model_version = old_model_id.rsplit("-")
             with LockedModelsTree(self, "w", model_name, model_version):
-                del self.models[old_model_id]
+                if old_model_id in self._removable:
+                    del self.models[old_model_id]
+                    self._removable = self._removable - set([old_model_id])
+                    old_model_ids = old_model_ids - set([old_model_id])
 
         return old_model_ids, updated_model_ids
 
@@ -149,6 +155,7 @@ class ModelsTree:
         model_path: str,
         sub_paths: List[str],
         timestamp: int,
+        tree_removable: bool,
     ) -> None:
         """
         Updates the model tree with the given model.
@@ -162,6 +169,7 @@ class ModelsTree:
             model_path: The model path to the versioned model.
             sub_paths: A list of filepaths for each file of the model.
             timestamp: When was the model path updated the last time.
+            tree_removable: If update_models method is allowed to remove the model.
 
         Returns:
             True if the model wasn't in the tree or if the timestamp is newer. False otherwise.
@@ -181,6 +189,10 @@ class ModelsTree:
                 "sub_paths": sub_paths,
                 "timestamp": timestamp,
             }
+            if tree_removable:
+                self._removable.add(model_id)
+            else:
+                self._removable = self._removable - set([model_id])
 
         return changed
 

@@ -16,7 +16,7 @@ import os
 import onnxruntime as rt
 import numpy as np
 
-from typing import Any
+from typing import Any, Optional
 
 from cortex.lib.log import cx_logger
 from cortex.lib import util
@@ -42,20 +42,20 @@ class ONNXClient:
         self,
         api_spec: dict,
         models: ModelsHolder,
-        models_tree: ModelsTree,
         model_dir: str,
-        lock_dir: str = "/run/cron",
+        models_tree: Optional[ModelsTree],
+        lock_dir: Optional[str] = "/run/cron",
     ):
         """
-        Setup ONNX runtime session.
+        Setup ONNX runtime.
 
         Args:
             api_spec: API configuration.
 
             models: Holding all models into memory.
-            models_tree: A tree of the available models from upstream. Only when caching is enabled.
             model_dir: Where the models are saved on disk.
 
+            models_tree: A tree of the available models from upstream. Only when caching is enabled.
             lock_dir: Where the resource locks are found. Only when caching is disabled.
         """
 
@@ -175,8 +175,6 @@ class ONNXClient:
             if tag != "":
                 model_version = self._get_model_version_from_disk(model_name, tag)
             model_id = model_name + "-" + model_version
-
-            # TODO implement model loader/retriever for models found locally (which go through the CLI's caching mechanism)
 
             # grab shared access to versioned model
             with LockedFile(model_id, "r", reader_lock=True) as f:

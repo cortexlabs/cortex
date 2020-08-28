@@ -62,13 +62,12 @@ class CuratedModelResources:
         """
         return [model[field] for model in self._models]
 
-    def get_versions_for(self, name: str, only_local: bool = False) -> List[str]:
+    def get_versions_for(self, name: str) -> List[str]:
         """
         Get versions for a given model name.
 
         Args:
             name: Name of the model (_cortex_default for predictor:model_path) or predictor:models:paths:name.
-            only_local: Versions for models that were made available from the local disk.
 
         Returns:
             Versions for a given model. Empty if the model wasn't found.

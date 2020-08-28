@@ -47,7 +47,7 @@ class API:
         self.key = api_spec["key"]
         self.metadata_root = api_spec["metadata_root"]
         self.name = api_spec["name"]
-        self.predictor = Predictor(provider, model_dir, api_spec)
+        self.predictor = Predictor(provider, api_spec, model_dir)
 
         self.monitoring = None
         if kwargs.get("monitoring") is not None:
