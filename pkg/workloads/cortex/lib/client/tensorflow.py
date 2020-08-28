@@ -320,13 +320,162 @@ def validate_model_input(input_signature, model_input, model_name):
 class TensorFlowServingAPI:
     def __init__(self, address: str):
         self.address = address
-        self.model_platform = "tensorflow"
         self.models = {}
 
         self.channel = grpc.insecure_channel(self.address)
         self.stub = model_service_pb2_grpc.ModelServiceStub(self.channel)
 
-        self.timeout = 600  # gRPC timeout in seconds
+    def add_single_model(self, model_name: str, model_version: str, model_disk_path: str) -> None:
+        """
+        Wrapper for add_models method.
+        """
+        self.add_models([model_name], [[model_version]], [model_disk_path])
+
+    def remove_single_model(
+        self, model_name: str, model_version: str, model_disk_path: str
+    ) -> None:
+        """
+        Wrapper for remove_models method.
+        """
+        self.remove_models([model_name], [[model_version]], [model_disk_path])
+
+    def add_models(
+        self, model_names: List[str], model_versions: List[List[str]], model_disk_paths: List[str]
+    ) -> None:
+        """
+        Add models to TFS.
+
+        Args:
+            model_names: List of model names to add.
+            model_versions: List of lists - each element is a list of versions for a given model name.
+            model_disk_paths: The common model disk path of multiple versioned models of the same model name (i.e. modelA/ for modelA/1 and modelA/2).
+        Raises:
+            grpc.RpcError in case something bad happens while communicating (i.e. if TFS service is not available yet).
+            cortex.lib.exceptions.CortexException if a non-0 response code is returned (i.e. model couldn't be loaded).
+        """
+
+        request = model_management_pb2.ReloadConfigRequest()
+        model_server_config = model_server_config_pb2.ModelServerConfig()
+
+        not_one_present = True
+        config_list = model_server_config_pb2.ModelConfigList()
+        for model_name, versions, model_disk_path in zip(
+            model_names, model_versions, model_disk_paths
+        ):
+            added_versions = []
+
+            for model_version in versions:
+                if f"{model_name}-{model_version}" in self.models:
+                    not_one_present = False
+                    continue
+                versioned_model_disk_path = os.path.join(model_disk_path, model_version)
+                self._add_model_to_dict(model_name, model_version, versioned_model_disk_path)
+                added_versions.append(int(model_version))
+
+            model_config = config_list.config.add()
+            model_config.name = model_name
+            model_config.base_path = model_disk_path
+            model_config.model_version_policy.CopyFrom(
+                ServableVersionPolicy(specific=Specific(versions=versions))
+            )
+            model_confg.model_platform = "tensorflow"
+
+        if not_one_present:
+            model_server_config.model_config_list.CopyFrom(config_list)
+            request.config.CopyFrom(model_server_config)
+        else:
+            model_server_config.model_config_list.MergeFrom(config_list)
+            request.config.MergeFrom(model_server_config)
+
+        response = self.stub.HandleReloadConfigRequest(request)
+
+        if not (response and response.status.error_code == 0):
+            if response:
+                raise CortexException(
+                    "couldn't load user-requested models - failed with error code {}: {}".format(
+                        response.status.error_code, response.status.error_message
+                    )
+                )
+            else:
+                raise CortexException("couldn't load user-requested models")
+
+    def remove_models(
+        self, model_names: List[str], model_versions: List[List[str]], model_disk_paths: List[str]
+    ) -> None:
+        """
+        Add models to TFS.
+
+        Args:
+            model_names: List of model names to add.
+            model_versions: List of lists - each element is a list of versions for a given model name.
+            model_disk_paths: The common model disk path of multiple versioned models of the same model name (i.e. modelA/ for modelA/1 and modelA/2).
+        Raises:
+            grpc.RpcError in case something bad happens while communicating (i.e. if TFS service is not available yet).
+            cortex.lib.exceptions.CortexException if a non-0 response code is returned (i.e. model couldn't be unloaded).
+        """
+
+        request = model_management_pb2.ReloadConfigRequest()
+        model_server_config = model_server_config_pb2.ModelServerConfig()
+
+        for model_name, versions, model_disk_path in zip(
+            model_names, model_versions, model_disk_paths
+        ):
+            for model_version in versions:
+                self._remove_model_from_dict(model_name, model_version)
+
+        config_list = model_server_config_pb2.ModelConfigList()
+        remaining_model_names = self._get_model_names()
+        for model_name in remaining_model_names:
+            versions, model_disk_path = self._get_model_info(model_name)
+            versions = [int(version) for version in versions]
+            model_config = config_list.config.add()
+            model_config.name = model_name
+            model_config.base_path = model_disk_path
+            model_config.model_version_policy.CopyFrom(
+                ServableVersionPolicy(specific=Specific(versions=versions))
+            )
+            model_confg.model_platform = "tensorflow"
+
+        model_server_config.model_config_list.CopyFrom(config_list)
+        request.config.CopyFrom(model_server_config)
+        response = self.stub.HandleReloadConfigRequest(request)
+
+        if not (response and response.status.error_code == 0):
+            if response:
+                raise CortexException(
+                    "couldn't unload user-requested models - failed with error code {}: {}".format(
+                        response.status.error_code, response.status.error_message
+                    )
+                )
+            else:
+                raise CortexException("couldn't unload user-requested models")
+
+    def refresh(self) -> None:
+        """
+        Reloads existing models if they have changed on disk.
+
+        Raises:
+            grpc.RpcError in case something bad happens while communicating (i.e. if TFS service is not available yet).
+            cortex.lib.exceptions.CortexException if a non-0 response code is returned (i.e. model couldn't be reloaded).
+        """
+
+        request = model_management_pb2.ReloadConfigRequest()
+        model_server_config = model_server_config_pb2.ModelServerConfig()
+
+        model_server_config.model_config_list.CopyFrom(model_server_config_pb2.ModelConfigList())
+
+        request.config.MergeFrom(model_server_config)
+        response = self.stub.HandleReloadConfigRequest(request)
+
+        if not (response and response.status.error_code == 0):
+            if response:
+                raise CortexException(
+                    "couldn't reload user-requested models - failed with error code {}: {}".format(
+                        response.status.error_code, response.status.error_message
+                    )
+                )
+            else:
+                raise CortexException("couldn't reload user-requested models")
 
     def _remove_model_from_dict(self, model_name: str, model_version: str) -> bool:
         model_id = f"{model_name}-{model_version}"
@@ -347,116 +496,14 @@ class TensorFlowServingAPI:
     def _get_model_names(self) -> List[str]:
         return [model_id.rsplit("-")[0] for model_id in self.models]
 
-    def add_models(
-        self, model_names: List[str], model_versions: List[List[str]], model_disk_paths: List[str]
-    ) -> None:
-        updated = 0
-        for model_name, versions, model_disk_path in zip(
-            model_names, model_versions, model_disk_paths
-        ):
-            for model_version in versions:
-                versioned_model_disk_path = os.path.join(model_disk_path, model_version)
-                updated += self._add_model_to_dict(
-                    model_name, model_version, versioned_model_disk_path
-                )
+    def _get_model_info(self, model_name: str) -> Tuple[List[str], str]:
+        model_disk_path = ""
+        versions = []
+        for model_id in self.models:
+            _model_name, model_version = model_id.rsplit("-")
+            if _model_name == model_name:
+                versions.append(model_version)
+            if model_disk_path == "":
+                model_disk_path = os.path.dirname(self.models[model_id])
 
-        if not updated:
-            return
-
-        request = model_management_pb2.ReloadConfigRequest()
-        model_server_config = model_server_config_pb2.ModelServerConfig()
-
-        config_list = model_server_config_pb2.ModelConfigList()
-        for model_id in self._get_model_names():
-            model_name
-
-    def remove_models(
-        self, model_names: List[str], model_versions: List[List[str]], model_disk_paths: List[str]
-    ) -> None:
-        pass
-
-    def refresh(self):
-        pass
-
-    model_config.model_version_policy.CopyFrom(
-        ServableVersionPolicy(specific=Specific(versions=[1, 2, 3]))
-    )
-
-    def add_models_config(self, names, base_paths, replace_models=False):
-        request = model_management_pb2.ReloadConfigRequest()
-        model_server_config = model_server_config_pb2.ModelServerConfig()
-
-        # create model(s) configuration
-        config_list = model_server_config_pb2.ModelConfigList()
-        for i, name in enumerate(names):
-            model_config = config_list.config.add()
-            model_config.name = name
-            model_config.base_path = base_paths[i]
-            model_config.model_platform = self.model_platform
-
-        if replace_models:
-            model_server_config.model_config_list.CopyFrom(config_list)
-            request.config.CopyFrom(model_server_config)
-        else:
-            model_server_config.model_config_list.MergeFrom(config_list)
-            request.config.MergeFrom(model_server_config)
-
-        loaded_models = threading.Event()
-
-        def log_loading_models():
-            while not loaded_models.is_set():
-                time.sleep(2)
-                cx_logger().info("model(s) still loading ...")
-
-        log_thread = threading.Thread(target=log_loading_models, daemon=True)
-        log_thread.start()
-
-        timeout_error_limit = 3
-        timeout_error_counter = 0
-        generic_error_limit = 200
-        generic_error_counter = 0
-
-        # request TFS to load models
-        response = None
-        while True:
-            try:
-                # this request doesn't return until all models have been successfully loaded
-                response = self.stub.HandleReloadConfigRequest(request, self.timeout)
-                break
-            except Exception as e:
-                if not (
-                    isinstance(e, grpc.RpcError)
-                    and e.code() in [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED]
-                ):
-                    print(e)  # unexpected error
-
-                if isinstance(e, grpc.RpcError) and e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
-                    timeout_error_counter += 1
-                else:
-                    generic_error_counter += 1
-
-            if timeout_error_counter >= timeout_error_limit:
-                break
-            if generic_error_counter >= generic_error_limit:
-                break
-
-            time.sleep(1.0)
-
-        loaded_models.set()
-        log_thread.join()
-
-        # report error or success
-        if response and response.status.error_code == 0:
-            cx_logger().info("successfully loaded {} models into TF-Serving".format(names))
-        else:
-            if response:
-                raise CortexException(
-                    "couldn't load user-requested models - failed with error code {}: {}".format(
-                        response.status.error_code, response.status.error_message
-                    )
-                )
-            else:
-                raise CortexException("couldn't load user-requested models")
-
-    def add_model_config(self, name, base_path, replace_model=False):
-        self.add_models_config([name], [base_path], replace_model)
+        return versions, model_disk_path
