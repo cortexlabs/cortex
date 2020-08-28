@@ -656,7 +656,7 @@ func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 		return ErrorInstanceTypeTooSmall()
 	}
 
-	if _, ok := awsutils.InstanceENIsAvailable[instanceMetadata.Type]; !ok {
+	if _, ok := awsutils.InstanceNetworkingLimits[instanceMetadata.Type]; !ok {
 		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
 	}
 
