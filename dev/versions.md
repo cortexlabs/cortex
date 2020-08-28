@@ -134,14 +134,43 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## Inferentia device plugin
 
-1. Check if [k8s-neuron-device-plugin](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) has been updated since the last time (we're running the version listed here: https://github.com/aws/aws-neuron-sdk/issues/102). If so, then update `images/inferentia/Dockerfile` and update `manager/manifests/inferentia.yaml` with the latest and replace the container's image with `$CORTEX_IMAGE_INFERENTIA`. Currently, all device versions are residing at [robertlucian/cortexlabs-inferentia](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-inferentia), because the ECR repo that was hosting the image seems to have been taken down. See https://github.com/cortexlabs/cortex/issues/1133.
+1. Check if the image in [k8s-neuron-device-plugin.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) has been updated (also check the readme in the parent directory to see if anything has changed). To check what the latest tag currently points to, run `aws ecr list-images --region us-west-2 --registry-id 790709498068 --repository-name neuron-device-plugin`, and then see which version has the same imageDigest as `latest`.
+1. Copy the contents of [k8s-neuron-device-plugin.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) to `manager/manifests/inferentia.yaml`
+   1. Update the link at the top of the file to the URL you copied from
+   1. Check that your diff is reasonable (and put back any of our modifications)
+
+## Neuron RTD
+
+1. `docker run --rm -it amazonlinux:2`
+1. Run the `echo $'[neuron] ...' > /etc/yum.repos.d/neuron.repo` command from [Dockerfile.neuron-rtd](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.neuron-rtd) (it needs to be updated to work properly with the new lines)
+1. Run `yum info aws-neuron-tools` and `yum info aws-neuron-runtime` to check the versions that were installed, and use those versions in `images/neuron-rtd/Dockerfile`
+1. Check if there are any updates to [Dockerfile.neuron-rtd](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.neuron-rtd) which should be brought in to `images/neuron-rtd/Dockerfile`
+1. Set the version of `aws-neuron-tools` and `aws-neuron-runtime` in `images/python-predictor-inf/Dockerfile` and `images/tensorflow-serving-inf/Dockerfile`
+1. Run `docker run --rm -it ubuntu:18.04`
+1. Run the first `RUN` command used in `images/tensorflow-serving-inf/Dockerfile`, having omitted the version specified for `tensorflow-model-server-neuron` and the cleanup line at the end
+1. Run `apt-cache policy tensorflow-model-server-neuron` to find the version that was installed, and update it in `images/tensorflow-serving-inf/Dockerfile`
+1. Check if there are any updates to [Dockerfile.tf-serving](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.tf-serving) which should be brought in to `images/tensorflow-serving-inf/Dockerfile`
+1. Run `docker run --rm -it ubuntu:18.04`
+1. Run `apt-get update && apt-get install -y curl python3.6 python3.6-distutils` (change the python version if necessary)
+1. Run `curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.6 get-pip.py && pip install --upgrade pip` (change the python version if necessary)
+1. Run `pip install --extra-index-url https://pip.repos.neuron.amazonaws.com neuron-cc tensorflow-neuron torch-neuron`
+1. Run `pip list` to show the versions of all installed dependencies, and update `images/python-predictor-inf/Dockerfile` and the docs accordingly (`realtime-api/predictors.md` and `batch-api/predictors.md`); latest versions of dependencies that aren't shown in `pip list` can be determined on pypi.org (for `torchvision`, go to its pypi page, and use the latest patch version of the minor version which is appropriate for the version of `torch` that's installed)
+1. Take a deep breath, cross your fingers, rebuild all images, and confirm that the Inferentia examples work
+
+## Inferentia temporary workarounds
+
+To make the Inferentia work with Cortex, 3 unofficial solutions are still required:
+
+1. Custom version of the [cluster-autoscaler](https://github.com/kubernetes/autoscaler) as built on [robertlucian/cortexlabs-cluster-autoscaler:v1.16.6-6c98931](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-cluster-autoscaler).
+1. Custom AMI for `inf1` instances. The currently used AMI image `ami-07a7b48058cfe1a73` has been built off of `ami-011c865bf7da41a9d` image (which is an EKS-optimized AMI version for EKS 1.6). [These](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-runtime/nrt_start.md) instructions have been used to build the image. Alongside that, one more thing that has to be done and is not mentioned in the instructions is to set `vm.nr_hugepages` in `/etc/sysctl.conf` to `0` and to disable the `neuron-rtd` service. Be sure that `neuron-discovery` service is still left enabled.
 
 ## Python packages
 
 1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
-1. To determine the versions used in `images/python-predictor-inf/Dockerfile`, run `pip install --extra-index-url https://pip.repos.neuron.amazonaws.com neuron-cc tensorflow-neuron torch-neuron` from a clean environment and check what versions of all the dependencies are installed.
 1. Update versions in `pkg/workloads/cortex/serve/requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
-1. Update the versions listed in "Pre-installed packages" in `realtime-api/predictors.md` and `batch-api/predictors.md` (look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`)
+1. Update the versions listed in "Pre-installed packages" in `realtime-api/predictors.md` and `batch-api/predictors.md`
+    * look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`
+    * be careful not to update any of the versions for Inferentia that are not latest in `images/python-predictor-inf/Dockerfile`
 1. Rerun all examples and check their logs
 
 ## Istio
@@ -169,20 +198,6 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. You can confirm the metric server is running by showing the logs of the metrics-server pod, or via `kubectl get deployment metrics-server -n kube-system` and `kubectl get apiservice v1beta1.metrics.k8s.io -o yaml`
 
 Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
-
-## Neuron RTD
-
-1. Run a `cortexlabs/neuron-rtd` container and check if there are newer versions of `aws-neuron-tools` and `aws-neuron-runtime` with `yum info <package>` command.
-1. Set this version in `images/neuron-rtd/Dockerfile`, `images/python-predictor-inf/Dockerfile`, and `images/tensorflow-serving-inf/Dockerfile`.
-1. Rebuild `images/neuron-rtd/Dockerfile`, `images/python-predictor-inf/Dockerfile`, `images/tensorflow-serving-inf/Dockerfile` images and test Inferentia examples.
-
-## Inferentia temporary workarounds
-
-To make the Inferentia work with Cortex, 3 unofficial solutions are still required:
-
-1. Custom version of the [cluster-autoscaler](https://github.com/kubernetes/autoscaler) as built on [robertlucian/cortexlabs-cluster-autoscaler:v1.16.6-6c98931](https://hub.docker.com/repository/docker/robertlucian/cortexlabs-cluster-autoscaler).
-1. Custom AMI for `inf1` instances. The currently used AMI image `ami-07a7b48058cfe1a73` has been built off of `ami-011c865bf7da41a9d` image (which is an EKS-optimized AMI version for EKS 1.6). [These](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-runtime/nrt_start.md) instructions have been used to build the image. Alongside that, one more thing that has to be done and is not mentioned in the instructions is to set `vm.nr_hugepages` in `/etc/sysctl.conf` to `0` and to disable the `neuron-rtd` service. Be sure that `neuron-discovery` service is still left enabled.
-1. The Inferentia device plugin points to `robertlucian/cortexlabs-inferentia` (see above).
 
 ## Cluster autoscaler
 

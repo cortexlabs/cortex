@@ -6,9 +6,10 @@ RUN apt-get update -qq && apt-get install -y -q \
     echo "deb https://apt.repos.neuron.amazonaws.com bionic main" >> /etc/apt/sources.list.d/neuron.list && \
     wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add - && \
     apt-get update -qq && apt-get install -y -q \
-    aws-neuron-tools=1.0.6554.0 \
-    aws-neuron-runtime=1.0.6222.0 && \
+    aws-neuron-tools=1.0.10616.0 \
+    aws-neuron-runtime=1.0.9197.0 && \
     apt-get clean -qq && rm -rf /var/lib/apt/lists/*
+
 ENV PATH=/opt/aws/neuron/bin/:$PATH
 
 RUN apt-get update -qq && apt-get install -y -q \
@@ -63,26 +64,26 @@ RUN test "${SLIM}" = "true" || ( \
             libsndfile1 \
         && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
         && pip install --no-cache-dir --extra-index-url https://pip.repos.neuron.amazonaws.com \
-            neuron-cc==1.0.9410.0+6008239556 \
-            tensorflow-neuron==1.15.0.1.0.1333.0 \
-            torch-neuron==1.0.825.0 \
-            cloudpickle==1.4.1 \
-            Cython==0.29.17 \
-            joblib==0.14.1 \
+            neuron-cc==1.0.18001.0+0.5312e6a21 \
+            tensorflow-neuron==1.15.3.1.0.1965.0 \
+            torch-neuron==1.5.1.1.0.1532.0 \
+            numpy==1.18.2 \
+            scipy==1.3.2 \
+            six==1.15.0 \
+            cloudpickle==1.6.0 \
+            Cython==0.29.21 \
+            joblib==0.16.1 \
             nltk==3.5 \
             np-utils==0.5.12.1 \
-            opencv-python==4.2.0.34 \
-            pandas==1.0.3 \
-            Pillow==6.2.2 \
-            scikit-image==0.17.1 \
-            scikit-learn==0.22.2.post1 \
-            scipy==1.3.2 \
-            six==1.14.0 \
-            statsmodels==0.11.1 \
-            sympy==1.5.1 \
-            numpy==1.16.5 \
+            opencv-python==4.4.0.42 \
+            pandas==1.1.1 \
+            Pillow==7.2.0 \
+            scikit-image==0.17.2 \
+            scikit-learn==0.23.2 \
+            statsmodels==0.12.0 \
+            sympy==1.6.2 \
         && pip install --no-cache-dir --no-deps \
-            torchvision==0.4.2 \
+            torchvision==0.6.1 \
     )
 
 COPY pkg/workloads/cortex/consts.py /src/cortex

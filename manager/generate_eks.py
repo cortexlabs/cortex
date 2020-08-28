@@ -125,13 +125,15 @@ def apply_inf_settings(nodegroup, cluster_config):
     inf_settings = {
         "ami": get_ami_image(instance_region),
         "tags": {
-            "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",
-            "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/infa=true",
-            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/infa": str(num_chips),
+            "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/neuron": "true",
+            "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/neuron=true",
+            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/neuron": str(
+                num_chips
+            ),
             "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": hugepages_mem,
         },
-        "labels": {"aws.amazon.com/infa": "true"},
-        "taints": {"aws.amazon.com/infa": "true:NoSchedule"},
+        "labels": {"aws.amazon.com/neuron": "true"},
+        "taints": {"aws.amazon.com/neuron": "true:NoSchedule"},
     }
     return merge_override(nodegroup, inf_settings)
 

@@ -222,7 +222,7 @@ spec:
             - name: config
               mountPath: /fluentd/etc
       tolerations:
-        - key: aws.amazon.com/infa
+        - key: aws.amazon.com/neuron
           operator: Exists
           effect: NoSchedule
         - key: nvidia.com/gpu

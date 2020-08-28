@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Source: https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml
 # https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/
+
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -34,7 +36,7 @@ spec:
       tolerations:
         - key: CriticalAddonsOnly
           operator: Exists
-        - key: aws.amazon.com/infa
+        - key: aws.amazon.com/neuron
           operator: Exists
           effect: NoSchedule
         - key: workload
@@ -45,10 +47,39 @@ spec:
       # be rescheduled after a failure.
       # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
       priorityClassName: "system-node-critical"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: "beta.kubernetes.io/instance-type"
+                    operator: In
+                    values:
+                      - inf1.xlarge
+                      - inf1.2xlarge
+                      - inf1.6xlarge
+                      - inf1.4xlarge
+              - matchExpressions:
+                  - key: "node.kubernetes.io/instance-type"
+                    operator: In
+                    values:
+                      - inf1.xlarge
+                      - inf1.2xlarge
+                      - inf1.6xlarge
+                      - inf1.24xlarge
       containers:
+        #Device Plugin containers are available both in us-east and us-west ecr
+        #repos
         - image: $CORTEX_IMAGE_INFERENTIA
           imagePullPolicy: Always
-          name: k8s-neuron-device-plugin-ctr
+          name: neuron-device-plugin
+          env:
+            - name: KUBECONFIG
+              value: /etc/kubernetes/kubelet.conf
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -56,6 +87,8 @@ spec:
           volumeMounts:
             - name: device-plugin
               mountPath: /var/lib/kubelet/device-plugins
+            - name: infa-map
+              mountPath: /run
           resources:
             requests:
               cpu: 100m
@@ -66,3 +99,6 @@ spec:
         - name: device-plugin
           hostPath:
             path: /var/lib/kubelet/device-plugins
+        - name: infa-map
+          hostPath:
+            path: /run

@@ -1,3 +1,4 @@
+# Source: https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.tf-serving
 FROM ubuntu:18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
@@ -9,9 +10,9 @@ RUN apt-get update -qq && apt-get install -y -q \
     echo "deb https://apt.repos.neuron.amazonaws.com bionic main" >> /etc/apt/sources.list.d/neuron.list && \
     wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add - && \
     apt-get update -qq && apt-get install -y -q \
-    aws-neuron-tools=1.0.6554.0 \
-    aws-neuron-runtime=1.0.6222.0 \
-    tensorflow-model-server-neuron && \
+    aws-neuron-tools=1.0.10616.0 \
+    aws-neuron-runtime=1.0.9197.0 \
+    tensorflow-model-server-neuron=1.15.0.1.0.1965.0 && \
     apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 ENV PATH=/opt/aws/neuron/bin/:$PATH
