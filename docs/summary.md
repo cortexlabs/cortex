@@ -2,7 +2,7 @@
 
 * [Build machine learning APIs](../README.md)
 * [Install](cluster-management/install.md)
-* [Tutorial](../examples/pytorch/text-generator/README.md)
+* [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [Contact us](miscellaneous/contact-us.md)
