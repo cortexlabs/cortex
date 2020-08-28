@@ -34,6 +34,7 @@
 * [Using Inferentia](deployments/inferentia.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
+* [Networking](deployments/networking.md)
 
 ## Cluster management
 
