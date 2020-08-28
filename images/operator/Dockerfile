@@ -1,4 +1,4 @@
-FROM golang:1.14.2 as builder
+FROM golang:1.14.7 as builder
 
 COPY go.mod go.sum /go/src/github.com/cortexlabs/cortex/
 WORKDIR /go/src/github.com/cortexlabs/cortex

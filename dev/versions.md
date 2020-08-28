@@ -33,15 +33,15 @@
 1. Search the codebase for the current minor version (e.g. `1.14`), update versions as appropriate
 1. Update your local version and alert developers:
    * Linux:
-     1. `wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz`
-     1. `tar -xvf go1.14.2.linux-amd64.tar.gz`
+     1. `wget https://dl.google.com/go/go1.14.7.linux-amd64.tar.gz`
+     1. `tar -xvf go1.14.7.linux-amd64.tar.gz`
      1. `sudo rm -rf /usr/local/go`
      1. `sudo mv -f go /usr/local`
-     1. `rm go1.14.2.linux-amd64.tar.gz`
+     1. `rm go1.14.7.linux-amd64.tar.gz`
      1. refresh shell
      1. `go version`
    * Mac:
-     1. `brew upgrade go`
+     1. `brew upgrade go` or `brew install go@1.14`
      1. refresh shell
      1. `go version`
 1. Update go modules as necessary
