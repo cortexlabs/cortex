@@ -72,7 +72,7 @@ RUN test "${SLIM}" = "true" || ( \
             six==1.14.0 \
             statsmodels==0.11.1 \
             sympy==1.5.1 \
-            tensorflow-gpu==2.1.0 \
+            tensorflow-gpu==2.3.0 \
             tensorflow-hub==0.8.0 \
             torch==1.5.1+cu101 \
             torchvision==0.6.1+cu101 \

@@ -38,8 +38,8 @@ SHELL ["/bin/bash", "-c"]
 COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
 RUN pip install --no-cache-dir -r \
     /src/cortex/serve/requirements.txt \
-    tensorflow-cpu==2.1.0 \
-    tensorflow-serving-api==2.1.0
+    tensorflow-cpu==2.3.0 \
+    tensorflow-serving-api==2.3.0
 
 ARG SLIM="false"
 RUN test "${SLIM}" = "true" || ( \

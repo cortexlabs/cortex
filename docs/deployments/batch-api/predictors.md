@@ -111,7 +111,7 @@ six==1.14.0
 statsmodels==0.11.1
 sympy==1.5.1
 tensorflow-hub==0.8.0
-tensorflow==2.1.0
+tensorflow==2.3.0
 torch==1.5.0
 torchvision==0.6.0
 xgboost==1.0.2
@@ -214,8 +214,8 @@ opencv-python==4.2.0.34
 pyyaml==5.3.1
 requests==2.23.0
 tensorflow-hub==0.8.0
-tensorflow-serving-api==2.1.0
-tensorflow==2.1.0
+tensorflow-serving-api==2.3.0
+tensorflow==2.3.0
 ```
 
 <!-- CORTEX_VERSION_MINOR -->

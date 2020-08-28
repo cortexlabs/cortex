@@ -110,7 +110,7 @@ It's probably safest to use the minor version of Python that you get when you ru
 ## TensorFlow / TensorFlow Serving
 
 1. Find the latest release on [GitHub](https://github.com/tensorflow/tensorflow/releases)
-1. Search the codebase for the current minor TensorFlow version (e.g. `2.1`) and update versions as appropriate
+1. Search the codebase for the current minor TensorFlow version (e.g. `2.3`) and update versions as appropriate
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
 
