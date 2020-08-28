@@ -145,6 +145,7 @@ class Predictor:
             if self.type == PythonPredictorType:
                 if _are_models_specified(None, self.api_spec):
                     initialized_impl = class_impl(python_client=client, config=self.config)
+                    client.set_load_method(initialized_impl.load_model)
                 else:
                     initialized_impl = class_impl(config=self.config)
             if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
