@@ -73,19 +73,21 @@ cortex delete my-api --env cluster2
 
 If you are installing the `cortex` CLI on a new computer, you can configure it to access an existing Cortex cluster.
 
-If you have access to the cluster configuration file which you used to create your cluster, running `cortex cluster info` on your new machine will automatically configure your CLI:
+On the computer which already has the CLI configured, run:
 
 ```bash
-# configure the aws environment to connect to the cluster specified in cluster.yaml
-cortex cluster info --config cluster.yaml --env aws
+cortex env list
 ```
 
-If for some reason this doesn't work, or you don't have access to your cluster configuration file, you can configure the CLI manually:
+Take note of the environment name and operator endpoint of the desired environment.
+
+On your new machine, run:
 
 ```bash
-# this will prompt for the necessary configuration
 cortex env configure
 ```
+
+This will prompt for the necessary configuration. Note that the AWS credentials that you use here do not need any IAM permissions attached. If you will be running any `cortex cluster` commands, you can configure the CLI environment to use credentials that have the `AdministratorAccess` IAM policy attached, or specify your admin credentials in your [cluster configuration](../cluster-management/config.md) file (e.g. set `aws_access_key_id` and `aws_secret_access_key` in `cluster.yaml`, and use it like `cortex cluster info --config cluster.yaml`). See [IAM permissions](security.md#iam-permissions) for more details.
 
 ## Environments overview
 
