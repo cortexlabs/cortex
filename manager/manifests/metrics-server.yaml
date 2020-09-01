@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Source: https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.6/deploy/1.8+
+# Source: https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.7/deploy/1.8+
 
-kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
 metadata:
   name: system:aggregated-metrics-reader
   labels:
@@ -28,7 +28,7 @@ rules:
     verbs: ["get", "list", "watch"]
 
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: metrics-server:system:auth-delegator
@@ -42,7 +42,7 @@ subjects:
     namespace: kube-system
 
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: metrics-server-auth-reader
@@ -103,7 +103,18 @@ spec:
       containers:
         - name: metrics-server
           image: $CORTEX_IMAGE_METRICS_SERVER
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
+          args:
+            - --cert-dir=/tmp
+            - --secure-port=4443
+          ports:
+            - name: main-port
+              containerPort: 4443
+              protocol: TCP
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
           volumeMounts:
             - name: tmp-dir
               mountPath: /tmp
@@ -111,6 +122,9 @@ spec:
             requests:
               cpu: 100m
               memory: 200Mi
+      nodeSelector:
+        kubernetes.io/os: linux
+
 ---
 apiVersion: v1
 kind: Service
@@ -126,7 +140,7 @@ spec:
   ports:
     - port: 443
       protocol: TCP
-      targetPort: 443
+      targetPort: main-port
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -141,6 +155,7 @@ rules:
       - nodes
       - nodes/stats
       - namespaces
+      - configmaps
     verbs:
       - get
       - list
