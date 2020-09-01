@@ -1,1 +1,1 @@
-FROM robertlucian/cortexlabs-cluster-autoscaler:v1.16.6-6c98931
+FROM k8s.gcr.io/autoscaling/cluster-autoscaler:v1.17.3
