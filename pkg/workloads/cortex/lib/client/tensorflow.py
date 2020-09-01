@@ -324,10 +324,11 @@ class TensorFlowServingAPI:
         """
         TensorFlow Serving API for loading/unloading/reloading TF models.
 
-        TODO extra arguments to pass to the tensorflow/serving container:
+        Extra arguments passed to the tensorflow/serving container:
             * --max_num_load_retries=0
             * --load_retry_interval_micros=30000000 # 30 seconds
-            * --grpc_channel_arguments="grpc.max_concurrent_streams=<processes-per-api-replica>*<threads-per-process>"
+            * --grpc_channel_arguments="grpc.max_concurrent_streams=<processes-per-api-replica>*<threads-per-process>" when inf == 0, otherwise
+            * --grpc_channel_arguments="grpc.max_concurrent_streams=<threads-per-process>" when inf > 0.
 
         Args:
             address: An address with the "host:port" format.

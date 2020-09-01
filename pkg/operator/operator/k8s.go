@@ -59,6 +59,8 @@ const (
 	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
 	_tfServingHost                                 = "localhost"
 	_tfServingEmptyModelConfig                     = "/etc/tfs/model_config_server.conf"
+	_tfServingMaxReloadTimes                       = "0"
+	_tfServingLoadTimeMicros                       = "30000000" // 30 seconds
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
@@ -496,6 +498,18 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 						Name:  "TF_EMPTY_MODEL_CONFIG",
 						Value: _tfServingEmptyModelConfig,
 					},
+					kcore.EnvVar{
+						Name:  "TF_MAX_NUM_LOAD_TIMES",
+						Value: _tfServingMaxReloadTimes,
+					},
+					kcore.EnvVar{
+						Name:  "TF_LOAD_RETRY_INTERVAL_MICROS",
+						Value: _tfServingLoadTimeMicros,
+					},
+					kcore.EnvVar{
+						Name:  "TF_GRPC_MAX_CONCURRENT_STREAMS",
+						Value: fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ThreadsPerProcess),
+					},
 				)
 			}
 			if container == _apiContainerName {
@@ -657,6 +671,9 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		args = []string{
 			"--port=" + _tfBaseServingPortStr,
 			"--model_config_file=" + _tfServingEmptyModelConfig,
+			"--max_num_load_retries=" + _tfServingMaxReloadTimes,
+			"--load_retry_interval_micros=" + _tfServingLoadTimeMicros,
+			fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess),
 		}
 	}
 
