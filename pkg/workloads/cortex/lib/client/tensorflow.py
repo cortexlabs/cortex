@@ -387,17 +387,14 @@ class TensorFlowServingAPI:
         request = model_management_pb2.ReloadConfigRequest()
         model_server_config = model_server_config_pb2.ModelServerConfig()
 
-        added_models = []
         for model_name, versions, model_disk_path in zip(
             model_names, model_versions, model_disk_paths
         ):
             for model_version in versions:
                 versioned_model_disk_path = os.path.join(model_disk_path, model_version)
-                success = self._add_model_to_dict(
+                self._add_model_to_dict(
                     model_name, model_version, versioned_model_disk_path
                 )
-                if success:
-                    added_models.append((model_name, model_version))
 
         config_list = model_server_config_pb2.ModelConfigList()
         current_model_names = self._get_model_names()
@@ -415,19 +412,9 @@ class TensorFlowServingAPI:
         model_server_config.model_config_list.CopyFrom(config_list)
         request.config.CopyFrom(model_server_config)
 
-        try:
-            response = self.stub.HandleReloadConfigRequest(request, timeout)
-            error = None
-        except grpc.RpcError as e:
-            error = e
+        response = self.stub.HandleReloadConfigRequest(request, timeout)
 
-        if error or not (response and response.status.error_code == 0):
-            for model_name, model_version in added_models:
-                self._remove_model_from_dict(model_name, model_version)
-
-            if error:
-                raise error
-
+        if not (response and response.status.error_code == 0):
             if response:
                 raise CortexException(
                     "couldn't unload user-requested models - failed with error code {}: {}".format(
@@ -436,16 +423,6 @@ class TensorFlowServingAPI:
                 )
             else:
                 raise CortexException("couldn't unload user-requested models")
-
-        if not (response and response.status.error_code == 0):
-            if response:
-                raise CortexException(
-                    "couldn't load user-requested models - failed with error code {}: {}".format(
-                        response.status.error_code, response.status.error_message
-                    )
-                )
-            else:
-                raise CortexException("couldn't load user-requested models")
 
     def remove_models(
         self,
@@ -470,15 +447,11 @@ class TensorFlowServingAPI:
         request = model_management_pb2.ReloadConfigRequest()
         model_server_config = model_server_config_pb2.ModelServerConfig()
 
-        removed_models = []
         for model_name, versions, model_disk_path in zip(
             model_names, model_versions, model_disk_paths
         ):
             for model_version in versions:
-                success, disk_path = self._remove_model_from_dict(model_name, model_version)
-                if not success:
-                    continue
-                removed_models.append((model_name, model_version, disk_path))
+                self._remove_model_from_dict(model_name, model_version)
 
         config_list = model_server_config_pb2.ModelConfigList()
         remaining_model_names = self._get_model_names()
@@ -496,19 +469,9 @@ class TensorFlowServingAPI:
         model_server_config.model_config_list.CopyFrom(config_list)
         request.config.CopyFrom(model_server_config)
 
-        try:
-            response = self.stub.HandleReloadConfigRequest(request, timeout)
-            error = None
-        except grpc.RpcError as e:
-            error = e
+        response = self.stub.HandleReloadConfigRequest(request, timeout)
 
-        if error or not (response and response.status.error_code == 0):
-            for model_name, model_version, model_disk_path in removed_models:
-                self._add_model_to_dict(model_name, model_version, model_disk_path)
-
-            if error:
-                raise error
-
+        if not (response and response.status.error_code == 0):
             if response:
                 raise CortexException(
                     "couldn't unload user-requested models - failed with error code {}: {}".format(
@@ -521,7 +484,6 @@ class TensorFlowServingAPI:
     def refresh(self, timeout: Optional[float] = None) -> None:
         """
         Reloads existing models if they have changed on disk.
-        Removes models from TFS that failed to load.
 
         Note: doesn't appear to be reloading models that have changed on disk. Probably the best way is to
         remove_single_model and then call add_single_model to reload a versioned model.
