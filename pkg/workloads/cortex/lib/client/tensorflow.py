@@ -250,6 +250,10 @@ def extract_signature(signature_def, signature_key, model_name):
             shape = "scalar"
         elif input_metadata["tensorShape"].get("unknownRank", False):
             # unknown rank and shape
+            #
+            # unknownRank is set to True if the model input has no rank
+            # it may lead to an undefined behavior if unknownRank is only checked for its presence
+            # so it also gets to be tested against its value
             shape = "unknown"
         elif input_metadata["tensorShape"].get("dim", None):
             # known rank and known/unknown shape
