@@ -280,6 +280,9 @@ def create_prediction_request(signature_def, signature_key, model_name, model_in
         elif signature_def[signature_key]["inputs"][column_name]["tensorShape"].get(
             "unknownRank", False
         ):
+            # unknownRank is set to True if the model input has no rank
+            # it may lead to an undefined behavior if unknownRank is only checked for its presence
+            # so it also gets to be tested against its value
             shape = "unknown"
         else:
             shape = []
