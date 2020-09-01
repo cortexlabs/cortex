@@ -12,7 +12,7 @@ WORKDIR /go/src/github.com/cortexlabs/cortex/pkg/operator
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o operator .
 
 
-FROM alpine:3.11
+FROM alpine:3.12
 
 RUN apk --no-cache add ca-certificates bash
 
