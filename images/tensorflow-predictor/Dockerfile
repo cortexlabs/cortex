@@ -54,8 +54,8 @@ RUN test "${SLIM}" = "true" || ( \
             libsndfile1 \
         && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
         && pip install --no-cache-dir \
-            opencv-python==4.2.0.34 \
-            tensorflow-hub==0.8.0 \
+            opencv-python==4.4.0.42 \
+            tensorflow-hub==0.9.0 \
     )
 
 COPY pkg/workloads/cortex/consts.py /src/cortex/

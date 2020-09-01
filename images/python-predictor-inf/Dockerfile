@@ -72,7 +72,7 @@ RUN test "${SLIM}" = "true" || ( \
             six==1.15.0 \
             cloudpickle==1.6.0 \
             Cython==0.29.21 \
-            joblib==0.16.1 \
+            joblib==0.16.0 \
             nltk==3.5 \
             np-utils==0.5.12.1 \
             opencv-python==4.4.0.42 \

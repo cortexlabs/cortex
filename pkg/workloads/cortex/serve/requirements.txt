@@ -1,10 +1,10 @@
-boto3==1.13.7
-datadog==0.36.0
-dill==0.3.1.1
-fastapi==0.61.0
+boto3==1.14.53
+datadog==0.39.0
+dill==0.3.2
+fastapi==0.61.1
 msgpack==1.0.0
-numpy==1.18.4
+numpy==1.19.1
 python-multipart==0.0.5
 pyyaml==5.3.1
-requests==2.23.0
+requests==2.24.0
 uvicorn==0.11.8
