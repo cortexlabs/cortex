@@ -23,8 +23,7 @@ import datadog
 
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
-from cortex.lib.api.predictor import Predictor
-from cortex.lib.api.monitoring import Monitoring
+from cortex.lib.api import Predictor, Monitoring
 from cortex.lib.storage import S3
 
 
