@@ -182,7 +182,7 @@ Custom AMI for `inf1` instances. The currently used AMI image `ami-07a7b48058cfe
 
 1. Find the latest release on [GitHub](https://github.com/kubernetes-incubator/metrics-server/releases) and check the changelog
 1. Update the version in `images/metrics-server/Dockerfile`
-1. In the [GitHub Repo](https://github.com/kubernetes-incubator/metrics-server), find the latest release and go to this directory (replacing the version number): <https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.4/deploy/1.8+>
+1. In the [GitHub Repo](https://github.com/kubernetes-incubator/metrics-server), find the latest release and go to this directory (replacing the version number): <https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.7/deploy/1.8+>
 1. Copy the contents of all of the files in that directory into `manager/manifests/metrics-server.yaml`
    1. Update this line of config:
 
