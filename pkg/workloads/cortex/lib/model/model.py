@@ -51,9 +51,9 @@ class ModelsHolder:
             temp_dir: Where models are temporary stored for validation.
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
-            on_download_callback(predictor_type, model_name, model_version, model_path, temp_dir, model_dir): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
-            on_load_callback(disk_model_path): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
-            on_remove_callback(list of model IDs to remove): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.
+            on_download_callback(<predictor_type>, <model_name>, <model_version>, <model_path>, <temp_dir>, <model_dir>): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
+            on_load_callback(<disk_model_path>, **kwargs): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
+            on_remove_callback(<list of model IDs to remove>): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.
         """
         self._predictor_type = predictor_type
         self._model_dir = model_dir
@@ -282,6 +282,7 @@ class ModelsHolder:
         model_version: str,
         upstream_timestamp: int,
         tags: List[str] = [],
+        **kwargs,
     ) -> None:
         """
         Loads a given model into memory.
@@ -292,6 +293,7 @@ class ModelsHolder:
             model_version: The version of the model.
             upstream_timestamp: When was this model last modified on the upstream source (e.g. S3).
             tags: List of tags to initialize the model with.
+            kwargs: Extra arguments to pass into the loading callback.
 
         Raises:
             RuntimeError if a load callback isn't set. Can also raise exception if the load callback raises.
@@ -302,7 +304,7 @@ class ModelsHolder:
             disk_path = os.path.join(self._model_dir, model_name, model_version)
 
             model = {
-                "model": self._load_callback(disk_path),
+                "model": self._load_callback(disk_path, **kwargs),
                 "disk_path": disk_path,
                 "upstream_timestamp": upstream_timestamp,
                 "metadata": {

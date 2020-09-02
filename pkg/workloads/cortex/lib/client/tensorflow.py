@@ -133,7 +133,9 @@ class TensorFlowClient:
 
         return self._run_inference(model_input, model_name)
 
-    def _load_model(self, model_path: str, model_name: str, model_version: str) -> Any:
+    def _load_model(
+        self, model_path: str, model_name: str, model_version: str, signature_key: Optional[str]
+    ) -> Any:
         try:
             self._client.add_single_model(model_name, model_version, model_path, timeout=30.0)
         except Exception as e:
