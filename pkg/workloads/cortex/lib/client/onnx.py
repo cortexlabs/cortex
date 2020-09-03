@@ -80,7 +80,7 @@ class ONNXClient:
         self._models.set_callback("load", self._load_model)
 
     def predict(
-        self, model_input: Any, model_name: str = None, model_version: str = "highest"
+        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "highest"
     ) -> Any:
         """
         Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
@@ -150,10 +150,10 @@ class ONNXClient:
 
         Args:
             model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are named on disk.
-            model_version: Version of the model, as it's found on disk.
+            model_version: Version of the model, as it's found on disk. Can also infer the version number from "latest" and "highest" tags.
 
         Exceptions:
-            RuntimeError: if another thread to load the model at the very same time.
+            RuntimeError: if another thread tried to load the model at the very same time.
 
         Returns:
             The model as returned by self._load_model method.

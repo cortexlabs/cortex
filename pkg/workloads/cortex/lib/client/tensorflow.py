@@ -61,10 +61,9 @@ class TensorFlowClient:
         self,
         tf_serving_url,
         api_spec: dict,
-        models: ModelsHolder,
-        model_dir: str,
+        models: Optional[ModelsHolder],
+        model_dir: Optional[str],
         models_tree: Optional[ModelsTree],
-        lock_dir: Optional[str] = "/run/cron",
     ):
         """
         Setup gRPC connection to TensorFlow Serving container.
@@ -73,11 +72,9 @@ class TensorFlowClient:
             tf_serving_url: Localhost URL to TF Serving container.
             api_spec: API configuration.
 
-            models: Holding all models into memory.
-            model_dir: Where the models are saved on disk.
-
+            models: Holding all models into memory. Only when processes_per_replica = 1.
+            model_dir: Where the models are saved on disk. Only when processes_per_replica = 1.
             models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1.
-            lock_dir: Where the resource locks are found. Only when processes_per_replica > 1.
         """
 
         self._tf_serving_url = tf_serving_url
@@ -85,7 +82,6 @@ class TensorFlowClient:
         self._models = models
         self._models_tree = models_tree
         self._model_dir = model_dir
-        self._lock_dir = lock_dir
 
         self._spec_models = CuratedModelResources(api_spec["curated_model_resources"])
 
@@ -100,11 +96,14 @@ class TensorFlowClient:
         else:
             self._multiple_processes = False
 
-        self._models.set_callback("load", self._load_model)
+        if self._models:
+            self._models.set_callback("load", self._load_model)
 
         self._client = TensorFlowServingAPI(tf_serving_url)
 
-    def predict(self, model_input, model_name=None):
+    def predict(
+        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "highest"
+    ) -> dict:
         """Validate model_input, convert it to a Prediction Proto, and make a request to TensorFlow Serving.
 
         Args:
@@ -114,33 +113,213 @@ class TensorFlowClient:
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.
         """
-        if consts.SINGLE_MODEL_NAME in self._model_names:
-            return self._run_inference(model_input, consts.SINGLE_MODEL_NAME)
-
-        if model_name is None:
+        if model_version not in ["highest", "latest"] or not model_version.isnumeric():
             raise UserRuntimeException(
-                "model_name was not specified, choose one of the following: {}".format(
-                    self._model_names
-                )
+                "model_version must be either a parse-able numeric value or 'highest' or 'latest'"
             )
 
-        if model_name not in self._model_names:
+        if self._multiple_processes and model_version == "latest":
             raise UserRuntimeException(
-                "'{}' model wasn't found in the list of available models: {}".format(
-                    model_name, self._model_names
-                )
+                "model_version must be either a parse-able numberic value or 'highest'",
+                "cannot be 'latest' when processes_per_replica > 1 and TensorFlowPredictor is used",
             )
 
-        return self._run_inference(model_input, model_name)
+        # when predictor:model_path or predictor:models:paths is specified
+        if self._models_dir is None:
+
+            # when predictor:model_path is provided
+            if consts.SINGLE_MODEL_NAME in self._spec_model_names:
+                return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, model_version)
+
+            # when predictor:models:paths is specified
+            if model_name is None:
+                raise UserRuntimeException(
+                    f"model_name was not specified, choose one of the following: {self._spec_model_names}"
+                )
+
+            if model_name not in self._spec_model_names:
+                raise UserRuntimeException(
+                    f"'{model_name}' model wasn't found in the list of available models"
+                )
+
+        # when predictor:models:dir is specified
+        if self._models_dir and model_name is None:
+            raise UserRuntimeException("model_name was not specified")
+
+        return self._run_inference(model_input, model_name, model_version)
+
+    def _run_inference(self, model_input: Any, model_name: str, model_version: str) -> dict:
+        """
+        When processes_per_replica = 1, check/load model and make prediction.
+        When processes_per_replica > 1, attempt to make prediction regardless.
+
+        Args:
+            model_input: Input to the model.
+            model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are named on disk.
+            model_version: Version of the model, as it's found on disk. Can also infer the version number from "latest" and "highest" tags.
+
+        Exceptions:
+            RuntimeError: if another thread tried to load the model at the very same time.
+
+        Returns:
+            The prediction.
+        """
+
+        model = None
+        tag = ""
+        tags = []
+        if model_version in ["latest", "highest"]:
+            tag = model_version
+            tags = ["latest", "highest"]
+
+        if self._multiple_processes:
+            # determine model version
+            if tag == "highest":
+                versions = self._client.poll_available_models(model_name)
+                if len(versions) == 0:
+                    raise UserException(
+                        "model '{}' accessed with tag '{}' couldn't be found".format(
+                            model_name, tag
+                        )
+                    )
+                model_version = max(versions)
+            model_id = model_name + "-" + model_version
+
+            return self._client.predict(model_input, model_name, model_version)
+
+        if not self._multiple_processes:
+            # determine model version
+            try:
+                if tag != "":
+                    model_version = self._get_model_version_from_tree(
+                        model_name, tag, self._models_tree.model_info(model_name)
+                    )
+            except ValueError:
+                # if model_name hasn't been found
+                return None
+
+            # grab shared access to model tree
+            available_model = True
+            with LockedModelsTree(self._models_tree, "r", model_name, model_version):
+
+                # check if the versioned model exists
+                model_id = model_name + "-" + model_version
+                if model_id not in self._models_tree:
+                    available_model = False
+                    raise WithBreak
+
+                # retrieve model tree's metadata
+                upstream_model = self._models_tree[model_id]
+                current_upstream_ts = upstream_model["timestamp"]
+
+            if not available_model:
+                if tag == "":
+                    raise UserException(
+                        "model '{}' of version '{}' couldn't be found".format(
+                            model_name, model_version
+                        )
+                    )
+                raise UserException(
+                    "model '{}' accessed with tag '{}' couldn't be found".format(model_name, tag)
+                )
+
+            # grab shared access to models holder and retrieve model
+            update_model = False
+            prediction = None
+            with LockedModel(self._models, "r", model_name, model_version):
+                status, upstream_ts = self._models.has_model(model_name, model_version)
+                if status in ["not-available", "on-disk"] or (
+                    status != "not-available" and upstream_ts < current_upstream_ts
+                ):
+                    update_model = True
+                    raise WithBreak
+
+                # run prediction
+                self._models.get_model(model_name, model_version, tag)
+                prediction = self._client.predict(model_input, model_name, model_version)
+
+            # download, load into memory the model and retrieve it
+            if update_model:
+                # grab exclusive access to models holder
+                with LockedModel(self._models, "w", model_name, model_version):
+
+                    # check model status
+                    status, _ = self._models.has_model(model_name, model_version)
+
+                    # download model
+                    if status == "not-available":
+                        date = self._models.download_model(
+                            upstream_model["bucket"],
+                            model_name,
+                            model_version,
+                            upstream_model["path"],
+                        )
+                        if not date:
+                            raise WithBreak
+                        current_upstream_ts = date.timestamp()
+
+                    # load model
+                    try:
+                        self._models.load_model(
+                            model_name,
+                            model_version,
+                            current_upstream_ts,
+                            tags,
+                        )
+                    except Exception:
+                        raise WithBreak
+
+                    # run prediction
+                    self._models.get_model(model_name, model_version, tag)
+                    prediction = self._client.predict(model_input, model_name, model_version)
+
+            if prediction:
+                return prediction
+            if tag == "":
+                raise UserException(
+                    "could not run prediction on model '{}' of version '{}' because the model is not available".format(
+                        model_name, model_version
+                    )
+                )
+            raise UserException(
+                "could not run prediction on model '{}' accessed with '{}' tag because the model is not available".format(
+                    model_name, tag
+                )
+            )
 
     def _load_model(
         self, model_path: str, model_name: str, model_version: str, signature_key: Optional[str]
     ) -> Any:
+        """
+        Loads model into TFS.
+        Must only be used when processes_per_replica = 1.
+        """
         try:
             self._client.add_single_model(model_name, model_version, model_path, timeout=30.0)
         except Exception as e:
             self._client.remove_single_model(model_name, model_version)
             raise
+
+        return "loaded tensorflow model"
+
+    def _remove_models(self, model_ids: List[str]) -> None:
+        pass
+
+    def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
+        """
+        Get the version for a specific model name based on the version tag - either "latest" or "highest".
+        Must only be used when processes_per_replica = 1.
+        """
+
+        if tag not in ["latest", "highest"]:
+            raise ValueError("invalid tag; must be either 'latest' or 'highest'")
+
+        versions, timestamps = model_info["versions"], model_info["timestamps"]
+        if tag == "latest":
+            index = timestamps.index(max(timestamps))
+            return versions[index]
+        else:
+            return max(versions)
 
     @property
     def stub(self):
@@ -231,13 +410,12 @@ class TensorFlowServingAPI:
         self,
         model_name: str,
         model_version: str,
-        model_disk_path: str,
         timeout: Optional[float] = None,
     ) -> None:
         """
         Wrapper for remove_models method.
         """
-        self.remove_models([model_name], [[model_version]], [model_disk_path], timeout)
+        self.remove_models([model_name], [[model_version]], timeout)
 
     def add_models(
         self,
@@ -309,7 +487,6 @@ class TensorFlowServingAPI:
         self,
         model_names: List[str],
         model_versions: List[List[str]],
-        model_disk_paths: List[str],
         timeout: Optional[float] = None,
     ) -> None:
         """
@@ -318,7 +495,6 @@ class TensorFlowServingAPI:
         Args:
             model_names: List of model names to add.
             model_versions: List of lists - each element is a list of versions for a given model name.
-            model_disk_paths: The common model disk path of multiple versioned models of the same model name (i.e. modelA/ for modelA/1 and modelA/2).
         Raises:
             grpc.RpcError in case something bad happens while communicating.
                 StatusCode.DEADLINE_EXCEEDED when timeout is encountered. StatusCode.UNAVAILABLE when the service is unreachable.
@@ -328,9 +504,7 @@ class TensorFlowServingAPI:
         request = model_management_pb2.ReloadConfigRequest()
         model_server_config = model_server_config_pb2.ModelServerConfig()
 
-        for model_name, versions, model_disk_path in zip(
-            model_names, model_versions, model_disk_paths
-        ):
+        for model_name, versions in zip(model_names, model_versions):
             for model_version in versions:
                 self._remove_model_from_dict(model_name, model_version)
 
@@ -410,6 +584,21 @@ class TensorFlowServingAPI:
         # but since they don't appear to get reloaded, this would be pointless
         # to be kept in the back of the mind
 
+    def poll_available_models(self, model_name: str) -> List[str]:
+        """
+        Gets the available model versions from TFS.
+
+        Args:
+            model_name: The model name to check for versions.
+
+        Raises:
+            grpc.RpcError in case something bad happens while communicating - should not happen.
+
+        Returns:
+            List of the available versions for the given model from TFS.
+        """
+        pass
+
     def predict(
         self, model_input: Any, model_name: str, model_version: str, timeout: float = 300.0
     ) -> Any:
@@ -423,6 +612,9 @@ class TensorFlowServingAPI:
         Raises:
             UserException when the model input is not valid or when the model's shape doesn't match that of the input's.
             grpc.RpcError in case something bad happens while communicating - should not happen.
+
+        Returns:
+            The prediction.
         """
 
         model_id = f"{model_name}-{model_version}"
