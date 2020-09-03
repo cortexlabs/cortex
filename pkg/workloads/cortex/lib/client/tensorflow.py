@@ -30,6 +30,7 @@ from google.protobuf import json_format
 # for TensorFlowServingAPI
 from tensorflow_serving.apis import model_service_pb2_grpc
 from tensorflow_serving.apis import model_management_pb2
+from tensorflow_serving.apis import get_model_status_pb2
 from tensorflow_serving.config import model_server_config_pb2
 from tensorflow_serving.sources.storage_path.file_system_storage_path_source_pb2 import (
     FileSystemStoragePathSourceConfig,
@@ -297,7 +298,9 @@ class TensorFlowClient:
         """
 
         try:
-            self._client.add_single_model(model_name, model_version, model_path, timeout=30.0)
+            self._client.add_single_model(
+                model_name, model_version, model_path, signature_key, timeout=30.0
+            )
         except Exception as e:
             self._client.remove_single_model(model_name, model_version)
             raise
@@ -410,7 +413,7 @@ class TensorFlowServingAPI:
 
         self.channel = grpc.insecure_channel(self.address)
         self._service = model_service_pb2_grpc.ModelServiceStub(self.channel)
-        self._pred = prediction_service_pb2_grpc.PredictionServiceStub(channel)
+        self._pred = prediction_service_pb2_grpc.PredictionServiceStub(self.channel)
 
     def add_single_model(
         self,
@@ -618,7 +621,19 @@ class TensorFlowServingAPI:
         Returns:
             List of the available versions for the given model from TFS.
         """
-        pass
+        request = get_model_status_pb2.GetModelStatusRequest()
+        request.model_spec.name = model_name
+
+        versions = []
+
+        try:
+            for model in self._service.GetModelStatus(request).model_version_status:
+                if model.state == get_model_status_pb2.ModelVersionStatus.AVAILABLE:
+                    versions.append(str(model.version))
+        except grpc.RpcError as e:
+            pass
+
+        return versions
 
     def predict(
         self, model_input: Any, model_name: str, model_version: str, timeout: float = 300.0
@@ -737,7 +752,21 @@ class TensorFlowServingAPI:
         request.metadata_field.append("signature_def")
 
         # get signature def
-        resp = stub.GetModelMetadata(request)  # might add timeout, but should not be required
+        last_idx = 0
+        for times in range(100):
+            try:
+                resp = self._pred.GetModelMetadata(request)
+                break
+            except grpc.RpcError as e:
+                # it has been observed that it may take a little bit of time
+                # until a model gets to be accessible with TFS (even though it's already loaded in)
+                time.sleep(0.01)
+            last_idx = times
+        if last_idx == 99:
+            raise UserException(
+                "couldn't find model '{}' of version '{}' to extract the signature def"
+            )
+
         sigAny = resp.metadata["signature_def"]
         signature_def_map = get_model_metadata_pb2.SignatureDefMap()
         sigAny.Unpack(signature_def_map)
@@ -755,7 +784,7 @@ class TensorFlowServingAPI:
         self.models[model_id]["input_signature"] = input_signature
 
     def _get_model_names(self) -> List[str]:
-        return [model_id.rsplit("-")[0] for model_id in self.models]
+        return list(set([model_id.rsplit("-")[0] for model_id in self.models]))
 
     def _get_model_info(self, model_name: str) -> Tuple[List[str], str]:
         model_disk_path = ""
@@ -770,7 +799,11 @@ class TensorFlowServingAPI:
         return versions, model_disk_path
 
     def _extract_signature(self, signature_def, signature_key, model_name: str, model_version: str):
-        logger.info("signature defs found in model '{}': {}".format(model_name, signature_def))
+        logger.info(
+            "signature defs found in model '{}' for version '{}': {}".format(
+                model_name, model_version, signature_def
+            )
+        )
 
         available_keys = list(signature_def.keys())
         if len(available_keys) == 0:
@@ -783,7 +816,7 @@ class TensorFlowServingAPI:
         if signature_key is None:
             if len(available_keys) == 1:
                 logger.info(
-                    "signature_key was not configured by user, using signature key '{}' for model '{}'  of version '{}' (found in the signature def map)".format(
+                    "signature_key was not configured by user, using signature key '{}' for model '{}' of version '{}' (found in the signature def map)".format(
                         available_keys[0],
                         model_name,
                         model_version,
@@ -792,7 +825,7 @@ class TensorFlowServingAPI:
                 signature_key = available_keys[0]
             elif "predict" in signature_def:
                 logger.info(
-                    "signature_key was not configured by user, using signature key 'predict' for model '{}'  of version '{}' (found in the signature def map)".format(
+                    "signature_key was not configured by user, using signature key 'predict' for model '{}' of version '{}' (found in the signature def map)".format(
                         model_name,
                         model_version,
                     )
