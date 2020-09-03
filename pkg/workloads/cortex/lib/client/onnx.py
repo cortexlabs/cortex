@@ -28,7 +28,7 @@ from cortex.lib.model import (
     LockedModelsTree,
     CuratedModelResources,
     find_ondisk_model_info,
-    find_ondisk_models,
+    find_ondisk_models_with_lock,
 )
 from cortex.lib.concurrency import LockedFile
 from cortex import consts
@@ -122,7 +122,7 @@ class ONNXClient:
             if model_name is None:
                 raise UserRuntimeException("model_name was not specified")
             if self._multiple_processes:
-                available_models = find_ondisk_models(self._lock_dir)
+                available_models = find_ondisk_models_with_lock(self._lock_dir)
                 if model_name not in available_models:
                     raise UserRuntimeException(
                         f"'{model_name}' model wasn't found in the list of available models"

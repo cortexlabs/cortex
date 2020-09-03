@@ -15,6 +15,8 @@
 from cortex.lib.model.cron import (
     FileBasedModelsTreeUpdater,
     find_ondisk_model_info,
+    find_ondisk_models_with_lock,
+    TFSModelLoader,
     find_ondisk_models,
     ModelsGC,
     ModelTreeUpdater,

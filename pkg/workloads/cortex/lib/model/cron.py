@@ -289,7 +289,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
             )
 
         # remove models that no longer appear in model_names
-        for models, versions in find_ondisk_models(self._lock_dir, include_versions=True):
+        for models, versions in find_ondisk_models_with_lock(self._lock_dir, include_versions=True):
             for model_name in models:
                 if model_name not in model_names:
                     for ondisk_version in versions:
@@ -407,18 +407,19 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 shutil.rmtree(temp_dest)
 
 
-def find_ondisk_models(
+def find_ondisk_models_with_lock(
     lock_dir: str, include_versions: bool = False
 ) -> Union[List[str], Tuple[List[str], List[str]]]:
     """
     Returns all available models from the disk.
-    To be used in conjunction with SimpleModelMonitor.
+    To be used in conjunction with FileBasedModelsTreeUpdater.
 
     This function should never be used for determining whether a model has to be loaded or not.
     Can be used for Python/TensorFlow/ONNX clients.
 
     Args:
         lock_dir: Path to where the resource locks are stored.
+        include_versions: Whether to return the found versions of each model or not.
 
     Returns:
         List with the available models from disk. Just the model, no versions.
@@ -478,6 +479,252 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
                 timestamps.append(current_upstream_ts)
 
     return (versions, timestamps)
+
+
+class TFSModelLoader(mp.Process):
+    """
+    Monitors the S3 path(s)/dir and continuously updates the models on TFS.
+    The model paths are validated - the bad paths are ignored.
+    When a new model is found, it updates the tree, downloads it and loads it into memory - likewise when a model is removed.
+    """
+
+    def __init__(
+        self,
+        interval: int,
+        api_spec: dict,
+        download_dir: str,
+    ):
+        """
+        Args:
+            interval: How often to update the models tree. Measured in seconds.
+            api_spec: Identical copy of pkg.type.spec.api.API.
+            download_dir: Path to where the models are stored.
+        """
+
+        mp.Process.__init__(self)
+
+        self._interval = interval
+        self._api_spec = api_spec
+        self._download_dir = download_dir
+
+        self._s3_paths = []
+        self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
+        self._local_model_names = self._spec_models.get_local_model_names()
+        self._s3_model_names = self._spec_models.get_s3_model_names()
+        for model_name in self._s3_model_names:
+            if not self._spec_models.is_local(model_name):
+                self._s3_paths.append(curated_model["model_path"])
+
+        if (
+            self._api_spec["predictor"]["model_path"] is None
+            and self._api_spec["predictor"]["models"]["dir"] is not None
+        ):
+            self._is_dir_used = True
+            self._models_dir = self._api_spec["predictor"]["models"]["dir"]
+        else:
+            self._is_dir_used = False
+            self._models_dir = None
+
+        if self._api_spec["predictor"]["type"] == "tensorflow":
+            if self._api_spec["compute"]["inf"] > 0:
+                self._predictor_type = TensorFlowNeuronPredictorType
+            else:
+                self._predictor_type = TensorFlowPredictorType
+        else:
+            raise CortexException(
+                "'tensorflow' predictor type is the only allowed type for this cron"
+            )
+
+        self._event_stopper = mp.Event()
+        self._stopped = mp.Event()
+
+    def run(self):
+        """
+        mp.Process-specific method.
+        """
+
+        self.logger = cx_logger()
+        while not self._event_stopper.is_set():
+            self._update_models()
+            time.sleep(self._interval)
+        self._stopped.set()
+
+    def stop(self, blocking: bool = False):
+        """
+        Trigger the process of stopping the process.
+
+        Args:
+            blocking: Whether to wait until the process is stopped or not.
+        """
+
+        self._event_stopper.set()
+        if blocking:
+            self.join()
+
+    def join(self):
+        """
+        Block until the process exits.
+        """
+
+        while not self._stopped.is_set():
+            time.sleep(0.001)
+
+    def _update_models(self) -> None:
+        # get updated/validated paths/versions of the S3 models
+        model_names, versions, model_paths, sub_paths, timestamps, bucket_names = find_all_models(
+            self._is_dir_used,
+            self._models_dir,
+            self._predictor_type,
+            self._s3_paths,
+            self._s3_model_names,
+        )
+
+        # update models on the local disk if changes have been detected
+        # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
+        for idx, model_name, bucket_name in enumerate(zip(model_names, bucket_names)):
+            self._refresh_model(
+                idx, model_name, versions, timestamps[idx], model_paths, sub_paths, bucket_name
+            )
+
+        # remove models that no longer appear in model_names
+        for models, versions in find_ondisk_models(self._download_dir, include_versions=True):
+            for model_name in models:
+                if model_name not in model_names:
+                    for ondisk_version in versions:
+                        ondisk_model_version_path = os.path.join(
+                            self._models_dir, model_name, ondisk_version
+                        )
+                        shutil.rmtree(ondisk_model_version_path)
+                    shutil.rmtree(os.path.join(self._models_dir, model_name))
+
+        # update TFS models
+
+    def _refresh_model(
+        self,
+        idx: int,
+        model_name: str,
+        versions: dict,
+        timestamps: List[datetime.datetime],
+        model_paths: List[str],
+        sub_paths: List[str],
+        bucket_name: str,
+    ) -> None:
+        s3_client = S3(bucket_name, client_config={})
+
+        ondisk_model_path = os.path.join(self._download_dir, model_name)
+        for version, model_ts in zip(versions[model_name], timestamps):
+
+            # check if a model update is mandated
+            update_model = False
+            ondisk_model_version_path = os.path.join(ondisk_model_path, version)
+            if os.path.exists(ondisk_model_version_path):
+                ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+
+                s3_model_version_path = os.path.join(model_paths[idx], version)
+                s3_paths = [
+                    os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
+                ]
+                s3_paths = [path for path in s3_paths if not path.startswith("../")]
+                s3_paths = util.remove_non_empty_directory_paths(s3_paths)
+
+                if set(ondisk_paths) != set(s3_paths):
+                    update_model = True
+            else:
+                update_model = True
+
+            if update_model:
+                # download to a temp directory
+                temp_dest = os.path.join(self._temp_dir, model_name, version)
+                s3_src = os.path.join(model_paths[idx], version)
+                s3_client.download_dir_contents(s3_src, temp_dest)
+
+                # validate the downloaded model
+                model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+                try:
+                    validate_model_paths(model_contents, self._predictor_type, temp_dest)
+                    passed_validation = True
+                except CortexException:
+                    passed_validation = False
+                    shutil.rmtree(temp_dest)
+
+                # move the model to its destination directory
+                if passed_validation:
+                    ondisk_model_version = os.path.join(model_paths[idx], version)
+                    if os.path.exists(ondisk_model_version):
+                        shutil.rmtree(ondisk_model_version)
+                    shutil.move(temp_dest, ondisk_model_version)
+
+        # remove model versions if they are not found on the upstream
+        # except when the model version found on disk is 1 and the number of detected versions on the upstream is 0,
+        # thus indicating the 1-version on-disk model must be a model that came without a version
+        if os.path.exists(ondisk_model_path):
+            ondisk_model_versions = glob.glob(ondisk_model_path + "*/**")
+            for ondisk_version in ondisk_model_versions:
+                if ondisk_version not in versions[model_name] and (
+                    ondisk_version != "1" or len(versions[model_name]) > 0
+                ):
+                    ondisk_model_version_path = os.path.join(ondisk_model_path, ondisk_version)
+                    shutil.rmtree(ondisk_model_version_path)
+
+            if len(glob.glob(ondisk_model_path + "*/**")) == 0:
+                shutil.rmtree(ondisk_model_path)
+
+        # if it's a non-versioned model ModelVersion.NOT_PROVIDED
+        if len(versions[model_name]) == 0:
+            # download to a temp directory
+            temp_dest = os.path.join(self._temp_dir, model_name)
+            s3_client.download_dir_contents(model_paths[idx], temp_dest)
+
+            # validate the downloaded model
+            model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+            try:
+                validate_model_paths(model_contents, self._predictor_type, temp_dest)
+                passed_validation = True
+            except CortexException:
+                passed_validation = False
+                shutil.rmtree(temp_dest)
+
+            # move the model to its destination directory
+            if passed_validation:
+                ondisk_model_version = os.path.join(model_paths[idx], "1")
+                if os.path.exists(ondisk_model_version):
+                    shutil.rmtree(ondisk_model_version)
+                shutil.move(temp_dest, ondisk_model_version)
+
+                # cleanup
+                shutil.rmtree(temp_dest)
+
+
+def find_ondisk_models(
+    models_dir: str, include_versions: bool = False
+) -> Union[List[str], Tuple[List[str], List[str]]]:
+    """
+    Returns all available models from the disk.
+    To be used in conjunction with SimpleModelMonitor.
+
+    This function should never be used for determining whether a model has to be loaded or not.
+    Can be used for Python/TensorFlow/ONNX clients.
+
+    Args:
+        models_dir: Path to where the models are stored.
+        include_versions: Whether to return the found versions of each model or not.
+
+    Returns:
+        List with the available models from disk. Just the model, no versions.
+        Or when include_versions is set, 2 paired lists, one containing the model names and the other one the versions: ["A", "B", "B"] w/ ["1", "1", "2"].
+    """
+
+    model_names = [os.path.basename(file) for file in os.listdir(models_dir)]
+    versions = []
+
+    for model_name in models:
+        model_versions = os.listdir(os.path.join(models_dir, model))
+        versions.append(model_versions)
+
+    if include_versions:
+        return (models, versions)
+    else:
+        return list(set(models))
 
 
 class AbstractLoopingThread(td.Thread):

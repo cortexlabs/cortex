@@ -48,8 +48,6 @@ from cortex.lib.model import (
     ModelsTree,
     LockedModelsTree,
     CuratedModelResources,
-    find_ondisk_model_info,
-    find_ondisk_models,
 )
 from cortex.lib.log import cx_logger
 from cortex import consts
@@ -106,7 +104,8 @@ class TensorFlowClient:
     def predict(
         self, model_input: Any, model_name: Optional[str] = None, model_version: str = "highest"
     ) -> dict:
-        """Validate model_input, convert it to a Prediction Proto, and make a request to TensorFlow Serving.
+        """
+        Validate model_input, convert it to a Prediction Proto, and make a request to TensorFlow Serving.
 
         Args:
             model_input: Input to the model.
@@ -284,12 +283,12 @@ class TensorFlowClient:
                 return prediction
             if tag == "":
                 raise UserException(
-                    "could not run prediction on model '{}' of version '{}' because the model is not available".format(
+                    "could not run prediction on model '{}' of version '{}' because the model couldn't be loaded or isn't available".format(
                         model_name, model_version
                     )
                 )
             raise UserException(
-                "could not run prediction on model '{}' accessed with '{}' tag because the model is not available".format(
+                "could not run prediction on model '{}' accessed with '{}' tag because the model couldn't be loaded or isn't available".format(
                     model_name, tag
                 )
             )
