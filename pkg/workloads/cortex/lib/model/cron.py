@@ -27,6 +27,7 @@ from cortex.lib.api import (
     ONNXPredictorType,
     PredictorType,
 )
+from cortex.lib.model import TensorFlowServingAPI
 from cortex.lib.model import (
     validate_models_dir_paths,
     validate_model_paths,
@@ -51,6 +52,7 @@ import datetime
 import glob
 import shutil
 import itertools
+import json
 
 
 def find_all_models(
@@ -492,13 +494,17 @@ class TFSModelLoader(mp.Process):
         self,
         interval: int,
         api_spec: dict,
+        address: str,
         download_dir: str,
+        lock_dir: str = "/run/cron",
     ):
         """
         Args:
             interval: How often to update the models tree. Measured in seconds.
             api_spec: Identical copy of pkg.type.spec.api.API.
+            address: An address with the "host:port" format to where TFS is located.
             download_dir: Path to where the models are stored.
+            lock_dir: Directory in which model timestamps are stored.
         """
 
         mp.Process.__init__(self)
@@ -506,6 +512,10 @@ class TFSModelLoader(mp.Process):
         self._interval = interval
         self._api_spec = api_spec
         self._download_dir = download_dir
+        self._lock_dir = lock_dir
+
+        self._client = TensorFlowServingAPI(address)
+        self._old_ts_state = None
 
         self._s3_paths = []
         self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
@@ -598,6 +608,57 @@ class TFSModelLoader(mp.Process):
                     shutil.rmtree(os.path.join(self._models_dir, model_name))
 
         # update TFS models
+        current_ts_state = {}
+        for model_name, model_timestamps in zip(model_names, timestamps):
+            for model_version, model_ts in zip(versions[model_name], model_timestamps):
+
+                # remove outdated model
+                model_id = f"{model_name}-{model_version}"
+                current_ts_state[model_id] = model_ts
+                has_updated = False
+                if (
+                    self._old_ts_state
+                    and model_id in self._old_ts_state
+                    and self._old_ts_state[model_id] < model_ts
+                ):
+                    self._client.remove_single_model(model_name, model_version)
+                    has_updated = True
+
+                # load model
+                model_disk_path = os.path.join(self._models_dir, model_name, model_version)
+                try:
+                    self._client.add_single_model(
+                        model_name,
+                        model_version,
+                        model_disk_path,
+                        skip_if_present=True,
+                        timeout=30.0,
+                    )
+                except Exception as e:
+                    self._client.remove_single_model(model_name, model_version)
+
+                if has_updated:
+                    logger.info(
+                        "model '{}' of version '{}' has been updated".format(
+                            model_name, model_version
+                        )
+                    )
+                else:
+                    logger.info(
+                        "model '{}' of version '{}' has been loaded".format(
+                            model_name, model_version
+                        )
+                    )
+
+        # save model timestamp states to disk
+        # could be cast to a short-lived thread
+        # required for printing the model stats when cortex getting
+        resource = os.path.join(self._lock_dir, "model_timestamps.json")
+        with LockedFile(resource, "w") as f:
+            json.dump(current_ts_state, f)
+
+        # save model timestamp states
+        self._old_ts_state = current_ts_state
 
     def _refresh_model(
         self,
