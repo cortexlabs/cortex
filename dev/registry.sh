@@ -51,8 +51,9 @@ ecr_logged_in=false
 function ecr_login() {
   if [ "$ecr_logged_in" = false ]; then
     blue_echo "Logging in to ECR..."
-    ecr_login_command=$(aws ecr get-login --no-include-email --region $REGISTRY_REGION)
-    eval $ecr_login_command
+    ecr_login_password=$(aws ecr get-login-password --region $REGISTRY_REGION)
+    echo $ecr_login_password | docker login --username AWS --password-stdin $REGISTRY_URL
+    echo $ecr_login_password | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
     ecr_logged_in=true
     green_echo "Success\n"
   fi
