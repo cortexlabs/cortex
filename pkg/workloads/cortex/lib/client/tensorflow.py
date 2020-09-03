@@ -98,6 +98,7 @@ class TensorFlowClient:
 
         if self._models:
             self._models.set_callback("load", self._load_model)
+            self._models.set_callback("remove", self._remove_models)
 
         self._client = TensorFlowServingAPI(tf_serving_url)
 
@@ -294,6 +295,7 @@ class TensorFlowClient:
         Loads model into TFS.
         Must only be used when processes_per_replica = 1.
         """
+
         try:
             self._client.add_single_model(model_name, model_version, model_path, timeout=30.0)
         except Exception as e:
@@ -303,7 +305,26 @@ class TensorFlowClient:
         return "loaded tensorflow model"
 
     def _remove_models(self, model_ids: List[str]) -> None:
-        pass
+        """
+        Remove models from TFS.
+        Must only be used when processes_per_replica = 1.
+        """
+
+        models = {}
+        for model_id in model_ids:
+            model_name, model_version = model_id.rsplit("-")
+            if model_name not in models:
+                models[model_name] = [model_version]
+            else:
+                models[model_name].append(model_version)
+
+        model_names = []
+        model_versions = []
+        for model_name, versions in models:
+            model_names.append(model_name)
+            model_versions.append(versions)
+
+        self._client.remove_models(model_names, model_versions)
 
     def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
         """
