@@ -282,7 +282,7 @@ class ModelsHolder:
         model_version: str,
         upstream_timestamp: int,
         tags: List[str] = [],
-        **kwargs,
+        kwargs: dict,
     ) -> None:
         """
         Loads a given model into memory.

@@ -267,6 +267,11 @@ class TensorFlowClient:
                             model_version,
                             current_upstream_ts,
                             tags,
+                            kwargs={
+                                "model_name": model_name,
+                                "model_version": model_version,
+                                "signature_key": self._determine_model_signature_key(model_name),
+                            },
                         )
                     except Exception:
                         raise WithBreak
@@ -328,6 +333,20 @@ class TensorFlowClient:
             model_versions.append(versions)
 
         self._client.remove_models(model_names, model_versions)
+
+    def _determine_model_signature_key(self, model_name: str) -> Optional[str]:
+        """
+        Determine what's the signature key for a given model from API spec.
+        """
+
+        signature_key = None
+
+        if self._models_dir:
+            signature_key = self._api_spec["predictor"]["models"]["signature_key"]
+        else:
+            signature_key = self._spec_model_names[model_name]["signature_key"]
+
+        return signature_key
 
     def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
         """
