@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -47,6 +48,8 @@ func getCloudFormationURL(clusterName, region string) string {
 
 const (
 	ErrInvalidProvider                      = "cli.invalid_provider"
+	ErrInvalidOutputType                    = "cli.invalid_output_type"
+	ErrEnvironmentFlagRequired              = "cli.environment_flag_required"
 	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
 	ErrCommandNotSupportedForKind           = "cli.command_not_supported_for_kind"
 	ErrEnvironmentNotFound                  = "cli.environment_not_found"
@@ -87,6 +90,20 @@ func ErrorInvalidProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidProvider,
 		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(types.ProviderTypeStrings())),
+	})
+}
+
+func ErrorInvalidOutputType(invalidOutputType string, validOutputTypes []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidOutputType,
+		Message: fmt.Sprintf("invalid value specified for flag --output %s, valid output values are %s", invalidOutputType, s.StrsAnd(validOutputTypes)),
+	})
+}
+
+func ErrorEnvironmentFlagRequired(outputType flags.OutputType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrEnvironmentFlagRequired,
+		Message: fmt.Sprintf("the flag '--output %s' is only supported when either the environment flag (e.g. `cortex get --env local`) is provided or a specific API_NAME and/or JOB_ID is provided (e.g. `cortex get iris-classifier`)", outputType.String()),
 	})
 }
 
