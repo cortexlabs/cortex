@@ -22,12 +22,13 @@ class PythonPredictor:
     def predict(self, payload):
         context = payload["context"]
         answer = payload["answer"]
-        max_length = 64
 
         if "max_length" in payload:
             max_length = payload["max_length"]
+        else:
+            max_length = 64
 
-        input_text = "answer: %s  context: %s </s>" % (answer, context)
+        input_text = "answer: {}  context: {} </s>".format(answer, context)
         features = self.tokenizer([input_text], return_tensors="pt")
 
         output = self.model.generate(
@@ -36,7 +37,4 @@ class PythonPredictor:
             max_length=max_length,
         )
 
-        result = self.tokenizer.decode(output[0])
-        response = {"result": result}
-
-        return json.dumps(response)
+        return {"result": self.tokenizer.decode(output[0])}
