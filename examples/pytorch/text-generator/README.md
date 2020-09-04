@@ -1,6 +1,6 @@
 # Deploy models as Realtime APIs
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.18.*, run `git checkout -b 0.18` or switch to the `0.18` branch on GitHub)_
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.19.*, run `git checkout -b 0.19` or switch to the `0.19` branch on GitHub)_
 
 This example shows how to deploy a realtime text generatation API using a GPT-2 model from Hugging Face's transformers library.
 
