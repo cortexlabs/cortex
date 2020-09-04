@@ -25,7 +25,9 @@ for gpu in tf.config.list_physical_devices("GPU"):
 ```python
 mem_limit_mb = 1024
 for gpu in tf.config.list_physical_devices("GPU"):
-    tf.config.set_logical_device_configuration(gpu, [tf.config.LogicalDeviceConfiguration(memory_limit=mem_limit_mb)])
+    tf.config.set_logical_device_configuration(
+        gpu, [tf.config.LogicalDeviceConfiguration(memory_limit=mem_limit_mb)]
+    )
 ```
 
 See the [TensorFlow GPU guide](https://www.tensorflow.org/guide/gpu) and this [blog post](https://medium.com/@starriet87/tensorflow-2-0-wanna-limit-gpu-memory-10ad474e2528) for additional information.
