@@ -6,7 +6,7 @@
 1. Update the version in `manager/Dockerfile`
 1. Update `generate_eks.py` as necessary
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
-1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.26.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Update eksctl on your dev machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.27.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
 
 ## Kubernetes
 
