@@ -51,16 +51,25 @@ class PythonPredictor:
 
 class PythonPredictor:
     def __init__(self, config, job_spec):
-        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+        """(Required) Called once during each worker initialization. Performs
+        setup such as downloading/initializing the model or downloading a
+        vocabulary.
 
         Args:
-            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            config (required): Dictionary passed from API configuration (if
+                specified) merged with configuration passed in with Job
+                Submission API. If there are conflicting keys, values in
+                configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the submitted job
+                request and additional information such as the job_id.
         """
         pass
 
     def predict(self, payload, batch_id):
-        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference, postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
+        """(Required) Called once per batch. Preprocesses the batch payload (if
+        necessary), runs inference, postprocesses the inference output (if
+        necessary), and writes the predictions to storage (i.e. S3 or a
+        database, if desired).
 
         Args:
             payload (required): a batch (i.e. a list of one or more samples).
@@ -71,7 +80,9 @@ class PythonPredictor:
         pass
 
     def on_job_complete(self):
-        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been
+        processed. Performs post job completion tasks such as aggregating
+        results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
@@ -163,18 +174,29 @@ If your application requires additional dependencies, you can install additional
 ```python
 class TensorFlowPredictor:
     def __init__(self, tensorflow_client, config, job_spec):
-        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+        """(Required) Called once during each worker initialization. Performs
+        setup such as downloading/initializing the model or downloading a
+        vocabulary.
 
         Args:
-            tensorflow_client (required): TensorFlow client which is used to make predictions. This should be saved for use in predict().
-            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            tensorflow_client (required): TensorFlow client which is used to
+                make predictions. This should be saved for use in predict().
+            config (required): Dictionary passed from API configuration (if
+                specified) merged with configuration passed in with Job
+                Submission API. If there are conflicting keys, values in
+                configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the submitted job request
+                and additional information such as the job_id.
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
 
     def predict(self, payload, batch_id):
-        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
+        """(Required) Called once per batch. Preprocesses the batch payload (if
+        necessary), runs inference (e.g. by calling
+        self.client.predict(model_input)), postprocesses the inference output
+        (if necessary), and writes the predictions to storage (i.e. S3 or a
+        database, if desired).
 
         Args:
             payload (required): a batch (i.e. a list of one or more samples).
@@ -185,7 +207,9 @@ class TensorFlowPredictor:
         pass
 
     def on_job_complete(self):
-        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been
+        processed. Performs post job completion tasks such as aggregating
+        results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
@@ -232,18 +256,29 @@ If your application requires additional dependencies, you can install additional
 ```python
 class ONNXPredictor:
     def __init__(self, onnx_client, config, job_spec):
-        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+        """(Required) Called once during each worker initialization. Performs
+        setup such as downloading/initializing the model or downloading a
+        vocabulary.
 
         Args:
-            onnx_client (required): ONNX client which is used to make predictions. This should be saved for use in predict().
-            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            onnx_client (required): ONNX client which is used to make
+                predictions. This should be saved for use in predict().
+            config (required): Dictionary passed from API configuration (if
+                specified) merged with configuration passed in with Job
+                Submission API. If there are conflicting keys, values in
+                configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the submitted job request
+                and additional information such as the job_id.
         """
         self.client = onnx_client
         # Additional initialization may be done here
 
     def predict(self, payload, batch_id):
-        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
+        """(Required) Called once per batch. Preprocesses the batch payload (if
+        necessary), runs inference (e.g. by calling
+        self.client.predict(model_input)), postprocesses the inference output
+        (if necessary), and writes the predictions to storage (i.e. S3 or a
+        database, if desired).
 
         Args:
             payload (required): a batch (i.e. a list of one or more samples).
@@ -254,7 +289,9 @@ class ONNXPredictor:
         pass
 
     def on_job_complete(self):
-        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been
+        processed. Performs post job completion tasks such as aggregating
+        results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
