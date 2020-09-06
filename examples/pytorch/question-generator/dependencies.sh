@@ -1,0 +1,1 @@
+pip uninstall torchvision -y
