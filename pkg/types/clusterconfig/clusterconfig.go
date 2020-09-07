@@ -38,7 +38,9 @@ import (
 )
 
 const (
-	ClusterNameTag            = "cortex.dev/cluster-name"
+	ClusterNameTag = "cortex.dev/cluster-name"
+
+	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
 	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
 )
 
