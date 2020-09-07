@@ -17,7 +17,7 @@ Traffic Splitter expects the target Realtime APIs to already be running or be in
   kind: TrafficSplitter  # must be "TrafficSplitter", create an Traffic Splitter which routes traffic to multiple Realtime APIs
   networking:
     endpoint: <string>  # the endpoint for the Traffic Splitter (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public)
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public, unless disabled cluster-wide)
   apis:  # list of Realtime APIs to target
     - name: <string>  # name of a Realtime API that is already running or is included in the same configuration file (required)
       weight: <int>   # percentage of traffic to route to the Realtime API (all weights must sum to 100) (required)
