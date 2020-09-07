@@ -173,9 +173,70 @@ var _upCmd = &cobra.Command{
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
 				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
 			}
-			helpStr := "\nDebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
-			helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+
+			tags := map[string]string{clusterconfig.ClusterNameTag: clusterConfig.ClusterName}
+
+			eksCluster, err := awsClient.GetEKSCluster(tags)
+			if err != nil {
+				helpStr := "\ndebugging tips (may or may not apply to this error):"
+				helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+				helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			// the cluster never started spinning up
+			if eksCluster == nil {
+				exit.Error(ErrorClusterUp(out))
+			}
+
+			asgs, err := awsClient.AutoscalingGroups(tags)
+			if err != nil {
+				helpStr := "\ndebugging tips (may or may not apply to this error):"
+				helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+				helpStr += fmt.Sprintf("\n* please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			// no autoscaling groups were created
+			if len(asgs) == 0 {
+				helpStr := fmt.Sprintf("\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			for _, asg := range asgs {
+				failedActivities, isSuccessful, err := awsClient.AutoscalingGroupUnsuccessfulActivities(*asg.AutoScalingGroupName)
+				if err != nil {
+					helpStr := "\ndebugging tips (may or may not apply to this error):"
+					helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+					helpStr += fmt.Sprintf("\n* please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+					fmt.Println(helpStr)
+					exit.Error(ErrorClusterUp(out + helpStr))
+				}
+
+				if !isSuccessful && len(failedActivities) > 0 {
+					status := "(none)"
+					if failedActivities[0].StatusCode != nil {
+						status = *failedActivities[0].StatusCode
+					}
+					description := "(none)"
+					if failedActivities[0].Description != nil {
+						description = *failedActivities[0].Description
+					}
+
+					helpStr := "\nyour cluster was unable to provision EC2 instances; here is one of the encountered errors:"
+					helpStr += fmt.Sprintf("\nstatus: %s\ndescription: %s", status, description)
+					helpStr += fmt.Sprintf("\n\nadditional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+					helpStr += fmt.Sprintf("\n\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+					fmt.Println(helpStr)
+					exit.Error(ErrorClusterUp(out + helpStr))
+				}
+			}
+
+			// No failed asg activities
+			helpStr := fmt.Sprintf("\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
@@ -239,8 +300,8 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := "\nDebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+			helpStr := "\ndebugging tips (may or may not apply to this error):"
+			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
