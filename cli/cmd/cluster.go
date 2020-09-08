@@ -174,9 +174,7 @@ var _upCmd = &cobra.Command{
 				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
 			}
 
-			tags := map[string]string{clusterconfig.ClusterNameTag: clusterConfig.ClusterName}
-
-			eksCluster, err := awsClient.GetEKSCluster(tags)
+			eksCluster, err := awsClient.EKSClusterOrNil(clusterConfig.ClusterName)
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"
 				helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
@@ -190,7 +188,8 @@ var _upCmd = &cobra.Command{
 				exit.Error(ErrorClusterUp(out))
 			}
 
-			asgs, err := awsClient.AutoscalingGroups(tags)
+			clusterTags := map[string]string{clusterconfig.ClusterNameTag: clusterConfig.ClusterName}
+			asgs, err := awsClient.AutoscalingGroups(clusterTags)
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"
 				helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
