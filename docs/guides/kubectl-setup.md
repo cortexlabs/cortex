@@ -41,3 +41,5 @@ fluentd-bv8xl                   1/1     Running   0          6m20s
 fluentd-vrwhw                   1/1     Running   0          6m20s
 operator-dc489b4f9-mmwkz        1/1     Running   0          6m14s
 ```
+
+Kubectl is now set up!
