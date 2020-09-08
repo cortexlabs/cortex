@@ -2,31 +2,31 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Since Cortex is built on top of Kubernetes, you can get more granular control over your Cortex cluster by interacting with the `kubectl` CLI.
+Although it is not necessary to use `kubectl` to interact with Cortex clusters, advanced users can use `kubectl` to get more granular visibility into the cluster (since Cortex is built on top of Kubernetes).
 
-The following are the steps required to get `kubectl` set up for your existing Cortex cluster.
+Here's how to set up `kubectl` and connect it to your existing Cortex cluster:
 
 ## Step 1
 
-Install `eksctl` by following these [instructions](https://eksctl.io/introduction/#installation). Don't forget to have the AWS credentials set too.
+Install `kubectl` by following these [instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
 ## Step 2
 
-Install `kubectl` by following these [instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
+Install `eksctl` by following these [instructions](https://eksctl.io/introduction/#installation).
 
 ## Step 3
 
-Run the following command. Your output can be different.
+Make sure that your AWS credentials are available in your current shell environment. `eksctl` will search for credentials in the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables, or your `aws` CLI's credentials file (which can be created with `aws configure`).
+
+## Step 4
+
+Run the following command:
 
 ```bash
 $ eksctl utils write-kubeconfig --cluster=<cluster_name> --region=<region>
-
-[ℹ]  eksctl version 0.19.0-rc.1
-[ℹ]  using region us-east-1
-[✔]  saved kubeconfig as "/home/robert/.kube/config"
 ```
 
-Where `<cluster_name>` is the name of your cluster as specified in `cluster.yaml` and with `<region>` being the region of the cluster, still as it was specified in the `cluster.yaml` config.
+Where `<cluster_name>` is the name of your cluster and `<region>` is the region of the cluster. These were specified when your cluster was created, either via command line prompts or your cluster configuration file (e.g. `cluster.yaml`). The default cluster name is `cortex`, and the default region is `us-east-1`.
 
 ## Step 4
 
@@ -42,4 +42,4 @@ fluentd-vrwhw                   1/1     Running   0          6m20s
 operator-dc489b4f9-mmwkz        1/1     Running   0          6m14s
 ```
 
-Kubectl is now set up!
+`kubectl` is now configured!
