@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -67,9 +68,7 @@ const (
 	ErrNoVersionsFoundForPythonModelPath = "spec.no_versions_found_for_python_model_path"
 	ErrPythonModelVersionPathMustBeDir   = "spec.python_model_version_path_must_be_dir"
 
-	ErrInvalidTensorFlowModelPath            = "spec.invalid_tensorflow_model_path"
-	ErrNoVersionsFoundForTensorFlowModelPath = "spec.no_versions_found_for_tensorflow_model_path"
-	ErrTensorFlowModelVersionPathMustBeDir   = "spec.tensorflow_model_version_path_must_be_dir"
+	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 
 	ErrMissingModel        = "spec.missing_model"
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
@@ -369,59 +368,50 @@ var _tfExpectedStructMessage = `
           ├── variables.index
           ├── variables.data-00000-of-00003
           ├── variables.data-00001-of-00003
-          └── variables.data-00002-of-...`
+          └── variables.data-00002-of-...
+
+  or like
+
+  %s
+  ├── saved_model.pb
+  └── variables/
+      ├── variables.index
+      ├── variables.data-00000-of-00003
+      ├── variables.data-00001-of-00003
+	  └── variables.data-00002-of-...
+`
 
 var _neuronTfExpectedStructMessage = `
   %s
   ├── 1523423423/ (Version prefix, usually a timestamp)
   |   └── saved_model.pb
   └── 2434389194/ (Version prefix, usually a timestamp)
-      └── saved_model.pb`
+	  └── saved_model.pb
 
-func ErrorInvalidTensorFlowModelPath(path string, neuronExport bool) error {
+  or like
+  
+  %s
+  └── saved_model.pb
+`
+
+var _modelCurrentStructure = `
+  but its current structure is
+
+%s`
+
+func ErrorInvalidTensorFlowModelPath(path string, paths []string, neuronExport bool) error {
 	neuronKey := ""
 	if neuronExport {
 		neuronKey = "Neuron "
 	}
 	message := fmt.Sprintf("%s: each %s%s SavedModel model must be structured the following way.\n", path, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
 	if neuronExport {
-		message += fmt.Sprintf(_neuronTfExpectedStructMessage, path)
+		message += fmt.Sprintf(_neuronTfExpectedStructMessage, path, path)
 	} else {
-		message += fmt.Sprintf(_tfExpectedStructMessage, path)
+		message += fmt.Sprintf(_tfExpectedStructMessage, path, path)
 	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidTensorFlowModelPath,
-		Message: message,
-	})
-}
-
-func ErrorNoVersionsFoundForTensorFlowModelPath(path string, neuronExport bool) error {
-	neuronKey := ""
-	if neuronExport {
-		neuronKey = "Neuron "
-	}
-	message := fmt.Sprintf("%s: no versions found for %s%s SavedModel. The SavedModel model must be structured the following way.\n", path, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
-	if neuronExport {
-		message += fmt.Sprintf(_neuronTfExpectedStructMessage, path)
-	} else {
-		message += fmt.Sprintf(_tfExpectedStructMessage, path)
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidTensorFlowModelPath,
-		Message: message,
-	})
-}
-
-func ErrorTensorFlowModelVersionPathMustBeDir(path, versionedPath string, neuronExport bool) error {
-	neuronKey := ""
-	if neuronExport {
-		neuronKey = "Neuron "
-	}
-	message := fmt.Sprintf("%s: each %s%s SavedModel version must be a directory. The SavedModel model must be structured the following way.\n", versionedPath, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
-	if neuronExport {
-		message += fmt.Sprintf(_neuronTfExpectedStructMessage, path)
-	} else {
-		message += fmt.Sprintf(_tfExpectedStructMessage, path)
+	if len(paths) > 0 {
+		message += fmt.Sprintf(_modelCurrentStructure, s.Indent(files.FileTree(paths, "", files.DirsSorted), "  "))
 	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowModelPath,

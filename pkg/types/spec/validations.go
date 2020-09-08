@@ -879,6 +879,8 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		}
 	}
 
+	return &errors.Error{}
+
 	return nil
 }
 
@@ -908,13 +910,21 @@ func validateTensorFlowModel(
 
 		isNeuronExport := api.Compute.Inf > 0
 		if yes, err := awsClientForBucket.IsS3PathDir(modelResource.ModelPath); yes {
-			versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, isNeuronExport, awsClientForBucket)
+			modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
-			modelResource.Versions = versions
+
+			versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, modelPaths, isNeuronExport, awsClientForBucket)
+			if err != nil {
+				if err = validateTFServingS3ModelDir(modelResource.ModelPath, modelPaths, modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
+					return errors.Wrap(err, modelName)
+				}
+			} else {
+				modelResource.Versions = versions
+			}
 		} else if !yes && err == nil {
-			return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport), modelName)
+			return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, []string{}, isNeuronExport), modelName)
 		} else if err != nil {
 			return errors.Wrap(err, modelName)
 		}
@@ -924,13 +934,20 @@ func validateTensorFlowModel(
 		}
 
 		if files.IsDir(modelResource.ModelPath) {
-			versions, err := getTFServingVersionsFromLocalPath(modelResource.ModelPath)
+			modelPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
-			modelResource.Versions = versions
+			versions, err := getTFServingVersionsFromLocalPath(modelResource.ModelPath, modelPaths)
+			if err != nil {
+				if err = validateTFServingLocalModelDir(modelResource.ModelPath, modelPaths, modelResource.ModelPath); err != nil {
+					return errors.Wrap(err, modelName)
+				}
+			} else {
+				modelResource.Versions = versions
+			}
 		} else {
-			return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false), modelName)
+			return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, []string{}, false), modelName)
 		}
 	}
 

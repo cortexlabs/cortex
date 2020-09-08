@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -33,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/denormal/go-gitignore"
 	"github.com/mitchellh/go-homedir"
@@ -595,6 +597,52 @@ func ErrorOnProjectSizeLimit(maxProjectSizeBytes int64) IgnoreFn {
 	}
 }
 
+// Retrieves the common path given a list of paths.
+// Expects absolute paths - that is, paths starting with the "/" symbol.
+func CommonPath(paths ...string) string {
+
+	// Handle special cases.
+	switch len(paths) {
+	case 0:
+		return ""
+	case 1:
+		return path.Clean(paths[0])
+	}
+
+	var splitPaths [][]string
+	shortestPathLength := -1
+	for _, path := range paths {
+		splitPath := slices.RemoveEmpties(strings.Split(path, "/"))
+		splitPaths = append(splitPaths, splitPath)
+
+		if len(splitPath) < shortestPathLength || shortestPathLength == -1 {
+			shortestPathLength = len(splitPath)
+		}
+	}
+
+	commonPath := ""
+	numPaths := len(splitPaths)
+
+	for level := 0; level < shortestPathLength; level += 1 {
+		element := splitPaths[0][level]
+		counter := 1
+		for _, splitPath := range splitPaths[1:] {
+			if splitPath[level] != element {
+				break
+			}
+			counter += 1
+		}
+
+		if counter != numPaths {
+			break
+		}
+
+		commonPath = filepath.Join(commonPath, element)
+	}
+
+	return s.EnsurePrefix(commonPath, "/")
+}
+
 type DirsOrder string
 
 var DirsSorted DirsOrder = "sorted"
@@ -646,7 +694,7 @@ func FileTree(paths []string, cwd string, dirsOrder DirsOrder) string {
 		dirPaths = DirPaths(paths, true)
 	}
 
-	commonPrefix := s.LongestCommonPrefix(dirPaths...)
+	commonPrefix := CommonPath(dirPaths...)
 	paths, _ = s.TrimPrefixIfPresentInAll(paths, commonPrefix)
 
 	var header string
