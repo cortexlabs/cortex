@@ -31,6 +31,7 @@ from cortex.lib.api import (
 # crons
 from cortex.lib.model import (
     FileBasedModelsTreeUpdater,  # only when num workers > 1
+    TFSModelLoader,
     ModelsGC,
     ModelTreeUpdater,
     ModelPreloader,
@@ -85,10 +86,18 @@ class Predictor:
                 mem_cache_size=self.api_spec["predictor"]["models"]["cache_size"],
                 disk_cache_size=self.api_spec["predictor"]["models"]["disk_cache_size"],
             )
-        else:
+        elif not self.model_caching and self.type not in [
+            TensorFlowPredictorType,
+            TensorFlowNeuronPredictorType,
+        ]:
             self.models = ModelsHolder(self.type, self.model_dir)
+        else:
+            self.models = None
 
-        if self.multiple_processes:
+        if self.multiple_processes or (
+            not self.multiple_processes
+            and self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]
+        ):
             self.models_tree = None
         else:
             self.models_tree = ModelsTree()
@@ -118,10 +127,12 @@ class Predictor:
             client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
-            pass
-            # from cortex.lib.client.tensorflow import TensorFlowClient
-            # tf_serving_address = tf_serving_host + ":" + tf_serving_port
-            # client = TensorFlowClient(tf_serving_address)
+            from cortex.lib.client.tensorflow import TensorFlowClient
+
+            tf_serving_address = tf_serving_host + ":" + tf_serving_port
+            client = TensorFlowClient(
+                tf_serving_address, self.api_spec, self.models, self.model_dir, self.models_tree
+            )
 
         if self.type == ONNXPredictorType:
             from cortex.lib.client.onnx import ONNXClient
@@ -158,10 +169,25 @@ class Predictor:
             refresh_logger()
 
         # initialize the crons
-        if self.multiple_processes:
+        if self.multiple_processes and self.type not in [
+            TensorFlowPredictorType,
+            TensorFlowNeuronPredictorType,
+        ]:
             self.crons = [
                 FileBasedModelsTreeUpdater(
                     interval=10, api_spec=self.api_spec, model_dir=self.model_dir
+                )
+            ]
+        elif not self.multiple_processes and self.type in [
+            TensorFlowPredictorType,
+            TensorFlowNeuronPredictorType,
+        ]:
+            self.crons = [
+                TFSModelLoader(
+                    interval=10,
+                    api_spec=self.api_spec,
+                    address=client.tf_serving_url,
+                    download_dir=self.model_dir,
                 )
             ]
         else:

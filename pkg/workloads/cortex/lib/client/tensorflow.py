@@ -42,7 +42,7 @@ class TensorFlowClient:
         Setup gRPC connection to TensorFlow Serving container.
 
         Args:
-            tf_serving_url: Localhost URL to TF Serving container.
+            tf_serving_url: Localhost URL to TF Serving container (i.e. "localhost:9000")
             api_spec: API configuration.
 
             models: Holding all models into memory. Only when processes_per_replica = 1.
@@ -50,7 +50,8 @@ class TensorFlowClient:
             models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1.
         """
 
-        self._tf_serving_url = tf_serving_url
+        self.tf_serving_url = tf_serving_url
+
         self._api_spec = api_spec
         self._models = models
         self._models_tree = models_tree
@@ -84,6 +85,7 @@ class TensorFlowClient:
         Args:
             model_input: Input to the model.
             model_name: Model to use when multiple models are deployed in a single API.
+            model_version: A numerical value indicating the model's version or "latest" or "highest". "latest" not supported when processes_per_replica > 1 and TensorFlowPredictor is used.
 
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.
