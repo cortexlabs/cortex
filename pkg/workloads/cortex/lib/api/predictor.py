@@ -178,7 +178,7 @@ class Predictor:
                     interval=10, api_spec=self.api_spec, model_dir=self.model_dir
                 )
             ]
-        elif not self.multiple_processes and self.type in [
+        elif self.multiple_processes and self.type in [
             TensorFlowPredictorType,
             TensorFlowNeuronPredictorType,
         ]:
