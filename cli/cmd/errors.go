@@ -42,7 +42,7 @@ func errStrFailedToConnect(u url.URL) string {
 }
 
 func getCloudFormationURL(clusterName, region string) string {
-	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", region, clusterName)
+	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=eksctl-%s-", region, clusterName)
 }
 
 const (
