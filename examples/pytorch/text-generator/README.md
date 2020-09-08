@@ -2,7 +2,7 @@
 
 _this is an example for cortex release 0.19 and may not deploy correctly on other releases of cortex_
 
-This example shows how to deploy a realtime text generatation API using a GPT-2 model from Hugging Face's transformers library.
+This example shows how to deploy a realtime text generation API using a GPT-2 model from Hugging Face's transformers library.
 
 <br>
 
