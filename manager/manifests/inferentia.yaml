@@ -12,9 +12,68 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Source: https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin-rbac.yml
 # Source: https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml
-# https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/
 
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: neuron-device-plugin
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - update
+      - patch
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - nodes/status
+    verbs:
+      - patch
+      - update
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: neuron-device-plugin
+  namespace: kube-system
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: neuron-device-plugin
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: neuron-device-plugin
+subjects:
+  - kind: ServiceAccount
+    name: neuron-device-plugin
+    namespace: kube-system
+
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -33,6 +92,7 @@ spec:
       labels:
         name: neuron-device-plugin-ds
     spec:
+      serviceAccount: neuron-device-plugin
       tolerations:
         - key: CriticalAddonsOnly
           operator: Exists

@@ -135,8 +135,8 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 ## Inferentia device plugin
 
 1. Check if the image in [k8s-neuron-device-plugin.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) has been updated (also check the readme in the parent directory to see if anything has changed). To check what the latest tag currently points to, run `aws ecr list-images --region us-west-2 --registry-id 790709498068 --repository-name neuron-device-plugin`, and then see which version has the same imageDigest as `latest`.
-1. Copy the contents of [k8s-neuron-device-plugin.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) to `manager/manifests/inferentia.yaml`
-   1. Update the link at the top of the file to the URL you copied from
+1. Copy the contents of [k8s-neuron-device-plugin.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml) and [k8s-neuron-device-plugin-rbac.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin-rbac.yml) to `manager/manifests/inferentia.yaml`
+   1. Update the links at the top of the file to the URL you copied from
    1. Check that your diff is reasonable (and put back any of our modifications)
 
 ## Neuron RTD
