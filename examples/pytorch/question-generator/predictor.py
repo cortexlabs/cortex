@@ -22,11 +22,7 @@ class PythonPredictor:
     def predict(self, payload):
         context = payload["context"]
         answer = payload["answer"]
-
-        if "max_length" in payload:
-            max_length = payload["max_length"]
-        else:
-            max_length = 64
+        max_length = int(payload.get("max_length", 64))
 
         input_text = "answer: {}  context: {} </s>".format(answer, context)
         features = self.tokenizer([input_text], return_tensors="pt")
