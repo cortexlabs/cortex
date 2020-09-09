@@ -46,6 +46,7 @@ RUN test "${SLIM}" = "true" || ( \
         # libsm6, libxext6, and libxrender-dev are required for opencv
         # libpng-dev is required for some image processing libaries
         # libsndfile1 is required for some audio processing libaries
+        # libgl1-mesa-glx to libxtst6 are for qt (for GUI packages): https://docs.anaconda.com/anaconda/install/linux/
         # libnvinfer is required for TensorRT
         apt-get update -qq && apt-get install -y -q \
             libsm6 \
@@ -53,6 +54,15 @@ RUN test "${SLIM}" = "true" || ( \
             libxrender-dev \
             libpng-dev \
             libsndfile1 \
+            libgl1-mesa-glx \
+            libegl1-mesa \
+            libxrandr2 \
+            libxss1 \
+            libxcursor1 \
+            libxcomposite1 \
+            libasound2 \
+            libxi6 \
+            libxtst6 \
             libnvinfer6=6.0.1-1+cuda10.1 \
             libnvinfer-plugin6=6.0.1-1+cuda10.1 \
         && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
