@@ -64,10 +64,7 @@ const (
 	ErrNoVersionsFoundForONNXModelPath = "spec.no_versions_found_for_onnx_model_path"
 	ErrONNXModelVersionPathMustBeDir   = "spec.onnx_model_version_path_must_be_dir"
 
-	ErrInvalidPythonModelPath            = "spec.invalid_python_model_path"
-	ErrNoVersionsFoundForPythonModelPath = "spec.no_versions_found_for_python_model_path"
-	ErrPythonModelVersionPathMustBeDir   = "spec.python_model_version_path_must_be_dir"
-
+	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 
 	ErrMissingModel        = "spec.missing_model"
@@ -87,6 +84,11 @@ const (
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 )
+
+var _modelCurrentStructure = `
+  but its current structure is
+
+%s`
 
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
@@ -320,35 +322,27 @@ func ErrorONNXModelVersionPathMustBeDir(path, versionedPath string) error {
 }
 
 var _pythonExpectedStructMessage = `For models provided for the %s predictor type, the path must be a directory with the following structure:
+
   %s
   ├── 1523423423/ (Version prefix)
   |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
   └── 2434389194/ (Version prefix)
-      └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)`
+	  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
 
-func ErrorInvalidPythonModelPath(path string) error {
-	message := fmt.Sprintf("invalid %s model path.\n", userconfig.PythonPredictorType.CasedString())
-	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
+  or like
+
+  %s
+  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+`
+
+func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error {
+	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonPredictorType.CasedString())
+	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, modelPath, modelPath)
+	if len(modelSubPaths) > 0 {
+		message += fmt.Sprintf(_modelCurrentStructure, s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  "))
+	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidPythonModelPath,
-		Message: message,
-	})
-}
-
-func ErrorNoVersionsFoundForPythonModelPath(path string) error {
-	message := fmt.Sprintf("%s: %s model path must have at least one version.\n", path, userconfig.PythonPredictorType.CasedString())
-	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoVersionsFoundForPythonModelPath,
-		Message: message,
-	})
-}
-
-func ErrorPythonModelVersionPathMustBeDir(path, versionedPath string) error {
-	message := fmt.Sprintf("%s: %s model version path must be a directory.\n", versionedPath, userconfig.PythonPredictorType.CasedString())
-	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, path)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrPythonModelVersionPathMustBeDir,
 		Message: message,
 	})
 }
@@ -394,24 +388,19 @@ var _neuronTfExpectedStructMessage = `
   └── saved_model.pb
 `
 
-var _modelCurrentStructure = `
-  but its current structure is
-
-%s`
-
-func ErrorInvalidTensorFlowModelPath(path string, paths []string, neuronExport bool) error {
+func ErrorInvalidTensorFlowModelPath(modelPath string, modelSubPaths []string, neuronExport bool) error {
 	neuronKey := ""
 	if neuronExport {
 		neuronKey = "Neuron "
 	}
-	message := fmt.Sprintf("%s: each %s%s SavedModel model must be structured the following way.\n", path, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
+	message := fmt.Sprintf("%s: each %s%s SavedModel model must be structured the following way.\n", modelPath, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
 	if neuronExport {
-		message += fmt.Sprintf(_neuronTfExpectedStructMessage, path, path)
+		message += fmt.Sprintf(_neuronTfExpectedStructMessage, modelPath, modelPath)
 	} else {
-		message += fmt.Sprintf(_tfExpectedStructMessage, path, path)
+		message += fmt.Sprintf(_tfExpectedStructMessage, modelPath, modelPath)
 	}
-	if len(paths) > 0 {
-		message += fmt.Sprintf(_modelCurrentStructure, s.Indent(files.FileTree(paths, "", files.DirsSorted), "  "))
+	if len(modelSubPaths) > 0 {
+		message += fmt.Sprintf(_modelCurrentStructure, s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  "))
 	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowModelPath,

@@ -779,14 +779,14 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return errors.Wrap(err, modelName)
 		}
 
-		modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, false, pointer.Int64(1000))
+		modelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
 		if err != nil {
 			return errors.Wrap(err, modelName)
 		}
 
-		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, modelPaths, awsClientForBucket)
+		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, modelSubPaths, awsClientForBucket)
 		if err != nil {
-			if err = validatePythonS3ModelDir(modelResource.ModelPath, modelPaths, modelResource.ModelPath, awsClientForBucket); err != nil {
+			if err = validatePythonS3ModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath, awsClientForBucket); err != nil {
 				return errors.Wrap(err, modelName)
 			}
 		}
@@ -796,9 +796,19 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		versions, err := GetPythonVersionsFromLocalPath(modelResource.ModelPath)
+		if !files.IsDir(modelResource.ModelPath) {
+			return errors.Wrap(ErrorInvalidDirPath(modelResource.ModelPath), modelName)
+		}
+		modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 		if err != nil {
 			return errors.Wrap(err, modelName)
+		}
+
+		versions, err := getPythonVersionsFromLocalPath(modelResource.ModelPath, modelSubPaths)
+		if err != nil {
+			if err = validatePythonLocalModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath); err != nil {
+				return errors.Wrap(err, modelName)
+			}
 		}
 		modelResource.Versions = versions
 	}
@@ -886,8 +896,6 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		}
 	}
 
-	return &errors.Error{}
-
 	return nil
 }
 
@@ -917,14 +925,14 @@ func validateTensorFlowModel(
 
 		isNeuronExport := api.Compute.Inf > 0
 		if yes, err := awsClientForBucket.IsS3PathDir(modelResource.ModelPath); yes {
-			modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
+			modelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
 
-			versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, modelPaths, isNeuronExport, awsClientForBucket)
+			versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, modelSubPaths, isNeuronExport, awsClientForBucket)
 			if err != nil {
-				if err = validateTFServingS3ModelDir(modelResource.ModelPath, modelPaths, modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
+				if err = validateTFServingS3ModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
 					return errors.Wrap(err, modelName)
 				}
 			} else {
@@ -941,13 +949,13 @@ func validateTensorFlowModel(
 		}
 
 		if files.IsDir(modelResource.ModelPath) {
-			modelPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
-			versions, err := getTFServingVersionsFromLocalPath(modelResource.ModelPath, modelPaths)
+			versions, err := getTFServingVersionsFromLocalPath(modelResource.ModelPath, modelSubPaths)
 			if err != nil {
-				if err = validateTFServingLocalModelDir(modelResource.ModelPath, modelPaths, modelResource.ModelPath); err != nil {
+				if err = validateTFServingLocalModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath); err != nil {
 					return errors.Wrap(err, modelName)
 				}
 			} else {
