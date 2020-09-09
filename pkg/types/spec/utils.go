@@ -245,8 +245,8 @@ func getTFServingVersionsFromS3Path(commonModelPrefix string, modelPaths []strin
 	}
 
 	versions := []int64{}
-	for _, object := range modelPaths {
-		keyParts := strings.Split(object, "/")
+	for _, modelPath := range modelPaths {
+		keyParts := strings.Split(modelPath, "/")
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
@@ -528,34 +528,36 @@ func GetONNXVersionsFromLocalPath(path string) ([]int64, error) {
 // 		- 2434389194/ (version prefix, usually a timestamp)
 //			- *
 // 		...
-func getPythonVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([]int64, error) {
-	objects, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, false, pointer.Int64(1000))
-	if err != nil {
-		return []int64{}, err
-	} else if len(objects) == 0 {
-		return []int64{}, ErrorNoVersionsFoundForPythonModelPath(path)
+func getPythonVersionsFromS3Path(commonModelPrefix string, modelPaths []string, awsClientForBucket *aws.Client) ([]int64, error) {
+	if len(modelPaths) == 0 {
+		return []int64{}, ErrorInvalidPythonModelPath(commonModelPrefix)
 	}
 
 	versions := []int64{}
-	for _, object := range objects {
-		keyParts := strings.Split(object, "/")
+	for _, modelPath := range modelPaths {
+		keyParts := strings.Split(modelPath, "/")
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return []int64{}, ErrorInvalidPythonModelPath(path)
+			return []int64{}, ErrorInvalidPythonModelPath(commonModelPrefix)
 		}
 
-		modelVersionPath := aws.JoinS3Path(path, versionStr)
-		if yes, err := awsClientForBucket.IsS3PathDir(modelVersionPath); err != nil {
+		modelVersionPath := aws.JoinS3Path(commonModelPrefix, versionStr)
+		if err := validatePythonS3ModelDir(commonModelPrefix, modelPaths, modelVersionPath, awsClientForBucket); err != nil {
 			return []int64{}, err
-		} else if !yes {
-			return []int64{}, ErrorPythonModelVersionPathMustBeDir(path, aws.JoinS3Path(path, versionStr))
 		}
-
 		versions = append(versions, version)
 	}
 
 	return slices.UniqueInt64(versions), nil
+}
+
+func validatePythonS3ModelDir(commonModelPrefix string, modelPaths []string, modelVersionPath string, awsClientForBucket *aws.Client) error {
+	if yes, err := awsClientForBucket.IsS3PathDir(modelVersionPath); err != nil {
+		return err
+	} else if !yes {
+		return ErrorInvalidPythonModelPath(path)
+	}
 }
 
 // GetPythonVersionsFromLocalPath checks that the path contains a valid local directory for versioned Python models:
@@ -565,40 +567,49 @@ func getPythonVersionsFromS3Path(path string, awsClientForBucket *aws.Client) ([
 // 		- 2434389194/ (version prefix, usually a timestamp)
 //			- *
 // 		...
-func GetPythonVersionsFromLocalPath(path string) ([]int64, error) {
-	if !files.IsDir(path) {
-		return []int64{}, ErrorInvalidDirPath(path)
+func GetPythonVersionsFromLocalPath(commonModelPrefix string, modelPaths []string) ([]int64, error) {
+	if !files.IsDir(commonModelPrefix) {
+		return []int64{}, ErrorInvalidDirPath(commonModelPrefix)
 	}
-	dirPaths, err := files.ListDirRecursive(path, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	dirPaths, err := files.ListDirRecursive(commonModelPrefix, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 	if err != nil {
 		return []int64{}, err
 	} else if len(dirPaths) == 0 {
-		return []int64{}, ErrorNoVersionsFoundForPythonModelPath(path)
+		return []int64{}, ErrorNoVersionsFoundForPythonModelPath(commonModelPrefix)
 	}
 
-	basePathLength := len(slices.RemoveEmpties(strings.Split(path, "/")))
+	basePathLength := len(slices.RemoveEmpties(strings.Split(commonModelPrefix, "/")))
 	versions := []int64{}
 	for _, dirPath := range dirPaths {
 		pathParts := slices.RemoveEmpties(strings.Split(dirPath, "/"))
 		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return []int64{}, ErrorInvalidPythonModelPath(path)
+			return []int64{}, ErrorInvalidPythonModelPath(commonModelPrefix)
 		}
 
-		modelVersionPath := filepath.Join(path, versionStr)
-		if !files.IsDir(modelVersionPath) {
-			return []int64{}, ErrorPythonModelVersionPathMustBeDir(path, modelVersionPath)
-		}
-
-		if objects, err := files.ListDir(modelVersionPath, false); err != nil {
-			return []int64{}, err
-		} else if len(objects) == 0 {
+		modelVersionPath := filepath.Join(commonModelPrefix, versionStr)
+		if err := validatePythonLocalModelDir(commonModelPrefix, modelPaths, modelVersionPath); err != nil && err.Kind == ErrDirIsEmpty {
 			continue
+		} else if err != nil {
+			return err
 		}
-
 		versions = append(versions, version)
 	}
 
 	return slices.UniqueInt64(versions), nil
+}
+
+func validatePythonLocalModelDir(commonModelPrefix string, modelPaths []string, modelVersionPath string) error {
+	if !files.IsDir(modelVersionPath) {
+		return ErrorPythonModelVersionPathMustBeDir(commonModelPrefix, modelVersionPath)
+	}
+
+	if objects, err := files.ListDir(modelVersionPath, false); err != nil {
+		return err
+	} else if len(objects) == 0 {
+		return ErrorDirIsEmpty(modelVersionPath)
+	}
+
+	return nil
 }

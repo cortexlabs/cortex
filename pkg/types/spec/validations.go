@@ -779,9 +779,16 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return errors.Wrap(err, modelName)
 		}
 
-		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
+		modelPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, false, pointer.Int64(1000))
 		if err != nil {
 			return errors.Wrap(err, modelName)
+		}
+
+		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, modelPaths, awsClientForBucket)
+		if err != nil {
+			if err = validatePythonS3ModelDir(modelResource.ModelPath, modelPaths, modelResource.ModelPath, awsClientForBucket); err != nil {
+				return errors.Wrap(err, modelName)
+			}
 		}
 		modelResource.Versions = versions
 	} else {
