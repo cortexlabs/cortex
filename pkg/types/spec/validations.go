@@ -784,7 +784,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return errors.Wrap(err, modelName)
 		}
 
-		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, modelSubPaths, awsClientForBucket)
+		versions, err := getPythonVersionsFromS3Paths(modelResource.ModelPath, modelSubPaths, awsClientForBucket)
 		if err != nil {
 			if err = validatePythonS3ModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath, awsClientForBucket); err != nil {
 				return errors.Wrap(err, modelName)
@@ -804,7 +804,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return errors.Wrap(err, modelName)
 		}
 
-		versions, err := getPythonVersionsFromLocalPath(modelResource.ModelPath, modelSubPaths)
+		versions, err := getPythonVersionsFromLocalPaths(modelResource.ModelPath, modelSubPaths)
 		if err != nil {
 			if err = validatePythonLocalModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath); err != nil {
 				return errors.Wrap(err, modelName)
@@ -930,7 +930,7 @@ func validateTensorFlowModel(
 				return errors.Wrap(err, modelName)
 			}
 
-			versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, modelSubPaths, isNeuronExport, awsClientForBucket)
+			versions, err := getTFServingVersionsFromS3Paths(modelResource.ModelPath, modelSubPaths, isNeuronExport, awsClientForBucket)
 			if err != nil {
 				if err = validateTFServingS3ModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
 					return errors.Wrap(err, modelName)
@@ -953,7 +953,7 @@ func validateTensorFlowModel(
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
-			versions, err := getTFServingVersionsFromLocalPath(modelResource.ModelPath, modelSubPaths)
+			versions, err := getTFServingVersionsFromLocalPaths(modelResource.ModelPath, modelSubPaths)
 			if err != nil {
 				if err = validateTFServingLocalModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath); err != nil {
 					return errors.Wrap(err, modelName)

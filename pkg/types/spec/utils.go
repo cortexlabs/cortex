@@ -215,14 +215,14 @@ func retrieveModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 	return models, nil
 }
 
-// getPythonVersionsFromS3Path checks that the path contains a valid S3 directory for versioned Python models:
+// getPythonVersionsFromS3Paths checks that the path contains a valid S3 directory for versioned Python models:
 // - model-name
 // 		- 1523423423/ (version prefix, usually a timestamp)
 // 			- *
 // 		- 2434389194/ (version prefix, usually a timestamp)
 //			- *
 // 		...
-func getPythonVersionsFromS3Path(modelPath string, modelSubPaths []string, awsClientForBucket *aws.Client) ([]int64, error) {
+func getPythonVersionsFromS3Paths(modelPath string, modelSubPaths []string, awsClientForBucket *aws.Client) ([]int64, error) {
 	if len(modelSubPaths) == 0 {
 		return []int64{}, ErrorInvalidPythonModelPath(modelPath, modelSubPaths)
 	}
@@ -256,14 +256,14 @@ func validatePythonS3ModelDir(modelPath string, modelSubPaths []string, modelVer
 	return nil
 }
 
-// getPythonVersionsFromLocalPath checks that the path contains a valid local directory for versioned Python models:
+// getPythonVersionsFromLocalPaths checks that the path contains a valid local directory for versioned Python models:
 // - model-name
 // 		- 1523423423/ (version prefix, usually a timestamp)
 // 			- *
 // 		- 2434389194/ (version prefix, usually a timestamp)
 //			- *
 // 		...
-func getPythonVersionsFromLocalPath(modelPath string, modelSubPaths []string) ([]int64, error) {
+func getPythonVersionsFromLocalPaths(modelPath string, modelSubPaths []string) ([]int64, error) {
 	if len(modelSubPaths) == 0 {
 		return []int64{}, ErrorDirIsEmpty(modelPath)
 	}
@@ -304,7 +304,7 @@ func validatePythonLocalModelDir(modelPath string, modelSubPaths []string, model
 	return nil
 }
 
-// getTFServingVersionsFromS3Path checks that the path contains a valid S3 directory for (Neuron) TensorFlow models:
+// getTFServingVersionsFromS3Paths checks that the path contains a valid S3 directory for (Neuron) TensorFlow models:
 //
 // For TensorFlow models:
 // - model-name
@@ -328,7 +328,7 @@ func validatePythonLocalModelDir(modelPath string, modelSubPaths []string, model
 //			- saved_model.pb
 // 		...
 //
-func getTFServingVersionsFromS3Path(modelPath string, modelSubPaths []string, isNeuronExport bool, awsClientForBucket *aws.Client) ([]int64, error) {
+func getTFServingVersionsFromS3Paths(modelPath string, modelSubPaths []string, isNeuronExport bool, awsClientForBucket *aws.Client) ([]int64, error) {
 	if len(modelSubPaths) == 0 {
 		return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, isNeuronExport)
 	}
@@ -410,7 +410,7 @@ func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool
 	return true
 }
 
-// GetTFServingVersionsFromLocalPath checks that the path contains a valid local directory for TensorFlow models:
+// getTFServingVersionsFromLocalPaths checks that the path contains a valid local directory for TensorFlow models:
 // - model-name
 // 		- 1523423423/ (version prefix, usually a timestamp)
 //			- saved_model.pb
@@ -423,7 +423,7 @@ func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool
 //				- variables.index
 //				- variables.data-00000-of-00001 (there are a variable number of these files)
 //   ...
-func getTFServingVersionsFromLocalPath(modelPath string, modelSubPaths []string) ([]int64, error) {
+func getTFServingVersionsFromLocalPaths(modelPath string, modelSubPaths []string) ([]int64, error) {
 	if len(modelSubPaths) == 0 {
 		return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, false)
 	}
