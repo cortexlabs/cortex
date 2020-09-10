@@ -67,9 +67,9 @@ api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "inter
 operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # whether to disable API gateway cluster-wide
-# if set to "enabled" (the default), each API can specify whether to use API Gateway
-# if set to "disabled", no APIs will be allowed to use API Gateway
-api_gateway: enabled  # must be "enabled" or "disabled"
+# if set to "public" (the default), each API can specify whether to use API Gateway
+# if set to "none", no APIs will be allowed to use API Gateway
+api_gateway: public  # must be "public" or "none"
 
 # CloudWatch log group for cortex (default: <cluster_name>)
 log_group: cortex
