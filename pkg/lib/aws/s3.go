@@ -125,7 +125,37 @@ func IsValidS3aPath(s3aPath string) bool {
 
 // List all S3 objects that are "depth" levels deeper than the given "s3Path".
 // Setting depth to 1 effectively translates to listing the objects one level deeper than the given prefix (aka listing the directory contents).
-func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirObjects bool, maxResults *int64) ([]string, error) {
+//
+// 1st returned value is the list of paths found at level <depth>.
+// 2nd returned value is the list of paths found at all levels.
+func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirObjects bool, maxResults *int64) ([]string, []string, error) {
+	paths := []string{}
+
+	_, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return paths, []string{}, err
+	}
+
+	allPaths, err := c.GetPrefixesFromS3Path(s3Path, includeDirObjects, maxResults)
+	if err != nil {
+		return paths, allPaths, err
+	}
+
+	pathKeys := slices.RemoveEmpties(strings.Split(key, "/"))
+	for _, path := range allPaths {
+		objectKeys := slices.RemoveEmpties(strings.Split(path, "/"))
+		if len(objectKeys)-len(pathKeys) >= depth {
+			computedPath := strings.Join(objectKeys[:len(pathKeys)+depth], "/")
+			if strings.HasPrefix(computedPath, key) {
+				paths = append(paths, computedPath)
+			}
+		}
+	}
+
+	return slices.UniqueStrings(paths), allPaths, nil
+}
+
+func (c *Client) GetPrefixesFromS3Path(s3Path string, includeDirObjects bool, maxResults *int64) ([]string, error) {
 	paths := []string{}
 
 	_, key, err := SplitS3Path(s3Path)
@@ -144,18 +174,11 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 		return paths, err
 	}
 
-	pathKeys := slices.RemoveEmpties(strings.Split(key, "/"))
 	for _, object := range objects {
-		objectKeys := slices.RemoveEmpties(strings.Split(*object.Key, "/"))
-		if len(objectKeys)-len(pathKeys) >= depth {
-			computedPath := strings.Join(objectKeys[:len(pathKeys)+depth], "/")
-			if strings.HasPrefix(computedPath, key) {
-				paths = append(paths, computedPath)
-			}
-		}
+		paths = append(paths, *object.Key)
 	}
 
-	return slices.UniqueStrings(paths), nil
+	return paths, nil
 }
 
 func GetBucketRegionFromS3Path(s3Path string) (string, error) {
@@ -600,7 +623,6 @@ func (c *Client) ListS3PathPrefix(s3Path string, includeDirObjects bool, maxResu
 	if err != nil {
 		return nil, err
 	}
-	prefix = "models/"
 	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults)
 }
 

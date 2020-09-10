@@ -58,12 +58,10 @@ const (
 
 	ErrS3FileNotFound = "spec.s3_file_not_found"
 	ErrS3DirNotFound  = "spec.s3_dir_not_found"
+	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
-	ErrInvalidONNXModelPath            = "spec.invalid_onnx_model_path"
-	ErrInvalidONNXModelPathSuffix      = "spec.invalid_onnx_model_path_suffix"
-	ErrNoVersionsFoundForONNXModelPath = "spec.no_versions_found_for_onnx_model_path"
-	ErrONNXModelVersionPathMustBeDir   = "spec.onnx_model_version_path_must_be_dir"
-
+	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
+	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 
@@ -279,44 +277,63 @@ func ErrorS3DirNotFound(path string) error {
 	})
 }
 
-var _onnxExpectedStructMessage = `
+func ErrorS3DirIsEmpty(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrS3DirIsEmpty,
+		Message: fmt.Sprintf("%s: S3 directory is empty", path),
+	})
+}
+
+func ErrorModelPathNotDirectory(modelPath string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrModelPathNotDirectory,
+		Message: fmt.Sprintf("%s: model path must be a directory", modelPath),
+	})
+}
+
+var _onnxVersionedExpectedStructMessage = `
   %s
   ├── 1523423423/ (Version prefix)
   |   └── <model-name>.onnx // ONNX-exported file
   └── 2434389194/ (Version prefix)
-      └── <model-name>.onnx // ONNX-exported file`
+      └── <model-name>.onnx // ONNX-exported file
+`
 
-func ErrorInvalidONNXModelPath(path string) error {
-	message := fmt.Sprintf("%s: %s model path must be an ONNX-exported file ending in `.onnx`, or can be a directory with the following structure.\n", path, userconfig.ONNXPredictorType.CasedString())
-	message += fmt.Sprintf(_onnxExpectedStructMessage, path)
+var _onnxExpectedStructMessage = `
+  %s
+  └── <model-name>.onnx // ONNX-exported file
+`
+
+func ErrorInvalidONNXModelPath(modelPath string, s3Path bool, includeVersionMessage bool, includeNonVersionMessage bool, modelSubPaths []string) error {
+	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, userconfig.ONNXPredictorType.CasedString())
+	if includeVersionMessage || includeNonVersionMessage {
+		message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with the following structure:\n", userconfig.ONNXPredictorType)
+	}
+	if includeVersionMessage {
+		message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, modelPath)
+	}
+	if includeVersionMessage && includeNonVersionMessage {
+		message += "\n" + "  or like" + "\n"
+	}
+	if includeNonVersionMessage {
+		message += fmt.Sprintf(_onnxExpectedStructMessage, modelPath)
+	}
+
+	if includeVersionMessage || includeNonVersionMessage {
+		if len(modelSubPaths) > 0 {
+			if s3Path {
+				message += "\n" + "  but its current structure is (limited to 1000 files)" + "\n\n"
+			} else {
+				message += "\n" + "  but its current structure is" + "\n\n"
+			}
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+		} else {
+			message += "\n" + "  but its current directory is empty"
+		}
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidONNXModelPath,
-		Message: message,
-	})
-}
-
-func ErrorInvalidONNXModelPathSuffix(path string) error {
-	message := fmt.Sprintf("%s: when %s model path ends with `.onnx`, it must be a file representing the ONNX-exported model", path, userconfig.ONNXPredictorType.CasedString())
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXModelPath,
-		Message: message,
-	})
-}
-
-func ErrorNoVersionsFoundForONNXModelPath(path string) error {
-	message := fmt.Sprintf("%s: no versions found for %s model. Each model must be structured the following way.\n", path, userconfig.ONNXPredictorType.CasedString())
-	message += fmt.Sprintf(_onnxExpectedStructMessage, path)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoVersionsFoundForONNXModelPath,
-		Message: message,
-	})
-}
-
-func ErrorONNXModelVersionPathMustBeDir(path, versionedPath string) error {
-	message := fmt.Sprintf("%s: when the %s model is a directory, each version of the model must be a directory too. The model directory must be structured the following way.\n", versionedPath, userconfig.ONNXPredictorType)
-	message += fmt.Sprintf(_onnxExpectedStructMessage, path)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrONNXModelVersionPathMustBeDir,
 		Message: message,
 	})
 }

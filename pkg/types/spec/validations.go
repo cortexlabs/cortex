@@ -779,7 +779,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return errors.Wrap(err, modelName)
 		}
 
-		modelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
+		modelSubPaths, _, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
 		if err != nil {
 			return errors.Wrap(err, modelName)
 		}
@@ -925,7 +925,7 @@ func validateTensorFlowModel(
 
 		isNeuronExport := api.Compute.Inf > 0
 		if yes, err := awsClientForBucket.IsS3PathDir(modelResource.ModelPath); yes {
-			modelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
+			modelSubPaths, _, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
@@ -1057,6 +1057,11 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 		}
 	}
 
+	for _, model := range *models {
+		fmt.Println(model.Name, model.ModelPath, model.Versions)
+	}
+	return &errors.Error{}
+
 	return nil
 }
 
@@ -1083,37 +1088,49 @@ func validateONNXModel(
 			return errors.Wrap(err, modelName)
 		}
 
-		if yes, err := awsClientForBucket.IsS3PathDir(modelResource.ModelPath); yes {
-			versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
+		versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
+		if err != nil {
+			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+				return errors.Wrap(err, modelName)
+			}
+
+			modelSubPaths, err := awsClientForBucket.GetPrefixesFromS3Path(modelResource.ModelPath, false, pointer.Int64(1000))
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
-			if strings.HasSuffix(modelResource.ModelPath, ".onnx") {
-				return errors.Wrap(ErrorInvalidONNXModelPathSuffix(modelResource.ModelPath), modelName)
+
+			if err := validateONNXS3ModelDir(modelResource.ModelPath, awsClientForBucket); err != nil {
+				if errors.GetKind(err) == errors.ErrNotCortexError {
+					return errors.Wrap(err, modelName)
+				}
+				return ErrorInvalidONNXModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths)
 			}
-			modelResource.Versions = versions
-		} else if !yes && err == nil && !strings.HasSuffix(modelResource.ModelPath, ".onnx") {
-			return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath), modelName)
-		} else if err != nil {
-			return errors.Wrap(err, modelName)
 		}
+		modelResource.Versions = versions
 	} else {
 		if providerType == types.AWSProviderType {
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		if files.IsDir(modelResource.ModelPath) {
-			versions, err := GetONNXVersionsFromLocalPath(modelResource.ModelPath)
+		versions, err := getONNXVersionsFromLocalPath(modelResource.ModelPath)
+		if err != nil {
+			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+				return errors.Wrap(err, modelName)
+			}
+
+			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
-			if strings.HasSuffix(modelResource.ModelPath, ".onnx") {
-				return errors.Wrap(ErrorInvalidONNXModelPathSuffix(modelResource.ModelPath), modelName)
+
+			if err := validateONNXLocalModelDir(modelResource.ModelPath); err != nil {
+				if errors.GetKind(err) == errors.ErrNotCortexError {
+					return errors.Wrap(err, modelName)
+				}
+				return ErrorInvalidONNXModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths)
 			}
-			modelResource.Versions = versions
-		} else if !strings.HasSuffix(modelResource.ModelPath, ".onnx") {
-			return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath), modelName)
 		}
+		modelResource.Versions = versions
 	}
 
 	return nil
