@@ -48,7 +48,7 @@ my-api           20        live     1           6m            -             -   
 
 last updated: 4m
 endpoint: https://******.execute-api.eu-central-1.amazonaws.com/traffic-splitter
-curl: curl https://******.execute-api.eu-central-1.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
+example curl: curl https://******.execute-api.eu-central-1.amazonaws.com/traffic-splitter -X POST -H "Content-Type: application/json" -d @sample.json
 ...
 ```
 
