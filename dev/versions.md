@@ -157,10 +157,6 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Run `pip list` to show the versions of all installed dependencies, and update `images/python-predictor-inf/Dockerfile` and the docs accordingly (`realtime-api/predictors.md` and `batch-api/predictors.md`); latest versions of dependencies that aren't shown in `pip list` can be determined on pypi.org (for `torchvision`, go to its pypi page, and use the latest patch version of the minor version which is appropriate for the version of `torch` that's installed)
 1. Take a deep breath, cross your fingers, rebuild all images, and confirm that the Inferentia examples work
 
-## Inferentia temporary workarounds
-
-Custom AMI for `inf1` instances. The currently used AMI image `ami-07a7b48058cfe1a73` has been built off of `ami-011c865bf7da41a9d` image (which is an EKS-optimized AMI version for EKS 1.6). [These](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-runtime/nrt_start.md) instructions have been used to build the image. Alongside that, one more thing that has to be done and is not mentioned in the instructions is to set `vm.nr_hugepages` in `/etc/sysctl.conf` to `0` and to disable the `neuron-rtd` service. Be sure that `neuron-discovery` service is still left enabled.
-
 ## Python packages
 
 1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`

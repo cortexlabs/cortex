@@ -123,7 +123,6 @@ def apply_inf_settings(nodegroup, cluster_config):
 
     num_chips, hugepages_mem = get_inf_resources(instance_type)
     inf_settings = {
-        "ami": get_ami_image(instance_region),
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/neuron": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/neuron=true",
@@ -152,14 +151,6 @@ def get_inf_resources(instance_type):
         num_chips = 16
 
     return num_chips, f"{128 * num_chips}Mi"
-
-
-def get_ami_image(region):
-    if region.startswith("us-east-1"):
-        return "ami-07a7b48058cfe1a73"
-    if region.startswith("us-west-2"):
-        return "ami-00c8c8387d112425c"
-    raise RuntimeError(f"ami image is in region {region} instead of 'us-east-1' or 'us-west-2'")
 
 
 def generate_eks(cluster_config_path):
