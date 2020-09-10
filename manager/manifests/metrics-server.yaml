@@ -103,7 +103,7 @@ spec:
       containers:
         - name: metrics-server
           image: $CORTEX_IMAGE_METRICS_SERVER
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           args:
             - --cert-dir=/tmp
             - --secure-port=4443
