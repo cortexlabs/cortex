@@ -81,6 +81,7 @@ def apply_spot_settings(nodegroup, config):
     spot_settings = {
         "name": "ng-cortex-worker-spot",
         "instanceType": "mixed",
+        "asgSuspendProcesses": ["AZRebalance"],
         "instancesDistribution": {
             "instanceTypes": config["spot_config"]["instance_distribution"],
             "onDemandBaseCapacity": config["spot_config"]["on_demand_base_capacity"],
