@@ -23,7 +23,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
   networking:
     endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
     local_port: <int>  # specify the port for API (local only) (default: 8888)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public, unless disabled cluster-wide)
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
@@ -80,7 +80,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
   networking:
     endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
     local_port: <int>  # specify the port for API (local only) (default: 8888)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public, unless disabled cluster-wide)
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
@@ -132,7 +132,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
   networking:
     endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
     local_port: <int>  # specify the port for API (local only) (default: 8888)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the load balancer will be accessed directly) (default: public, unless disabled cluster-wide)
+    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
