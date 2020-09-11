@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -40,6 +41,7 @@ type clients struct {
 	sts            *sts.STS
 	sqs            *sqs.SQS
 	ec2            *ec2.EC2
+	eks            *eks.EKS
 	ecr            *ecr.ECR
 	acm            *acm.ACM
 	autoscaling    *autoscaling.AutoScaling
@@ -91,6 +93,13 @@ func (c *Client) EC2() *ec2.EC2 {
 		c.clients.ec2 = ec2.New(c.sess)
 	}
 	return c.clients.ec2
+}
+
+func (c *Client) EKS() *eks.EKS {
+	if c.clients.eks == nil {
+		c.clients.eks = eks.New(c.sess)
+	}
+	return c.clients.eks
 }
 
 func (c *Client) ECR() *ecr.ECR {

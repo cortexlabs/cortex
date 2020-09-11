@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -25,7 +26,10 @@ import (
 func (c *Client) AutoscalingGroups(tags map[string]string) ([]*autoscaling.Group, error) {
 	var asgs []*autoscaling.Group
 
-	err := c.Autoscaling().DescribeAutoScalingGroupsPages(nil,
+	params := autoscaling.DescribeAutoScalingGroupsInput{
+		AutoScalingGroupNames: nil,
+	}
+	err := c.Autoscaling().DescribeAutoScalingGroupsPages(&params,
 		func(page *autoscaling.DescribeAutoScalingGroupsOutput, lastPage bool) bool {
 			for _, asg := range page.AutoScalingGroups {
 				asgTags := make(map[string]string, len(asg.Tags))
@@ -58,4 +62,21 @@ func (c *Client) AutoscalingGroups(tags map[string]string) ([]*autoscaling.Group
 	}
 
 	return asgs, nil
+}
+
+// Returns the most recent activity for the ASG, or nil if there are no activities
+func (c *Client) MostRecentASGActivity(asgName string) (*autoscaling.Activity, error) {
+	resp, err := c.Autoscaling().DescribeScalingActivities(&autoscaling.DescribeScalingActivitiesInput{
+		AutoScalingGroupName: aws.String(asgName),
+		MaxRecords:           aws.Int64(1),
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	if len(resp.Activities) == 0 {
+		return nil, nil
+	}
+
+	return resp.Activities[0], nil
 }
