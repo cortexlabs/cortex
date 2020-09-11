@@ -136,7 +136,7 @@ The following Python packages are pre-installed in Python Predictors and can be 
 
 ```text
 boto3==1.14.53
-cloudpickle==1.6.0 \
+cloudpickle==1.6.0
 Cython==0.29.21
 dill==0.3.2
 fastapi==0.61.1

@@ -139,7 +139,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
    1. Update the links at the top of the file to the URL you copied from
    1. Check that your diff is reasonable (and put back any of our modifications)
 
-## Neuron RTD
+## Neuron
 
 1. `docker run --rm -it amazonlinux:2`
 1. Run the `echo $'[neuron] ...' > /etc/yum.repos.d/neuron.repo` command from [Dockerfile.neuron-rtd](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.neuron-rtd) (it needs to be updated to work properly with the new lines)
@@ -194,7 +194,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 
 ## Cluster autoscaler
 
-1. Find the latest patch release for our current version of k8s (e.g. k8s v1.16 -> cluster-autocluster v1.16.5) on [GitHub](https://github.com/kubernetes/autoscaler/releases) and check the changelog
+1. Find the latest patch release for our current version of k8s (e.g. k8s v1.17 -> cluster-autocluster v1.17.3) on [GitHub](https://github.com/kubernetes/autoscaler/releases) and check the changelog
 1. Update the base image in `images/cluster-autoscaler/Dockerfile` to the repository URL shown in the GitHub release
 1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws), set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml` (e.g. <https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.16.5/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml>)
 1. Resolve merge conflicts with the template in `manager/manifests/cluster-autoscaler.yaml.j2`
