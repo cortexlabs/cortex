@@ -64,36 +64,19 @@ func (c *Client) AutoscalingGroups(tags map[string]string) ([]*autoscaling.Group
 	return asgs, nil
 }
 
-// Return all activities for an ASG which do not have the "Successful" status, sorted from most to least recent
-// Also returns true if the most recent activity for the ASG is "Successful", or if there are no activities for the ASG
-func (c *Client) AutoscalingGroupUnsuccessfulActivities(asgName string) ([]*autoscaling.Activity, bool, error) {
-	var activities []*autoscaling.Activity
-	isSuccessful := true
-	didCheckFirstActivity := false
-
-	params := autoscaling.DescribeScalingActivitiesInput{
+// Returns the most recent activity for the ASG, or nil if there are no activities
+func (c *Client) MostRecentASGActivity(asgName string) (*autoscaling.Activity, error) {
+	resp, err := c.Autoscaling().DescribeScalingActivities(&autoscaling.DescribeScalingActivitiesInput{
 		AutoScalingGroupName: aws.String(asgName),
-	}
-	err := c.Autoscaling().DescribeScalingActivitiesPages(&params,
-		func(page *autoscaling.DescribeScalingActivitiesOutput, lastPage bool) bool {
-			for _, activity := range page.Activities {
-				if !didCheckFirstActivity {
-					if activity.StatusCode == nil || *activity.StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful {
-						isSuccessful = false
-					}
-					didCheckFirstActivity = true
-				}
-
-				if activity.StatusCode == nil || *activity.StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful {
-					activities = append(activities, activity)
-				}
-			}
-			return true
-		})
-
+		MaxRecords:           aws.Int64(1),
+	})
 	if err != nil {
-		return nil, false, errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
-	return activities, isSuccessful, nil
+	if len(resp.Activities) == 0 {
+		return nil, nil
+	}
+
+	return resp.Activities[0], nil
 }

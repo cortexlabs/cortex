@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -206,7 +207,7 @@ var _upCmd = &cobra.Command{
 			}
 
 			for _, asg := range asgs {
-				failedActivities, isSuccessful, err := awsClient.AutoscalingGroupUnsuccessfulActivities(*asg.AutoScalingGroupName)
+				activity, err := awsClient.MostRecentASGActivity(*asg.AutoScalingGroupName)
 				if err != nil {
 					helpStr := "\ndebugging tips (may or may not apply to this error):"
 					helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
@@ -215,14 +216,14 @@ var _upCmd = &cobra.Command{
 					exit.Error(ErrorClusterUp(out + helpStr))
 				}
 
-				if !isSuccessful && len(failedActivities) > 0 {
+				if activity != nil && (activity.StatusCode == nil || *activity.StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful) {
 					status := "(none)"
-					if failedActivities[0].StatusCode != nil {
-						status = *failedActivities[0].StatusCode
+					if activity.StatusCode != nil {
+						status = *activity.StatusCode
 					}
 					description := "(none)"
-					if failedActivities[0].Description != nil {
-						description = *failedActivities[0].Description
+					if activity.Description != nil {
+						description = *activity.Description
 					}
 
 					helpStr := "\nyour cluster was unable to provision EC2 instances; here is one of the encountered errors:"
