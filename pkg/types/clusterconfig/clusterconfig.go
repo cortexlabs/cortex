@@ -322,7 +322,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "APIGatewaySetting",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: APIGatewaySettingStrings(),
-				Default:       EnabledAPIGatewaySetting.String(),
+				Default:       PublicAPIGatewaySetting.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return APIGatewaySettingFromString(str), nil

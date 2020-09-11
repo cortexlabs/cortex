@@ -62,7 +62,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		}
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil)
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
