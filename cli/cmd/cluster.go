@@ -153,7 +153,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+		if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 			err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
 			if err != nil {
 				exit.Error(err)
@@ -162,14 +162,14 @@ var _upCmd = &cobra.Command{
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
-			if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
 				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
 			}
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
 				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
 			}
