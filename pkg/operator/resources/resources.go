@@ -86,7 +86,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		ConfigFileName: configFileName,
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName, &config.Cluster.Config)
 	if err != nil {
 		return nil, err
 	}
