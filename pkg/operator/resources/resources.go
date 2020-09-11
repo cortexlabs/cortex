@@ -142,7 +142,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, projectID)
 	case userconfig.TrafficSplitterKind:
-		return trafficsplitter.UpdateAPI(apiConfig, projectID, force)
+		return trafficsplitter.UpdateAPI(apiConfig, force)
 	default:
 		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
