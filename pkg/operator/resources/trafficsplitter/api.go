@@ -31,13 +31,13 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
 	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "")
+	api := spec.GetAPISpec(apiConfig, "", "")
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
