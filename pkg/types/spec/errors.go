@@ -61,9 +61,9 @@ const (
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
-	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
+	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
 
 	ErrMissingModel        = "spec.missing_model"
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
@@ -291,6 +291,117 @@ func ErrorModelPathNotDirectory(modelPath string) error {
 	})
 }
 
+var _pythonExpectedStructMessage = `For models provided for the %s predictor type, the path must be a directory with the following structure:
+
+  %s
+  ├── 1523423423/ (Version prefix)
+  |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+  └── 2434389194/ (Version prefix)
+	  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+
+  or like
+
+  %s
+  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+`
+
+func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error {
+	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonPredictorType.CasedString())
+	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, modelPath, modelPath)
+	if len(modelSubPaths) > 0 {
+		message += fmt.Sprintf(_modelCurrentStructure, s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  "))
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidPythonModelPath,
+		Message: message,
+	})
+}
+
+var _tfVersionedExpectedStructMessage = `
+  %s
+  ├── 1523423423/ (Version prefix, usually a timestamp)
+  |   ├── saved_model.pb
+  |   └── variables/
+  |       ├── variables.index
+  |       ├── variables.data-00000-of-00003
+  |       ├── variables.data-00001-of-00003
+  |       └── variables.data-00002-of-...
+  └── 2434389194/ (Version prefix, usually a timestamp)
+      ├── saved_model.pb
+      └── variables/
+          ├── variables.index
+          ├── variables.data-00000-of-00003
+          ├── variables.data-00001-of-00003
+		  └── variables.data-00002-of-...
+`
+var _tfExpectedStructMessage = `
+  %s
+  ├── saved_model.pb
+  └── variables/
+      ├── variables.index
+      ├── variables.data-00000-of-00003
+      ├── variables.data-00001-of-00003
+	  └── variables.data-00002-of-...
+`
+var _neuronTfVersionedExpectedStructMessage = `
+  %s
+  ├── 1523423423/ (Version prefix, usually a timestamp)
+  |   └── saved_model.pb
+  └── 2434389194/ (Version prefix, usually a timestamp)
+	  └── saved_model.pb
+`
+var _neuronTfExpectedStructMessage = ` 
+  %s
+  └── saved_model.pb
+`
+
+func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, s3Path bool, includeVersionMessage bool, includeNonVersionMessage bool, modelSubPaths []string) error {
+	predictorType := userconfig.TensorFlowPredictorType.CasedString()
+	if neuronExport {
+		predictorType = "Neuron " + predictorType
+	}
+
+	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, predictorType)
+	if includeVersionMessage || includeNonVersionMessage {
+		message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with the following structure:\n", predictorType)
+	}
+	if includeVersionMessage {
+		if neuronExport {
+			message += fmt.Sprintf(_neuronTfVersionedExpectedStructMessage, modelPath)
+		} else {
+			message += fmt.Sprintf(_tfVersionedExpectedStructMessage, modelPath)
+		}
+	}
+	if includeVersionMessage && includeNonVersionMessage {
+		message += "\n" + "  or like" + "\n"
+	}
+	if includeNonVersionMessage {
+		if neuronExport {
+			message += fmt.Sprintf(_neuronTfExpectedStructMessage, modelPath)
+		} else {
+			message += fmt.Sprintf(_tfExpectedStructMessage, modelPath)
+		}
+	}
+
+	if includeVersionMessage || includeNonVersionMessage {
+		if len(modelSubPaths) > 0 {
+			if s3Path {
+				message += "\n" + "  but its current structure is (limited to 1000 files)" + "\n\n"
+			} else {
+				message += "\n" + "  but its current structure is" + "\n\n"
+			}
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+		} else {
+			message += "\n" + "  but its current directory is empty"
+		}
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidTensorFlowModelPath,
+		Message: message,
+	})
+}
+
 var _onnxVersionedExpectedStructMessage = `
   %s
   ├── 1523423423/ (Version prefix)
@@ -334,93 +445,6 @@ func ErrorInvalidONNXModelPath(modelPath string, s3Path bool, includeVersionMess
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidONNXModelPath,
-		Message: message,
-	})
-}
-
-var _pythonExpectedStructMessage = `For models provided for the %s predictor type, the path must be a directory with the following structure:
-
-  %s
-  ├── 1523423423/ (Version prefix)
-  |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
-  └── 2434389194/ (Version prefix)
-	  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
-
-  or like
-
-  %s
-  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
-`
-
-func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error {
-	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonPredictorType.CasedString())
-	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, modelPath, modelPath)
-	if len(modelSubPaths) > 0 {
-		message += fmt.Sprintf(_modelCurrentStructure, s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  "))
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidPythonModelPath,
-		Message: message,
-	})
-}
-
-var _tfExpectedStructMessage = `
-  %s
-  ├── 1523423423/ (Version prefix, usually a timestamp)
-  |   ├── saved_model.pb
-  |   └── variables/
-  |       ├── variables.index
-  |       ├── variables.data-00000-of-00003
-  |       ├── variables.data-00001-of-00003
-  |       └── variables.data-00002-of-...
-  └── 2434389194/ (Version prefix, usually a timestamp)
-      ├── saved_model.pb
-      └── variables/
-          ├── variables.index
-          ├── variables.data-00000-of-00003
-          ├── variables.data-00001-of-00003
-          └── variables.data-00002-of-...
-
-  or like
-
-  %s
-  ├── saved_model.pb
-  └── variables/
-      ├── variables.index
-      ├── variables.data-00000-of-00003
-      ├── variables.data-00001-of-00003
-	  └── variables.data-00002-of-...
-`
-
-var _neuronTfExpectedStructMessage = `
-  %s
-  ├── 1523423423/ (Version prefix, usually a timestamp)
-  |   └── saved_model.pb
-  └── 2434389194/ (Version prefix, usually a timestamp)
-	  └── saved_model.pb
-
-  or like
-  
-  %s
-  └── saved_model.pb
-`
-
-func ErrorInvalidTensorFlowModelPath(modelPath string, modelSubPaths []string, neuronExport bool) error {
-	neuronKey := ""
-	if neuronExport {
-		neuronKey = "Neuron "
-	}
-	message := fmt.Sprintf("%s: each %s%s SavedModel model must be structured the following way.\n", modelPath, neuronKey, userconfig.TensorFlowPredictorType.CasedString())
-	if neuronExport {
-		message += fmt.Sprintf(_neuronTfExpectedStructMessage, modelPath, modelPath)
-	} else {
-		message += fmt.Sprintf(_tfExpectedStructMessage, modelPath, modelPath)
-	}
-	if len(modelSubPaths) > 0 {
-		message += fmt.Sprintf(_modelCurrentStructure, s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  "))
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidTensorFlowModelPath,
 		Message: message,
 	})
 }

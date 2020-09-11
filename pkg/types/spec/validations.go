@@ -896,6 +896,11 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		}
 	}
 
+	for _, model := range *models {
+		fmt.Println(model.Name, model.ModelPath, model.Versions)
+	}
+	return &errors.Error{}
+
 	return nil
 }
 
@@ -924,46 +929,49 @@ func validateTensorFlowModel(
 		}
 
 		isNeuronExport := api.Compute.Inf > 0
-		if yes, err := awsClientForBucket.IsS3PathDir(modelResource.ModelPath); yes {
-			modelSubPaths, _, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
+		versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, isNeuronExport, awsClientForBucket)
+		if err != nil {
+			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+				return errors.Wrap(err, modelName)
+			}
+
+			modelSubPaths, err := awsClientForBucket.GetPrefixesFromS3Path(modelResource.ModelPath, false, pointer.Int64(1000))
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
 
-			versions, err := getTFServingVersionsFromS3Paths(modelResource.ModelPath, modelSubPaths, isNeuronExport, awsClientForBucket)
-			if err != nil {
-				if err = validateTFServingS3ModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
+			if err = validateTFServingS3ModelDir(modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
+				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-			} else {
-				modelResource.Versions = versions
+				return ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelResource.S3Path, true, true, modelSubPaths)
 			}
-		} else if !yes && err == nil {
-			return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, []string{}, isNeuronExport), modelName)
-		} else if err != nil {
-			return errors.Wrap(err, modelName)
 		}
+		modelResource.Versions = versions
 	} else {
 		if providerType == types.AWSProviderType {
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		if files.IsDir(modelResource.ModelPath) {
+		versions, err := getTFServingVersionsFromLocalPath(modelResource.ModelPath)
+		if err != nil {
+			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+				return errors.Wrap(err, modelName)
+			}
+
 			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
-			versions, err := getTFServingVersionsFromLocalPaths(modelResource.ModelPath, modelSubPaths)
-			if err != nil {
-				if err = validateTFServingLocalModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath); err != nil {
+
+			if err = validateTFServingLocalModelDir(modelResource.ModelPath); err != nil {
+				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-			} else {
-				modelResource.Versions = versions
+				return ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelResource.S3Path, true, true, modelSubPaths)
 			}
-		} else {
-			return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, []string{}, false), modelName)
 		}
+		modelResource.Versions = versions
 	}
 
 	return nil
@@ -1056,11 +1064,6 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 			return modelWrapError(err)
 		}
 	}
-
-	for _, model := range *models {
-		fmt.Println(model.Name, model.ModelPath, model.Versions)
-	}
-	return &errors.Error{}
 
 	return nil
 }

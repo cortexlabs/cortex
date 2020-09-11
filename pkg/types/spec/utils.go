@@ -304,7 +304,7 @@ func validatePythonLocalModelDir(modelPath string, modelSubPaths []string, model
 	return nil
 }
 
-// getTFServingVersionsFromS3Paths checks that the path contains a valid S3 directory for (Neuron) TensorFlow models:
+// getTFServingVersionsFromS3Path checks that the path contains a valid S3 directory for (Neuron) TensorFlow models:
 //
 // For TensorFlow models:
 // - model-name
@@ -328,9 +328,20 @@ func validatePythonLocalModelDir(modelPath string, modelSubPaths []string, model
 //			- saved_model.pb
 // 		...
 //
-func getTFServingVersionsFromS3Paths(modelPath string, modelSubPaths []string, isNeuronExport bool, awsClientForBucket *aws.Client) ([]int64, error) {
+func getTFServingVersionsFromS3Path(modelPath string, isNeuronExport bool, awsClientForBucket *aws.Client) ([]int64, error) {
+	if yes, err := awsClientForBucket.IsS3PathDir(modelPath); !yes && err == nil {
+		return []int64{}, ErrorModelPathNotDirectory(modelPath)
+	} else if err != nil {
+		return []int64{}, err
+	}
+
+	modelSubPaths, allModelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelPath, 1, false, pointer.Int64(1000))
+	if err != nil {
+		return []int64{}, err
+	}
+
 	if len(modelSubPaths) == 0 {
-		return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, isNeuronExport)
+		return []int64{}, ErrorS3DirIsEmpty(modelPath)
 	}
 
 	versions := []int64{}
@@ -339,12 +350,18 @@ func getTFServingVersionsFromS3Paths(modelPath string, modelSubPaths []string, i
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, isNeuronExport)
+			return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, true, true, false, allModelSubPaths)
 		}
 
 		modelVersionPath := aws.JoinS3Path(modelPath, versionStr)
-		if err := validateTFServingS3ModelDir(modelPath, modelSubPaths, modelVersionPath, isNeuronExport, awsClientForBucket); err != nil {
-			return []int64{}, err
+		if err := validateTFServingS3ModelDir(modelVersionPath, isNeuronExport, awsClientForBucket); err != nil {
+			if errors.GetKind(err) == ErrDirIsEmpty {
+				continue
+			}
+			if errors.GetKind(err) == errors.ErrNotCortexError {
+				return []int64{}, err
+			}
+			return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, true, true, false, allModelSubPaths)
 		}
 		versions = append(versions, version)
 	}
@@ -352,20 +369,29 @@ func getTFServingVersionsFromS3Paths(modelPath string, modelSubPaths []string, i
 	return slices.UniqueInt64(versions), nil
 }
 
-func validateTFServingS3ModelDir(modelPath string, modelSubPaths []string, modelVersionPath string, isNeuronExport bool, awsClientForBucket *aws.Client) error {
-	if yes, err := awsClientForBucket.IsS3PathDir(modelVersionPath); err != nil {
+func validateTFServingS3ModelDir(modelPath string, isNeuronExport bool, awsClientForBucket *aws.Client) error {
+	if yes, err := awsClientForBucket.IsS3PathDir(modelPath); err != nil {
 		return err
 	} else if !yes {
-		return ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, isNeuronExport)
+		return ErrorModelPathNotDirectory(modelPath)
+	}
+
+	modelSubPaths, allModelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelPath, 1, false, pointer.Int64(1000))
+	if err != nil {
+		return err
+	}
+
+	if len(modelSubPaths) == 0 {
+		return ErrorS3DirIsEmpty(modelPath)
 	}
 
 	if isNeuronExport {
-		if !isValidNeuronTensorFlowS3Directory(modelVersionPath, awsClientForBucket) {
-			return ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, isNeuronExport)
+		if !isValidNeuronTensorFlowS3Directory(modelPath, awsClientForBucket) {
+			return ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, true, true, false, allModelSubPaths)
 		}
 	} else {
-		if !isValidTensorFlowS3Directory(modelVersionPath, awsClientForBucket) {
-			return ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, isNeuronExport)
+		if !isValidTensorFlowS3Directory(modelPath, awsClientForBucket) {
+			return ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, true, true, false, allModelSubPaths)
 		}
 	}
 
@@ -410,7 +436,7 @@ func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool
 	return true
 }
 
-// getTFServingVersionsFromLocalPaths checks that the path contains a valid local directory for TensorFlow models:
+// getTFServingVersionsFromLocalPath checks that the path contains a valid local directory for TensorFlow models:
 // - model-name
 // 		- 1523423423/ (version prefix, usually a timestamp)
 //			- saved_model.pb
@@ -423,9 +449,16 @@ func isValidNeuronTensorFlowS3Directory(path string, awsClient *aws.Client) bool
 //				- variables.index
 //				- variables.data-00000-of-00001 (there are a variable number of these files)
 //   ...
-func getTFServingVersionsFromLocalPaths(modelPath string, modelSubPaths []string) ([]int64, error) {
-	if len(modelSubPaths) == 0 {
-		return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, false)
+func getTFServingVersionsFromLocalPath(modelPath string) ([]int64, error) {
+	if !files.IsDir(modelPath) {
+		return []int64{}, ErrorModelPathNotDirectory(modelPath)
+	}
+
+	modelSubPaths, err := files.ListDirRecursive(modelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	if err != nil {
+		return []int64{}, err
+	} else if len(modelSubPaths) == 0 {
+		return []int64{}, ErrorDirIsEmpty(modelPath)
 	}
 
 	basePathLength := len(slices.RemoveEmpties(strings.Split(modelPath, "/")))
@@ -436,12 +469,18 @@ func getTFServingVersionsFromLocalPaths(modelPath string, modelSubPaths []string
 		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, false)
+			return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, false, false, true, false, modelSubPaths)
 		}
 
 		modelVersionPath := filepath.Join(modelPath, versionStr)
-		if err := validateTFServingLocalModelDir(modelPath, modelSubPaths, modelVersionPath); err != nil {
-			return []int64{}, err
+		if err := validateTFServingLocalModelDir(modelVersionPath); err != nil {
+			if errors.GetKind(err) == ErrDirIsEmpty {
+				continue
+			}
+			if errors.GetKind(err) == errors.ErrNotCortexError {
+				return []int64{}, err
+			}
+			return []int64{}, ErrorInvalidTensorFlowModelPath(modelPath, false, false, true, false, modelSubPaths)
 		}
 
 		versions = append(versions, version)
@@ -450,13 +489,21 @@ func getTFServingVersionsFromLocalPaths(modelPath string, modelSubPaths []string
 	return slices.UniqueInt64(versions), nil
 }
 
-func validateTFServingLocalModelDir(modelPath string, modelSubPaths []string, modelVersionPath string) error {
-	if !files.IsDir(modelVersionPath) {
-		return ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, false)
+func validateTFServingLocalModelDir(modelPath string) error {
+	if !files.IsDir(modelPath) {
+		return ErrorModelPathNotDirectory(modelPath)
 	}
 
-	if yes, err := isValidTensorFlowLocalDirectory(modelVersionPath); !yes || err != nil {
-		return ErrorInvalidTensorFlowModelPath(modelPath, modelSubPaths, false)
+	var versionObjects []string
+	var err error
+	if versionObjects, err = files.ListDir(modelPath, false); err != nil {
+		return err
+	} else if len(versionObjects) == 0 {
+		return ErrorDirIsEmpty(modelPath)
+	}
+
+	if yes, err := isValidTensorFlowLocalDirectory(modelPath); !yes || err != nil {
+		return ErrorInvalidTensorFlowModelPath(modelPath, false, false, false, true, versionObjects)
 	}
 
 	return nil
