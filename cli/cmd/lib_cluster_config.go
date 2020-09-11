@@ -464,7 +464,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.LogGroup, privateSubnetMsg)
 
-	if clusterConfig.APIGatewaySetting == clusterconfig.DisabledAPIGatewaySetting {
+	if clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
 		fmt.Print("warning: you've disabled API Gateway cluster-wide, so APIs will not be able to create API Gateway endpoints (they will still be reachable via the API load balancer; see https://docs.cortex.dev/deployments/networking for more information)\n\n")
 	}
 

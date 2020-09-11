@@ -17,14 +17,14 @@ type APIGatewaySetting int
 
 const (
 	UnknownAPIGatewaySetting APIGatewaySetting = iota
-	EnabledAPIGatewaySetting
-	DisabledAPIGatewaySetting
+	PublicAPIGatewaySetting
+	NoneAPIGatewaySetting
 )
 
 var _apiGatewaySettings = []string{
 	"unknown",
-	"enabled",
-	"disabled",
+	"public",
+	"none",
 }
 
 func APIGatewaySettingFromString(s string) APIGatewaySetting {

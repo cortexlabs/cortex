@@ -86,7 +86,7 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if Cluster.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+	if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 		apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
 		if err != nil {
 			return err
