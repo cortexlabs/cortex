@@ -39,8 +39,7 @@ import (
 const ClusterNameTag = "cortex.dev/cluster-name"
 
 var (
-	_spotInstanceDistributionLength = 2
-	_maxInstancePools               = 20
+	_maxInstancePools = 20
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
