@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	"context"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -98,7 +99,7 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 
 func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
 	deployment.TypeMeta = _deploymentTypeMeta
-	deployment, err := c.deploymentClient.Create(deployment)
+	deployment, err := c.deploymentClient.Create(context.Background(), deployment, kmeta.CreateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -107,7 +108,7 @@ func (c *Client) CreateDeployment(deployment *kapps.Deployment) (*kapps.Deployme
 
 func (c *Client) UpdateDeployment(deployment *kapps.Deployment) (*kapps.Deployment, error) {
 	deployment.TypeMeta = _deploymentTypeMeta
-	deployment, err := c.deploymentClient.Update(deployment)
+	deployment, err := c.deploymentClient.Update(context.Background(), deployment, kmeta.UpdateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -126,7 +127,7 @@ func (c *Client) ApplyDeployment(deployment *kapps.Deployment) (*kapps.Deploymen
 }
 
 func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
-	deployment, err := c.deploymentClient.Get(name, kmeta.GetOptions{})
+	deployment, err := c.deploymentClient.Get(context.Background(), name, kmeta.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -138,7 +139,7 @@ func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
 }
 
 func (c *Client) DeleteDeployment(name string) (bool, error) {
-	err := c.deploymentClient.Delete(name, _deleteOpts)
+	err := c.deploymentClient.Delete(context.Background(), name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -152,7 +153,7 @@ func (c *Client) ListDeployments(opts *kmeta.ListOptions) ([]kapps.Deployment, e
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
-	deploymentList, err := c.deploymentClient.List(*opts)
+	deploymentList, err := c.deploymentClient.List(context.Background(), *opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

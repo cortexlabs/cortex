@@ -1,1 +1,1 @@
-FROM amazon/cloudwatch-agent:1.237768.0
+FROM amazon/cloudwatch-agent:1.246396.0

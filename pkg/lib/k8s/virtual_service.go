@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -145,7 +146,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 
 func (c *Client) CreateVirtualService(virtualService *istioclientnetworking.VirtualService) (*istioclientnetworking.VirtualService, error) {
 	virtualService.TypeMeta = _virtualServiceTypeMeta
-	virtualService, err := c.virtualServiceClient.Create(virtualService)
+	virtualService, err := c.virtualServiceClient.Create(context.Background(), virtualService, kmeta.CreateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -156,7 +157,7 @@ func (c *Client) UpdateVirtualService(existing, updated *istioclientnetworking.V
 	updated.TypeMeta = _virtualServiceTypeMeta
 	updated.ResourceVersion = existing.ResourceVersion
 
-	virtualService, err := c.virtualServiceClient.Update(updated)
+	virtualService, err := c.virtualServiceClient.Update(context.Background(), updated, kmeta.UpdateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -175,7 +176,7 @@ func (c *Client) ApplyVirtualService(virtualService *istioclientnetworking.Virtu
 }
 
 func (c *Client) GetVirtualService(name string) (*istioclientnetworking.VirtualService, error) {
-	virtualService, err := c.virtualServiceClient.Get(name, kmeta.GetOptions{})
+	virtualService, err := c.virtualServiceClient.Get(context.Background(), name, kmeta.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -187,7 +188,7 @@ func (c *Client) GetVirtualService(name string) (*istioclientnetworking.VirtualS
 }
 
 func (c *Client) DeleteVirtualService(name string) (bool, error) {
-	err := c.virtualServiceClient.Delete(name, _deleteOpts)
+	err := c.virtualServiceClient.Delete(context.Background(), name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -201,7 +202,7 @@ func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]istioclientnetw
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
-	vsList, err := c.virtualServiceClient.List(*opts)
+	vsList, err := c.virtualServiceClient.List(context.Background(), *opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

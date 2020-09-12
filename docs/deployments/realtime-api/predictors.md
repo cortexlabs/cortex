@@ -135,33 +135,33 @@ class PythonPredictor:
 The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
 
 ```text
-boto3==1.13.7
-cloudpickle==1.4.1
-Cython==0.29.17
-dill==0.3.1.1
-fastapi==0.54.1
-joblib==0.14.1
-Keras==2.3.1
+boto3==1.14.53
+cloudpickle==1.6.0
+Cython==0.29.21
+dill==0.3.2
+fastapi==0.61.1
+joblib==0.16.0
+Keras==2.4.3
 msgpack==1.0.0
 nltk==3.5
 np-utils==0.5.12.1
-numpy==1.18.4
-opencv-python==4.2.0.34
-pandas==1.0.3
-Pillow==7.1.2
+numpy==1.19.1
+opencv-python==4.4.0.42
+pandas==1.1.1
+Pillow==7.2.0
 pyyaml==5.3.1
-requests==2.23.0
-scikit-image==0.17.1
-scikit-learn==0.22.2.post1
-scipy==1.4.1
-six==1.14.0
-statsmodels==0.11.1
-sympy==1.5.1
-tensorflow-hub==0.8.0
-tensorflow==2.1.0
-torch==1.5.0
-torchvision==0.6.0
-xgboost==1.0.2
+requests==2.24.0
+scikit-image==0.17.2
+scikit-learn==0.23.2
+scipy==1.5.2
+six==1.15.0
+statsmodels==0.12.0
+sympy==1.6.2
+tensorflow-hub==0.9.0
+tensorflow==2.3.0
+torch==1.6.0
+torchvision==0.7.0
+xgboost==1.2.0
 ```
 
 #### Inferentia-equipped APIs
@@ -170,30 +170,32 @@ The list is slightly different for inferentia-equipped APIs:
 
 ```text
 boto3==1.13.7
-cloudpickle==1.3.0
-Cython==0.29.17
+cloudpickle==1.6.0
+Cython==0.29.21
 dill==0.3.1.1
 fastapi==0.54.1
-joblib==0.14.1
+joblib==0.16.0
 msgpack==1.0.0
-neuron-cc==1.0.9410.0+6008239556
-nltk==3.4.5
+neuron-cc==1.0.18001.0+0.5312e6a21
+nltk==3.5
 np-utils==0.5.12.1
-numpy==1.16.5
-opencv-python==4.2.0.32
-pandas==1.0.3
-Pillow==6.2.2
+numpy==1.18.2
+opencv-python==4.4.0.42
+pandas==1.1.1
+Pillow==7.2.0
 pyyaml==5.3.1
 requests==2.23.0
-scikit-image==0.16.2
-scikit-learn==0.22.2.post1
+scikit-image==0.17.2
+scikit-learn==0.23.2
 scipy==1.3.2
-six==1.14.0
-statsmodels==0.11.1
-sympy==1.5.1
-tensorflow-neuron==1.15.0.1.0.1333.0
-torch-neuron==1.0.825.0
-torchvision==0.4.2
+six==1.15.0
+statsmodels==0.12.0
+sympy==1.6.2
+tensorflow==1.15.3
+tensorflow-neuron==1.15.3.1.0.1965.0
+torch==1.5.1
+torch-neuron==1.5.1.1.0.1532.0
+torchvision==0.6.1
 ```
 
 <!-- CORTEX_VERSION_MINOR x3 -->
@@ -291,17 +293,17 @@ class TensorFlowPredictor:
 The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
 
 ```text
-boto3==1.13.7
-dill==0.3.1.1
-fastapi==0.54.1
+boto3==1.14.53
+dill==0.3.2
+fastapi==0.61.1
 msgpack==1.0.0
-numpy==1.18.4
-opencv-python==4.2.0.34
+numpy==1.19.1
+opencv-python==4.4.0.42
 pyyaml==5.3.1
-requests==2.23.0
-tensorflow-hub==0.8.0
-tensorflow-serving-api==2.1.0
-tensorflow==2.1.0
+requests==2.24.0
+tensorflow-hub==0.9.0
+tensorflow-serving-api==2.3.0
+tensorflow==2.3.0
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
@@ -403,14 +405,14 @@ class ONNXPredictor:
 The following Python packages are pre-installed in ONNX Predictors and can be used in your implementations:
 
 ```text
-boto3==1.13.7
-dill==0.3.1.1
-fastapi==0.54.1
+boto3==1.14.53
+dill==0.3.2
+fastapi==0.61.1
 msgpack==1.0.0
-numpy==1.18.4
-onnxruntime==1.2.0
+numpy==1.19.1
+onnxruntime==1.4.0
 pyyaml==5.3.1
-requests==2.23.0
+requests==2.24.0
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->

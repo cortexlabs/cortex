@@ -18,6 +18,7 @@ package k8s
 
 import (
 	"bytes"
+	"context"
 	"regexp"
 	"strings"
 	"time"
@@ -86,7 +87,7 @@ func Pod(spec *PodSpec) *kcore.Pod {
 
 func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	pod.TypeMeta = _podTypeMeta
-	pod, err := c.podClient.Create(pod)
+	pod, err := c.podClient.Create(context.Background(), pod, kmeta.CreateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -95,7 +96,7 @@ func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 
 func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	pod.TypeMeta = _podTypeMeta
-	pod, err := c.podClient.Update(pod)
+	pod, err := c.podClient.Update(context.Background(), pod, kmeta.UpdateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -307,7 +308,7 @@ func (c *Client) WaitForPodRunning(name string, numSeconds int) error {
 }
 
 func (c *Client) GetPod(name string) (*kcore.Pod, error) {
-	pod, err := c.podClient.Get(name, kmeta.GetOptions{})
+	pod, err := c.podClient.Get(context.Background(), name, kmeta.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -319,7 +320,7 @@ func (c *Client) GetPod(name string) (*kcore.Pod, error) {
 }
 
 func (c *Client) DeletePod(name string) (bool, error) {
-	err := c.podClient.Delete(name, _deleteOpts)
+	err := c.podClient.Delete(context.Background(), name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -333,7 +334,7 @@ func (c *Client) ListPods(opts *kmeta.ListOptions) ([]kcore.Pod, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
-	podList, err := c.podClient.List(*opts)
+	podList, err := c.podClient.List(context.Background(), *opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

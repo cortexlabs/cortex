@@ -8,7 +8,7 @@ This example implements an image recognition system using ResNet50, which allows
 
 There are 3 Cortex APIs available in this example:
 
-1. [cortex.yaml](cortex.yaml) - to be used with any instances.
+1. [cortex.yaml](cortex.yaml) - can be used with any instances.
 1. [cortex_inf.yaml](cortex_inf.yaml) - to be used with `inf1` instances.
 1. [cortex_gpu.yaml](cortex_gpu.yaml) - to be used with GPU instances.
 
