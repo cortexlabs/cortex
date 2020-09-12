@@ -42,11 +42,11 @@ func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 	for _, node := range nodes {
 		curMem := node.Status.Capacity.Memory()
 
-		if curMem != nil && minMem == nil {
-			minMem = curMem
+		if curMem == nil || curMem.IsZero() {
+			continue
 		}
 
-		if curMem != nil && minMem.Cmp(*curMem) < 0 {
+		if minMem == nil || minMem.Cmp(*curMem) < 0 {
 			minMem = curMem
 		}
 	}
@@ -68,6 +68,9 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 	mem, err := kresource.ParseQuantity(memoryUserStr)
 	if err != nil {
 		return nil, err
+	}
+	if mem.IsZero() {
+		return nil, nil
 	}
 	return &mem, nil
 }
