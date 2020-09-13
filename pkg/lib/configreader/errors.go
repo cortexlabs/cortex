@@ -206,28 +206,28 @@ func ErrorDisallowedValue(provided interface{}) error {
 func ErrorMustBeLessThanOrEqualTo(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeLessThanOrEqualTo,
-		Message: fmt.Sprintf("%s must be less than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("must be less than or equal to %s (got %s)", s.UserStr(boundary), s.UserStr(provided)),
 	})
 }
 
 func ErrorMustBeLessThan(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeLessThan,
-		Message: fmt.Sprintf("%s must be less than %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("must be less than %s (got %s)", s.UserStr(boundary), s.UserStr(provided)),
 	})
 }
 
 func ErrorMustBeGreaterThanOrEqualTo(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeGreaterThanOrEqualTo,
-		Message: fmt.Sprintf("%s must be greater than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("must be greater than or equal to %s (got %s)", s.UserStr(boundary), s.UserStr(provided)),
 	})
 }
 
 func ErrorMustBeGreaterThan(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeGreaterThan,
-		Message: fmt.Sprintf("%s must be greater than %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("must be greater than %s (got %s)", s.UserStr(boundary), s.UserStr(provided)),
 	})
 }
 
