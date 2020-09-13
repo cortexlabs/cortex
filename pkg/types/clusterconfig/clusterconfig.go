@@ -846,6 +846,9 @@ func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
 	if disallowPrompt {
+		if clusterConfig.Region == nil {
+			clusterConfig.Region = defaults.Region
+		}
 		if clusterConfig.InstanceType == nil {
 			clusterConfig.InstanceType = defaults.InstanceType
 		}
@@ -854,6 +857,9 @@ func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 		}
 		if clusterConfig.MaxInstances == nil {
 			clusterConfig.MaxInstances = defaults.MaxInstances
+		}
+		if clusterConfig.Spot == nil {
+			clusterConfig.Spot = defaults.Spot
 		}
 		return nil
 	}
