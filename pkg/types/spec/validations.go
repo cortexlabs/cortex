@@ -794,7 +794,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, true, true, true, modelSubPaths), modelName)
+				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -818,7 +818,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, false, true, true, modelSubPaths), modelName)
+				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
