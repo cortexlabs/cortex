@@ -34,14 +34,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func CacheModels(apiSpec *spec.API, awsClient *aws.Client) error {
+func CacheModels(apiSpec *spec.API, onlyLocalModels bool, awsClient *aws.Client) error {
 	var err error
 	var wasAlreadyCached bool
-	localModelCaches := make([]*spec.LocalModelCache, len(apiSpec.CuratedModelResources))
+	var localModelCache *spec.LocalModelCache
+	localModelCaches := make([]*spec.LocalModelCache, 0)
 
 	modelsThatWereCachedAlready := 0
-	for i, modelPath := range apiSpec.CuratedModelResources {
-		localModelCaches[i], wasAlreadyCached, err = cacheModel(modelPath, awsClient)
+	for i, model := range apiSpec.CuratedModelResources {
+		if onlyLocalModels && model.S3Path {
+			continue
+		}
+
+		localModelCache, wasAlreadyCached, err = cacheModel(model, awsClient)
 		if err != nil {
 			if apiSpec.Predictor.ModelPath != nil {
 				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
@@ -53,7 +58,8 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) error {
 		if wasAlreadyCached {
 			modelsThatWereCachedAlready++
 		}
-		localModelCaches[i].TargetPath = apiSpec.CuratedModelResources[i].Name
+		localModelCache.TargetPath = apiSpec.CuratedModelResources[i].Name
+		localModelCaches = append(localModelCaches, localModelCache)
 	}
 	apiSpec.LocalModelCaches = localModelCaches
 
@@ -102,7 +108,7 @@ func cacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.L
 	if err != nil {
 		return nil, false, err
 	}
-	if strings.HasSuffix(model.ModelPath, ".onnx") {
+	if len(model.Versions) == 0 {
 		if _, err := files.CreateDirIfMissing(filepath.Join(destModelDir, "1")); err != nil {
 			return nil, false, err
 		}
@@ -114,27 +120,32 @@ func cacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.L
 			return nil, false, err
 		}
 	} else {
-		if len(model.Versions) == 1 {
-			fmt.Println(fmt.Sprintf("￮ caching model %s (version %d) ...", model.Name, model.Versions[0]))
-		} else if len(model.Versions) > 0 {
-			fmt.Println(fmt.Sprintf("￮ caching model %s (versions %s) ...", model.Name, s.UserStrsAnd(model.Versions)))
-		} else {
-			if model.Name == consts.SingleModelName {
+		if model.Name == consts.SingleModelName {
+			switch numVersions := len(model.Versions); numVersions {
+			case 0:
 				fmt.Println("￮ caching model ...")
-			} else {
+			case 1:
+				fmt.Println(fmt.Sprintf("￮ caching model (version %d) ...", model.Versions[0]))
+			default:
+				fmt.Println(fmt.Sprintf("￮ caching model (versions %s) ...", s.UserStrsAnd(model.Versions)))
+			}
+
+		} else {
+			switch numVersions := len(model.Versions); numVersions {
+			case 0:
 				fmt.Println(fmt.Sprintf("￮ caching model %s ...", model.Name))
+			case 1:
+				fmt.Println(fmt.Sprintf("￮ caching model %s (version %d) ...", model.Name, model.Versions[0]))
+			default:
+				fmt.Println(fmt.Sprintf("￮ caching model %s (versions %s) ...", model.Name, s.UserStrsAnd(model.Versions)))
 			}
 		}
-		if strings.HasSuffix(model.ModelPath, ".onnx") {
-			err := files.CopyFileOverwrite(model.ModelPath, filepath.Join(destModelDir, "1", "default.onnx"))
-			if err != nil {
-				return nil, false, err
-			}
-		} else {
-			err := files.CopyDirOverwrite(strings.TrimSuffix(model.ModelPath, "/"), s.EnsureSuffix(destModelDir, "/"))
-			if err != nil {
-				return nil, false, err
-			}
+
+		if len(model.Versions) == 0 {
+			destModelDir = filepath.Join(destModelDir, "1")
+		}
+		if err := files.CopyDirOverwrite(strings.TrimSuffix(model.ModelPath, "/"), s.EnsureSuffix(destModelDir, "/")); err != nil {
+			return nil, false, err
 		}
 	}
 
@@ -201,16 +212,12 @@ func downloadModel(model spec.CuratedModelResource, destModelDir string, awsClie
 		return err
 	}
 
-	if strings.HasSuffix(model.ModelPath, ".onnx") {
-		err := awsClientForBucket.DownloadFileFromS3(bucket, prefix, filepath.Join(destModelDir, "1", "default.onnx"))
-		if err != nil {
-			return err
-		}
-	} else {
-		err := awsClientForBucket.DownloadDirFromS3(bucket, prefix, destModelDir, true, nil)
-		if err != nil {
-			return err
-		}
+	if len(model.Versions) == 0 {
+		destModelDir = filepath.Join(destModelDir, "1")
+	}
+
+	if err := awsClientForBucket.DownloadDirFromS3(bucket, prefix, destModelDir, true, nil); err != nil {
+		return err
 	}
 
 	return nil

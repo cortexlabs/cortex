@@ -601,7 +601,7 @@ func ValidateAPI(
 	}
 	fmt.Print("\n\n")
 
-	return &errors.Error{}
+	// return &errors.Error{}
 
 	return nil
 }
