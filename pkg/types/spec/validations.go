@@ -809,7 +809,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 				return errors.Wrap(err, modelName)
 			}
 
-			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false)
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
@@ -970,7 +970,7 @@ func validateTensorFlowModel(
 				return errors.Wrap(err, modelName)
 			}
 
-			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false)
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
@@ -1132,7 +1132,7 @@ func validateONNXModel(
 				return errors.Wrap(err, modelName)
 			}
 
-			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false)
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}

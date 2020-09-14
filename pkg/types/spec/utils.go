@@ -294,7 +294,7 @@ func getPythonVersionsFromLocalPaths(modelPath string) ([]int64, error) {
 		return []int64{}, ErrorModelPathNotDirectory(modelPath)
 	}
 
-	modelSubPaths, err := files.ListDirRecursive(modelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	modelSubPaths, err := files.ListDirRecursive(modelPath, false)
 	if err != nil {
 		return []int64{}, err
 	} else if len(modelSubPaths) == 0 {
@@ -491,7 +491,7 @@ func getTFServingVersionsFromLocalPath(modelPath string) ([]int64, error) {
 		return []int64{}, ErrorModelPathNotDirectory(modelPath)
 	}
 
-	modelSubPaths, err := files.ListDirRecursive(modelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	modelSubPaths, err := files.ListDirRecursive(modelPath, false)
 	if err != nil {
 		return []int64{}, err
 	} else if len(modelSubPaths) == 0 {
@@ -554,7 +554,7 @@ func validateTFServingLocalModelDir(modelPath string) error {
 //			- variables.index
 //			- variables.data-00000-of-00001 (there are a variable number of these files)
 func isValidTensorFlowLocalDirectory(path string) (bool, error) {
-	paths, err := files.ListDirRecursive(path, true, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	paths, err := files.ListDirRecursive(path, true)
 	if err != nil {
 		return false, err
 	}
@@ -675,7 +675,7 @@ func getONNXVersionsFromLocalPath(modelPath string) ([]int64, error) {
 		return []int64{}, ErrorModelPathNotDirectory(modelPath)
 	}
 
-	modelSubPaths, err := files.ListDirRecursive(modelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+	modelSubPaths, err := files.ListDirRecursive(modelPath, false)
 	if err != nil {
 		return []int64{}, err
 	} else if len(modelSubPaths) == 0 {
