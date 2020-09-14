@@ -291,26 +291,47 @@ func ErrorModelPathNotDirectory(modelPath string) error {
 	})
 }
 
-var _pythonExpectedStructMessage = `For models provided for the %s predictor type, the path must be a directory with the following structure:
-
+var _pythonVersionedExpectedStructMessage = `
   %s
   ├── 1523423423/ (Version prefix)
   |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
   └── 2434389194/ (Version prefix)
 	  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+`
 
-  or like
-
+var _pythonExpectedStructMessage = `
   %s
   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
 `
 
-func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error {
+func ErrorInvalidPythonModelPath(modelPath string, s3Path bool, includeVersionMessage bool, includeNonVersionMessage bool, modelSubPaths []string) error {
 	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonPredictorType.CasedString())
-	message += fmt.Sprintf(_pythonExpectedStructMessage, userconfig.PythonPredictorType, modelPath, modelPath)
-	if len(modelSubPaths) > 0 {
-		message += fmt.Sprintf(_modelCurrentStructure, s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  "))
+
+	if includeVersionMessage || includeNonVersionMessage {
+		message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with the following structure:\n", userconfig.PythonPredictorType)
 	}
+	if includeVersionMessage {
+		message += fmt.Sprintf(_pythonVersionedExpectedStructMessage, modelPath)
+	}
+	if includeVersionMessage && includeNonVersionMessage {
+		message += "\n" + "  or like" + "\n"
+	}
+	if includeNonVersionMessage {
+		message += fmt.Sprintf(_pythonExpectedStructMessage, modelPath)
+	}
+	if includeVersionMessage || includeNonVersionMessage {
+		if len(modelSubPaths) > 0 {
+			if s3Path {
+				message += "\n" + "  but its current structure is (limited to 1000 files)" + "\n\n"
+			} else {
+				message += "\n" + "  but its current structure is" + "\n\n"
+			}
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+		} else {
+			message += "\n" + "  but its current directory is empty"
+		}
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidPythonModelPath,
 		Message: message,

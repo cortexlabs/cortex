@@ -779,15 +779,22 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return errors.Wrap(err, modelName)
 		}
 
-		modelSubPaths, _, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelResource.ModelPath, 1, false, pointer.Int64(1000))
+		versions, err := getPythonVersionsFromS3Paths(modelResource.ModelPath, awsClientForBucket)
 		if err != nil {
-			return errors.Wrap(err, modelName)
-		}
-
-		versions, err := getPythonVersionsFromS3Paths(modelResource.ModelPath, modelSubPaths, awsClientForBucket)
-		if err != nil {
-			if err = validatePythonS3ModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath, awsClientForBucket); err != nil {
+			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
+			}
+
+			modelSubPaths, err := awsClientForBucket.GetPrefixesFromS3Path(modelResource.ModelPath, false, pointer.Int64(1000))
+			if err != nil {
+				return errors.Wrap(err, modelName)
+			}
+
+			if err = validatePythonS3ModelDir(modelResource.ModelPath, awsClientForBucket); err != nil {
+				if errors.GetKind(err) == errors.ErrNotCortexError {
+					return errors.Wrap(err, modelName)
+				}
+				return ErrorInvalidPythonModelPath(modelResource.ModelPath, true, true, true, modelSubPaths)
 			}
 		}
 		modelResource.Versions = versions
@@ -796,18 +803,22 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		if !files.IsDir(modelResource.ModelPath) {
-			return errors.Wrap(ErrorInvalidDirPath(modelResource.ModelPath), modelName)
-		}
-		modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+		versions, err := getPythonVersionsFromLocalPaths(modelResource.ModelPath)
 		if err != nil {
-			return errors.Wrap(err, modelName)
-		}
-
-		versions, err := getPythonVersionsFromLocalPaths(modelResource.ModelPath, modelSubPaths)
-		if err != nil {
-			if err = validatePythonLocalModelDir(modelResource.ModelPath, modelSubPaths, modelResource.ModelPath); err != nil {
+			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
+			}
+
+			modelSubPaths, err := files.ListDirRecursive(modelResource.ModelPath, false, files.IgnoreHiddenFiles, files.IgnoreHiddenFolders)
+			if err != nil {
+				return errors.Wrap(err, modelName)
+			}
+
+			if err = validatePythonLocalModelDir(modelResource.ModelPath); err != nil {
+				if errors.GetKind(err) == errors.ErrNotCortexError {
+					return errors.Wrap(err, modelName)
+				}
+				return ErrorInvalidPythonModelPath(modelResource.ModelPath, false, true, true, modelSubPaths)
 			}
 		}
 		modelResource.Versions = versions
