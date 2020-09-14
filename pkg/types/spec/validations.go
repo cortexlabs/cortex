@@ -794,7 +794,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return ErrorInvalidPythonModelPath(modelResource.ModelPath, true, true, true, modelSubPaths)
+				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, true, true, true, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -818,7 +818,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return ErrorInvalidPythonModelPath(modelResource.ModelPath, false, true, true, modelSubPaths)
+				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, false, true, true, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -955,7 +955,7 @@ func validateTensorFlowModel(
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelResource.S3Path, true, true, modelSubPaths)
+				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelResource.S3Path, true, true, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -979,7 +979,7 @@ func validateTensorFlowModel(
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelResource.S3Path, true, true, modelSubPaths)
+				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelResource.S3Path, true, true, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1117,7 +1117,7 @@ func validateONNXModel(
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return ErrorInvalidONNXModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths)
+				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1141,7 +1141,7 @@ func validateONNXModel(
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return ErrorInvalidONNXModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths)
+				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
