@@ -16,6 +16,10 @@ limitations under the License.
 
 package slices
 
+import (
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+)
+
 func HasInt32(list []int32, query int32) bool {
 	for _, elem := range list {
 		if elem == query {
@@ -27,4 +31,12 @@ func HasInt32(list []int32, query int32) bool {
 
 func CopyInt32s(vals []int32) []int32 {
 	return append(vals[:0:0], vals...)
+}
+
+func Int32ToString(vals []int32) []string {
+	stringSlice := []string{}
+	for _, elem := range vals {
+		stringSlice = append(stringSlice, s.Int32(elem))
+	}
+	return stringSlice
 }

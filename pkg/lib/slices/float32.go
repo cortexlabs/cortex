@@ -16,6 +16,10 @@ limitations under the License.
 
 package slices
 
+import (
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+)
+
 func HasFloat32(list []float32, query float32) bool {
 	for _, elem := range list {
 		if elem == query {
@@ -27,4 +31,12 @@ func HasFloat32(list []float32, query float32) bool {
 
 func CopyFloat32s(vals []float32) []float32 {
 	return append(vals[:0:0], vals...)
+}
+
+func Float32ToString(vals []float32) []string {
+	stringSlice := []string{}
+	for _, elem := range vals {
+		stringSlice = append(stringSlice, s.Float32(elem))
+	}
+	return stringSlice
 }

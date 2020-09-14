@@ -16,6 +16,10 @@ limitations under the License.
 
 package slices
 
+import (
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+)
+
 func HasInt64(list []int64, query int64) bool {
 	for _, elem := range list {
 		if elem == query {
@@ -39,4 +43,12 @@ func UniqueInt64(vals []int64) []int64 {
 		}
 	}
 	return list
+}
+
+func Int64ToString(vals []int64) []string {
+	stringSlice := []string{}
+	for _, elem := range vals {
+		stringSlice = append(stringSlice, s.Int64(elem))
+	}
+	return stringSlice
 }
