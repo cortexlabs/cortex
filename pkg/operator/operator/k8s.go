@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"math"
 	"path"
-	"path/filepath"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -545,25 +543,6 @@ func tfDownloadArgs(api *spec.API) string {
 		},
 	}
 
-	hasSingleModel := api.Predictor.ModelPath != nil
-	hasMultiModels := api.Predictor.Models != nil
-	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
-		rootModelPath := path.Join(_emptyDirMountPath, "model")
-		for _, model := range api.CuratedModelResources {
-			var itemName string
-			if model.Name == consts.SingleModelName {
-				itemName = "the model"
-			} else {
-				itemName = fmt.Sprintf("model %s", model.Name)
-			}
-			downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-				From:     model.ModelPath,
-				To:       rootModelPath,
-				ItemName: itemName,
-			})
-		}
-	}
-
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
@@ -583,25 +562,6 @@ func pythonDownloadArgs(api *spec.API) string {
 		},
 	}
 
-	hasSingleModel := api.Predictor.ModelPath != nil
-	hasMultiModels := api.Predictor.Models != nil
-	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
-		rootModelPath := path.Join(_emptyDirMountPath, "model")
-		for _, model := range api.CuratedModelResources {
-			var itemName string
-			if model.Name == consts.SingleModelName {
-				itemName = "the model"
-			} else {
-				itemName = fmt.Sprintf("model %s", model.Name)
-			}
-			downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-				From:     model.ModelPath,
-				To:       rootModelPath,
-				ItemName: itemName,
-			})
-		}
-	}
-
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
@@ -619,30 +579,6 @@ func onnxDownloadArgs(api *spec.API) string {
 				HideUnzippingLog: true,
 			},
 		},
-	}
-
-	hasSingleModel := api.Predictor.ModelPath != nil
-	hasMultiModels := api.Predictor.Models != nil
-	if hasSingleModel || (hasMultiModels && int(*api.Predictor.Models.DiskCacheSize) == spec.NumModels(api.CuratedModelResources)) {
-		for _, model := range api.CuratedModelResources {
-			var itemName string
-			if model.Name == consts.SingleModelName {
-				itemName = "the model"
-			} else {
-				itemName = fmt.Sprintf("model %s", model.Name)
-			}
-
-			rootModelPath := path.Join(_emptyDirMountPath, "model")
-			if strings.HasSuffix(model.ModelPath, ".onnx") {
-				rootModelPath = filepath.Join(rootModelPath, model.Name, "1", "default.onnx")
-			}
-			downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-				From:     model.ModelPath,
-				To:       rootModelPath,
-				ItemName: itemName,
-				ToFile:   strings.HasSuffix(model.ModelPath, ".onnx"),
-			})
-		}
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)

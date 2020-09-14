@@ -588,6 +588,7 @@ func ValidateAPI(
 		}
 	}
 
+	// TODO to remove when no longer required
 	apiDump, err := yaml.Marshal(&api)
 	if err != nil {
 		log.Fatalf("error while dumping api spec: %v", err)
