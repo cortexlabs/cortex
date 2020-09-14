@@ -18,6 +18,7 @@ package spec
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"strings"
 	"time"
@@ -39,6 +40,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"gopkg.in/yaml.v2"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -586,6 +588,20 @@ func ValidateAPI(
 		}
 	}
 
+	apiDump, err := yaml.Marshal(&api)
+	if err != nil {
+		log.Fatalf("error while dumping api spec: %v", err)
+	}
+	fmt.Printf("--- api dump:\n%s\n\n", string(apiDump))
+
+	fmt.Println("--- model dump")
+	for _, model := range *models {
+		fmt.Println("model.Name", model.Name, "model.ModelPath", model.ModelPath, "model.Versions", model.Versions, "model.S3Path", model.S3Path)
+	}
+	fmt.Print("\n\n")
+
+	return &errors.Error{}
+
 	return nil
 }
 
@@ -906,11 +922,6 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 			return modelWrapError(err)
 		}
 	}
-
-	for _, model := range *models {
-		fmt.Println(model.Name, model.ModelPath, model.Versions)
-	}
-	return &errors.Error{}
 
 	return nil
 }
