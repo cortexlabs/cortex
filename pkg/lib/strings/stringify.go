@@ -351,6 +351,11 @@ func Obj(val interface{}) string {
 	return strIndent(val, "  ", "", "\n", `"`)
 }
 
+// Same as Obj(), but trim leading and trailing quotes if it's just a string
+func ObjStripped(val interface{}) string {
+	return TrimPrefixAndSuffix(Obj(val), `"`)
+}
+
 func ObjFlat(val interface{}) string {
 	return strIndent(val, "", "", "", `"`)
 }
