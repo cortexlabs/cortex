@@ -164,6 +164,18 @@ var UserValidation = &cr.StructValidation{
 				AllowExplicitNull:  true,
 				AllowEmpty:         true,
 				ConvertNullToEmpty: true,
+				KeyStringValidator: &cr.StringValidation{
+					MinLength:       1,
+					MaxLength:       127,
+					InvalidPrefixes: []string{"aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"},
+					AWSTag:          true,
+				},
+				ValueStringValidator: &cr.StringValidation{
+					MinLength:       1,
+					MaxLength:       255,
+					InvalidPrefixes: []string{"aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"},
+					AWSTag:          true,
+				},
 			},
 		},
 		{

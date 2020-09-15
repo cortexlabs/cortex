@@ -22,14 +22,14 @@ import (
 )
 
 type StringMapValidation struct {
-	Required               bool
-	Default                map[string]string
-	AllowExplicitNull      bool
-	AllowEmpty             bool
-	ConvertNullToEmpty     bool
-	AllowCortexResources   bool
-	RequireCortexResources bool
-	Validator              func(map[string]string) (map[string]string, error)
+	Required             bool
+	Default              map[string]string
+	AllowExplicitNull    bool
+	AllowEmpty           bool
+	ConvertNullToEmpty   bool
+	KeyStringValidator   *StringValidation
+	ValueStringValidator *StringValidation
+	Validator            func(map[string]string) (map[string]string, error)
 }
 
 func StringMap(inter interface{}, v *StringMapValidation) (map[string]string, error) {
@@ -71,19 +71,27 @@ func ValidateStringMapProvided(val map[string]string, v *StringMapValidation) (m
 }
 
 func validateStringMap(val map[string]string, v *StringMapValidation) (map[string]string, error) {
-	if v.RequireCortexResources {
-		if err := checkOnlyCortexResources(val); err != nil {
-			return nil, err
-		}
-	} else if !v.AllowCortexResources {
-		if err := checkNoCortexResources(val); err != nil {
-			return nil, err
-		}
-	}
-
 	if !v.AllowEmpty {
 		if val != nil && len(val) == 0 {
 			return nil, ErrorCannotBeEmpty()
+		}
+	}
+
+	if v.KeyStringValidator != nil {
+		for map_key := range val {
+			err := ValidateStringVal(map_key, v.KeyStringValidator)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if v.ValueStringValidator != nil {
+		for map_key, map_val := range val {
+			err := ValidateStringVal(map_val, v.ValueStringValidator)
+			if err != nil {
+				return nil, errors.Wrap(err, map_key)
+			}
 		}
 	}
 

@@ -39,11 +39,13 @@ type StringValidation struct {
 	AllowedValues                        []string
 	DisallowedValues                     []string
 	Prefix                               string
+	InvalidPrefixes                      []string
 	MaxLength                            int
 	MinLength                            int
 	AlphaNumericDashDotUnderscoreOrEmpty bool
 	AlphaNumericDashDotUnderscore        bool
 	AlphaNumericDashUnderscore           bool
+	AWSTag                               bool
 	DNS1035                              bool
 	DNS1123                              bool
 	CastInt                              bool
@@ -249,6 +251,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 		}
 	}
 
+	for _, invalidPrefix := range v.InvalidPrefixes {
+		if strings.HasPrefix(val, invalidPrefix) {
+			return ErrorCantHavePrefix(val, invalidPrefix)
+		}
+	}
+
 	if v.AlphaNumericDashDotUnderscore {
 		if !regex.IsAlphaNumericDashDotUnderscore(val) {
 			return ErrorAlphaNumericDashDotUnderscore(val)
@@ -264,6 +272,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	if v.AlphaNumericDashDotUnderscoreOrEmpty {
 		if !regex.IsAlphaNumericDashDotUnderscore(val) && val != "" {
 			return ErrorAlphaNumericDashDotUnderscore(val)
+		}
+	}
+
+	if v.AWSTag {
+		if !regex.IsValidAWSTag(val) && val != "" {
+			return ErrorInvalidAWSTag(val)
 		}
 	}
 

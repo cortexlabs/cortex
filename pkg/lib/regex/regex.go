@@ -29,6 +29,13 @@ func MatchAnyRegex(s string, regexes []*regexp.Regexp) bool {
 	return false
 }
 
+// letters, numbers, spaces representable in UTF-8, and the following characters: _ . : / = + - @
+var _awsTagRegex = regexp.MustCompile(`^[\sa-zA-Z0-9_\-\.:/=+@]+$`)
+
+func IsValidAWSTag(s string) bool {
+	return _awsTagRegex.MatchString(s)
+}
+
 var _alphaNumericDashDotUnderscoreRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]+$`)
 
 func IsAlphaNumericDashDotUnderscore(s string) bool {
