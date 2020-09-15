@@ -363,7 +363,7 @@ var _downCmd = &cobra.Command{
 		warnIfNotAdmin(awsClient)
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
-		if err != nil {
+		if err != nil && errors.GetKind(err) != clusterstate.ErrUnexpectedCloudFormationStatus { {
 			exit.Error(err)
 		}
 
