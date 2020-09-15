@@ -136,8 +136,7 @@ def get_yolo_boxes(
             yolos[i] = np.array(yolos[i]).reshape((box_size, box_size, filters))
     else:
         output = model.predict_on_batch(batch_input)
-        output = [output[0][0], output[1][0], output[2][0]]
-        yolos = list(map(lambda out: out.numpy(), output))
+        yolos = [output[0][0], output[1][0], output[2][0]]
 
     boxes = []
     # decode the output of the network
