@@ -168,10 +168,12 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":  "true",
-			"type":    _apiContainerName,
-			"apiID":   api.ID,
-			"apiName": api.Name,
+			"cortex":      "true",
+			"type":        _apiContainerName,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"apiName":     api.Name,
 		},
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")

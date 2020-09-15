@@ -153,10 +153,6 @@ func deleteS3Resources(apiName string) error {
 			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 		},
 		func() error {
-			prefix := filepath.Join("predictors", apiName)
-			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-		},
-		func() error {
 			prefix := spec.BatchAPIJobPrefix(apiName)
 			go config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
 			return nil

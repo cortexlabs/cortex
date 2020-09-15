@@ -21,7 +21,6 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -216,8 +215,6 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Real
 	if err != nil {
 		return nil, err
 	}
-
-	debug.Pp(statuses)
 
 	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
 	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
@@ -469,8 +466,8 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 }
 
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return deployment.Spec.Template.Labels["apiName"] == pod.Labels["apiName"] &&
-		deployment.Spec.Template.Labels["predictorID"] == pod.Labels["predictorID"]
+	return deployment.Spec.Template.Labels["predictorID"] == pod.Labels["predictorID"] &&
+		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
 
 func areAPIsEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {

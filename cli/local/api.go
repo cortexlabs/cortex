@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -152,9 +151,6 @@ func areAPIsEqual(a1, a2 *spec.API) bool {
 		return false
 	}
 	if a1.SpecID != a2.SpecID {
-		return false
-	}
-	if !pointer.AreIntsEqual(a1.Networking.LocalPort, a2.Networking.LocalPort) {
 		return false
 	}
 	if !strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) {
