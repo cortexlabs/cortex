@@ -128,13 +128,10 @@ var _upCmd = &cobra.Command{
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, &accessConfig)
 		if err != nil {
-			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the CloudFormation stacks directly from your AWS console (%s)", clusterConfig.ClusterName, *clusterConfig.Region, getCloudFormationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
-			}
 			exit.Error(err)
 		}
 
-		err = assertClusterStatus(&accessConfig, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
+		err = clusterstate.AssertClusterStatus(*accessConfig.ClusterName, *accessConfig.Region, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -179,7 +176,7 @@ var _upCmd = &cobra.Command{
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"
 				helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
-				helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", clusterstate.CloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 				fmt.Println(helpStr)
 				exit.Error(ErrorClusterUp(out + helpStr))
 			}
@@ -194,14 +191,14 @@ var _upCmd = &cobra.Command{
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"
 				helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
-				helpStr += fmt.Sprintf("\n* please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				helpStr += fmt.Sprintf("\n* please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", clusterstate.CloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 				fmt.Println(helpStr)
 				exit.Error(ErrorClusterUp(out + helpStr))
 			}
 
 			// no autoscaling groups were created
 			if len(asgs) == 0 {
-				helpStr := fmt.Sprintf("\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				helpStr := fmt.Sprintf("\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", clusterstate.CloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 				fmt.Println(helpStr)
 				exit.Error(ErrorClusterUp(out + helpStr))
 			}
@@ -211,7 +208,7 @@ var _upCmd = &cobra.Command{
 				if err != nil {
 					helpStr := "\ndebugging tips (may or may not apply to this error):"
 					helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
-					helpStr += fmt.Sprintf("\n* please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+					helpStr += fmt.Sprintf("\n* please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", clusterstate.CloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 					fmt.Println(helpStr)
 					exit.Error(ErrorClusterUp(out + helpStr))
 				}
@@ -229,14 +226,14 @@ var _upCmd = &cobra.Command{
 					helpStr := "\nyour cluster was unable to provision EC2 instances; here is one of the encountered errors:"
 					helpStr += fmt.Sprintf("\n\n> status: %s\n> description: %s", status, description)
 					helpStr += fmt.Sprintf("\n\nadditional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
-					helpStr += fmt.Sprintf("\n\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+					helpStr += fmt.Sprintf("\n\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", clusterstate.CloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 					fmt.Println(helpStr)
 					exit.Error(ErrorClusterUp(out + helpStr))
 				}
 			}
 
 			// No failed asg activities
-			helpStr := fmt.Sprintf("\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+			helpStr := fmt.Sprintf("\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", clusterstate.CloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
@@ -278,12 +275,12 @@ var _configureCmd = &cobra.Command{
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the CloudFormation stacks directly from your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the CloudFormation stacks directly from your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)))
 			}
 			exit.Error(err)
 		}
 
-		err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
+		err = clusterstate.AssertClusterStatus(*accessConfig.ClusterName, *accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -371,16 +368,16 @@ var _downCmd = &cobra.Command{
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
 			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please delete the CloudFormation stacks directly from your AWS console: %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please delete the CloudFormation stacks directly from your AWS console: %s", *accessConfig.ClusterName, *accessConfig.Region, clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)))
 			}
 			exit.Error(err)
 		}
 
 		switch clusterState.Status {
 		case clusterstate.StatusNotFound:
-			exit.Error(ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region))
+			exit.Error(clusterstate.ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region))
 		case clusterstate.StatusDeleteComplete:
-			exit.Error(ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region))
+			exit.Error(clusterstate.ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region))
 		}
 
 		if !_flagClusterDisallowPrompt {
@@ -434,7 +431,7 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", getCloudFormationURLWithAccessConfig(accessConfig))
+			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
 		}
@@ -531,18 +528,18 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 	clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 	if err != nil {
 		if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-			fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the CloudFormation stacks directly from your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
+			fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the CloudFormation stacks directly from your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)))
 		}
 		return err
 	}
 
 	fmt.Println(clusterState.TableString())
 	if clusterState.Status == clusterstate.StatusCreateFailed || clusterState.Status == clusterstate.StatusDeleteFailed {
-		fmt.Println(fmt.Sprintf("more information can be found in your AWS console: %s", getCloudFormationURLWithAccessConfig(accessConfig)))
+		fmt.Println(fmt.Sprintf("more information can be found in your AWS console: %s", clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)))
 		fmt.Println()
 	}
 
-	err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
+	err = clusterstate.AssertClusterStatus(*accessConfig.ClusterName, *accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
 	if err != nil {
 		return err
 	}
@@ -775,33 +772,6 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	refreshedClusterConfig := &clusterconfig.Config{}
 	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
 	return *refreshedClusterConfig
-}
-
-func assertClusterStatus(accessConfig *clusterconfig.AccessConfig, status clusterstate.Status, allowedStatuses ...clusterstate.Status) error {
-	for _, allowedStatus := range allowedStatuses {
-		if status == allowedStatus {
-			return nil
-		}
-	}
-
-	switch status {
-	case clusterstate.StatusCreateInProgress:
-		return ErrorClusterUpInProgress(*accessConfig.ClusterName, *accessConfig.Region)
-	case clusterstate.StatusCreateComplete:
-		return ErrorClusterAlreadyCreated(*accessConfig.ClusterName, *accessConfig.Region)
-	case clusterstate.StatusDeleteInProgress:
-		return ErrorClusterDownInProgress(*accessConfig.ClusterName, *accessConfig.Region)
-	case clusterstate.StatusNotFound:
-		return ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region)
-	case clusterstate.StatusDeleteComplete:
-		return ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region)
-	default:
-		return ErrorFailedClusterStatus(status, *accessConfig.ClusterName, *accessConfig.Region)
-	}
-}
-
-func getCloudFormationURLWithAccessConfig(accessConfig *clusterconfig.AccessConfig) string {
-	return getCloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)
 }
 
 func createBucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {

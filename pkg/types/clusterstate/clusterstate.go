@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
@@ -105,7 +104,7 @@ func (cs ClusterState) TableString() string {
 	return t.MustFormat()
 }
 
-func getStatus(statusMap map[string]string, controlPlane string) (Status, error) {
+func getStatus(statusMap map[string]string, controlPlane string, clusterName string, region string) (Status, error) {
 	// the order matters
 	allStatuses := []string{}
 	controlPlaneStatus := statusMap[controlPlane]
@@ -119,7 +118,7 @@ func getStatus(statusMap map[string]string, controlPlane string) (Status, error)
 	}
 
 	if any(allStatuses, string(StatusCreateFailedTimedOut)) {
-		return StatusNotFound, ErrorUnexpectedCloudFormationStatus(s.ObjFlat(statusMap))
+		return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
 	}
 
 	if len(nodeGroupStatuses) == 0 && controlPlaneStatus == string(StatusNotFound) {
@@ -163,7 +162,7 @@ func getStatus(statusMap map[string]string, controlPlane string) (Status, error)
 		return StatusCreateInProgress, nil
 	}
 
-	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(s.ObjFlat(statusMap))
+	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
 }
 
 func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) (*ClusterState, error) {
@@ -201,7 +200,7 @@ func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessCo
 		statusMap[operatorStackName] = string(StatusCreateFailedTimedOut)
 	}
 
-	status, err := getStatus(statusMap, controlPlaneStackName)
+	status, err := getStatus(statusMap, controlPlaneStackName, *accessConfig.ClusterName, *accessConfig.Region)
 	if err != nil {
 		return nil, err
 	}
@@ -212,4 +211,8 @@ func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessCo
 		StatusMap:    statusMap,
 		Status:       status,
 	}, nil
+}
+
+func CloudFormationURL(clusterName string, region string) string {
+	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=eksctl-%s-", region, clusterName)
 }
