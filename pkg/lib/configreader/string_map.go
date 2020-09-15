@@ -78,8 +78,8 @@ func validateStringMap(val map[string]string, v *StringMapValidation) (map[strin
 	}
 
 	if v.KeyStringValidator != nil {
-		for map_key := range val {
-			err := ValidateStringVal(map_key, v.KeyStringValidator)
+		for mapKey := range val {
+			err := ValidateStringVal(mapKey, v.KeyStringValidator)
 			if err != nil {
 				return nil, err
 			}
@@ -87,10 +87,10 @@ func validateStringMap(val map[string]string, v *StringMapValidation) (map[strin
 	}
 
 	if v.ValueStringValidator != nil {
-		for map_key, map_val := range val {
-			err := ValidateStringVal(map_val, v.ValueStringValidator)
+		for mapKey, mapVal := range val {
+			err := ValidateStringVal(mapVal, v.ValueStringValidator)
 			if err != nil {
-				return nil, errors.Wrap(err, map_key)
+				return nil, errors.Wrap(err, mapKey)
 			}
 		}
 	}
