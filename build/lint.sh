@@ -63,6 +63,7 @@ output=$(black --quiet --diff --line-length=100 "$ROOT")
 if [[ $output ]]; then
   echo "python files not properly formatted:"
   echo "$output"
+  black --version
   exit 1
 fi
 

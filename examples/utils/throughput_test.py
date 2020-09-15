@@ -126,7 +126,12 @@ def task(data, endpoint, samples, time_based):
     if time_based == 0.0:
         for i in range(samples):
             try:
-                resp = requests.post(endpoint, data=data, headers=headers, timeout=timeout,)
+                resp = requests.post(
+                    endpoint,
+                    data=data,
+                    headers=headers,
+                    timeout=timeout,
+                )
             except Exception as e:
                 print(e)
                 break
@@ -137,7 +142,12 @@ def task(data, endpoint, samples, time_based):
         counter = 0
         while start + time_based >= time.time():
             try:
-                resp = requests.post(endpoint, data=data, headers=headers, timeout=timeout,)
+                resp = requests.post(
+                    endpoint,
+                    data=data,
+                    headers=headers,
+                    timeout=timeout,
+                )
             except Exception as e:
                 print(e)
                 break

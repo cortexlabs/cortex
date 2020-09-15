@@ -59,6 +59,8 @@ func Init() error {
 		return errors.FirstError(errs...)
 	}
 
+	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
+
 	AWS, err = aws.NewFromEnv(*Cluster.Region)
 	if err != nil {
 		return err
@@ -86,7 +88,7 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if Cluster.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+	if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 		apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
 		if err != nil {
 			return err
@@ -113,8 +115,6 @@ func Init() error {
 			Cluster.VPCLinkIntegration = integration
 		}
 	}
-
-	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
 	if K8s, err = k8s.New("default", Cluster.OperatorInCluster); err != nil {
 		return err

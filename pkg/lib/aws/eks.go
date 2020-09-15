@@ -17,6 +17,8 @@ limitations under the License.
 package aws
 
 import (
+	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
@@ -27,4 +29,17 @@ func init() {
 	for region := range InstanceMetadatas {
 		EKSSupportedRegions.Add(region)
 	}
+}
+
+// Returns info for the cluster, or nil of no cluster exists with the provided name
+func (c *Client) EKSClusterOrNil(clusterName string) (*eks.Cluster, error) {
+	clusterInfo, err := c.EKS().DescribeCluster(&eks.DescribeClusterInput{Name: &clusterName})
+	if err != nil {
+		if IsErrCode(err, eks.ErrCodeResourceNotFoundException) {
+			return nil, nil
+		}
+		return nil, errors.WithStack(err)
+	}
+
+	return clusterInfo.Cluster, nil
 }

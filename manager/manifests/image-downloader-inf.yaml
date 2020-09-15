@@ -33,7 +33,7 @@ spec:
           value: "true"
           operator: Equal
           effect: NoSchedule
-        - key: aws.amazon.com/infa
+        - key: aws.amazon.com/neuron
           value: "true"
           operator: Equal
           effect: NoSchedule

@@ -710,12 +710,12 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		ReadinessProbe: socketExistsProbe(_neuronRTDSocket),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
-				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
+				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
+				"aws.amazon.com/neuron": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
 			Limits: kcore.ResourceList{
-				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
+				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
+				"aws.amazon.com/neuron": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
 		},
 	}
@@ -782,27 +782,6 @@ func socketExistsProbe(socketName string) *kcore.Probe {
 	}
 }
 
-var _tolerations = []kcore.Toleration{
-	{
-		Key:      "workload",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-	{
-		Key:      "nvidia.com/gpu",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-	{
-		Key:      "aws.amazon.com/infa",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-}
-
 var BaseEnvVars = []kcore.EnvFromSource{
 	{
 		ConfigMapRef: &kcore.ConfigMapEnvSource{
@@ -842,7 +821,7 @@ var Tolerations = []kcore.Toleration{
 		Effect:   kcore.TaintEffectNoSchedule,
 	},
 	{
-		Key:      "aws.amazon.com/infa",
+		Key:      "aws.amazon.com/neuron",
 		Operator: kcore.TolerationOpEqual,
 		Value:    "true",
 		Effect:   kcore.TaintEffectNoSchedule,

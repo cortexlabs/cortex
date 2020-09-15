@@ -41,19 +41,25 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 var AutoscalingTickInterval = 10 * time.Second
 
-func apiValidation(provider types.ProviderType, resource userconfig.Resource) *cr.StructValidation {
+func apiValidation(
+	provider types.ProviderType,
+	resource userconfig.Resource,
+	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+) *cr.StructValidation {
+
 	structFieldValidations := []*cr.StructFieldValidation{}
 	switch resource.Kind {
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind),
+			networkingValidation(resource.Kind, clusterConfig),
 			computeValidation(provider),
 			monitoringValidation(),
 			autoscalingValidation(provider),
@@ -62,13 +68,13 @@ func apiValidation(provider types.ProviderType, resource userconfig.Resource) *c
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind),
+			networkingValidation(resource.Kind, clusterConfig),
 			computeValidation(provider),
 		)
 	case userconfig.TrafficSplitterKind:
 		structFieldValidations = append(resourceStructValidations,
 			multiAPIsValidation(),
-			networkingValidation(resource.Kind),
+			networkingValidation(resource.Kind, clusterConfig),
 		)
 	}
 	return &cr.StructValidation{
@@ -253,7 +259,16 @@ func monitoringValidation() *cr.StructFieldValidation {
 	}
 }
 
-func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
+func networkingValidation(
+	kind userconfig.Kind,
+	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+) *cr.StructFieldValidation {
+
+	defaultAPIGatewayType := userconfig.PublicAPIGatewayType
+	if clusterConfig != nil && clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
+		defaultAPIGatewayType = userconfig.NoneAPIGatewayType
+	}
+
 	structFieldValidation := []*cr.StructFieldValidation{
 		{
 			StructField: "Endpoint",
@@ -266,7 +281,7 @@ func networkingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			StructField: "APIGateway",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: userconfig.APIGatewayTypeStrings(),
-				Default:       userconfig.PublicAPIGatewayType.String(),
+				Default:       defaultAPIGatewayType.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return userconfig.APIGatewayTypeFromString(str), nil
@@ -570,7 +585,13 @@ var resourceStructValidation = cr.StructValidation{
 	StructFieldValidations: resourceStructValidations,
 }
 
-func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFileName string) ([]userconfig.API, error) {
+func ExtractAPIConfigs(
+	configBytes []byte,
+	provider types.ProviderType,
+	configFileName string,
+	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+) ([]userconfig.API, error) {
+
 	var err error
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
@@ -607,7 +628,7 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			}
 		}
 
-		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct))
+		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct, clusterConfig))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			kindString, _ := data[userconfig.KindKey].(string)

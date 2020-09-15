@@ -2,7 +2,7 @@
 
 * [Build machine learning APIs](../README.md)
 * [Install](cluster-management/install.md)
-* [Tutorial](../examples/pytorch/text-generator/README.md)
+* [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [Contact us](miscellaneous/contact-us.md)
@@ -34,6 +34,7 @@
 * [Using Inferentia](deployments/inferentia.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
+* [Networking](deployments/networking.md)
 
 ## Cluster management
 
@@ -69,6 +70,7 @@
 * [Set up VPC peering](guides/vpc-peering.md)
 * [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
+* [Set up kubectl](guides/kubectl-setup.md)
 
 ## Contributing
 

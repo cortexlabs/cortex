@@ -38,7 +38,7 @@ function ensure_eks() {
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
     python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
-    eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
+    eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
 
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
@@ -167,7 +167,7 @@ function main() {
   ensure_eks
 
   # create VPC Link for API Gateway
-  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "enabled" ]; then
+  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "public" ]; then
     vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
     if [ "$vpc_id" = "" ] || [ "$vpc_id" = "null" ]; then
       echo "unable to find cortex vpc"
@@ -247,7 +247,7 @@ function main() {
   fi
 
   # add VPC Link integration to API Gateway
-  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "enabled" ]; then
+  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "public" ]; then
     echo -n "￮ creating api gateway vpc link integration "
     api_id=$(python get_api_gateway_id.py)
     python create_gateway_integration.py $api_id $vpc_link_id

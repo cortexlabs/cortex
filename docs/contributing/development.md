@@ -19,10 +19,10 @@ Also, please use the VS Code [yaml extension](https://marketplace.visualstudio.c
 To install Go on linux, run:
 
 ```bash
-wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz && \
-sudo tar -xvf go1.14.2.linux-amd64.tar.gz && \
+wget https://dl.google.com/go/go1.14.7.linux-amd64.tar.gz && \
+sudo tar -xvf go1.14.7.linux-amd64.tar.gz && \
 sudo mv go /usr/local && \
-rm go1.14.2.linux-amd64.tar.gz
+rm go1.14.7.linux-amd64.tar.gz
 ```
 
 ### Docker

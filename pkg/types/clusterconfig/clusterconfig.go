@@ -18,10 +18,11 @@ package clusterconfig
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"regexp"
 	"strings"
 
-	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -36,11 +37,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
-const ClusterNameTag = "cortex.dev/cluster-name"
+const (
+	ClusterNameTag = "cortex.dev/cluster-name"
+
+	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
+	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
+)
 
 var (
-	_spotInstanceDistributionLength = 2
-	_maxInstancePools               = 20
+	_maxInstancePools            = 20
+	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
@@ -158,6 +164,18 @@ var UserValidation = &cr.StructValidation{
 				AllowExplicitNull:  true,
 				AllowEmpty:         true,
 				ConvertNullToEmpty: true,
+				KeyStringValidator: &cr.StringValidation{
+					MinLength:       1,
+					MaxLength:       127,
+					InvalidPrefixes: []string{"aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"},
+					AWSTag:          true,
+				},
+				ValueStringValidator: &cr.StringValidation{
+					MinLength:       1,
+					MaxLength:       255,
+					InvalidPrefixes: []string{"aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"},
+					AWSTag:          true,
+				},
 			},
 		},
 		{
@@ -322,7 +340,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "APIGatewaySetting",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: APIGatewaySettingStrings(),
-				Default:       EnabledAPIGatewaySetting.String(),
+				Default:       PublicAPIGatewaySetting.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return APIGatewaySettingFromString(str), nil
@@ -650,14 +668,47 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	return nil
 }
 
-func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
+func checkCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
 		strings.HasSuffix(instanceMetadata.Type, "micro") {
 		return ErrorInstanceTypeTooSmall()
 	}
 
-	if _, ok := awsutils.InstanceENIsAvailable[instanceMetadata.Type]; !ok {
-		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
+	if err := checkCNISupport(instanceMetadata.Type); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Check the instance type against the list of supported instance types for the current default CNI version
+// Returns nil if unable to perform the check successfully
+func checkCNISupport(instanceType string) error {
+	if _cachedCNISupportedInstances == nil {
+		// set to empty string to cache errors too
+		_cachedCNISupportedInstances = pointer.String("")
+
+		res, err := http.Get(_cniSupportedInstancesURL)
+		if err != nil {
+			return nil
+		}
+
+		body, err := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			return nil
+		}
+
+		_cachedCNISupportedInstances = pointer.String(string(body))
+	}
+
+	// sanity check the response
+	if !strings.Contains(*_cachedCNISupportedInstances, "m5.large") {
+		return nil
+	}
+
+	if !strings.Contains(*_cachedCNISupportedInstances, instanceType) {
+		return ErrorInstanceTypeNotSupported(instanceType)
 	}
 
 	return nil
@@ -748,7 +799,6 @@ func applyPromptDefaults(defaults Config) *Config {
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
-		Spot:         pointer.Bool(true),
 	}
 
 	if defaults.Region != nil {
@@ -762,9 +812,6 @@ func applyPromptDefaults(defaults Config) *Config {
 	}
 	if defaults.MaxInstances != nil {
 		defaultConfig.MaxInstances = defaults.MaxInstances
-	}
-	if defaults.Spot != nil {
-		defaultConfig.Spot = defaults.Spot
 	}
 
 	return defaultConfig
@@ -807,6 +854,9 @@ func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
 	if disallowPrompt {
+		if clusterConfig.Region == nil {
+			clusterConfig.Region = defaults.Region
+		}
 		if clusterConfig.InstanceType == nil {
 			clusterConfig.InstanceType = defaults.InstanceType
 		}
@@ -985,7 +1035,7 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorInvalidInstanceType(instanceType)
 	}
 
-	err := CheckCortexSupport(*foundInstance)
+	err := checkCortexSupport(*foundInstance)
 	if err != nil {
 		return "", err
 	}

@@ -152,6 +152,9 @@ func (quantity *Quantity) AddQty(q2 Quantity) {
 }
 
 func (quantity *Quantity) String() string {
+	if quantity == nil {
+		return "<nil>"
+	}
 	if quantity.UserString != "" {
 		return quantity.UserString
 	}

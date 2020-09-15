@@ -1,6 +1,6 @@
 # Splitting traffic between APIs
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.18.*, run `git checkout -b 0.18` or switch to the `0.18` branch on GitHub)_
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.19.*, run `git checkout -b 0.19` or switch to the `0.19` branch on GitHub)_
 
 This example shows how to split traffic between 2 different iris-classifiers deployed as Realtime APIs.
 
@@ -44,7 +44,7 @@ iris-classifier-tf     70        live     1           1m            -           
 
 last updated: 1m
 endpoint: https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier
-curl: curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+example curl: curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 ...
 ```
 
@@ -86,7 +86,7 @@ iris-classifier-tf     70        live     1           4m            5.81867 ms  
 
 last updated: 4m
 endpoint: https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier
-curl: curl https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+example curl: curl https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 ...
 ```
 

@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -153,7 +154,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+		if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 			err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
 			if err != nil {
 				exit.Error(err)
@@ -162,20 +163,80 @@ var _upCmd = &cobra.Command{
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
 		if err != nil {
-			if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
 				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
 			}
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			if clusterConfig.APIGatewaySetting == clusterconfig.EnabledAPIGatewaySetting {
+			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
 				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
 			}
-			helpStr := "\nDebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
-			helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+
+			eksCluster, err := awsClient.EKSClusterOrNil(clusterConfig.ClusterName)
+			if err != nil {
+				helpStr := "\ndebugging tips (may or may not apply to this error):"
+				helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+				helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			// the cluster never started spinning up
+			if eksCluster == nil {
+				exit.Error(ErrorClusterUp(out))
+			}
+
+			clusterTags := map[string]string{clusterconfig.ClusterNameTag: clusterConfig.ClusterName}
+			asgs, err := awsClient.AutoscalingGroups(clusterTags)
+			if err != nil {
+				helpStr := "\ndebugging tips (may or may not apply to this error):"
+				helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+				helpStr += fmt.Sprintf("\n* please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			// no autoscaling groups were created
+			if len(asgs) == 0 {
+				helpStr := fmt.Sprintf("\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			for _, asg := range asgs {
+				activity, err := awsClient.MostRecentASGActivity(*asg.AutoScalingGroupName)
+				if err != nil {
+					helpStr := "\ndebugging tips (may or may not apply to this error):"
+					helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+					helpStr += fmt.Sprintf("\n* please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+					fmt.Println(helpStr)
+					exit.Error(ErrorClusterUp(out + helpStr))
+				}
+
+				if activity != nil && (activity.StatusCode == nil || *activity.StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful) {
+					status := "(none)"
+					if activity.StatusCode != nil {
+						status = *activity.StatusCode
+					}
+					description := "(none)"
+					if activity.Description != nil {
+						description = *activity.Description
+					}
+
+					helpStr := "\nyour cluster was unable to provision EC2 instances; here is one of the encountered errors:"
+					helpStr += fmt.Sprintf("\n\n> status: %s\n> description: %s", status, description)
+					helpStr += fmt.Sprintf("\n\nadditional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+					helpStr += fmt.Sprintf("\n\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+					fmt.Println(helpStr)
+					exit.Error(ErrorClusterUp(out + helpStr))
+				}
+			}
+
+			// No failed asg activities
+			helpStr := fmt.Sprintf("\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
@@ -239,8 +300,8 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := "\nDebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+			helpStr := "\ndebugging tips (may or may not apply to this error):"
+			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
@@ -580,11 +641,14 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	numAPIInstances := len(infoResponse.NodeInfos)
 
 	var totalReplicas int
-	var doesClusterHaveGPUs bool
+	var doesClusterHaveGPUs, doesClusterHaveInfs bool
 	for _, nodeInfo := range infoResponse.NodeInfos {
 		totalReplicas += nodeInfo.NumReplicas
 		if nodeInfo.ComputeUserCapacity.GPU > 0 {
 			doesClusterHaveGPUs = true
+		}
+		if nodeInfo.ComputeUserCapacity.Inf > 0 {
+			doesClusterHaveInfs = true
 		}
 	}
 
@@ -606,6 +670,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "CPU (requested / total allocatable)"},
 		{Title: "memory (requested / total allocatable)"},
 		{Title: "GPU (requested / total allocatable)", Hidden: !doesClusterHaveGPUs},
+		{Title: "Inf (requested / total allocatable)", Hidden: !doesClusterHaveInfs},
 	}
 
 	var rows [][]interface{}
@@ -618,7 +683,8 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		cpuStr := nodeInfo.ComputeUserRequested.CPU.MilliString() + " / " + nodeInfo.ComputeUserCapacity.CPU.MilliString()
 		memStr := nodeInfo.ComputeUserRequested.Mem.String() + " / " + nodeInfo.ComputeUserCapacity.Mem.String()
 		gpuStr := s.Int64(nodeInfo.ComputeUserRequested.GPU) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.GPU)
-		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, cpuStr, memStr, gpuStr})
+		infStr := s.Int64(nodeInfo.ComputeUserRequested.Inf) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.Inf)
+		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, cpuStr, memStr, gpuStr, infStr})
 	}
 
 	t := table.Table{
