@@ -40,6 +40,7 @@ func virtualServiceSpec(trafficSplitter *spec.API) *istioclientnetworking.Virtua
 			"apiName": trafficSplitter.Name,
 			"apiKind": trafficSplitter.Kind.String(),
 			"apiID":   trafficSplitter.ID,
+			"specID":  trafficSplitter.SpecID,
 		},
 	})
 }

@@ -378,10 +378,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: DefaultPortStr,
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_API_SPEC",
-				Value: aws.S3Path(config.Cluster.Bucket, api.Key),
-			},
-			kcore.EnvVar{
 				Name:  "CORTEX_CACHE_DIR",
 				Value: _specCacheDir,
 			},
@@ -390,6 +386,23 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
 		)
+
+		if api.Kind == userconfig.RealtimeAPIKind {
+			// Use api spec indexed by PredictorID for realtime apis to prevent rolling updates when SpecID changes without PredictorID changing
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_API_SPEC",
+					Value: aws.S3Path(config.Cluster.Bucket, api.PredictorKey),
+				},
+			)
+		} else {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_API_SPEC",
+					Value: aws.S3Path(config.Cluster.Bucket, api.Key),
+				},
+			)
+		}
 
 		if api.Autoscaling != nil {
 			envVars = append(envVars,

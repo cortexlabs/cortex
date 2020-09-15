@@ -151,13 +151,10 @@ func areAPIsEqual(a1, a2 *spec.API) bool {
 	if a1 == nil || a2 == nil {
 		return false
 	}
-	if a1.ID != a2.ID {
+	if a1.SpecID != a2.SpecID {
 		return false
 	}
 	if !pointer.AreIntsEqual(a1.Networking.LocalPort, a2.Networking.LocalPort) {
-		return false
-	}
-	if !a1.Compute.Equals(a2.Compute) {
 		return false
 	}
 	if !strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) {

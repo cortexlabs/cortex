@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -37,13 +38,17 @@ import (
 
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
+func deploymentID() string {
+	return k8s.RandomName()[:10]
+}
+
 func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
 	}
 
-	deploymentID := k8s.RandomName()
+	deploymentID := deploymentID()
 	if prevDeployment != nil && prevDeployment.Labels["deploymentID"] != "" {
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
@@ -54,6 +59,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
+
+		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
+		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+			return nil, "", errors.Wrap(err, "upload predictor spec")
+		}
+
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
@@ -70,7 +81,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return api, fmt.Sprintf("creating %s", api.Resource.UserString()), nil
 	}
 
-	if !areAPIsEqual(prevDeployment, deploymentSpec(api, prevDeployment)) {
+	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
 		isUpdating, err := isAPIUpdating(prevDeployment)
 		if err != nil {
 			return nil, "", err
@@ -81,6 +92,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
+
+		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
+		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+			return nil, "", errors.Wrap(err, "upload predictor spec")
+		}
+
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
@@ -128,7 +145,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, api.ProjectID, k8s.RandomName())
+	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID())
 
 	if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
@@ -199,6 +216,8 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Real
 	if err != nil {
 		return nil, err
 	}
+
+	debug.Pp(statuses)
 
 	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
 	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
@@ -407,8 +426,16 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	prefix := filepath.Join("apis", apiName)
-	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+	return parallel.RunFirstErr(
+		func() error {
+			prefix := filepath.Join("apis", apiName)
+			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+		},
+		func() error {
+			prefix := filepath.Join("predictors", apiName)
+			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+		},
+	)
 }
 
 func IsAPIUpdating(apiName string) (bool, error) {
@@ -442,17 +469,11 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 }
 
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return k8s.PodComputesEqual(&deployment.Spec.Template.Spec, &pod.Spec) &&
-		deployment.Spec.Template.Labels["apiName"] == pod.Labels["apiName"] &&
-		deployment.Spec.Template.Labels["apiID"] == pod.Labels["apiID"] &&
-		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
+	return deployment.Spec.Template.Labels["apiName"] == pod.Labels["apiName"] &&
+		deployment.Spec.Template.Labels["predictorID"] == pod.Labels["predictorID"]
 }
 
-func areAPIsEqual(d1, d2 *kapps.Deployment) bool {
-	return k8s.PodComputesEqual(&d1.Spec.Template.Spec, &d2.Spec.Template.Spec) &&
-		k8s.DeploymentStrategiesMatch(d1.Spec.Strategy, d2.Spec.Strategy) &&
-		d1.Labels["apiName"] == d2.Labels["apiName"] &&
-		d1.Labels["apiID"] == d2.Labels["apiID"] &&
-		d1.Labels["deploymentID"] == d2.Labels["deploymentID"] &&
-		operator.DoCortexAnnotationsMatch(d1, d2)
+func areAPIsEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
+	return vs1.Labels["specID"] == vs2.Labels["specID"] &&
+		vs1.Labels["deploymentID"] == vs2.Labels["deploymentID"]
 }

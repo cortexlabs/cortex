@@ -91,10 +91,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 }
 
 func areAPIsEqual(v1, v2 *istioclientnetworking.VirtualService) bool {
-	return v1.Labels["apiName"] == v2.Labels["apiName"] &&
-		v1.Labels["apiID"] == v2.Labels["apiID"] &&
-		v1.Labels["computeID"] == v2.Labels["computeID"] &&
-		operator.DoCortexAnnotationsMatch(v1, v2)
+	return v1.Labels["specID"] == v2.Labels["specID"]
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
@@ -153,6 +150,10 @@ func deleteS3Resources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
 			prefix := filepath.Join("apis", apiName)
+			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+		},
+		func() error {
+			prefix := filepath.Join("predictors", apiName)
 			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 		},
 		func() error {

@@ -320,7 +320,7 @@ func checkIfUsedByTrafficSplitter(apiName string) error {
 
 	var usedByTrafficSplitters []string
 	for _, vs := range virtualServices {
-		trafficSplitterSpec, err := operator.DownloadAPISpec(vs.Labels["apiName"], vs.Labels["apiID"])
+		trafficSplitterSpec, err := operator.DownloadAPISpec(vs.GetLabels()["apiName"], vs.GetLabels()["apiID"])
 		if err != nil {
 			return err
 		}
