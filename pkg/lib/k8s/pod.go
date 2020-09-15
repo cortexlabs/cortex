@@ -371,18 +371,18 @@ func PodMap(pods []kcore.Pod) map[string]kcore.Pod {
 }
 
 func PodComputesEqual(podSpec1, podSpec2 *kcore.PodSpec) bool {
-	cpu1, mem1, gpu1 := TotalPodCompute(podSpec1)
-	cpu2, mem2, gpu2 := TotalPodCompute(podSpec2)
-	return cpu1.Equal(cpu2) && mem1.Equal(mem2) && gpu1 == gpu2
+	cpu1, mem1, gpu1, inf1 := TotalPodCompute(podSpec1)
+	cpu2, mem2, gpu2, inf2 := TotalPodCompute(podSpec2)
+	return cpu1.Equal(cpu2) && mem1.Equal(mem2) && gpu1 == gpu2 && inf1 == inf2
 }
 
-func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
+func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64, int64) {
 	totalCPU := Quantity{}
 	totalMem := Quantity{}
-	var totalGPU int64
+	var totalGPU, totalInf int64
 
 	if podSpec == nil {
-		return totalCPU, totalMem, totalGPU
+		return totalCPU, totalMem, totalGPU, totalInf
 	}
 
 	for _, container := range podSpec.Containers {
@@ -395,9 +395,12 @@ func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
 		if gpu, ok := requests["nvidia.com/gpu"]; ok {
 			totalGPU += gpu.Value()
 		}
+		if inf, ok := requests["aws.amazon.com/neuron"]; ok {
+			totalInf += inf.Value()
+		}
 	}
 
-	return totalCPU, totalMem, totalGPU
+	return totalCPU, totalMem, totalGPU, totalInf
 }
 
 // Example of running a shell command: []string{"/bin/bash", "-c", "ps aux | grep my-proc"}
