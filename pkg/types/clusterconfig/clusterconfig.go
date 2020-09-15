@@ -787,7 +787,6 @@ func applyPromptDefaults(defaults Config) *Config {
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
-		Spot:         pointer.Bool(true),
 	}
 
 	if defaults.Region != nil {
@@ -801,9 +800,6 @@ func applyPromptDefaults(defaults Config) *Config {
 	}
 	if defaults.MaxInstances != nil {
 		defaultConfig.MaxInstances = defaults.MaxInstances
-	}
-	if defaults.Spot != nil {
-		defaultConfig.Spot = defaults.Spot
 	}
 
 	return defaultConfig
@@ -857,9 +853,6 @@ func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 		}
 		if clusterConfig.MaxInstances == nil {
 			clusterConfig.MaxInstances = defaults.MaxInstances
-		}
-		if clusterConfig.Spot == nil {
-			clusterConfig.Spot = defaults.Spot
 		}
 		return nil
 	}
