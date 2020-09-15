@@ -29,12 +29,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 )
 
@@ -101,8 +101,9 @@ var _exportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		userCortexYaml := s.Indent(apiSpec.UserStr(env.Provider), "  ")
-		userCortexYaml = "-" + userCortexYaml[1:]
+		userCortexYaml, _ := yaml.Marshal([]*userconfig.API{apiSpec.API})
+		// userCortexYaml := s.Indent(apiSpec.UserStr(env.Provider), "  ")
+		// userCortexYaml = "-" + userCortexYaml[1:]
 
 		err = files.WriteFile([]byte(userCortexYaml), path.Join(baseDir, apiSpec.FileName))
 		if err != nil {

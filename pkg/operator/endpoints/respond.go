@@ -18,8 +18,10 @@ package endpoints
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -28,6 +30,9 @@ import (
 func respond(w http.ResponseWriter, response interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	debug.Pp(response)
+	bytes, _ := json.Marshal(response)
+	fmt.Println(bytes)
 	json.NewEncoder(w).Encode(response)
 }
 

@@ -30,8 +30,8 @@ import (
 )
 
 type API struct {
-	Resource
-	APIs           []*TrafficSplit `json:"apis" yaml:"apis"`
+	Resource       `json:"resource,inline" yaml:"resource,inline"`
+	APIs           []*TrafficSplit `json:"apis" yaml:"apis,omitempty"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking     *Networking     `json:"networking" yaml:"networking"`
@@ -45,17 +45,17 @@ type API struct {
 type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
-	ModelPath              *string                `json:"model_path" yaml:"model_path"`
-	Models                 []*ModelResource       `json:"models" yaml:"models"`
-	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
+	ModelPath              *string                `json:"model_path" yaml:"model_path,omitempty"`
+	Models                 []*ModelResource       `json:"models" yaml:"models,omitempty"`
+	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching,omitempty"`
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
-	PythonPath             *string                `json:"python_path" yaml:"python_path"`
+	PythonPath             *string                `json:"python_path" yaml:"python_path,omitempty"`
 	Image                  string                 `json:"image" yaml:"image"`
-	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
-	Config                 map[string]interface{} `json:"config" yaml:"config"`
-	Env                    map[string]string      `json:"env" yaml:"env"`
-	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
+	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image,omitempty"`
+	Config                 map[string]interface{} `json:"config" yaml:"config,omitempty"`
+	Env                    map[string]string      `json:"env" yaml:"env,omitempty"`
+	SignatureKey           *string                `json:"signature_key" yaml:"signature_key,omitempty"`
 }
 
 type TrafficSplit struct {
@@ -70,7 +70,7 @@ type ModelResource struct {
 }
 
 type Monitoring struct {
-	Key       *string   `json:"key" yaml:"key"`
+	Key       *string   `json:"key" yaml:"key,omitempty"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
@@ -80,14 +80,14 @@ type ServerSideBatching struct {
 }
 
 type Networking struct {
-	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
-	LocalPort  *int           `json:"local_port" yaml:"local_port"`
+	Endpoint   *string        `json:"endpoint" yaml:"endpoint,omitempty"`
+	LocalPort  *int           `json:"local_port" yaml:"local_port,omitempty"`
 	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
 }
 
 type Compute struct {
-	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
-	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
+	CPU *k8s.Quantity `json:"cpu" yaml:"cpu,omitempty"`
+	Mem *k8s.Quantity `json:"mem" yaml:"mem,omitempty"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
 	Inf int64         `json:"inf" yaml:"inf"`
 }
