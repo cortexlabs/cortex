@@ -191,9 +191,5 @@ func deleteS3Resources(apiName string) error {
 }
 
 func areAPIsEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
-	return vs1.Labels["apiName"] == vs2.Labels["apiName"] &&
-		vs1.Labels["apiKind"] == vs2.Labels["apiKind"] &&
-		vs1.Labels["apiID"] == vs2.Labels["apiID"] &&
-		k8s.VirtualServicesMatch(vs1.Spec, vs2.Spec) &&
-		operator.DoCortexAnnotationsMatch(vs1, vs2)
+	return vs1.Labels["specID"] == vs2.Labels["specID"]
 }

@@ -18,6 +18,7 @@ package spec
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -31,8 +32,11 @@ import (
 type API struct {
 	*userconfig.API
 	ID               string             `json:"id"`
-	Key              string             `json:"key"`
+	SpecID           string             `json:"spec_id"`
+	PredictorID      string             `json:"predictor_id"`
 	DeploymentID     string             `json:"deployment_id"`
+	Key              string             `json:"key"`
+	PredictorKey     string             `json:"predictor_key"`
 	LastUpdated      int64              `json:"last_updated"`
 	MetadataRoot     string             `json:"metadata_root"`
 	ProjectID        string             `json:"project_id"`
@@ -47,19 +51,51 @@ type LocalModelCache struct {
 	TargetPath string `json:"target_path"`
 }
 
+/*
+APIID:
+* SpecID
+  * PredictorID
+	* Resource
+	* Predictor
+	* Monitoring
+	* Compute
+	* ProjectID
+  * Deployment Strategy
+  * Autoscaling
+  * Networking
+  * APIs
+* DeploymentID
+*/
 func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
 	var buf bytes.Buffer
-	buf.WriteString(apiConfig.Name)
+
+	buf.WriteString(s.Obj(apiConfig.Resource))
 	buf.WriteString(s.Obj(apiConfig.Predictor))
 	buf.WriteString(s.Obj(apiConfig.Monitoring))
-	buf.WriteString(deploymentID)
 	buf.WriteString(projectID)
-	id := hash.Bytes(buf.Bytes())
+	if apiConfig.Compute != nil {
+		buf.WriteString(s.Obj(apiConfig.Compute.Normalized()))
+	}
+	predictorID := hash.Bytes(buf.Bytes())
+
+	buf.Reset()
+	buf.WriteString(predictorID)
+	buf.WriteString(s.Obj(apiConfig.APIs))
+	buf.WriteString(s.Obj(apiConfig.Networking))
+	buf.WriteString(s.Obj(apiConfig.Autoscaling))
+	buf.WriteString(s.Obj(apiConfig.UpdateStrategy))
+	buf.WriteString(projectID)
+	specID := hash.Bytes(buf.Bytes())[:32]
+
+	apiID := fmt.Sprintf("%s-%s-%s", MonotonicallyDecreasingID(), deploymentID, specID) // should be up to 60 characters long
 
 	return &API{
 		API:          apiConfig,
-		ID:           id,
-		Key:          Key(apiConfig.Name, id),
+		ID:           apiID,
+		SpecID:       specID,
+		PredictorID:  predictorID,
+		Key:          Key(apiConfig.Name, apiID),
+		PredictorKey: PredictorKey(apiConfig.Name, predictorID),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: MetadataRoot(apiConfig.Name),
@@ -96,6 +132,15 @@ func (api *API) SubtractModelIDs(apis ...*API) []string {
 		modelIDs.Remove(a.ModelIDs()...)
 	}
 	return modelIDs.Slice()
+}
+
+func PredictorKey(apiName string, predictorID string) string {
+	return filepath.Join(
+		"predictors",
+		apiName,
+		predictorID,
+		consts.CortexVersion+"-spec.msgpack",
+	)
 }
 
 func Key(apiName string, apiID string) string {

@@ -436,6 +436,28 @@ func (networking *Networking) UserStr(provider types.ProviderType) string {
 	return sb.String()
 }
 
+// Represent compute using the smallest base units e.g. bytes for Mem, milli for CPU
+func (compute *Compute) Normalized() string {
+	var sb strings.Builder
+	if compute.CPU == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", CPUKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", CPUKey, compute.CPU.MilliValue()))
+	}
+	if compute.GPU > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
+	}
+	if compute.Inf > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", InfKey, s.Int64(compute.Inf)))
+	}
+	if compute.Mem == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", MemKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", MemKey, compute.Mem.Value()))
+	}
+	return sb.String()
+}
+
 func (compute *Compute) UserStr() string {
 	var sb strings.Builder
 	if compute.CPU == nil {

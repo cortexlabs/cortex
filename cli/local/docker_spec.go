@@ -168,10 +168,12 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":  "true",
-			"type":    _apiContainerName,
-			"apiID":   api.ID,
-			"apiName": api.Name,
+			"cortex":      "true",
+			"type":        _apiContainerName,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"apiName":     api.Name,
 		},
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
@@ -246,11 +248,13 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":   "true",
-			"type":     _apiContainerName,
-			"apiID":    api.ID,
-			"apiName":  api.Name,
-			"modelIDs": ModelCaches(api.LocalModelCaches).IDs(),
+			"cortex":      "true",
+			"type":        _apiContainerName,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"apiName":     api.Name,
+			"modelIDs":    ModelCaches(api.LocalModelCaches).IDs(),
 		},
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
@@ -328,11 +332,13 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			_tfServingPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":   "true",
-			"type":     _tfServingContainerName,
-			"apiID":    api.ID,
-			"apiName":  api.Name,
-			"modelIDs": ModelCaches(api.LocalModelCaches).IDs(),
+			"cortex":      "true",
+			"type":        _tfServingContainerName,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"apiName":     api.Name,
+			"modelIDs":    ModelCaches(api.LocalModelCaches).IDs(),
 		},
 	}
 
@@ -388,11 +394,13 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			_defaultPortStr + "/tcp": struct{}{},
 		},
 		Labels: map[string]string{
-			"cortex":   "true",
-			"type":     _apiContainerName,
-			"apiID":    api.ID,
-			"apiName":  api.Name,
-			"modelIDs": ModelCaches(api.LocalModelCaches).IDs(),
+			"cortex":      "true",
+			"type":        _apiContainerName,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"apiName":     api.Name,
+			"modelIDs":    ModelCaches(api.LocalModelCaches).IDs(),
 		},
 	}
 	containerCreateRequest, err = docker.MustDockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")
