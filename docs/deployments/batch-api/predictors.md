@@ -58,8 +58,13 @@ class PythonPredictor:
                 specified) merged with configuration passed in with Job
                 Submission API. If there are conflicting keys, values in
                 configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job
-                request and additional information such as the job_id.
+            job_spec (optional): Dictionary containing the following fields:
+                "job_id": A unique ID for this job
+                "api_name": The name of this batch API
+                "config": The config that was provided in the job submission
+                "workers": The number of workers for this job
+                "total_batch_count": The total number of batches in this job
+                "start_time": The time that this job started
         """
         pass
 
@@ -181,8 +186,13 @@ class TensorFlowPredictor:
                 specified) merged with configuration passed in with Job
                 Submission API. If there are conflicting keys, values in
                 configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job request
-                and additional information such as the job_id.
+            job_spec (optional): Dictionary containing the following fields:
+                "job_id": A unique ID for this job
+                "api_name": The name of this batch API
+                "config": The config that was provided in the job submission
+                "workers": The number of workers for this job
+                "total_batch_count": The total number of batches in this job
+                "start_time": The time that this job started
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
@@ -263,8 +273,13 @@ class ONNXPredictor:
                 specified) merged with configuration passed in with Job
                 Submission API. If there are conflicting keys, values in
                 configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job request
-                and additional information such as the job_id.
+            job_spec (optional): Dictionary containing the following fields:
+                "job_id": A unique ID for this job
+                "api_name": The name of this batch API
+                "config": The config that was provided in the job submission
+                "workers": The number of workers for this job
+                "total_batch_count": The total number of batches in this job
+                "start_time": The time that this job started
         """
         self.client = onnx_client
         # Additional initialization may be done here
