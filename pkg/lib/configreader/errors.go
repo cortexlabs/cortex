@@ -34,8 +34,10 @@ const (
 	ErrTooShort                      = "configreader.too_short"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
+	ErrInvalidAWSTag                 = "configreader.invalid_aws_tag"
 	ErrInvalidDockerImage            = "configreader.invalid_docker_image"
 	ErrMustHavePrefix                = "configreader.must_have_prefix"
+	ErrCantHavePrefix                = "configreader.cant_have_prefix"
 	ErrInvalidInterface              = "configreader.invalid_interface"
 	ErrInvalidFloat64                = "configreader.invalid_float64"
 	ErrInvalidFloat32                = "configreader.invalid_float32"
@@ -126,6 +128,13 @@ func ErrorAlphaNumericDashDotUnderscore(provided string) error {
 	})
 }
 
+func ErrorInvalidAWSTag(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidAWSTag,
+		Message: fmt.Sprintf("%s must contain only letters, numbers, spaces, and the following characters: _ . : / = + - @", s.UserStr(provided)),
+	})
+}
+
 func ErrorInvalidDockerImage(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidDockerImage,
@@ -137,6 +146,13 @@ func ErrorMustHavePrefix(provided string, prefix string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustHavePrefix,
 		Message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStr(prefix)),
+	})
+}
+
+func ErrorCantHavePrefix(provided string, prefix string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCantHavePrefix,
+		Message: fmt.Sprintf("%s cannot start with %s", s.UserStr(provided), s.UserStr(prefix)),
 	})
 }
 
