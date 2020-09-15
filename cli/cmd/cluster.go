@@ -366,12 +366,13 @@ var _downCmd = &cobra.Command{
 		if err != nil && errors.GetKind(err) != clusterstate.ErrUnexpectedCloudFormationStatus {
 			exit.Error(err)
 		}
-
-		switch clusterState.Status {
-		case clusterstate.StatusNotFound:
-			exit.Error(clusterstate.ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region))
-		case clusterstate.StatusDeleteComplete:
-			exit.Error(clusterstate.ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region))
+		if err == nil {
+			switch clusterState.Status {
+			case clusterstate.StatusNotFound:
+				exit.Error(clusterstate.ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region))
+			case clusterstate.StatusDeleteComplete:
+				exit.Error(clusterstate.ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region))
+			}
 		}
 
 		if !_flagClusterDisallowPrompt {
