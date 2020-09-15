@@ -29,6 +29,7 @@ const ErrNotCortexError = "error"
 type Error struct {
 	Kind        string
 	Message     string
+	Metadata    interface{} // won't be printed
 	NoTelemetry bool
 	NoPrint     bool
 	Cause       error
@@ -106,6 +107,13 @@ func GetKind(err error) string {
 		return cortexError.Kind
 	}
 	return ErrNotCortexError
+}
+
+func GetMetadata(err error) interface{} {
+	if cortexError, ok := err.(*Error); ok {
+		return cortexError.Metadata
+	}
+	return nil
 }
 
 func IsNoTelemetry(err error) bool {
