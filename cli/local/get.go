@@ -119,7 +119,7 @@ func ListVersionMismatchedAPIs() ([]string, error) {
 			return nil, err
 		}
 		splitKey := strings.Split(key, "/")
-		if len(splitKey) != 3 {
+		if len(splitKey) == 0 {
 			continue
 		}
 		apiNames = append(apiNames, splitKey[0])
