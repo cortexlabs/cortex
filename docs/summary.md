@@ -70,6 +70,7 @@
 * [Set up VPC peering](guides/vpc-peering.md)
 * [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
+* [Set up kubectl](guides/kubectl-setup.md)
 
 ## Contributing
 
