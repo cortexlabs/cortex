@@ -52,10 +52,16 @@ func ensureLogGroupForAPI(apiName string) error {
 	}
 
 	if len(output.LogGroups) == 0 {
-		_, err := config.AWS.CloudWatchLogs().CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
+		input := &cloudwatchlogs.CreateLogGroupInput{
 			LogGroupName: aws.String(logGroupNameForAPI(apiName)),
-			Tags:         aws.StringMap(config.Cluster.Tags),
-		})
+		}
+
+		// There should always be a default tag. Tags are only empty when running local operator without the tags field specified in a cluster.yaml.
+		if len(config.Cluster.Tags) > 0 {
+			input.Tags = aws.StringMap(config.Cluster.Tags)
+		}
+
+		_, err := config.AWS.CloudWatchLogs().CreateLogGroup(input)
 		if err != nil {
 			return errors.WithStack(err)
 		}

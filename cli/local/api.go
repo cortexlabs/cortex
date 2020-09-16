@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -91,7 +90,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
 		err = errors.FirstError(
 			DeleteAPI(newAPISpec.Name),
-			DeleteCachedModels(newAPISpec.Name, prevAPISpec.SubtractModelIDs(newAPISpec)),
+			DeleteCachedModels(newAPISpec.Name, prevAPISpec.SubtractLocalModelIDs(newAPISpec)),
 		)
 		if err != nil {
 			return nil, "", err
@@ -101,13 +100,13 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 	err = writeAPISpec(newAPISpec)
 	if err != nil {
 		DeleteAPI(newAPISpec.Name)
-		DeleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
+		DeleteCachedModels(newAPISpec.Name, newAPISpec.LocalModelIDs())
 		return nil, "", err
 	}
 
 	if err := DeployContainers(newAPISpec, awsClient); err != nil {
 		DeleteAPI(newAPISpec.Name)
-		DeleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
+		DeleteCachedModels(newAPISpec.Name, newAPISpec.LocalModelIDs())
 		return nil, "", err
 	}
 
@@ -151,16 +150,10 @@ func areAPIsEqual(a1, a2 *spec.API) bool {
 	if a1 == nil || a2 == nil {
 		return false
 	}
-	if a1.ID != a2.ID {
+	if a1.SpecID != a2.SpecID {
 		return false
 	}
-	if !pointer.AreIntsEqual(a1.Networking.LocalPort, a2.Networking.LocalPort) {
-		return false
-	}
-	if !a1.Compute.Equals(a2.Compute) {
-		return false
-	}
-	if !strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) {
+	if !strset.FromSlice(a1.LocalModelIDs()).IsEqual(strset.FromSlice(a2.LocalModelIDs())) {
 		return false
 	}
 	return true

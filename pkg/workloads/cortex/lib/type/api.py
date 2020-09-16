@@ -31,6 +31,7 @@ class API:
     def __init__(self, provider, storage, model_dir, cache_dir=".", **kwargs):
         self.provider = provider
         self.id = kwargs["id"]
+        self.predictor_id = kwargs["predictor_id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
@@ -66,7 +67,10 @@ class API:
             raise ValueError("unable to store class {}".format(class_name)) from e
 
     def metric_dimensions_with_id(self):
-        return [{"Name": "APIName", "Value": self.name}, {"Name": "APIID", "Value": self.id}]
+        return [
+            {"Name": "APIName", "Value": self.name},
+            {"Name": "PredictorID", "Value": self.predictor_id},
+        ]
 
     def metric_dimensions(self):
         return [{"Name": "APIName", "Value": self.name}]

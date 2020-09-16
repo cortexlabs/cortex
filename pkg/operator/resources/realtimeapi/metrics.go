@@ -233,8 +233,8 @@ func getAPIDimensions(api *spec.API) []*cloudwatch.Dimension {
 			Value: aws.String(api.Name),
 		},
 		{
-			Name:  aws.String("APIID"),
-			Value: aws.String(api.ID),
+			Name:  aws.String("PredictorID"),
+			Value: aws.String(api.PredictorID),
 		},
 	}
 }

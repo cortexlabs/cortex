@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -378,10 +377,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: DefaultPortStr,
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_API_SPEC",
-				Value: aws.S3Path(config.Cluster.Bucket, api.Key),
-			},
-			kcore.EnvVar{
 				Name:  "CORTEX_CACHE_DIR",
 				Value: _specCacheDir,
 			},
@@ -390,6 +385,23 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
 		)
+
+		if api.Kind == userconfig.RealtimeAPIKind {
+			// Use api spec indexed by PredictorID for realtime apis to prevent rolling updates when SpecID changes without PredictorID changing
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_API_SPEC",
+					Value: aws.S3Path(config.Cluster.Bucket, api.PredictorKey),
+				},
+			)
+		} else {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_API_SPEC",
+					Value: aws.S3Path(config.Cluster.Bucket, api.Key),
+				},
+			)
+		}
 
 		if api.Autoscaling != nil {
 			envVars = append(envVars,
@@ -872,12 +884,6 @@ func GetEndpointFromVirtualService(virtualService *istioclientnetworking.Virtual
 	}
 
 	return endpoints.GetOne(), nil
-}
-
-func DoCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {
-	cortexAnnotations1 := extractCortexAnnotations(obj1)
-	cortexAnnotations2 := extractCortexAnnotations(obj2)
-	return maps.StrMapsEqual(cortexAnnotations1, cortexAnnotations2)
 }
 
 func extractCortexAnnotations(obj kmeta.Object) map[string]string {
