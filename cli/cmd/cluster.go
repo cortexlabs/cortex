@@ -225,7 +225,7 @@ var _upCmd = &cobra.Command{
 
 					helpStr := "\nyour cluster was unable to provision EC2 instances; here is one of the encountered errors:"
 					helpStr += fmt.Sprintf("\n\n> status: %s\n> description: %s", status, description)
-					helpStr += fmt.Sprintf("\n\nadditional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+					helpStr += fmt.Sprintf("\n\nadditional error information might be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 					helpStr += fmt.Sprintf("\n\nplease ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again; you can delete your CloudFormation stacks from the AWS console: %s", clusterstate.CloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
 					fmt.Println(helpStr)
 					exit.Error(ErrorClusterUp(out + helpStr))
