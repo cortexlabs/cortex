@@ -60,7 +60,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 
 		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload predictor spec")
 		}
 
@@ -80,7 +80,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return api, fmt.Sprintf("creating %s", api.Resource.UserString()), nil
 	}
 
-	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
+	if prevVirtualService.Labels["specID"] != api.SpecID || prevVirtualService.Labels["deploymentID"] != api.DeploymentID {
 		isUpdating, err := isAPIUpdating(prevDeployment)
 		if err != nil {
 			return nil, "", err
@@ -93,7 +93,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 
 		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload predictor spec")
 		}
 
@@ -193,7 +193,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			// extract all api names from statuses
 			allAPINames := make([]string, len(virtualServices))
 			for i, virtualService := range virtualServices {
-				allAPINames[i] = virtualService.GetLabels()["apiName"]
+				allAPINames[i] = virtualService.Labels["apiName"]
 			}
 			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
 			if err != nil {
@@ -423,16 +423,8 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	return parallel.RunFirstErr(
-		func() error {
-			prefix := filepath.Join("apis", apiName)
-			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-		},
-		func() error {
-			prefix := filepath.Join("predictors", apiName)
-			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-		},
-	)
+	prefix := filepath.Join("apis", apiName)
+	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 }
 
 func IsAPIUpdating(apiName string) (bool, error) {
@@ -468,9 +460,4 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
 	return deployment.Spec.Template.Labels["predictorID"] == pod.Labels["predictorID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
-}
-
-func areAPIsEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
-	return vs1.Labels["specID"] == vs2.Labels["specID"] &&
-		vs1.Labels["deploymentID"] == vs2.Labels["deploymentID"]
 }

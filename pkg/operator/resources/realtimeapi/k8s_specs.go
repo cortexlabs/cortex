@@ -55,8 +55,8 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
 			"specID":       api.SpecID,
-			"predictorID":  api.PredictorID,
 			"deploymentID": api.DeploymentID,
+			"predictorID":  api.PredictorID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -67,8 +67,8 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 			Labels: map[string]string{
 				"apiName":      api.Name,
 				"apiKind":      api.Kind.String(),
-				"predictorID":  api.PredictorID,
 				"deploymentID": api.DeploymentID,
+				"predictorID":  api.PredictorID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -116,8 +116,8 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			Labels: map[string]string{
 				"apiName":      api.Name,
 				"apiKind":      api.Kind.String(),
-				"predictorID":  api.PredictorID,
 				"deploymentID": api.DeploymentID,
+				"predictorID":  api.PredictorID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -153,8 +153,8 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
 			"specID":       api.SpecID,
-			"predictorID":  api.PredictorID,
 			"deploymentID": api.DeploymentID,
+			"predictorID":  api.PredictorID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -165,8 +165,8 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 			Labels: map[string]string{
 				"apiName":      api.Name,
 				"apiKind":      api.Kind.String(),
-				"predictorID":  api.PredictorID,
 				"deploymentID": api.DeploymentID,
+				"predictorID":  api.PredictorID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",

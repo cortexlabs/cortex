@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -885,12 +884,6 @@ func GetEndpointFromVirtualService(virtualService *istioclientnetworking.Virtual
 	}
 
 	return endpoints.GetOne(), nil
-}
-
-func DoCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {
-	cortexAnnotations1 := extractCortexAnnotations(obj1)
-	cortexAnnotations2 := extractCortexAnnotations(obj2)
-	return maps.StrMapsEqual(cortexAnnotations1, cortexAnnotations2)
 }
 
 func extractCortexAnnotations(obj kmeta.Object) map[string]string {

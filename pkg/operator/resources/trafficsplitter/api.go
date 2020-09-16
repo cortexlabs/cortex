@@ -54,7 +54,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
-	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
+	if prevVirtualService.Labels["specID"] != api.SpecID {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -188,8 +188,4 @@ func deleteK8sResources(apiName string) error {
 func deleteS3Resources(apiName string) error {
 	prefix := filepath.Join("apis", apiName)
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-}
-
-func areAPIsEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
-	return vs1.Labels["specID"] == vs2.Labels["specID"]
 }
