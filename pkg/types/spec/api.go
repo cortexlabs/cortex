@@ -148,7 +148,7 @@ func Key(apiName string, apiID string) string {
 		"apis",
 		apiName,
 		apiID,
-		consts.CortexVersion+"-spec.msgpack",
+		consts.CortexVersion+"-spec.json",
 	)
 }
 

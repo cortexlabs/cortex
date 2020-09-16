@@ -39,7 +39,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 
 	api := spec.GetAPISpec(apiConfig, "", "")
 	if prevVirtualService == nil {
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
@@ -55,7 +55,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 	}
 
 	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
