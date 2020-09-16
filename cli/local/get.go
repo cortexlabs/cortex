@@ -105,6 +105,7 @@ func ListVersionMismatchedAPIs() ([]string, error) {
 
 	apiNames := []string{}
 	for _, specPath := range filepaths {
+		// Check msgpack for compatibility
 		if !strings.HasSuffix(filepath.Base(specPath), "-spec.json") || !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
 			continue
 		}
