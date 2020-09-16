@@ -139,6 +139,8 @@ func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 			if err != nil {
 				return nil, errors.Wrap(err, key)
 			}
+
+			val[key] = stringToIntMap
 		}
 	}
 

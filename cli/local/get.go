@@ -17,6 +17,7 @@ limitations under the License.
 package local
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"strings"
 
@@ -24,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -73,7 +73,7 @@ func ListAPISpecs() ([]spec.API, error) {
 
 	apiSpecList := []spec.API{}
 	for _, specPath := range filepaths {
-		if !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+		if !strings.HasSuffix(filepath.Base(specPath), "-spec.json") {
 			continue
 		}
 
@@ -87,7 +87,7 @@ func ListAPISpecs() ([]spec.API, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "api", specPath)
 		}
-		err = msgpack.Unmarshal(bytes, &apiSpec)
+		err = json.Unmarshal(bytes, &apiSpec)
 		if err != nil {
 			return nil, errors.Wrap(err, "api", specPath)
 		}
@@ -105,7 +105,7 @@ func ListVersionMismatchedAPIs() ([]string, error) {
 
 	apiNames := []string{}
 	for _, specPath := range filepaths {
-		if !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+		if !strings.HasSuffix(filepath.Base(specPath), "-spec.json") || !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
 			continue
 		}
 		apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)

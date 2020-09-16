@@ -17,6 +17,7 @@ limitations under the License.
 package local
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -25,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -126,7 +126,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 }
 
 func writeAPISpec(apiSpec *spec.API) error {
-	apiBytes, err := msgpack.Marshal(apiSpec)
+	apiBytes, err := json.Marshal(apiSpec)
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func FindAPISpec(apiName string) (*spec.API, error) {
 
 	var apiSpec spec.API
 	for _, specPath := range filepaths {
-		if strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+		if strings.HasSuffix(filepath.Base(specPath), "-spec.json") {
 			apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
 			if apiSpecVersion != consts.CortexVersion {
 				return nil, ErrorCortexVersionMismatch(apiName, apiSpecVersion)
@@ -223,7 +223,7 @@ func FindAPISpec(apiName string) (*spec.API, error) {
 			if err != nil {
 				return nil, errors.Wrap(err, "api", apiName)
 			}
-			err = msgpack.Unmarshal(bytes, &apiSpec)
+			err = json.Unmarshal(bytes, &apiSpec)
 			if err != nil {
 				return nil, errors.Wrap(err, "api", apiName)
 			}
@@ -245,7 +245,7 @@ func GetVersionFromAPISpec(apiName string) (string, error) {
 	}
 
 	for _, specPath := range filepaths {
-		if strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+		if strings.HasSuffix(filepath.Base(specPath), "-spec.json") {
 			return GetVersionFromAPISpecFilePath(specPath), nil
 		}
 	}
