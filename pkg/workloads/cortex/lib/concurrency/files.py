@@ -136,6 +136,7 @@ class LockedFile:
         self.mode = mode
         self.timeout = timeout
         self.reader_lock = reader_lock
+        self.create_file_if_not_found = create_file_if_not_found
 
     def __enter__(self):
         lockfilepath = os.path.join(self.dir_path, self.lockname + ".lock")
@@ -143,19 +144,28 @@ class LockedFile:
         self._lock.acquire()
         try:
             self._fd = open(self.filename, self.mode)
-            not_found = False
+            return self._fd
         except FileNotFoundError:
-            not_found = True
+            if not self.create_file_if_not_found:
+                raise
         except Exception as e:
             self._lock.release()
             raise e
-        if not_found:
-            try:
-                open(self.filename, "w+").close()
-                self._fd = open(self.filename, self.mode)
-            except Exception as e:
-                self._lock.release()
-                raise e
+        try:
+            # w  write mode
+            # r  read mode
+            # a  append mode
+            #
+            # w+  create file if it doesn't exist and open it in (over)write mode
+            #     [it overwrites the file if it already exists]
+            # r+  open an existing file in read+write mode
+            # a+  create file if it doesn't exist and open it in append mode
+            if self.create_file_if_not_found and self.mode not in ["a+", "w+"]:
+                open(self.filename, "a+").close()
+            self._fd = open(self.filename, self.mode)
+        except Exception as e:
+            self._lock.release()
+            raise e
         return self._fd
 
     def __exit__(self, exc_type, exc_value, traceback):
