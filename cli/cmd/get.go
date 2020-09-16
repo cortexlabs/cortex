@@ -192,6 +192,11 @@ func getAPIsInAllEnvironments() (string, error) {
 		// check if any environments errorred
 		if len(errorsMap) != len(cliConfig.Environments) {
 			if len(errorsMap) == 0 {
+				mismatchedAPIMessage, err := getLocalVersionMismatchedAPIsMessage()
+				if err == nil && len(mismatchedAPIMessage) > 0 {
+					return console.Bold("no apis are deployed") + "\n\n" + mismatchedAPIMessage, nil
+				}
+
 				return console.Bold("no apis are deployed"), nil
 			}
 
@@ -281,6 +286,10 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 	}
 
 	if len(apisRes.RealtimeAPIs) == 0 && len(apisRes.BatchAPIs) == 0 && len(apisRes.TrafficSplitters) == 0 {
+		mismatchedAPIMessage, err := getLocalVersionMismatchedAPIsMessage()
+		if err == nil && len(mismatchedAPIMessage) > 0 {
+			return console.Bold("no apis are deployed") + "\n\n" + mismatchedAPIMessage, nil
+		}
 		return console.Bold("no apis are deployed"), nil
 	}
 
@@ -354,7 +363,7 @@ func getLocalVersionMismatchedAPIsMessage() (string, error) {
 	}
 
 	if len(mismatchedAPINames) == 1 {
-		return fmt.Sprintf("an api named %s was deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete %s` and then redeploy them\n", s.UserStr(mismatchedAPINames[0]), mismatchedAPINames[0]), nil
+		return fmt.Sprintf("an api named %s was deployed in your local environment using a different version of the cortex cli; please delete it using `cortex delete %s` and then redeploy it\n", s.UserStr(mismatchedAPINames[0]), mismatchedAPINames[0]), nil
 	}
 	return fmt.Sprintf("apis named %s were deployed in your local environment using a different version of the cortex cli; please delete them using `cortex delete API_NAME` and then redeploy them\n", s.UserStrsAnd(mismatchedAPINames)), nil
 }
