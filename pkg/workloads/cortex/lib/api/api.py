@@ -18,13 +18,13 @@ import time
 from pathlib import Path
 import json
 import msgpack
-
 import datadog
 
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
-from cortex.lib.api import Predictor, Monitoring
 from cortex.lib.storage import S3
+
+from cortex.lib.api import Monitoring, Predictor
 
 logger = cx_logger()
 

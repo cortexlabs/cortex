@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from cortex.lib.model.model import ModelsHolder, LockedGlobalModelsGC, LockedModel
+from cortex.lib.model.tfs import TensorFlowServingAPI
+from cortex.lib.model.tree import ModelsTree, LockedModelsTree
+from cortex.lib.model.type import CuratedModelResources
+from cortex.lib.model.validation import (
+    validate_models_dir_paths,
+    validate_model_paths,
+    ModelVersion,
+)
 from cortex.lib.model.cron import (
     FileBasedModelsTreeUpdater,
     find_ondisk_model_info,
@@ -21,13 +30,4 @@ from cortex.lib.model.cron import (
     ModelsGC,
     ModelTreeUpdater,
     ModelPreloader,
-)
-from cortex.lib.model.model import ModelsHolder, LockedGlobalModelsGC, LockedModel
-from cortex.lib.model.tfs import TensorFlowServingAPI
-from cortex.lib.model.tree import ModelsTree, LockedModelsTree
-from cortex.lib.model.type import CuratedModelResources
-from cortex.lib.model.validation import (
-    validate_models_dir_paths,
-    validate_model_paths,
-    ModelVersion,
 )

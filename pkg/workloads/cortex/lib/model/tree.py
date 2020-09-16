@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Any, Tuple, Callable, AbstractSet
-from cortex.lib.concurrency import ReadWriteLock
-from cortex.lib.exceptions import WithBreak
-
 import os
 import time
 import shutil
 import threading as td
+
+from typing import List, Any, Tuple, Callable, AbstractSet
+from cortex.lib.concurrency import ReadWriteLock
+from cortex.lib.exceptions import WithBreak
 
 
 class ModelsTree:

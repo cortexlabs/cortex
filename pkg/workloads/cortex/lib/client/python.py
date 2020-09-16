@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-
 from typing import Any, Optional, Callable
 
 from cortex.lib.log import cx_logger

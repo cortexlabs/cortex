@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os, fcntl, time
+
 from cortex.lib.exceptions import CortexException, WithBreak
 
 # TODO might have to implement a writer-preference RW file lock.

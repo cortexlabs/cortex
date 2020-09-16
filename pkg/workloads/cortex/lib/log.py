@@ -16,9 +16,9 @@ import logging
 import sys
 import time
 import http
+import datetime as dt
 
 from cortex.lib import stringify
-import datetime as dt
 
 
 class CortexFormatter(logging.Formatter):

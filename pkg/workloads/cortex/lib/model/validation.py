@@ -15,15 +15,16 @@
 import os
 import operator
 import uuid
+import collections
 from enum import IntEnum
-from typing import List, Any
+from typing import List, Any, Tuple
+from fnmatch import fnmatchcase
 
 from cortex.lib import util
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
-from cortex.lib.model import ModelsHolder
-from cortex.lib.api import (
+from cortex.lib.type import (
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
@@ -31,8 +32,7 @@ from cortex.lib.api import (
     PredictorType,
 )
 
-import collections
-from fnmatch import fnmatchcase
+from cortex.lib.model import ModelsHolder
 
 
 class TemplatePlaceholder(collections.namedtuple("TemplatePlaceholder", "placeholder priority")):

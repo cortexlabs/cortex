@@ -16,17 +16,22 @@ import os
 import imp
 import inspect
 import dill
-
 from typing import Any, Optional, Union
 
 # types
-from cortex.lib.api import (
+from cortex.lib.type import (
     predictor_type_from_api_spec,
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
     ONNXPredictorType,
 )
+
+# clients
+from cortex.lib.client.python import PythonClient
+from cortex.lib.client.tensorflow import TensorFlowClient
+from cortex.lib.client.onnx import ONNXClient
+
 
 # crons
 from cortex.lib.model import (
@@ -122,21 +127,15 @@ class Predictor:
         client = None
 
         if self.type == PythonPredictorType:
-            from cortex.lib.client.python import PythonClient
-
             client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
-            from cortex.lib.client.tensorflow import TensorFlowClient
-
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
             client = TensorFlowClient(
                 tf_serving_address, self.api_spec, self.models, self.model_dir, self.models_tree
             )
 
         if self.type == ONNXPredictorType:
-            from cortex.lib.client.onnx import ONNXClient
-
             client = ONNXClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
         # show client.input_signatures with logger.info

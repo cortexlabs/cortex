@@ -20,8 +20,8 @@ import json
 import msgpack
 import time
 import datetime
-
 from typing import Dict, List, Tuple
+
 from cortex.lib import util
 from cortex.lib.exceptions import CortexException
 

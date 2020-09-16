@@ -12,38 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Tuple, Any, Union, Callable
-
-from cortex.lib import util
-from cortex.lib.log import cx_logger
-from cortex.lib.concurrency import LockedFile
-from cortex.lib.storage import S3, LocalStorage
-from cortex.lib.exceptions import CortexException, WithBreak
-
-from cortex.lib.api import (
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
-    PredictorType,
-)
-from cortex.lib.model import TensorFlowServingAPI
-from cortex.lib.model import (
-    validate_models_dir_paths,
-    validate_model_paths,
-)
-from cortex.lib.model import (
-    ModelsHolder,
-    LockedGlobalModelsGC,
-    LockedModel,
-    CuratedModelResources,
-    ModelVersion,
-)
-from cortex.lib.model import (
-    ModelsTree,
-    LockedModelsTree,
-)
-
 import os
 import threading as td
 import multiprocessing as mp
@@ -53,6 +21,33 @@ import glob
 import shutil
 import itertools
 import json
+from typing import Dict, List, Tuple, Any, Union, Callable
+
+from cortex.lib import util
+from cortex.lib.log import cx_logger
+from cortex.lib.concurrency import LockedFile
+from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.exceptions import CortexException, WithBreak
+from cortex.lib.type import (
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+    ONNXPredictorType,
+    PredictorType,
+)
+
+from cortex.lib.model import (
+    TensorFlowServingAPI,
+    validate_models_dir_paths,
+    validate_model_paths,
+    ModelsHolder,
+    LockedGlobalModelsGC,
+    LockedModel,
+    CuratedModelResources,
+    ModelVersion,
+    ModelsTree,
+    LockedModelsTree,
+)
 
 
 def find_all_models(

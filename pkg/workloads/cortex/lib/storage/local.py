@@ -16,9 +16,9 @@ import os
 import pickle
 import json
 import msgpack
-from pathlib import Path
 import shutil
 import time
+from pathlib import Path
 
 from cortex.lib import util
 from cortex.lib.exceptions import CortexException

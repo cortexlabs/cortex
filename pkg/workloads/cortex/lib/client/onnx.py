@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import os
+from typing import Any, Optional
+
 import onnxruntime as rt
 import numpy as np
-
-from typing import Any, Optional
 
 from cortex.lib.log import cx_logger
 from cortex.lib import util
