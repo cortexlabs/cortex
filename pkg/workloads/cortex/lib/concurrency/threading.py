@@ -163,11 +163,12 @@ class ReadLock:
     ```
     """
 
-    def __init__(self, lock: ReadWriteLock):
+    def __init__(self, lock: ReadWriteLock, timeout: Optional[float] = None):
         self._lock = lock
+        self._timeout = timeout
 
     def __enter__(self):
-        self._lock.acquire("r")
+        self._lock.acquire("r", self._timeout)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -186,11 +187,12 @@ class WriteLock:
     ```
     """
 
-    def __init__(self, lock: ReadWriteLock):
+    def __init__(self, lock: ReadWriteLock, timeout: Optional[float] = None):
         self._lock = lock
+        self._timeout = timeout
 
     def __enter__(self):
-        self._lock.acquire("w")
+        self._lock.acquire("w", self._timeout)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
