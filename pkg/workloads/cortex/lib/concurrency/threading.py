@@ -60,7 +60,11 @@ class ReadWriteLock:
             if self._prefer == "w":
                 yes = self._write_preferred.wait(timeout)
                 if not yes:
-                    raise TimeoutError
+                    raise TimeoutError(
+                        "{} ms timeout on acquiring '{}' lock in {} thread".format(
+                            int(timeout * 1000), mode, td.get_ident()
+                        )
+                    )
 
             # finish acquiring once all writers have released
             self._read_allowed.acquire()
@@ -70,7 +74,11 @@ class ReadWriteLock:
                 yes = self._read_allowed.wait(timeout)
                 if not yes:
                     self._read_allowed.release()
-                    raise TimeoutError
+                    raise TimeoutError(
+                        "{} ms timeout on acquiring '{}' lock in {} thread".format(
+                            int(timeout * 1000), mode, td.get_ident()
+                        )
+                    )
 
             self._readers.append(td.get_ident())
             self._read_allowed.release()
@@ -86,7 +94,11 @@ class ReadWriteLock:
                 yes = self._read_allowed.wait(timeout)
                 if not yes:
                     self._read_allowed.release()
-                    raise TimeoutError
+                    raise TimeoutError(
+                        "{} ms timeout on acquiring '{}' lock in {} thread".format(
+                            int(timeout * 1000), mode, td.get_ident()
+                        )
+                    )
             self._writers.append(td.get_ident())
         else:
             return False
@@ -172,7 +184,7 @@ class ReadLock:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self_lock.release("r")
+        self._lock.release("r")
         return False
 
 
@@ -196,5 +208,5 @@ class WriteLock:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self_lock.release("w")
+        self._lock.release("w")
         return False
