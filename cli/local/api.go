@@ -213,6 +213,12 @@ func FindAPISpec(apiName string) (*spec.API, error) {
 
 	var apiSpec spec.API
 	for _, specPath := range filepaths {
+		if strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+			apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
+			if apiSpecVersion != consts.CortexVersion {
+				return nil, ErrorCortexVersionMismatch(apiName, apiSpecVersion)
+			}
+		}
 		if strings.HasSuffix(filepath.Base(specPath), "-spec.json") {
 			apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
 			if apiSpecVersion != consts.CortexVersion {
@@ -245,7 +251,7 @@ func GetVersionFromAPISpec(apiName string) (string, error) {
 	}
 
 	for _, specPath := range filepaths {
-		if strings.HasSuffix(filepath.Base(specPath), "-spec.json") {
+		if strings.HasSuffix(filepath.Base(specPath), "-spec.json") || strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
 			return GetVersionFromAPISpecFilePath(specPath), nil
 		}
 	}
