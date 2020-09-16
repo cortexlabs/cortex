@@ -159,12 +159,12 @@ class LockedFile:
         return self._fd
 
     def __exit__(self, exc_type, exc_value, traceback):
-        close(self._fd)
+        self._fd.close()
         self._lock.release()
 
         if exc_value is not None and exc_type is not WithBreak:
             raise exc_type(exc_value).with_traceback(traceback)
 
     def __del__(self):
-        close(self._fd)
+        self._fd.close()
         self._lock.release()
