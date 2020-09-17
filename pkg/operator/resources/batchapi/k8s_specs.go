@@ -19,7 +19,6 @@ package batchapi
 import (
 	"path"
 
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -61,17 +60,19 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		Name:        job.JobKey.K8sName(),
 		Parallelism: int32(job.Workers),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiID":   api.ID,
-			"jobID":   job.ID,
-			"apiKind": api.Kind.String(),
+			"apiName":     api.Name,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"jobID":       job.ID,
+			"apiKind":     api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName": api.Name,
-				"apiID":   api.ID,
-				"jobID":   job.ID,
-				"apiKind": api.Kind.String(),
+				"apiName":     api.Name,
+				"predictorID": api.PredictorID,
+				"jobID":       job.ID,
+				"apiKind":     api.Kind.String(),
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -108,17 +109,19 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 		Name:        job.JobKey.K8sName(),
 		Parallelism: int32(job.Workers),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiID":   api.ID,
-			"jobID":   job.ID,
-			"apiKind": api.Kind.String(),
+			"apiName":     api.Name,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"jobID":       job.ID,
+			"apiKind":     api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName": api.Name,
-				"apiID":   api.ID,
-				"jobID":   job.ID,
-				"apiKind": api.Kind.String(),
+				"apiName":     api.Name,
+				"predictorID": api.PredictorID,
+				"jobID":       job.ID,
+				"apiKind":     api.Kind.String(),
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -156,17 +159,19 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		Name:        job.JobKey.K8sName(),
 		Parallelism: int32(job.Workers),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiID":   api.ID,
-			"jobID":   job.ID,
-			"apiKind": api.Kind.String(),
+			"apiName":     api.Name,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"jobID":       job.ID,
+			"apiKind":     api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName": api.Name,
-				"apiID":   api.ID,
-				"jobID":   job.ID,
-				"apiKind": api.Kind.String(),
+				"apiName":     api.Name,
+				"predictorID": api.PredictorID,
+				"jobID":       job.ID,
+				"apiKind":     api.Kind.String(),
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -201,10 +206,11 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Rewrite:     pointer.String(path.Join("batch", api.Name)),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":   api.Name,
-			"apiID":     api.ID,
-			"apiKind":   api.Kind.String(),
-			"computeID": hash.String(api.Compute.UserStr()), // Including computeID to determine updating
+			"apiName":     api.Name,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"apiKind":     api.Kind.String(),
 		},
 	})
 }
