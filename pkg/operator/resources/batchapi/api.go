@@ -45,7 +45,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	api := spec.GetAPISpec(apiConfig, projectID, "") // Deployment ID not needed for BatchAPI spec
 
 	if prevVirtualService == nil {
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
@@ -70,8 +70,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
-	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+	if prevVirtualService.Labels["specID"] != api.SpecID {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
@@ -88,10 +88,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	}
 
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
-}
-
-func areAPIsEqual(v1, v2 *istioclientnetworking.VirtualService) bool {
-	return v1.Labels["specID"] == v2.Labels["specID"]
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
@@ -181,8 +177,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	}
 
 	for _, virtualService := range virtualServices {
-		apiName := virtualService.GetLabels()["apiName"]
-		apiID := virtualService.GetLabels()["apiID"]
+		apiName := virtualService.Labels["apiName"]
+		apiID := virtualService.Labels["apiID"]
 
 		api, err := operator.DownloadAPISpec(apiName, apiID)
 		if err != nil {
@@ -253,7 +249,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
 	virtualService := deployedResource.VirtualService
 
-	apiID := virtualService.GetLabels()["apiID"]
+	apiID := virtualService.Labels["apiID"]
 	api, err := operator.DownloadAPISpec(deployedResource.Name, apiID)
 	if err != nil {
 		return nil, err

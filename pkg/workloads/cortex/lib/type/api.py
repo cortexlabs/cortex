@@ -17,7 +17,6 @@ import base64
 import time
 from pathlib import Path
 import json
-import msgpack
 
 import datadog
 
@@ -167,17 +166,17 @@ class API:
 
 def get_spec(provider, storage, cache_dir, spec_path):
     if provider == "local":
-        return read_msgpack(spec_path)
+        return read_json(spec_path)
 
-    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
+    local_spec_path = os.path.join(cache_dir, "api_spec.json")
 
     if not os.path.isfile(local_spec_path):
         _, key = S3.deconstruct_s3_path(spec_path)
         storage.download_file(key, local_spec_path)
 
-    return read_msgpack(local_spec_path)
+    return read_json(local_spec_path)
 
 
-def read_msgpack(msgpack_path):
-    with open(msgpack_path, "rb") as msgpack_file:
-        return msgpack.load(msgpack_file, raw=False)
+def read_json(json_path):
+    with open(json_path) as json_file:
+        return json.load(json_file)

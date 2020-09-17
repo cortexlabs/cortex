@@ -562,14 +562,14 @@ func PromptForFilesAboveSize(size int, promptMsgTemplate string) IgnoreFn {
 	}
 }
 
-func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) IgnoreFn {
+func ErrorOnBigFilesFn(maxFileSizeBytes int64) IgnoreFn {
 	return func(path string, fi os.FileInfo) (bool, error) {
 		if !fi.IsDir() {
 			fileSizeBytes := fi.Size()
 			virtual, _ := mem.VirtualMemory()
-			if int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*maxMemoryUsagePercent) {
+			if fileSizeBytes > int64(virtual.Available) {
 				return false, errors.Wrap(
-					ErrorInsufficientMemoryToReadFile(fileSizeBytes, int64(float64(virtual.Total)*maxMemoryUsagePercent)-int64(virtual.Used)),
+					ErrorInsufficientMemoryToReadFile(fileSizeBytes, int64(virtual.Available)),
 					path,
 				)
 			}

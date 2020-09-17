@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -40,10 +39,6 @@ const (
 
 func errStrFailedToConnect(u url.URL) string {
 	return "failed to connect to " + urls.TrimQueryParamsURL(u)
-}
-
-func getCloudFormationURL(clusterName, region string) string {
-	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=eksctl-%s-", region, clusterName)
 }
 
 const (
@@ -72,12 +67,6 @@ const (
 	ErrClusterRefresh                       = "cli.cluster_refresh"
 	ErrClusterDown                          = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames                 = "cli.duplicate_cli_env_names"
-	ErrClusterUpInProgress                  = "cli.cluster_up_in_progress"
-	ErrClusterAlreadyCreated                = "cli.cluster_already_created"
-	ErrClusterDownInProgress                = "cli.cluster_down_in_progress"
-	ErrClusterAlreadyDeleted                = "cli.cluster_already_deleted"
-	ErrFailedClusterStatus                  = "cli.failed_cluster_status"
-	ErrClusterDoesNotExist                  = "cli.cluster_does_not_exist"
 	ErrAWSCredentialsRequired               = "cli.aws_credentials_required"
 	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
 	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
@@ -277,48 +266,6 @@ func ErrorClusterDown(out string) error {
 		Kind:    ErrClusterDown,
 		Message: out,
 		NoPrint: true,
-	})
-}
-
-func ErrorClusterDoesNotExist(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterDoesNotExist,
-		Message: fmt.Sprintf("there is no cluster named \"%s\" in %s", clusterName, region),
-	})
-}
-
-func ErrorClusterUpInProgress(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterUpInProgress,
-		Message: fmt.Sprintf("creation of cluster \"%s\" in %s is currently in progress", clusterName, region),
-	})
-}
-
-func ErrorClusterAlreadyCreated(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAlreadyCreated,
-		Message: fmt.Sprintf("a cluster named \"%s\" already exists in %s", clusterName, region),
-	})
-}
-
-func ErrorClusterDownInProgress(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterDownInProgress,
-		Message: fmt.Sprintf("deletion of cluster \"%s\" in %s is currently in progress", clusterName, region),
-	})
-}
-
-func ErrorClusterAlreadyDeleted(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAlreadyDeleted,
-		Message: fmt.Sprintf("cluster \"%s\" in %s has already been deleted (or does not exist)", clusterName, region),
-	})
-}
-
-func ErrorFailedClusterStatus(status clusterstate.Status, clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFailedClusterStatus,
-		Message: fmt.Sprintf("cluster \"%s\" in %s encountered an unexpected status %s; please try to delete the cluster with `cortex cluster down`, or delete the cloudformation stacks directly from your AWS console (%s)", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
 	})
 }
 

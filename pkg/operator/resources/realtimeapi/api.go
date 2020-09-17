@@ -55,12 +55,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	api := spec.GetAPISpec(apiConfig, projectID, deploymentID)
 
 	if prevDeployment == nil {
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload predictor spec")
 		}
 
@@ -80,7 +80,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return api, fmt.Sprintf("creating %s", api.Resource.UserString()), nil
 	}
 
-	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
+	if prevVirtualService.Labels["specID"] != api.SpecID || prevVirtualService.Labels["deploymentID"] != api.DeploymentID {
 		isUpdating, err := isAPIUpdating(prevDeployment)
 		if err != nil {
 			return nil, "", err
@@ -88,12 +88,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if isUpdating && !force {
 			return nil, "", ErrorAPIUpdating(api.Name)
 		}
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload predictor spec")
 		}
 
@@ -146,7 +146,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID())
 
-	if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
@@ -193,7 +193,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			// extract all api names from statuses
 			allAPINames := make([]string, len(virtualServices))
 			for i, virtualService := range virtualServices {
-				allAPINames[i] = virtualService.GetLabels()["apiName"]
+				allAPINames[i] = virtualService.Labels["apiName"]
 			}
 			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
 			if err != nil {
@@ -468,9 +468,4 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
 	return deployment.Spec.Template.Labels["predictorID"] == pod.Labels["predictorID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
-}
-
-func areAPIsEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
-	return vs1.Labels["specID"] == vs2.Labels["specID"] &&
-		vs1.Labels["deploymentID"] == vs2.Labels["deploymentID"]
 }

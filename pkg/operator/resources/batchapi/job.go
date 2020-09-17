@@ -68,7 +68,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	apiID := virtualService.GetLabels()["apiID"]
+	apiID := virtualService.Labels["apiID"]
 
 	apiSpec, err := operator.DownloadAPISpec(apiName, apiID)
 	if err != nil {
