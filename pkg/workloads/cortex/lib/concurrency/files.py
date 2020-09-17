@@ -176,5 +176,7 @@ class LockedFile:
             raise exc_type(exc_value).with_traceback(traceback)
 
     def __del__(self):
-        self._fd.close()
-        self._lock.release()
+        if hasattr(self, "_fd"):
+            self._fd.close()
+        if hasattr(self, "_lock"):
+            self._lock.release()
