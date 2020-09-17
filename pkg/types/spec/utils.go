@@ -128,7 +128,7 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, predictor
 		}
 
 		models = append(models, CuratedModelResource{
-			ModelResource: userconfig.ModelResource{
+			ModelResource: &userconfig.ModelResource{
 				Name:         model.Name,
 				ModelPath:    model.ModelPath,
 				SignatureKey: model.SignatureKey,

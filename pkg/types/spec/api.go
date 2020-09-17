@@ -49,7 +49,7 @@ type LocalModelCache struct {
 }
 
 type CuratedModelResource struct {
-	userconfig.ModelResource
+	*userconfig.ModelResource
 	S3Path   bool    `json:"s3_path"`
 	Versions []int64 `json:"versions"`
 }
