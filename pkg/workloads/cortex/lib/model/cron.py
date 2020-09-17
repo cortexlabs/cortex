@@ -915,7 +915,9 @@ class ModelsGC(AbstractLoopingThread):
 
         # get available upstream S3 model IDs
         s3_model_names = self._tree.get_model_names()
-        s3_model_versions = [self._tree.model_info(model_name) for model_name in s3_model_names]
+        s3_model_versions = [
+            self._tree.model_info(model_name)["versions"] for model_name in s3_model_names
+        ]
         s3_model_ids = []
         for model_name, model_versions in zip(s3_model_names, s3_model_versions):
             if len(model_versions) == 0:

@@ -28,7 +28,7 @@ class ReadWriteLock:
     or can be set to "w" for write-preferring RW lock to prevent from starving the writer.
     """
 
-    def __init__(self, prefer: str):
+    def __init__(self, prefer: str = "r"):
         """
         "r" for read-preferring RW lock.
 
@@ -53,7 +53,9 @@ class ReadWriteLock:
             Whether the mode was valid or not.
         """
         if not timeout:
-            timeout = -1
+            acquire_timeout = -1
+        else:
+            acquire_timeout = timeout
 
         if mode == "r":
             # wait until "w" has been released
@@ -62,7 +64,7 @@ class ReadWriteLock:
                     self._throw_timeout_error(timeout, mode)
 
             # finish acquiring once all writers have released
-            if not self._read_allowed.acquire(timeout=timeout):
+            if not self._read_allowed.acquire(timeout=acquire_timeout):
                 self._throw_timeout_error(timeout, mode)
             # while loop only relevant when prefer == "r"
             # but it's necessary when the preference policy is changed
@@ -80,7 +82,7 @@ class ReadWriteLock:
                 self._write_preferred.clear()
 
             # acquire once all readers have released
-            if not self._read_allowed.acquire(timeout=timeout):
+            if not self._read_allowed.acquire(timeout=acquire_timeout):
                 self._write_preferred.set()
                 self._throw_timeout_error(timeout, mode)
             while len(self._readers) > 0:

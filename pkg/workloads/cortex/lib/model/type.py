@@ -120,7 +120,7 @@ class CuratedModelResources:
             if model["name"] == name:
                 return model
 
-        raise ValueError(f"model resource {name} does not exit")
+        raise KeyError(f"model resource {name} does not exit")
 
     def __contains__(self, name: str) -> bool:
         """
@@ -129,5 +129,5 @@ class CuratedModelResources:
         try:
             self[name]
             return True
-        except ValueError:
+        except KeyError:
             return False
