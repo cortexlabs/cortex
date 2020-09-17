@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -589,11 +590,17 @@ func ValidateAPI(
 	}
 
 	// TODO to remove when no longer required
-	apiDump, err := yaml.Marshal(&api)
+	apiYAMLDump, err := yaml.Marshal(&api)
 	if err != nil {
 		log.Fatalf("error while dumping api spec: %v", err)
 	}
-	fmt.Printf("--- api dump:\n%s\n\n", string(apiDump))
+	fmt.Printf("--- YAML api dump:\n%s\n\n", string(apiYAMLDump))
+
+	apiJSONDump, err := json.Marshal(&api)
+	if err != nil {
+		log.Fatalf("error while dumping api spec: %v", err)
+	}
+	fmt.Printf("--- JSON api dump:\n%s\n\n", string(apiJSONDump))
 
 	fmt.Println("--- model dump")
 	for _, model := range *models {
@@ -601,7 +608,7 @@ func ValidateAPI(
 	}
 	fmt.Print("\n\n")
 
-	// return &errors.Error{}
+	return &errors.Error{}
 
 	return nil
 }
