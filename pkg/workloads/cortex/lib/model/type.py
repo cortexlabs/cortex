@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, Optional
 
 
 class CuratedModelResources:
@@ -33,9 +33,9 @@ class CuratedModelResources:
             ...
         ]
         """
-        self._models = models
+        self._models = curated_model_resources
 
-    def is_local(self, name: str) -> bool:
+    def is_local(self, name: str) -> Optional[bool]:
         """
         Checks if the model has been made available from the local disk.
 
@@ -43,7 +43,7 @@ class CuratedModelResources:
             name: Name of the model as specified in predictor:models:paths:name or if a single model is specified, _cortex_default.
 
         Returns:
-            If the model is local. None if the model is not available.
+            If the model is local. None if the model wasn't found.
         """
         for model in self._models:
             if model["name"] == name:
@@ -62,7 +62,7 @@ class CuratedModelResources:
         """
         return [model[field] for model in self._models]
 
-    def get_versions_for(self, name: str) -> List[str]:
+    def get_versions_for(self, name: str) -> Optional[List[str]]:
         """
         Get versions for a given model name.
 
@@ -70,13 +70,18 @@ class CuratedModelResources:
             name: Name of the model (_cortex_default for predictor:model_path) or predictor:models:paths:name.
 
         Returns:
-            Versions for a given model. Empty if the model wasn't found.
+            Versions for a given model. None if the model wasn't found.
         """
         versions = []
+        model_not_found = True
         for i, _ in enumerate(self._models):
-            if self._models[i]["name"] == name and not (only_local and self._models[i]["s3_path"]):
+            if self._models[i]["name"] == name:
                 versions = self._models[i]["versions"]
+                model_not_found = False
                 break
+
+        if model_not_found:
+            return None
         return [str(version) for version in versions]
 
     def get_local_model_names(self) -> List[str]:
@@ -89,7 +94,7 @@ class CuratedModelResources:
         local_model_names = []
         for model_name in self.get_field("name"):
             if self.is_local(model_name):
-                local_model_names.append(local_model_names)
+                local_model_names.append(model_name)
 
         return local_model_names
 
@@ -103,7 +108,7 @@ class CuratedModelResources:
         s3_model_names = []
         for model_name in self.get_field("name"):
             if not self.is_local(model_name):
-                s3_model_names.append(s3_model_names)
+                s3_model_names.append(model_name)
 
         return s3_model_names
 
@@ -115,10 +120,14 @@ class CuratedModelResources:
             if model["name"] == name:
                 return model
 
-        return {}
+        raise ValueError(f"model resource {name} does not exit")
 
     def __contains__(self, name: str) -> bool:
         """
         Checks if there's a model resource whose name is the provided one.
         """
-        return self.__getitem__(name) != {}
+        try:
+            self[name]
+            return True
+        except ValueError:
+            return False
