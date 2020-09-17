@@ -16,7 +16,8 @@
 
 set -e
 
-cached_cluster_config_file="$1"
+cluster_config_out_path="$1"
+mkdir -p "$(dirname "$cluster_config_out_path")"
 
 if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
   echo "error: there is no cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing cortex cluster or create a cortex cluster with \`cortex cluster up\`"
@@ -32,4 +33,4 @@ kubectl -n=default create configmap 'cluster-config' \
     --from-file='cluster.yaml'=tmp_cluster_config.yaml \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 
-cat tmp_cluster_config.yaml > $cached_cluster_config_file
+cp tmp_cluster_config.yaml $cluster_config_out_path
