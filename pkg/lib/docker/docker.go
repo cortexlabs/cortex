@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/lib/tar"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -242,6 +243,30 @@ func StreamDockerLogsFn(containerID string, dockerClient *Client) func() error {
 
 		return nil
 	}
+}
+
+// The file/dir name of containerPath will be preserved in localDir.
+// For example, if the container has /aaa/zzz.txt,
+//   - CopyFromContainer(_, "aaa", "~/test") will create "~/test/aaa/zzz.txt"
+//   - CopyFromContainer(_, "aaa/zzz.txt", "~/test") will create "~/test/zzz.txt"
+func CopyFromContainer(containerID string, containerPath string, localDir string) error {
+	dockerClient, err := GetDockerClient()
+	if err != nil {
+		return err
+	}
+
+	reader, _, err := dockerClient.CopyFromContainer(context.Background(), containerID, containerPath)
+	if err != nil {
+		return WrapDockerError(err)
+	}
+	defer reader.Close()
+
+	_, err = tar.UntarReaderToDir(reader, localDir, false)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {

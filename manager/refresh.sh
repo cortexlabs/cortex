@@ -16,7 +16,6 @@
 
 set -e
 
-
 cached_cluster_config_file="$1"
 
 if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then

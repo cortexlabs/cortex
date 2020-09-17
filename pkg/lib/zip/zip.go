@@ -120,13 +120,13 @@ func ToWriter(zipInput *Input, writer io.Writer) error {
 	return nil
 }
 
-func ToFile(zipInput *Input, destPath string) error {
-	cleanDestPath, err := files.EscapeTilde(destPath)
+func ToFile(zipInput *Input, destDir string) error {
+	cleanDestDir, err := files.EscapeTilde(destDir)
 	if err != nil {
 		return err
 	}
 
-	zipfile, err := files.Create(cleanDestPath)
+	zipfile, err := files.Create(cleanDestDir)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func ToFile(zipInput *Input, destPath string) error {
 
 	err = zipfile.Close()
 	if err != nil {
-		return errors.Wrap(err, destPath, _errStrCreateZip)
+		return errors.Wrap(err, destDir, _errStrCreateZip)
 	}
 	return nil
 }
@@ -262,7 +262,13 @@ func addFileListToZip(fileListInput *FileListInput, zipInput *Input, archive *zi
 	return nil
 }
 
-func UnzipFileToDir(src string, destPath string) ([]string, error) {
+// Will create destDir if missing
+func UnzipFileToDir(src string, destDir string) ([]string, error) {
+	destDir, err := files.Clean(destDir)
+	if err != nil {
+		return nil, err
+	}
+
 	cleanSrc, err := files.EscapeTilde(src)
 	if err != nil {
 		return nil, err
@@ -283,30 +289,31 @@ func UnzipFileToDir(src string, destPath string) ([]string, error) {
 		}
 		defer rc.Close()
 
-		fpath := filepath.Join(destPath, f.Name)
-		filenames = append(filenames, fpath)
+		target := filepath.Join(destDir, f.Name)
 
 		if f.FileInfo().IsDir() {
-			err := files.CreateDir(fpath)
+			err := files.CreateDir(target)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			err := files.CreateDir(filepath.Dir(fpath))
+			filenames = append(filenames, target)
+
+			err := files.CreateDir(filepath.Dir(target))
 			if err != nil {
 				return nil, err
 			}
 
-			outFile, err := files.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			outFile, err := files.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
 				return nil, err
 			}
 
 			_, err = io.Copy(outFile, rc)
-			outFile.Close()
 			if err != nil {
 				return nil, errors.Wrap(err, _errStrUnzip)
 			}
+			outFile.Close()
 		}
 	}
 	return filenames, nil
