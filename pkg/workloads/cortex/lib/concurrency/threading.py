@@ -55,30 +55,24 @@ class ReadWriteLock:
         Returns:
             Whether the mode was valid or not.
         """
+        if not timeout:
+            timeout = -1
+
         if mode == "r":
             # wait until "w" has been released
             if self._prefer == "w":
-                yes = self._write_preferred.wait(timeout)
-                if not yes:
-                    raise TimeoutError(
-                        "{} ms timeout on acquiring '{}' lock in {} thread".format(
-                            int(timeout * 1000), mode, td.get_ident()
-                        )
-                    )
+                if not self._write_preferred.wait(timeout):
+                    self._throw_timeout_error(timeout, mode)
 
             # finish acquiring once all writers have released
-            self._read_allowed.acquire()
+            if not self._read_allowed.acquire(timeout=timeout):
+                self._throw_timeout_error(timeout, mode)
             # while loop only relevant when prefer == "r"
             # but it's necessary when the preference policy is changed
             while len(self._writers) > 0:
-                yes = self._read_allowed.wait(timeout)
-                if not yes:
+                if not self._read_allowed.wait(timeout):
                     self._read_allowed.release()
-                    raise TimeoutError(
-                        "{} ms timeout on acquiring '{}' lock in {} thread".format(
-                            int(timeout * 1000), mode, td.get_ident()
-                        )
-                    )
+                    self._throw_timeout_error(timeout, mode)
 
             self._readers.append(td.get_ident())
             self._read_allowed.release()
@@ -89,16 +83,14 @@ class ReadWriteLock:
                 self._write_preferred.clear()
 
             # acquire once all readers have released
-            self._read_allowed.acquire()
+            if not self._read_allowed.acquire(timeout=timeout):
+                self._write_preferred.set()
+                self._throw_timeout_error(timeout, mode)
             while len(self._readers) > 0:
-                yes = self._read_allowed.wait(timeout)
-                if not yes:
+                if not self._read_allowed.wait(timeout):
                     self._read_allowed.release()
-                    raise TimeoutError(
-                        "{} ms timeout on acquiring '{}' lock in {} thread".format(
-                            int(timeout * 1000), mode, td.get_ident()
-                        )
-                    )
+                    self._write_preferred.set()
+                    self._throw_timeout_error(timeout, mode)
             self._writers.append(td.get_ident())
         else:
             return False
@@ -162,6 +154,13 @@ class ReadWriteLock:
         self._read_allowed.release()
 
         return True
+
+    def _throw_timeout_error(self, timeout: float, mode: str) -> None:
+        raise TimeoutError(
+            "{} ms timeout on acquiring '{}' lock in {} thread".format(
+                int(timeout * 1000), mode, td.get_ident()
+            )
+        )
 
 
 class ReadLock:
