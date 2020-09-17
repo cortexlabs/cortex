@@ -15,4 +15,4 @@
 # limitations under the License.
 
 from cortex.lib.concurrency.files import FileLock, LockedFile
-from cortex.lib.concurrency.threading import ReadWriteLock, ReadLock, WriteLock
+from cortex.lib.concurrency.threading import ReadWriteLock, LockRead, LockWrite

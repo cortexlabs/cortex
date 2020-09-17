@@ -18,9 +18,6 @@ import threading as td
 from typing import Optional
 
 
-# TODO might have to implement a writer-preference RW lock.
-
-
 class ReadWriteLock:
     """
     Locking object allowing for write once, read many operations.
@@ -131,7 +128,6 @@ class ReadWriteLock:
 
         return True
 
-    # TODO test set_preference_policy method
     def set_preference_policy(self, prefer: str) -> bool:
         """
         Change preference policy dynamically.
@@ -163,13 +159,13 @@ class ReadWriteLock:
         )
 
 
-class ReadLock:
+class LockRead:
     """
     To be used as:
 
     ```python
     rw_lock = ReadWriteLock()
-    with ReadLock(rw_lock):
+    with LockRead(rw_lock):
         # code
     ```
     """
@@ -187,13 +183,13 @@ class ReadLock:
         return False
 
 
-class WriteLock:
+class LockWrite:
     """
     To be used as:
 
     ```python
     rw_lock = ReadWriteLock()
-    with WriteLock(rw_lock):
+    with LockWrite(rw_lock):
         # code
     ```
     """
