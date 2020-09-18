@@ -17,13 +17,11 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
-	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -143,14 +141,6 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	resp, err := cluster.GetJob(MustGetOperatorConfig(env.Name), apiName, jobID)
 	if err != nil {
 		return "", err
-	}
-
-	if _flagOutput == flags.JSONOutputType.String() {
-		bytes, err := json.Marshal(resp)
-		if err != nil {
-			return "", err
-		}
-		return string(bytes), nil
 	}
 
 	job := resp.JobStatus
