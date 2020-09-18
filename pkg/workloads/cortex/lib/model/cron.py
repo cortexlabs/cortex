@@ -57,7 +57,12 @@ def find_all_s3_models(
     s3_paths: List[str],
     s3_model_names: List[str],
 ) -> Tuple[
-    List[str], Dict[str, List[str]], List[str], List[str], List[datetime.datetime], List[str]
+    List[str],
+    Dict[str, List[str]],
+    List[str],
+    List[List[str]],
+    List[List[datetime.datetime]],
+    List[str],
 ]:
     """
     Get updated information on all models that are currently present on the S3 upstreams.
@@ -75,7 +80,7 @@ def find_all_s3_models(
         versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
           For non-versioned model paths ModelVersion.NOT_PROVIDED, the list will be empty.
         model_paths - a list with the prefix of each model.
-        sub_paths - a list of filepaths for each file of each model all grouped into a single list.
+        sub_paths - a list of filepaths lists for each file of each model.
         timestamps - a list of timestamps lists representing the last edit time of each versioned model.
         bucket_names - a list of the bucket names of each model.
     """
@@ -91,7 +96,9 @@ def find_all_s3_models(
         model_paths = [
             model_path for model_path in model_paths if os.path.basename(model_path) in model_names
         ]
+
         bucket_names = len(model_paths) * [bucket_name]
+        sub_paths = len(model_paths) * [sub_paths]
 
     # validate models stored in S3 that were specified with predictor:models:paths field
     if not is_dir_used:
@@ -106,10 +113,10 @@ def find_all_s3_models(
                 bucket_name, model_path = S3.deconstruct_s3_path(path)
                 s3_client = S3(bucket_name, client_config={})
                 sb, model_path_ts = s3_client.search(model_path)
-                sub_paths += sb
+                sub_paths += [sb]
                 timestamps += model_path_ts
                 try:
-                    ooa_ids.append(validate_model_paths(sub_paths, predictor_type, model_path))
+                    ooa_ids.append(validate_model_paths(sb, predictor_type, model_path))
                     model_paths.append(model_path)
                     model_names.append(s3_model_names[idx])
                     bucket_names.append(bucket_name)
@@ -119,12 +126,14 @@ def find_all_s3_models(
     # determine the detected versions for each model
     # if the model was not versioned, then leave the version list empty
     versions = {}
-    for model_path, model_name, model_ooa_ids in zip(model_paths, model_names, ooa_ids):
+    for model_path, model_name, model_ooa_ids, bucket_sub_paths in zip(
+        model_paths, model_names, ooa_ids, sub_paths
+    ):
         if ModelVersion.PROVIDED not in model_ooa_ids:
             versions[model_name] = []
             continue
 
-        model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in sub_paths]
+        model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in bucket_sub_paths]
         model_versions_paths = [path for path in model_sub_paths if not path.startswith("../")]
         model_versions = [
             util.get_leftmost_part_of_path(model_version_path)
@@ -135,14 +144,16 @@ def find_all_s3_models(
 
     # curate timestamps for each versioned model
     aux_timestamps = []
-    for model_path, model_name in zip(model_paths, model_names):
+    for model_path, model_name, bucket_sub_paths in zip(model_paths, model_names, sub_paths):
         model_ts = []
         if len(versions[model_name]) == 0:
-            masks = list(map(lambda x: x.startswith(model_path), sub_paths))
+            masks = list(map(lambda x: x.startswith(model_path), bucket_sub_paths))
             model_ts = [max(itertools.compress(timestamps, masks))]
 
         for version in versions[model_name]:
-            masks = list(map(lambda x: x.startswith(os.path.join(model_path, version)), sub_paths))
+            masks = list(
+                map(lambda x: x.startswith(os.path.join(model_path, version)), bucket_sub_paths)
+            )
             model_ts.append(max(itertools.compress(timestamps, masks)))
 
         aux_timestamps.append(model_ts)
@@ -153,7 +164,7 @@ def find_all_s3_models(
     # versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
     #   For non-versioned model paths ModelVersion.NOT_PROVIDED, the list will be empty
     # model_paths - a list with the prefix of each model
-    # sub_paths - a list of filepaths for each file of each model all grouped into a single list
+    # sub_paths - a list of filepaths lists for each file of each model
     # timestamps - a list of timestamps lists representing the last edit time of each versioned model
 
     return model_names, versions, model_paths, sub_paths, timestamps, bucket_names
@@ -295,9 +306,17 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
-        for idx, model_name, bucket_name in enumerate(zip(model_names, bucket_names)):
+        for idx, model_name, bucket_name, bucket_subpaths in enumerate(
+            zip(model_names, bucket_names, sub_paths)
+        ):
             self._refresh_model(
-                idx, model_name, versions, timestamps[idx], model_paths, sub_paths, bucket_name
+                idx,
+                model_name,
+                versions,
+                timestamps[idx],
+                model_paths,
+                bucket_subpaths,
+                bucket_name,
             )
 
         # remove models that no longer appear in model_names
@@ -612,9 +631,17 @@ class TFSModelLoader(mp.Process):
 
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
-        for idx, model_name, bucket_name in enumerate(zip(model_names, bucket_names)):
+        for idx, model_name, bucket_name, bucket_sub_paths in enumerate(
+            zip(model_names, bucket_names, sub_paths)
+        ):
             self._refresh_model(
-                idx, model_name, versions, timestamps[idx], model_paths, sub_paths, bucket_name
+                idx,
+                model_name,
+                versions,
+                timestamps[idx],
+                model_paths,
+                bucket_sub_paths,
+                bucket_name,
             )
 
         # remove models that no longer appear in model_names

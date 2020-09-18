@@ -69,13 +69,12 @@ class ModelsTree:
         model_id = f"{model_name}-{model_version}"
         self._locks[model_id].release(mode)
 
-    # TODO possible bug when there are multiple buckets (when models:paths is used) due to sub_paths being just a list of all file paths
     def update_models(
         self,
         model_names: List[str],
         model_versions: List[List[str]],
         model_paths: List[str],
-        sub_paths: List[str],
+        sub_paths: List[List[str]],
         timestamps: List[List[int]],
         bucket_names: List[str],
     ) -> Tuple[AbstractSet[str], AbstractSet[str]]:
@@ -88,7 +87,7 @@ class ModelsTree:
             model_names: The unique names of the models as discovered in models:dir or specified in models:paths.
             model_versions: The detected versions of each model. If the list is empty, then version "1" is assumed.
             model_paths: S3 model paths to each model.
-            sub_paths: A list of filepaths for each file of each model all grouped into a single list.
+            sub_paths: A list of filepaths lists for each file of each model.
             timestamps: When was each versioned model updated the last time on the upstream. When no versions are passed, a timestamp is still expected.
             bucket_names: A list with the bucket_names required for each model.
 
@@ -117,7 +116,7 @@ class ModelsTree:
                         model_name,
                         "1",
                         model_paths[idx],
-                        sub_paths,
+                        sub_paths[idx],
                         timestamps[idx][0],
                         True,
                     )
@@ -133,7 +132,7 @@ class ModelsTree:
                         model_name,
                         model_version,
                         os.path.join(model_paths[idx], model_version),
-                        sub_paths,
+                        sub_paths[idx],
                         timestamps[idx][v_idx],
                         True,
                     )
