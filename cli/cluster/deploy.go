@@ -19,7 +19,6 @@ package cluster
 import (
 	"path/filepath"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -39,7 +38,7 @@ func Deploy(operatorConfig OperatorConfig, configPath string, deploymentBytesMap
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
-	debug.Pp(response)
+
 	var deployResponse schema.DeployResponse
 	if err := json.Unmarshal(response, &deployResponse); err != nil {
 		return schema.DeployResponse{}, errors.Wrap(err, "/deploy", string(response))

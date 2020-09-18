@@ -63,7 +63,7 @@ var _exportCmd = &cobra.Command{
 		}
 
 		if env.Provider == types.LocalProviderType {
-			print.BoldFirstLine("`cortex export` is not supported in the local environment; use `cortex deploy` instead")
+			print.BoldFirstLine("`cortex export` is not supported in the local environment")
 			return
 		}
 

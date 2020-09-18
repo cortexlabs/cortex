@@ -30,14 +30,14 @@ import (
 )
 
 type API struct {
-	Resource       `json:"resource,inline" yaml:"resource,inline"`
+	Resource       `yaml:"resource,inline"`
 	APIs           []*TrafficSplit `json:"apis" yaml:"apis,omitempty"`
-	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
-	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
-	Networking     *Networking     `json:"networking" yaml:"networking"`
-	Compute        *Compute        `json:"compute" yaml:"compute"`
-	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
-	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
+	Predictor      *Predictor      `json:"predictor" yaml:"predictor,omitempty"`
+	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring,omitempty"`
+	Networking     *Networking     `json:"networking" yaml:"networking,omitempty"`
+	Compute        *Compute        `json:"compute" yaml:"compute,omitempty"`
+	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling,omitempty"`
+	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy,omitempty"`
 	Index          int             `json:"index" yaml:"-"`
 	FileName       string          `json:"file_name" yaml:"-"`
 }
@@ -66,7 +66,7 @@ type TrafficSplit struct {
 type ModelResource struct {
 	Name         string  `json:"name" yaml:"name"`
 	ModelPath    string  `json:"model_path" yaml:"model_path"`
-	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
+	SignatureKey *string `json:"signature_key" yaml:"signature_key,omitempty"`
 }
 
 type Monitoring struct {
@@ -96,7 +96,7 @@ type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	TargetReplicaConcurrency     *float64      `json:"target_replica_concurrency" yaml:"target_replica_concurrency"`
+	TargetReplicaConcurrency     *float64      `json:"target_replica_concurrency" yaml:"target_replica_concurrency,omitempty"`
 	MaxReplicaConcurrency        int64         `json:"max_replica_concurrency" yaml:"max_replica_concurrency"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
