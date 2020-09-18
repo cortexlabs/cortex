@@ -106,6 +106,6 @@ func ErrorSpecifyExactlyOneKey(key string, keys ...string) error {
 	allKeys := append([]string{key}, keys...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpecifyExactlyOneKey,
-		Message: fmt.Sprintf("specify exactly one of the following keys: %s", s.StrsOr(allKeys)), // TODO add job specification documentation
+		Message: fmt.Sprintf("specify exactly one of the following keys: %s", s.StrsOr(allKeys)),
 	})
 }
