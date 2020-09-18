@@ -35,6 +35,9 @@ class CuratedModelResources:
         """
         self._models = curated_model_resources
 
+        for res in self._models:
+            res["versions"] = [str(version) for version in res["versions"]]
+
     def is_local(self, name: str) -> Optional[bool]:
         """
         Checks if the model has been made available from the local disk.

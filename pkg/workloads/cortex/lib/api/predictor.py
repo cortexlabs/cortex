@@ -191,7 +191,12 @@ class Predictor:
             ]
         else:
             self.crons = [
-                ModelTreeUpdater(interval=10, api_spec=self.api_spec, tree=self.models_tree),
+                ModelTreeUpdater(
+                    interval=10,
+                    api_spec=self.api_spec,
+                    tree=self.models_tree,
+                    ondisk_models_dir=model_dir,
+                ),
                 ModelsGC(
                     interval=10,
                     api_spec=self.api_spec,

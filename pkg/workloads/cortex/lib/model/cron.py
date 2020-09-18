@@ -193,7 +193,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
             if not self._spec_models.is_local(model_name):
-                self._s3_paths.append(curated_model["model_path"])
+                self._s3_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -518,7 +518,7 @@ class TFSModelLoader(mp.Process):
         self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
             if not self._spec_models.is_local(model_name):
-                self._s3_paths.append(curated_model["model_path"])
+                self._s3_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -799,7 +799,7 @@ class AbstractLoopingThread(td.Thread):
         if not callable(self._runnable):
             raise ValueError("runnable parameter must be a callable function")
 
-        self._event_stopper = thread.Event()
+        self._event_stopper = td.Event()
         self._stopped = False
 
     def run(self):
@@ -942,25 +942,27 @@ class ModelTreeUpdater(AbstractLoopingThread):
     Model tree updater. Updates a local representation of all available models from the S3 upstreams.
     """
 
-    def __init__(self, interval: int, api_spec: dict, tree: ModelsTree):
+    def __init__(self, interval: int, api_spec: dict, tree: ModelsTree, ondisk_models_dir: str):
         """
         Args:
             interval: How often to update the models tree. Measured in seconds.
             api_spec: Identical copy of pkg.type.spec.api.API.
             tree: Model tree representation of the available models on the S3 upstream.
+            ondisk_models_dir: Where the models are stored on disk. Necessary when local models are used.
         """
 
         AbstractLoopingThread.__init__(self, interval, self._update_models_tree)
 
         self._api_spec = api_spec
         self._tree = tree
+        self._ondisk_models_dir = ondisk_models_dir
 
         self._s3_paths = []
         self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
         self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
             if not self._spec_models.is_local(model_name):
-                self._s3_paths.append(curated_model["model_path"])
+                self._s3_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -991,30 +993,35 @@ class ModelTreeUpdater(AbstractLoopingThread):
             model = self._spec_models[model_name]
 
             if len(model["versions"]) == 0:
-                ondisk_model_version_path = os.path.join(self._models_dir, model_name, "1")
+                model_version = "1"
+                ondisk_model_version_path = os.path.join(
+                    self._ondisk_models_dir, model_name, model_version
+                )
                 ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
                 self._tree.update_model(
                     bucket="",
                     model_name=model_name,
                     model_version=model_version,
                     model_path=ondisk_model_version_path,
                     sub_paths=ondisk_paths,
-                    timestamps=int(timestamp_utc),
+                    timestamp=int(timestamp_utc),
                     tree_removable=False,
                 )
 
             for model_version in model["versions"]:
                 ondisk_model_version_path = os.path.join(
-                    self._models_dir, model_name, model_version
+                    self._ondisk_models_dir, model_name, model_version
                 )
                 ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
                 self._tree.update_model(
                     bucket="",
                     model_name=model_name,
                     model_version=model_version,
                     model_path=ondisk_model_version_path,
                     sub_paths=ondisk_paths,
-                    timestamps=int(timestamp_utc),
+                    timestamp=int(timestamp_utc),
                     tree_removable=False,
                 )
 
