@@ -446,26 +446,25 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 // Retries deploying a container requiring GPU using nvidia runtime, returns original error if isn't relevant, nil if successful and new error if a retry was attempted but failed
 func retryWithNvidiaRuntime(err error, containerConfig *container.Config, hostConfig *container.HostConfig) error {
 	// error message if device driver may look like 'could not select device driver "" with capabilities: [[gpu]]'
-
-	if strings.Contains(err.Error(), "could not select device driver") && strings.Contains(err.Error(), "gpu") {
-		if _, ok := docker.MustDockerClient().Info.Runtimes["nvidia"]; ok {
-			fmt.Println("retrying API deployment using nvidia runtime because device driver for GPU was not found")
-			hostConfig.Runtime = "nvidia"
-			hostConfig.Resources.DeviceRequests = nil
-			containerCreateRequest, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
-			if err != nil {
-				return errors.Wrap(err, "failed to request a GPU")
-			}
-			err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
-			if err != nil {
-				return errors.Wrap(err, "failed to run a container using nvidia runtime; please verify that you've set up your nvidia runtime with Docker correctly")
-			}
-			return nil
-		} else {
-			return errors.Append(errors.Wrap(err, "failed to allocate GPU"), "\n\n* only NVIDIA gpus are supported\n* please make sure that you've set up nvidia-container-runtime (or nvidia-container-toolkit) for your Docker Engine correctly: https://docs.docker.com/config/containers/resource_constraints/#gpu\n\nAlternatively, try deploying the API without requesting a GPU by updating `compute.gpu` in your API configuration yaml")
-		}
+	if !(strings.Contains(err.Error(), "could not select device driver") && strings.Contains(err.Error(), "gpu")) {
+		return err
 	}
-	return err
+
+	if _, ok := docker.MustDockerClient().Info.Runtimes["nvidia"]; ok {
+		fmt.Println("retrying API deployment using nvidia runtime because device driver for GPU was not found")
+		hostConfig.Runtime = "nvidia"
+		hostConfig.Resources.DeviceRequests = nil
+		containerCreateRequest, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
+		if err != nil {
+			return errors.Wrap(err, "failed to request a GPU")
+		}
+		err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
+		if err != nil {
+			return errors.Wrap(err, "failed to run a container using nvidia runtime; it is recommended to use the latest Docker Engine (https://docs.docker.com/engine/install/) with nvidia-container-runtime or nvidia-container-toolkit (https://docs.docker.com/config/containers/resource_constraints/#gpu)")
+		}
+		return nil
+	}
+	return errors.Append(errors.Wrap(err, "failed to allocate GPU"), "\n\n* only NVIDIA gpus are supported\n* please make sure that you've set up nvidia-container-runtime or nvidia-container-toolkit for your Docker Engine correctly (https://docs.docker.com/config/containers/resource_constraints/#gpu)\n\nAlternatively, try deploying the API without requesting a GPU by updating `compute.gpu` in your API configuration yaml")
 }
 
 func GetContainersByAPI(apiName string) ([]dockertypes.Container, error) {
