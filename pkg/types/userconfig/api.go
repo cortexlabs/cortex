@@ -67,11 +67,11 @@ type TrafficSplit struct {
 type ModelResource struct {
 	Name         string  `json:"name" yaml:"name"`
 	ModelPath    string  `json:"model_path" yaml:"model_path"`
-	SignatureKey *string `json:"signature_key" yaml:"signature_key,omitempty"`
+	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
 }
 
 type Monitoring struct {
-	Key       *string   `json:"key" yaml:"key,omitempty"`
+	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
 }
 
@@ -81,14 +81,14 @@ type ServerSideBatching struct {
 }
 
 type Networking struct {
-	Endpoint   *string        `json:"endpoint" yaml:"endpoint,omitempty"`
-	LocalPort  *int           `json:"local_port" yaml:"local_port,omitempty"`
+	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
+	LocalPort  *int           `json:"local_port" yaml:"local_port"`
 	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
 }
 
 type Compute struct {
-	CPU *k8s.Quantity `json:"cpu" yaml:"cpu,omitempty"`
-	Mem *k8s.Quantity `json:"mem" yaml:"mem,omitempty"`
+	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
+	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
 	Inf int64         `json:"inf" yaml:"inf"`
 }
@@ -97,7 +97,7 @@ type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	TargetReplicaConcurrency     *float64      `json:"target_replica_concurrency" yaml:"target_replica_concurrency,omitempty"`
+	TargetReplicaConcurrency     *float64      `json:"target_replica_concurrency" yaml:"target_replica_concurrency"`
 	MaxReplicaConcurrency        int64         `json:"max_replica_concurrency" yaml:"max_replica_concurrency"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`

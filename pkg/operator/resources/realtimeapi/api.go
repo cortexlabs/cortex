@@ -431,16 +431,8 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	return parallel.RunFirstErr(
-		func() error {
-			prefix := filepath.Join("apis", apiName)
-			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-		},
-		func() error {
-			prefix := filepath.Join("predictors", apiName)
-			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-		},
-	)
+	prefix := filepath.Join("apis", apiName)
+	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 }
 
 func IsAPIUpdating(apiName string) (bool, error) {

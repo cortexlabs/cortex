@@ -17,7 +17,6 @@ limitations under the License.
 package spec
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -506,6 +505,7 @@ func multiModelValidation() *cr.StructFieldValidation {
 						StringValidation: &cr.StringValidation{
 							Required:                   true,
 							AllowEmpty:                 false,
+							DisallowedValues:           []string{consts.SingleModelName},
 							AlphaNumericDashUnderscore: true,
 						},
 					},
@@ -644,14 +644,9 @@ func ExtractAPIConfigs(
 				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Traffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor))
 			}
 		}
-
-		_, err := json.Marshal(api)
-		if err != nil {
-			return nil, errors.Wrap(err, api.Identify(), "the specified api configuration is not JSON parseable")
-		}
-
 		api.Index = i
 		api.FileName = configFileName
+
 		rawYAMLBytes, err := yaml.Marshal([]map[string]interface{}{data})
 		if err != nil {
 			return nil, errors.Wrap(err, api.Identify(), "unable to marshal to yaml")
