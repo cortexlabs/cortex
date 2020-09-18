@@ -50,7 +50,7 @@ from cortex.lib.model import (
 )
 
 
-def find_all_models(
+def find_all_s3_models(
     is_dir_used: bool,
     models_dir: str,
     predictor_type: PredictorType,
@@ -67,17 +67,17 @@ def find_all_models(
         is_dir_used: Whether predictor:models:dir is used or not.
         models_dir: The value of predictor:models:dir in case it's present. Ignored when not required.
         predictor_type: PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
-        s3_paths: The model paths as they are specified in predictor:models:paths:model_path/predictor:model_path when predictor:models:paths/predictor:model_path is used. Ignored when not required.
-        s3_model_names: The model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:model_path is used. Ignored when not required.
+        s3_paths: The S3 model paths as they are specified in predictor:models:paths:model_path/predictor:model_path when predictor:models:paths/predictor:model_path is used. Ignored when not required.
+        s3_model_names: The S3 model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:model_path is used. Ignored when not required.
 
-    Returns: The tuple with the following elements
+    Returns: The tuple with the following elements:
         model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
         versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
-          For non-versioned model paths ModelVersion.NOT_PROVIDED, the list will be empty
-        model_paths - a list with the prefix of each model
-        sub_paths - a list of filepaths for each file of each model all grouped into a single list
-        timestamps - a list of timestamps lists representing the last edit time of each versioned model
-        bucket_names - a list of the bucket names of each model
+          For non-versioned model paths ModelVersion.NOT_PROVIDED, the list will be empty.
+        model_paths - a list with the prefix of each model.
+        sub_paths - a list of filepaths for each file of each model all grouped into a single list.
+        timestamps - a list of timestamps lists representing the last edit time of each versioned model.
+        bucket_names - a list of the bucket names of each model.
     """
 
     # validate models stored in S3 that were specified with predictor:models:dir field
@@ -88,9 +88,8 @@ def find_all_models(
         model_paths, ooa_ids = validate_models_dir_paths(sub_paths, predictor_type, models_path)
         model_names = [os.path.basename(model_path) for model_path in model_paths]
 
-        model_names = list(set(model_names).difference(local_model_names))
         model_paths = [
-            model_path for model_path in models_path if os.path.basename(model_path) in model_names
+            model_path for model_path in model_paths if os.path.basename(model_path) in model_names
         ]
         bucket_names = len(model_paths) * [bucket_name]
 
@@ -126,21 +125,26 @@ def find_all_models(
             continue
 
         model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in sub_paths]
-        model_versions = [path for path in model_sub_paths if not path.startswith("../")]
+        model_versions_paths = [path for path in model_sub_paths if not path.startswith("../")]
+        model_versions = [
+            util.get_leftmost_part_of_path(model_version_path)
+            for model_version_path in model_versions_paths
+        ]
+        model_versions = list(set(model_versions))
         versions[model_name] = model_versions
 
-    # curate timestamps for each versione model
+    # curate timestamps for each versioned model
     aux_timestamps = []
     for model_path, model_name in zip(model_paths, model_names):
         model_ts = []
         if len(versions[model_name]) == 0:
             masks = list(map(lambda x: x.startswith(model_path), sub_paths))
             model_ts = [max(itertools.compress(timestamps, masks))]
-            continue
 
         for version in versions[model_name]:
             masks = list(map(lambda x: x.startswith(os.path.join(model_path, version)), sub_paths))
             model_ts.append(max(itertools.compress(timestamps, masks)))
+
         aux_timestamps.append(model_ts)
 
     timestamps = aux_timestamps  # type: List[List[datetime.datetime]]
@@ -269,8 +273,19 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     f.write("available " + str(timestamp_utc))
 
     def _update_models_tree(self) -> None:
+        # don't update when the models:dir is a local path
+        if self._is_dir_used and not self._models_dir.startswith("s3://"):
+            return
+
         # get updated/validated paths/versions of the S3 models
-        model_names, versions, model_paths, sub_paths, timestamps, bucket_names = find_all_models(
+        (
+            model_names,
+            versions,
+            model_paths,
+            sub_paths,
+            timestamps,
+            bucket_names,
+        ) = find_all_s3_models(
             self._is_dir_used,
             self._models_dir,
             self._predictor_type,
@@ -575,8 +590,19 @@ class TFSModelLoader(mp.Process):
             time.sleep(0.001)
 
     def _update_models(self) -> None:
+        # don't update when the models:dir is a local path
+        if self._is_dir_used and not self._models_dir.startswith("s3://"):
+            return
+
         # get updated/validated paths/versions of the S3 models
-        model_names, versions, model_paths, sub_paths, timestamps, bucket_names = find_all_models(
+        (
+            model_names,
+            versions,
+            model_paths,
+            sub_paths,
+            timestamps,
+            bucket_names,
+        ) = find_all_s3_models(
             self._is_dir_used,
             self._models_dir,
             self._predictor_type,
@@ -1026,8 +1052,19 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 )
 
     def _update_models_tree(self) -> None:
+        # don't update when the models:dir is a local path
+        if self._is_dir_used and not self._models_dir.startswith("s3://"):
+            return
+
         # get updated/validated paths/versions of the S3 models
-        model_names, versions, model_paths, sub_paths, timestamps, bucket_names = find_all_models(
+        (
+            model_names,
+            versions,
+            model_paths,
+            sub_paths,
+            timestamps,
+            bucket_names,
+        ) = find_all_s3_models(
             self._is_dir_used,
             self._models_dir,
             self._predictor_type,
