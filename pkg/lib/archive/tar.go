@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -49,12 +48,12 @@ func (arc *tarArchiver) add(reader io.Reader, dest string, size int64) error {
 
 	err := arc.writer.WriteHeader(header)
 	if err != nil {
-		return errors.Wrap(err, _errStrCreateArchive)
+		return errors.Wrap(err, _errStrCreateTar)
 	}
 
 	_, err = io.Copy(arc.writer, reader)
 	if err != nil {
-		return errors.Wrap(err, _errStrCreateArchive)
+		return errors.Wrap(err, _errStrCreateTar)
 	}
 
 	return nil
@@ -83,12 +82,12 @@ func UntarReaderToDir(reader io.Reader, destDir string) (strset.Set, error) {
 		return nil, err
 	}
 
-	tr := tar.NewReader(reader)
+	tarReader := tar.NewReader(reader)
 
 	filenames := strset.New()
 
 	for {
-		header, err := tr.Next()
+		header, err := tarReader.Next()
 
 		switch {
 		case err == io.EOF:
@@ -101,7 +100,8 @@ func UntarReaderToDir(reader io.Reader, destDir string) (strset.Set, error) {
 			continue
 		}
 
-		target := filepath.Join(destDir, header.Name)
+		name := strings.TrimPrefix(header.Name, "/")
+		target := filepath.Join(destDir, name)
 
 		switch header.Typeflag {
 		case tar.TypeDir:
@@ -120,12 +120,10 @@ func UntarReaderToDir(reader io.Reader, destDir string) (strset.Set, error) {
 
 			outFile, err := files.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
-				asdf, _ := files.ListDirRecursive(filepath.Dir(target), false)
-				debug.Pp(asdf)
 				return nil, err
 			}
 
-			_, err = io.Copy(outFile, tr)
+			_, err = io.Copy(outFile, tarReader)
 			if err != nil {
 				outFile.Close()
 				return nil, errors.Wrap(err, _errStrUntar)
@@ -150,10 +148,10 @@ func UntarFileToDir(src string, destDir string) (strset.Set, error) {
 func UntarReaderToMem(reader io.Reader) (map[string][]byte, error) {
 	fileMap := map[string][]byte{}
 
-	tr := tar.NewReader(reader)
+	tarReader := tar.NewReader(reader)
 
 	for {
-		header, err := tr.Next()
+		header, err := tarReader.Next()
 
 		switch {
 		case err == io.EOF:
@@ -167,9 +165,9 @@ func UntarReaderToMem(reader io.Reader) (map[string][]byte, error) {
 		}
 
 		if header.Typeflag == tar.TypeReg {
-			contents, err := ioutil.ReadAll(tr)
+			contents, err := ioutil.ReadAll(tarReader)
 			if err != nil {
-				return nil, errors.Wrap(err, _errStrUnzip)
+				return nil, errors.Wrap(err, _errStrUntar)
 			}
 
 			path := strings.TrimPrefix(header.Name, "/")

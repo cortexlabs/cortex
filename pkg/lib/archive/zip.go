@@ -43,12 +43,12 @@ func newZipArchiver(writer io.Writer) *zipArchiver {
 func (arc *zipArchiver) add(reader io.Reader, dest string, size int64) error {
 	writer, err := arc.writer.Create(dest)
 	if err != nil {
-		return errors.Wrap(err, _errStrCreateArchive)
+		return errors.Wrap(err, _errStrCreateZip)
 	}
 
 	_, err = io.Copy(writer, reader)
 	if err != nil {
-		return errors.Wrap(err, _errStrCreateArchive)
+		return errors.Wrap(err, _errStrCreateZip)
 	}
 
 	return nil
@@ -84,22 +84,23 @@ func UnzipFileToDir(src string, destDir string) (strset.Set, error) {
 
 	filenames := strset.New()
 
-	r, err := zip.OpenReader(cleanSrc)
+	zipReader, err := zip.OpenReader(cleanSrc)
 	if err != nil {
 		return nil, errors.Wrap(err, _errStrUnzip)
 	}
-	defer r.Close()
+	defer zipReader.Close()
 
-	for _, f := range r.File {
-		rc, err := f.Open()
+	for _, zipReaderFile := range zipReader.File {
+		zipFileReader, err := zipReaderFile.Open()
 		if err != nil {
 			return nil, errors.Wrap(err, _errStrUnzip)
 		}
-		defer rc.Close()
+		defer zipFileReader.Close()
 
-		target := filepath.Join(destDir, f.Name)
+		name := strings.TrimPrefix(zipReaderFile.Name, "/")
+		target := filepath.Join(destDir, name)
 
-		if f.FileInfo().IsDir() {
+		if zipReaderFile.FileInfo().IsDir() {
 			err := files.CreateDir(target)
 			if err != nil {
 				return nil, err
@@ -117,7 +118,7 @@ func UnzipFileToDir(src string, destDir string) (strset.Set, error) {
 				return nil, err
 			}
 
-			_, err = io.Copy(outFile, rc)
+			_, err = io.Copy(outFile, zipFileReader)
 			if err != nil {
 				outFile.Close()
 				return nil, errors.Wrap(err, _errStrUnzip)
@@ -135,7 +136,7 @@ func UnzipMemToMem(zipBytes []byte) (map[string][]byte, error) {
 		return nil, errors.Wrap(err, _errStrUnzip)
 	}
 
-	return unzipReaderToMem(zipReader)
+	return unzipZipReaderToMem(zipReader)
 }
 
 func UnzipFileToMem(src string) (map[string][]byte, error) {
@@ -150,26 +151,26 @@ func UnzipFileToMem(src string) (map[string][]byte, error) {
 	}
 	defer zipReader.Close()
 
-	return unzipReaderToMem(&zipReader.Reader)
+	return unzipZipReaderToMem(&zipReader.Reader)
 }
 
-func unzipReaderToMem(zipReader *zip.Reader) (map[string][]byte, error) {
+func unzipZipReaderToMem(zipReader *zip.Reader) (map[string][]byte, error) {
 	fileMap := map[string][]byte{}
 
-	for _, f := range zipReader.File {
-		if !f.FileInfo().IsDir() {
-			rc, err := f.Open()
+	for _, zipReaderFile := range zipReader.File {
+		if !zipReaderFile.FileInfo().IsDir() {
+			zipFileReader, err := zipReaderFile.Open()
 			if err != nil {
 				return nil, errors.Wrap(err, _errStrUnzip)
 			}
-			defer rc.Close()
+			defer zipFileReader.Close()
 
-			contents, err := ioutil.ReadAll(rc)
+			contents, err := ioutil.ReadAll(zipFileReader)
 			if err != nil {
 				return nil, errors.Wrap(err, _errStrUnzip)
 			}
 
-			path := strings.TrimPrefix(f.Name, "/")
+			path := strings.TrimPrefix(zipReaderFile.Name, "/")
 			fileMap[path] = contents
 		}
 	}

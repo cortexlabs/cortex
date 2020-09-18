@@ -25,6 +25,8 @@ import (
 
 const (
 	_errStrCreateArchive = "unable to create archive"
+	_errStrCreateZip     = "unable to create zip file"
+	_errStrCreateTar     = "unable to create tar file"
 	_errStrUnzip         = "unable to unzip file"
 	_errStrUntar         = "unable to extract tar file"
 )

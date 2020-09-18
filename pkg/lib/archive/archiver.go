@@ -109,6 +109,7 @@ func addFileToArchive(fileInput *FileInput, input *Input, arc archiver, addedPat
 		Content: content,
 		Dest:    fileInput.Dest,
 	}
+
 	return addBytesToArchive(byteInput, input, arc, addedPaths)
 }
 
@@ -139,6 +140,7 @@ func addDirToArchive(dirInput *DirInput, input *Input, arc archiver, addedPaths 
 			Source: file,
 			Dest:   filepath.Join(dirInput.Dest, path),
 		}
+
 		err = addFileToArchive(fileInput, input, arc, addedPaths)
 		if err != nil {
 			return err
@@ -168,6 +170,7 @@ func addFileListToArchive(fileListInput *FileListInput, input *Input, arc archiv
 			Source: fullPath,
 			Dest:   filepath.Join(fileListInput.Dest, path),
 		}
+
 		err := addFileToArchive(fileInput, input, arc, addedPaths)
 		if err != nil {
 			return err
