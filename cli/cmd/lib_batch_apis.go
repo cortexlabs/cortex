@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -145,8 +144,8 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		return "", err
 	}
 
-	if _flagGetOutput == flags.JSONOutputType {
-		bytes, err := json.Marshal(resp)
+	if _flagOutput == flags.JSONOutputType {
+		bytes, err := libjson.Marshal(resp)
 		if err != nil {
 			return "", err
 		}

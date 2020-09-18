@@ -17,13 +17,13 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -31,16 +31,15 @@ import (
 )
 
 var (
-	_flagRefreshEnv    string
-	_flagRefreshForce  bool
-	_flagRefreshOutput = flags.PrettyOutputType
+	_flagRefreshEnv   string
+	_flagRefreshForce bool
 )
 
 func refreshInit() {
 	_refreshCmd.Flags().SortFlags = false
 	_refreshCmd.Flags().StringVarP(&_flagRefreshEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_refreshCmd.Flags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
-	_refreshCmd.Flags().VarP(&_flagRefreshOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
+	_refreshCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 }
 
 var _refreshCmd = &cobra.Command{
@@ -69,8 +68,8 @@ var _refreshCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if _flagRefreshOutput == flags.JSONOutputType {
-			bytes, err := json.Marshal(refreshResponse)
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(refreshResponse)
 			if err != nil {
 				exit.Error(err)
 			}

@@ -43,7 +43,6 @@ func errStrFailedToConnect(u url.URL) string {
 
 const (
 	ErrInvalidProvider                      = "cli.invalid_provider"
-	ErrInvalidOutputType                    = "cli.invalid_output_type"
 	ErrEnvironmentFlagRequired              = "cli.environment_flag_required"
 	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
 	ErrCommandNotSupportedForKind           = "cli.command_not_supported_for_kind"
@@ -79,13 +78,6 @@ func ErrorInvalidProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidProvider,
 		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(types.ProviderTypeStrings())),
-	})
-}
-
-func ErrorInvalidOutputType(invalidOutputType string, validOutputTypes []string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidOutputType,
-		Message: fmt.Sprintf("invalid value specified for flag --output %s, valid output values are %s", invalidOutputType, s.StrsAnd(validOutputTypes)),
 	})
 }
 

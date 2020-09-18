@@ -36,6 +36,7 @@ var (
 	_cmdStr string
 
 	_configFileExts = []string{"yaml", "yml"}
+	_flagOutput     = flags.PrettyOutputType
 
 	_localDir      string
 	_cliConfigPath string
@@ -177,19 +178,6 @@ func updateRootUsage() {
 	})
 }
 
-func shouldPrintHelper(cmd *cobra.Command) bool {
-	shouldPrintHelper := false
-	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		if flag.Shorthand == "o" && flag.Changed {
-			if flag.Value.String() == flags.PrettyOutputType.String() {
-				shouldPrintHelper = true
-			}
-		}
-	})
-
-	return shouldPrintHelper
-}
-
 func wasEnvFlagProvided(cmd *cobra.Command) bool {
 	envFlagProvided := false
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -207,7 +195,7 @@ func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
 		return err
 	}
 
-	if shouldPrintHelper(cmd) {
+	if _flagOutput == flags.PrettyOutputType {
 		fmt.Print(out)
 	}
 	return nil
@@ -219,7 +207,7 @@ func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error)
 		return "", err
 	}
 
-	if shouldPrintHelper(cmd) && !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
+	if _flagOutput == flags.PrettyOutputType && !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
 		return fmt.Sprintf("using %s environment\n\n", envName), nil
 	}
 

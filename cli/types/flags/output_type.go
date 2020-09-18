@@ -80,7 +80,7 @@ func (t OutputType) MarshalBinary() ([]byte, error) {
 func (t *OutputType) Set(value string) error {
 	output := OutputTypeFromString(value)
 	if output == UnknownOutputType {
-		return ErrorInvalidOutputType(value, OutputTypeStrings())
+		return ErrorInvalidOutputType(value)
 	}
 	*t = output
 	return nil

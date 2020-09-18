@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -28,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -53,16 +53,15 @@ const (
 )
 
 var (
-	_flagGetEnv    string
-	_flagWatch     bool
-	_flagGetOutput = flags.PrettyOutputType
+	_flagGetEnv string
+	_flagWatch  bool
 )
 
 func getInit() {
 	_getCmd.Flags().SortFlags = false
 	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every 2 seconds")
-	_getCmd.Flags().VarP(&_flagGetOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
+	_getCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 }
 
 var _getCmd = &cobra.Command{
@@ -98,7 +97,7 @@ var _getCmd = &cobra.Command{
 					return "", err
 				}
 
-				if _flagGetOutput == flags.JSONOutputType {
+				if _flagOutput == flags.JSONOutputType {
 					return apiTable, nil
 				}
 
@@ -122,7 +121,7 @@ var _getCmd = &cobra.Command{
 				if err != nil {
 					return "", err
 				}
-				if _flagGetOutput == flags.JSONOutputType {
+				if _flagOutput == flags.JSONOutputType {
 					return jobTable, nil
 				}
 
@@ -144,7 +143,7 @@ var _getCmd = &cobra.Command{
 						return "", err
 					}
 
-					if _flagGetOutput == flags.JSONOutputType {
+					if _flagOutput == flags.JSONOutputType {
 						return apiTable, nil
 					}
 
@@ -175,7 +174,12 @@ func getAPIsInAllEnvironments() (string, error) {
 	var allTrafficSplitters []schema.TrafficSplitter
 	var allTrafficSplitterEnvs []string
 
-	allAPIsOutput := map[string]GetAPIsOutput{}
+	type getAPIsOutput struct {
+		APIs  schema.GetAPIsResponse
+		Error string
+	}
+
+	allAPIsOutput := map[string]getAPIsOutput{}
 
 	errorsMap := map[string]error{}
 	// get apis from both environments
@@ -188,7 +192,7 @@ func getAPIsInAllEnvironments() (string, error) {
 			apisRes, err = local.GetAPIs()
 		}
 
-		apisOutput := GetAPIsOutput{
+		apisOutput := getAPIsOutput{
 			APIs: apisRes,
 		}
 
@@ -213,8 +217,8 @@ func getAPIsInAllEnvironments() (string, error) {
 		allAPIsOutput[env.Name] = apisOutput
 	}
 
-	if _flagGetOutput == flags.JSONOutputType {
-		bytes, err := json.Marshal(allAPIsOutput)
+	if _flagOutput == flags.JSONOutputType {
+		bytes, err := libjson.Marshal(allAPIsOutput)
 		if err != nil {
 			if err != nil {
 				return "", err
@@ -317,8 +321,8 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 			return "", err
 		}
 
-		if _flagGetOutput == flags.JSONOutputType {
-			bytes, err := json.Marshal(apisRes)
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(apisRes)
 			if err != nil {
 				return "", err
 			}
@@ -330,8 +334,8 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 			return "", err
 		}
 
-		if _flagGetOutput == flags.JSONOutputType {
-			bytes, err := json.Marshal(apisRes)
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(apisRes)
 			if err != nil {
 				return "", err
 			}
@@ -429,8 +433,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			return "", err
 		}
 
-		if _flagGetOutput == flags.JSONOutputType {
-			bytes, err := json.Marshal(apiRes)
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(apiRes)
 			if err != nil {
 				return "", err
 			}
@@ -451,8 +455,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return "", err
 	}
 
-	if _flagGetOutput == flags.JSONOutputType {
-		bytes, err := json.Marshal(apiRes)
+	if _flagOutput == flags.JSONOutputType {
+		bytes, err := libjson.Marshal(apiRes)
 		if err != nil {
 			return "", err
 		}
@@ -464,9 +468,4 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 func titleStr(title string) string {
 	return "\n" + console.Bold(title) + "\n"
-}
-
-type GetAPIsOutput struct {
-	APIs  schema.GetAPIsResponse
-	Error string
 }

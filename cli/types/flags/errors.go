@@ -24,12 +24,12 @@ import (
 )
 
 const (
-	ErrInvalidOutputType = "cli.invalid_output_type"
+	ErrInvalidOutputType = "flags.invalid_output_type"
 )
 
-func ErrorInvalidOutputType(invalidOutputType string, validOutputTypes []string) error {
+func ErrorInvalidOutputType(invalidOutputType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidOutputType,
-		Message: fmt.Sprintf("invalid value specified for flag --output %s, valid output values are %s", invalidOutputType, s.StrsAnd(validOutputTypes)),
+		Message: fmt.Sprintf("invalid value \"%s\" specified for -o/--output; valid values are %s", invalidOutputType, s.StrsAnd(OutputTypeStrings())),
 	})
 }
