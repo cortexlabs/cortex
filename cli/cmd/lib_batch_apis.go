@@ -145,7 +145,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		return "", err
 	}
 
-	if _flagOutput == flags.JSONOutputType.String() {
+	if _flagGetOutput == flags.JSONOutputType {
 		bytes, err := json.Marshal(resp)
 		if err != nil {
 			return "", err

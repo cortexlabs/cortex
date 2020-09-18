@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -176,6 +177,19 @@ func updateRootUsage() {
 	})
 }
 
+func shouldPrintHelper(cmd *cobra.Command) bool {
+	shouldPrintHelper := false
+	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Shorthand == "o" && flag.Changed {
+			if flag.Value.String() == flags.PrettyOutputType.String() {
+				shouldPrintHelper = true
+			}
+		}
+	})
+
+	return shouldPrintHelper
+}
+
 func wasEnvFlagProvided(cmd *cobra.Command) bool {
 	envFlagProvided := false
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -193,7 +207,9 @@ func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
 		return err
 	}
 
-	fmt.Print(out)
+	if shouldPrintHelper(cmd) {
+		fmt.Print(out)
+	}
 	return nil
 }
 
@@ -203,7 +219,7 @@ func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error)
 		return "", err
 	}
 
-	if !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
+	if shouldPrintHelper(cmd) && !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
 		return fmt.Sprintf("using %s environment\n\n", envName), nil
 	}
 

@@ -76,3 +76,16 @@ func (t *OutputType) UnmarshalBinary(data []byte) error {
 func (t OutputType) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
+
+func (t *OutputType) Set(value string) error {
+	output := OutputTypeFromString(value)
+	if output == UnknownOutputType {
+		return ErrorInvalidOutputType(value, OutputTypeStrings())
+	}
+	*t = output
+	return nil
+}
+
+func (t OutputType) Type() string {
+	return "string"
+}

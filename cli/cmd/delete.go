@@ -17,10 +17,13 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -33,6 +36,7 @@ var (
 	_flagDeleteEnv       string
 	_flagDeleteKeepCache bool
 	_flagDeleteForce     bool
+	_flagDeleteOutput    = flags.PrettyOutputType
 )
 
 func deleteInit() {
@@ -42,6 +46,7 @@ func deleteInit() {
 	// only applies to aws provider because local doesn't support multiple replicas
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteKeepCache, "keep-cache", "c", false, "keep cached data for the api")
+	_deleteCmd.Flags().VarP(&_flagDeleteOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 }
 
 var _deleteCmd = &cobra.Command{
@@ -84,6 +89,15 @@ var _deleteCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
+		}
+
+		if _flagDeleteOutput == flags.JSONOutputType {
+			bytes, err := json.Marshal(deleteResponse)
+			if err != nil {
+				exit.Error(err)
+			}
+			fmt.Println(string(bytes))
+			return
 		}
 
 		print.BoldFirstLine(deleteResponse.Message)

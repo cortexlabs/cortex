@@ -17,12 +17,14 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -50,6 +52,7 @@ var (
 	_flagDeployEnv            string
 	_flagDeployForce          bool
 	_flagDeployDisallowPrompt bool
+	_flagDeployOutput         = flags.PrettyOutputType
 )
 
 func deployInit() {
@@ -57,6 +60,7 @@ func deployInit() {
 	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_deployCmd.Flags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
 	_deployCmd.Flags().BoolVarP(&_flagDeployDisallowPrompt, "yes", "y", false, "skip prompts")
+	_deployCmd.Flags().VarP(&_flagDeployOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 }
 
 var _deployCmd = &cobra.Command{
@@ -108,6 +112,16 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		}
+
+		if _flagDeployOutput == flags.JSONOutputType {
+			bytes, err := json.Marshal(deployResponse)
+			if err != nil {
+				exit.Error(err)
+			}
+			fmt.Println(string(bytes))
+			return
+		}
+
 		message := deployMessage(deployResponse.Results, env.Name)
 		print.BoldFirstBlock(message)
 	},
