@@ -117,7 +117,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		if err != nil {
 			results[i].Error = errors.Message(err)
 		} else {
-			results[i].API = *api
+			results[i].API = api
 		}
 	}
 
