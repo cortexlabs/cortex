@@ -159,7 +159,7 @@ var _upCmd = &cobra.Command{
 			}
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
 			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
@@ -290,7 +290,7 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -422,7 +422,7 @@ var _downCmd = &cobra.Command{
 		}
 
 		fmt.Println("￮ spinning down the cluster ...")
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv, nil)
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -432,8 +432,8 @@ var _downCmd = &cobra.Command{
 			exit.Error(ErrorClusterDown(out + helpStr))
 		}
 
-		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
-		os.Remove(cachedConfigPath)
+		cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+		os.Remove(cachedClusterConfigPath)
 	},
 }
 
@@ -492,7 +492,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, disallowPrompt)
 
-	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, _flagClusterEnv, nil)
+	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -729,14 +729,14 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 	debugFileName := fmt.Sprintf("cortex-debug-%s.tgz", time.Now().UTC().Format("2006-01-02-15-04-05"))
 
 	containerDebugPath := "/out/" + debugFileName
-	copyFromPaths := []dockerCopyPath{
+	copyFromPaths := []dockerCopyFromPath{
 		{
 			containerPath: containerDebugPath,
 			localDir:      _cwd,
 		},
 	}
 
-	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsCreds, _flagClusterEnv, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsCreds, _flagClusterEnv, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -750,18 +750,18 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 
 func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
-	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedConfigPath))
+	cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
 
-	copyFromPaths := []dockerCopyPath{
+	copyFromPaths := []dockerCopyFromPath{
 		{
 			containerPath: containerConfigPath,
-			localDir:      files.Dir(cachedConfigPath),
+			localDir:      files.Dir(cachedClusterConfigPath),
 		},
 	}
 
 	fmt.Print("syncing cluster configuration ...\n\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, _flagClusterEnv, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, _flagClusterEnv, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -770,7 +770,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	}
 
 	refreshedClusterConfig := &clusterconfig.Config{}
-	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
+	readCachedClusterConfigFile(refreshedClusterConfig, cachedClusterConfigPath)
 	return *refreshedClusterConfig
 }
 

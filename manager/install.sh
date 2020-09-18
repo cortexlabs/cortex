@@ -18,6 +18,7 @@ set -eo pipefail
 
 export CORTEX_VERSION=master
 EKSCTL_TIMEOUT=45m
+mkdir /workspace
 
 arg1="$1"
 
@@ -37,8 +38,8 @@ function ensure_eks() {
 
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
-    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
-    eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
+    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > /workspace/eks.yaml
+    eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f /workspace/eks.yaml
 
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
@@ -161,7 +162,7 @@ function ensure_eks() {
 }
 
 function main() {
-  mkdir -p $CORTEX_CLUSTER_WORKSPACE
+  mkdir -p /workspace
 
   # create cluster (if it doesn't already exist)
   ensure_eks
@@ -221,8 +222,8 @@ function main() {
   echo " ✓"
 
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml
-  kubectl apply -f $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
   echo -n "￮ configuring logging "

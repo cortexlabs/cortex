@@ -17,6 +17,7 @@ limitations under the License.
 package docker
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -24,6 +25,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -245,11 +247,46 @@ func StreamDockerLogsFn(containerID string, dockerClient *Client) func() error {
 	}
 }
 
-// The file/dir name of containerPath will be preserved in localDir.
+// The provided input will be extracted into the containerPath directory in the container
+func CopyToContainer(containerID string, input *archive.Input, containerPath string) error {
+	if !strings.HasPrefix(containerPath, "/") {
+		return errors.ErrorUnexpected("containerPath must start with /")
+	}
+
+	dockerClient, err := GetDockerClient()
+	if err != nil {
+		return err
+	}
+
+	// this is necessary to ensure that missing directories are created in the container
+	input.AddPrefix = filepath.Join(containerPath, input.AddPrefix)
+
+	buf := new(bytes.Buffer)
+	_, err = archive.TarToWriter(input, buf)
+	if err != nil {
+		return err
+	}
+
+	opts := dockertypes.CopyToContainerOptions{
+		AllowOverwriteDirWithFile: true,
+	}
+	err = dockerClient.CopyToContainer(context.Background(), containerID, "/", buf, opts)
+	if err != nil {
+		return WrapDockerError(err)
+	}
+
+	return nil
+}
+
+// The file/dir name of containerPath will be preserved in localDir
 // For example, if the container has /aaa/zzz.txt,
-//   - CopyFromContainer(_, "aaa", "~/test") will create "~/test/aaa/zzz.txt"
-//   - CopyFromContainer(_, "aaa/zzz.txt", "~/test") will create "~/test/zzz.txt"
+//   - CopyFromContainer(_, "/aaa", "~/test") will create "~/test/aaa/zzz.txt"
+//   - CopyFromContainer(_, "/aaa/zzz.txt", "~/test") will create "~/test/zzz.txt"
 func CopyFromContainer(containerID string, containerPath string, localDir string) error {
+	if !strings.HasPrefix(containerPath, "/") {
+		return errors.ErrorUnexpected("containerPath must start with /")
+	}
+
 	dockerClient, err := GetDockerClient()
 	if err != nil {
 		return err

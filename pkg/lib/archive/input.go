@@ -20,6 +20,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
+type Input struct {
+	Files          []FileInput
+	Bytes          []BytesInput
+	Dirs           []DirInput
+	FileLists      []FileListInput
+	AddPrefix      string   // Gets added to every item
+	EmptyFiles     []string // Empty files to be created
+	AllowOverwrite bool     // Don't error if a file in the zip is overwritten
+}
+
 type FileInput struct {
 	Source string
 	Dest   string
@@ -45,14 +55,4 @@ type FileListInput struct {
 	Flatten            bool
 	RemovePrefix       string
 	RemoveCommonPrefix bool
-}
-
-type Input struct {
-	Files          []FileInput
-	Bytes          []BytesInput
-	Dirs           []DirInput
-	FileLists      []FileListInput
-	AddPrefix      string   // Gets added to every item
-	EmptyFiles     []string // Empty files to be created
-	AllowOverwrite bool     // Don't error if a file in the zip is overwritten
 }
