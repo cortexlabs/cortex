@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package zip
+package archive
 
 import (
 	"fmt"
@@ -24,17 +24,18 @@ import (
 )
 
 const (
-	_errStrUnzip     = "unable to unzip file"
-	_errStrCreateZip = "unable to create zip file"
+	_errStrCreateArchive = "unable to create archive"
+	_errStrUnzip         = "unable to unzip file"
+	_errStrUntar         = "unable to extract tar file"
 )
 
 const (
-	ErrDuplicateZipPath = "zip.duplicate_zip_path"
+	ErrDuplicatePath = "archive.duplicate_path"
 )
 
-func ErrorDuplicateZipPath(path string) error {
+func ErrorDuplicatePath(path string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateZipPath,
-		Message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
+		Kind:    ErrDuplicatePath,
+		Message: fmt.Sprintf("duplicate path was provided (%s)", s.UserStr(path)),
 	})
 }

@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -34,7 +35,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/lib/tar"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -261,7 +261,7 @@ func CopyFromContainer(containerID string, containerPath string, localDir string
 	}
 	defer reader.Close()
 
-	_, err = tar.UntarReaderToDir(reader, localDir, false)
+	_, err = archive.UntarReaderToDir(reader, localDir)
 	if err != nil {
 		return err
 	}

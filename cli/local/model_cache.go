@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -30,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -221,7 +221,7 @@ func unzipAndValidate(originalModelPath string, zipFile string, destPath string)
 		return err
 	}
 
-	_, err = zip.UnzipFileToDir(zipFile, tmpDir)
+	_, err = archive.UnzipFileToDir(zipFile, tmpDir)
 	if err != nil {
 		return err
 	}

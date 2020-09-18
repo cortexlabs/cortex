@@ -17,7 +17,6 @@ limitations under the License.
 package files
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -45,6 +44,7 @@ var (
 	_homeDir string
 )
 
+// the returned file should be closed by the caller
 func Open(path string) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
@@ -59,6 +59,7 @@ func Open(path string) (*os.File, error) {
 	return file, nil
 }
 
+// the returned file should be closed by the caller
 func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
@@ -73,6 +74,7 @@ func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	return file, err
 }
 
+// the returned file should be closed by the caller
 func Create(path string) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
@@ -145,14 +147,7 @@ func WriteFileFromReader(reader io.Reader, path string) error {
 	}
 	defer file.Close()
 
-	writer := bufio.NewWriter(file)
-
-	_, err = io.Copy(writer, reader)
-	if err != nil {
-		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
-	}
-
-	err = writer.Flush()
+	_, err = io.Copy(file, reader)
 	if err != nil {
 		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
 	}
