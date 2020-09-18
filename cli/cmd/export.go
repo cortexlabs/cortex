@@ -27,14 +27,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 )
 
@@ -101,29 +99,25 @@ var _exportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		userCortexYaml, _ := yaml.Marshal([]*userconfig.API{apiSpec.API})
-		// userCortexYaml := s.Indent(apiSpec.UserStr(env.Provider), "  ")
-		// userCortexYaml = "-" + userCortexYaml[1:]
+		var awsClient *aws.Client
+		if env.AWSAccessKeyID != nil {
+			awsClient, err = aws.NewFromCreds(*info.ClusterConfig.Region, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
+			if err != nil {
+				exit.Error(err)
+			}
+		} else {
+			awsClient, err = aws.NewAnonymousClient()
+			if err != nil {
+				exit.Error(err)
+			}
+		}
 
-		err = files.WriteFile([]byte(userCortexYaml), path.Join(baseDir, apiSpec.FileName))
+		err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.RawAPIKey(), path.Join(baseDir, apiSpec.FileName))
 		if err != nil {
 			exit.Error(err)
 		}
 
 		if apiSpec.Kind != userconfig.TrafficSplitterKind {
-			var awsClient *aws.Client
-			if env.AWSAccessKeyID != nil {
-				awsClient, err = aws.NewFromCreds(*info.ClusterConfig.Region, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
-				if err != nil {
-					exit.Error(err)
-				}
-			} else {
-				awsClient, err = aws.NewAnonymousClient()
-				if err != nil {
-					exit.Error(err)
-				}
-			}
-
 			zipFileLocation := path.Join(baseDir, path.Base(apiSpec.ProjectKey))
 			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.ProjectKey, path.Join(baseDir, path.Base(apiSpec.ProjectKey)))
 			if err != nil {

@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -43,6 +44,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"gopkg.in/yaml.v3"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -504,7 +506,6 @@ func multiModelValidation() *cr.StructFieldValidation {
 						StringValidation: &cr.StringValidation{
 							Required:                   true,
 							AllowEmpty:                 false,
-							DisallowedValues:           []string{consts.SingleModelName},
 							AlphaNumericDashUnderscore: true,
 						},
 					},
@@ -644,8 +645,18 @@ func ExtractAPIConfigs(
 			}
 		}
 
+		_, err := json.Marshal(api)
+		if err != nil {
+			return nil, errors.Wrap(err, api.Identify(), "the specified api configuration is not JSON parseable")
+		}
+
 		api.Index = i
 		api.FileName = configFileName
+		rawYAMLBytes, err := yaml.Marshal([]map[string]interface{}{data})
+		if err != nil {
+			return nil, errors.Wrap(err, api.Identify(), "unable to marshal to yaml")
+		}
+		api.RawYAMLBytes = rawYAMLBytes
 
 		if resourceStruct.Kind == userconfig.RealtimeAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
 			api.ApplyDefaultDockerPaths()

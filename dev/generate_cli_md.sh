@@ -31,6 +31,7 @@ commands=(
   "get"
   "logs"
   "refresh"
+  "export"
   "predict"
   "delete"
   "cluster up"

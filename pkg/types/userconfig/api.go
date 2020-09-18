@@ -30,32 +30,33 @@ import (
 )
 
 type API struct {
-	Resource       `yaml:"resource,inline"`
-	APIs           []*TrafficSplit `json:"apis" yaml:"apis,omitempty"`
-	Predictor      *Predictor      `json:"predictor" yaml:"predictor,omitempty"`
-	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring,omitempty"`
-	Networking     *Networking     `json:"networking" yaml:"networking,omitempty"`
-	Compute        *Compute        `json:"compute" yaml:"compute,omitempty"`
-	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling,omitempty"`
-	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy,omitempty"`
+	Resource
+	APIs           []*TrafficSplit `json:"apis" yaml:"apis"`
+	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
+	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
+	Networking     *Networking     `json:"networking" yaml:"networking"`
+	Compute        *Compute        `json:"compute" yaml:"compute"`
+	Autoscaling    *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
+	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
 	Index          int             `json:"index" yaml:"-"`
 	FileName       string          `json:"file_name" yaml:"-"`
+	RawYAMLBytes   []byte          `json:"-" yaml:"-"`
 }
 
 type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
-	ModelPath              *string                `json:"model_path" yaml:"model_path,omitempty"`
-	Models                 []*ModelResource       `json:"models" yaml:"models,omitempty"`
-	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching,omitempty"`
+	ModelPath              *string                `json:"model_path" yaml:"model_path"`
+	Models                 []*ModelResource       `json:"models" yaml:"models"`
+	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
-	PythonPath             *string                `json:"python_path" yaml:"python_path,omitempty"`
+	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
-	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image,omitempty"`
-	Config                 map[string]interface{} `json:"config" yaml:"config,omitempty"`
-	Env                    map[string]string      `json:"env" yaml:"env,omitempty"`
-	SignatureKey           *string                `json:"signature_key" yaml:"signature_key,omitempty"`
+	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
+	Config                 map[string]interface{} `json:"config" yaml:"config"`
+	Env                    map[string]string      `json:"env" yaml:"env"`
+	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 }
 
 type TrafficSplit struct {

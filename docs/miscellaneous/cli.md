@@ -1,6 +1,4 @@
-# CLI commands
-
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+building cli...
 
 ## deploy
 
@@ -26,9 +24,10 @@ Usage:
   cortex get [API_NAME] [JOB_ID] [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -w, --watch        re-run the command every 2 seconds
-  -h, --help         help for get
+  -e, --env string      environment to use (default "local")
+  -w, --watch           re-run the command every 2 seconds
+  -o, --output string   output format: one of %!(EXTRA string=pretty|json) (default "pretty")
+  -h, --help            help for get
 ```
 
 ## logs
@@ -56,6 +55,19 @@ Flags:
   -e, --env string   environment to use (default "local")
   -f, --force        override the in-progress api update
   -h, --help         help for refresh
+```
+
+## export
+
+```text
+export an API
+
+Usage:
+  cortex export API_NAME [flags]
+
+Flags:
+  -e, --env string   environment to use (default "local")
+  -h, --help         help for export
 ```
 
 ## predict
@@ -254,3 +266,4 @@ Usage:
 Flags:
   -h, --help   help for completion
 ```
+
