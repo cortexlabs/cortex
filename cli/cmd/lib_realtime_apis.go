@@ -68,7 +68,7 @@ func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment
 
 	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint
 
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), realtimeAPI.Endpoint)
+	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), realtimeAPI.Endpoint)
 
 	if realtimeAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || realtimeAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
 		out += "\n" + describeModelInput(&realtimeAPI.Status, realtimeAPI.Endpoint)
@@ -256,11 +256,20 @@ func describeModelInput(status *status.Status, apiEndpoint string) string {
 			for idx, dim := range inputSignature.Shape {
 				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
 			}
+
+			shapeRowEntry := ""
+			if len(shapeStr) == 1 && shapeStr[0] == "scalar" {
+				shapeRowEntry = "scalar"
+			} else if len(shapeStr) == 1 && shapeStr[0] == "unknown" {
+				shapeRowEntry = "unknown"
+			} else {
+				shapeRowEntry = "(" + strings.Join(shapeStr, ", ") + ")"
+			}
 			rows[rowNum] = []interface{}{
 				modelName,
 				inputName,
 				inputSignature.Type,
-				"(" + strings.Join(shapeStr, ", ") + ")",
+				shapeRowEntry,
 			}
 			rowNum++
 		}

@@ -40,6 +40,10 @@ set -- "${positional_args[@]}"
 dir=$1
 image=$2
 
+if [ "$image" == "inferentia" ]; then
+  aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
+fi
+
 docker build "$ROOT" \
   -f $dir/Dockerfile \
   -t cortexlabs/${image} \

@@ -183,7 +183,9 @@ def extract_signatures(signature_defs, signature_keys):
     parsed_signatures = {}
     for model_name in signature_defs:
         parsed_signature_key, parsed_signature = extract_signature(
-            signature_defs[model_name], signature_keys[model_name], model_name,
+            signature_defs[model_name],
+            signature_keys[model_name],
+            model_name,
         )
         parsed_signature_keys[model_name] = parsed_signature_key
         parsed_signatures[model_name] = parsed_signature
@@ -202,7 +204,8 @@ def extract_signature(signature_def, signature_key, model_name):
         if len(available_keys) == 1:
             cx_logger().info(
                 "signature_key was not configured by user, using signature key '{}' for model '{}' (found in the signature def map)".format(
-                    available_keys[0], model_name,
+                    available_keys[0],
+                    model_name,
                 )
             )
             signature_key = available_keys[0]
@@ -242,8 +245,29 @@ def extract_signature(signature_def, signature_key, model_name):
 
     parsed_signature = {}
     for input_name, input_metadata in signature_def_val["inputs"].items():
+        if input_metadata["tensorShape"] == {}:
+            # a scalar with rank 0 and empty shape
+            shape = "scalar"
+        elif input_metadata["tensorShape"].get("unknownRank", False):
+            # unknown rank and shape
+            #
+            # unknownRank is set to True if the model input has no rank
+            # it may lead to an undefined behavior if unknownRank is only checked for its presence
+            # so it also gets to be tested against its value
+            shape = "unknown"
+        elif input_metadata["tensorShape"].get("dim", None):
+            # known rank and known/unknown shape
+            shape = [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]]
+        else:
+            raise UserException(
+                "invalid 'tensorShape' specification for input '{}' in signature key '{}' for model '{}'",
+                input_name,
+                signature_key,
+                model_name,
+            )
+
         parsed_signature[input_name] = {
-            "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
+            "shape": shape if type(shape) == list else [shape],
             "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,
         }
     return signature_key, parsed_signature
@@ -255,9 +279,19 @@ def create_prediction_request(signature_def, signature_key, model_name, model_in
     prediction_request.model_spec.signature_name = signature_key
 
     for column_name, value in model_input.items():
-        shape = []
-        for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-            shape.append(int(dim["size"]))
+        if signature_def[signature_key]["inputs"][column_name]["tensorShape"] == {}:
+            shape = "scalar"
+        elif signature_def[signature_key]["inputs"][column_name]["tensorShape"].get(
+            "unknownRank", False
+        ):
+            # unknownRank is set to True if the model input has no rank
+            # it may lead to an undefined behavior if unknownRank is only checked for its presence
+            # so it also gets to be tested against its value
+            shape = "unknown"
+        else:
+            shape = []
+            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+                shape.append(int(dim["size"]))
 
         sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
@@ -265,9 +299,18 @@ def create_prediction_request(signature_def, signature_key, model_name, model_in
             tensor_proto = tf.compat.v1.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
             prediction_request.inputs[column_name].CopyFrom(tensor_proto)
         except Exception as e:
-            raise UserException(
-                'key "{}"'.format(column_name), "expected shape {}".format(shape), str(e)
-            ) from e
+            if shape == "scalar":
+                raise UserException(
+                    'key "{}"'.format(column_name), "expected to be a scalar", str(e)
+                ) from e
+            elif shape == "unknown":
+                raise UserException(
+                    'key "{}"'.format(column_name), "can be of any rank and shape", str(e)
+                ) from e
+            else:
+                raise UserException(
+                    'key "{}"'.format(column_name), "expected shape {}".format(shape), str(e)
+                ) from e
 
     return prediction_request
 

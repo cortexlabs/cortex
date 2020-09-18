@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -378,10 +377,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: DefaultPortStr,
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_API_SPEC",
-				Value: aws.S3Path(config.Cluster.Bucket, api.Key),
-			},
-			kcore.EnvVar{
 				Name:  "CORTEX_CACHE_DIR",
 				Value: _specCacheDir,
 			},
@@ -390,6 +385,23 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
 		)
+
+		if api.Kind == userconfig.RealtimeAPIKind {
+			// Use api spec indexed by PredictorID for realtime apis to prevent rolling updates when SpecID changes without PredictorID changing
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_API_SPEC",
+					Value: aws.S3Path(config.Cluster.Bucket, api.PredictorKey),
+				},
+			)
+		} else {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_API_SPEC",
+					Value: aws.S3Path(config.Cluster.Bucket, api.Key),
+				},
+			)
+		}
 
 		if api.Autoscaling != nil {
 			envVars = append(envVars,
@@ -710,12 +722,12 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		ReadinessProbe: socketExistsProbe(_neuronRTDSocket),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
-				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
+				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
+				"aws.amazon.com/neuron": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
 			Limits: kcore.ResourceList{
-				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
+				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
+				"aws.amazon.com/neuron": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
 		},
 	}
@@ -782,27 +794,6 @@ func socketExistsProbe(socketName string) *kcore.Probe {
 	}
 }
 
-var _tolerations = []kcore.Toleration{
-	{
-		Key:      "workload",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-	{
-		Key:      "nvidia.com/gpu",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-	{
-		Key:      "aws.amazon.com/infa",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-}
-
 var BaseEnvVars = []kcore.EnvFromSource{
 	{
 		ConfigMapRef: &kcore.ConfigMapEnvSource{
@@ -842,7 +833,7 @@ var Tolerations = []kcore.Toleration{
 		Effect:   kcore.TaintEffectNoSchedule,
 	},
 	{
-		Key:      "aws.amazon.com/infa",
+		Key:      "aws.amazon.com/neuron",
 		Operator: kcore.TolerationOpEqual,
 		Value:    "true",
 		Effect:   kcore.TaintEffectNoSchedule,
@@ -893,12 +884,6 @@ func GetEndpointFromVirtualService(virtualService *istioclientnetworking.Virtual
 	}
 
 	return endpoints.GetOne(), nil
-}
-
-func DoCortexAnnotationsMatch(obj1, obj2 kmeta.Object) bool {
-	cortexAnnotations1 := extractCortexAnnotations(obj1)
-	cortexAnnotations2 := extractCortexAnnotations(obj2)
-	return maps.StrMapsEqual(cortexAnnotations1, cortexAnnotations2)
 }
 
 func extractCortexAnnotations(obj kmeta.Object) map[string]string {

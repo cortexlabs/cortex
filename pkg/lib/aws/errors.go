@@ -69,7 +69,7 @@ func IsErrCode(err error, errorCode string) bool {
 }
 
 func ErrorInvalidAWSCredentials(awsErr error) error {
-	awsErrMsg := errors.MessageFirstLine(awsErr)
+	awsErrMsg := errors.Message(awsErr)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAWSCredentials,
 		Message: "invalid AWS credentials\n" + awsErrMsg,

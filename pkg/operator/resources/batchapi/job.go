@@ -18,8 +18,6 @@ package batchapi
 
 import (
 	"fmt"
-	"math"
-	"sync"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -31,17 +29,6 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
-
-var jobIDMutex = sync.Mutex{}
-
-// Job ID creation optimized for listing the most recently created jobs in S3. S3 objects are listed in ascending UTF-8 binary order. This should work until the year 2262.
-func monotonicallyDecreasingJobID() string {
-	jobIDMutex.Lock()
-	defer jobIDMutex.Unlock()
-
-	i := math.MaxInt64 - time.Now().UnixNano()
-	return fmt.Sprintf("%x", i)
-}
 
 func DryRun(submission *schema.JobSubmission) ([]string, error) {
 	err := validateJobSubmission(submission)
@@ -81,14 +68,14 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	apiID := virtualService.GetLabels()["apiID"]
+	apiID := virtualService.Labels["apiID"]
 
 	apiSpec, err := operator.DownloadAPISpec(apiName, apiID)
 	if err != nil {
 		return nil, err
 	}
 
-	jobID := monotonicallyDecreasingJobID()
+	jobID := spec.MonotonicallyDecreasingID()
 
 	jobKey := spec.JobKey{
 		APIName: apiSpec.Name,
@@ -110,6 +97,8 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		RuntimeJobConfig: submission.RuntimeJobConfig,
 		JobKey:           jobKey,
 		APIID:            apiSpec.ID,
+		SpecID:           apiSpec.SpecID,
+		PredictorID:      apiSpec.PredictorID,
 		SQSUrl:           queueURL,
 		StartTime:        time.Now(),
 	}

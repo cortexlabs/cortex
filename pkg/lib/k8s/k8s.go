@@ -43,7 +43,7 @@ import (
 var (
 	_home         = kclienthomedir.HomeDir()
 	_deletePolicy = kmeta.DeletePropagationBackground
-	_deleteOpts   = &kmeta.DeleteOptions{
+	_deleteOpts   = kmeta.DeleteOptions{
 		PropagationPolicy: &_deletePolicy,
 	}
 )

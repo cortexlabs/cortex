@@ -1,6 +1,6 @@
 # Image Classifier with ResNet50
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.18.*, run `git checkout -b 0.18` or switch to the `0.18` branch on GitHub)_
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.19.*, run `git checkout -b 0.19` or switch to the `0.19` branch on GitHub)_
 
 This example implements an image recognition system using ResNet50, which allows for the recognition of up to 1000 classes.
 
@@ -8,7 +8,7 @@ This example implements an image recognition system using ResNet50, which allows
 
 There are 4 Cortex APIs available in this example:
 
-1. [cortex.yaml](cortex.yaml) - to be used with any instances.
+1. [cortex.yaml](cortex.yaml) - can be used with any instances.
 1. [cortex_inf.yaml](cortex_inf.yaml) - to be used with `inf1` instances.
 1. [cortex_gpu.yaml](cortex_gpu.yaml) - to be used with GPU instances.
 1. [cortex_gpu_server_side_batching.yaml](cortex_gpu_server_side_batching.yaml) - to be used with GPU instances. Deployed with `max_batch_size` > 1. The exported model and the TensorFlow Predictor do not need to be modified to support server-side batching.

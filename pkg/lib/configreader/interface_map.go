@@ -30,7 +30,7 @@ type InterfaceMapValidation struct {
 	ConvertNullToEmpty     bool
 	ScalarsOnly            bool
 	StringLeavesOnly       bool
-	StringKeysOnly         bool
+	StringKeysOnly         bool // Useful for ensuring this field is JSON parsable; validates that all maps and nested maps only use string keys
 	AllowedLeafValues      []string
 	AllowCortexResources   bool
 	RequireCortexResources bool
@@ -139,6 +139,8 @@ func validateInterfaceMap(val map[string]interface{}, v *InterfaceMapValidation)
 			if err != nil {
 				return nil, errors.Wrap(err, key)
 			}
+
+			val[key] = stringToIntMap
 		}
 	}
 

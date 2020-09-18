@@ -51,16 +51,30 @@ class PythonPredictor:
 
 class PythonPredictor:
     def __init__(self, config, job_spec):
-        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+        """(Required) Called once during each worker initialization. Performs
+        setup such as downloading/initializing the model or downloading a
+        vocabulary.
 
         Args:
-            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            config (required): Dictionary passed from API configuration (if
+                specified) merged with configuration passed in with Job
+                Submission API. If there are conflicting keys, values in
+                configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the following fields:
+                "job_id": A unique ID for this job
+                "api_name": The name of this batch API
+                "config": The config that was provided in the job submission
+                "workers": The number of workers for this job
+                "total_batch_count": The total number of batches in this job
+                "start_time": The time that this job started
         """
         pass
 
     def predict(self, payload, batch_id):
-        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference, postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
+        """(Required) Called once per batch. Preprocesses the batch payload (if
+        necessary), runs inference, postprocesses the inference output (if
+        necessary), and writes the predictions to storage (i.e. S3 or a
+        database, if desired).
 
         Args:
             payload (required): a batch (i.e. a list of one or more samples).
@@ -71,7 +85,9 @@ class PythonPredictor:
         pass
 
     def on_job_complete(self):
-        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been
+        processed. Performs post job completion tasks such as aggregating
+        results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
@@ -88,33 +104,33 @@ You can find an example of a BatchAPI using a PythonPredictor in [examples/batch
 The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
 
 ```text
-boto3==1.13.7
-cloudpickle==1.4.1
-Cython==0.29.17
-dill==0.3.1.1
-fastapi==0.54.1
-joblib==0.14.1
-Keras==2.3.1
+boto3==1.14.53
+cloudpickle==1.6.0
+Cython==0.29.21
+dill==0.3.2
+fastapi==0.61.1
+joblib==0.16.0
+Keras==2.4.3
 msgpack==1.0.0
 nltk==3.5
 np-utils==0.5.12.1
-numpy==1.18.4
-opencv-python==4.2.0.34
-pandas==1.0.3
-Pillow==7.1.2
+numpy==1.19.1
+opencv-python==4.4.0.42
+pandas==1.1.1
+Pillow==7.2.0
 pyyaml==5.3.1
-requests==2.23.0
-scikit-image==0.17.1
-scikit-learn==0.22.2.post1
-scipy==1.4.1
-six==1.14.0
-statsmodels==0.11.1
-sympy==1.5.1
-tensorflow-hub==0.8.0
-tensorflow==2.1.0
-torch==1.5.0
-torchvision==0.6.0
-xgboost==1.0.2
+requests==2.24.0
+scikit-image==0.17.2
+scikit-learn==0.23.2
+scipy==1.5.2
+six==1.15.0
+statsmodels==0.12.0
+sympy==1.6.2
+tensorflow-hub==0.9.0
+tensorflow==2.3.0
+torch==1.6.0
+torchvision==0.7.0
+xgboost==1.2.0
 ```
 
 #### Inferentia-equipped APIs
@@ -123,30 +139,32 @@ The list is slightly different for inferentia-equipped APIs:
 
 ```text
 boto3==1.13.7
-cloudpickle==1.3.0
-Cython==0.29.17
+cloudpickle==1.6.0
+Cython==0.29.21
 dill==0.3.1.1
 fastapi==0.54.1
-joblib==0.14.1
+joblib==0.16.0
 msgpack==1.0.0
-neuron-cc==1.0.9410.0+6008239556
-nltk==3.4.5
+neuron-cc==1.0.18001.0+0.5312e6a21
+nltk==3.5
 np-utils==0.5.12.1
-numpy==1.16.5
-opencv-python==4.2.0.32
-pandas==1.0.3
-Pillow==6.2.2
+numpy==1.18.2
+opencv-python==4.4.0.42
+pandas==1.1.1
+Pillow==7.2.0
 pyyaml==5.3.1
 requests==2.23.0
-scikit-image==0.16.2
-scikit-learn==0.22.2.post1
+scikit-image==0.17.2
+scikit-learn==0.23.2
 scipy==1.3.2
-six==1.14.0
-statsmodels==0.11.1
-sympy==1.5.1
-tensorflow-neuron==1.15.0.1.0.1333.0
-torch-neuron==1.0.825.0
-torchvision==0.4.2
+six==1.15.0
+statsmodels==0.12.0
+sympy==1.6.2
+tensorflow==1.15.3
+tensorflow-neuron==1.15.3.1.0.1965.0
+torch==1.5.1
+torch-neuron==1.5.1.1.0.1532.0
+torchvision==0.6.1
 ```
 
 <!-- CORTEX_VERSION_MINOR x3 -->
@@ -161,18 +179,34 @@ If your application requires additional dependencies, you can install additional
 ```python
 class TensorFlowPredictor:
     def __init__(self, tensorflow_client, config, job_spec):
-        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+        """(Required) Called once during each worker initialization. Performs
+        setup such as downloading/initializing the model or downloading a
+        vocabulary.
 
         Args:
-            tensorflow_client (required): TensorFlow client which is used to make predictions. This should be saved for use in predict().
-            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            tensorflow_client (required): TensorFlow client which is used to
+                make predictions. This should be saved for use in predict().
+            config (required): Dictionary passed from API configuration (if
+                specified) merged with configuration passed in with Job
+                Submission API. If there are conflicting keys, values in
+                configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the following fields:
+                "job_id": A unique ID for this job
+                "api_name": The name of this batch API
+                "config": The config that was provided in the job submission
+                "workers": The number of workers for this job
+                "total_batch_count": The total number of batches in this job
+                "start_time": The time that this job started
         """
         self.client = tensorflow_client
         # Additional initialization may be done here
 
     def predict(self, payload, batch_id):
-        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
+        """(Required) Called once per batch. Preprocesses the batch payload (if
+        necessary), runs inference (e.g. by calling
+        self.client.predict(model_input)), postprocesses the inference output
+        (if necessary), and writes the predictions to storage (i.e. S3 or a
+        database, if desired).
 
         Args:
             payload (required): a batch (i.e. a list of one or more samples).
@@ -183,7 +217,9 @@ class TensorFlowPredictor:
         pass
 
     def on_job_complete(self):
-        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been
+        processed. Performs post job completion tasks such as aggregating
+        results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
@@ -205,17 +241,17 @@ You can find an example of a BatchAPI using a TensorFlowPredictor in [examples/b
 The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
 
 ```text
-boto3==1.13.7
-dill==0.3.1.1
-fastapi==0.54.1
+boto3==1.14.53
+dill==0.3.2
+fastapi==0.61.1
 msgpack==1.0.0
-numpy==1.18.4
-opencv-python==4.2.0.34
+numpy==1.19.1
+opencv-python==4.4.0.42
 pyyaml==5.3.1
-requests==2.23.0
-tensorflow-hub==0.8.0
-tensorflow-serving-api==2.1.0
-tensorflow==2.1.0
+requests==2.24.0
+tensorflow-hub==0.9.0
+tensorflow-serving-api==2.3.0
+tensorflow==2.3.0
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
@@ -230,18 +266,34 @@ If your application requires additional dependencies, you can install additional
 ```python
 class ONNXPredictor:
     def __init__(self, onnx_client, config, job_spec):
-        """(Required) Called once during each worker initialization. Performs setup such as downloading/initializing the model or downloading a vocabulary.
+        """(Required) Called once during each worker initialization. Performs
+        setup such as downloading/initializing the model or downloading a
+        vocabulary.
 
         Args:
-            onnx_client (required): ONNX client which is used to make predictions. This should be saved for use in predict().
-            config (required): Dictionary passed from API configuration (if specified) merged with configuration passed in with Job Submission API. If there are conflicting keys, values in configuration specified in Job submission takes precedence.
-            job_spec (optional): Dictionary containing the submitted job request and additional information such as the job_id.
+            onnx_client (required): ONNX client which is used to make
+                predictions. This should be saved for use in predict().
+            config (required): Dictionary passed from API configuration (if
+                specified) merged with configuration passed in with Job
+                Submission API. If there are conflicting keys, values in
+                configuration specified in Job submission takes precedence.
+            job_spec (optional): Dictionary containing the following fields:
+                "job_id": A unique ID for this job
+                "api_name": The name of this batch API
+                "config": The config that was provided in the job submission
+                "workers": The number of workers for this job
+                "total_batch_count": The total number of batches in this job
+                "start_time": The time that this job started
         """
         self.client = onnx_client
         # Additional initialization may be done here
 
     def predict(self, payload, batch_id):
-        """(Required) Called once per batch. Preprocesses the batch payload (if necessary), runs inference (e.g. by calling self.client.predict(model_input)), postprocesses the inference output (if necessary), and writes the predictions to storage (i.e. S3 or a database, if desired).
+        """(Required) Called once per batch. Preprocesses the batch payload (if
+        necessary), runs inference (e.g. by calling
+        self.client.predict(model_input)), postprocesses the inference output
+        (if necessary), and writes the predictions to storage (i.e. S3 or a
+        database, if desired).
 
         Args:
             payload (required): a batch (i.e. a list of one or more samples).
@@ -252,7 +304,9 @@ class ONNXPredictor:
         pass
 
     def on_job_complete(self):
-        """(Optional) Called once after all batches in the job have been processed. Performs post job completion tasks such as aggregating results, executing web hooks, or triggering other jobs.
+        """(Optional) Called once after all batches in the job have been
+        processed. Performs post job completion tasks such as aggregating
+        results, executing web hooks, or triggering other jobs.
         """
         pass
 ```
@@ -274,14 +328,14 @@ You can find an example of a BatchAPI using an ONNXPredictor in [examples/batch/
 The following Python packages are pre-installed in ONNX Predictors and can be used in your implementations:
 
 ```text
-boto3==1.13.7
-dill==0.3.1.1
-fastapi==0.54.1
+boto3==1.14.53
+dill==0.3.2
+fastapi==0.61.1
 msgpack==1.0.0
-numpy==1.18.4
-onnxruntime==1.2.0
+numpy==1.19.1
+onnxruntime==1.4.0
 pyyaml==5.3.1
-requests==2.23.0
+requests==2.24.0
 ```
 
 <!-- CORTEX_VERSION_MINOR x2 -->

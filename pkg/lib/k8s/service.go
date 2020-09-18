@@ -17,6 +17,8 @@ limitations under the License.
 package k8s
 
 import (
+	"context"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -66,7 +68,7 @@ func Service(spec *ServiceSpec) *kcore.Service {
 
 func (c *Client) CreateService(service *kcore.Service) (*kcore.Service, error) {
 	service.TypeMeta = _serviceTypeMeta
-	service, err := c.serviceClient.Create(service)
+	service, err := c.serviceClient.Create(context.Background(), service, kmeta.CreateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -78,7 +80,7 @@ func (c *Client) UpdateService(existing, updated *kcore.Service) (*kcore.Service
 	updated.Spec.ClusterIP = existing.Spec.ClusterIP
 	updated.ResourceVersion = existing.ResourceVersion
 
-	service, err := c.serviceClient.Update(updated)
+	service, err := c.serviceClient.Update(context.Background(), updated, kmeta.UpdateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -97,7 +99,7 @@ func (c *Client) ApplyService(service *kcore.Service) (*kcore.Service, error) {
 }
 
 func (c *Client) GetService(name string) (*kcore.Service, error) {
-	service, err := c.serviceClient.Get(name, kmeta.GetOptions{})
+	service, err := c.serviceClient.Get(context.Background(), name, kmeta.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -109,7 +111,7 @@ func (c *Client) GetService(name string) (*kcore.Service, error) {
 }
 
 func (c *Client) DeleteService(name string) (bool, error) {
-	err := c.serviceClient.Delete(name, _deleteOpts)
+	err := c.serviceClient.Delete(context.Background(), name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -123,7 +125,7 @@ func (c *Client) ListServices(opts *kmeta.ListOptions) ([]kcore.Service, error) 
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
-	serviceList, err := c.serviceClient.List(*opts)
+	serviceList, err := c.serviceClient.List(context.Background(), *opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

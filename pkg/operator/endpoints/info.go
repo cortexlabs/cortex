@@ -111,20 +111,23 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 			node.NumReplicas++
 		}
 
-		cpu, mem, gpu := k8s.TotalPodCompute(&pod.Spec)
+		cpu, mem, gpu, inf := k8s.TotalPodCompute(&pod.Spec)
 
 		node.ComputeAvailable.CPU.SubQty(cpu)
 		node.ComputeAvailable.Mem.SubQty(mem)
 		node.ComputeAvailable.GPU -= gpu
+		node.ComputeAvailable.Inf -= inf
 
 		if isAPIPod {
 			node.ComputeUserRequested.CPU.AddQty(cpu)
 			node.ComputeUserRequested.Mem.AddQty(mem)
 			node.ComputeUserRequested.GPU += gpu
+			node.ComputeUserRequested.Inf += inf
 		} else {
 			node.ComputeUserCapacity.CPU.SubQty(cpu)
 			node.ComputeUserCapacity.Mem.SubQty(mem)
 			node.ComputeUserCapacity.GPU -= gpu
+			node.ComputeUserCapacity.Inf -= inf
 		}
 	}
 
@@ -145,10 +148,12 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 
 func nodeComputeAllocatable(node *kcore.Node) userconfig.Compute {
 	gpuQty := node.Status.Allocatable["nvidia.com/gpu"]
+	infQty := node.Status.Allocatable["aws.amazon.com/neuron"]
 
 	return userconfig.Compute{
 		CPU: k8s.WrapQuantity(*node.Status.Allocatable.Cpu()),
 		Mem: k8s.WrapQuantity(*node.Status.Allocatable.Memory()),
 		GPU: (&gpuQty).Value(),
+		Inf: (&infQty).Value(),
 	}
 }

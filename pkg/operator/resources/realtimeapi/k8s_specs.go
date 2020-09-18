@@ -54,7 +54,9 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 			"apiName":      api.Name,
 			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
+			"specID":       api.SpecID,
 			"deploymentID": api.DeploymentID,
+			"predictorID":  api.PredictorID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -65,8 +67,8 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 			Labels: map[string]string{
 				"apiName":      api.Name,
 				"apiKind":      api.Kind.String(),
-				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
+				"predictorID":  api.PredictorID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -101,7 +103,9 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			"apiName":      api.Name,
 			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
+			"specID":       api.SpecID,
 			"deploymentID": api.DeploymentID,
+			"predictorID":  api.PredictorID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -112,8 +116,8 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			Labels: map[string]string{
 				"apiName":      api.Name,
 				"apiKind":      api.Kind.String(),
-				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
+				"predictorID":  api.PredictorID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -148,7 +152,9 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 			"apiName":      api.Name,
 			"apiKind":      api.Kind.String(),
 			"apiID":        api.ID,
+			"specID":       api.SpecID,
 			"deploymentID": api.DeploymentID,
+			"predictorID":  api.PredictorID,
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -159,8 +165,8 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 			Labels: map[string]string{
 				"apiName":      api.Name,
 				"apiKind":      api.Kind.String(),
-				"apiID":        api.ID,
 				"deploymentID": api.DeploymentID,
+				"predictorID":  api.PredictorID,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -211,8 +217,12 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Rewrite:     pointer.String("predict"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiKind": api.Kind.String(),
+			"apiName":      api.Name,
+			"apiKind":      api.Kind.String(),
+			"apiID":        api.ID,
+			"specID":       api.SpecID,
+			"deploymentID": api.DeploymentID,
+			"predictorID":  api.PredictorID,
 		},
 	})
 }

@@ -31,15 +31,15 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
 )
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
 	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "")
+	api := spec.GetAPISpec(apiConfig, "", "")
 	if prevVirtualService == nil {
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
@@ -54,8 +54,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
-	if !areAPIsEqual(prevVirtualService, virtualServiceSpec(api)) {
-		if err := config.AWS.UploadMsgpackToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+	if prevVirtualService.Labels["specID"] != api.SpecID {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
@@ -188,12 +188,4 @@ func deleteK8sResources(apiName string) error {
 func deleteS3Resources(apiName string) error {
 	prefix := filepath.Join("apis", apiName)
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-}
-
-func areAPIsEqual(vs1, vs2 *istioclientnetworking.VirtualService) bool {
-	return vs1.Labels["apiName"] == vs2.Labels["apiName"] &&
-		vs1.Labels["apiKind"] == vs2.Labels["apiKind"] &&
-		vs1.Labels["apiID"] == vs2.Labels["apiID"] &&
-		k8s.VirtualServicesMatch(vs1.Spec, vs2.Spec) &&
-		operator.DoCortexAnnotationsMatch(vs1, vs2)
 }

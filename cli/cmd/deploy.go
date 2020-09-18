@@ -44,9 +44,8 @@ var (
 	_warningProjectBytes = 1024 * 1024 * 10
 	_warningFileCount    = 1000
 
-	_maxFileSizeBytes      int64   = 1024 * 1024 * 512
-	_maxProjectSizeBytes   int64   = 1024 * 1024 * 512
-	_maxMemoryUsagePercent float64 = 0.9
+	_maxFileSizeBytes    int64 = 1024 * 1024 * 512
+	_maxProjectSizeBytes int64 = 1024 * 1024 * 512
 
 	_flagDeployEnv            string
 	_flagDeployForce          bool
@@ -158,7 +157,7 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 			ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 		}
 		ignoreFns = append(ignoreFns,
-			files.ErrorOnBigFilesFn(_maxFileSizeBytes, _maxMemoryUsagePercent),
+			files.ErrorOnBigFilesFn(_maxFileSizeBytes),
 			// must be the last appended IgnoreFn
 			files.ErrorOnProjectSizeLimit(_maxProjectSizeBytes),
 		)

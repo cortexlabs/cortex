@@ -1,6 +1,6 @@
 # YOLOv5 Detection model
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.18.*, run `git checkout -b 0.18` or switch to the `0.18` branch on GitHub)_
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.19.*, run `git checkout -b 0.19` or switch to the `0.19` branch on GitHub)_
 
 This example deploys a detection model trained using [ultralytics' yolo repo](https://github.com/ultralytics/yolov5) using ONNX.
 We'll use the `yolov5s` model as an example here.
@@ -24,7 +24,7 @@ Once the API has been successfully deployed, export the API's endpoint for conve
 export ENDPOINT=your-api-endpoint
 ```
 
-When making a prediction with [sample.json](sample.json), [this](https://www.youtube.com/watch?v=aUdKzb4LGJ) youtube video will be used.
+When making a prediction with [sample.json](sample.json), [this](https://www.youtube.com/watch?v=aUdKzb4LGJI) youtube video will be used.
 
 To make a request to the model:
 
