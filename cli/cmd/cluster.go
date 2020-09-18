@@ -239,6 +239,27 @@ var _upCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
+		loadBalancer, err := awsClient.LoadBalancer(map[string]string{
+			clusterconfig.ClusterNameTag: clusterConfig.ClusterName,
+			"cortex.dev/load-balancer":   "operator",
+		})
+		if err != nil || loadBalancer == nil {
+			exit.Error(ErrorNoOperatorLoadBalancer(_flagClusterEnv, err))
+		}
+
+		newEnvironment := cliconfig.Environment{
+			Name:               _flagClusterEnv,
+			Provider:           types.AWSProviderType,
+			OperatorEndpoint:   pointer.String("https://" + *loadBalancer.DNSName),
+			AWSAccessKeyID:     pointer.String(awsCreds.CortexAWSAccessKeyID),
+			AWSSecretAccessKey: pointer.String(awsCreds.CortexAWSSecretAccessKey),
+		}
+
+		err = addEnvToCLIConfig(newEnvironment)
+		if err != nil {
+			exit.Error(errors.Append(err, fmt.Sprintf("unable to configure cli environment; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
+		}
+
 		fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured for this cluster; append `--env %s` to cortex commands to connect to it (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterEnv, _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
 	},
 }
@@ -376,6 +397,12 @@ var _downCmd = &cobra.Command{
 			}
 		}
 
+		// updating CLI env is best-effort, so ignore errors
+		loadBalancer, _ := awsClient.LoadBalancer(map[string]string{
+			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
+			"cortex.dev/load-balancer":   "operator",
+		})
+
 		if !_flagClusterDisallowPrompt {
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
@@ -430,6 +457,20 @@ var _downCmd = &cobra.Command{
 			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
+		}
+
+		// best-effort deletion of cli environment(s)
+		if loadBalancer != nil {
+			envNames, includesDefault, _ := getEnvsByOperatorEndpoint(*loadBalancer.DNSName)
+			if len(envNames) > 0 {
+				for _, envName := range envNames {
+					removeEnvFromCLIConfig(envName)
+				}
+				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
+				if includesDefault {
+					fmt.Println("✓ set the default environment to local")
+				}
+			}
 		}
 
 		cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)

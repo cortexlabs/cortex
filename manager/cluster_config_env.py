@@ -15,13 +15,16 @@
 import sys
 import yaml
 import json
+from copy import deepcopy
 
 
 def export(base_key, value):
-    if base_key.lower().startswith("cortex_tags"):
-        inlined_tags = ",".join([f"{k}={v}" for k, v in value.items()])
-        print(f"export CORTEX_TAGS={inlined_tags}")
-        print(f"export CORTEX_TAGS_JSON='{json.dumps(value)}'")
+    if base_key.lower() == "cortex_tags":
+        exportTags(value, "CORTEX_TAGS")
+        exportTags(
+            value, "CORTEX_OPERATOR_LOAD_BALANCER_TAGS", {"cortex.dev/load-balancer": "operator"}
+        )
+        exportTags(value, "CORTEX_APIS_LOAD_BALANCER_TAGS", {"cortex.dev/load-balancer": "apis"})
         return
 
     if value is None:
@@ -37,6 +40,15 @@ def export(base_key, value):
             export(base_key + "_" + key, child)
     else:
         print('export {}="{}"'.format(base_key.upper(), value))
+
+
+def exportTags(tags, envVarName, tag_overrides={}):
+    tags = deepcopy(tags)
+    for k, v in tag_overrides.items():
+        tags[k] = v
+    inlined_tags = ",".join([f"{k}={v}" for k, v in tags.items()])
+    print(f"export {envVarName}={inlined_tags}")
+    print(f"export {envVarName}_JSON='{json.dumps(tags)}'")
 
 
 for config_path in sys.argv[1:]:

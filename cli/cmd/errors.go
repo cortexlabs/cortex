@@ -49,6 +49,7 @@ const (
 	ErrOperatorConfigFromLocalEnvironment   = "cli.operater_config_from_local_environment"
 	ErrFieldNotFoundInEnvironment           = "cli.field_not_found_in_environment"
 	ErrInvalidOperatorEndpoint              = "cli.invalid_operator_endpoint"
+	ErrNoOperatorLoadBalancer               = "cli.no_operator_load_balancer"
 	ErrCortexYAMLNotFound                   = "cli.cortex_yaml_not_found"
 	ErrConnectToDockerDaemon                = "cli.connect_to_docker_daemon"
 	ErrDockerPermissions                    = "cli.docker_permissions"
@@ -127,6 +128,20 @@ func ErrorInvalidOperatorEndpoint(endpoint string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidOperatorEndpoint,
 		Message: fmt.Sprintf("%s is not a cortex operator endpoint; run `cortex cluster info` to show your operator endpoint or run `cortex cluster up` to spin up a new cluster", endpoint),
+	})
+}
+
+// err can be passed in as nil
+func ErrorNoOperatorLoadBalancer(envName string, err error) error {
+	errMsg := fmt.Sprintf("unable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", envName)
+
+	if err != nil {
+		return errors.Append(err, "\n\n"+errMsg)
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoOperatorLoadBalancer,
+		Message: errMsg,
 	})
 }
 

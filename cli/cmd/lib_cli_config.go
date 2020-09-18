@@ -890,6 +890,28 @@ func removeEnvFromCLIConfig(envName string) error {
 	return nil
 }
 
+// returns the list of environment names, and whether any of them were the default
+func getEnvsByOperatorEndpoint(operatorEndpoint string) ([]string, bool, error) {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return nil, false, err
+	}
+
+	var envNames []string
+	includesDefault := false
+
+	for _, env := range cliConfig.Environments {
+		if env.OperatorEndpoint != nil && s.StrAfter(*env.OperatorEndpoint, "//") == s.StrAfter(operatorEndpoint, "//") {
+			envNames = append(envNames, env.Name)
+			if env.Name == cliConfig.DefaultEnvironment {
+				includesDefault = true
+			}
+		}
+	}
+
+	return envNames, includesDefault, nil
+}
+
 func readCLIConfig() (cliconfig.CLIConfig, error) {
 	if _cachedCLIConfig != nil {
 		return *_cachedCLIConfig, nil
