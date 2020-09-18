@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -43,7 +42,6 @@ func errStrFailedToConnect(u url.URL) string {
 
 const (
 	ErrInvalidProvider                      = "cli.invalid_provider"
-	ErrEnvironmentFlagRequired              = "cli.environment_flag_required"
 	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
 	ErrCommandNotSupportedForKind           = "cli.command_not_supported_for_kind"
 	ErrEnvironmentNotFound                  = "cli.environment_not_found"
@@ -78,13 +76,6 @@ func ErrorInvalidProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidProvider,
 		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(types.ProviderTypeStrings())),
-	})
-}
-
-func ErrorEnvironmentFlagRequired(outputType flags.OutputType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrEnvironmentFlagRequired,
-		Message: fmt.Sprintf("'--output %s' is only supported when the environment flag is provided (e.g. cortex get --env <env_name>)", outputType.String()),
 	})
 }
 

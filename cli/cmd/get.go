@@ -175,11 +175,12 @@ func getAPIsInAllEnvironments() (string, error) {
 	var allTrafficSplitterEnvs []string
 
 	type getAPIsOutput struct {
-		APIs  schema.GetAPIsResponse
-		Error string
+		EnvName  string                 `json:"env_name"`
+		Response schema.GetAPIsResponse `json:"response"`
+		Error    string                 `json:"error"`
 	}
 
-	allAPIsOutput := map[string]getAPIsOutput{}
+	allAPIsOutput := []getAPIsOutput{}
 
 	errorsMap := map[string]error{}
 	// get apis from both environments
@@ -193,7 +194,8 @@ func getAPIsInAllEnvironments() (string, error) {
 		}
 
 		apisOutput := getAPIsOutput{
-			APIs: apisRes,
+			EnvName:  env.Name,
+			Response: apisRes,
 		}
 
 		if err == nil {
@@ -214,15 +216,13 @@ func getAPIsInAllEnvironments() (string, error) {
 			errorsMap[env.Name] = err
 		}
 
-		allAPIsOutput[env.Name] = apisOutput
+		allAPIsOutput = append(allAPIsOutput, apisOutput)
 	}
 
 	if _flagOutput == flags.JSONOutputType {
 		bytes, err := libjson.Marshal(allAPIsOutput)
 		if err != nil {
-			if err != nil {
-				return "", err
-			}
+			return "", err
 		}
 
 		return string(bytes), nil
