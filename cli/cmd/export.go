@@ -20,14 +20,10 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -55,14 +51,13 @@ var _exportCmd = &cobra.Command{
 		}
 		telemetry.Event("cli.export", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagLogsEnv, cmd)
+		err = printEnvIfNotSpecified(_flagExportEnv, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		if env.Provider == types.LocalProviderType {
-			print.BoldFirstLine("`cortex export` is not supported in the local environment")
-			return
+			exit.Error(ErrorNotSupportedInLocalEnvironment())
 		}
 
 		info, err := cluster.Info(MustGetOperatorConfig(env.Name))
@@ -72,11 +67,6 @@ var _exportCmd = &cobra.Command{
 
 		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), args[0])
 		if err != nil {
-			// note: if modifying this string, search the codebase for it and change all occurrences
-			if strings.HasSuffix(errors.Message(err), "is not deployed") {
-				fmt.Println(console.Bold(errors.Message(err)))
-				return
-			}
 			exit.Error(err)
 		}
 
