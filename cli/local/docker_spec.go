@@ -134,7 +134,6 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 			resources.Memory = api.Compute.Mem.Quantity.Value()
 		}
 		if api.Compute.GPU > 0 {
-			// runtime = "nvidia"
 			resources.DeviceRequests = []container.DeviceRequest{{
 				Count: -1,
 				Capabilities: [][]string{
