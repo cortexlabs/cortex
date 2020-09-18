@@ -26,9 +26,10 @@ Usage:
   cortex get [API_NAME] [JOB_ID] [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -w, --watch        re-run the command every 2 seconds
-  -h, --help         help for get
+  -e, --env string      environment to use (default "local")
+  -w, --watch           re-run the command every 2 seconds
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for get
 ```
 
 ## logs
