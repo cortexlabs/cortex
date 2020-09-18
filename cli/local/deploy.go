@@ -85,7 +85,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		if err != nil {
 			results[i].Error = errors.Message(err)
 		} else {
-			results[i].API = *api
+			results[i].API = api
 		}
 	}
 
