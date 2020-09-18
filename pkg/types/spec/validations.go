@@ -649,7 +649,7 @@ func ExtractAPIConfigs(
 
 		rawYAMLBytes, err := yaml.Marshal([]map[string]interface{}{data})
 		if err != nil {
-			return nil, errors.Wrap(err, api.Identify(), "unable to marshal to yaml")
+			return nil, errors.Wrap(err, api.Identify())
 		}
 		api.RawYAMLBytes = rawYAMLBytes
 
