@@ -21,10 +21,8 @@ import (
 	"math"
 	"net"
 	"path/filepath"
-	"runtime"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -117,7 +115,6 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 		return err
 	}
 
-	apisRequiringGPU := strset.New()
 	for i := range apis {
 		api := &apis[i]
 
@@ -127,37 +124,6 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 
 		if api.Compute.CPU != nil && (api.Compute.CPU.MilliValue() > int64(dockerClient.Info.NCPU)*1000) {
 			api.Compute.CPU = k8s.NewQuantity(int64(dockerClient.Info.NCPU))
-		}
-
-		if api.Compute.GPU > 0 {
-			apisRequiringGPU.Add(api.Name)
-		}
-	}
-
-	if len(apisRequiringGPU) > 0 {
-		if _, ok := dockerClient.Info.Runtimes["nvidia"]; !ok {
-			if !strings.HasPrefix(strings.ToLower(runtime.GOOS), "linux") {
-				fmt.Printf("warning: %s will run without gpu access because the nvidia container runtime is not supported on your operating system; see https://docs.cortex.dev/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.SliceSorted()))
-			} else {
-				fmt.Printf("warning: %s will run without gpu access because your local machine doesn't have a gpu or the nvidia container runtime is not configured properly; see https://docs.cortex.dev/troubleshooting/nvidia-container-runtime-not-found for more information\n\n", s.StrsAnd(apisRequiringGPU.SliceSorted()))
-			}
-
-			for i := range apis {
-				api := &apis[i]
-				if apisRequiringGPU.Has(api.Name) {
-					api.Compute.GPU = 0
-				}
-				switch api.Predictor.Image {
-				case consts.DefaultImageONNXPredictorGPU:
-					api.Predictor.Image = consts.DefaultImageONNXPredictorCPU
-				case consts.DefaultImagePythonPredictorGPU:
-					api.Predictor.Image = consts.DefaultImagePythonPredictorCPU
-				}
-
-				if api.Predictor.Type == userconfig.TensorFlowPredictorType && api.Predictor.TensorFlowServingImage == consts.DefaultImageTensorFlowServingGPU {
-					api.Predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
-				}
-			}
 		}
 	}
 
