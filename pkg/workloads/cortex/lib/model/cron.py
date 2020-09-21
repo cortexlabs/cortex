@@ -315,25 +315,32 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
-        for idx, model_name, bucket_name, bucket_subpaths in enumerate(
+        for idx, (model_name, bucket_name, bucket_subpaths) in enumerate(
             zip(model_names, bucket_names, sub_paths)
         ):
-            self._refresh_model(
-                idx,
-                model_name,
-                versions,
-                timestamps[idx],
-                model_paths,
-                bucket_subpaths,
-                bucket_name,
-            )
+            if idx == 2:
+                self._refresh_model(
+                    idx,
+                    model_name,
+                    model_paths[idx],
+                    versions[model_name],
+                    timestamps[idx],
+                    bucket_subpaths,
+                    bucket_name,
+                )
+                break
+        return
 
         # remove models that no longer appear in model_names
-        for models, versions in find_ondisk_models_with_lock(self._lock_dir, include_versions=True):
+        for models, versions in zip(
+            *find_ondisk_models_with_lock(self._lock_dir, include_versions=True)
+        ):
             for model_name in models:
                 if model_name not in model_names:
                     for ondisk_version in versions:
-                        resource = model_name + "-" + ondisk_version + ".txt"
+                        resource = os.path.join(
+                            self._lock_dir, model_name + "-" + ondisk_version + ".txt"
+                        )
                         ondisk_model_version_path = os.path.join(
                             self._models_dir, model_name, ondisk_version
                         )
@@ -346,43 +353,52 @@ class FileBasedModelsTreeUpdater(mp.Process):
         self,
         idx: int,
         model_name: str,
-        versions: dict,
+        model_path: str,
+        versions: List[str],
         timestamps: List[datetime.datetime],
-        model_paths: List[str],
         sub_paths: List[str],
         bucket_name: str,
     ) -> None:
         s3_client = S3(bucket_name, client_config={})
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
-        for version, model_ts in zip(versions[model_name], timestamps):
+        for version, model_ts in zip(versions, timestamps):
 
             # check if a model update is mandated
             update_model = False
             ondisk_model_version_path = os.path.join(ondisk_model_path, version)
             if os.path.exists(ondisk_model_version_path):
-                ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = [
+                    os.path.relpath(local_path, ondisk_model_version_path)
+                    for local_path in local_paths
+                ]
+                local_paths = [path for path in local_paths if not path.startswith("../")]
+                local_paths = util.remove_non_empty_directory_paths(local_paths)
 
-                s3_model_version_path = os.path.join(model_paths[idx], version)
+                s3_model_version_path = os.path.join(model_path, version)
                 s3_paths = [
                     os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
                 ]
                 s3_paths = [path for path in s3_paths if not path.startswith("../")]
                 s3_paths = util.remove_non_empty_directory_paths(s3_paths)
 
-                if set(ondisk_paths) != set(s3_paths):
+                if set(local_paths) != set(s3_paths):
                     update_model = True
+
+                # TODO check the model timestamps too
             else:
                 update_model = True
 
             if update_model:
                 # download to a temp directory
                 temp_dest = os.path.join(self._temp_dir, model_name, version)
-                s3_src = os.path.join(model_paths[idx], version)
+                s3_src = os.path.join(model_path, version)
                 s3_client.download_dir_contents(s3_src, temp_dest)
 
                 # validate the downloaded model
                 model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+                model_contents = util.remove_non_empty_directory_paths(model_contents)
                 try:
                     validate_model_paths(model_contents, self._predictor_type, temp_dest)
                     passed_validation = True
@@ -392,40 +408,51 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
                 # move the model to its destination directory
                 if passed_validation:
-                    resource = model_name + "-" + version + ".txt"
+                    resource = os.path.join(self._lock_dir, model_name + "-" + version + ".txt")
                     with LockedFile(resource, "w+") as f:
-                        ondisk_model_version = os.path.join(model_paths[idx], version)
-                        if os.path.exists(ondisk_model_version):
-                            shutil.rmtree(ondisk_model_version)
-                        shutil.move(temp_dest, ondisk_model_version)
+                        if os.path.exists(ondisk_model_version_path):
+                            shutil.rmtree(ondisk_model_version_path)
+                        shutil.move(temp_dest, ondisk_model_version_path)
                         f.write("available " + str(model_ts.timestamp()))
+
+        # remove the temp model directory if it exists
+        model_temp_dest = os.path.join(self._temp_dir, model_name)
+        if os.path.exists(model_temp_dest):
+            os.rmdir(model_temp_dest)
 
         # remove model versions if they are not found on the upstream
         # except when the model version found on disk is 1 and the number of detected versions on the upstream is 0,
         # thus indicating the 1-version on-disk model must be a model that came without a version
         if os.path.exists(ondisk_model_path):
             ondisk_model_versions = glob.glob(ondisk_model_path + "*/**")
+            ondisk_model_versions = [
+                os.path.relpath(path, ondisk_model_path) for path in ondisk_model_versions
+            ]
             for ondisk_version in ondisk_model_versions:
-                if ondisk_version not in versions[model_name] and (
-                    ondisk_version != "1" or len(versions[model_name]) > 0
-                ):
-                    resource = model_name + "-" + ondisk_version + ".txt"
+                if ondisk_version not in versions and (ondisk_version != "1" or len(versions) > 0):
+                    resource = os.path.join(
+                        self._lock_dir, model_name + "-" + ondisk_version + ".txt"
+                    )
                     ondisk_model_version_path = os.path.join(ondisk_model_path, ondisk_version)
                     with LockedFile(resource, "w+") as f:
+                        print("stergem")
                         shutil.rmtree(ondisk_model_version_path)
                         f.write("not available")
 
+            # remove the model directory if there are no models left
             if len(glob.glob(ondisk_model_path + "*/**")) == 0:
                 shutil.rmtree(ondisk_model_path)
 
         # if it's a non-versioned model ModelVersion.NOT_PROVIDED
-        if len(versions[model_name]) == 0:
+        if len(versions) == 0 and len(sub_paths) > 0:
+
             # download to a temp directory
             temp_dest = os.path.join(self._temp_dir, model_name)
-            s3_client.download_dir_contents(model_paths[idx], temp_dest)
+            s3_client.download_dir_contents(model_path, temp_dest)
 
             # validate the downloaded model
             model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+            model_contents = util.remove_non_empty_directory_paths(model_contents)
             try:
                 validate_model_paths(model_contents, self._predictor_type, temp_dest)
                 passed_validation = True
@@ -435,9 +462,9 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
             # move the model to its destination directory
             if passed_validation:
-                resource = model_name + "-" + "1" + ".txt"
+                resource = os.path.join(self._lock_dir, model_name + "-" + "1" + ".txt")
                 with LockedFile(resource, "w+") as f:
-                    ondisk_model_version = os.path.join(model_paths[idx], "1")
+                    ondisk_model_version = os.path.join(ondisk_model_path, "1")
                     if os.path.exists(ondisk_model_version):
                         shutil.rmtree(ondisk_model_version)
                     shutil.move(temp_dest, ondisk_model_version)
@@ -641,7 +668,7 @@ class TFSModelLoader(mp.Process):
 
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
-        for idx, model_name, bucket_name, bucket_sub_paths in enumerate(
+        for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
             zip(model_names, bucket_names, sub_paths)
         ):
             self._refresh_model(
