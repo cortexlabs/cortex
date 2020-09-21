@@ -83,7 +83,7 @@ func MaskString(str string, numPlain int) string {
 }
 
 // Returns the portion str after the last occurrance of chars, or the entire str if chars are not found
-func StrAfter(str string, chars string) string {
+func LastSplit(str string, chars string) string {
 	split := strings.Split(str, chars)
 	return split[len(split)-1]
 }

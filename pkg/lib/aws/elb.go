@@ -22,13 +22,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-// returns the the first load balancer which has all of the specified tags, or nil if not found
+// returns the the first load balancer which has all of the specified tags, or nil if no load balancers match
 func (c *Client) LoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, error) {
 	var loadBalancer *elbv2.LoadBalancer
 	var fnErr error
 
 	params := elbv2.DescribeLoadBalancersInput{
-		PageSize: aws.Int64(20),
+		PageSize: aws.Int64(20), // 20 is the limit for DescribeTags()
 	}
 	err := c.ELBV2().DescribeLoadBalancersPages(&params,
 		func(page *elbv2.DescribeLoadBalancersOutput, lastPage bool) bool {
@@ -51,9 +51,9 @@ func (c *Client) LoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, erro
 
 			for _, tagDescription := range tagsOutput.TagDescriptions {
 				lbTags := make(map[string]string, len(tagDescription.Tags))
-				for _, asgTag := range tagDescription.Tags {
-					if asgTag.Key != nil && asgTag.Value != nil {
-						lbTags[*asgTag.Key] = *asgTag.Value
+				for _, lbTag := range tagDescription.Tags {
+					if lbTag.Key != nil && lbTag.Value != nil {
+						lbTags[*lbTag.Key] = *lbTag.Value
 					}
 				}
 
@@ -74,12 +74,11 @@ func (c *Client) LoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, erro
 			return true
 		})
 
-	if fnErr != nil {
-		return nil, fnErr
-	}
-
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+	if fnErr != nil {
+		return nil, fnErr
 	}
 
 	return loadBalancer, nil

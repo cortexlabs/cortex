@@ -247,7 +247,7 @@ func StreamDockerLogsFn(containerID string, dockerClient *Client) func() error {
 	}
 }
 
-// The provided input will be extracted into the containerPath directory in the container
+// The provided input will be extracted into the container's containerPath directory
 func CopyToContainer(containerID string, input *archive.Input, containerPath string) error {
 	if !strings.HasPrefix(containerPath, "/") {
 		return errors.ErrorUnexpected("containerPath must start with /")
@@ -258,7 +258,7 @@ func CopyToContainer(containerID string, input *archive.Input, containerPath str
 		return err
 	}
 
-	// this is necessary to ensure that missing directories are created in the container
+	// this is necessary to ensure that missing parent directories are created in the container
 	input.AddPrefix = filepath.Join(containerPath, input.AddPrefix)
 
 	buf := new(bytes.Buffer)
@@ -267,10 +267,9 @@ func CopyToContainer(containerID string, input *archive.Input, containerPath str
 		return err
 	}
 
-	opts := dockertypes.CopyToContainerOptions{
+	err = dockerClient.CopyToContainer(context.Background(), containerID, "/", buf, dockertypes.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: true,
-	}
-	err = dockerClient.CopyToContainer(context.Background(), containerID, "/", buf, opts)
+	})
 	if err != nil {
 		return WrapDockerError(err)
 	}
@@ -278,7 +277,7 @@ func CopyToContainer(containerID string, input *archive.Input, containerPath str
 	return nil
 }
 
-// The file/dir name of containerPath will be preserved in localDir
+// The file or directory name of containerPath will be preserved in localDir
 // For example, if the container has /aaa/zzz.txt,
 //   - CopyFromContainer(_, "/aaa", "~/test") will create "~/test/aaa/zzz.txt"
 //   - CopyFromContainer(_, "/aaa/zzz.txt", "~/test") will create "~/test/zzz.txt"

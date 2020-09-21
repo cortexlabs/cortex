@@ -461,13 +461,13 @@ var _downCmd = &cobra.Command{
 
 		// best-effort deletion of cli environment(s)
 		if loadBalancer != nil {
-			envNames, includesDefault, _ := getEnvsByOperatorEndpoint(*loadBalancer.DNSName)
+			envNames, isDefaultEnv, _ := getEnvsByOperatorEndpoint(*loadBalancer.DNSName)
 			if len(envNames) > 0 {
 				for _, envName := range envNames {
 					removeEnvFromCLIConfig(envName)
 				}
 				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
-				if includesDefault {
+				if isDefaultEnv {
 					fmt.Println("✓ set the default environment to local")
 				}
 			}

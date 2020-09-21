@@ -898,18 +898,18 @@ func getEnvsByOperatorEndpoint(operatorEndpoint string) ([]string, bool, error) 
 	}
 
 	var envNames []string
-	includesDefault := false
+	isDefaultEnv := false
 
 	for _, env := range cliConfig.Environments {
-		if env.OperatorEndpoint != nil && s.StrAfter(*env.OperatorEndpoint, "//") == s.StrAfter(operatorEndpoint, "//") {
+		if env.OperatorEndpoint != nil && s.LastSplit(*env.OperatorEndpoint, "//") == s.LastSplit(operatorEndpoint, "//") {
 			envNames = append(envNames, env.Name)
 			if env.Name == cliConfig.DefaultEnvironment {
-				includesDefault = true
+				isDefaultEnv = true
 			}
 		}
 	}
 
-	return envNames, includesDefault, nil
+	return envNames, isDefaultEnv, nil
 }
 
 func readCLIConfig() (cliconfig.CLIConfig, error) {
