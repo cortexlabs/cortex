@@ -156,8 +156,8 @@ AnyPlaceholder = TemplatePlaceholder(
 
 
 class ModelVersion(IntEnum):
-    NOT_PROVIDED = 0  # for models provided without a specific version
-    PROVIDED = 1  # for models provided with version directories (1, 2, 452, etc).
+    NOT_PROVIDED = 1  # for models provided without a specific version
+    PROVIDED = 2  # for models provided with version directories (1, 2, 452, etc).
 
 
 # to be used when predictor:model_path or predictor:models:paths is used
@@ -430,7 +430,7 @@ def _validate_integer_placeholder(
             visited[idx] = key_id
             appearances += 1
 
-    if appearances > 1 and len(placeholders) > 0:
+    if appearances > 1 and len(placeholders) > 1:
         raise CortexException(f"too many {IntegerPlaceholder} appearances in path")
     if appearances == 0:
         raise CortexException(f"{IntegerPlaceholder} not found in path")
