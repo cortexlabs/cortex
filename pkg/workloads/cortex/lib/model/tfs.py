@@ -478,13 +478,13 @@ class TensorFlowServingAPI:
         self.models[model_id]["input_signature"] = input_signature
 
     def _get_model_names(self) -> List[str]:
-        return list(set([model_id.rsplit("-")[0] for model_id in self.models]))
+        return list(set([model_id.rsplit("-", maxsplit=1)[0] for model_id in self.models]))
 
     def _get_model_info(self, model_name: str) -> Tuple[List[str], str]:
         model_disk_path = ""
         versions = []
         for model_id in self.models:
-            _model_name, model_version = model_id.rsplit("-")
+            _model_name, model_version = model_id.rsplit("-", maxsplit=1)
             if _model_name == model_name:
                 versions.append(model_version)
                 if model_disk_path == "":

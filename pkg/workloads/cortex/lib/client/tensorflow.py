@@ -295,7 +295,7 @@ class TensorFlowClient:
 
         models = {}
         for model_id in model_ids:
-            model_name, model_version = model_id.rsplit("-")
+            model_name, model_version = model_id.rsplit("-", maxsplit=1)
             if model_name not in models:
                 models[model_name] = [model_version]
             else:

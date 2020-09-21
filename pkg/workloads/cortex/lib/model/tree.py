@@ -14,9 +14,10 @@
 
 import os
 import time
+import datetime
 import shutil
 import threading as td
-from typing import List, Any, Tuple, Callable, AbstractSet
+from typing import List, Dict, Any, Tuple, Callable, AbstractSet
 
 from cortex.lib.log import cx_logger
 from cortex.lib.concurrency import ReadWriteLock
@@ -72,10 +73,10 @@ class ModelsTree:
     def update_models(
         self,
         model_names: List[str],
-        model_versions: List[List[str]],
+        model_versions: Dict[str, List[str]],
         model_paths: List[str],
         sub_paths: List[List[str]],
-        timestamps: List[List[int]],
+        timestamps: List[List[datetime.datetime]],
         bucket_names: List[str],
     ) -> Tuple[AbstractSet[str], AbstractSet[str]]:
         """
@@ -85,7 +86,7 @@ class ModelsTree:
 
         Args:
             model_names: The unique names of the models as discovered in models:dir or specified in models:paths.
-            model_versions: The detected versions of each model. If the list is empty, then version "1" is assumed.
+            model_versions: The detected versions of each model. If the list is empty, then version "1" should be assumed. The dictionary keys represent the models' names.
             model_paths: S3 model paths to each model.
             sub_paths: A list of filepaths lists for each file of each model.
             timestamps: When was each versioned model updated the last time on the upstream. When no versions are passed, a timestamp is still expected.
@@ -108,7 +109,7 @@ class ModelsTree:
         for idx in range(len(model_names)):
             model_name = model_names[idx]
 
-            if len(model_versions[idx]) == 0:
+            if len(model_versions[model_name]) == 0:
                 model_id = f"{model_name}-1"
                 with LockedModelsTree(self, "w", model_name, "1"):
                     updated = self.update_model(
@@ -124,7 +125,7 @@ class ModelsTree:
                 if updated:
                     updated_model_ids.add(model_id)
 
-            for v_idx, model_version in enumerate(model_versions[idx]):
+            for v_idx, model_version in enumerate(model_versions[model_name]):
                 model_id = f"{model_name}-{model_version}"
                 with LockedModelsTree(self, "w", model_name, model_version):
                     updated = self.update_model(
@@ -144,7 +145,7 @@ class ModelsTree:
         aux_old_model_ids = old_model_ids
 
         for old_model_id in old_model_ids:
-            model_name, model_version = old_model_id.rsplit("-")
+            model_name, model_version = old_model_id.rsplit("-", maxsplit=1)
             with LockedModelsTree(self, "w", model_name, model_version):
                 if old_model_id in self._removable:
                     del self.models[old_model_id]
@@ -160,7 +161,7 @@ class ModelsTree:
         model_version: str,
         model_path: str,
         sub_paths: List[str],
-        timestamp: int,
+        timestamp: datetime.datetime,
         tree_removable: bool,
     ) -> None:
         """
@@ -234,7 +235,7 @@ class ModelsTree:
 
         models = self.models.copy()
         for model_id in models:
-            _model_name, model_version = model_id.rsplit("-")
+            _model_name, model_version = model_id.rsplit("-", maxsplit=1)
             if _model_name == model_name:
                 if "bucket" not in info:
                     info["bucket"] = models[model_id]["bucket"]
@@ -256,7 +257,7 @@ class ModelsTree:
         model_names = set()
         models = self.models.copy()
         for model_id in models:
-            model_name = model_id.rsplit("-")[0]
+            model_name = model_id.rsplit("-", maxsplit=1)[0]
             model_names.add(model_name)
 
         return list(model_names)

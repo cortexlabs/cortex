@@ -36,6 +36,8 @@ from cortex.lib.type import (
     PredictorType,
 )
 
+logger = cx_logger()
+
 from cortex.lib.model import (
     TensorFlowServingAPI,
     validate_models_dir_paths,
@@ -99,6 +101,7 @@ def find_all_s3_models(
 
         bucket_names = len(model_paths) * [bucket_name]
         sub_paths = len(model_paths) * [sub_paths]
+        timestamps = len(model_paths) * [timestamps]
 
     # validate models stored in S3 that were specified with predictor:models:paths field
     if not is_dir_used:
@@ -114,7 +117,7 @@ def find_all_s3_models(
                 s3_client = S3(bucket_name, client_config={})
                 sb, model_path_ts = s3_client.search(model_path)
                 sub_paths += [sb]
-                timestamps += model_path_ts
+                timestamps += [model_path_ts]
                 try:
                     ooa_ids.append(validate_model_paths(sb, predictor_type, model_path))
                     model_paths.append(model_path)
@@ -144,17 +147,19 @@ def find_all_s3_models(
 
     # curate timestamps for each versioned model
     aux_timestamps = []
-    for model_path, model_name, bucket_sub_paths in zip(model_paths, model_names, sub_paths):
+    for model_path, model_name, bucket_sub_paths, sub_path_timestamps in zip(
+        model_paths, model_names, sub_paths, timestamps
+    ):
         model_ts = []
         if len(versions[model_name]) == 0:
             masks = list(map(lambda x: x.startswith(model_path), bucket_sub_paths))
-            model_ts = [max(itertools.compress(timestamps, masks))]
+            model_ts = [max(itertools.compress(sub_path_timestamps, masks))]
 
         for version in versions[model_name]:
             masks = list(
                 map(lambda x: x.startswith(os.path.join(model_path, version)), bucket_sub_paths)
             )
-            model_ts.append(max(itertools.compress(timestamps, masks)))
+            model_ts.append(max(itertools.compress(sub_path_timestamps, masks)))
 
         aux_timestamps.append(model_ts)
 
@@ -212,6 +217,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         if (
             self._api_spec["predictor"]["model_path"] is None
+            and self._api_spec["predictor"]["models"] is not None
             and self._api_spec["predictor"]["models"]["dir"] is not None
         ):
             self._is_dir_used = True
@@ -556,6 +562,7 @@ class TFSModelLoader(mp.Process):
 
         if (
             self._api_spec["predictor"]["model_path"] is None
+            and self._api_spec["predictor"]["models"] is not None
             and self._api_spec["predictor"]["models"]["dir"] is not None
         ):
             self._is_dir_used = True
@@ -861,7 +868,7 @@ class AbstractLoopingThread(td.Thread):
         """
 
         while not self._event_stopper.is_set():
-            self.runnable()
+            self._runnable()
             time.sleep(self._interval)
         self._stopped = True
 
@@ -985,7 +992,7 @@ class ModelsGC(AbstractLoopingThread):
         # remove models that don't exist in the S3 upstream
         ghost_model_ids = list(set(s3_model_ids) - set(present_model_ids))
         for model_id in ghost_model_ids:
-            model_name, model_version = model_id.rsplit("-")
+            model_name, model_version = model_id.rsplit("-", maxsplit=1)
             with LockedModel(self._models, "w", model_name, model_version):
                 self._models.remove_model(model_name, model_version)
 
@@ -1019,6 +1026,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
 
         if (
             self._api_spec["predictor"]["model_path"] is None
+            and self._api_spec["predictor"]["models"] is not None
             and self._api_spec["predictor"]["models"]["dir"] is not None
         ):
             self._is_dir_used = True
@@ -1040,7 +1048,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
         self._make_local_models_available()
 
     def _make_local_models_available(self):
-        timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
+        timestamp_utc = datetime.datetime.now(datetime.timezone.utc)
 
         for model_name in self._spec_models.get_local_model_names():
             model = self._spec_models[model_name]
@@ -1058,7 +1066,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
                     model_version=model_version,
                     model_path=ondisk_model_version_path,
                     sub_paths=ondisk_paths,
-                    timestamp=int(timestamp_utc),
+                    timestamp=timestamp_utc,
                     tree_removable=False,
                 )
 
@@ -1074,7 +1082,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
                     model_version=model_version,
                     model_path=ondisk_model_version_path,
                     sub_paths=ondisk_paths,
-                    timestamp=int(timestamp_utc),
+                    timestamp=timestamp_utc,
                     tree_removable=False,
                 )
 
@@ -1101,7 +1109,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
 
         # update model tree
         self._tree.update_models(
-            models_names, versions, model_paths, sub_paths, timestamps, bucket_names
+            model_names, versions, model_paths, sub_paths, timestamps, bucket_names
         )
 
 

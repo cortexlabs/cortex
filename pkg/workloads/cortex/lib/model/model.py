@@ -248,7 +248,7 @@ class ModelsHolder:
 
         for model_id in models_ids:
 
-            model_name, model_version = model_id.rsplit("-")
+            model_name, model_version = model_id.rsplit("-", maxsplit=1)
             with LockedModel(self, "r", model_name, model_version):
                 if not self.has_model_id(model_id):
                     raise WithBreak
@@ -298,7 +298,7 @@ class ModelsHolder:
         """
         Wrapper for has_model method.
         """
-        model_name, model_version = model_id.rsplit("-")
+        model_name, model_version = model_id.rsplit("-", maxsplit=1)
         return self.has_model(model_name, model_version)
 
     def get_model(
@@ -583,7 +583,7 @@ class LockedModel:
         self._models = models
         self._mode = mode
         if model_id != "":
-            self._model_name, self._model_version = model_id.rsplit("-")
+            self._model_name, self._model_version = model_id.rsplit("-", maxsplit=1)
         else:
             self._model_name = model_name
             self._model_version = model_version
