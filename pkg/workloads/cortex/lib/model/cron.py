@@ -98,6 +98,9 @@ def find_all_s3_models(
         model_paths = [
             model_path for model_path in model_paths if os.path.basename(model_path) in model_names
         ]
+        model_paths = [
+            model_path + "/" * (not model_path.endswith("/")) for model_path in model_paths
+        ]
 
         bucket_names = len(model_paths) * [bucket_name]
         sub_paths = len(model_paths) * [sub_paths]

@@ -132,7 +132,7 @@ class ModelsTree:
                         bucket_names[idx],
                         model_name,
                         model_version,
-                        os.path.join(model_paths[idx], model_version),
+                        os.path.join(model_paths[idx], model_version) + "/",
                         sub_paths[idx],
                         timestamps[idx][v_idx],
                         True,
