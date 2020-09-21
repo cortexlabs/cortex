@@ -120,12 +120,7 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, predictor
 			}
 		}
 
-		if predictorType == userconfig.ONNXPredictorType && strings.HasSuffix(strings.TrimSuffix(model.ModelPath, "/"), ".onnx") {
-			model.ModelPath = strings.TrimSuffix(model.ModelPath, "/")
-			model.Name = strings.TrimSuffix(model.Name, ".onnx")
-		} else {
-			model.ModelPath = s.EnsureSuffix(model.ModelPath, "/")
-		}
+		model.ModelPath = s.EnsureSuffix(model.ModelPath, "/")
 
 		models = append(models, CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
