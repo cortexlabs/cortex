@@ -49,6 +49,7 @@ var (
 	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
+	_invalidTagPrefixes  = []string{"cortex.dev/", "kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
 )
 
 type Config struct {
@@ -165,16 +166,19 @@ var UserValidation = &cr.StructValidation{
 				AllowEmpty:         true,
 				ConvertNullToEmpty: true,
 				KeyStringValidator: &cr.StringValidation{
-					MinLength:       1,
-					MaxLength:       127,
-					InvalidPrefixes: []string{"aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"},
-					AWSTag:          true,
+					MinLength:                  1,
+					MaxLength:                  127,
+					DisallowLeadingWhitespace:  true,
+					DisallowTrailingWhitespace: true,
+					InvalidPrefixes:            _invalidTagPrefixes,
+					AWSTag:                     true,
 				},
 				ValueStringValidator: &cr.StringValidation{
-					MinLength:       1,
-					MaxLength:       255,
-					InvalidPrefixes: []string{"aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"},
-					AWSTag:          true,
+					MinLength:                  1,
+					MaxLength:                  255,
+					DisallowTrailingWhitespace: true,
+					InvalidPrefixes:            _invalidTagPrefixes,
+					AWSTag:                     true,
 				},
 			},
 		},
@@ -620,9 +624,6 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if cc.Tags[ClusterNameTag] != "" && cc.Tags[ClusterNameTag] != cc.ClusterName {
-		return ErrorCantOverrideDefaultTag()
-	}
 	cc.Tags[ClusterNameTag] = cc.ClusterName
 
 	if err := cc.validateAvailabilityZones(awsClient); err != nil {
