@@ -891,7 +891,7 @@ func removeEnvFromCLIConfig(envName string) error {
 }
 
 // returns the list of environment names, and whether any of them were the default
-func getEnvsByOperatorEndpoint(operatorEndpoint string) ([]string, bool, error) {
+func getEnvNamesByOperatorEndpoint(operatorEndpoint string) ([]string, bool, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return nil, false, err

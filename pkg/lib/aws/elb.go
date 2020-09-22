@@ -23,7 +23,7 @@ import (
 )
 
 // returns the the first load balancer which has all of the specified tags, or nil if no load balancers match
-func (c *Client) LoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, error) {
+func (c *Client) FindLoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, error) {
 	var loadBalancer *elbv2.LoadBalancer
 	var fnErr error
 
@@ -45,7 +45,7 @@ func (c *Client) LoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, erro
 				ResourceArns: aws.StringSlice(arns),
 			})
 			if err != nil {
-				fnErr = err
+				fnErr = errors.WithStack(err)
 				return false
 			}
 

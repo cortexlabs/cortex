@@ -239,7 +239,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		loadBalancer, err := awsClient.LoadBalancer(map[string]string{
+		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 			clusterconfig.ClusterNameTag: clusterConfig.ClusterName,
 			"cortex.dev/load-balancer":   "operator",
 		})
@@ -398,7 +398,7 @@ var _downCmd = &cobra.Command{
 		}
 
 		// updating CLI env is best-effort, so ignore errors
-		loadBalancer, _ := awsClient.LoadBalancer(map[string]string{
+		loadBalancer, _ := awsClient.FindLoadBalancer(map[string]string{
 			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
 			"cortex.dev/load-balancer":   "operator",
 		})
@@ -461,7 +461,7 @@ var _downCmd = &cobra.Command{
 
 		// best-effort deletion of cli environment(s)
 		if loadBalancer != nil {
-			envNames, isDefaultEnv, _ := getEnvsByOperatorEndpoint(*loadBalancer.DNSName)
+			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(*loadBalancer.DNSName)
 			if len(envNames) > 0 {
 				for _, envName := range envNames {
 					removeEnvFromCLIConfig(envName)

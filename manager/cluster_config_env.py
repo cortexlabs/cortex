@@ -42,13 +42,13 @@ def export(base_key, value):
         print('export {}="{}"'.format(base_key.upper(), value))
 
 
-def exportTags(tags, envVarName, tag_overrides={}):
+def exportTags(tags, env_var_name, tag_overrides={}):
     tags = deepcopy(tags)
     for k, v in tag_overrides.items():
         tags[k] = v
     inlined_tags = ",".join([f"{k}={v}" for k, v in tags.items()])
-    print(f"export {envVarName}={inlined_tags}")
-    print(f"export {envVarName}_JSON='{json.dumps(tags)}'")
+    print(f"export {env_var_name}={inlined_tags}")
+    print(f"export {env_var_name}_JSON='{json.dumps(tags)}'")
 
 
 for config_path in sys.argv[1:]:

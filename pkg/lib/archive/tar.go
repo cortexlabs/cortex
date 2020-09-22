@@ -94,7 +94,7 @@ func UntarReaderToDir(reader io.Reader, destDir string) (strset.Set, error) {
 			return filenames, nil
 
 		case err != nil:
-			return nil, err
+			return nil, errors.WithStack(err)
 
 		case header == nil:
 			continue
