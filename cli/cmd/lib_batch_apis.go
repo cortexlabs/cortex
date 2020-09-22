@@ -22,8 +22,9 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -143,6 +144,14 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		return "", err
 	}
 
+	if _flagOutput == flags.JSONOutputType {
+		bytes, err := libjson.Marshal(resp)
+		if err != nil {
+			return "", err
+		}
+		return string(bytes), nil
+	}
+
 	job := resp.JobStatus
 
 	out := ""
@@ -238,7 +247,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	out += "\n" + console.Bold("job endpoint: ") + resp.Endpoint + "\n"
 
-	jobSpecStr, err := json.Pretty(job.Job)
+	jobSpecStr, err := libjson.Pretty(job.Job)
 	if err != nil {
 		return "", err
 	}
