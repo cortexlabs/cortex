@@ -21,11 +21,12 @@ import glob
 import shutil
 import itertools
 import json
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple, Any, Union, Callable
 
 from cortex.lib import util
 from cortex.lib.log import cx_logger
-from cortex.lib.concurrency import LockedFile
+from cortex.lib.concurrency import LockedFile, get_locked_files
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, WithBreak
 from cortex.lib.type import (
@@ -286,11 +287,11 @@ class FileBasedModelsTreeUpdater(mp.Process):
             if len(versions) == 0:
                 resource = local_model_name + "-" + "1" + ".txt"
                 with LockedFile(resource, "w") as f:
-                    f.write("available " + str(timestamp_utc))
+                    f.write("available " + str(int(timestamp_utc)))
             for ondisk_version in versions:
                 resource = local_model_name + "-" + ondisk_version + ".txt"
                 with LockedFile(resource, "w") as f:
-                    f.write("available " + str(timestamp_utc))
+                    f.write("available " + str(int(timestamp_utc)))
 
     def _update_models_tree(self) -> None:
         # don't update when the models:dir is a local path
@@ -312,24 +313,19 @@ class FileBasedModelsTreeUpdater(mp.Process):
             self._s3_paths,
             self._s3_model_names,
         )
+            
 
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
-        for idx, (model_name, bucket_name, bucket_subpaths) in enumerate(
-            zip(model_names, bucket_names, sub_paths)
-        ):
-            if idx == 2:
-                self._refresh_model(
-                    idx,
-                    model_name,
-                    model_paths[idx],
-                    versions[model_name],
-                    timestamps[idx],
-                    bucket_subpaths,
-                    bucket_name,
-                )
-                break
-        return
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
+            for idx, (model_name, bucket_name, bucket_subpaths) in enumerate(
+                zip(model_names, bucket_names, sub_paths)
+            ):
+                futures += [executor.submit(self._refresh_model, idx, model_name, model_paths[idx], versions[model_name], timestamps[idx], bucket_subpaths, bucket_name)]
+
+            [future.result() for future in futures]
+            
 
         # remove models that no longer appear in model_names
         for models, versions in zip(
@@ -342,12 +338,12 @@ class FileBasedModelsTreeUpdater(mp.Process):
                             self._lock_dir, model_name + "-" + ondisk_version + ".txt"
                         )
                         ondisk_model_version_path = os.path.join(
-                            self._models_dir, model_name, ondisk_version
+                            self._download_dir, model_name, ondisk_version
                         )
                         with LockedFile(resource, "w+") as f:
                             shutil.rmtree(ondisk_model_version_path)
                             f.write("not available")
-                    shutil.rmtree(os.path.join(self._models_dir, model_name))
+                    shutil.rmtree(os.path.join(self._download_dir, model_name))
 
     def _refresh_model(
         self,
@@ -363,6 +359,9 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):
+
+            # for the lock file
+            resource = os.path.join(self._lock_dir, model_name + "-" + version + ".txt")
 
             # check if a model update is mandated
             update_model = False
@@ -386,7 +385,13 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 if set(local_paths) != set(s3_paths):
                     update_model = True
 
-                # TODO check the model timestamps too
+                with LockedFile(resource, "r", reader_lock=True) as f:
+                    file_status = f.read()
+                    if file_status == "" or file_status == "not available":
+                        raise WithBreak
+                    current_model_ts = int(file_status.split(" ")[1])
+                    if current_model_ts < int(model_ts.timestamp()):
+                        update_model = True
             else:
                 update_model = True
 
@@ -408,12 +413,11 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
                 # move the model to its destination directory
                 if passed_validation:
-                    resource = os.path.join(self._lock_dir, model_name + "-" + version + ".txt")
                     with LockedFile(resource, "w+") as f:
                         if os.path.exists(ondisk_model_version_path):
                             shutil.rmtree(ondisk_model_version_path)
                         shutil.move(temp_dest, ondisk_model_version_path)
-                        f.write("available " + str(model_ts.timestamp()))
+                        f.write("available " + str(int(model_ts.timestamp())))
 
         # remove the temp model directory if it exists
         model_temp_dest = os.path.join(self._temp_dir, model_name)
@@ -435,7 +439,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     )
                     ondisk_model_version_path = os.path.join(ondisk_model_path, ondisk_version)
                     with LockedFile(resource, "w+") as f:
-                        print("stergem")
                         shutil.rmtree(ondisk_model_version_path)
                         f.write("not available")
 
@@ -445,6 +448,45 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         # if it's a non-versioned model ModelVersion.NOT_PROVIDED
         if len(versions) == 0 and len(sub_paths) > 0:
+
+            # for the lock file
+            resource = os.path.join(self._lock_dir, model_name + "-" + "1" + ".txt")
+            model_ts = int(timestamps[0].timestamp())
+
+            # check if a model update is mandated
+            update_model = False
+            ondisk_model_version_path = os.path.join(ondisk_model_path, "1")
+            if os.path.exists(ondisk_model_version_path):
+                local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = [
+                    os.path.relpath(local_path, ondisk_model_version_path)
+                    for local_path in local_paths
+                ]
+                local_paths = [path for path in local_paths if not path.startswith("../")]
+                local_paths = util.remove_non_empty_directory_paths(local_paths)
+
+                s3_model_version_path = model_path
+                s3_paths = [
+                    os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
+                ]
+                s3_paths = [path for path in s3_paths if not path.startswith("../")]
+                s3_paths = util.remove_non_empty_directory_paths(s3_paths)
+
+                if set(local_paths) != set(s3_paths):
+                    update_model = True
+
+                with LockedFile(resource, "r", reader_lock=True) as f:
+                    file_status = f.read()
+                    if file_status == "" or file_status == "not available":
+                        raise WithBreak()
+                    current_model_ts = int(file_status.split(" ")[1])
+                    if current_model_ts < model_ts:
+                        update_model = True
+            else:
+                update_model = True
+
+            if not update_model:
+                return
 
             # download to a temp directory
             temp_dest = os.path.join(self._temp_dir, model_name)
@@ -462,16 +504,11 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
             # move the model to its destination directory
             if passed_validation:
-                resource = os.path.join(self._lock_dir, model_name + "-" + "1" + ".txt")
                 with LockedFile(resource, "w+") as f:
-                    ondisk_model_version = os.path.join(ondisk_model_path, "1")
-                    if os.path.exists(ondisk_model_version):
-                        shutil.rmtree(ondisk_model_version)
-                    shutil.move(temp_dest, ondisk_model_version)
-                    f.write("available " + str(timestamps[0].timestamp()))
-
-                # cleanup
-                shutil.rmtree(temp_dest)
+                    if os.path.exists(ondisk_model_version_path):
+                        shutil.rmtree(ondisk_model_version_path)
+                    shutil.move(temp_dest, ondisk_model_version_path)
+                    f.write("available " + str(model_ts))
 
 
 def find_ondisk_models_with_lock(
@@ -492,18 +529,14 @@ def find_ondisk_models_with_lock(
         List with the available models from disk. Just the model, no versions.
         Or when include_versions is set, 2 paired lists, one containing the model names and the other one the versions: ["A", "B", "B"] w/ ["1", "1", "2"].
     """
-
-    files = [os.path.basename(file) for file in os.listdir(lock_dir)]
-    locks = [f for f in files if f.endswith(".lock")]
     models = []
     versions = []
 
-    for lock in locks:
-        _model_name, _model_version = os.path.splitext(lock).split("-")
-        status = ""
-        with LockedFile(os.path.join(lock_dir, lock), reader_lock=True) as f:
+    for locked_file in get_locked_files(lock_dir):
+        _model_name, _model_version = os.path.splitext(locked_file)[0].rsplit("-", maxsplit=1)
+        with LockedFile(os.path.join(lock_dir, locked_file), "r", reader_lock=True) as f:
             status = f.read()
-        if status == "available":
+        if status.startswith("available"):
             if _model_name not in models:
                 models.append(_model_name)
                 versions.append(_model_version)
@@ -536,10 +569,11 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
     timestamps = []
 
     for lock in locks:
-        _model_name, version = os.path.splitext(lock).split("-")
+        _model_name, version = os.path.splitext(lock)[0].rsplit("-", maxsplit=1)
         if _model_name == model_name:
-            with LockedFile(os.path.join(lock_dir, lock), reader_lock=True) as f:
+            with LockedFile(os.path.join(lock_dir, f"{_model_name}-{_model_version}"), "r", reader_lock=True) as f:
                 status = f.read()
+
             if status.startswith("available"):
                 current_upstream_ts = int(file_status.split(" ")[1])
                 versions.append(version)
@@ -846,7 +880,7 @@ def find_ondisk_models(
 ) -> Union[List[str], Tuple[List[str], List[str]]]:
     """
     Returns all available models from the disk.
-    To be used in conjunction with SimpleModelMonitor.
+    To be used in conjunction with TFSModelLoader.
 
     This function should never be used for determining whether a model has to be loaded or not.
     Can be used for Python/TensorFlow/ONNX clients.
