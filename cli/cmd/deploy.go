@@ -251,9 +251,7 @@ func mergeResultMessages(results []schema.DeployResult) string {
 		}
 	}
 
-	messages := append(okMessages, errMessages...)
-
-	return strings.Join(messages, "\n")
+	return strings.Join(okMessages, "\n") + "\n\n" + strings.Join(errMessages, "\n")
 }
 
 func didAllResultsError(results []schema.DeployResult) bool {
@@ -282,7 +280,10 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) string
 	items.Add(fmt.Sprintf("cortex get %s%s", apiName, envArg), "(show api info)")
 
 	for _, result := range results {
-		if result.API.Kind == userconfig.RealtimeAPIKind {
+		if len(result.Error) > 0 {
+			continue
+		}
+		if result.API.API != nil && result.API.Kind == userconfig.RealtimeAPIKind {
 			items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
 			break
 		}

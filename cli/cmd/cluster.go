@@ -830,7 +830,7 @@ func createBucketIfNotFound(awsClient *aws.Client, bucket string, tags map[strin
 			return err
 		}
 	} else {
-		fmt.Print("￮ using existing s3 bucket:", bucket)
+		fmt.Print("￮ using existing s3 bucket: ", bucket)
 	}
 
 	// retry since it's possible that it takes some time for the new bucket to be registered by AWS

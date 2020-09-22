@@ -18,6 +18,7 @@ package local
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
@@ -161,19 +161,14 @@ func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 		apiContainer = containers[1]
 	}
 
-	apiPort := ""
-	for _, port := range apiContainer.Ports {
-		if port.PrivatePort == 8888 {
-			apiPort = s.Uint16(port.PublicPort)
-		}
-	}
+	apiPort := apiSpec.Networking.LocalPort
 
 	return schema.GetAPIResponse{
 		RealtimeAPI: &schema.RealtimeAPI{
 			Spec:     *apiSpec,
 			Status:   apiStatus,
 			Metrics:  apiMetrics,
-			Endpoint: "http://localhost:" + apiPort,
+			Endpoint: fmt.Sprintf("http://localhost:%d", *apiPort),
 		},
 	}, nil
 }
