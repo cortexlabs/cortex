@@ -168,12 +168,12 @@ class LockedFile:
             raise e
         return self._fd
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._fd.close()
-        self._lock.release()
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        self.__del__()
 
         if exc_value is not None and exc_type is not WithBreak:
-            raise exc_type(exc_value).with_traceback(traceback)
+            return False
+        return True
 
     def __del__(self):
         if hasattr(self, "_fd"):

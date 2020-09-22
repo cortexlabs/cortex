@@ -554,11 +554,12 @@ class LockedGlobalModelsGC:
             self.acquired = False
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
         self._models.global_release(self._mode)
 
         if exc_value is not None and exc_type is not WithBreak:
-            raise exc_type(exc_value).with_traceback(traceback)
+            return False
+        return True
 
 
 class LockedModel:
@@ -593,9 +594,10 @@ class LockedModel:
         self._models.model_acquire(self._mode, self._model_name, self._model_version)
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
         self._models.model_release(self._mode, self._model_name, self._model_version)
         self._models.global_release("r")
 
         if exc_value is not None and exc_type is not WithBreak:
-            raise exc_type(exc_value).with_traceback(traceback)
+            return False
+        return True
