@@ -24,7 +24,7 @@ def export(base_key, value):
         exportTags(
             value, "CORTEX_OPERATOR_LOAD_BALANCER_TAGS", {"cortex.dev/load-balancer": "operator"}
         )
-        exportTags(value, "CORTEX_APIS_LOAD_BALANCER_TAGS", {"cortex.dev/load-balancer": "apis"})
+        exportTags(value, "CORTEX_API_LOAD_BALANCER_TAGS", {"cortex.dev/load-balancer": "api"})
         return
 
     if value is None:

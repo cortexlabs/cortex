@@ -84,7 +84,7 @@ gateways:
     serviceAnnotations:
       ${CORTEX_API_LOAD_BALANCER_ANNOTATION}
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-      service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: ${CORTEX_APIS_LOAD_BALANCER_TAGS}
+      service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: ${CORTEX_API_LOAD_BALANCER_TAGS}
       ${CORTEX_SSL_CERTIFICATE_ANNOTATION}
       service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
     type: LoadBalancer
