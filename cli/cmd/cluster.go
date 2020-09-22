@@ -243,8 +243,11 @@ var _upCmd = &cobra.Command{
 			clusterconfig.ClusterNameTag: clusterConfig.ClusterName,
 			"cortex.dev/load-balancer":   "operator",
 		})
-		if err != nil || loadBalancer == nil {
-			exit.Error(ErrorNoOperatorLoadBalancer(_flagClusterEnv, err))
+		if err != nil {
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nunable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
+		}
+		if loadBalancer == nil {
+			exit.Error(ErrorNoOperatorLoadBalancer(_flagClusterEnv))
 		}
 
 		newEnvironment := cliconfig.Environment{

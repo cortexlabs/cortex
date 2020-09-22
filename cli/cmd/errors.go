@@ -132,16 +132,10 @@ func ErrorInvalidOperatorEndpoint(endpoint string) error {
 }
 
 // err can be passed in as nil
-func ErrorNoOperatorLoadBalancer(envName string, err error) error {
-	errMsg := fmt.Sprintf("unable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", envName)
-
-	if err != nil {
-		return errors.Append(err, "\n\n"+errMsg)
-	}
-
+func ErrorNoOperatorLoadBalancer(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoOperatorLoadBalancer,
-		Message: errMsg,
+		Message: fmt.Sprintf("unable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", envName),
 	})
 }
 
