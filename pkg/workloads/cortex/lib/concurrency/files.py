@@ -183,6 +183,7 @@ class LockedFile:
         if hasattr(self, "_lock"):
             self._lock.release()
 
+
 def get_locked_files(lock_dir: str) -> List[str]:
     files = [os.path.basename(file) for file in os.listdir(lock_dir)]
     locks = [f for f in files if f.endswith(".lock")]
@@ -190,7 +191,7 @@ def get_locked_files(lock_dir: str) -> List[str]:
     locked_files = []
     for lock in locks:
         locked_file = os.path.splitext(lock)[0]
-        locked_file = locked_file[1:] # to ignore the added "."
+        locked_file = locked_file[1:]  # to ignore the added "."
         locked_files.append(locked_file)
 
     return locked_files
