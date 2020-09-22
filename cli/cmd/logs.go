@@ -19,12 +19,9 @@ package cmd
 import (
 	"fmt"
 	"path"
-	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -60,11 +57,6 @@ var _logsCmd = &cobra.Command{
 			logPath := path.Join(args...)
 			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), logPath)
 			if err != nil {
-				// note: if modifying this string, search the codebase for it and change all occurrences
-				if strings.HasSuffix(errors.Message(err), "is not deployed") {
-					fmt.Println(console.Bold(errors.Message(err)))
-					return
-				}
 				exit.Error(err)
 			}
 		} else {
