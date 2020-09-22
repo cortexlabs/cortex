@@ -49,7 +49,7 @@ var (
 	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
-	_invalidTagPrefixes  = []string{"cortex.dev/", "kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
+	_invalidTagPrefixes  = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
 )
 
 type Config struct {
@@ -551,6 +551,7 @@ func (cc *Config) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
 
+// this validates the user-provided cluster conifg
 func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
@@ -624,6 +625,11 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
+	for tagName := range cc.Tags {
+		if strings.HasPrefix(tagName, "cortex.dev/") {
+			return errors.Wrap(cr.ErrorCantHavePrefix(tagName, "cortex.dev/"), TagsKey)
+		}
+	}
 	cc.Tags[ClusterNameTag] = cc.ClusterName
 
 	if err := cc.validateAvailabilityZones(awsClient); err != nil {
