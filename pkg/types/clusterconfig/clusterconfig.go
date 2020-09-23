@@ -552,7 +552,7 @@ func (cc *Config) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
 
-// this validates the user-provided cluster conifg
+// this validates the user-provided cluster config
 func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
