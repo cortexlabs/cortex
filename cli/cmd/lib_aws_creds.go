@@ -38,10 +38,6 @@ type AWSCredentials struct {
 	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
 }
 
-func (awsCredentials AWSCredentials) IsEmpty() bool {
-	return len(awsCredentials.AWSAccessKeyID) == 0 && len(awsCredentials.AWSSecretAccessKey) == 0
-}
-
 func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
 	if err := clusterconfig.ValidateRegion(region); err != nil {
 		return nil, err
@@ -141,7 +137,7 @@ var _awsCredentialsPromptValidation = &cr.PromptValidation{
 	},
 }
 
-func awsCredentialsForClusterUp(disallowPrompt bool) (AWSCredentials, error) {
+func awsCredentialsForCreatingCluster(disallowPrompt bool) (AWSCredentials, error) {
 	awsCredentials, err := awsCredentialsFromFlags()
 	if err != nil {
 		return AWSCredentials{}, err
@@ -183,7 +179,7 @@ func awsCredentialsForClusterUp(disallowPrompt bool) (AWSCredentials, error) {
 	return AWSCredentials{}, ErrorMissingAWSCredentials()
 }
 
-func awsCredentialsForClusterCommands(accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (AWSCredentials, error) {
+func awsCredentialsForManagingCluster(accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (AWSCredentials, error) {
 	awsCredentials, err := awsCredentialsFromFlags()
 	if err != nil {
 		return AWSCredentials{}, err
@@ -245,10 +241,10 @@ func awsCredentialsFromFlags() (*AWSCredentials, error) {
 
 	if len(_flagCortexAWSAccessKeyID) > 0 || len(_flagCortexAWSSecretAccessKey) > 0 {
 		if len(_flagCortexAWSAccessKeyID) == 0 {
-			return nil, ErrorOneAWSFlagSet("--aws-cortex-key", "--aws-cortex-secret")
+			return nil, ErrorOneAWSFlagSet("--cortex-aws-key", "--cortex-aws-secret")
 		}
 		if len(_flagCortexAWSSecretAccessKey) == 0 {
-			return nil, ErrorOneAWSFlagSet("--aws-cortex-secret", "--aws-cortexkey")
+			return nil, ErrorOneAWSFlagSet("--cortex-aws-secret", "--aws-cortexkey")
 		}
 
 		credentials.CortexAWSAccessKeyID = _flagCortexAWSAccessKeyID

@@ -66,7 +66,6 @@ const (
 	ErrClusterRefresh                       = "cli.cluster_refresh"
 	ErrClusterDown                          = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames                 = "cli.duplicate_cli_env_names"
-	ErrAWSCredentialsRequired               = "cli.aws_credentials_required"
 	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
 	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported          = "cli.shell_completion_not_supported"
@@ -265,13 +264,6 @@ func ErrorClusterDown(out string) error {
 		Kind:    ErrClusterDown,
 		Message: out,
 		NoPrint: true,
-	})
-}
-
-func ErrorAWSCredentialsRequired() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAWSCredentialsRequired,
-		Message: "AWS credentials are required; please set them in your cluster configuration file (if you're using one), your environment variables (i.e. AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY), or your AWS CLI (i.e. via `aws configure`)",
 	})
 }
 

@@ -99,10 +99,14 @@ Usage:
   cortex cluster up [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -e, --env string      environment to configure (default "aws")
-  -y, --yes             skip prompts
-  -h, --help            help for up
+  -c, --config string              path to a cluster configuration file
+      --aws-key string             aws access key id
+      --aws-secret string          aws secret access key
+      --cortex-aws-key string      aws access key id used be the cluster
+      --cortex-aws-secret string   aws secret access key used by the cluster
+  -e, --env string                 environment to create (default "aws")
+  -y, --yes                        skip prompts
+  -h, --help                       help for up
 ```
 
 ## cluster info
@@ -114,11 +118,13 @@ Usage:
   cortex cluster info [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -e, --env string      environment to configure (default "aws")
-  -d, --debug           save the current cluster state to a file
-  -y, --yes             skip prompts
-  -h, --help            help for info
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -e, --env string          environment to update (default "aws")
+  -d, --debug               save the current cluster state to a file
+  -y, --yes                 skip prompts
+  -h, --help                help for info
 ```
 
 ## cluster configure
@@ -130,10 +136,12 @@ Usage:
   cortex cluster configure [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -e, --env string      environment to configure (default "aws")
-  -y, --yes             skip prompts
-  -h, --help            help for configure
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -e, --env string          environment to update (default "aws")
+  -y, --yes                 skip prompts
+  -h, --help                help for configure
 ```
 
 ## cluster down
@@ -145,9 +153,11 @@ Usage:
   cortex cluster down [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -y, --yes             skip prompts
-  -h, --help            help for down
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -y, --yes                 skip prompts
+  -h, --help                help for down
 ```
 
 ## env configure
@@ -258,3 +268,4 @@ Usage:
 Flags:
   -h, --help   help for completion
 ```
+

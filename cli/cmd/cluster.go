@@ -62,16 +62,16 @@ func clusterInit() {
 	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
 	addAWSCredentials(_upCmd)
-	_upCmd.Flags().StringVar(&_flagCortexAWSAccessKeyID, "aws-cortex-key", "", "aws access key id used be the cluster")
-	_upCmd.Flags().StringVar(&_flagCortexAWSSecretAccessKey, "aws-cortex-secret", "", "aws secret access key used by the cluster")
-	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	_upCmd.Flags().StringVar(&_flagCortexAWSAccessKeyID, "cortex-aws-key", "", "aws access key id used be the cluster")
+	_upCmd.Flags().StringVar(&_flagCortexAWSSecretAccessKey, "cortex-aws-secret", "", "aws secret access key used by the cluster")
+	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to create")
 	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_upCmd)
 
 	_infoCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_infoCmd)
 	addAWSCredentials(_infoCmd)
-	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to update")
 	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
 	_infoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_infoCmd)
@@ -79,7 +79,7 @@ func clusterInit() {
 	_configureCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_configureCmd)
 	addAWSCredentials(_configureCmd)
-	_configureCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	_configureCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to update")
 	_configureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_configureCmd)
 
@@ -124,7 +124,7 @@ var _upCmd = &cobra.Command{
 			promptForEmail()
 		}
 
-		awsCreds, err := awsCredentialsForClusterUp(_flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForCreatingCluster(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -253,10 +253,8 @@ var _upCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		err = cacheAWSCredentials(awsCreds, accessConfig)
-		if err != nil {
-			exit.Error(err)
-		}
+		cacheAWSCredentials(awsCreds, accessConfig)
+
 		fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured for this cluster; append `--env %s` to cortex commands to connect to it (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterEnv, _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
 	},
 }
@@ -281,7 +279,7 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForClusterCommands(*accessConfig, _flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -319,10 +317,7 @@ var _configureCmd = &cobra.Command{
 			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
 
-		err = cacheAWSCredentials(awsCreds, *accessConfig)
-		if err != nil {
-			exit.Error(err)
-		}
+		cacheAWSCredentials(awsCreds, *accessConfig)
 	},
 }
 
@@ -345,7 +340,7 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForClusterCommands(*accessConfig, _flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -356,10 +351,7 @@ var _infoCmd = &cobra.Command{
 			cmdInfo(awsCreds, accessConfig, _flagClusterDisallowPrompt)
 		}
 
-		err = cacheAWSCredentials(awsCreds, *accessConfig)
-		if err != nil {
-			exit.Error(err)
-		}
+		cacheAWSCredentials(awsCreds, *accessConfig)
 	},
 }
 
@@ -379,7 +371,7 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForClusterCommands(*accessConfig, _flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}

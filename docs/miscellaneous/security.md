@@ -28,9 +28,9 @@ Cortex uses AWS credentials for 3 main purposes:
 
 ### Cluster spin-up
 
-Spinning up Cortex on your AWS account requires more permissions than Cortex needs once it's running. You can specify different credentials for each purpose in 2 ways (in order of precedence):
+Spinning up Cortex on your AWS account requires more permissions than Cortex needs once it's running. You can specify different credentials for each purpose in two ways (in order of precedence):
 
-1. You can specify `--aws-key` and `--aws-secret` flags to indicate the credentials that will be used to create your cluster. You can specify `--cortex-aws-key` and `--cortex-aws-secret` to specify credentials which will be used by the cluster. For example, `cortex cluster up --aws-key AWS_ACCESS_KEY_ID --aws-secret AWS_SECRET_ACCESS_KEY`.
+1. You can specify `--aws-key` and `--aws-secret` flags to `cortex cluster up` to indicate the credentials that will be used to create your cluster. You can specify `--cortex-aws-key` and `--cortex-aws-secret` to specify credentials which will be used by the cluster.
 
 2. You can export the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` which will be used to create your cluster, and export `CORTEX_AWS_ACCESS_KEY_ID` and `CORTEX_AWS_SECRET_ACCESS_KEY` which will be used by the cluster.
 
@@ -40,7 +40,7 @@ It is recommended to use an IAM user with the `AdministratorAccess` policy to cr
 
 ### Operator
 
-A process called the Cortex operator runs on your cluster and is responsible for deploying and managing your APIs on the cluster. The operator will use `CORTEX_AWS_ACCESS_KEY_ID` and `CORTEX_AWS_SECRET_ACCESS_KEY` as its credentials if specified, otherwise it will default to using `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` specified during cluster spin up.
+A process called the Cortex operator runs on your cluster and is responsible for deploying and managing your APIs on the cluster. The operator will use `CORTEX_AWS_ACCESS_KEY_ID` and `CORTEX_AWS_SECRET_ACCESS_KEY` as its credentials if specified, otherwise it will default to using `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
 
 The operator requires read permissions for any S3 bucket containing exported models, read/write permissions for the Cortex S3 bucket, read permissions for ECR, read permissions for ELB, read/write permissions for API Gateway, read/write permissions for CloudWatch metrics, and read/write permissions for the Cortex CloudWatch log group. The policy below may be used to restrict the Operator's access:
 
