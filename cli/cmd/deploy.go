@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/flags"
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -34,7 +35,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -219,8 +219,8 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 		didPromptFileCount = true
 	}
 
-	projectZipBytes, err := zip.ToMem(&zip.Input{
-		FileLists: []zip.FileListInput{
+	projectZipBytes, _, err := archive.ZipToMem(&archive.Input{
+		FileLists: []archive.FileListInput{
 			{
 				Sources:      projectPaths,
 				RemovePrefix: projectRoot,

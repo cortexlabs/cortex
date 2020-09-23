@@ -34,6 +34,7 @@ const (
 	ErrDuplicateLocalPort            = "local.duplicate_local_port"
 	ErrPortAlreadyInUse              = "local.port_already_in_use"
 	ErrUnableToFindAvailablePorts    = "local.unable_to_find_available_ports"
+	ErrBindDockerInDocker            = "local.bind_docker_in_docker"
 )
 
 func ErrorAPINotDeployed(apiName string) error {
@@ -113,6 +114,14 @@ func ErrorPortAlreadyInUse(port int) error {
 func ErrorUnableToFindAvailablePorts() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnableToFindAvailablePorts,
-		Message: fmt.Sprintf("unable to find available ports"),
+		Message: "unable to find available ports",
+	})
+}
+
+func ErrorBindDockerInDocker(err error) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrBindDockerInDocker,
+		Message: err.Error() + "\n\nnote: deploying an API locally from within a docker container is not supported (although deploying to AWS from within a container is supported)",
+		Cause:   err,
 	})
 }
