@@ -42,6 +42,8 @@ type StringValidation struct {
 	InvalidPrefixes                      []string
 	MaxLength                            int
 	MinLength                            int
+	DisallowLeadingWhitespace            bool
+	DisallowTrailingWhitespace           bool
 	AlphaNumericDashDotUnderscoreOrEmpty bool
 	AlphaNumericDashDotUnderscore        bool
 	AlphaNumericDashUnderscore           bool
@@ -254,6 +256,18 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	for _, invalidPrefix := range v.InvalidPrefixes {
 		if strings.HasPrefix(val, invalidPrefix) {
 			return ErrorCantHavePrefix(val, invalidPrefix)
+		}
+	}
+
+	if v.DisallowLeadingWhitespace {
+		if regex.HasLeadingWhitespace(val) {
+			return ErrorLeadingWhitespace(val)
+		}
+	}
+
+	if v.DisallowTrailingWhitespace {
+		if regex.HasTrailingWhitespace(val) {
+			return ErrorTrailingWhitespace(val)
 		}
 	}
 

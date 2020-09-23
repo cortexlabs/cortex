@@ -47,7 +47,7 @@ def exportTags(tags, env_var_name, tag_overrides={}):
     for k, v in tag_overrides.items():
         tags[k] = v
     inlined_tags = ",".join([f"{k}={v}" for k, v in tags.items()])
-    print(f"export {env_var_name}={inlined_tags}")
+    print(f"export {env_var_name}='{inlined_tags}'")
     print(f"export {env_var_name}_JSON='{json.dumps(tags)}'")
 
 
