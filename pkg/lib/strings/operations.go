@@ -82,6 +82,12 @@ func MaskString(str string, numPlain int) string {
 	return strings.Repeat("*", len(str)-numPlain) + str[len(str)-numPlain:]
 }
 
+// Returns the portion str after the last occurrance of chars, or the entire str if chars are not found
+func LastSplit(str string, chars string) string {
+	split := strings.Split(str, chars)
+	return split[len(split)-1]
+}
+
 func LongestCommonPrefix(strs ...string) string {
 	if len(strs) == 0 {
 		return ""
@@ -170,6 +176,22 @@ func StrsSentence(strs []string, lastJoinWord string) string {
 		lastIndex := len(strs) - 1
 		return strings.Join(strs[:lastIndex], ", ") + ", " + lastJoinWord + " " + strs[lastIndex]
 	}
+}
+
+func SIfPlural(count interface{}) string {
+	return StrIfPlural("s", count)
+}
+
+func EsIfPlural(count interface{}) string {
+	return StrIfPlural("es", count)
+}
+
+func StrIfPlural(str string, count interface{}) string {
+	countInt, _ := cast.InterfaceToInt64(count)
+	if countInt > 1 {
+		return str
+	}
+	return ""
 }
 
 func PluralS(str string, count interface{}) string {
