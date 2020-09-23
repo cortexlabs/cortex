@@ -214,7 +214,7 @@ def predict(request: Request):
 
     if util.has_method(predictor_impl, "post_predict"):
         kwargs = build_post_predict_kwargs(prediction, request)
-        tasks.add_task(predictor_impl.post_predict, **kwargs)
+        request_thread_pool.submit(predictor_impl.post_predict, **kwargs)
 
     if len(tasks.tasks) > 0:
         response.background = tasks
