@@ -46,14 +46,14 @@ import (
 )
 
 var (
-	_flagClusterEnv               string
-	_flagClusterConfig            string
-	_flagClusterInfoDebug         bool
-	_flagClusterDisallowPrompt    bool
-	_flagAWSAccessKeyID           string
-	_flagAWSSecretAccessKey       string
-	_flagCortexAWSAccessKeyID     string
-	_flagCortexAWSSecretAccessKey string
+	_flagClusterEnv                string
+	_flagClusterConfig             string
+	_flagClusterInfoDebug          bool
+	_flagClusterDisallowPrompt     bool
+	_flagAWSAccessKeyID            string
+	_flagAWSSecretAccessKey        string
+	_flagClusterAWSAccessKeyID     string
+	_flagClusterAWSSecretAccessKey string
 )
 
 func clusterInit() {
@@ -62,8 +62,8 @@ func clusterInit() {
 	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
 	addAWSCredentials(_upCmd)
-	_upCmd.Flags().StringVar(&_flagCortexAWSAccessKeyID, "cortex-aws-key", "", "aws access key id used be the cluster")
-	_upCmd.Flags().StringVar(&_flagCortexAWSSecretAccessKey, "cortex-aws-secret", "", "aws secret access key used by the cluster")
+	_upCmd.Flags().StringVar(&_flagClusterAWSAccessKeyID, "cluster-aws-key", "", "aws access key id used be the cluster")
+	_upCmd.Flags().StringVar(&_flagClusterAWSSecretAccessKey, "cluster-aws-secret", "", "aws secret access key used by the cluster")
 	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to create")
 	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_upCmd)

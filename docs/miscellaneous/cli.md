@@ -99,14 +99,14 @@ Usage:
   cortex cluster up [flags]
 
 Flags:
-  -c, --config string              path to a cluster configuration file
-      --aws-key string             aws access key id
-      --aws-secret string          aws secret access key
-      --cortex-aws-key string      aws access key id used be the cluster
-      --cortex-aws-secret string   aws secret access key used by the cluster
-  -e, --env string                 environment to create (default "aws")
-  -y, --yes                        skip prompts
-  -h, --help                       help for up
+  -c, --config string               path to a cluster configuration file
+      --aws-key string              aws access key id
+      --aws-secret string           aws secret access key
+      --cluster-aws-key string      aws access key id used be the cluster
+      --cluster-aws-secret string   aws secret access key used by the cluster
+  -e, --env string                  environment to create (default "aws")
+  -y, --yes                         skip prompts
+  -h, --help                        help for up
 ```
 
 ## cluster info
@@ -268,4 +268,3 @@ Usage:
 Flags:
   -h, --help   help for completion
 ```
-

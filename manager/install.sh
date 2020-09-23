@@ -282,7 +282,7 @@ function main() {
   fi
 
   echo -n "￮ configuring cli "
-  python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENV_NAME" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
+  python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENV_NAME" "$operator_endpoint" "$CLUSTER_AWS_ACCESS_KEY_ID" "$CLUSTER_AWS_SECRET_ACCESS_KEY"
   echo "✓"
 
   if [ "$arg1" != "--update" ] && [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
@@ -311,8 +311,8 @@ function setup_configmap() {
 
 function setup_secrets() {
   kubectl -n=default create secret generic 'aws-credentials' \
-    --from-literal='AWS_ACCESS_KEY_ID'=$CORTEX_AWS_ACCESS_KEY_ID \
-    --from-literal='AWS_SECRET_ACCESS_KEY'=$CORTEX_AWS_SECRET_ACCESS_KEY \
+    --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
+    --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 

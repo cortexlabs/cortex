@@ -32,10 +32,10 @@ import (
 )
 
 type AWSCredentials struct {
-	AWSAccessKeyID           string `json:"aws_access_key_id"`
-	AWSSecretAccessKey       string `json:"aws_secret_access_key"`
-	CortexAWSAccessKeyID     string `json:"cortex_aws_access_key_id"`
-	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
+	AWSAccessKeyID            string `json:"aws_access_key_id"`
+	AWSSecretAccessKey        string `json:"aws_secret_access_key"`
+	ClusterAWSAccessKeyID     string `json:"cluster_aws_access_key_id"`
+	ClusterAWSSecretAccessKey string `json:"cluster_aws_secret_access_key"`
 }
 
 func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
@@ -98,13 +98,13 @@ var _awsCredentialsValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "CortexAWSAccessKeyID",
+			StructField: "ClusterAWSAccessKeyID",
 			StringValidation: &cr.StringValidation{
 				AllowEmpty: true,
 			},
 		},
 		{
-			StructField: "CortexAWSSecretAccessKey",
+			StructField: "ClusterAWSSecretAccessKey",
 			StringValidation: &cr.StringValidation{
 				AllowEmpty: true,
 			},
@@ -163,7 +163,7 @@ func awsCredentialsForCreatingCluster(disallowPrompt bool) (AWSCredentials, erro
 	}
 
 	if awsCredentials != nil {
-		fmt.Println(fmt.Sprintf("using aws credentials AWS_ACCESS_KEY_ID=%s and AWS_SECRET_ACCESS_KEY=%s from the default profile configured by the aws cli command: `aws configure`\n\nto use different credentials, specify the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`\n", s.MaskString(awsCredentials.AWSAccessKeyID, 4), s.MaskString(awsCredentials.AWSSecretAccessKey, 4)))
+		fmt.Println(fmt.Sprintf("using aws credentials AWS_ACCESS_KEY_ID=%s and AWS_SECRET_ACCESS_KEY=%s from the \"default\" profile configured by the aws cli command `aws configure`\n\nto use different credentials, specify the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`\n", s.MaskString(awsCredentials.AWSAccessKeyID, 4), s.MaskString(awsCredentials.AWSSecretAccessKey, 4)))
 		return *awsCredentials, nil
 	}
 
@@ -216,7 +216,7 @@ func (awsCreds *AWSCredentials) ContainsCreds(accessKeyID string, secretAccessKe
 	if awsCreds.AWSAccessKeyID == accessKeyID && awsCreds.AWSSecretAccessKey == secretAccessKey {
 		return true
 	}
-	if awsCreds.CortexAWSAccessKeyID == accessKeyID && awsCreds.CortexAWSSecretAccessKey == secretAccessKey {
+	if awsCreds.ClusterAWSAccessKeyID == accessKeyID && awsCreds.ClusterAWSSecretAccessKey == secretAccessKey {
 		return true
 	}
 	return false
@@ -239,19 +239,19 @@ func awsCredentialsFromFlags() (*AWSCredentials, error) {
 	credentials.AWSAccessKeyID = _flagAWSAccessKeyID
 	credentials.AWSSecretAccessKey = _flagAWSSecretAccessKey
 
-	if len(_flagCortexAWSAccessKeyID) > 0 || len(_flagCortexAWSSecretAccessKey) > 0 {
-		if len(_flagCortexAWSAccessKeyID) == 0 {
+	if len(_flagClusterAWSAccessKeyID) > 0 || len(_flagClusterAWSSecretAccessKey) > 0 {
+		if len(_flagClusterAWSAccessKeyID) == 0 {
 			return nil, ErrorOneAWSFlagSet("--cortex-aws-key", "--cortex-aws-secret")
 		}
-		if len(_flagCortexAWSSecretAccessKey) == 0 {
+		if len(_flagClusterAWSSecretAccessKey) == 0 {
 			return nil, ErrorOneAWSFlagSet("--cortex-aws-secret", "--aws-cortexkey")
 		}
 
-		credentials.CortexAWSAccessKeyID = _flagCortexAWSAccessKeyID
-		credentials.CortexAWSSecretAccessKey = _flagCortexAWSAccessKeyID
+		credentials.ClusterAWSAccessKeyID = _flagClusterAWSAccessKeyID
+		credentials.ClusterAWSSecretAccessKey = _flagClusterAWSAccessKeyID
 	} else {
-		credentials.CortexAWSAccessKeyID = credentials.AWSAccessKeyID
-		credentials.CortexAWSSecretAccessKey = credentials.AWSSecretAccessKey
+		credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
+		credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
 	}
 
 	return &credentials, nil
@@ -278,19 +278,19 @@ func awsCredentialsFromEnvVars() (*AWSCredentials, error) {
 	credentials.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
 	credentials.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
-		credentials.CortexAWSAccessKeyID = os.Getenv("CORTEX_AWS_ACCESS_KEY_ID")
-		credentials.CortexAWSSecretAccessKey = os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY")
+	if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
+		credentials.ClusterAWSAccessKeyID = os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID")
+		credentials.ClusterAWSSecretAccessKey = os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY")
 	}
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
-		return nil, ErrorOneAWSEnvVarSet("CORTEX_AWS_SECRET_ACCESS_KEY", "CORTEX_AWS_ACCESS_KEY_ID")
+	if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
+		return nil, ErrorOneAWSEnvVarSet("CLUSTER_AWS_SECRET_ACCESS_KEY", "CLUSTER_AWS_ACCESS_KEY_ID")
 	}
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") == "" {
-		return nil, ErrorOneAWSEnvVarSet("CORTEX_AWS_ACCESS_KEY_ID", "CORTEX_AWS_SECRET_ACCESS_KEY")
+	if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") == "" {
+		return nil, ErrorOneAWSEnvVarSet("CLUSTER_AWS_ACCESS_KEY_ID", "CLUSTER_AWS_SECRET_ACCESS_KEY")
 	}
 
-	credentials.CortexAWSAccessKeyID = credentials.AWSAccessKeyID
-	credentials.CortexAWSSecretAccessKey = credentials.AWSSecretAccessKey
+	credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
+	credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
 
 	return &credentials, nil
 }
@@ -305,8 +305,8 @@ func awsCredentialsFromSharedCreds() (*AWSCredentials, error) {
 
 	credentials.AWSAccessKeyID = accessKeyID
 	credentials.AWSSecretAccessKey = secretAccessKey
-	credentials.CortexAWSAccessKeyID = accessKeyID
-	credentials.CortexAWSSecretAccessKey = secretAccessKey
+	credentials.ClusterAWSAccessKeyID = accessKeyID
+	credentials.ClusterAWSSecretAccessKey = secretAccessKey
 	return &credentials, nil
 }
 
@@ -318,8 +318,8 @@ func awsCredentialsPrompt() (*AWSCredentials, error) {
 		return nil, err
 	}
 
-	credentials.CortexAWSAccessKeyID = credentials.AWSAccessKeyID
-	credentials.CortexAWSSecretAccessKey = credentials.AWSSecretAccessKey
+	credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
+	credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
 
 	return &credentials, nil
 }
