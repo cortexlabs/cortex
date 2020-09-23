@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package zip
+package archive
 
 import (
 	"io/ioutil"
@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestZip(t *testing.T) {
+func TestArchive(t *testing.T) {
 	tmpDir, err := files.TmpDir()
 	defer os.RemoveAll(tmpDir)
 	require.NoError(t, err)
@@ -49,10 +49,10 @@ func TestZip(t *testing.T) {
 	err = files.MakeEmptyFiles(filesList[0], filesList[1:]...)
 	require.NoError(t, err)
 
-	var zipInput *Input
+	var input *Input
 	var expected []string
 
-	zipInput = &Input{
+	input = &Input{
 		Bytes: []BytesInput{
 			{
 				Content: []byte(""),
@@ -73,9 +73,9 @@ func TestZip(t *testing.T) {
 		"test2/text2.txt",
 		"test3/text3.txt",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Files: []FileInput{
 			{
 				Source: filepath.Join(tmpDir, "1.txt"),
@@ -106,9 +106,9 @@ func TestZip(t *testing.T) {
 		"3/2/3/.tmp",
 		"4/4/2.pyc",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Bytes: []BytesInput{
 			{
 				Content: []byte(""),
@@ -127,9 +127,9 @@ func TestZip(t *testing.T) {
 		"test/text.txt",
 		"test/1/2/3.txt",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Bytes: []BytesInput{
 			{
 				Content: []byte(""),
@@ -148,9 +148,9 @@ func TestZip(t *testing.T) {
 		"test/text.txt",
 		"test/1/2/3.txt",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		EmptyFiles: []string{
 			"text.txt",
 			"1/2/3.txt",
@@ -160,9 +160,9 @@ func TestZip(t *testing.T) {
 		"text.txt",
 		"1/2/3.txt",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source: tmpDir,
@@ -182,9 +182,9 @@ func TestZip(t *testing.T) {
 		"5/4/3/2/1.py",
 		"5/4/3/2/2/1.py",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source: filepath.Join(tmpDir, "3"),
@@ -198,9 +198,9 @@ func TestZip(t *testing.T) {
 		"2/2.txt",
 		"2/3/.tmp",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source:    tmpDir,
@@ -221,9 +221,9 @@ func TestZip(t *testing.T) {
 		"5/4/3/2/1.py",
 		"5/4/3/2/2/1.py",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source:    filepath.Join(tmpDir, "3"),
@@ -244,9 +244,9 @@ func TestZip(t *testing.T) {
 		"test4/1.yaml",
 		"test4/2.pyc",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source:       filepath.Join(tmpDir, "5"),
@@ -259,9 +259,9 @@ func TestZip(t *testing.T) {
 		"2/1.py",
 		"2/2/1.py",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source:       filepath.Join(tmpDir, "5"),
@@ -274,9 +274,9 @@ func TestZip(t *testing.T) {
 		"2/1.py",
 		"2/2/1.py",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source:  filepath.Join(tmpDir, "5"),
@@ -289,9 +289,9 @@ func TestZip(t *testing.T) {
 		"1.txt",
 		"1.py",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source:             filepath.Join(tmpDir, "5"),
@@ -304,9 +304,9 @@ func TestZip(t *testing.T) {
 		"1.py",
 		"2/1.py",
 	}
-	CheckZip(zipInput, expected, false, t)
+	CheckArchive(input, expected, false, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Bytes: []BytesInput{
 			{
 				Content: []byte(""),
@@ -318,9 +318,9 @@ func TestZip(t *testing.T) {
 			},
 		},
 	}
-	CheckZip(zipInput, nil, true, t)
+	CheckArchive(input, nil, true, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Bytes: []BytesInput{
 			{
 				Content: []byte(""),
@@ -329,9 +329,9 @@ func TestZip(t *testing.T) {
 		},
 		EmptyFiles: []string{"1/text.txt"},
 	}
-	CheckZip(zipInput, nil, true, t)
+	CheckArchive(input, nil, true, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source:  filepath.Join(tmpDir, "3"),
@@ -339,9 +339,9 @@ func TestZip(t *testing.T) {
 			},
 		},
 	}
-	CheckZip(zipInput, nil, true, t)
+	CheckArchive(input, nil, true, t)
 
-	zipInput = &Input{
+	input = &Input{
 		Dirs: []DirInput{
 			{
 				Source:  filepath.Join(tmpDir, "5"),
@@ -349,36 +349,104 @@ func TestZip(t *testing.T) {
 			},
 		},
 	}
-	CheckZip(zipInput, nil, true, t)
+	CheckArchive(input, nil, true, t)
 }
 
-func CheckZip(zipInput *Input, expected []string, shouldErr bool, t *testing.T) {
+func CheckArchive(input *Input, expected []string, shouldErr bool, t *testing.T) {
+	CheckZip(input, expected, shouldErr, t)
+	CheckTar(input, expected, shouldErr, t)
+	CheckTgz(input, expected, shouldErr, t)
+}
+
+func CheckZip(input *Input, expected []string, shouldErr bool, t *testing.T) {
 	tmpDir, err := files.TmpDir()
 	defer os.RemoveAll(tmpDir)
 	require.NoError(t, err)
 
-	err = ToFile(zipInput, filepath.Join(tmpDir, "zip.zip"))
+	_, err = ZipToFile(input, filepath.Join(tmpDir, "archive.zip"))
 	if shouldErr {
 		require.Error(t, err)
 		return
 	}
 	require.NoError(t, err)
 
-	_, err = UnzipFileToDir(filepath.Join(tmpDir, "zip.zip"), filepath.Join(tmpDir, "zip"))
+	_, err = UnzipFileToDir(filepath.Join(tmpDir, "archive.zip"), filepath.Join(tmpDir, "archive"))
 	require.NoError(t, err)
 
-	unzippedFiles, err := files.ListDirRecursive(filepath.Join(tmpDir, "zip"), true)
+	unzippedFiles, err := files.ListDirRecursive(filepath.Join(tmpDir, "archive"), true)
 	require.NoError(t, err)
 
 	require.ElementsMatch(t, expected, unzippedFiles)
 
-	contents, err := UnzipFileToMem(filepath.Join(tmpDir, "zip.zip"))
+	contents, err := UnzipFileToMem(filepath.Join(tmpDir, "archive.zip"))
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
 
-	zipBytes, err := ioutil.ReadFile(filepath.Join(tmpDir, "zip.zip"))
+	zipBytes, err := ioutil.ReadFile(filepath.Join(tmpDir, "archive.zip"))
 	require.NoError(t, err)
 	contents, err = UnzipMemToMem(zipBytes)
+	require.NoError(t, err)
+	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
+}
+
+func CheckTar(input *Input, expected []string, shouldErr bool, t *testing.T) {
+	tmpDir, err := files.TmpDir()
+	defer os.RemoveAll(tmpDir)
+	require.NoError(t, err)
+
+	_, err = TarToFile(input, filepath.Join(tmpDir, "archive.tar"))
+	if shouldErr {
+		require.Error(t, err)
+		return
+	}
+	require.NoError(t, err)
+
+	_, err = UntarFileToDir(filepath.Join(tmpDir, "archive.tar"), filepath.Join(tmpDir, "archive"))
+	require.NoError(t, err)
+
+	untaredFiles, err := files.ListDirRecursive(filepath.Join(tmpDir, "archive"), true)
+	require.NoError(t, err)
+
+	require.ElementsMatch(t, expected, untaredFiles)
+
+	contents, err := UntarFileToMem(filepath.Join(tmpDir, "archive.tar"))
+	require.NoError(t, err)
+	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
+
+	tarBytes, err := ioutil.ReadFile(filepath.Join(tmpDir, "archive.tar"))
+	require.NoError(t, err)
+	contents, err = UntarMemToMem(tarBytes)
+	require.NoError(t, err)
+	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
+}
+
+func CheckTgz(input *Input, expected []string, shouldErr bool, t *testing.T) {
+	tmpDir, err := files.TmpDir()
+	defer os.RemoveAll(tmpDir)
+	require.NoError(t, err)
+
+	_, err = TgzToFile(input, filepath.Join(tmpDir, "archive.tgz"))
+	if shouldErr {
+		require.Error(t, err)
+		return
+	}
+	require.NoError(t, err)
+
+	_, err = UntgzFileToDir(filepath.Join(tmpDir, "archive.tgz"), filepath.Join(tmpDir, "archive"))
+	require.NoError(t, err)
+
+	untgzedFiles, err := files.ListDirRecursive(filepath.Join(tmpDir, "archive"), true)
+	require.NoError(t, err)
+
+	require.ElementsMatch(t, expected, untgzedFiles)
+
+	contents, err := UntgzFileToMem(filepath.Join(tmpDir, "archive.tgz"))
+	require.NoError(t, err)
+	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
+
+	tgzBytes, err := ioutil.ReadFile(filepath.Join(tmpDir, "archive.tgz"))
+	require.NoError(t, err)
+	contents, err = UntgzMemToMem(tgzBytes)
 	require.NoError(t, err)
 	require.ElementsMatch(t, expected, maps.InterfaceMapKeysUnsafe(contents))
 }
