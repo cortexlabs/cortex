@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 
@@ -36,6 +37,10 @@ type AWSCredentials struct {
 	AWSSecretAccessKey        string `json:"aws_secret_access_key"`
 	ClusterAWSAccessKeyID     string `json:"cluster_aws_access_key_id"`
 	ClusterAWSSecretAccessKey string `json:"cluster_aws_secret_access_key"`
+}
+
+func (awsCreds *AWSCredentials) MaskedString() string {
+	return fmt.Sprintf("AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s", s.MaskString(awsCreds.AWSAccessKeyID, 4), s.MaskString(awsCreds.AWSSecretAccessKey, 4))
 }
 
 func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
@@ -153,24 +158,24 @@ func awsCredentialsForCreatingCluster(disallowPrompt bool) (AWSCredentials, erro
 	}
 
 	if awsCredentials != nil {
-		fmt.Println(fmt.Sprintf("using aws credentials AWS_ACCESS_KEY_ID=%s and AWS_SECRET_ACCESS_KEY=%s found in environment variables\n\nto use different credentials, specify the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`\n", s.MaskString(awsCredentials.AWSAccessKeyID, 4), s.MaskString(awsCredentials.AWSSecretAccessKey, 4)))
+		fmt.Println(fmt.Sprintf("using aws credentials %s found in environment variables\n\nto use different credentials, specify the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`\n", awsCredentials.MaskedString()))
 		return *awsCredentials, nil
 	}
 
 	awsCredentials, err = awsCredentialsFromSharedCreds()
 	if err != nil {
-		return AWSCredentials{}, err
+		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`")
 	}
 
 	if awsCredentials != nil {
-		fmt.Println(fmt.Sprintf("using aws credentials AWS_ACCESS_KEY_ID=%s and AWS_SECRET_ACCESS_KEY=%s from the \"default\" profile configured by the aws cli command `aws configure`\n\nto use different credentials, specify the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`\n", s.MaskString(awsCredentials.AWSAccessKeyID, 4), s.MaskString(awsCredentials.AWSSecretAccessKey, 4)))
+		fmt.Println(fmt.Sprintf("using aws credentials %s from the \"default\" profile configured by the command `aws configure`\n\nto use different credentials, specify the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`\n", awsCredentials.MaskedString()))
 		return *awsCredentials, nil
 	}
 
 	if !disallowPrompt {
 		awsCredentials, err = awsCredentialsPrompt()
 		if err != nil {
-			return AWSCredentials{}, err
+			return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`")
 		}
 
 		return *awsCredentials, nil
@@ -189,20 +194,20 @@ func awsCredentialsForManagingCluster(accessConfig clusterconfig.AccessConfig, d
 		return *awsCredentials, nil
 	}
 
-	awsCredentials, err = getAWSCredentialsCortexCache(accessConfig)
+	awsCredentials, err = getAWSCredentialsFromCache(accessConfig)
 	if err != nil {
-		return AWSCredentials{}, err
+		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`")
 	}
 
 	if awsCredentials != nil {
-		fmt.Println(fmt.Sprintf("using cached aws credentials AWS_ACCESS_KEY_ID=%s and AWS_SECRET_ACCESS_KEY=%s\n\nto use different credentials, specify the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`\n", s.MaskString(awsCredentials.AWSAccessKeyID, 4), s.MaskString(awsCredentials.AWSSecretAccessKey, 4)))
+		fmt.Println(fmt.Sprintf("using cached aws credentials %s\n\nto use different credentials, specify the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`\n", awsCredentials.MaskedString()))
 		return *awsCredentials, nil
 	}
 
 	if !disallowPrompt {
 		awsCredentials, err = awsCredentialsPrompt()
 		if err != nil {
-			return AWSCredentials{}, err
+			return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the flags `--aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>`")
 		}
 
 		return *awsCredentials, nil
@@ -329,7 +334,7 @@ func credentialsCacheKey(accessConfig clusterconfig.AccessConfig) string {
 	return filepath.Join(_credentialsCacheDir, fmt.Sprintf("%s-%s.json", *accessConfig.Region, *accessConfig.ClusterName))
 }
 
-func getAWSCredentialsCortexCache(accessConfig clusterconfig.AccessConfig) (*AWSCredentials, error) {
+func getAWSCredentialsFromCache(accessConfig clusterconfig.AccessConfig) (*AWSCredentials, error) {
 	credsPath := credentialsCacheKey(accessConfig)
 
 	if err := files.CheckFile(credsPath); err != nil {
