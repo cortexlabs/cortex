@@ -23,7 +23,7 @@ If you are not using a sensitive AWS account and do not have a lot of experience
 Cortex uses AWS credentials for 3 main purposes:
 
 1. Spinning up a cluster (requires `AdministratorAccess`)
-2. Cortex Operator runtime (see [operator policy](#operator))
+2. Cluster runtime (see [operator policy](#operator))
 3. CLI authentication (no special permissions are required)
 
 ### Cluster spin-up
