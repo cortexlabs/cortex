@@ -23,9 +23,11 @@ import (
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -59,6 +61,7 @@ func getInit() {
 	_getCmd.Flags().SortFlags = false
 	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every 2 seconds")
+	_getCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 }
 
 var _getCmd = &cobra.Command{
@@ -93,6 +96,11 @@ var _getCmd = &cobra.Command{
 				if err != nil {
 					return "", err
 				}
+
+				if _flagOutput == flags.JSONOutputType {
+					return apiTable, nil
+				}
+
 				return out + apiTable, nil
 			} else if len(args) == 2 {
 				env, err := ReadOrConfigureEnv(_flagGetEnv)
@@ -109,11 +117,15 @@ var _getCmd = &cobra.Command{
 					return "", errors.Wrap(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot get status of job %s for api %s", args[1], args[0]))
 				}
 
-				apiTable, err := getJob(env, args[0], args[1])
+				jobTable, err := getJob(env, args[0], args[1])
 				if err != nil {
 					return "", err
 				}
-				return out + apiTable, nil
+				if _flagOutput == flags.JSONOutputType {
+					return jobTable, nil
+				}
+
+				return out + jobTable, nil
 			} else {
 				if wasEnvFlagProvided(cmd) {
 					env, err := ReadOrConfigureEnv(_flagGetEnv)
@@ -130,6 +142,11 @@ var _getCmd = &cobra.Command{
 					if err != nil {
 						return "", err
 					}
+
+					if _flagOutput == flags.JSONOutputType {
+						return apiTable, nil
+					}
+
 					return out + apiTable, nil
 				}
 
@@ -157,6 +174,14 @@ func getAPIsInAllEnvironments() (string, error) {
 	var allTrafficSplitters []schema.TrafficSplitter
 	var allTrafficSplitterEnvs []string
 
+	type getAPIsOutput struct {
+		EnvName  string                 `json:"env_name"`
+		Response schema.GetAPIsResponse `json:"response"`
+		Error    string                 `json:"error"`
+	}
+
+	allAPIsOutput := []getAPIsOutput{}
+
 	errorsMap := map[string]error{}
 	// get apis from both environments
 	for _, env := range cliConfig.Environments {
@@ -166,6 +191,11 @@ func getAPIsInAllEnvironments() (string, error) {
 			apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
 		} else {
 			apisRes, err = local.GetAPIs()
+		}
+
+		apisOutput := getAPIsOutput{
+			EnvName:  env.Name,
+			Response: apisRes,
 		}
 
 		if err == nil {
@@ -182,8 +212,20 @@ func getAPIsInAllEnvironments() (string, error) {
 			allBatchAPIs = append(allBatchAPIs, apisRes.BatchAPIs...)
 			allTrafficSplitters = append(allTrafficSplitters, apisRes.TrafficSplitters...)
 		} else {
+			apisOutput.Error = err.Error()
 			errorsMap[env.Name] = err
 		}
+
+		allAPIsOutput = append(allAPIsOutput, apisOutput)
+	}
+
+	if _flagOutput == flags.JSONOutputType {
+		bytes, err := libjson.Marshal(allAPIsOutput)
+		if err != nil {
+			return "", err
+		}
+
+		return string(bytes), nil
 	}
 
 	out := ""
@@ -278,10 +320,26 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(apisRes)
+			if err != nil {
+				return "", err
+			}
+			return string(bytes), nil
+		}
 	} else {
 		apisRes, err = local.GetAPIs()
 		if err != nil {
 			return "", err
+		}
+
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(apisRes)
+			if err != nil {
+				return "", err
+			}
+			return string(bytes), nil
 		}
 	}
 
@@ -372,11 +430,15 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	if env.Provider == types.AWSProviderType {
 		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 		if err != nil {
-			// note: if modifying this string, search the codebase for it and change all occurrences
-			if strings.HasSuffix(errors.Message(err), "is not deployed") {
-				return console.Bold(errors.Message(err)), nil
-			}
 			return "", err
+		}
+
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(apiRes)
+			if err != nil {
+				return "", err
+			}
+			return string(bytes), nil
 		}
 
 		if apiRes.RealtimeAPI != nil {
@@ -390,11 +452,15 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 	apiRes, err := local.GetAPI(apiName)
 	if err != nil {
-		// note: if modifying this string, search the codebase for it and change all occurrences
-		if strings.HasSuffix(errors.Message(err), "is not deployed") {
-			return console.Bold(errors.Message(err)), nil
-		}
 		return "", err
+	}
+
+	if _flagOutput == flags.JSONOutputType {
+		bytes, err := libjson.Marshal(apiRes)
+		if err != nil {
+			return "", err
+		}
+		return string(bytes), nil
 	}
 
 	return realtimeAPITable(apiRes.RealtimeAPI, env)

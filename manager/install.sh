@@ -189,7 +189,7 @@ function main() {
     fi
 
     # create VPC Link
-    create_vpc_link_output=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags $CORTEX_TAGS --name $CORTEX_CLUSTER_NAME --subnet-ids $private_subnets --security-group-ids $default_security_group)
+    create_vpc_link_output=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags "$CORTEX_TAGS_JSON" --name $CORTEX_CLUSTER_NAME --subnet-ids $private_subnets --security-group-ids $default_security_group)
     vpc_link_id=$(echo $create_vpc_link_output | jq .VpcLinkId | tr -d '"')
     if [ "$vpc_link_id" = "" ] || [ "$vpc_link_id" = "null" ]; then
       echo -e "unable to extract vpc link ID from create-vpc-link output:\n$create_vpc_link_output"

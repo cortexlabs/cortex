@@ -20,7 +20,7 @@ import json
 def export(base_key, value):
     if base_key.lower().startswith("cortex_tags"):
         inlined_tags = ",".join([f"{k}={v}" for k, v in value.items()])
-        print(f"export CORTEX_TAGS={inlined_tags}")
+        print(f"export CORTEX_TAGS='{inlined_tags}'")
         print(f"export CORTEX_TAGS_JSON='{json.dumps(value)}'")
         return
 
