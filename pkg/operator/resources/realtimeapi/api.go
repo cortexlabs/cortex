@@ -150,6 +150,11 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
+	// Reupload api spec to the same PredictorID but with the new DeploymentID
+	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+		return "", errors.Wrap(err, "upload predictor spec")
+	}
+
 	if err := applyK8sDeployment(api, prevDeployment); err != nil {
 		return "", err
 	}

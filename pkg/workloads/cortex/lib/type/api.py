@@ -33,6 +33,7 @@ class API:
         self.provider = provider
         self.id = kwargs["id"]
         self.predictor_id = kwargs["predictor_id"]
+        self.deployment_id = kwargs["deployment_id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
         self.name = kwargs["name"]
@@ -74,6 +75,7 @@ class API:
         return [
             {"Name": "APIName", "Value": self.name},
             {"Name": "PredictorID", "Value": self.predictor_id},
+            {"Name": "DeploymentID", "Value": self.deployment_id},
         ]
 
     def metric_dimensions(self):
