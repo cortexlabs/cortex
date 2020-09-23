@@ -25,16 +25,16 @@ import (
 )
 
 func PrintError(err error, strs ...string) {
-	fmt.Println(errorStr(err, strs...))
+	fmt.Println(ErrorStr(err, strs...))
 	// PrintStacktrace(err)
 }
 
 func PrintErrorForUser(err error, strs ...string) {
-	print.BoldFirstLine(errorStr(err, strs...))
+	print.BoldFirstLine(ErrorStr(err, strs...))
 	// PrintStacktrace(err)
 }
 
-func errorStr(err error, strs ...string) string {
+func ErrorStr(err error, strs ...string) string {
 	wrappedErr := Wrap(err, strs...)
 	return "error: " + strings.TrimSpace(Message(wrappedErr))
 }
