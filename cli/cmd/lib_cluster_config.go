@@ -42,10 +42,6 @@ func cachedClusterConfigPath(clusterName string, region string) string {
 	return filepath.Join(_localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
 }
 
-func mountedClusterConfigPath(clusterName string, region string) string {
-	return filepath.Join("/.cortex", fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
-}
-
 func existingCachedClusterConfigPaths() []string {
 	paths, err := files.ListDir(_localDir, false)
 	if err != nil {

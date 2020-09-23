@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package zip
+package flags
 
 import (
 	"fmt"
@@ -24,17 +24,12 @@ import (
 )
 
 const (
-	_errStrUnzip     = "unable to unzip file"
-	_errStrCreateZip = "unable to create zip file"
+	ErrInvalidOutputType = "flags.invalid_output_type"
 )
 
-const (
-	ErrDuplicateZipPath = "zip.duplicate_zip_path"
-)
-
-func ErrorDuplicateZipPath(path string) error {
+func ErrorInvalidOutputType(invalidOutputType string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateZipPath,
-		Message: fmt.Sprintf("conflicting path in zip (%s)", s.UserStr(path)),
+		Kind:    ErrInvalidOutputType,
+		Message: fmt.Sprintf("invalid value \"%s\" specified for -o/--output; valid values are %s", invalidOutputType, s.StrsAnd(OutputTypeStrings())),
 	})
 }

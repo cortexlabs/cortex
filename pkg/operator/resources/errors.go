@@ -54,7 +54,7 @@ func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, su
 func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotDeployed,
-		Message: fmt.Sprintf("%s is not deployed", apiName), // note: if modifying this string, search the codebase for it and change all occurrences
+		Message: fmt.Sprintf("%s is not deployed", apiName),
 	})
 }
 
