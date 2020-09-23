@@ -22,7 +22,7 @@ If you are not using a sensitive AWS account and do not have a lot of experience
 
 Cortex uses AWS credentials for 3 main purposes:
 
-1. Spinning up a cluster (requires `AdministratorAccess`)
+1. Spinning up a cluster (credentials with `AdministratorAccess` is recommended)
 2. Cluster runtime (see [operator policy](#operator))
 3. CLI authentication (no special permissions are required)
 
@@ -30,9 +30,9 @@ Cortex uses AWS credentials for 3 main purposes:
 
 Spinning up Cortex on your AWS account requires more permissions than Cortex needs once it's running. You can specify different credentials for each purpose in two ways (in order of precedence):
 
-1. You can specify `--aws-key` and `--aws-secret` flags to `cortex cluster up` to indicate the credentials that will be used to create your cluster. You can specify `--cluster-aws-key` and `--cluster-aws-secret` to specify credentials which will be used by the cluster.
+1. You can specify `--aws-key` and `--aws-secret` flags with the command `cortex cluster up` to indicate the credentials that will be used to create your cluster. Optionally, you can specify `--cluster-aws-key` and `--cluster-aws-secret` to specify credentials which will be used by the cluster.
 
-2. You can export the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` which will be used to create your cluster, and export `CLUSTER_AWS_ACCESS_KEY_ID` and `CLUSTER_AWS_SECRET_ACCESS_KEY` which will be used by the cluster.
+2. You can export the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` which will be used to create your cluster. Optionally, you can export `CLUSTER_AWS_ACCESS_KEY_ID` and `CLUSTER_AWS_SECRET_ACCESS_KEY` to specify credentials which will be used by the cluster.
 
 In either case, the credentials used when spinning up the cluster will not be used by the cluster itself, and can be safely revoked after the cluster is running. You may need credentials with similar access to run other `cortex cluster` commands, such as `cortex cluster configure`, `cortex cluster info`, and `cortex cluster down`.
 
