@@ -278,19 +278,20 @@ func awsCredentialsFromEnvVars() (*AWSCredentials, error) {
 	credentials.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
 	credentials.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 
-	if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
+	if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" || os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
+		if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
+			return nil, ErrorOneAWSEnvVarSet("CLUSTER_AWS_SECRET_ACCESS_KEY", "CLUSTER_AWS_ACCESS_KEY_ID")
+		}
+		if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") == "" {
+			return nil, ErrorOneAWSEnvVarSet("CLUSTER_AWS_ACCESS_KEY_ID", "CLUSTER_AWS_SECRET_ACCESS_KEY")
+		}
+
 		credentials.ClusterAWSAccessKeyID = os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID")
 		credentials.ClusterAWSSecretAccessKey = os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY")
+	} else {
+		credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
+		credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
 	}
-	if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
-		return nil, ErrorOneAWSEnvVarSet("CLUSTER_AWS_SECRET_ACCESS_KEY", "CLUSTER_AWS_ACCESS_KEY_ID")
-	}
-	if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") == "" {
-		return nil, ErrorOneAWSEnvVarSet("CLUSTER_AWS_ACCESS_KEY_ID", "CLUSTER_AWS_SECRET_ACCESS_KEY")
-	}
-
-	credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
-	credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
 
 	return &credentials, nil
 }
