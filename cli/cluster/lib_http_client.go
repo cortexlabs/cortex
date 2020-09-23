@@ -27,10 +27,10 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
@@ -154,8 +154,8 @@ func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Rea
 	return nil
 }
 
-func HTTPUploadZip(operatorConfig OperatorConfig, endpoint string, zipInput *zip.Input, fileName string, qParams ...map[string]string) ([]byte, error) {
-	zipBytes, err := zip.ToMem(zipInput)
+func HTTPUploadZip(operatorConfig OperatorConfig, endpoint string, zipInput *archive.Input, fileName string, qParams ...map[string]string) ([]byte, error) {
+	zipBytes, _, err := archive.ZipToMem(zipInput)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to zip configuration file")
 	}

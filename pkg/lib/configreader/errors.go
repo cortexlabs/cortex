@@ -32,6 +32,8 @@ const (
 	ErrInvalidYAML                   = "configreader.invalid_yaml"
 	ErrTooLong                       = "configreader.too_long"
 	ErrTooShort                      = "configreader.too_short"
+	ErrLeadingWhitespace             = "configreader.leading_whitespace"
+	ErrTrailingWhitespace            = "configreader.trailing_whitespace"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
 	ErrInvalidAWSTag                 = "configreader.invalid_aws_tag"
@@ -114,6 +116,20 @@ func ErrorTooShort(provided string, minLen int) error {
 	})
 }
 
+func ErrorLeadingWhitespace(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrLeadingWhitespace,
+		Message: fmt.Sprintf("%s cannot start with whitespace", s.UserStr(provided)),
+	})
+}
+
+func ErrorTrailingWhitespace(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTrailingWhitespace,
+		Message: fmt.Sprintf("%s cannot end with whitespace", s.UserStr(provided)),
+	})
+}
+
 func ErrorAlphaNumericDashUnderscore(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAlphaNumericDashUnderscore,
@@ -131,7 +147,7 @@ func ErrorAlphaNumericDashDotUnderscore(provided string) error {
 func ErrorInvalidAWSTag(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAWSTag,
-		Message: fmt.Sprintf("%s must contain only letters, numbers, spaces, and the following characters: _ . : / = + - @", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must contain only letters, numbers, spaces, and the following characters: _ . : / + - @", s.UserStr(provided)),
 	})
 }
 

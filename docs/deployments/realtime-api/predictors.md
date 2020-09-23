@@ -86,6 +86,10 @@ class PythonPredictor:
         Useful for tasks that the client doesn't need to wait on before
         receiving a response such as recording metrics or storing results.
 
+        Note: post_predict() and predict() run in the same thread pool. The
+        size of the thread pool can be increased by updating
+        `threads_per_process` in the api configuration yaml.
+
         Args:
             response (optional): The response as returned by the predict method.
             payload (optional): The request payload (see below for the possible
@@ -245,6 +249,10 @@ class TensorFlowPredictor:
         Useful for tasks that the client doesn't need to wait on before
         receiving a response such as recording metrics or storing results.
 
+        Note: post_predict() and predict() run in the same thread pool. The
+        size of the thread pool can be increased by updating
+        `threads_per_process` in the api configuration yaml.
+
         Args:
             response (optional): The response as returned by the predict method.
             payload (optional): The request payload (see below for the possible
@@ -352,6 +360,10 @@ class ONNXPredictor:
         """(Optional) Called in the background after returning a response.
         Useful for tasks that the client doesn't need to wait on before
         receiving a response such as recording metrics or storing results.
+
+        Note: post_predict() and predict() run in the same thread pool. The
+        size of the thread pool can be increased by updating
+        `threads_per_process` in the api configuration yaml.
 
         Args:
             response (optional): The response as returned by the predict method.

@@ -20,11 +20,11 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
@@ -76,7 +76,7 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
 	projectID := hash.Bytes(projectBytes)
 	projectKey := spec.ProjectKey(projectID)
-	projectFileMap, err := zip.UnzipMemToMem(projectBytes)
+	projectFileMap, err := archive.UnzipMemToMem(projectBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
 		results[i].Message = msg
 		if err != nil {
-			results[i].Error = errors.Message(err)
+			results[i].Error = errors.ErrorStr(err)
 		} else {
 			results[i].API = api
 		}

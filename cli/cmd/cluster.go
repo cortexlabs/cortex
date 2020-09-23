@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -173,7 +174,7 @@ var _upCmd = &cobra.Command{
 			}
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
 			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
@@ -253,6 +254,30 @@ var _upCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
+		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
+			clusterconfig.ClusterNameTag: clusterConfig.ClusterName,
+			"cortex.dev/load-balancer":   "operator",
+		})
+		if err != nil {
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nunable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
+		}
+		if loadBalancer == nil {
+			exit.Error(ErrorNoOperatorLoadBalancer(_flagClusterEnv))
+		}
+
+		newEnvironment := cliconfig.Environment{
+			Name:               _flagClusterEnv,
+			Provider:           types.AWSProviderType,
+			OperatorEndpoint:   pointer.String("https://" + *loadBalancer.DNSName),
+			AWSAccessKeyID:     pointer.String(awsCreds.CortexAWSAccessKeyID),
+			AWSSecretAccessKey: pointer.String(awsCreds.CortexAWSSecretAccessKey),
+		}
+
+		err = addEnvToCLIConfig(newEnvironment)
+		if err != nil {
+			exit.Error(errors.Append(err, fmt.Sprintf("unable to configure cli environment; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
+		}
+
 		cacheAWSCredentials(awsCreds, accessConfig)
 
 		fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured for this cluster; append `--env %s` to cortex commands to connect to it (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterEnv, _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
@@ -306,7 +331,7 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -396,6 +421,12 @@ var _downCmd = &cobra.Command{
 			}
 		}
 
+		// updating CLI env is best-effort, so ignore errors
+		loadBalancer, _ := awsClient.FindLoadBalancer(map[string]string{
+			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
+			"cortex.dev/load-balancer":   "operator",
+		})
+
 		if !_flagClusterDisallowPrompt {
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
@@ -442,7 +473,7 @@ var _downCmd = &cobra.Command{
 		}
 
 		fmt.Println("￮ spinning down the cluster ...")
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -452,8 +483,24 @@ var _downCmd = &cobra.Command{
 			exit.Error(ErrorClusterDown(out + helpStr))
 		}
 
-		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
-		os.Remove(cachedConfigPath)
+		// best-effort deletion of cli environment(s)
+		if loadBalancer != nil {
+			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(*loadBalancer.DNSName)
+			if len(envNames) > 0 {
+				for _, envName := range envNames {
+					removeEnvFromCLIConfig(envName)
+				}
+				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
+				if isDefaultEnv {
+					fmt.Println("✓ set the default environment to local")
+				}
+			}
+		}
+
+		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", *accessConfig.ClusterName, clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region))
+
+		cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+		os.Remove(cachedClusterConfigPath)
 		decacheAWSCredentials(*accessConfig)
 	},
 }
@@ -513,7 +560,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, disallowPrompt)
 
-	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, _flagClusterEnv)
+	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -746,7 +793,18 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 }
 
 func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
-	out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds, _flagClusterEnv)
+	// note: if modifying this string, also change it in files.IgnoreCortexDebug()
+	debugFileName := fmt.Sprintf("cortex-debug-%s.tgz", time.Now().UTC().Format("2006-01-02-15-04-05"))
+
+	containerDebugPath := "/out/" + debugFileName
+	copyFromPaths := []dockerCopyFromPath{
+		{
+			containerPath: containerDebugPath,
+			localDir:      _cwd,
+		},
+	}
+
+	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsCreds, _flagClusterEnv, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -754,28 +812,24 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 		exit.Error(ErrorClusterDebug(out))
 	}
 
-	timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
-	userDebugPath := fmt.Sprintf("cortex-debug-%s.tgz", timestamp) // note: if modifying this string, also change it in files.IgnoreCortexDebug()
-	err = os.Rename(_debugPath, userDebugPath)
-	if err != nil {
-		exit.Error(errors.WithStack(err))
-	}
-
-	fmt.Println("saved cluster info to ./" + userDebugPath)
+	fmt.Println("saved cluster info to ./" + debugFileName)
 	return
 }
 
 func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
-	if !files.IsFile(cachedConfigPath) {
-		files.MakeEmptyFile(cachedConfigPath)
+	cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
+
+	copyFromPaths := []dockerCopyFromPath{
+		{
+			containerPath: containerConfigPath,
+			localDir:      files.Dir(cachedClusterConfigPath),
+		},
 	}
 
-	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
-
 	fmt.Print("syncing cluster configuration ...\n\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds, _flagClusterEnv)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, _flagClusterEnv, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -784,7 +838,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	}
 
 	refreshedClusterConfig := &clusterconfig.Config{}
-	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
+	readCachedClusterConfigFile(refreshedClusterConfig, cachedClusterConfigPath)
 	return *refreshedClusterConfig
 }
 

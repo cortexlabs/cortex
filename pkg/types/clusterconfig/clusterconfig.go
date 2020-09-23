@@ -49,6 +49,7 @@ var (
 	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
+	_invalidTagPrefixes  = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
 )
 
 type Config struct {
@@ -165,16 +166,20 @@ var UserValidation = &cr.StructValidation{
 				AllowEmpty:         true,
 				ConvertNullToEmpty: true,
 				KeyStringValidator: &cr.StringValidation{
-					MinLength:       1,
-					MaxLength:       127,
-					InvalidPrefixes: []string{"aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"},
-					AWSTag:          true,
+					MinLength:                  1,
+					MaxLength:                  127,
+					DisallowLeadingWhitespace:  true,
+					DisallowTrailingWhitespace: true,
+					InvalidPrefixes:            _invalidTagPrefixes,
+					AWSTag:                     true,
 				},
 				ValueStringValidator: &cr.StringValidation{
-					MinLength:       1,
-					MaxLength:       255,
-					InvalidPrefixes: []string{"aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"},
-					AWSTag:          true,
+					MinLength:                  1,
+					MaxLength:                  255,
+					DisallowLeadingWhitespace:  true,
+					DisallowTrailingWhitespace: true,
+					InvalidPrefixes:            _invalidTagPrefixes,
+					AWSTag:                     true,
 				},
 			},
 		},
@@ -530,6 +535,7 @@ func (cc *Config) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
 
+// this validates the user-provided cluster config
 func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
@@ -603,8 +609,10 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if cc.Tags[ClusterNameTag] != "" && cc.Tags[ClusterNameTag] != cc.ClusterName {
-		return ErrorCantOverrideDefaultTag()
+	for tagName := range cc.Tags {
+		if strings.HasPrefix(tagName, "cortex.dev/") {
+			return errors.Wrap(cr.ErrorCantHavePrefix(tagName, "cortex.dev/"), TagsKey)
+		}
 	}
 	cc.Tags[ClusterNameTag] = cc.ClusterName
 
