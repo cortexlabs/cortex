@@ -129,12 +129,15 @@ export CLI_BUCKET_NAME="cortex-cli-<your_name>"
 export CLI_BUCKET_REGION="us-west-2"
 ```
 
-Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, `aws_access_key_id`, `aws_secret_access_key`, and all registry URLs accordingly:
+Specify the aws credentials that will be used by the cortex cli using aws cli:
+
+```bash
+aws configure
+```
+
+Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, and all registry URLs accordingly:
 
 ```yaml
-aws_access_key_id: ***
-aws_secret_access_key: ***
-
 instance_type: m5.large
 min_instances: 2
 max_instances: 5

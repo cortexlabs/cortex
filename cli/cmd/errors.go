@@ -57,6 +57,8 @@ const (
 	ErrAPINotReady                          = "cli.api_not_ready"
 	ErrOneAWSEnvVarSet                      = "cli.one_aws_env_var_set"
 	ErrOneAWSConfigFieldSet                 = "cli.one_aws_config_field_set"
+	ErrOneAWSConfigFlagSet                  = "cli.one_aws_config_flag_set"
+	ErrMissingAWSCredentials                = "cli.missing_aws_credentials"
 	ErrClusterUp                            = "cli.cluster_up"
 	ErrClusterConfigure                     = "cli.cluster_configure"
 	ErrClusterInfo                          = "cli.cluster_info"
@@ -201,6 +203,20 @@ func ErrorOneAWSConfigFieldSet(setConfigField string, missingConfigField string,
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOneAWSConfigFieldSet,
 		Message: fmt.Sprintf("only %s is set in %s; please set %s as well", setConfigField, _flagClusterConfig, missingConfigField),
+	})
+}
+
+func ErrorOneAWSFlagSet(setFlag string, missingFlag string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOneAWSConfigFlagSet,
+		Message: fmt.Sprintf("only flag %s was provided; please provide %s as well", setFlag, missingFlag),
+	})
+}
+
+func ErrorMissingAWSCredentials() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMissingAWSCredentials,
+		Message: "unable to find aws credentials; please specify aws credentials using the flags `--aws-key <AWS_ACCESS_KEY_ID>` and `--aws-secret <AWS_SECRET_ACCESS_KEY>`",
 	})
 }
 
