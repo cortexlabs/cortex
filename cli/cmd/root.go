@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -35,6 +36,7 @@ var (
 	_cmdStr string
 
 	_configFileExts = []string{"yaml", "yml"}
+	_flagOutput     = flags.PrettyOutputType
 
 	_localDir      string
 	_cliConfigPath string
@@ -195,7 +197,9 @@ func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
 		return err
 	}
 
-	fmt.Print(out)
+	if _flagOutput == flags.PrettyOutputType {
+		fmt.Print(out)
+	}
 	return nil
 }
 
@@ -205,7 +209,7 @@ func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error)
 		return "", err
 	}
 
-	if !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
+	if _flagOutput == flags.PrettyOutputType && !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
 		return fmt.Sprintf("using %s environment\n\n", envName), nil
 	}
 

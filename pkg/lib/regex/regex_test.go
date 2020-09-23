@@ -19,12 +19,178 @@ package regex
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type regexpMatch struct {
 	input string
 	match bool
 	subs  []string
+}
+
+func TestHasLeadingWhitespace(t *testing.T) {
+	testcases := []regexpMatch{
+		{
+			input: " test",
+			match: true,
+		},
+		{
+			input: "	test",
+			match: true,
+		},
+		{
+			input: "\ntest",
+			match: true,
+		},
+		{
+			input: " test ",
+			match: true,
+		},
+		{
+			input: "	test	",
+			match: true,
+		},
+		{
+			input: "\ntest\n",
+			match: true,
+		},
+		{
+			input: "test",
+			match: false,
+		},
+		{
+			input: "te st",
+			match: false,
+		},
+		{
+			input: "te	st",
+			match: false,
+		},
+		{
+			input: "te\nst",
+			match: false,
+		},
+		{
+			input: "_",
+			match: false,
+		},
+		{
+			input: "test ",
+			match: false,
+		},
+		{
+			input: "test	",
+			match: false,
+		},
+		{
+			input: "test\n",
+			match: false,
+		},
+		{
+			input: " ",
+			match: true,
+		},
+		{
+			input: "	",
+			match: true,
+		},
+		{
+			input: "\n",
+			match: true,
+		},
+		{
+			input: "",
+			match: false,
+		},
+	}
+
+	for i := range testcases {
+		match := HasLeadingWhitespace(testcases[i].input)
+		assert.Equal(t, testcases[i].match, match, "input: "+testcases[i].input)
+	}
+}
+
+func TestHasTrailingWhitespace(t *testing.T) {
+	testcases := []regexpMatch{
+		{
+			input: " test",
+			match: false,
+		},
+		{
+			input: "	test",
+			match: false,
+		},
+		{
+			input: "\ntest",
+			match: false,
+		},
+		{
+			input: " test ",
+			match: true,
+		},
+		{
+			input: "	test	",
+			match: true,
+		},
+		{
+			input: "\ntest\n",
+			match: true,
+		},
+		{
+			input: "test",
+			match: false,
+		},
+		{
+			input: "te st",
+			match: false,
+		},
+		{
+			input: "te	st",
+			match: false,
+		},
+		{
+			input: "te\nst",
+			match: false,
+		},
+		{
+			input: "_",
+			match: false,
+		},
+		{
+			input: "test ",
+			match: true,
+		},
+		{
+			input: "test	",
+			match: true,
+		},
+		{
+			input: "test\n",
+			match: true,
+		},
+		{
+			input: " ",
+			match: true,
+		},
+		{
+			input: "	",
+			match: true,
+		},
+		{
+			input: "\n",
+			match: true,
+		},
+		{
+			input: "",
+			match: false,
+		},
+	}
+
+	for i := range testcases {
+		match := HasTrailingWhitespace(testcases[i].input)
+		assert.Equal(t, testcases[i].match, match, "input: "+testcases[i].input)
+	}
 }
 
 func TestAlphaNumericDashDotUnderscoreRegex(t *testing.T) {

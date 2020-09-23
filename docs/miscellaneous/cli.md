@@ -11,10 +11,11 @@ Usage:
   cortex deploy [CONFIG_FILE] [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -f, --force        override the in-progress api update
-  -y, --yes          skip prompts
-  -h, --help         help for deploy
+  -e, --env string      environment to use (default "local")
+  -f, --force           override the in-progress api update
+  -y, --yes             skip prompts
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for deploy
 ```
 
 ## get
@@ -28,7 +29,7 @@ Usage:
 Flags:
   -e, --env string      environment to use (default "local")
   -w, --watch           re-run the command every 2 seconds
-  -o, --output string   output format: one of %!(EXTRA string=pretty|json) (default "pretty")
+  -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for get
 ```
 
@@ -54,9 +55,10 @@ Usage:
   cortex refresh API_NAME [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -f, --force        override the in-progress api update
-  -h, --help         help for refresh
+  -e, --env string      environment to use (default "local")
+  -f, --force           override the in-progress api update
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for refresh
 ```
 
 ## export
@@ -94,10 +96,11 @@ Usage:
   cortex delete API_NAME [JOB_ID] [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -f, --force        delete the api without confirmation
-  -c, --keep-cache   keep cached data for the api
-  -h, --help         help for delete
+  -e, --env string      environment to use (default "local")
+  -f, --force           delete the api without confirmation
+  -c, --keep-cache      keep cached data for the api
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for delete
 ```
 
 ## cluster up

@@ -25,8 +25,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
-func Marshal(obj interface{}) ([]byte, error) {
+func MarshalIndent(obj interface{}) ([]byte, error) {
 	jsonBytes, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		return nil, errors.Wrap(err, errStrMarshalJSON)
+	}
+	return jsonBytes, nil
+}
+
+func Marshal(obj interface{}) ([]byte, error) {
+	jsonBytes, err := json.Marshal(obj)
 	if err != nil {
 		return nil, errors.Wrap(err, errStrMarshalJSON)
 	}
@@ -76,7 +84,7 @@ func WriteJSON(obj interface{}, outPath string) error {
 func Pretty(obj interface{}) (string, error) {
 	b, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, errStrMarshalJSON)
 	}
 
 	return string(b), nil
