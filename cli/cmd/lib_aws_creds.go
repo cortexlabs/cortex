@@ -241,10 +241,10 @@ func awsCredentialsFromFlags() (*AWSCredentials, error) {
 
 	if len(_flagClusterAWSAccessKeyID) > 0 || len(_flagClusterAWSSecretAccessKey) > 0 {
 		if len(_flagClusterAWSAccessKeyID) == 0 {
-			return nil, ErrorOneAWSFlagSet("--cortex-aws-key", "--cortex-aws-secret")
+			return nil, ErrorOneAWSFlagSet("--cluster-aws-key", "--cluster-aws-secret")
 		}
 		if len(_flagClusterAWSSecretAccessKey) == 0 {
-			return nil, ErrorOneAWSFlagSet("--cortex-aws-secret", "--aws-cortexkey")
+			return nil, ErrorOneAWSFlagSet("--cluster-aws-secret", "--cluster-aws-key")
 		}
 
 		credentials.ClusterAWSAccessKeyID = _flagClusterAWSAccessKeyID

@@ -30,7 +30,7 @@ Cortex uses AWS credentials for 3 main purposes:
 
 Spinning up Cortex on your AWS account requires more permissions than Cortex needs once it's running. You can specify different credentials for each purpose in two ways (in order of precedence):
 
-1. You can specify `--aws-key` and `--aws-secret` flags to `cortex cluster up` to indicate the credentials that will be used to create your cluster. You can specify `--cortex-aws-key` and `--cortex-aws-secret` to specify credentials which will be used by the cluster.
+1. You can specify `--aws-key` and `--aws-secret` flags to `cortex cluster up` to indicate the credentials that will be used to create your cluster. You can specify `--cluster-aws-key` and `--cluster-aws-secret` to specify credentials which will be used by the cluster.
 
 2. You can export the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` which will be used to create your cluster, and export `CLUSTER_AWS_ACCESS_KEY_ID` and `CLUSTER_AWS_SECRET_ACCESS_KEY` which will be used by the cluster.
 
