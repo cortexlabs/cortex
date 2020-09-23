@@ -32,7 +32,6 @@ class API:
         self.provider = provider
         self.id = kwargs["id"]
         self.predictor_id = kwargs["predictor_id"]
-        print(kwargs)
         self.deployment_id = kwargs["deployment_id"]
         self.key = kwargs["key"]
         self.metadata_root = kwargs["metadata_root"]
