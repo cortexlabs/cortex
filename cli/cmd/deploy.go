@@ -264,7 +264,20 @@ func mergeResultMessages(results []schema.DeployResult) string {
 		}
 	}
 
-	return strings.Join(okMessages, "\n") + "\n\n" + strings.Join(errMessages, "\n")
+	output := ""
+
+	if len(okMessages) > 0 {
+		output += strings.Join(okMessages, "\n")
+		if len(errMessages) > 0 {
+			output += "\n\n"
+		}
+	}
+
+	if len(errMessages) > 0 {
+		output += strings.Join(errMessages, "\n")
+	}
+
+	return output
 }
 
 func didAllResultsError(results []schema.DeployResult) bool {
