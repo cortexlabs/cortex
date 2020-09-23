@@ -63,8 +63,8 @@ func clusterInit() {
 	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
 	addAWSCredentials(_upCmd)
-	_upCmd.Flags().StringVar(&_flagClusterAWSAccessKeyID, "cluster-aws-key", "", "aws access key id used be the cluster")
-	_upCmd.Flags().StringVar(&_flagClusterAWSSecretAccessKey, "cluster-aws-secret", "", "aws secret access key used by the cluster")
+	_upCmd.Flags().StringVar(&_flagClusterAWSAccessKeyID, "cluster-aws-key", "", "aws access key id to be used by the cluster")
+	_upCmd.Flags().StringVar(&_flagClusterAWSSecretAccessKey, "cluster-aws-secret", "", "aws secret access key to be used by the cluster")
 	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to create")
 	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_upCmd)
@@ -269,8 +269,8 @@ var _upCmd = &cobra.Command{
 			Name:               _flagClusterEnv,
 			Provider:           types.AWSProviderType,
 			OperatorEndpoint:   pointer.String("https://" + *loadBalancer.DNSName),
-			AWSAccessKeyID:     pointer.String(awsCreds.CortexAWSAccessKeyID),
-			AWSSecretAccessKey: pointer.String(awsCreds.CortexAWSSecretAccessKey),
+			AWSAccessKeyID:     pointer.String(awsCreds.ClusterAWSAccessKeyID),
+			AWSSecretAccessKey: pointer.String(awsCreds.ClusterAWSSecretAccessKey),
 		}
 
 		err = addEnvToCLIConfig(newEnvironment)
