@@ -120,15 +120,15 @@ def find_all_s3_models(
                 bucket_name, model_path = S3.deconstruct_s3_path(path)
                 s3_client = S3(bucket_name, client_config={})
                 sb, model_path_ts = s3_client.search(model_path)
-                sub_paths += [sb]
-                timestamps += [model_path_ts]
                 try:
                     ooa_ids.append(validate_model_paths(sb, predictor_type, model_path))
-                    model_paths.append(model_path)
-                    model_names.append(s3_model_names[idx])
-                    bucket_names.append(bucket_name)
                 except CortexException:
                     continue
+                model_paths.append(model_path)
+                model_names.append(s3_model_names[idx])
+                bucket_names.append(bucket_name)
+                sub_paths += [sb]
+                timestamps += [model_path_ts]
 
     # determine the detected versions for each model
     # if the model was not versioned, then leave the version list empty
@@ -285,11 +285,13 @@ class FileBasedModelsTreeUpdater(mp.Process):
         for local_model_name in self._local_model_names:
             versions = self._spec_models[local_model_name]["versions"]
             if len(versions) == 0:
-                resource = local_model_name + "-" + "1" + ".txt"
+                resource = os.path.join(self._lock_dir, local_model_name + "-" + "1" + ".txt")
                 with LockedFile(resource, "w") as f:
                     f.write("available " + str(int(timestamp_utc)))
             for ondisk_version in versions:
-                resource = local_model_name + "-" + ondisk_version + ".txt"
+                resource = os.path.join(
+                    self._lock_dir, local_model_name + "-" + ondisk_version + ".txt"
+                )
                 with LockedFile(resource, "w") as f:
                     f.write("available " + str(int(timestamp_utc)))
 
@@ -338,7 +340,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         # remove models that no longer appear in model_names
         for model_name, versions in find_ondisk_models_with_lock(self._lock_dir).items():
-            if model_name in model_names:
+            if model_name in model_names or model_name in self._local_model_names:
                 continue
             for ondisk_version in versions:
                 resource = os.path.join(self._lock_dir, model_name + "-" + ondisk_version + ".txt")
@@ -387,9 +389,11 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 s3_paths = [path for path in s3_paths if not path.startswith("../")]
                 s3_paths = util.remove_non_empty_directory_paths(s3_paths)
 
+                # update if the paths don't match
                 if set(local_paths) != set(s3_paths):
                     update_model = True
 
+                # update if the timestamp is newer
                 with LockedFile(resource, "r", reader_lock=True) as f:
                     file_status = f.read()
                     if file_status == "" or file_status == "not available":
@@ -477,9 +481,11 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 s3_paths = [path for path in s3_paths if not path.startswith("../")]
                 s3_paths = util.remove_non_empty_directory_paths(s3_paths)
 
+                # update if the paths don't match
                 if set(local_paths) != set(s3_paths):
                     update_model = True
 
+                # update if the timestamp is newer
                 with LockedFile(resource, "r", reader_lock=True) as f:
                     file_status = f.read()
                     if file_status == "" or file_status == "not available":
