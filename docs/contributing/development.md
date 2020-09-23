@@ -64,6 +64,8 @@ E.g. to install it globally, run:
 
 ```bash
 sudo python -m pip install awscli
+
+aws configure
 ```
 
 ## Cortex dev environment
@@ -129,12 +131,6 @@ export CLI_BUCKET_NAME="cortex-cli-<your_name>"
 export CLI_BUCKET_REGION="us-west-2"
 ```
 
-Specify the aws credentials that will be used by the cortex cli using aws cli:
-
-```bash
-aws configure
-```
-
 Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, and all registry URLs accordingly:
 
 ```yaml
@@ -171,6 +167,10 @@ Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashr
 export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs"  # set the default image for APIs
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"  # redirect analytics to our dev environment
 export CORTEX_TELEMETRY_SEGMENT_WRITE_KEY="0WvoJyCey9z1W2EW7rYTPJUMRYat46dl"  # redirect error reporting to our dev environment
+
+export AWS_ACCESS_KEY_ID=""
+export AWS_SECRET_ACCESS_KEY=""
+
 alias cortex-dev='<path/to/cortex>/bin/cortex'  # replace <path/to/cortex> with the path to the cortex repo that you cloned
 ```
 
