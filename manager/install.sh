@@ -18,6 +18,7 @@ set -eo pipefail
 
 export CORTEX_VERSION=master
 EKSCTL_TIMEOUT=45m
+mkdir /workspace
 
 arg1="$1"
 
@@ -37,8 +38,8 @@ function ensure_eks() {
 
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
-    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > $CORTEX_CLUSTER_WORKSPACE/eks.yaml
-    eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f $CORTEX_CLUSTER_WORKSPACE/eks.yaml
+    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > /workspace/eks.yaml
+    eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f /workspace/eks.yaml
 
     if [ "$CORTEX_SPOT" == "True" ]; then
       asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
@@ -161,7 +162,7 @@ function ensure_eks() {
 }
 
 function main() {
-  mkdir -p $CORTEX_CLUSTER_WORKSPACE
+  mkdir -p /workspace
 
   # create cluster (if it doesn't already exist)
   ensure_eks
@@ -189,7 +190,7 @@ function main() {
     fi
 
     # create VPC Link
-    create_vpc_link_output=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags $CORTEX_TAGS --name $CORTEX_CLUSTER_NAME --subnet-ids $private_subnets --security-group-ids $default_security_group)
+    create_vpc_link_output=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags "$CORTEX_TAGS_JSON" --name $CORTEX_CLUSTER_NAME --subnet-ids $private_subnets --security-group-ids $default_security_group)
     vpc_link_id=$(echo $create_vpc_link_output | jq .VpcLinkId | tr -d '"')
     if [ "$vpc_link_id" = "" ] || [ "$vpc_link_id" = "null" ]; then
       echo -e "unable to extract vpc link ID from create-vpc-link output:\n$create_vpc_link_output"
@@ -221,8 +222,8 @@ function main() {
   echo " ✓"
 
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml
-  kubectl apply -f $CORTEX_CLUSTER_WORKSPACE/cluster-autoscaler.yaml >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
   echo -n "￮ configuring logging "
@@ -280,10 +281,6 @@ function main() {
     kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
     if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
   fi
-
-  echo -n "￮ configuring cli "
-  python update_cli_config.py "/.cortex/cli.yaml" "$CORTEX_ENV_NAME" "$operator_endpoint" "$CORTEX_AWS_ACCESS_KEY_ID" "$CORTEX_AWS_SECRET_ACCESS_KEY"
-  echo "✓"
 
   if [ "$arg1" != "--update" ] && [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing, but you may now set up VPC Peering)"
