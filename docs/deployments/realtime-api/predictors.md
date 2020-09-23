@@ -86,6 +86,9 @@ class PythonPredictor:
         Useful for tasks that the client doesn't need to wait on before
         receiving a response such as recording metrics or storing results.
 
+        It is recommended to specify multiple threads `threads_per_process`
+        in the api configuration yaml if this function is specified.
+
         Args:
             response (optional): The response as returned by the predict method.
             payload (optional): The request payload (see below for the possible
@@ -245,6 +248,9 @@ class TensorFlowPredictor:
         Useful for tasks that the client doesn't need to wait on before
         receiving a response such as recording metrics or storing results.
 
+        It is recommended to specify multiple threads `threads_per_process`
+        in the api configuration yaml if this function is specified.
+
         Args:
             response (optional): The response as returned by the predict method.
             payload (optional): The request payload (see below for the possible
@@ -352,6 +358,9 @@ class ONNXPredictor:
         """(Optional) Called in the background after returning a response.
         Useful for tasks that the client doesn't need to wait on before
         receiving a response such as recording metrics or storing results.
+
+        It is recommended to specify multiple threads `threads_per_process`
+        in the api configuration yaml if this function is specified.
 
         Args:
             response (optional): The response as returned by the predict method.
