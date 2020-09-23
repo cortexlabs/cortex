@@ -176,6 +176,7 @@ var UserValidation = &cr.StructValidation{
 				ValueStringValidator: &cr.StringValidation{
 					MinLength:                  1,
 					MaxLength:                  255,
+					DisallowLeadingWhitespace:  true,
 					DisallowTrailingWhitespace: true,
 					InvalidPrefixes:            _invalidTagPrefixes,
 					AWSTag:                     true,
