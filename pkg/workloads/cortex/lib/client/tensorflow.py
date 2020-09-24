@@ -313,9 +313,6 @@ class TensorFlowClient:
         """
         Determine what's the signature key for a given model from API spec.
         """
-
-        signature_key = None
-
         if self._models_dir:
             signature_key = self._api_spec["predictor"]["models"]["signature_key"]
         else:

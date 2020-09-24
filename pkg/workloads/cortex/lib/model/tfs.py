@@ -106,7 +106,7 @@ class TensorFlowServingAPI:
         model_name: str,
         model_version: str,
         model_disk_path: str,
-        signature_key: str,
+        signature_key: Optional[str] = None,
         timeout: Optional[float] = None,
     ) -> None:
         """
@@ -132,7 +132,7 @@ class TensorFlowServingAPI:
         model_names: List[str],
         model_versions: List[List[str]],
         model_disk_paths: List[str],
-        signature_keys: List[str],
+        signature_keys: List[Optional[str]],
         skip_if_present: bool = False,
         timeout: Optional[float] = None,
     ) -> None:
@@ -454,7 +454,7 @@ class TensorFlowServingAPI:
             except grpc.RpcError as e:
                 # it has been observed that it may take a little bit of time
                 # until a model gets to be accessible with TFS (even though it's already loaded in)
-                time.sleep(0.01)
+                time.sleep(0.3)
             last_idx = times
         if last_idx == 99:
             raise UserException(

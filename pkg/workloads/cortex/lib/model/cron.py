@@ -22,7 +22,7 @@ import shutil
 import itertools
 import json
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Tuple, Any, Union, Callable
+from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 
 from cortex.lib import util
 from cortex.lib.log import cx_logger
@@ -779,17 +779,24 @@ class TFSModelLoader(mp.Process):
                     continue
 
                 # load model
-                model_disk_path = os.path.join(self._tfs_model_dir, model_name, model_version)
+                model_disk_path = os.path.join(self._tfs_model_dir, model_name)
                 try:
                     self._client.add_single_model(
                         model_name,
                         model_version,
                         model_disk_path,
-                        skip_if_present=True,
+                        self._determine_model_signature_key(model_name),
                         timeout=30.0,
                     )
                 except Exception as e:
                     self._client.remove_single_model(model_name, model_version)
+                    logger.warning(
+                        "model '{}' of version '{}' couldn't be loaded: {}".format(
+                            model_name, model_version, str(e)
+                        )
+                    )
+                    model_reloaded = False
+                    first_time_load = False
 
                 if model_reloaded:
                     logger.info(
@@ -810,9 +817,13 @@ class TFSModelLoader(mp.Process):
         resource = os.path.join(self._lock_dir, "model_timestamps.json")
         with LockedFile(resource, "w") as f:
             json.dump(current_ts_state, f)
-
         # save model timestamp states
         self._old_ts_state = current_ts_state
+
+        # save model stats for TFS to disk
+        resource = os.path.join(self._lock_dir, "models_tfs.json")
+        with LockedFile(resource, "w") as f:
+            json.dump(self._client.models, f)
 
     def _refresh_model(
         self,
@@ -959,6 +970,14 @@ class TFSModelLoader(mp.Process):
 
     def _is_this_a_newer_model_id(self, model_id: str, timestamp: int) -> bool:
         return model_id in self._old_ts_state and self._old_ts_state[model_id] < timestamp
+
+    def _determine_model_signature_key(self, model_name: str) -> Optional[str]:
+        if self._models_dir:
+            signature_key = self._api_spec["predictor"]["models"]["signature_key"]
+        else:
+            signature_key = self._spec_model_names[model_name]["signature_key"]
+
+        return signature_key
 
 
 def find_ondisk_models(models_dir: str) -> Dict[str, List[str]]:
