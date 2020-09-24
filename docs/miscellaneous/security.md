@@ -16,7 +16,7 @@ See [networking](../deployments/networking.md) for a discussion of API visibilit
 
 By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator validates that the CLI user is an active IAM user in the same AWS account as the Cortex cluster (see [below](#cli)). Therefore it is usually unnecessary to configure the operator's load balancer to be private, but this can be done by by setting `operator_load_balancer_scheme: internal` in your [cluster configuration](../cluster-management/config.md) file. If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) to allow your CLI to connect to the Cortex operator (this will be necessary to run any `cortex` commands).
 
-## IAM Permissions
+## IAM permissions
 
 If you are not using a sensitive AWS account and do not have a lot of experience with IAM configuration, attaching the built-in `AdministratorAccess` policy to your IAM user will make getting started much easier. If you would like to limit IAM permissions, continue reading.
 
