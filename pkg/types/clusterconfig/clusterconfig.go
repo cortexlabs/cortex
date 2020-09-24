@@ -626,9 +626,14 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	for tagName := range cc.Tags {
+	for tagName, tagValue := range cc.Tags {
 		if strings.HasPrefix(tagName, "cortex.dev/") {
-			return errors.Wrap(cr.ErrorCantHavePrefix(tagName, "cortex.dev/"), TagsKey)
+			if tagName != ClusterNameTag {
+				return errors.Wrap(cr.ErrorCantHavePrefix(tagName, "cortex.dev/"), TagsKey)
+			}
+			if tagValue != cc.ClusterName {
+				return errors.Wrap(ErrorCantOverrideDefaultTag(), TagsKey)
+			}
 		}
 	}
 	cc.Tags[ClusterNameTag] = cc.ClusterName
