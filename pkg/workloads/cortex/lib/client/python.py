@@ -130,20 +130,13 @@ class PythonClient:
                         f"'{model_name}' model wasn't found in the list of available models"
                     )
 
-        return self._run_inference(model_input, model_name, model_version)
-
-    def _run_inference(self, model_input: Any, model_name: str, model_version: str) -> Any:
-        """
-        Run the inference on model model_name of version model_version.
-        """
-
         model = self._get_model(model_name, model_version)
         if model is None:
             raise UserRuntimeException(
                 f"model {model_name} of version {model_version} wasn't found"
             )
-        input_dict = convert_to_onnx_input(model_input, model["signatures"], model_name)
-        return model["session"].run([], input_dict)
+
+        return model
 
     def _get_model(self, model_name: str, model_version: str) -> Any:
         """

@@ -568,24 +568,22 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
     Returns:
         2-element tuple made of a list with the available versions and a list with the corresponding timestamps for each model. Empty when the model is not available.
     """
-
-    files = [os.path.basename(file) for file in os.listdir(lock_dir)]
-    locks = [f for f in files if f.endswith(".lock")]
     versions = []
     timestamps = []
 
-    for lock in locks:
-        _model_name, version = os.path.splitext(lock)[0].rsplit("-", maxsplit=1)
-        if _model_name == model_name:
-            with LockedFile(
-                os.path.join(lock_dir, f"{_model_name}-{_model_version}"), "r", reader_lock=True
-            ) as f:
-                status = f.read()
+    for locked_file in get_locked_files(lock_dir):
+        _model_name, _model_version = os.path.splitext(locked_file)[0].rsplit("-", maxsplit=1)
+        if _model_name != model_name:
+            continue
 
-            if status.startswith("available"):
-                current_upstream_ts = int(file_status.split(" ")[1])
-                versions.append(version)
-                timestamps.append(current_upstream_ts)
+        with LockedFile(os.path.join(lock_dir, locked_file), "r", reader_lock=True) as f:
+            status = f.read()
+        if not status.startswith("available"):
+            continue
+
+        current_upstream_ts = int(status.split(" ")[1])
+        timestamps.append(current_upstream_ts)
+        versions.append(_model_version)
 
     return (versions, timestamps)
 
