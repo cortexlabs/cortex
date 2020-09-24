@@ -174,7 +174,7 @@ class Predictor:
         ]:
             self.crons = [
                 FileBasedModelsTreeUpdater(
-                    interval=10, api_spec=self.api_spec, model_dir=self.model_dir
+                    interval=10, api_spec=self.api_spec, download_dir=self.model_dir
                 )
             ]
         elif self.multiple_processes and self.type in [
@@ -186,6 +186,7 @@ class Predictor:
                     interval=10,
                     api_spec=self.api_spec,
                     address=client.tf_serving_url,
+                    tfs_model_dir=self.model_dir,
                     download_dir=self.model_dir,
                 )
             ]
@@ -195,7 +196,7 @@ class Predictor:
                     interval=10,
                     api_spec=self.api_spec,
                     tree=self.models_tree,
-                    ondisk_models_dir=model_dir,
+                    ondisk_models_dir=self.model_dir,
                 ),
                 ModelsGC(
                     interval=10,

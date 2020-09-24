@@ -602,7 +602,9 @@ class TFSModelLoader(mp.Process):
         interval: int,
         api_spec: dict,
         address: str,
+        tfs_model_dir: str,
         download_dir: str,
+        temp_dir: str = "/tmp/cron",
         lock_dir: str = "/run/cron",
     ):
         """
@@ -611,6 +613,7 @@ class TFSModelLoader(mp.Process):
             api_spec: Identical copy of pkg.type.spec.api.API.
             address: An address with the "host:port" format to where TFS is located.
             download_dir: Path to where the models are stored.
+            tfs_model_dir: Path to where the models are stored within the TFS container.
             lock_dir: Directory in which model timestamps are stored.
         """
 
@@ -618,7 +621,9 @@ class TFSModelLoader(mp.Process):
 
         self._interval = interval
         self._api_spec = api_spec
+        self._tfs_model_dir = tfs_model_dir
         self._download_dir = download_dir
+        self._temp_dir = temp_dir
         self._lock_dir = lock_dir
 
         self._client = TensorFlowServingAPI(address)
@@ -728,13 +733,14 @@ class TFSModelLoader(mp.Process):
             if model_name not in model_names:
                 for ondisk_version in versions:
                     ondisk_model_version_path = os.path.join(
-                        self._models_dir, model_name, ondisk_version
+                        self._download_dir, model_name, ondisk_version
                     )
                     shutil.rmtree(ondisk_model_version_path)
-                shutil.rmtree(os.path.join(self._models_dir, model_name))
+                shutil.rmtree(os.path.join(self._download_dir, model_name))
 
         # update TFS models
         current_ts_state = {}
+        timestamps = [int(timestamp.timestamp()) for timestamp in timestamps]
         for model_name, model_timestamps in zip(model_names, timestamps):
             for model_version, model_ts in zip(versions[model_name], model_timestamps):
 
@@ -751,7 +757,7 @@ class TFSModelLoader(mp.Process):
                     has_updated = True
 
                 # load model
-                model_disk_path = os.path.join(self._models_dir, model_name, model_version)
+                model_disk_path = os.path.join(self._tfs_model_dir, model_name, model_version)
                 try:
                     self._client.add_single_model(
                         model_name,

@@ -397,10 +397,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Name:  "CORTEX_PROJECT_DIR",
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
-			kcore.EnvVar{
-				Name:  "CORTEX_MODEL_DIR",
-				Value: path.Join(_emptyDirMountPath, "model"),
-			},
 		)
 
 		modelSourceType := "provided"
