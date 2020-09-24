@@ -156,12 +156,12 @@ def find_all_s3_models(
     ):
         model_ts = []
         if len(versions[model_name]) == 0:
-            masks = list(map(lambda x: x.startswith(model_path), bucket_sub_paths))
+            masks = list(map(lambda x: x.startswith(model_path + "/" * (model_path[-1] != "/")), bucket_sub_paths))
             model_ts = [max(itertools.compress(sub_path_timestamps, masks))]
 
         for version in versions[model_name]:
             masks = list(
-                map(lambda x: x.startswith(os.path.join(model_path, version)), bucket_sub_paths)
+                map(lambda x: x.startswith(os.path.join(model_path, version) + "/"), bucket_sub_paths)
             )
             model_ts.append(max(itertools.compress(sub_path_timestamps, masks)))
 
