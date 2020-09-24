@@ -751,7 +751,7 @@ class TFSModelLoader(mp.Process):
                 )
                 shutil.rmtree(ondisk_model_version_path)
             shutil.rmtree(os.path.join(self._download_dir, model_name))
-            # self._client.remove_models([model_name], [model_versions])
+            self._client.remove_models([model_name], [model_versions])
 
         # update TFS models
         current_ts_state = {}
@@ -770,23 +770,26 @@ class TFSModelLoader(mp.Process):
                 model_reloaded = False
                 first_time_load = False
                 if model_id in self._old_ts_state and self._old_ts_state[model_id] < model_ts:
-                    # self._client.remove_single_model(model_name, model_version)
+                    self._client.remove_single_model(model_name, model_version)
                     model_reloaded = True
                 elif model_id not in self._old_ts_state:
                     first_time_load = True
 
+                if not model_reloaded and not first_time_load:
+                    continue
+
                 # load model
                 model_disk_path = os.path.join(self._tfs_model_dir, model_name, model_version)
-                # try:
-                #     self._client.add_single_model(
-                #         model_name,
-                #         model_version,
-                #         model_disk_path,
-                #         skip_if_present=True,
-                #         timeout=30.0,
-                #     )
-                # except Exception as e:
-                #     self._client.remove_single_model(model_name, model_version)
+                try:
+                    self._client.add_single_model(
+                        model_name,
+                        model_version,
+                        model_disk_path,
+                        skip_if_present=True,
+                        timeout=30.0,
+                    )
+                except Exception as e:
+                    self._client.remove_single_model(model_name, model_version)
 
                 if model_reloaded:
                     logger.info(
