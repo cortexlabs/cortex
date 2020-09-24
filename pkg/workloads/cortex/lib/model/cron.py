@@ -532,11 +532,14 @@ def find_ondisk_models_with_lock(lock_dir: str) -> Dict[str, List[str]]:
 
     Args:
         lock_dir: Path to where the resource locks are stored.
-        include_versions: Whether to return the found versions of each model or not.
 
     Returns:
-        List with the available models from disk. Just the model, no versions.
-        Or when include_versions is set, 2 paired lists, one containing the model names and the other one the versions: ["A", "B", "B"] w/ ["1", "1", "2"].
+        Dictionary with available model names and their associated versions.
+        {
+            "model-A": [177, 245, 247],
+            "model-B": [1],
+            ...
+        }
     """
     models = {}
 
@@ -556,7 +559,6 @@ def find_ondisk_models_with_lock(lock_dir: str) -> Dict[str, List[str]]:
 def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], List[int]]:
     """
     Returns all available versions/timestamps of a model from the disk.
-    To be used in conjunction with SimpleModelMonitor.
 
     This function should never be used for determining whether a model has to be loaded or not.
     Can be used for Python/TensorFlow/ONNX clients.
@@ -722,15 +724,14 @@ class TFSModelLoader(mp.Process):
             )
 
         # remove models that no longer appear in model_names
-        for models, versions in find_ondisk_models(self._download_dir, include_versions=True):
-            for model_name in models:
-                if model_name not in model_names:
-                    for ondisk_version in versions:
-                        ondisk_model_version_path = os.path.join(
-                            self._models_dir, model_name, ondisk_version
-                        )
-                        shutil.rmtree(ondisk_model_version_path)
-                    shutil.rmtree(os.path.join(self._models_dir, model_name))
+        for model_name, versions in find_ondisk_models(self._download_dir).items():
+            if model_name not in model_names:
+                for ondisk_version in versions:
+                    ondisk_model_version_path = os.path.join(
+                        self._models_dir, model_name, ondisk_version
+                    )
+                    shutil.rmtree(ondisk_model_version_path)
+                shutil.rmtree(os.path.join(self._models_dir, model_name))
 
         # update TFS models
         current_ts_state = {}
@@ -881,9 +882,7 @@ class TFSModelLoader(mp.Process):
                 shutil.rmtree(temp_dest)
 
 
-def find_ondisk_models(
-    models_dir: str, include_versions: bool = False
-) -> Union[List[str], Tuple[List[str], List[str]]]:
+def find_ondisk_models(models_dir: str) -> Dict[str, List[str]]:
     """
     Returns all available models from the disk.
     To be used in conjunction with TFSModelLoader.
@@ -893,24 +892,24 @@ def find_ondisk_models(
 
     Args:
         models_dir: Path to where the models are stored.
-        include_versions: Whether to return the found versions of each model or not.
 
     Returns:
-        List with the available models from disk. Just the model, no versions.
-        Or when include_versions is set, 2 paired lists, one containing the model names and the other one the versions: ["A", "B", "B"] w/ ["1", "1", "2"].
+        Dictionary with available model names and their associated versions.
+        {
+            "model-A": [177, 245, 247],
+            "model-B": [1],
+            ...
+        }
     """
 
+    models = {}
     model_names = [os.path.basename(file) for file in os.listdir(models_dir)]
-    versions = []
 
-    for model_name in models:
-        model_versions = os.listdir(os.path.join(models_dir, model))
-        versions.append(model_versions)
+    for model_name in model_names:
+        model_versions = os.listdir(os.path.join(models_dir, model_name))
+        models[model_name] = model_versions
 
-    if include_versions:
-        return (models, versions)
-    else:
-        return list(set(models))
+    return models
 
 
 class AbstractLoopingThread(td.Thread):
