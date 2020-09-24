@@ -156,12 +156,20 @@ def find_all_s3_models(
     ):
         model_ts = []
         if len(versions[model_name]) == 0:
-            masks = list(map(lambda x: x.startswith(model_path + "/" * (model_path[-1] != "/")), bucket_sub_paths))
+            masks = list(
+                map(
+                    lambda x: x.startswith(model_path + "/" * (model_path[-1] != "/")),
+                    bucket_sub_paths,
+                )
+            )
             model_ts = [max(itertools.compress(sub_path_timestamps, masks))]
 
         for version in versions[model_name]:
             masks = list(
-                map(lambda x: x.startswith(os.path.join(model_path, version) + "/"), bucket_sub_paths)
+                map(
+                    lambda x: x.startswith(os.path.join(model_path, version) + "/"),
+                    bucket_sub_paths,
+                )
             )
             model_ts.append(max(itertools.compress(sub_path_timestamps, masks)))
 
@@ -627,7 +635,7 @@ class TFSModelLoader(mp.Process):
         self._lock_dir = lock_dir
 
         self._client = TensorFlowServingAPI(address)
-        self._old_ts_state = None
+        self._old_ts_state = {}
 
         self._s3_paths = []
         self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
@@ -697,6 +705,8 @@ class TFSModelLoader(mp.Process):
         if self._is_dir_used and not self._models_dir.startswith("s3://"):
             return
 
+        print("running now", time.time())
+
         # get updated/validated paths/versions of the S3 models
         (
             model_names,
@@ -718,64 +728,73 @@ class TFSModelLoader(mp.Process):
         for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
             zip(model_names, bucket_names, sub_paths)
         ):
+            if model_name == "text-generator":
+                continue
+
             self._refresh_model(
                 idx,
                 model_name,
-                versions,
+                model_paths[idx],
+                versions[model_name],
                 timestamps[idx],
-                model_paths,
                 bucket_sub_paths,
                 bucket_name,
             )
 
         # remove models that no longer appear in model_names
-        for model_name, versions in find_ondisk_models(self._download_dir).items():
-            if model_name not in model_names:
-                for ondisk_version in versions:
-                    ondisk_model_version_path = os.path.join(
-                        self._download_dir, model_name, ondisk_version
-                    )
-                    shutil.rmtree(ondisk_model_version_path)
-                shutil.rmtree(os.path.join(self._download_dir, model_name))
+        for model_name, model_versions in find_ondisk_models(self._download_dir).items():
+            if model_name in model_names or model_name in self._local_model_names:
+                continue
+            for ondisk_version in model_versions:
+                ondisk_model_version_path = os.path.join(
+                    self._download_dir, model_name, ondisk_version
+                )
+                shutil.rmtree(ondisk_model_version_path)
+            shutil.rmtree(os.path.join(self._download_dir, model_name))
+            # self._client.remove_models([model_name], [model_versions])
 
         # update TFS models
         current_ts_state = {}
-        timestamps = [int(timestamp.timestamp()) for timestamp in timestamps]
         for model_name, model_timestamps in zip(model_names, timestamps):
-            for model_version, model_ts in zip(versions[model_name], model_timestamps):
+
+            model_versions = versions[model_name]
+            if len(model_versions) == 0:
+                model_versions = ["1"]
+
+            for model_version, model_ts in zip(model_versions, model_timestamps):
+                model_ts = int(model_ts.timestamp())
 
                 # remove outdated model
                 model_id = f"{model_name}-{model_version}"
                 current_ts_state[model_id] = model_ts
-                has_updated = False
-                if (
-                    self._old_ts_state
-                    and model_id in self._old_ts_state
-                    and self._old_ts_state[model_id] < model_ts
-                ):
-                    self._client.remove_single_model(model_name, model_version)
-                    has_updated = True
+                model_reloaded = False
+                first_time_load = False
+                if model_id in self._old_ts_state and self._old_ts_state[model_id] < model_ts:
+                    # self._client.remove_single_model(model_name, model_version)
+                    model_reloaded = True
+                elif model_id not in self._old_ts_state:
+                    first_time_load = True
 
                 # load model
                 model_disk_path = os.path.join(self._tfs_model_dir, model_name, model_version)
-                try:
-                    self._client.add_single_model(
-                        model_name,
-                        model_version,
-                        model_disk_path,
-                        skip_if_present=True,
-                        timeout=30.0,
-                    )
-                except Exception as e:
-                    self._client.remove_single_model(model_name, model_version)
+                # try:
+                #     self._client.add_single_model(
+                #         model_name,
+                #         model_version,
+                #         model_disk_path,
+                #         skip_if_present=True,
+                #         timeout=30.0,
+                #     )
+                # except Exception as e:
+                #     self._client.remove_single_model(model_name, model_version)
 
-                if has_updated:
+                if model_reloaded:
                     logger.info(
-                        "model '{}' of version '{}' has been updated".format(
+                        "model '{}' of version '{}' has been reloaded".format(
                             model_name, model_version
                         )
                     )
-                else:
+                elif first_time_load:
                     logger.info(
                         "model '{}' of version '{}' has been loaded".format(
                             model_name, model_version
@@ -796,31 +815,41 @@ class TFSModelLoader(mp.Process):
         self,
         idx: int,
         model_name: str,
-        versions: dict,
+        model_path: str,
+        versions: List[str],
         timestamps: List[datetime.datetime],
-        model_paths: List[str],
         sub_paths: List[str],
         bucket_name: str,
     ) -> None:
         s3_client = S3(bucket_name, client_config={})
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
-        for version, model_ts in zip(versions[model_name], timestamps):
+        for version, model_ts in zip(versions, timestamps):
 
             # check if a model update is mandated
             update_model = False
             ondisk_model_version_path = os.path.join(ondisk_model_path, version)
             if os.path.exists(ondisk_model_version_path):
-                ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = [
+                    os.path.relpath(local_path, ondisk_model_version_path)
+                    for local_path in local_paths
+                ]
+                local_paths = [path for path in local_paths if not path.startswith("../")]
+                local_paths = util.remove_non_empty_directory_paths(local_paths)
 
-                s3_model_version_path = os.path.join(model_paths[idx], version)
+                s3_model_version_path = os.path.join(model_path, version)
                 s3_paths = [
                     os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
                 ]
                 s3_paths = [path for path in s3_paths if not path.startswith("../")]
                 s3_paths = util.remove_non_empty_directory_paths(s3_paths)
 
-                if set(ondisk_paths) != set(s3_paths):
+                if set(local_paths) != set(s3_paths):
+                    update_model = True
+
+                model_id = f"{model_name}-{version}"
+                if self._is_this_a_newer_model_id(model_id, int(model_ts.timestamp())):
                     update_model = True
             else:
                 update_model = True
@@ -828,11 +857,12 @@ class TFSModelLoader(mp.Process):
             if update_model:
                 # download to a temp directory
                 temp_dest = os.path.join(self._temp_dir, model_name, version)
-                s3_src = os.path.join(model_paths[idx], version)
+                s3_src = os.path.join(model_path, version)
                 s3_client.download_dir_contents(s3_src, temp_dest)
 
                 # validate the downloaded model
                 model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+                model_contents = util.remove_non_empty_directory_paths(model_contents)
                 try:
                     validate_model_paths(model_contents, self._predictor_type, temp_dest)
                     passed_validation = True
@@ -842,20 +872,25 @@ class TFSModelLoader(mp.Process):
 
                 # move the model to its destination directory
                 if passed_validation:
-                    ondisk_model_version = os.path.join(model_paths[idx], version)
-                    if os.path.exists(ondisk_model_version):
-                        shutil.rmtree(ondisk_model_version)
-                    shutil.move(temp_dest, ondisk_model_version)
+                    if os.path.exists(ondisk_model_version_path):
+                        shutil.rmtree(ondisk_model_version_path)
+                    shutil.move(temp_dest, ondisk_model_version_path)
+
+        # remove the temp model directory if it exists
+        model_temp_dest = os.path.join(self._temp_dir, model_name)
+        if os.path.exists(model_temp_dest):
+            os.rmdir(model_temp_dest)
 
         # remove model versions if they are not found on the upstream
         # except when the model version found on disk is 1 and the number of detected versions on the upstream is 0,
         # thus indicating the 1-version on-disk model must be a model that came without a version
         if os.path.exists(ondisk_model_path):
             ondisk_model_versions = glob.glob(ondisk_model_path + "*/**")
+            ondisk_model_versions = [
+                os.path.relpath(path, ondisk_model_path) for path in ondisk_model_versions
+            ]
             for ondisk_version in ondisk_model_versions:
-                if ondisk_version not in versions[model_name] and (
-                    ondisk_version != "1" or len(versions[model_name]) > 0
-                ):
+                if ondisk_version not in versions and (ondisk_version != "1" or len(versions) > 0):
                     ondisk_model_version_path = os.path.join(ondisk_model_path, ondisk_version)
                     shutil.rmtree(ondisk_model_version_path)
 
@@ -863,13 +898,49 @@ class TFSModelLoader(mp.Process):
                 shutil.rmtree(ondisk_model_path)
 
         # if it's a non-versioned model ModelVersion.NOT_PROVIDED
-        if len(versions[model_name]) == 0:
+        if len(versions) == 0 and len(sub_paths) > 0:
+
+            model_ts = timestamps[0]
+
+            # check if a model update is mandated
+            update_model = False
+            ondisk_model_version_path = os.path.join(ondisk_model_path, "1")
+            if os.path.exists(ondisk_model_version_path):
+                local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = [
+                    os.path.relpath(local_path, ondisk_model_version_path)
+                    for local_path in local_paths
+                ]
+                local_paths = [path for path in local_paths if not path.startswith("../")]
+                local_paths = util.remove_non_empty_directory_paths(local_paths)
+
+                s3_model_version_path = model_path
+                s3_paths = [
+                    os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
+                ]
+                s3_paths = [path for path in s3_paths if not path.startswith("../")]
+                s3_paths = util.remove_non_empty_directory_paths(s3_paths)
+
+                # update if the paths don't match
+                if set(local_paths) != set(s3_paths):
+                    update_model = True
+
+                model_id = f"{model_name}-1"
+                if self._is_this_a_newer_model_id(model_id, int(model_ts.timestamp())):
+                    update_model = True
+            else:
+                update_model = True
+
+            if not update_model:
+                return
+
             # download to a temp directory
             temp_dest = os.path.join(self._temp_dir, model_name)
-            s3_client.download_dir_contents(model_paths[idx], temp_dest)
+            s3_client.download_dir_contents(model_path, temp_dest)
 
             # validate the downloaded model
             model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+            model_contents = util.remove_non_empty_directory_paths(model_contents)
             try:
                 validate_model_paths(model_contents, self._predictor_type, temp_dest)
                 passed_validation = True
@@ -879,13 +950,12 @@ class TFSModelLoader(mp.Process):
 
             # move the model to its destination directory
             if passed_validation:
-                ondisk_model_version = os.path.join(model_paths[idx], "1")
-                if os.path.exists(ondisk_model_version):
-                    shutil.rmtree(ondisk_model_version)
-                shutil.move(temp_dest, ondisk_model_version)
+                if os.path.exists(ondisk_model_version_path):
+                    shutil.rmtree(ondisk_model_version_path)
+                shutil.move(temp_dest, ondisk_model_version_path)
 
-                # cleanup
-                shutil.rmtree(temp_dest)
+    def _is_this_a_newer_model_id(self, model_id: str, timestamp: int) -> bool:
+        return model_id in self._old_ts_state and self._old_ts_state[model_id] < timestamp
 
 
 def find_ondisk_models(models_dir: str) -> Dict[str, List[str]]:
