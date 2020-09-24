@@ -117,14 +117,14 @@ class API:
             cx_logger().warn("failure encountered while publishing metrics", exc_info=True)
 
     def store_metrics_locally(self, status_code, total_time):
+        self.metrics_file_lock.acquire()
+
+        status_code_series = int(status_code / 100)
+        status_code_file_name = f"/mnt/workspace/{os.getpid()}.{status_code_series}XX"
+        request_time_file = f"/mnt/workspace/{os.getpid()}.request_time"
+
         try:
-            self.metrics_file_lock.acquire()
-            status_code_series = int(status_code / 100)
-
-            status_code_file_name = f"/mnt/workspace/{os.getpid()}.{status_code_series}XX"
             self.increment_counter_file(status_code_file_name, 1)
-
-            request_time_file = f"/mnt/workspace/{os.getpid()}.request_time"
             self.increment_counter_file(request_time_file, total_time)
         finally:
             self.metrics_file_lock.release()
