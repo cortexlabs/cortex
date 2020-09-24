@@ -60,6 +60,7 @@ const (
 	ErrOneAWSConfigFieldSet                 = "cli.one_aws_config_field_set"
 	ErrOneAWSConfigFlagSet                  = "cli.one_aws_config_flag_set"
 	ErrMissingAWSCredentials                = "cli.missing_aws_credentials"
+	ErrCredentialsInClusterConfig           = "cli.credentials_in_cluster_config"
 	ErrClusterUp                            = "cli.cluster_up"
 	ErrClusterConfigure                     = "cli.cluster_configure"
 	ErrClusterInfo                          = "cli.cluster_info"
@@ -224,7 +225,15 @@ func ErrorOneAWSFlagSet(setFlag string, missingFlag string) error {
 func ErrorMissingAWSCredentials() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingAWSCredentials,
-		Message: "unable to find aws credentials; please specify aws credentials using the flags `--aws-key <AWS_ACCESS_KEY_ID>` and `--aws-secret <AWS_SECRET_ACCESS_KEY>`",
+		Message: "unable to find aws credentials; please specify aws credentials using the flags --aws-key and --aws-secret",
+	})
+}
+
+// Deprecation: specifying aws creds in cluster configuration is no longer supported
+func ErrorCredentialsInClusterConfig(cmd string, path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCredentialsInClusterConfig,
+		Message: fmt.Sprintf("specifying credentials in the cluster configuration is no longer supported, please specify aws credentials using flags (e.g. cortex cluster %s --config %s --aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>) or set environment variables; see https://docs.cortex.dev/v/%s/miscellaneous/security#iam-permissions for more information", cmd, path, consts.CortexVersionMinor),
 	})
 }
 

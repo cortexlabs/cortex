@@ -102,7 +102,7 @@ Flags:
   -c, --config string               path to a cluster configuration file
       --aws-key string              aws access key id
       --aws-secret string           aws secret access key
-      --cluster-aws-key string      aws access key id used be the cluster
+      --cluster-aws-key string      aws access key id used by the cluster
       --cluster-aws-secret string   aws secret access key used by the cluster
   -e, --env string                  environment to create (default "aws")
   -y, --yes                         skip prompts

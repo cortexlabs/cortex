@@ -16,7 +16,7 @@ See [networking](../deployments/networking.md) for a discussion of API visibilit
 
 By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator validates that the CLI user is an active IAM user in the same AWS account as the Cortex cluster (see [below](#cli)). Therefore it is usually unnecessary to configure the operator's load balancer to be private, but this can be done by by setting `operator_load_balancer_scheme: internal` in your [cluster configuration](../cluster-management/config.md) file. If you do this, you will need to configure [VPC Peering](../guides/vpc-peering.md) to allow your CLI to connect to the Cortex operator (this will be necessary to run any `cortex` commands).
 
-## AWS Credentials/IAM permissions
+## IAM Permissions
 
 If you are not using a sensitive AWS account and do not have a lot of experience with IAM configuration, attaching the built-in `AdministratorAccess` policy to your IAM user will make getting started much easier. If you would like to limit IAM permissions, continue reading.
 
@@ -40,7 +40,7 @@ It is recommended to use an IAM user with the `AdministratorAccess` policy to cr
 
 ### Operator
 
-A process called the Cortex operator runs on your cluster and is responsible for deploying and managing your APIs on the cluster. The operator will use `CLUSTER_AWS_ACCESS_KEY_ID` and `CLUSTER_AWS_SECRET_ACCESS_KEY` as its credentials if specified, otherwise it will default to using `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+A process called the Cortex operator runs on your cluster and is responsible for deploying and managing your APIs on the cluster. The operator will use the designated cluster credentials (e.g. `--cluster-aws-key` or `CLUSTER_AWS_ACCESS_KEY_ID`) if specified, otherwise it will default to using the credentials used to spin up the cluster (e.g. `--aws-key` or `AWS_ACCESS_KEY_ID`).
 
 The operator requires read permissions for any S3 bucket containing exported models, read/write permissions for the Cortex S3 bucket, read permissions for ECR, read permissions for ELB, read/write permissions for API Gateway, read/write permissions for CloudWatch metrics, and read/write permissions for the Cortex CloudWatch log group. The policy below may be used to restrict the Operator's access:
 

@@ -125,6 +125,13 @@ var _upCmd = &cobra.Command{
 			promptForEmail()
 		}
 
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
 		awsCreds, err := awsCredentialsForCreatingCluster(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
@@ -299,6 +306,13 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
 		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
@@ -360,6 +374,13 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
 		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
@@ -389,6 +410,13 @@ var _downCmd = &cobra.Command{
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
+		}
+
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
 		}
 
 		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
@@ -501,7 +529,7 @@ var _downCmd = &cobra.Command{
 
 		cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 		os.Remove(cachedClusterConfigPath)
-		decacheAWSCredentials(*accessConfig)
+		uncacheAWSCredentials(*accessConfig)
 	},
 }
 
