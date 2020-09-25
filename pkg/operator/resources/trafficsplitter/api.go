@@ -59,15 +59,43 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
-			return nil, "", err
+			rollBackErr := rollBack(prevVirtualService)
+			if rollBackErr != nil {
+				return nil, "", err
+			}
+			return nil, "update failed; rollbacked to previous deployment", nil
 		}
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, false); err != nil {
-			return nil, "", err
+			rollBackErr := rollBack(prevVirtualService)
+			if rollBackErr != nil {
+				return nil, "", err
+			}
+			return nil, "update failed; rollbacked to previous deployment", nil
 		}
 		return api, fmt.Sprintf("updated %s", api.Resource.UserString()), nil
 	}
 
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
+}
+
+func rollBack(prevVirtualService *istioclientnetworking.VirtualService) error {
+	prevAPIID := prevVirtualService.Labels["apiID"]
+	prevAPIName := prevVirtualService.Labels["apiName"]
+
+	prevAPI, err := operator.DownloadAPISpec(prevAPIName, prevAPIID)
+	if err != nil {
+		return err
+	}
+
+	if err := applyK8sVirtualService(prevAPI, prevVirtualService); err != nil {
+		return err
+	}
+
+	if err := operator.UpdateAPIGatewayK8s(prevVirtualService, prevAPI, false); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {

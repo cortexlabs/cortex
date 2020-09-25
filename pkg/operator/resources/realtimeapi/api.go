@@ -65,7 +65,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
-			go deleteK8sResources(api.Name)
+
 			return nil, "", err
 		}
 		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, false)
@@ -98,10 +98,18 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
-			return nil, "", err
+			rollBackErr := rollBack(prevDeployment, prevService, prevVirtualService)
+			if rollBackErr != nil {
+				return nil, "", err
+			}
+			return nil, "update failed; rollbacked to previous deployment", nil
 		}
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, false); err != nil {
-			return nil, "", err
+			rollBackErr := rollBack(prevDeployment, prevService, prevVirtualService)
+			if rollBackErr != nil {
+				return nil, "", err
+			}
+			return nil, "update failed; rollbacked to previous deployment", nil
 		}
 		return api, fmt.Sprintf("updating %s", api.Resource.UserString()), nil
 	}
@@ -115,6 +123,26 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return api, fmt.Sprintf("%s is already updating", api.Resource.UserString()), nil
 	}
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
+}
+
+func rollBack(prevDeployment *kapps.Deployment, prevService *kcore.Service, prevVirtualService *istioclientnetworking.VirtualService) error {
+	prevAPIID := prevVirtualService.Labels["apiID"]
+	prevAPIName := prevVirtualService.Labels["apiName"]
+
+	prevAPI, err := operator.DownloadAPISpec(prevAPIName, prevAPIID)
+	if err != nil {
+		return err
+	}
+
+	if err := applyK8sResources(prevAPI, prevDeployment, prevService, prevVirtualService); err != nil {
+		return err
+	}
+
+	if err := operator.UpdateAPIGatewayK8s(prevVirtualService, prevAPI, false); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
