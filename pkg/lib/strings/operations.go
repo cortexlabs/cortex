@@ -88,6 +88,15 @@ func LastSplit(str string, chars string) string {
 	return split[len(split)-1]
 }
 
+// Returns the last n chars, or the entire string if the requested length is greater than the length of the string
+func LastNChars(str string, n int) string {
+	if len(str) < n {
+		return str
+	}
+
+	return str[len(str)-n:]
+}
+
 func LongestCommonPrefix(strs ...string) string {
 	if len(strs) == 0 {
 		return ""

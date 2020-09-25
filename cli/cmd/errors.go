@@ -58,6 +58,9 @@ const (
 	ErrAPINotReady                          = "cli.api_not_ready"
 	ErrOneAWSEnvVarSet                      = "cli.one_aws_env_var_set"
 	ErrOneAWSConfigFieldSet                 = "cli.one_aws_config_field_set"
+	ErrOneAWSConfigFlagSet                  = "cli.one_aws_config_flag_set"
+	ErrMissingAWSCredentials                = "cli.missing_aws_credentials"
+	ErrCredentialsInClusterConfig           = "cli.credentials_in_cluster_config"
 	ErrClusterUp                            = "cli.cluster_up"
 	ErrClusterConfigure                     = "cli.cluster_configure"
 	ErrClusterInfo                          = "cli.cluster_info"
@@ -65,7 +68,6 @@ const (
 	ErrClusterRefresh                       = "cli.cluster_refresh"
 	ErrClusterDown                          = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames                 = "cli.duplicate_cli_env_names"
-	ErrAWSCredentialsRequired               = "cli.aws_credentials_required"
 	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
 	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported          = "cli.shell_completion_not_supported"
@@ -213,6 +215,28 @@ func ErrorOneAWSConfigFieldSet(setConfigField string, missingConfigField string,
 	})
 }
 
+func ErrorOneAWSFlagSet(setFlag string, missingFlag string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOneAWSConfigFlagSet,
+		Message: fmt.Sprintf("only flag %s was provided; please provide %s as well", setFlag, missingFlag),
+	})
+}
+
+func ErrorMissingAWSCredentials() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMissingAWSCredentials,
+		Message: "unable to find aws credentials; please specify aws credentials using the flags --aws-key and --aws-secret",
+	})
+}
+
+// Deprecation: specifying aws creds in cluster configuration is no longer supported
+func ErrorCredentialsInClusterConfig(cmd string, path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCredentialsInClusterConfig,
+		Message: fmt.Sprintf("specifying credentials in the cluster configuration is no longer supported, please specify aws credentials using flags (e.g. cortex cluster %s --config %s --aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>) or set environment variables; see https://docs.cortex.dev/v/%s/miscellaneous/security#iam-permissions for more information", cmd, path, consts.CortexVersionMinor),
+	})
+}
+
 func ErrorClusterUp(out string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUp,
@@ -258,13 +282,6 @@ func ErrorClusterDown(out string) error {
 		Kind:    ErrClusterDown,
 		Message: out,
 		NoPrint: true,
-	})
-}
-
-func ErrorAWSCredentialsRequired() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAWSCredentialsRequired,
-		Message: "AWS credentials are required; please set them in your cluster configuration file (if you're using one), your environment variables (i.e. AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY), or your AWS CLI (i.e. via `aws configure`)",
 	})
 }
 
