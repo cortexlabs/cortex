@@ -47,44 +47,44 @@ cluster-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster up
+	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex --config=./dev/config/cluster.yaml cluster up
 	@$(MAKE) kubectl
 
 cluster-up-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster up --yes
+	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex --config=./dev/config/cluster.yaml cluster up --yes
 	@$(MAKE) kubectl
 
 cluster-down:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster down
+	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex --config=./dev/config/cluster.yaml cluster down
 
 cluster-down-y:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster down --yes
+	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex --config=./dev/config/cluster.yaml cluster down --yes
 
 cluster-info:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster info
+	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex --config=./dev/config/cluster.yaml cluster info
 
 cluster-configure:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure
+	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex --config=./dev/config/cluster.yaml cluster configure
 
 cluster-configure-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex -c=./dev/config/cluster.yaml cluster configure --yes
+	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex --config=./dev/config/cluster.yaml cluster configure --yes
 
 # stop the in-cluster operator
 operator-stop:
