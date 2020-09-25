@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -43,6 +45,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -89,6 +93,11 @@ func clusterInit() {
 	addAWSCredentials(_downCmd)
 	_downCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_downCmd)
+
+	_exportCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_exportCmd)
+	addAWSCredentials(_exportCmd)
+	_clusterCmd.AddCommand(_exportCmd)
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
@@ -434,6 +443,7 @@ var _downCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+
 		warnIfNotAdmin(awsClient)
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
@@ -530,6 +540,127 @@ var _downCmd = &cobra.Command{
 		cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 		os.Remove(cachedClusterConfigPath)
 		uncacheAWSCredentials(*accessConfig)
+	},
+}
+
+var _exportCmd = &cobra.Command{
+	Use:   "export",
+	Short: "export all APIs deployed in the cluster",
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.cluster.export")
+
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
+		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		// Check AWS access
+		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+		warnIfNotAdmin(awsClient)
+
+		// updating CLI env is best-effort, so ignore errors
+		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
+			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
+			"cortex.dev/load-balancer":   "operator",
+		})
+		if err != nil {
+			exit.Error(err)
+		}
+
+		operatorConfig := cluster.OperatorConfig{
+			Telemetry:          isTelemetryEnabled(),
+			ClientID:           clientID(),
+			EnvName:            "export",
+			AWSAccessKeyID:     awsCreds.AWSAccessKeyID,
+			AWSSecretAccessKey: awsCreds.AWSSecretAccessKey,
+			OperatorEndpoint:   "https://" + *loadBalancer.DNSName,
+		}
+
+		info, err := cluster.Info(operatorConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		apisResponse, err := cluster.GetAPIs(operatorConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		apiSpecList := []spec.API{}
+
+		for _, batchAPI := range apisResponse.BatchAPIs {
+			apiSpecList = append(apiSpecList, batchAPI.Spec)
+		}
+
+		for _, realtimeAPI := range apisResponse.RealtimeAPIs {
+			apiSpecList = append(apiSpecList, realtimeAPI.Spec)
+		}
+
+		for _, trafficSplitter := range apisResponse.TrafficSplitters {
+			apiSpecList = append(apiSpecList, trafficSplitter.Spec)
+		}
+
+		if len(apiSpecList) == 0 {
+			fmt.Println(fmt.Sprintf("no apis found in cluster named %s in %s", *accessConfig.ClusterName, *accessConfig.Region))
+			exit.Ok()
+		}
+
+		exportPath := "export"
+
+		_, err = files.CreateDirIfMissing(exportPath)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		for _, apiSpec := range apiSpecList {
+			baseDir := filepath.Join(exportPath, apiSpec.Name+"-"+apiSpec.ID)
+
+			fmt.Println(fmt.Sprintf("exporting %s to %s", apiSpec.Name, baseDir))
+
+			err = os.Mkdir(baseDir, os.ModePerm)
+			if err != nil {
+				exit.Error(err)
+			}
+
+			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.RawAPIKey(), path.Join(baseDir, apiSpec.FileName))
+			if err != nil {
+				exit.Error(err)
+			}
+
+			if apiSpec.Kind != userconfig.TrafficSplitterKind {
+				zipFileLocation := path.Join(baseDir, path.Base(apiSpec.ProjectKey))
+				err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.ProjectKey, path.Join(baseDir, path.Base(apiSpec.ProjectKey)))
+				if err != nil {
+					exit.Error(err)
+				}
+
+				_, err = archive.UnzipFileToDir(zipFileLocation, baseDir)
+				if err != nil {
+					exit.Error(err)
+				}
+
+				err := os.Remove(zipFileLocation)
+				if err != nil {
+					exit.Error(err)
+				}
+			}
+		}
 	},
 }
 

@@ -117,7 +117,6 @@ func init() {
 	logsInit()
 	predictInit()
 	refreshInit()
-	exportInit()
 	versionInit()
 }
 
@@ -152,7 +151,6 @@ func Execute() {
 	_rootCmd.AddCommand(_logsCmd)
 	_rootCmd.AddCommand(_predictCmd)
 	_rootCmd.AddCommand(_deleteCmd)
-	_rootCmd.AddCommand(_exportCmd)
 
 	_rootCmd.AddCommand(_clusterCmd)
 	_rootCmd.AddCommand(_versionCmd)
