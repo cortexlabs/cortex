@@ -456,23 +456,6 @@ var UserValidation = &cr.StructValidation{
 				Validator: validateImageVersion,
 			},
 		},
-		// Extra keys that exist in the cluster config file
-		{
-			Key: "aws_access_key_id",
-			Nil: true,
-		},
-		{
-			Key: "aws_secret_access_key",
-			Nil: true,
-		},
-		{
-			Key: "cortex_aws_access_key_id",
-			Nil: true,
-		},
-		{
-			Key: "cortex_aws_secret_access_key",
-			Nil: true,
-		},
 	},
 }
 

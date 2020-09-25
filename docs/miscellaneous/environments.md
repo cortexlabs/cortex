@@ -87,13 +87,13 @@ On your new machine, run:
 cortex env configure
 ```
 
-This will prompt for the necessary configuration. Note that the AWS credentials that you use here do not need any IAM permissions attached. If you will be running any `cortex cluster` commands, you can configure the CLI environment to use credentials that have the `AdministratorAccess` IAM policy attached, or specify your admin credentials in your [cluster configuration](../cluster-management/config.md) file (e.g. set `aws_access_key_id` and `aws_secret_access_key` in `cluster.yaml`, and use it like `cortex cluster info --config cluster.yaml`). See [IAM permissions](security.md#iam-permissions) for more details.
+This will prompt for the necessary configuration. Note that the AWS credentials that you use here do not need any IAM permissions attached. If you will be running any `cortex cluster` commands specify the preferred AWS credentials using cli flags `--aws-key AWS_ACCESS_KEY_ID --aws-secret AWS_SECRET_ACCESS_KEY`. See [IAM permissions](security.md#iam-permissions) for more details.
 
 ## Environments overview
 
 By default, the CLI ships with a single environment named `local`. This is the default environment for all Cortex commands (other than `cortex cluster` commands), which means that APIs will be deployed locally by default.
 
-Some cortex commands (i.e. `cortex cluster` commands) only apply to cluster environments. Unless otherwise specified by the `-e`/`--env` flag, `cortex cluster` commands create/use an environment named `aws`. For example `cortex cluster up` will configure the `aws` environment to connect to your new cluster. You may interact with this cluster by appending `--env aws` to your `cortex` commands.
+Some cortex commands (i.e. `cortex cluster` commands) only apply to cluster environments. Unless otherwise specified by the `-e`/`--env` flag, `cortex cluster` commands create/update an environment named `aws`. For example `cortex cluster up` will configure the `aws` environment to connect to your new cluster. You may interact with this cluster by appending `--env aws` to your `cortex` commands.
 
 If you accidentally delete or overwrite one of your cluster environments, running `cortex cluster info --env ENV_NAME` will automatically update the specified environment to interact with the cluster.
 

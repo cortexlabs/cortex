@@ -38,13 +38,14 @@ var (
 	_configFileExts = []string{"yaml", "yml"}
 	_flagOutput     = flags.PrettyOutputType
 
-	_localDir      string
-	_cliConfigPath string
-	_clientIDPath  string
-	_emailPath     string
-	_debugPath     string
-	_cwd           string
-	_homeDir       string
+	_credentialsCacheDir string
+	_localDir            string
+	_cliConfigPath       string
+	_clientIDPath        string
+	_emailPath           string
+	_debugPath           string
+	_cwd                 string
+	_homeDir             string
 )
 
 type commandType int
@@ -71,6 +72,14 @@ func init() {
 
 	_localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(_localDir, os.ModePerm)
+	if err != nil {
+		err := errors.Wrap(err, "unable to write to home directory", _localDir)
+		exit.Error(err)
+	}
+
+	// ~/.cortex/credentials/
+	_credentialsCacheDir = filepath.Join(_localDir, "credentials")
+	err = os.MkdirAll(_credentialsCacheDir, os.ModePerm)
 	if err != nil {
 		err := errors.Wrap(err, "unable to write to home directory", _localDir)
 		exit.Error(err)

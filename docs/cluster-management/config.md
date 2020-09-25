@@ -8,14 +8,6 @@ The Cortex cluster may be configured by providing a configuration file to `corte
 ```yaml
 # cluster.yaml
 
-# AWS credentials (if not specified, ~/.aws/credentials will be checked) (can be overridden by $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY)
-aws_access_key_id: ***
-aws_secret_access_key: ***
-
-# optional AWS credentials for the operator which may be used to restrict its AWS access (defaults to the AWS credentials set above)
-cortex_aws_access_key_id: ***
-cortex_aws_secret_access_key: ***
-
 # EKS cluster name for cortex (default: cortex)
 cluster_name: cortex
 

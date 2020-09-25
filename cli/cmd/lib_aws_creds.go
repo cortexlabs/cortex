@@ -19,19 +19,29 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
 type AWSCredentials struct {
-	AWSAccessKeyID           string `json:"aws_access_key_id"`
-	AWSSecretAccessKey       string `json:"aws_secret_access_key"`
-	CortexAWSAccessKeyID     string `json:"cortex_aws_access_key_id"`
-	CortexAWSSecretAccessKey string `json:"cortex_aws_secret_access_key"`
+	AWSAccessKeyID            string `json:"aws_access_key_id"`
+	AWSSecretAccessKey        string `json:"aws_secret_access_key"`
+	ClusterAWSAccessKeyID     string `json:"cluster_aws_access_key_id"`
+	ClusterAWSSecretAccessKey string `json:"cluster_aws_secret_access_key"`
+}
+
+func (awsCreds *AWSCredentials) MaskedString() string {
+	return fmt.Sprintf("aws access key id ****%s and aws secret access key ****%s", s.LastNChars(awsCreds.AWSAccessKeyID, 4), s.LastNChars(awsCreds.AWSSecretAccessKey, 4))
 }
 
 func newAWSClient(region string, awsCreds AWSCredentials) (*aws.Client, error) {
@@ -78,36 +88,6 @@ func warnIfNotAdmin(awsClient *aws.Client) {
 	}
 }
 
-var _awsCredentialsValidation = &cr.StructValidation{
-	AllowExtraFields: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "AWSAccessKeyID",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
-		{
-			StructField: "AWSSecretAccessKey",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
-		{
-			StructField: "CortexAWSAccessKeyID",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
-		{
-			StructField: "CortexAWSSecretAccessKey",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty: true,
-			},
-		},
-	},
-}
-
 var _awsCredentialsPromptValidation = &cr.PromptValidation{
 	PromptItemValidations: []*cr.PromptItemValidation{
 		{
@@ -133,123 +113,95 @@ var _awsCredentialsPromptValidation = &cr.PromptValidation{
 	},
 }
 
-func readAWSCredsFromConfigFile(awsCreds *AWSCredentials, path string) error {
-	errs := cr.ParseYAMLFile(awsCreds, _awsCredentialsValidation, path)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
+// Deprecation: specifying aws creds in cluster configuration is no longer supported; returns an error if aws credentials were found in cluster configuration yaml
+func detectAWSCredsInConfigFile(cmd, path string) error {
+	credentialFieldKeys := strset.New("aws_access_key_id", "aws_secret_access_key", "cortex_aws_access_key_id", "cortex_aws_secret_access_key")
+	fieldMap, err := cr.ReadYAMLFileStrMap(path)
+	if err != nil {
+		return nil
+	}
+
+	for key := range fieldMap {
+		if credentialFieldKeys.Has(key) {
+			return errors.Wrap(ErrorCredentialsInClusterConfig(cmd, path), path, key)
+		}
 	}
 
 	return nil
 }
 
-// awsCreds is what was read from the cluster config YAML
-func setInstallAWSCredentials(awsCreds *AWSCredentials, envName string, disallowPrompt bool) error {
-	// First check env vars
-	if os.Getenv("AWS_SESSION_TOKEN") != "" {
-		fmt.Println("warning: credentials requiring aws session tokens are not supported")
+func awsCredentialsForCreatingCluster(disallowPrompt bool) (AWSCredentials, error) {
+	awsCredentials, err := awsCredentialsFromFlags()
+	if err != nil {
+		return AWSCredentials{}, err
 	}
 
-	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		awsCreds.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
-		awsCreds.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-		return nil
-	}
-	if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		return ErrorOneAWSEnvVarSet("AWS_SECRET_ACCESS_KEY", "AWS_ACCESS_KEY_ID")
-	}
-	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
-		return ErrorOneAWSEnvVarSet("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
+	if awsCredentials != nil {
+		return *awsCredentials, nil
 	}
 
-	// Next check what was read from cluster config YAML
-	if awsCreds.AWSAccessKeyID != "" && awsCreds.AWSSecretAccessKey != "" {
-		return nil
-	}
-	if awsCreds.AWSAccessKeyID == "" && awsCreds.AWSSecretAccessKey != "" {
-		return ErrorOneAWSConfigFieldSet("aws_secret_access_key", "aws_access_key_id", _flagClusterConfig)
-	}
-	if awsCreds.AWSAccessKeyID != "" && awsCreds.AWSSecretAccessKey == "" {
-		return ErrorOneAWSConfigFieldSet("aws_access_key_id", "aws_secret_access_key", _flagClusterConfig)
+	awsCredentials, err = awsCredentialsFromEnvVars()
+	if err != nil {
+		return AWSCredentials{}, err
 	}
 
-	// Next check AWS CLI config file
-	accessKeyID, secretAccessKey, err := aws.GetCredentialsFromCLIConfigFile()
-	if err == nil {
-		awsCreds.AWSAccessKeyID = accessKeyID
-		awsCreds.AWSSecretAccessKey = secretAccessKey
-		return nil
+	if awsCredentials != nil {
+		fmt.Println(fmt.Sprintf("using %s found in environment variables (to use different credentials, specify the --aws-key and --aws-secret flags)\n", awsCredentials.MaskedString()))
+		return *awsCredentials, nil
 	}
 
-	// Next check Cortex CLI config file
-	env, err := readEnv(envName)
-	if err != nil && env != nil && env.AWSAccessKeyID != nil && env.AWSSecretAccessKey != nil {
-		awsCreds.AWSAccessKeyID = *env.AWSAccessKeyID
-		awsCreds.AWSSecretAccessKey = *env.AWSSecretAccessKey
-		return nil
+	awsCredentials, err = awsCredentialsFromSharedCreds()
+	if err != nil {
+		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the --aws-key and --aws-secret flags")
 	}
 
-	// Prompt
+	if awsCredentials != nil {
+		fmt.Println(fmt.Sprintf("using %s from the \"default\" profile configured via `aws configure` (to use different credentials, specify the --aws-key and --aws-secret flags)\n", awsCredentials.MaskedString()))
+		return *awsCredentials, nil
+	}
+
 	if disallowPrompt {
-		return ErrorAWSCredentialsRequired()
+		return AWSCredentials{}, ErrorMissingAWSCredentials()
 	}
-	err = cr.ReadPrompt(awsCreds, _awsCredentialsPromptValidation)
+
+	awsCredentials, err = awsCredentialsPrompt()
 	if err != nil {
-		return err
+		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the --aws-key and --aws-secret flags")
 	}
 
-	return nil
+	return *awsCredentials, nil
 }
 
-// awsCreds is what was read from the cluster config YAML, after being passed through setInstallAWSCredentials() (so those credentials should be set)
-func setOperatorAWSCredentials(awsCreds *AWSCredentials) error {
-	// First check env vars
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
-		awsCreds.CortexAWSAccessKeyID = os.Getenv("CORTEX_AWS_ACCESS_KEY_ID")
-		awsCreds.CortexAWSSecretAccessKey = os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY")
-		return nil
-	}
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") != "" {
-		return ErrorOneAWSEnvVarSet("CORTEX_AWS_SECRET_ACCESS_KEY", "CORTEX_AWS_ACCESS_KEY_ID")
-	}
-	if os.Getenv("CORTEX_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CORTEX_AWS_SECRET_ACCESS_KEY") == "" {
-		return ErrorOneAWSEnvVarSet("CORTEX_AWS_ACCESS_KEY_ID", "CORTEX_AWS_SECRET_ACCESS_KEY")
-	}
-
-	// Next check what was read from cluster config YAML
-	if awsCreds.CortexAWSAccessKeyID != "" && awsCreds.CortexAWSSecretAccessKey != "" {
-		return nil
-	}
-	if awsCreds.CortexAWSAccessKeyID == "" && awsCreds.CortexAWSSecretAccessKey != "" {
-		return ErrorOneAWSConfigFieldSet("cortex_aws_secret_access_key", "cortex_aws_access_key_id", _flagClusterConfig)
-	}
-	if awsCreds.CortexAWSAccessKeyID != "" && awsCreds.CortexAWSSecretAccessKey == "" {
-		return ErrorOneAWSConfigFieldSet("cortex_aws_access_key_id", "cortex_aws_secret_access_key", _flagClusterConfig)
-	}
-
-	// Default to primary AWS credentials
-	awsCreds.CortexAWSAccessKeyID = awsCreds.AWSAccessKeyID
-	awsCreds.CortexAWSSecretAccessKey = awsCreds.AWSSecretAccessKey
-	return nil
-}
-
-func getAWSCredentials(userClusterConfigPath string, envName string, disallowPrompt bool) (AWSCredentials, error) {
-	awsCreds := AWSCredentials{}
-
-	if userClusterConfigPath != "" {
-		readAWSCredsFromConfigFile(&awsCreds, userClusterConfigPath)
-	}
-
-	err := setInstallAWSCredentials(&awsCreds, envName, disallowPrompt)
+func awsCredentialsForManagingCluster(accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (AWSCredentials, error) {
+	awsCredentials, err := awsCredentialsFromFlags()
 	if err != nil {
 		return AWSCredentials{}, err
 	}
 
-	err = setOperatorAWSCredentials(&awsCreds)
-	if err != nil {
-		return AWSCredentials{}, err
+	if awsCredentials != nil {
+		return *awsCredentials, nil
 	}
 
-	return awsCreds, nil
+	awsCredentials, err = getAWSCredentialsFromCache(accessConfig)
+	if err != nil {
+		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the --aws-key and --aws-secret flags")
+	}
+
+	if awsCredentials != nil {
+		fmt.Println(fmt.Sprintf("using cached %s (to use different credentials, specify the --aws-key and --aws-secret flags)\n", awsCredentials.MaskedString()))
+		return *awsCredentials, nil
+	}
+
+	if disallowPrompt {
+		return AWSCredentials{}, ErrorMissingAWSCredentials()
+	}
+
+	awsCredentials, err = awsCredentialsPrompt()
+	if err != nil {
+		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the --aws-key and --aws-secret flags")
+	}
+
+	return *awsCredentials, nil
 }
 
 // Returns true if the provided credentials match either the operator or the CLI credentials
@@ -257,8 +209,155 @@ func (awsCreds *AWSCredentials) ContainsCreds(accessKeyID string, secretAccessKe
 	if awsCreds.AWSAccessKeyID == accessKeyID && awsCreds.AWSSecretAccessKey == secretAccessKey {
 		return true
 	}
-	if awsCreds.CortexAWSAccessKeyID == accessKeyID && awsCreds.CortexAWSSecretAccessKey == secretAccessKey {
+	if awsCreds.ClusterAWSAccessKeyID == accessKeyID && awsCreds.ClusterAWSSecretAccessKey == secretAccessKey {
 		return true
 	}
 	return false
+}
+
+func awsCredentialsFromFlags() (*AWSCredentials, error) {
+	credentials := AWSCredentials{}
+
+	if _flagAWSAccessKeyID == "" && _flagAWSSecretAccessKey == "" {
+		return nil, nil
+	}
+
+	if _flagAWSSecretAccessKey == "" {
+		return nil, ErrorOneAWSFlagSet("--aws-key", "--aws-secret")
+	}
+	if _flagAWSAccessKeyID == "" {
+		return nil, ErrorOneAWSFlagSet("--aws-secret", "--aws-key")
+	}
+
+	credentials.AWSAccessKeyID = _flagAWSAccessKeyID
+	credentials.AWSSecretAccessKey = _flagAWSSecretAccessKey
+
+	if _flagClusterAWSAccessKeyID != "" || _flagClusterAWSSecretAccessKey != "" {
+		if _flagClusterAWSAccessKeyID == "" {
+			return nil, ErrorOneAWSFlagSet("--cluster-aws-key", "--cluster-aws-secret")
+		}
+		if _flagClusterAWSSecretAccessKey == "" {
+			return nil, ErrorOneAWSFlagSet("--cluster-aws-secret", "--cluster-aws-key")
+		}
+
+		credentials.ClusterAWSAccessKeyID = _flagClusterAWSAccessKeyID
+		credentials.ClusterAWSSecretAccessKey = _flagClusterAWSAccessKeyID
+	} else {
+		credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
+		credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
+	}
+
+	return &credentials, nil
+}
+
+func awsCredentialsFromEnvVars() (*AWSCredentials, error) {
+	credentials := AWSCredentials{}
+
+	if os.Getenv("AWS_SESSION_TOKEN") != "" {
+		fmt.Println("warning: credentials requiring aws session tokens are not supported")
+	}
+
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		return nil, nil
+	}
+
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		return nil, ErrorOneAWSEnvVarSet("AWS_SECRET_ACCESS_KEY", "AWS_ACCESS_KEY_ID")
+	}
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		return nil, ErrorOneAWSEnvVarSet("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
+	}
+
+	credentials.AWSAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+	credentials.AWSSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" || os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
+		if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") == "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
+			return nil, ErrorOneAWSEnvVarSet("CLUSTER_AWS_SECRET_ACCESS_KEY", "CLUSTER_AWS_ACCESS_KEY_ID")
+		}
+		if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" && os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") == "" {
+			return nil, ErrorOneAWSEnvVarSet("CLUSTER_AWS_ACCESS_KEY_ID", "CLUSTER_AWS_SECRET_ACCESS_KEY")
+		}
+
+		credentials.ClusterAWSAccessKeyID = os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID")
+		credentials.ClusterAWSSecretAccessKey = os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY")
+	} else {
+		credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
+		credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
+	}
+
+	return &credentials, nil
+}
+
+// Read from "default" profile from credentials specified by AWS_SHARED_CREDENTIALS_FILE (default path: ~/.aws/credentials)
+func awsCredentialsFromSharedCreds() (*AWSCredentials, error) {
+	credentials := AWSCredentials{}
+	accessKeyID, secretAccessKey, err := aws.GetCredentialsFromCLIConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	credentials.AWSAccessKeyID = accessKeyID
+	credentials.AWSSecretAccessKey = secretAccessKey
+	credentials.ClusterAWSAccessKeyID = accessKeyID
+	credentials.ClusterAWSSecretAccessKey = secretAccessKey
+	return &credentials, nil
+}
+
+func awsCredentialsPrompt() (*AWSCredentials, error) {
+	credentials := AWSCredentials{}
+
+	err := cr.ReadPrompt(&credentials, _awsCredentialsPromptValidation)
+	if err != nil {
+		return nil, err
+	}
+
+	credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
+	credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
+
+	return &credentials, nil
+}
+
+func credentialsCachePath(accessConfig clusterconfig.AccessConfig) string {
+	return filepath.Join(_credentialsCacheDir, fmt.Sprintf("%s-%s.json", *accessConfig.Region, *accessConfig.ClusterName))
+}
+
+func getAWSCredentialsFromCache(accessConfig clusterconfig.AccessConfig) (*AWSCredentials, error) {
+	credsPath := credentialsCachePath(accessConfig)
+
+	if !files.IsFile(credsPath) {
+		return nil, nil
+	}
+
+	jsonBytes, err := files.ReadFileBytes(credsPath)
+	if err != nil {
+		return nil, err
+	}
+
+	credentials := AWSCredentials{}
+
+	err = libjson.Unmarshal(jsonBytes, &credentials)
+	if err != nil {
+		return nil, err
+	}
+
+	return &credentials, nil
+}
+
+func cacheAWSCredentials(awsCreds AWSCredentials, accessConfig clusterconfig.AccessConfig) error {
+	jsonBytes, err := libjson.Marshal(awsCreds)
+	if err != nil {
+		return err
+	}
+
+	err = files.WriteFile(jsonBytes, credentialsCachePath(accessConfig))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func uncacheAWSCredentials(accessConfig clusterconfig.AccessConfig) error {
+	return os.Remove(credentialsCachePath(accessConfig))
 }

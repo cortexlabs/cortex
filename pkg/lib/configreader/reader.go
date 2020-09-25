@@ -948,6 +948,18 @@ func ReadYAMLFile(filePath string) (interface{}, error) {
 	return fileInterface, nil
 }
 
+func ReadYAMLFileStrMap(filePath string) (map[string]interface{}, error) {
+	parsed, err := ReadYAMLFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	casted, ok := cast.InterfaceToStrInterfaceMap(parsed)
+	if !ok {
+		return nil, ErrorInvalidPrimitiveType(parsed, PrimTypeMap)
+	}
+	return casted, nil
+}
+
 func ReadYAMLBytes(yamlBytes []byte) (interface{}, error) {
 	if len(yamlBytes) == 0 {
 		return nil, nil
