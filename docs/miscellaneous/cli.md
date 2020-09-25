@@ -61,19 +61,6 @@ Flags:
   -h, --help            help for refresh
 ```
 
-## export
-
-```text
-export an API
-
-Usage:
-  cortex export API_NAME [flags]
-
-Flags:
-  -e, --env string   environment to use (default "local")
-  -h, --help         help for export
-```
-
 ## predict
 
 ```text
@@ -155,6 +142,21 @@ Flags:
   -e, --env string          environment to update (default "aws")
   -y, --yes                 skip prompts
   -h, --help                help for configure
+```
+
+## cluster export
+
+```text
+export all APIs deployed in a cluster
+
+Usage:
+  cortex cluster export [flags]
+
+Flags:
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -h, --help                help for export
 ```
 
 ## cluster down

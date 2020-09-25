@@ -545,7 +545,7 @@ var _downCmd = &cobra.Command{
 
 var _exportCmd = &cobra.Command{
 	Use:   "export",
-	Short: "export all APIs deployed in the cluster",
+	Short: "export all APIs deployed in a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export")
@@ -574,7 +574,6 @@ var _exportCmd = &cobra.Command{
 		}
 		warnIfNotAdmin(awsClient)
 
-		// updating CLI env is best-effort, so ignore errors
 		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
 			"cortex.dev/load-balancer":   "operator",
@@ -586,7 +585,6 @@ var _exportCmd = &cobra.Command{
 		operatorConfig := cluster.OperatorConfig{
 			Telemetry:          isTelemetryEnabled(),
 			ClientID:           clientID(),
-			EnvName:            "export",
 			AWSAccessKeyID:     awsCreds.AWSAccessKeyID,
 			AWSSecretAccessKey: awsCreds.AWSSecretAccessKey,
 			OperatorEndpoint:   "https://" + *loadBalancer.DNSName,

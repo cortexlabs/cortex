@@ -43,7 +43,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"gopkg.in/yaml.v3"
+	"github.com/cortexlabs/yaml"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
