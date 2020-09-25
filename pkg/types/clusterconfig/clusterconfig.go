@@ -19,6 +19,7 @@ package clusterconfig
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -65,6 +66,7 @@ type Config struct {
 	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
 	Region                     *string            `json:"region" yaml:"region"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
+	VPCCIDR                    string             `json:"vpc_cidr" yaml:"vpc_cidr"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	LogGroup                   string             `json:"log_group" yaml:"log_group"`
@@ -303,6 +305,12 @@ var UserValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return SubnetVisibilityFromString(str), nil
+			},
+		},
+		{
+			StructField: "VPCCIDR",
+			StringValidation: &cr.StringValidation{
+				Validator: validateVPCCIDR,
 			},
 		},
 		{
@@ -1016,6 +1024,18 @@ func validateBucketName(bucket string) (string, error) {
 		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), bucket)
 	}
 	return bucket, nil
+}
+
+func validateVPCCIDR(cidr string) (string, error) {
+	ip, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", err
+	}
+
+	ipNet.Mask.Size()
+	ip.DefaultMask().Size()
+
+	return cidr, nil
 }
 
 func validateInstanceType(instanceType string) (string, error) {

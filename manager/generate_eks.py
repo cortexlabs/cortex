@@ -197,7 +197,7 @@ def generate_eks(cluster_config_path):
             "version": "1.17",
             "tags": cluster_config["tags"],
         },
-        "vpc": {"nat": {"gateway": nat_gateway}},
+        "vpc": {"vpc_cidr": cluster_config["vpc_cidr"], "nat": {"gateway": nat_gateway}},
         "availabilityZones": cluster_config["availability_zones"],
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }

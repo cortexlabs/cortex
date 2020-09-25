@@ -39,6 +39,10 @@ instance_volume_type: gp2
 # instance volume iops (only applicable to io1 storage type) (default: 3000)
 # instance_volume_iops: 3000
 
+# IP address range to allocate to instances in the VPC for this cluster
+# when spinning up a cluster, a new VPC is created to
+vpc_cidr:
+
 # whether the subnets used for EC2 instances should be public or private (default: "public")
 # if "public", instances will be assigned public IP addresses; if "private", instances won't have public IPs and a NAT gateway will be created to allow outgoing network requests
 # see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
