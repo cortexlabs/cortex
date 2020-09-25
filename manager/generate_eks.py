@@ -188,6 +188,8 @@ def generate_eks(cluster_config_path):
     elif cluster_config["nat_gateway"] == "highly_available":
         nat_gateway = "HighlyAvailable"
 
+    print(cluster_config)
+    raise Exception("hi: " + str(cluster_config))
     eks = {
         "apiVersion": "eksctl.io/v1alpha5",
         "kind": "ClusterConfig",
