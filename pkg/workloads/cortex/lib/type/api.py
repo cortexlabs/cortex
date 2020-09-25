@@ -17,6 +17,7 @@ import base64
 import time
 from pathlib import Path
 import json
+import threading
 
 import datadog
 
@@ -48,6 +49,9 @@ class API:
             host_ip = os.environ["HOST_IP"]
             datadog.initialize(statsd_host=host_ip, statsd_port="8125")
             self.statsd = datadog.statsd
+
+        if provider == "local":
+            self.metrics_file_lock = threading.Lock()
 
     def get_cached_classes(self):
         prefix = os.path.join(self.metadata_root, "classes") + "/"
@@ -114,12 +118,15 @@ class API:
 
     def store_metrics_locally(self, status_code, total_time):
         status_code_series = int(status_code / 100)
-
         status_code_file_name = f"/mnt/workspace/{os.getpid()}.{status_code_series}XX"
-        self.increment_counter_file(status_code_file_name, 1)
-
         request_time_file = f"/mnt/workspace/{os.getpid()}.request_time"
-        self.increment_counter_file(request_time_file, total_time)
+
+        self.metrics_file_lock.acquire()
+        try:
+            self.increment_counter_file(status_code_file_name, 1)
+            self.increment_counter_file(request_time_file, total_time)
+        finally:
+            self.metrics_file_lock.release()
 
     def increment_counter_file(self, file_name, value):
         previous_val = 0
