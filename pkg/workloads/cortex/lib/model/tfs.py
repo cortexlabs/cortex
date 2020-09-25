@@ -101,6 +101,22 @@ class TensorFlowServingAPI:
         self._service = model_service_pb2_grpc.ModelServiceStub(self.channel)
         self._pred = prediction_service_pb2_grpc.PredictionServiceStub(self.channel)
 
+    def is_tfs_accessible(self) -> bool:
+        """
+        Tests whether TFS is accessible or not.
+        """
+        request = get_model_status_pb2.GetModelStatusRequest()
+        request.model_spec.name = "test-model-name"
+
+        try:
+            self._service.GetModelStatus(request, timeout=10.0)
+        except grpc.RpcError as error:
+            if error.code() in [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED]:
+                return False
+            return True
+        else:
+            return True
+
     def add_single_model(
         self,
         model_name: str,

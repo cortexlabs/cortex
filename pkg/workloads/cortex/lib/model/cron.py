@@ -755,10 +755,17 @@ class TFSModelLoader(mp.Process):
         # TODO load models concurrently (check if setting --grpc_channel_arguments=grpc.max_concurrent_streams=2 is required)
         # TODO move the code within the for loop in a separate method
 
+        # check tfs connection
+        tfs_unresponsive = not self._client.is_tfs_accessible()
+        if tfs_unresponsive:
+            logger.warning("TFS server is unresponsive")
+
         # update TFS models
         current_ts_state = {}
-        tfs_unresponsive = False
         for model_name, model_timestamps in zip(model_names, timestamps):
+
+            if tfs_unresponsive:
+                break
 
             model_versions = versions[model_name]
             if len(model_versions) == 0:
@@ -772,7 +779,17 @@ class TFSModelLoader(mp.Process):
                 model_reloaded = False
                 first_time_load = False
                 if model_id in self._old_ts_state and self._old_ts_state[model_id] < model_ts:
-                    self._client.remove_single_model(model_name, model_version)
+                    try:
+                        self._client.remove_single_model(model_name, model_version)
+                    except gprc.RpcError as error:
+                        if error.code() == grpc.StatusCode.UNAVAILABLE:
+                            logger.warning(
+                                "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                                    model_name, model_version, str(e)
+                                )
+                            )
+                        tfs_unresponsive = True
+                        break
                     model_reloaded = True
                 elif model_id not in self._old_ts_state:
                     first_time_load = True
@@ -811,6 +828,7 @@ class TFSModelLoader(mp.Process):
                     model_reloaded = False
                     first_time_load = False
 
+                # save timestamp of loaded model
                 if model_reloaded:
                     current_ts_state[model_id] = model_ts
                     logger.info(
@@ -825,9 +843,6 @@ class TFSModelLoader(mp.Process):
                             model_name, model_version
                         )
                     )
-
-            if tfs_unresponsive:
-                break
 
         if not tfs_unresponsive:
             # save model timestamp states
@@ -847,7 +862,7 @@ class TFSModelLoader(mp.Process):
             # required for printing the model stats when cortex getting
             resource = os.path.join(self._lock_dir, "model_timestamps.json")
             with LockedFile(resource, "w") as f:
-                json.dump(self._old_ts_state, f)
+                json.dump(self._old_ts_state, f, indent=2)
 
         # reset TFS client if it's unresponsive
         # it is assumed that the TFS container will restart on its own
@@ -857,7 +872,7 @@ class TFSModelLoader(mp.Process):
         # save model stats for TFS to disk
         resource = os.path.join(self._lock_dir, "models_tfs.json")
         with LockedFile(resource, "w") as f:
-            json.dump(self._client.models, f)
+            json.dump(self._client.models, f, indent=2)
 
     def _refresh_model(
         self,
