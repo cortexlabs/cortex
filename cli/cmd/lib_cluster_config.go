@@ -42,10 +42,6 @@ func cachedClusterConfigPath(clusterName string, region string) string {
 	return filepath.Join(_localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
 }
 
-func mountedClusterConfigPath(clusterName string, region string) string {
-	return filepath.Join("/.cortex", fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
-}
-
 func existingCachedClusterConfigPaths() []string {
 	paths, err := files.ListDir(_localDir, false)
 	if err != nil {
@@ -501,8 +497,8 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	var items table.KeyValuePairs
 
 	items.Add("aws access key id", s.MaskString(awsCreds.AWSAccessKeyID, 4))
-	if awsCreds.CortexAWSAccessKeyID != awsCreds.AWSAccessKeyID {
-		items.Add("aws access key id", s.MaskString(awsCreds.CortexAWSAccessKeyID, 4)+" (cortex)")
+	if awsCreds.ClusterAWSAccessKeyID != awsCreds.AWSAccessKeyID {
+		items.Add("aws access key id", s.MaskString(awsCreds.ClusterAWSAccessKeyID, 4)+" (cortex)")
 	}
 	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {

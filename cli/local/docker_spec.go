@@ -181,6 +181,9 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
+		if strings.Contains(err.Error(), "bind source path does not exist") {
+			return errors.Wrap(ErrorBindDockerInDocker(err), api.Identify())
+		}
 		return errors.Wrap(err, api.Identify())
 	}
 
@@ -271,6 +274,9 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerInfo, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 	if err != nil {
+		if strings.Contains(err.Error(), "bind source path does not exist") {
+			return errors.Wrap(ErrorBindDockerInDocker(err), api.Identify())
+		}
 		return errors.Wrap(err, api.Identify())
 	}
 
@@ -365,6 +371,9 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 
 	containerCreateRequest, err := docker.MustDockerClient().ContainerCreate(context.Background(), serveContainerConfig, serveHostConfig, nil, "")
 	if err != nil {
+		if strings.Contains(err.Error(), "bind source path does not exist") {
+			return errors.Wrap(ErrorBindDockerInDocker(err), api.Identify())
+		}
 		return errors.Wrap(err, api.Identify())
 	}
 
@@ -432,6 +441,9 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	}
 	containerCreateRequest, err = docker.MustDockerClient().ContainerCreate(context.Background(), apiContainerConfig, apiHostConfig, nil, "")
 	if err != nil {
+		if strings.Contains(err.Error(), "bind source path does not exist") {
+			return errors.Wrap(ErrorBindDockerInDocker(err), api.Identify())
+		}
 		return errors.Wrap(err, api.Identify())
 	}
 

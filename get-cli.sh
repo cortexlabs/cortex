@@ -51,7 +51,10 @@ function main() {
   rm -rf $cortex_sh_tmp_dir
   echo "✓ installed cli"
 
-  update_bash_profile
+  # prompt to update bash profile if running interactively
+  if [ -t 1 ]; then
+    update_bash_profile
+  fi
 }
 
 function ask_sudo() {

@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+debug_out_path="$1"
+mkdir -p "$(dirname "$debug_out_path")"
+
 if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then
   echo "error: there is no cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing cortex cluster or create a cortex cluster with \`cortex cluster up\`"
   exit 1
@@ -21,31 +24,28 @@ fi
 
 eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
-rm -rf /.cortex/cortex-debug*
-
 echo -n "gathering cluster data"
 
-mkdir -p /.cortex/cortex-debug/k8s
+mkdir -p /cortex-debug/k8s
 for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments hpa services virtualservices gateways ingresses configmaps jobs replicasets events; do
-  kubectl describe $resource --all-namespaces &>/dev/null > "/.cortex/cortex-debug/k8s/${resource}"
-  kubectl get $resource --all-namespaces &>/dev/null > "/.cortex/cortex-debug/k8s/${resource}-list"
+  kubectl describe $resource --all-namespaces &>/dev/null > "/cortex-debug/k8s/${resource}"
+  kubectl get $resource --all-namespaces &>/dev/null > "/cortex-debug/k8s/${resource}-list"
   echo -n "."
 done
 
-mkdir -p /.cortex/cortex-debug/logs
-kubectl get pods --all-namespaces -o json | jq '.items[] | "kubectl logs -n \(.metadata.namespace) \(.metadata.name) --all-containers --timestamps --tail=10000 &>/dev/null > /.cortex/cortex-debug/logs/\(.metadata.namespace).\(.metadata.name) && echo -n ."' | xargs -n 1 bash -c
+mkdir -p /cortex-debug/logs
+kubectl get pods --all-namespaces -o json | jq '.items[] | "kubectl logs -n \(.metadata.namespace) \(.metadata.name) --all-containers --timestamps --tail=10000 &>/dev/null > /cortex-debug/logs/\(.metadata.namespace).\(.metadata.name) && echo -n ."' | xargs -n 1 bash -c
 
-kubectl top pods --all-namespaces --containers=true &>/dev/null > "/.cortex/cortex-debug/k8s/top_pods"
-kubectl top nodes &>/dev/null > "/.cortex/cortex-debug/k8s/top_nodes"
+kubectl top pods --all-namespaces --containers=true &>/dev/null > "/cortex-debug/k8s/top_pods"
+kubectl top nodes &>/dev/null > "/cortex-debug/k8s/top_nodes"
 
-
-mkdir -p /.cortex/cortex-debug/aws
-aws --region=$CORTEX_REGION autoscaling describe-auto-scaling-groups &>/dev/null > "/.cortex/cortex-debug/aws/asgs"
+mkdir -p /cortex-debug/aws
+aws --region=$CORTEX_REGION autoscaling describe-auto-scaling-groups &>/dev/null > "/cortex-debug/aws/asgs"
 echo -n "."
-aws --region=$CORTEX_REGION autoscaling describe-scaling-activities &>/dev/null > "/.cortex/cortex-debug/aws/asg-activities"
+aws --region=$CORTEX_REGION autoscaling describe-scaling-activities &>/dev/null > "/cortex-debug/aws/asg-activities"
 echo -n "."
 
-(cd /.cortex && tar -czf cortex-debug.tgz cortex-debug)
-rm -rf /.cortex/cortex-debug
+(cd / && tar -czf cortex-debug.tgz cortex-debug)
+mv /cortex-debug.tgz $debug_out_path
 
 echo " ✓"
