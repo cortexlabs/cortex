@@ -705,8 +705,6 @@ class TFSModelLoader(mp.Process):
         if self._is_dir_used and not self._models_dir.startswith("s3://"):
             return
 
-        print("running now", time.time())
-
         # get updated/validated paths/versions of the S3 models
         (
             model_names,
@@ -723,14 +721,13 @@ class TFSModelLoader(mp.Process):
             self._s3_model_names,
         )
 
+        # TODO download models concurrently
+
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
         for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
             zip(model_names, bucket_names, sub_paths)
         ):
-            if model_name == "text-generator":
-                continue
-
             self._refresh_model(
                 idx,
                 model_name,
@@ -753,6 +750,9 @@ class TFSModelLoader(mp.Process):
             shutil.rmtree(os.path.join(self._download_dir, model_name))
             self._client.remove_models([model_name], [model_versions])
 
+        # TODO load models concurrently (check if setting --grpc_channel_arguments=grpc.max_concurrent_streams=2 is required)
+        # TODO move the code within the for loop in a separate method
+
         # update TFS models
         current_ts_state = {}
         for model_name, model_timestamps in zip(model_names, timestamps):
@@ -766,7 +766,6 @@ class TFSModelLoader(mp.Process):
 
                 # remove outdated model
                 model_id = f"{model_name}-{model_version}"
-                current_ts_state[model_id] = model_ts
                 model_reloaded = False
                 first_time_load = False
                 if model_id in self._old_ts_state and self._old_ts_state[model_id] < model_ts:
@@ -777,6 +776,8 @@ class TFSModelLoader(mp.Process):
 
                 if not model_reloaded and not first_time_load:
                     continue
+
+                print("model_reloaded", model_reloaded, "first_time_load", first_time_load)
 
                 # load model
                 model_disk_path = os.path.join(self._tfs_model_dir, model_name)
@@ -799,31 +800,45 @@ class TFSModelLoader(mp.Process):
                     first_time_load = False
 
                 if model_reloaded:
+                    current_ts_state[model_id] = model_ts
                     logger.info(
                         "model '{}' of version '{}' has been reloaded".format(
                             model_name, model_version
                         )
                     )
                 elif first_time_load:
+                    current_ts_state[model_id] = model_ts
                     logger.info(
                         "model '{}' of version '{}' has been loaded".format(
                             model_name, model_version
                         )
                     )
 
+        # save model timestamp states
+        for model_id, ts in current_ts_state.items():
+            self._old_ts_state[model_id] = ts
+
+        # remove model timestamps that no longer exist
+        loaded_model_ids = self._client.models.keys()
+        aux_ts_state = self._old_ts_state.copy()
+        for model_id in self._old_ts_state.keys():
+            if model_id not in loaded_model_ids:
+                del aux_ts_state[model_id]
+        self._old_ts_state = aux_ts_state
+
         # save model timestamp states to disk
         # could be cast to a short-lived thread
         # required for printing the model stats when cortex getting
         resource = os.path.join(self._lock_dir, "model_timestamps.json")
         with LockedFile(resource, "w") as f:
-            json.dump(current_ts_state, f)
-        # save model timestamp states
-        self._old_ts_state = current_ts_state
+            json.dump(self._old_ts_state, f)
 
         # save model stats for TFS to disk
         resource = os.path.join(self._lock_dir, "models_tfs.json")
         with LockedFile(resource, "w") as f:
             json.dump(self._client.models, f)
+
+        print("current ts state", self._old_ts_state.keys())
 
     def _refresh_model(
         self,
