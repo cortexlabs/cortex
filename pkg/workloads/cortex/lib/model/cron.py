@@ -21,6 +21,7 @@ import glob
 import shutil
 import itertools
 import json
+import grpc
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 
@@ -634,6 +635,7 @@ class TFSModelLoader(mp.Process):
         self._temp_dir = temp_dir
         self._lock_dir = lock_dir
 
+        self._tfs_address = address
         self._client = TensorFlowServingAPI(address)
         self._old_ts_state = {}
 
@@ -755,6 +757,7 @@ class TFSModelLoader(mp.Process):
 
         # update TFS models
         current_ts_state = {}
+        tfs_unresponsive = False
         for model_name, model_timestamps in zip(model_names, timestamps):
 
             model_versions = versions[model_name]
@@ -777,8 +780,6 @@ class TFSModelLoader(mp.Process):
                 if not model_reloaded and not first_time_load:
                     continue
 
-                print("model_reloaded", model_reloaded, "first_time_load", first_time_load)
-
                 # load model
                 model_disk_path = os.path.join(self._tfs_model_dir, model_name)
                 try:
@@ -790,12 +791,23 @@ class TFSModelLoader(mp.Process):
                         timeout=30.0,
                     )
                 except Exception as e:
-                    self._client.remove_single_model(model_name, model_version)
-                    logger.warning(
-                        "model '{}' of version '{}' couldn't be loaded: {}".format(
-                            model_name, model_version, str(e)
+                    try:
+                        self._client.remove_single_model(model_name, model_version)
+                        logger.warning(
+                            "model '{}' of version '{}' couldn't be loaded: {}".format(
+                                model_name, model_version, str(e)
+                            )
                         )
-                    )
+                    except grpc.RpcError as error:
+                        if error.code() == grpc.StatusCode.UNAVAILABLE:
+                            logger.warning(
+                                "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                                    model_name, model_version, str(e)
+                                )
+                            )
+                        tfs_unresponsive = True
+                        break
+
                     model_reloaded = False
                     first_time_load = False
 
@@ -814,31 +826,38 @@ class TFSModelLoader(mp.Process):
                         )
                     )
 
-        # save model timestamp states
-        for model_id, ts in current_ts_state.items():
-            self._old_ts_state[model_id] = ts
+            if tfs_unresponsive:
+                break
 
-        # remove model timestamps that no longer exist
-        loaded_model_ids = self._client.models.keys()
-        aux_ts_state = self._old_ts_state.copy()
-        for model_id in self._old_ts_state.keys():
-            if model_id not in loaded_model_ids:
-                del aux_ts_state[model_id]
-        self._old_ts_state = aux_ts_state
+        if not tfs_unresponsive:
+            # save model timestamp states
+            for model_id, ts in current_ts_state.items():
+                self._old_ts_state[model_id] = ts
 
-        # save model timestamp states to disk
-        # could be cast to a short-lived thread
-        # required for printing the model stats when cortex getting
-        resource = os.path.join(self._lock_dir, "model_timestamps.json")
-        with LockedFile(resource, "w") as f:
-            json.dump(self._old_ts_state, f)
+            # remove model timestamps that no longer exist
+            loaded_model_ids = self._client.models.keys()
+            aux_ts_state = self._old_ts_state.copy()
+            for model_id in self._old_ts_state.keys():
+                if model_id not in loaded_model_ids:
+                    del aux_ts_state[model_id]
+            self._old_ts_state = aux_ts_state
+
+            # save model timestamp states to disk
+            # could be cast to a short-lived thread
+            # required for printing the model stats when cortex getting
+            resource = os.path.join(self._lock_dir, "model_timestamps.json")
+            with LockedFile(resource, "w") as f:
+                json.dump(self._old_ts_state, f)
+
+        # reset TFS client if it's unresponsive
+        # it is assumed that the TFS container will restart on its own
+        if tfs_unresponsive:
+            self._client = TensorFlowServingAPI(self._tfs_address)
 
         # save model stats for TFS to disk
         resource = os.path.join(self._lock_dir, "models_tfs.json")
         with LockedFile(resource, "w") as f:
             json.dump(self._client.models, f)
-
-        print("current ts state", self._old_ts_state.keys())
 
     def _refresh_model(
         self,

@@ -309,9 +309,6 @@ class TensorFlowServingAPI:
         Args:
             model_name: The model name to check for versions.
 
-        Raises:
-            grpc.RpcError in case something bad happens while communicating - should not happen.
-
         Returns:
             List of the available versions for the given model from TFS.
         """
@@ -458,7 +455,9 @@ class TensorFlowServingAPI:
             last_idx = times
         if last_idx == 99:
             raise UserException(
-                "couldn't find model '{}' of version '{}' to extract the signature def"
+                "couldn't find model '{}' of version '{}' to extract the signature def".format(
+                    model_name, model_version
+                )
             )
 
         sigAny = resp.metadata["signature_def"]
