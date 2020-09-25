@@ -40,7 +40,7 @@ It is recommended to use an IAM user with the `AdministratorAccess` policy to cr
 
 ### Operator
 
-A process called the Cortex operator runs on your cluster and is responsible for deploying and managing your APIs on the cluster. The operator will use the designated cluster credentials (e.g. `--cluster-aws-key` or `CLUSTER_AWS_ACCESS_KEY_ID`) if specified, otherwise it will default to using the credentials used to spin up the cluster (e.g. `--aws-key` or `AWS_ACCESS_KEY_ID`).
+A process called the Cortex operator runs on your cluster and is responsible for deploying and managing your APIs on the cluster. The operator will use the designated cluster credentials (e.g. `--cluster-aws-key` or `$CLUSTER_AWS_ACCESS_KEY_ID`) if specified, otherwise it will default to using the credentials used to spin up the cluster (e.g. `--aws-key` or `$AWS_ACCESS_KEY_ID`).
 
 The operator requires read permissions for any S3 bucket containing exported models, read/write permissions for the Cortex S3 bucket, read permissions for ECR, read permissions for ELB, read/write permissions for API Gateway, read/write permissions for CloudWatch metrics, and read/write permissions for the Cortex CloudWatch log group. The policy below may be used to restrict the Operator's access:
 
