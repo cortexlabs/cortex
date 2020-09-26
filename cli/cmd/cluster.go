@@ -574,6 +574,16 @@ var _exportCmd = &cobra.Command{
 		}
 		warnIfNotAdmin(awsClient)
 
+		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = clusterstate.AssertClusterStatus(*accessConfig.ClusterName, *accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
 			"cortex.dev/load-balancer":   "operator",
