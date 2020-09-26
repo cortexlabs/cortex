@@ -128,7 +128,7 @@ func ManageJobResources() error {
 			}
 		}
 		if queueURL == nil {
-			// job has been submitted within the grace period, it may take a while for a newly created queue to be listed in aws api responses
+			// job has been submitted within the grace period, it may take a while for a newly created queue to be listed in SQS api response
 			continue
 		}
 
