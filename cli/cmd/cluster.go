@@ -278,7 +278,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nunable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
 		}
 		if loadBalancer == nil {
-			exit.Error(ErrorNoOperatorLoadBalancer(_flagClusterEnv))
+			exit.Error(errors.Append(ErrorNoOperatorLoadBalancer(), "; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv))
 		}
 
 		newEnvironment := cliconfig.Environment{
@@ -545,7 +545,7 @@ var _downCmd = &cobra.Command{
 
 var _exportCmd = &cobra.Command{
 	Use:   "export",
-	Short: "export all APIs deployed in a cluster",
+	Short: "download the code and configuration for all APIs deployed in a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export")
@@ -581,6 +581,9 @@ var _exportCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+		if loadBalancer == nil {
+			exit.Error(ErrorNoOperatorLoadBalancer())
+		}
 
 		operatorConfig := cluster.OperatorConfig{
 			Telemetry:          isTelemetryEnabled(),
@@ -600,38 +603,38 @@ var _exportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		apiSpecList := []spec.API{}
+		var apiSpecs []spec.API
 
 		for _, batchAPI := range apisResponse.BatchAPIs {
-			apiSpecList = append(apiSpecList, batchAPI.Spec)
+			apiSpecs = append(apiSpecs, batchAPI.Spec)
 		}
 
 		for _, realtimeAPI := range apisResponse.RealtimeAPIs {
-			apiSpecList = append(apiSpecList, realtimeAPI.Spec)
+			apiSpecs = append(apiSpecs, realtimeAPI.Spec)
 		}
 
 		for _, trafficSplitter := range apisResponse.TrafficSplitters {
-			apiSpecList = append(apiSpecList, trafficSplitter.Spec)
+			apiSpecs = append(apiSpecs, trafficSplitter.Spec)
 		}
 
-		if len(apiSpecList) == 0 {
+		if len(apiSpecs) == 0 {
 			fmt.Println(fmt.Sprintf("no apis found in cluster named %s in %s", *accessConfig.ClusterName, *accessConfig.Region))
 			exit.Ok()
 		}
 
-		exportPath := "export"
+		exportPath := fmt.Sprintf("export-%s-%s", *accessConfig.Region, *accessConfig.ClusterName)
 
-		_, err = files.CreateDirIfMissing(exportPath)
+		err = files.CreateDir(exportPath)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		for _, apiSpec := range apiSpecList {
-			baseDir := filepath.Join(exportPath, apiSpec.Name+"-"+apiSpec.ID)
+		for _, apiSpec := range apiSpecs {
+			baseDir := filepath.Join(exportPath, apiSpec.Name)
 
 			fmt.Println(fmt.Sprintf("exporting %s to %s", apiSpec.Name, baseDir))
 
-			err = os.Mkdir(baseDir, os.ModePerm)
+			err = files.CreateDir(baseDir)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -643,7 +646,7 @@ var _exportCmd = &cobra.Command{
 
 			if apiSpec.Kind != userconfig.TrafficSplitterKind {
 				zipFileLocation := path.Join(baseDir, path.Base(apiSpec.ProjectKey))
-				err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.ProjectKey, path.Join(baseDir, path.Base(apiSpec.ProjectKey)))
+				err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.ProjectKey, zipFileLocation)
 				if err != nil {
 					exit.Error(err)
 				}

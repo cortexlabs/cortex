@@ -147,7 +147,7 @@ Flags:
 ## cluster export
 
 ```text
-export all APIs deployed in a cluster
+download the code and configuration for all APIs deployed in a cluster
 
 Usage:
   cortex cluster export [flags]
