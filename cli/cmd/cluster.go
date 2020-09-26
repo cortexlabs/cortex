@@ -278,7 +278,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nunable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
 		}
 		if loadBalancer == nil {
-			exit.Error(errors.Append(ErrorNoOperatorLoadBalancer(), "; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv))
+			exit.Error(errors.Append(ErrorNoOperatorLoadBalancer(), fmt.Sprintf("; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
 		}
 
 		newEnvironment := cliconfig.Environment{
