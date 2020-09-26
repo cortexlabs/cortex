@@ -358,12 +358,12 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		}
 	}
 
+	userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
+
 	if s.Obj(cachedClusterConfig.VPCCIDR) != s.Obj(userClusterConfig.VPCCIDR) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.VPCCIDRKey, cachedClusterConfig.VPCCIDR)
 	}
-	userClusterConfig.SSLCertificateARN = cachedClusterConfig.SSLCertificateARN
-
-	userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
+	userClusterConfig.VPCCIDR = cachedClusterConfig.VPCCIDR
 
 	return nil
 }

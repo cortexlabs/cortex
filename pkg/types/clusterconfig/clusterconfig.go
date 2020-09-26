@@ -1033,7 +1033,7 @@ func validateVPCCIDR(cidr string) (string, error) {
 
 	_, _, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 
 	return cidr, nil
