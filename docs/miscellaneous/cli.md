@@ -2,7 +2,19 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## deploy
+## Installing a specific version of the CLI
+
+```bash
+# Replace `INSERT_CORTEX_VERSION` with the complete CLI version (e.g. 0.18.1):
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/vINSERT_CORTEX_VERSION/get-cli.sh)"
+
+# For example to download CLI version 0.18.1 (Note the 'v'):
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.18.1/get-cli.sh)"
+```
+
+## Command overview
+
+### deploy
 
 ```text
 create or update apis
@@ -18,7 +30,7 @@ Flags:
   -h, --help            help for deploy
 ```
 
-## get
+### get
 
 ```text
 get information about apis or jobs
@@ -33,7 +45,7 @@ Flags:
   -h, --help            help for get
 ```
 
-## logs
+### logs
 
 ```text
 stream logs from an api
@@ -46,7 +58,7 @@ Flags:
   -h, --help         help for logs
 ```
 
-## refresh
+### refresh
 
 ```text
 restart all replicas for an api (without downtime)
@@ -61,7 +73,7 @@ Flags:
   -h, --help            help for refresh
 ```
 
-## predict
+### predict
 
 ```text
 make a prediction request using a json file
@@ -74,7 +86,7 @@ Flags:
   -h, --help         help for predict
 ```
 
-## delete
+### delete
 
 ```text
 delete any kind of api or stop a batch job
@@ -90,7 +102,7 @@ Flags:
   -h, --help            help for delete
 ```
 
-## cluster up
+### cluster up
 
 ```text
 spin up a cluster
@@ -109,7 +121,7 @@ Flags:
   -h, --help                        help for up
 ```
 
-## cluster info
+### cluster info
 
 ```text
 get information about a cluster
@@ -127,7 +139,7 @@ Flags:
   -h, --help                help for info
 ```
 
-## cluster configure
+### cluster configure
 
 ```text
 update a cluster's configuration
@@ -144,7 +156,7 @@ Flags:
   -h, --help                help for configure
 ```
 
-## cluster down
+### cluster down
 
 ```text
 spin down a cluster
@@ -160,7 +172,7 @@ Flags:
   -h, --help                help for down
 ```
 
-## env configure
+### env configure
 
 ```text
 configure an environment
@@ -177,7 +189,7 @@ Flags:
   -h, --help                           help for configure
 ```
 
-## env list
+### env list
 
 ```text
 list all configured environments
@@ -189,7 +201,7 @@ Flags:
   -h, --help   help for list
 ```
 
-## env default
+### env default
 
 ```text
 set the default environment
@@ -201,7 +213,7 @@ Flags:
   -h, --help   help for default
 ```
 
-## env delete
+### env delete
 
 ```text
 delete an environment configuration
@@ -213,7 +225,7 @@ Flags:
   -h, --help   help for delete
 ```
 
-## version
+### version
 
 ```text
 print the cli and cluster versions
@@ -226,7 +238,7 @@ Flags:
   -h, --help         help for version
 ```
 
-## completion
+### completion
 
 ```text
 generate shell completion scripts
