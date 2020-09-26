@@ -752,25 +752,46 @@ class TFSModelLoader(mp.Process):
             shutil.rmtree(os.path.join(self._download_dir, model_name))
             self._client.remove_models([model_name], [model_versions])
 
-        # TODO load models concurrently (check if setting --grpc_channel_arguments=grpc.max_concurrent_streams=2 is required)
         # TODO move the code within the for loop in a separate method
 
         # check tfs connection
         tfs_unresponsive = not self._client.is_tfs_accessible()
         if tfs_unresponsive:
-            logger.warning("TFS server is unresponsive")
+            self.cleanup_when_tfs_unresponsive()
+            return
+
+        # remove versioned models from TFS that no longer exist on disk
+        tfs_model_ids = self._client.get_registered_model_ids()
+        ondisk_models = find_ondisk_models(self._download_dir)
+        ondisk_model_ids = []
+        for model_name, model_versions in ondisk_models.items():
+            for model_version in model_versions:
+                ondisk_model_ids.append(f"{model_name}-{model_version}")
+        for tfs_model_id in tfs_model_ids:
+            if tfs_model_id not in ondisk_model_ids:
+                try:
+                    model_name, model_version = tfs_model_id.rsplit("-", maxsplit=1)
+                    self._client.remove_single_model(model_name, model_version)
+                    logger.info(
+                        "model '{}' of version '{}' has been unloaded".format(
+                            model_name, model_version
+                        )
+                    )
+                except gprc.RpcError as error:
+                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                        logger.warning(
+                            "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                                model_name, model_version, str(e)
+                            )
+                        )
+                    self.cleanup_when_tfs_unresponsive()
+                    return
 
         # update TFS models
         current_ts_state = {}
-        for model_name, model_timestamps in zip(model_names, timestamps):
+        for model_name, model_versions in ondisk_models.items():
 
-            if tfs_unresponsive:
-                break
-
-            model_versions = versions[model_name]
-            if len(model_versions) == 0:
-                model_versions = ["1"]
-
+            model_timestamps = timestamps[model_names.index(model_name)]
             for model_version, model_ts in zip(model_versions, model_timestamps):
                 model_ts = int(model_ts.timestamp())
 
@@ -784,12 +805,12 @@ class TFSModelLoader(mp.Process):
                     except gprc.RpcError as error:
                         if error.code() == grpc.StatusCode.UNAVAILABLE:
                             logger.warning(
-                                "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                                "TFS server unresponsive after trying to unload model '{}' of version '{}': ".format(
                                     model_name, model_version, str(e)
                                 )
                             )
-                        tfs_unresponsive = True
-                        break
+                        logger.warning("TFS server is unresponsive")
+                        return
                     model_reloaded = True
                 elif model_id not in self._old_ts_state:
                     first_time_load = True
@@ -822,8 +843,8 @@ class TFSModelLoader(mp.Process):
                                     model_name, model_version, str(e)
                                 )
                             )
-                        tfs_unresponsive = True
-                        break
+                        self.cleanup_when_tfs_unresponsive()
+                        return
 
                     model_reloaded = False
                     first_time_load = False
@@ -844,30 +865,24 @@ class TFSModelLoader(mp.Process):
                         )
                     )
 
-        if not tfs_unresponsive:
-            # save model timestamp states
-            for model_id, ts in current_ts_state.items():
-                self._old_ts_state[model_id] = ts
+        # save model timestamp states
+        for model_id, ts in current_ts_state.items():
+            self._old_ts_state[model_id] = ts
 
-            # remove model timestamps that no longer exist
-            loaded_model_ids = self._client.models.keys()
-            aux_ts_state = self._old_ts_state.copy()
-            for model_id in self._old_ts_state.keys():
-                if model_id not in loaded_model_ids:
-                    del aux_ts_state[model_id]
-            self._old_ts_state = aux_ts_state
+        # remove model timestamps that no longer exist
+        loaded_model_ids = self._client.models.keys()
+        aux_ts_state = self._old_ts_state.copy()
+        for model_id in self._old_ts_state.keys():
+            if model_id not in loaded_model_ids:
+                del aux_ts_state[model_id]
+        self._old_ts_state = aux_ts_state
 
-            # save model timestamp states to disk
-            # could be cast to a short-lived thread
-            # required for printing the model stats when cortex getting
-            resource = os.path.join(self._lock_dir, "model_timestamps.json")
-            with LockedFile(resource, "w") as f:
-                json.dump(self._old_ts_state, f, indent=2)
-
-        # reset TFS client if it's unresponsive
-        # it is assumed that the TFS container will restart on its own
-        if tfs_unresponsive:
-            self._client = TensorFlowServingAPI(self._tfs_address)
+        # save model timestamp states to disk
+        # could be cast to a short-lived thread
+        # required for printing the model stats when cortex getting
+        resource = os.path.join(self._lock_dir, "model_timestamps.json")
+        with LockedFile(resource, "w") as f:
+            json.dump(self._old_ts_state, f, indent=2)
 
         # save model stats for TFS to disk
         resource = os.path.join(self._lock_dir, "models_tfs.json")
@@ -1027,6 +1042,15 @@ class TFSModelLoader(mp.Process):
             signature_key = self._spec_model_names[model_name]["signature_key"]
 
         return signature_key
+
+    def cleanup_when_tfs_unresponsive(self):
+        logger.warning("TFS server is unresponsive")
+
+        self._client = TensorFlowServingAPI(self._tfs_address)
+
+        resource = os.path.join(self._lock_dir, "models_tfs.json")
+        with LockedFile(resource, "w") as f:
+            json.dump(self._client.models, f, indent=2)
 
 
 def find_ondisk_models(models_dir: str) -> Dict[str, List[str]]:

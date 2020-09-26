@@ -342,6 +342,12 @@ class TensorFlowServingAPI:
 
         return versions
 
+    def get_registered_model_ids(self) -> List[str]:
+        """
+        Get the registered model IDs (doesn't poll the TFS server).
+        """
+        return list(self.models.keys())
+
     def predict(
         self, model_input: Any, model_name: str, model_version: str, timeout: float = 300.0
     ) -> Any:
