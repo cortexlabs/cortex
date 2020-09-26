@@ -59,6 +59,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
+		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey()); err != nil {
+			return nil, "", errors.Wrap(err, "upload raw api spec")
+		}
+
 		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload predictor spec")
@@ -90,6 +94,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
+		}
+
+		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey()); err != nil {
+			return nil, "", errors.Wrap(err, "upload raw api spec")
 		}
 
 		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing

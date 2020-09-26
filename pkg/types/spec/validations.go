@@ -43,6 +43,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/yaml"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -643,9 +644,14 @@ func ExtractAPIConfigs(
 				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Traffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor))
 			}
 		}
-
 		api.Index = i
 		api.FileName = configFileName
+
+		rawYAMLBytes, err := yaml.Marshal([]map[string]interface{}{data})
+		if err != nil {
+			return nil, errors.Wrap(err, api.Identify())
+		}
+		api.RawYAMLBytes = rawYAMLBytes
 
 		if resourceStruct.Kind == userconfig.RealtimeAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
 			api.ApplyDefaultDockerPaths()
