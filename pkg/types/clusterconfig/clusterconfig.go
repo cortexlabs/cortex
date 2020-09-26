@@ -66,7 +66,6 @@ type Config struct {
 	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
 	Region                     *string            `json:"region" yaml:"region"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
-	VPCCIDR                    *string            `json:"vpc_cidr" yaml:"vpc_cidr"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	LogGroup                   string             `json:"log_group" yaml:"log_group"`
@@ -75,6 +74,7 @@ type Config struct {
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	APIGatewaySetting          APIGatewaySetting  `json:"api_gateway" yaml:"api_gateway"`
+	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
 	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
 	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
 	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
@@ -308,12 +308,6 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "VPCCIDR",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateVPCCIDR,
-			},
-		},
-		{
 			StructField: "NATGateway",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: NATGatewayStrings(),
@@ -357,6 +351,12 @@ var UserValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return APIGatewaySettingFromString(str), nil
+			},
+		},
+		{
+			StructField: "VPCCIDR",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: validateVPCCIDR,
 			},
 		},
 		{
@@ -1148,6 +1148,9 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
 	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
 	items.Add(APIGatewaySettingUserKey, cc.APIGatewaySetting)
+	if cc.VPCCIDR != nil {
+		items.Add(VPCCIDRKey, *cc.VPCCIDR)
+	}
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)

@@ -39,10 +39,6 @@ instance_volume_type: gp2
 # instance volume iops (only applicable to io1 storage type) (default: 3000)
 # instance_volume_iops: 3000
 
-# IP address range to allocate to instances in the VPC for this cluster
-# when spinning up a cluster, a new VPC is created to
-vpc_cidr:
-
 # whether the subnets used for EC2 instances should be public or private (default: "public")
 # if "public", instances will be assigned public IP addresses; if "private", instances won't have public IPs and a NAT gateway will be created to allow outgoing network requests
 # see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
@@ -79,6 +75,9 @@ spot: false
 
 # see https://docs.cortex.dev/v/master/guides/custom-domain for instructions on how to set up a custom domain
 ssl_certificate_arn:
+
+# primary CIDR block for the new VPC designated for this cluster (default: 192.168.0.0/16)
+# vpc_cidr: 192.168.0.0/16
 ```
 
 The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and in your [Batch API configuration](../deployments/batch-api/api-configuration.md).

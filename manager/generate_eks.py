@@ -188,8 +188,6 @@ def generate_eks(cluster_config_path):
     elif cluster_config["nat_gateway"] == "highly_available":
         nat_gateway = "HighlyAvailable"
 
-    print(cluster_config)
-    raise Exception("hi: " + str(cluster_config))
     eks = {
         "apiVersion": "eksctl.io/v1alpha5",
         "kind": "ClusterConfig",
@@ -199,10 +197,13 @@ def generate_eks(cluster_config_path):
             "version": "1.17",
             "tags": cluster_config["tags"],
         },
-        "vpc": {"vpc_cidr": cluster_config["vpc_cidr"], "nat": {"gateway": nat_gateway}},
+        "vpc": {"nat": {"gateway": nat_gateway}},
         "availabilityZones": cluster_config["availability_zones"],
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
+
+    if cluster_config.get("vpc_cidr", "") != "":
+        eks["vpc"]["cidr"] = cluster_config["vpc_cidr"]
 
     if cluster_config.get("spot_config") is not None and cluster_config["spot_config"].get(
         "on_demand_backup", False
