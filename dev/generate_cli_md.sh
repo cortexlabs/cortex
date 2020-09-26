@@ -18,7 +18,8 @@ set -e
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-echo "building cli..."
+cat $ROOT/dev/cli_md_template.md
+
 make --no-print-directory -C $ROOT cli
 echo
 
@@ -46,8 +47,11 @@ commands=(
   "completion"
 )
 
+echo "## Command overview"
+echo
+
 for cmd in "${commands[@]}"; do
-  echo "## ${cmd}"
+  echo "### ${cmd}"
   echo
   echo -n '```text'
   $ROOT/bin/cortex help ${cmd}
