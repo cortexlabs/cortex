@@ -40,6 +40,7 @@ type API struct {
 	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
 	Index          int             `json:"index" yaml:"-"`
 	FileName       string          `json:"file_name" yaml:"-"`
+	RawYAMLBytes   []byte          `json:"-" yaml:"-"`
 }
 
 type Predictor struct {

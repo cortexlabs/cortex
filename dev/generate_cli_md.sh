@@ -37,6 +37,7 @@ commands=(
   "cluster up"
   "cluster info"
   "cluster configure"
+  "cluster export"
   "cluster down"
   "env configure"
   "env list"

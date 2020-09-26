@@ -156,6 +156,21 @@ Flags:
   -h, --help                help for configure
 ```
 
+### cluster export
+
+```text
+download the code and configuration for all APIs deployed in a cluster
+
+Usage:
+  cortex cluster export [flags]
+
+Flags:
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -h, --help                help for export
+```
+
 ### cluster down
 
 ```text

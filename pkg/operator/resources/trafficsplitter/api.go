@@ -42,10 +42,16 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
+
+		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey()); err != nil {
+			return nil, "", errors.Wrap(err, "upload raw api spec")
+		}
+
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
+
 		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, false)
 		if err != nil {
 			go deleteK8sResources(api.Name)
@@ -58,9 +64,15 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
+
+		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey()); err != nil {
+			return nil, "", errors.Wrap(err, "upload raw api spec")
+		}
+
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
 			return nil, "", err
 		}
+
 		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, false); err != nil {
 			return nil, "", err
 		}

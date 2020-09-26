@@ -154,6 +154,16 @@ func Key(apiName string, apiID string) string {
 	)
 }
 
+func (api API) RawAPIKey() string {
+	return filepath.Join(
+		"apis",
+		api.Name,
+		"raw_api",
+		api.ID,
+		consts.CortexVersion+"-cortex.yaml",
+	)
+}
+
 func MetadataRoot(apiName string) string {
 	return filepath.Join(
 		"apis",
