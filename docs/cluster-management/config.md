@@ -76,7 +76,7 @@ spot: false
 # see https://docs.cortex.dev/v/master/guides/custom-domain for instructions on how to set up a custom domain
 ssl_certificate_arn:
 
-# primary CIDR block for the new VPC designated for this cluster (default: 192.168.0.0/16)
+# primary CIDR block for the cluster's VPC (default: 192.168.0.0/16)
 # vpc_cidr: 192.168.0.0/16
 ```
 
