@@ -112,7 +112,7 @@ func addAWSCredentials(cmd *cobra.Command) {
 
 var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "manage a cluster",
+	Short: "manage clusters (contains subcommands)",
 }
 
 var _upCmd = &cobra.Command{
