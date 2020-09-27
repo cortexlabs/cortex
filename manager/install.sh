@@ -364,7 +364,7 @@ function validate_cortex() {
 
   operator_load_balancer="waiting"
   api_load_balancer="waiting"
-  operator_endpoint_reachable="waiting"
+  operator_endpoint_reachable="false"
   operator_pod_ready_cycles=0
   operator_endpoint=""
 
@@ -373,6 +373,20 @@ function validate_cortex() {
     now="$(date +%s)"
     if [ "$now" -ge "$(($validation_start_time+1800))" ]; then
       echo -e "\n\ntimeout has occurred when validating your cortex cluster"
+      echo -e "\ndebugging info:"
+      echo "operator pod name: $operator_pod_name"
+      echo "operator pod is ready: $operator_pod_is_ready"
+      echo "operator pod ready cycles: $operator_pod_ready_cycles"
+      echo "api load balancer status: $api_load_balancer"
+      echo "operator load balancer status: $operator_load_balancer"
+      echo "operator endpoint: $operator_endpoint"
+      if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+        echo "operator endpoint reachable: $operator_endpoint_reachable"
+      fi
+      if [ "$operator_endpoint" != "" ]; then
+        echo "operator curl response (404 is expected):"
+        curl --max-time 3 $operator_endpoint
+      fi
       exit 1
     fi
 
@@ -383,8 +397,8 @@ function validate_cortex() {
     if [ "$operator_pod_name" == "" ]; then
       operator_pod_ready_cycles=0
     else
-      is_ready=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
-      if [ "$is_ready" == "true" ]; then
+      operator_pod_is_ready=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
+      if [ "$operator_pod_is_ready" == "true" ]; then
         ((operator_pod_ready_cycles++))
       else
         operator_pod_ready_cycles=0
@@ -412,11 +426,11 @@ function validate_cortex() {
     fi
 
     if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
-      if [ "$operator_endpoint_reachable" != "ready" ]; then
+      if [ "$operator_endpoint_reachable" != "true" ]; then
         if ! curl --max-time 3 $operator_endpoint >/dev/null 2>&1; then
           continue
         fi
-        operator_endpoint_reachable="ready"
+        operator_endpoint_reachable="true"
       fi
     fi
 
