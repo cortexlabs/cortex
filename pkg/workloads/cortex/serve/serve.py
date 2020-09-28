@@ -254,9 +254,9 @@ def start_fn():
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
 
-    cache_dir = os.getenv["CORTEX_CACHE_DIR"]
-    bucket = os.getenv["CORTEX_BUCKET"]
-    region = os.getenv["AWS_REGION"]
+    cache_dir = os.getenv("CORTEX_CACHE_DIR")
+    bucket = os.getenv("CORTEX_BUCKET")
+    region = os.getenv("AWS_REGION")
 
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
