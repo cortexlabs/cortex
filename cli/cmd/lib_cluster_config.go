@@ -518,7 +518,7 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
 	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
 	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
-	items.Add(clusterconfig.TagsKey, s.ObjFlatNoQuotes(clusterConfig.Tags))
+	items.Add(clusterconfig.TagsUserKey, s.ObjFlatNoQuotes(clusterConfig.Tags))
 	if clusterConfig.SSLCertificateARN != nil {
 		items.Add(clusterconfig.SSLCertificateARNUserKey, *clusterConfig.SSLCertificateARN)
 	}

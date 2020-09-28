@@ -1027,10 +1027,6 @@ func validateBucketName(bucket string) (string, error) {
 }
 
 func validateVPCCIDR(cidr string) (string, error) {
-	if cidr == "" {
-		return "", nil
-	}
-
 	_, _, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return "", errors.WithStack(err)
