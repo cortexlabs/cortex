@@ -63,3 +63,15 @@ For example, setting `target_replica_concurrency` to `processes_per_replica` * `
 ## Autoscaling Instances
 
 Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../../cluster-management/config.md) and modifiable via `cortex cluster configure`).
+
+## Overprovisioning
+
+The default value for `target_replica_concurrency` is `processes_per_replica` * `threads_per_process`, which behaves well in many situations (see above for an explanation of how `target_replica_concurrency` affects autoscaling). However, if your application is sensitive to spikes in traffic or if creating new replicas takes too long (see below), you may find it helpful to maintain extra capacity to handle the increased traffic while new replicas are being created. This can be accomplished by setting `target_replica_concurrency` to a lower value relative to the expected replica's concurrency. The smaller `target_replica_concurrency` is, the more unused capacity your API will have, and the more room it will have to handle sudden increased load. The increased request rate will still trigger the autoscaler, and your API will stabilize again (maintaining the overprovisioned capacity).
+
+For example, if you've determined that each replica in your API can handle 2 requests (including requests sitting in the replica's queue), you would set `target_replica_concurrency` to 2. In a scenario where your API is receiving 8 concurrent requests on average, if you set `target_replica_concurrency` to 2, the autoscaler would maintain 4 live replicas. If you wanted to overprovision by 25%, you can set `target_replica_concurrency` to 1.6 causing the autoscaler maintain 5 live replicas.
+
+## A note about autoscaling responsiveness
+
+Assuming that `window` and `upscale_stabilization_period` are set to their default values (1 minute), it could take up to 2 minutes of increased traffic before an extra replica is requested. As soon as the additional replica is requested, the replica request will be visible in the output of `cortex get`, but the replica won't yet be running. If an extra instance is required to schedule the newly requested replica, it could take a few minutes for AWS to provision the instance (depending on the instance type), plus a few minutes for the newly provisioned instance to download your api image and for the api to initialize (via its `__init__()` method).
+
+Keep these delays in mind when considering overprovisioning (see above) and when determining appropriate values for `window` and `upscale_stabilization_period`. If you want the autoscaler to react as quickly as possible, set `upscale_stabilization_period` and `window` to their minimum values (0s and 10s respectively).
