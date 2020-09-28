@@ -76,6 +76,24 @@ func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projec
 	}
 }
 
+func NumLocalModels(models []CuratedModelResource) int {
+	numLocalModels := 0
+	if len(models) > 0 {
+		for _, model := range models {
+			if model.S3Path {
+				continue
+			}
+			if len(model.Versions) > 0 {
+				numLocalModels += len(model.Versions)
+			} else {
+				numLocalModels++
+			}
+		}
+	}
+
+	return numLocalModels
+}
+
 func NumModels(models []CuratedModelResource) int {
 	numModels := 0
 	if len(models) > 0 {
@@ -89,6 +107,14 @@ func NumModels(models []CuratedModelResource) int {
 	}
 
 	return numModels
+}
+
+func (api *API) NumLocalModels() int {
+	numLocalModels := 0
+	if api != nil {
+		numLocalModels = NumLocalModels(api.CuratedModelResources)
+	}
+	return numLocalModels
 }
 
 func (api *API) NumModels() int {

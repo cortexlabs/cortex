@@ -57,9 +57,9 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 	}
 	fmt.Printf("--- JSON curated_model_resources dump:\n%s\n\n", apiJSONDump)
 
-	return nil, "", &errors.Error{}
+	// return nil, "", &errors.Error{}
 
-	if spec.NumModels(models) > 0 {
+	if newAPISpec.NumLocalModels() > 0 {
 		if err := CacheModels(newAPISpec, true, awsClient); err != nil {
 			return nil, "", err
 		}
