@@ -154,7 +154,6 @@ RESPONSE:
         "job_id": <string>,
         "api_name": <string>,
         "workers": <int>,
-        "batches_per_worker": <int>,
         "config": {<string>: <any>},
         "api_id": <string>,
         "sqs_url": <string>,
