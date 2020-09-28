@@ -370,6 +370,7 @@ function validate_cortex() {
   operator_pod_ready_cycles=0
   operator_endpoint=""
   operator_pod_name=""
+  operator_pod_is_ready=""
 
   while true; do
     # 30 minute timeout
