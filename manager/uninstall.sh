@@ -18,14 +18,6 @@ set -e
 
 EKSCTL_TIMEOUT=45m
 
-eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
-
-# will return "" if there are any errors
-function get_operator_endpoint() {
-  kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
-}
-operator_endpoint=$(get_operator_endpoint)
-
 echo
 
 eksctl delete cluster --wait --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT
