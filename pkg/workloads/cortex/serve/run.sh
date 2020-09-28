@@ -84,8 +84,5 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-# TODO remove when done
-sleep 10000000000
-
 # run webserver
 /opt/conda/envs/env/bin/python /src/cortex/serve/start_uvicorn.py

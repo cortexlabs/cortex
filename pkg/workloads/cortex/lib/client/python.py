@@ -54,6 +54,7 @@ class PythonClient:
 
             models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1.
             lock_dir: Where the resource locks are found. Only when processes_per_replica > 1.
+            load_model_fn: Model loader function. Only when processes_per_replica = 1.
         """
 
         self._api_spec = api_spec
@@ -81,19 +82,16 @@ class PythonClient:
     def set_load_method(self, load_model_fn: Callable[[str], Any]) -> None:
         self._models.set_callback("load", load_model_fn)
 
-    def predict(
-        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "highest"
-    ) -> Any:
+    def get_model(self, model_name: Optional[str] = None, model_version: str = "highest") -> Any:
         """
-        Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
+        Retrieve model for inference.
 
         Args:
-            model_input: Input to the model.
             model_name: Model to use when multiple models are deployed in a single API.
             model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
 
         Returns:
-            The prediction returned from the model.
+            The model as loaded by load_model method.
         """
 
         if model_version not in ["highest", "latest"] or not model_version.isnumeric():
@@ -106,7 +104,13 @@ class PythonClient:
 
             # when predictor:model_path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
-                return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, model_version)
+                model_name = consts.SINGLE_MODEL_NAME
+                model = self._get_model(model_name, model_version)
+                if model is None:
+                    raise UserRuntimeException(
+                        f"model {model_name} of version {model_version} wasn't found"
+                    )
+                return model
 
             # when predictor:models:paths is specified
             if model_name is None:
@@ -135,7 +139,6 @@ class PythonClient:
             raise UserRuntimeException(
                 f"model {model_name} of version {model_version} wasn't found"
             )
-
         return model
 
     def _get_model(self, model_name: str, model_version: str) -> Any:
