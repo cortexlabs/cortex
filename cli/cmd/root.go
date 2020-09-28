@@ -146,16 +146,16 @@ func Execute() {
 	cobra.EnableCommandSorting = false
 
 	_rootCmd.AddCommand(_deployCmd)
-	_rootCmd.AddCommand(_refreshCmd)
 	_rootCmd.AddCommand(_getCmd)
 	_rootCmd.AddCommand(_logsCmd)
+	_rootCmd.AddCommand(_refreshCmd)
 	_rootCmd.AddCommand(_predictCmd)
 	_rootCmd.AddCommand(_deleteCmd)
 
 	_rootCmd.AddCommand(_clusterCmd)
-	_rootCmd.AddCommand(_versionCmd)
 
 	_rootCmd.AddCommand(_envCmd)
+	_rootCmd.AddCommand(_versionCmd)
 	_rootCmd.AddCommand(_completionCmd)
 
 	updateRootUsage()
@@ -178,7 +178,7 @@ func updateRootUsage() {
 		usage = strings.Replace(usage, "Usage:\n  cortex [command]\n\nAliases:\n  cortex, cx\n\n", "", 1)
 		usage = strings.Replace(usage, "Available Commands:", "api commands:", 1)
 		usage = strings.Replace(usage, "\n  cluster", "\n\ncluster commands:\n  cluster", 1)
-		usage = strings.Replace(usage, "\n  configure", "\n\nother commands:\n  configure", 1)
+		usage = strings.Replace(usage, "\n  env ", "\n\nother commands:\n  env ", 1)
 		usage = strings.Replace(usage, "\n\nUse \"cortex [command] --help\" for more information about a command.", "", 1)
 
 		cmd.Print(usage)
