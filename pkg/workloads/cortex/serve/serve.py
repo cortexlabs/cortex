@@ -252,11 +252,11 @@ def start():
 def start_fn():
     provider = os.environ["CORTEX_PROVIDER"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    cache_dir = os.environ["CORTEX_CACHE_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
 
-    bucket = os.environ["CORTEX_BUCKET"]
-    region = os.environ["AWS_REGION"]
+    cache_dir = os.getenv["CORTEX_CACHE_DIR"]
+    bucket = os.getenv["CORTEX_BUCKET"]
+    region = os.getenv["AWS_REGION"]
 
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
@@ -275,7 +275,7 @@ def start_fn():
             f.truncate()
 
     try:
-        api = get_api(cache_dir, provider, spec_path, bucket, region)
+        api = get_api(provider, spec_path, cache_dir, bucket, region)
 
         client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port

@@ -19,10 +19,11 @@ from pathlib import Path
 import json
 import msgpack
 import datadog
+from typing import Optional
 
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
-from cortex.lib.storage import S3
+from cortex.lib.storage import LocalStorage, S3
 
 from cortex.lib.api import Monitoring, Predictor
 
@@ -177,12 +178,14 @@ def read_msgpack(msgpack_path) -> dict:
         return msgpack.load(msgpack_file, raw=False)
 
 
-def get_api(cache_dir: str, provider: str, spec_path: str, bucket: str, region: str) -> API:
-    if provider == "local":
-        storage = LocalStorage(cache_dir)
-    else:
-        storage = S3(bucket=bucket, region=region)
-    raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
+def get_api(
+    provider: str,
+    spec_path: str,
+    cache_dir: Optional[str],
+    bucket: Optional[str],
+    region: Optional[str],
+) -> API:
+    raw_api_spec = get_spec(cache_dir, provider, spec_path, bucket, region)
 
     api = API(
         provider=provider,
@@ -195,7 +198,13 @@ def get_api(cache_dir: str, provider: str, spec_path: str, bucket: str, region: 
     return api
 
 
-def get_spec(cache_dir: str, provider: str, spec_path: str, bucket: str, region: str) -> dict:
+def get_spec(
+    provider: str,
+    spec_path: str,
+    cache_dir: Optional[str],
+    bucket: Optional[str],
+    region: Optional[str],
+) -> dict:
     if provider == "local":
         storage = LocalStorage(cache_dir)
     else:

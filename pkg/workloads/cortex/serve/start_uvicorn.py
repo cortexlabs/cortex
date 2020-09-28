@@ -18,7 +18,6 @@ import os
 import json
 
 from cortex.lib.api import get_spec
-from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.checkers.pod import wait_neuron_rtd
 
 
@@ -68,14 +67,12 @@ def main():
             json.dump(used_ports, f)
 
     # get API spec
-    cache_dir = os.environ["CORTEX_CACHE_DIR"]
     provider = os.environ["CORTEX_PROVIDER"]
     spec_path = os.environ["CORTEX_API_SPEC"]
-    if provider == "local":
-        storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
-    else:
-        storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
-    raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
+    cache_dir = os.getenv("CORTEX_CACHE_DIR")  # when it's deployed locally
+    bucket = os.getenv("CORTEX_BUCKET")  # when it's deployed to AWS
+    region = os.getenv("AWS_REGION")  # when it's deployed to AWS
+    raw_api_spec = get_spec(provider, spec_path, cache_dir, bucket, region)
 
     # load tensorflow models into TFS
     if raw_api_spec["predictor"]["type"] == "tensorflow":
