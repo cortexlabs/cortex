@@ -56,7 +56,7 @@ func envInit() {
 
 var _envCmd = &cobra.Command{
 	Use:   "env",
-	Short: "manage environments",
+	Short: "manage cli environments (contains subcommands)",
 }
 
 var _envConfigureCmd = &cobra.Command{
