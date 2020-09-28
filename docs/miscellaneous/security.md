@@ -76,3 +76,33 @@ It is possible to further restrict access by limiting access to particular resou
 ### CLI
 
 In order to connect to the operator via the CLI, you must provide valid AWS credentials for any user with access to the account. No special permissions are required. The CLI can be configured using the `cortex env configure ENVIRONMENT_NAME` command (e.g. `cortex env configure aws`).
+
+### Running `cortex cluster` commands from different IAM users
+
+By default, the `cortex cluster *` commands can only be executed by the IAM user who created the Cortex cluster. To grant access to additional IAM users, follow these steps:
+
+1. Install `eksctl` by following these [instructions](https://eksctl.io/introduction/#installation).
+
+1. Determine the ARN of the IAM user that you would like to grant access to. You can get the ARN via the [IAM dashboard](https://console.aws.amazon.com/iam/home#/users), or by running `aws iam get-user` on a machine that is authenticated as the IAM user (or `AWS_ACCESS_KEY_ID=*** AWS_SECRET_ACCESS_KEY=*** aws iam get-user` on any machine, using the credentials of the IAM user). The ARN should look similar to `arn:aws:iam::764403040417:user/my-username`.
+
+1. Set the following environment variables:
+
+    ```bash
+    CREATOR_AWS_ACCESS_KEY_ID=***      # access key ID for the IAM user that created the cluster
+    CREATOR_AWS_SECRET_ACCESS_KEY=***  # secret access key for the IAM user that created the cluster
+    NEW_USER_ARN=***                   # ARN of the IAM user to grant access to
+    CLUSTER_NAME=***                   # the name of your cortex cluster (will be "cortex" unless you specified a different name in your cluster configuration file)
+    CLUSTER_REGION=***                 # the region of your cortex cluster
+    ```
+
+1. Run the following command:
+
+    ```bash
+    AWS_ACCESS_KEY_ID=$CREATOR_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$CREATOR_AWS_SECRET_ACCESS_KEY eksctl create iamidentitymapping --region $CLUSTER_REGION --cluster $CLUSTER_NAME --arn $NEW_USER_ARN --group system:masters --username $NEW_USER_ARN
+    ```
+
+1. To revoke access in the future, run:
+
+    ```bash
+    AWS_ACCESS_KEY_ID=$CREATOR_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$CREATOR_AWS_SECRET_ACCESS_KEY eksctl delete iamidentitymapping --region $CLUSTER_REGION --cluster $CLUSTER_NAME --arn $NEW_USER_ARN --all
+    ```
