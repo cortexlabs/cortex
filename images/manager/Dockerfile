@@ -3,6 +3,8 @@ FROM python:3.6-alpine3.12
 WORKDIR /root
 
 ENV PATH /root/.local/bin:$PATH
+ENV AWS_RETRY_MODE standard
+ENV AWS_MAX_ATTEMPTS 10
 
 COPY manager/requirements.txt /root/requirements.txt
 

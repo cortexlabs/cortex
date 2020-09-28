@@ -116,7 +116,6 @@ func ManageJobResources() error {
 			errors.PrintError(err)
 			continue
 		}
-
 		if newStatusCode != jobState.Status {
 			err = errors.FirstError(
 				writeToJobLogStream(jobKey, msg),
@@ -127,6 +126,10 @@ func ManageJobResources() error {
 				errors.PrintError(err)
 				continue
 			}
+		}
+		if queueURL == nil {
+			// job has been submitted within the grace period, it may take a while for a newly created queue to be listed in SQS api response
+			continue
 		}
 
 		err = checkIfJobCompleted(jobKey, *queueURL, k8sJob)
