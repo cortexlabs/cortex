@@ -757,7 +757,7 @@ class TFSModelLoader(mp.Process):
         # check tfs connection
         tfs_unresponsive = not self._client.is_tfs_accessible()
         if tfs_unresponsive:
-            self.cleanup_when_tfs_unresponsive()
+            self._reset_when_tfs_unresponsive()
             return
 
         # remove versioned models from TFS that no longer exist on disk
@@ -784,14 +784,14 @@ class TFSModelLoader(mp.Process):
                                 model_name, model_version, str(e)
                             )
                         )
-                    self.cleanup_when_tfs_unresponsive()
+                    self._reset_when_tfs_unresponsive()
                     return
 
         # update TFS models
         current_ts_state = {}
         for model_name, model_versions in ondisk_models.items():
 
-            # get the right model version with respect to the model ts order
+            # get the right order of model versions with respect to the model ts order
             model_timestamps = timestamps[model_names.index(model_name)]
             filtered_model_versions = []
             for idx, model_ts in enumerate(model_timestamps):
@@ -849,7 +849,7 @@ class TFSModelLoader(mp.Process):
                                     model_name, model_version, str(e)
                                 )
                             )
-                        self.cleanup_when_tfs_unresponsive()
+                        self._reset_when_tfs_unresponsive()
                         return
 
                     model_reloaded = False
@@ -1049,7 +1049,7 @@ class TFSModelLoader(mp.Process):
 
         return signature_key
 
-    def cleanup_when_tfs_unresponsive(self):
+    def _reset_when_tfs_unresponsive(self):
         logger.warning("TFS server is unresponsive")
 
         self._client = TensorFlowServingAPI(self._tfs_address)
