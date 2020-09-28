@@ -46,6 +46,8 @@
 
 - [Object detection](pytorch/object-detector): deploy a Faster R-CNN model from TorchVision to detect objects in images.
 
+- [Question generator](pytorch/question-generator): deploy a transformers model to generate questions given text and the correct answer.
+
 ## ONNX
 
 - [Iris classification](onnx/iris-classifier): deploy an XGBoost model (exported in ONNX) to classify iris flowers.

@@ -112,7 +112,7 @@ func addAWSCredentials(cmd *cobra.Command) {
 
 var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "manage a cluster",
+	Short: "manage clusters (contains subcommands)",
 }
 
 var _upCmd = &cobra.Command{
@@ -465,7 +465,9 @@ var _downCmd = &cobra.Command{
 			"cortex.dev/load-balancer":   "operator",
 		})
 
-		if !_flagClusterDisallowPrompt {
+		if _flagClusterDisallowPrompt {
+			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", *accessConfig.ClusterName, *accessConfig.Region)
+		} else {
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
 
