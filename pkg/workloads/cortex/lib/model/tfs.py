@@ -16,67 +16,78 @@ import os
 import time
 import grpc
 import copy
-from typing import Any, Optional, List, Tuple
+from typing import Any, Optional, Dict, List, Tuple
 
 from cortex.lib.exceptions import CortexException, UserException
 from cortex.lib.log import cx_logger
 
 logger = cx_logger()
 
+# TensorFlow types
+def _define_types() -> Tuple[Dict[str, Any], Dict[str, str]]:
+    return (
+        {
+            "DT_FLOAT": tf.float32,
+            "DT_DOUBLE": tf.float64,
+            "DT_INT32": tf.int32,
+            "DT_UINT8": tf.uint8,
+            "DT_INT16": tf.int16,
+            "DT_INT8": tf.int8,
+            "DT_STRING": tf.string,
+            "DT_COMPLEX64": tf.complex64,
+            "DT_INT64": tf.int64,
+            "DT_BOOL": tf.bool,
+            "DT_QINT8": tf.qint8,
+            "DT_QUINT8": tf.quint8,
+            "DT_QINT32": tf.qint32,
+            "DT_BFLOAT16": tf.bfloat16,
+            "DT_QINT16": tf.qint16,
+            "DT_QUINT16": tf.quint16,
+            "DT_UINT16": tf.uint16,
+            "DT_COMPLEX128": tf.complex128,
+            "DT_HALF": tf.float16,
+            "DT_RESOURCE": tf.resource,
+            "DT_VARIANT": tf.variant,
+            "DT_UINT32": tf.uint32,
+            "DT_UINT64": tf.uint64,
+        },
+        {
+            "DT_INT32": "intVal",
+            "DT_INT64": "int64Val",
+            "DT_FLOAT": "floatVal",
+            "DT_STRING": "stringVal",
+            "DT_BOOL": "boolVal",
+            "DT_DOUBLE": "doubleVal",
+            "DT_HALF": "halfVal",
+            "DT_COMPLEX64": "scomplexVal",
+            "DT_COMPLEX128": "dcomplexVal",
+        },
+    )
+
+
 # for TensorFlowServingAPI
-import tensorflow as tf
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import get_model_metadata_pb2
-from tensorflow_serving.apis import prediction_service_pb2_grpc
-from tensorflow_serving.apis import model_service_pb2_grpc
-from tensorflow_serving.apis import model_management_pb2
-from tensorflow_serving.apis import get_model_status_pb2
-from tensorflow_serving.config import model_server_config_pb2
-from tensorflow_serving.sources.storage_path.file_system_storage_path_source_pb2 import (
-    FileSystemStoragePathSourceConfig,
-)
+try:
+    import tensorflow as tf
+    from tensorflow_serving.apis import predict_pb2
+    from tensorflow_serving.apis import get_model_metadata_pb2
+    from tensorflow_serving.apis import prediction_service_pb2_grpc
+    from tensorflow_serving.apis import model_service_pb2_grpc
+    from tensorflow_serving.apis import model_management_pb2
+    from tensorflow_serving.apis import get_model_status_pb2
+    from tensorflow_serving.config import model_server_config_pb2
+    from tensorflow_serving.sources.storage_path.file_system_storage_path_source_pb2 import (
+        FileSystemStoragePathSourceConfig,
+    )
 
-ServableVersionPolicy = FileSystemStoragePathSourceConfig.ServableVersionPolicy
-Specific = FileSystemStoragePathSourceConfig.ServableVersionPolicy.Specific
-from google.protobuf import json_format
+    ServableVersionPolicy = FileSystemStoragePathSourceConfig.ServableVersionPolicy
+    Specific = FileSystemStoragePathSourceConfig.ServableVersionPolicy.Specific
+    from google.protobuf import json_format
 
-DTYPE_TO_TF_TYPE = {
-    "DT_FLOAT": tf.float32,
-    "DT_DOUBLE": tf.float64,
-    "DT_INT32": tf.int32,
-    "DT_UINT8": tf.uint8,
-    "DT_INT16": tf.int16,
-    "DT_INT8": tf.int8,
-    "DT_STRING": tf.string,
-    "DT_COMPLEX64": tf.complex64,
-    "DT_INT64": tf.int64,
-    "DT_BOOL": tf.bool,
-    "DT_QINT8": tf.qint8,
-    "DT_QUINT8": tf.quint8,
-    "DT_QINT32": tf.qint32,
-    "DT_BFLOAT16": tf.bfloat16,
-    "DT_QINT16": tf.qint16,
-    "DT_QUINT16": tf.quint16,
-    "DT_UINT16": tf.uint16,
-    "DT_COMPLEX128": tf.complex128,
-    "DT_HALF": tf.float16,
-    "DT_RESOURCE": tf.resource,
-    "DT_VARIANT": tf.variant,
-    "DT_UINT32": tf.uint32,
-    "DT_UINT64": tf.uint64,
-}
+    tensorflow_dependencies_installed = False
+    DTYPE_TO_TF_TYPE, DTYPE_TO_VALUE_KEY = _define_types()
 
-DTYPE_TO_VALUE_KEY = {
-    "DT_INT32": "intVal",
-    "DT_INT64": "int64Val",
-    "DT_FLOAT": "floatVal",
-    "DT_STRING": "stringVal",
-    "DT_BOOL": "boolVal",
-    "DT_DOUBLE": "doubleVal",
-    "DT_HALF": "halfVal",
-    "DT_COMPLEX64": "scomplexVal",
-    "DT_COMPLEX128": "dcomplexVal",
-}
+except ImportError:
+    tensorflow_dependencies_installed = False
 
 
 class TensorFlowServingAPI:
@@ -93,6 +104,9 @@ class TensorFlowServingAPI:
         Args:
             address: An address with the "host:port" format.
         """
+
+        if not tensorflow_dependencies_installed:
+            raise NameError("tensorflow_serving_api and tensorflow packages not installed")
 
         self.address = address
         self.models = {}
