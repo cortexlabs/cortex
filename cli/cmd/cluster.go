@@ -158,6 +158,8 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		cacheAWSCredentials(awsCreds, accessConfig)
+
 		clusterState, err := clusterstate.GetClusterState(awsClient, &accessConfig)
 		if err != nil {
 			exit.Error(err)
@@ -294,8 +296,6 @@ var _upCmd = &cobra.Command{
 			exit.Error(errors.Append(err, fmt.Sprintf("unable to configure cli environment; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
 		}
 
-		cacheAWSCredentials(awsCreds, accessConfig)
-
 		fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured for this cluster; append `--env %s` to cortex commands to connect to it (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterEnv, _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
 	},
 }
@@ -337,6 +337,8 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		cacheAWSCredentials(awsCreds, *accessConfig)
+
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
 			exit.Error(err)
@@ -364,8 +366,6 @@ var _configureCmd = &cobra.Command{
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
-
-		cacheAWSCredentials(awsCreds, *accessConfig)
 	},
 }
 
@@ -400,13 +400,13 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		cacheAWSCredentials(awsCreds, *accessConfig)
+
 		if _flagClusterInfoDebug {
 			cmdDebug(awsCreds, accessConfig)
 		} else {
 			cmdInfo(awsCreds, accessConfig, _flagClusterDisallowPrompt)
 		}
-
-		cacheAWSCredentials(awsCreds, *accessConfig)
 	},
 }
 
