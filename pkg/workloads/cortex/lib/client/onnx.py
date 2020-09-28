@@ -15,7 +15,12 @@
 import os
 from typing import Any, Optional
 
-import onnxruntime as rt
+try:
+    import onnxruntime as rt
+
+    onnx_dependencies_installed = True
+except ImportError:
+    onnx_dependencies_installed = False
 import numpy as np
 
 from cortex.lib.log import cx_logger
@@ -57,6 +62,8 @@ class ONNXClient:
             models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1.
             lock_dir: Where the resource locks are found. Only when processes_per_replica > 1.
         """
+        if not onnx_dependencies_installed:
+            raise NameError("onnx dependencies not installed")
 
         self._api_spec = api_spec
         self._models = models
