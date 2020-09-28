@@ -791,8 +791,14 @@ class TFSModelLoader(mp.Process):
         current_ts_state = {}
         for model_name, model_versions in ondisk_models.items():
 
+            # get the right model version with respect to the model ts order
             model_timestamps = timestamps[model_names.index(model_name)]
-            for model_version, model_ts in zip(model_versions, model_timestamps):
+            filtered_model_versions = []
+            for idx, model_ts in enumerate(model_timestamps):
+                if versions[model_name][idx] in model_versions:
+                    filtered_model_versions.append(versions[model_name][idx])
+
+            for model_version, model_ts in zip(filtered_model_versions, model_timestamps):
                 model_ts = int(model_ts.timestamp())
 
                 # remove outdated model
