@@ -19,6 +19,7 @@ package clusterconfig
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -73,6 +74,7 @@ type Config struct {
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	APIGatewaySetting          APIGatewaySetting  `json:"api_gateway" yaml:"api_gateway"`
+	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
 	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
 	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
 	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
@@ -349,6 +351,12 @@ var UserValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return APIGatewaySettingFromString(str), nil
+			},
+		},
+		{
+			StructField: "VPCCIDR",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: validateVPCCIDR,
 			},
 		},
 		{
@@ -1018,6 +1026,15 @@ func validateBucketName(bucket string) (string, error) {
 	return bucket, nil
 }
 
+func validateVPCCIDR(cidr string) (string, error) {
+	_, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	return cidr, nil
+}
+
 func validateInstanceType(instanceType string) (string, error) {
 	var foundInstance *aws.InstanceMetadata
 	for _, instanceMap := range aws.InstanceMetadatas {
@@ -1127,6 +1144,9 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
 	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
 	items.Add(APIGatewaySettingUserKey, cc.APIGatewaySetting)
+	if cc.VPCCIDR != nil {
+		items.Add(VPCCIDRKey, *cc.VPCCIDR)
+	}
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)

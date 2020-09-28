@@ -202,6 +202,9 @@ def generate_eks(cluster_config_path):
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
 
+    if cluster_config.get("vpc_cidr", "") != "":
+        eks["vpc"]["cidr"] = cluster_config["vpc_cidr"]
+
     if cluster_config.get("spot_config") is not None and cluster_config["spot_config"].get(
         "on_demand_backup", False
     ):

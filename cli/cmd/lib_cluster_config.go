@@ -360,6 +360,11 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 
 	userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
 
+	if s.Obj(cachedClusterConfig.VPCCIDR) != s.Obj(userClusterConfig.VPCCIDR) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.VPCCIDRKey, cachedClusterConfig.VPCCIDR)
+	}
+	userClusterConfig.VPCCIDR = cachedClusterConfig.VPCCIDR
+
 	return nil
 }
 
@@ -513,9 +518,9 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
 	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
 	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
-	items.Add(clusterconfig.TagsKey, s.ObjFlatNoQuotes(clusterConfig.Tags))
+	items.Add(clusterconfig.TagsUserKey, s.ObjFlatNoQuotes(clusterConfig.Tags))
 	if clusterConfig.SSLCertificateARN != nil {
-		items.Add(clusterconfig.SSLCertificateARNKey, *clusterConfig.SSLCertificateARN)
+		items.Add(clusterconfig.SSLCertificateARNUserKey, *clusterConfig.SSLCertificateARN)
 	}
 
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
@@ -575,6 +580,10 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 				items.Add(clusterconfig.OnDemandBackupUserKey, s.YesNo(*clusterConfig.SpotConfig.OnDemandBackup))
 			}
 		}
+	}
+
+	if clusterConfig.VPCCIDR != nil {
+		items.Add(clusterconfig.VPCCIDRUserKey, clusterConfig.VPCCIDR)
 	}
 
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {
