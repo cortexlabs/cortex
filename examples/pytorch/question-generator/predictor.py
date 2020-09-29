@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.19.*, run `git checkout -b 0.19` or switch to the `0.19` branch on GitHub)
+# this is an example for cortex release 0.20 and may not deploy correctly on other releases of cortex
 
 from transformers import AutoModelWithLMHead, AutoTokenizer
 import spacy
