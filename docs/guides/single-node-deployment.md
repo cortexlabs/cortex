@@ -107,7 +107,7 @@ Install the Cortex CLI.
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
-$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
 ```
 
 ### Step 13
@@ -116,7 +116,7 @@ You can now use Cortex to deploy your model:
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
-$ git clone -b master https://github.com/cortexlabs/cortex.git
+$ git clone -b 0.20 https://github.com/cortexlabs/cortex.git
 
 $ cd cortex/examples/pytorch/text-generator
 

@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CORTEX_VERSION_MINOR=master
+CORTEX_VERSION_MINOR=0.20
 
 debug_out_path="$1"
 mkdir -p "$(dirname "$debug_out_path")"

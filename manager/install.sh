@@ -16,8 +16,8 @@
 
 set -eo pipefail
 
-export CORTEX_VERSION=master
-export CORTEX_VERSION_MINOR=master
+export CORTEX_VERSION=0.20.0
+export CORTEX_VERSION_MINOR=0.20
 EKSCTL_TIMEOUT=45m
 mkdir /workspace
 

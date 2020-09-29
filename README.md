@@ -1,15 +1,6 @@
-<!-- Delete on release branches -->
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
-
-<br>
-
 # Build machine learning APIs
 
 Cortex makes deploying, scaling, and managing machine learning systems in production simple. We believe that developers in any organization should be able to add natural language processing, computer vision, and other machine learning capabilities to their applications without having to worry about infrastructure.
-
-<!-- Delete on release branches -->
-<!-- CORTEX_VERSION_README_MINOR -->
-[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.19/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
@@ -18,7 +9,7 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 ### Deploy
 
 * Run Cortex locally or as a production cluster on your AWS account.
-* Deploy TensorFlow, PyTorch, scikit-learn, and other models as realtime APIs or batch APIs.
+* Deploy TensorFlow, PyTorch, Keras, ONNX, XGBoost, scikit-learn, and other models as realtime APIs or batch APIs.
 * Define preprocessing and postprocessing steps in Python.
 
 ### Manage
@@ -52,11 +43,11 @@ Here's how to deploy GPT-2 as a scalable text generation API:
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.19/get-cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
 ```
 
 <!-- CORTEX_VERSION_README_MINOR -->
-See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.19/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
+See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
 
 ### Learn more
 
