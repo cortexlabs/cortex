@@ -141,7 +141,12 @@ var _upCmd = &cobra.Command{
 			}
 		}
 
-		awsCreds, err := awsCredentialsForCreatingCluster(_flagClusterDisallowPrompt)
+		cachedAccessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		awsCreds, err := awsCredentialsForCreatingCluster(*cachedAccessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}

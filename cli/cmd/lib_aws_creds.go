@@ -130,7 +130,7 @@ func detectAWSCredsInConfigFile(cmd, path string) error {
 	return nil
 }
 
-func awsCredentialsForCreatingCluster(disallowPrompt bool) (AWSCredentials, error) {
+func awsCredentialsForCreatingCluster(accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (AWSCredentials, error) {
 	awsCredentials, err := awsCredentialsFromFlags()
 	if err != nil {
 		return AWSCredentials{}, err
