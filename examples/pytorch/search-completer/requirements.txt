@@ -1,3 +1,5 @@
 torch
 regex
 tqdm
+omegaconf
+hydra-core
