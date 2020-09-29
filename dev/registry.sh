@@ -181,6 +181,40 @@ function cleanup_ecr() {
   done
 }
 
+# images to build
+read -r -d '' all_images << EOM
+tensorflow-serving-cpu
+tensorflow-serving-gpu
+tensorflow-serving-inf
+cluster-autoscaler
+metrics-server
+inferentia
+neuron-rtd
+nvidia
+fluentd
+statsd
+istio-proxy
+istio-pilot
+istio-citadel
+istio-galley
+EOM
+
+# images to build
+read -r -d '' dev_images << EOM
+manager
+downloader
+EOM
+
+# images to build
+read -r -d '' base_images << EOM
+python-predictor-cpu
+python-predictor-gpu
+python-predictor-inf
+tensorflow-predictor
+onnx-predictor-cpu
+onnx-predictor-gpu
+EOM
+
 if [ "$cmd" = "clean" ]; then
   cleanup_local
   cleanup_ecr
@@ -192,41 +226,31 @@ elif [ "$cmd" = "update-manager-local" ]; then
   build $ROOT/images/manager manager latest
 
 # usage: registry.sh update all|dev|api [--include-slim] [--skip-push]
+# if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
-  if [ "$sub_cmd" == "all" ]; then
-    build_and_push $ROOT/images/tensorflow-serving-cpu tensorflow-serving-cpu latest
-    build_and_push $ROOT/images/tensorflow-serving-gpu tensorflow-serving-gpu latest
-    build_and_push $ROOT/images/tensorflow-serving-inf tensorflow-serving-inf latest
+  images_to_build=""
 
+  if [ "$sub_cmd" == "all" ]; then
     cache_builder $ROOT/images/operator operator
     build_and_push $ROOT/images/operator operator latest
-
-    build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
-    build_and_push $ROOT/images/metrics-server metrics-server latest
-    build_and_push $ROOT/images/inferentia inferentia latest
-    build_and_push $ROOT/images/neuron-rtd neuron-rtd latest
-    build_and_push $ROOT/images/nvidia nvidia latest
-    build_and_push $ROOT/images/fluentd fluentd latest
-    build_and_push $ROOT/images/statsd statsd latest
-    build_and_push $ROOT/images/istio-proxy istio-proxy latest
-    build_and_push $ROOT/images/istio-pilot istio-pilot latest
-    build_and_push $ROOT/images/istio-citadel istio-citadel latest
-    build_and_push $ROOT/images/istio-galley istio-galley latest
+    images_to_build="${images_to_build}${all_images}"
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
     cache_builder $ROOT/images/request-monitor request-monitor
     build_and_push $ROOT/images/request-monitor request-monitor latest
-    build_and_push $ROOT/images/manager manager latest
-    build_and_push $ROOT/images/downloader downloader latest
+    images_to_build="${images_to_build}${dev_images}"
   fi
 
-  build_and_push_slim $ROOT/images/python-predictor-cpu python-predictor-cpu latest
-  build_and_push_slim $ROOT/images/python-predictor-gpu python-predictor-gpu latest
-  build_and_push_slim $ROOT/images/python-predictor-inf python-predictor-inf latest
-  build_and_push_slim $ROOT/images/tensorflow-predictor tensorflow-predictor latest
-  build_and_push_slim $ROOT/images/onnx-predictor-cpu onnx-predictor-cpu latest
-  build_and_push_slim $ROOT/images/onnx-predictor-gpu onnx-predictor-gpu latest
+  images_to_build="${images_to_build}${base_images}"
+
+  if [ command -v parallel &> /dev/null ]; then
+      parallel --colsep=" " build_and_push $ROOT/images/{1} {1} latest ::: $final
+  else
+    for image in ${images_to_build}; do
+      build_and_push $ROOT/images/$image $image latest
+    done
+  fi
 
   cleanup_local
 fi
