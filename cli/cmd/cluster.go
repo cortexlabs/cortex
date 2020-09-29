@@ -146,7 +146,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForCreatingCluster(*cachedAccessConfig, _flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*cachedAccessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
