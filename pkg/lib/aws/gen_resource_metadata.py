@@ -16,11 +16,12 @@ import requests
 import re
 from string import Template
 
-# https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/
+# https://docs.aws.amazon.com/general/latest/gr/eks.html
 # China regions don't seem to support these endpoints (yet?)
 REGIONS = [
     "us-east-1",  # N. Virginia
     "us-east-2",  # Ohio
+    "us-west-1",  # California
     "us-west-2",  # Oregon
     "ca-central-1",  # Montreal
     "sa-east-1",  # Sao Paulo
