@@ -172,12 +172,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials, accessConfig clusterconfig
 	}
 
 	clusterConfig.ClusterName = *accessConfig.ClusterName
-	clusterConfig.Region = *&accessConfig.Region
-
-	err = clusterconfig.RegionPrompt(clusterConfig, disallowPrompt)
-	if err != nil {
-		return nil, err
-	}
+	clusterConfig.Region = accessConfig.Region
 
 	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
 	if err != nil {
