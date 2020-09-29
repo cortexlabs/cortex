@@ -182,6 +182,26 @@ func awsCredentialsForManagingCluster(accessConfig clusterconfig.AccessConfig, d
 		return *awsCredentials, nil
 	}
 
+	awsCredentials, err = awsCredentialsFromEnvVars()
+	if err != nil {
+		return AWSCredentials{}, err
+	}
+
+	if awsCredentials != nil {
+		fmt.Println(fmt.Sprintf("using %s found in environment variables (to use different credentials, specify the --aws-key and --aws-secret flags)\n", awsCredentials.MaskedString()))
+		return *awsCredentials, nil
+	}
+
+	awsCredentials, err = awsCredentialsFromSharedCreds()
+	if err != nil {
+		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the --aws-key and --aws-secret flags")
+	}
+
+	if awsCredentials != nil {
+		fmt.Println(fmt.Sprintf("using %s from the \"default\" profile configured via `aws configure` (to use different credentials, specify the --aws-key and --aws-secret flags)\n", awsCredentials.MaskedString()))
+		return *awsCredentials, nil
+	}
+
 	awsCredentials, err = getAWSCredentialsFromCache(accessConfig)
 	if err != nil {
 		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the --aws-key and --aws-secret flags")
