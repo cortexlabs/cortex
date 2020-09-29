@@ -141,31 +141,29 @@ var _upCmd = &cobra.Command{
 			}
 		}
 
-		cachedAccessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		accessConfig, err := getNewClusterAccessConfig(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForManagingCluster(*cachedAccessConfig, _flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsCreds, _flagClusterEnv, _flagClusterDisallowPrompt)
+		clusterConfig, err := getInstallClusterConfig(awsCreds, *accessConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
-
-		accessConfig := clusterConfig.ToAccessConfig()
 
 		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		cacheAWSCredentials(awsCreds, accessConfig)
+		cacheAWSCredentials(awsCreds, *accessConfig)
 
-		clusterState, err := clusterstate.GetClusterState(awsClient, &accessConfig)
+		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -327,7 +325,7 @@ var _configureCmd = &cobra.Command{
 			}
 		}
 
-		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -337,12 +335,12 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		cacheAWSCredentials(awsCreds, *accessConfig)
-
 		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
+
+		cacheAWSCredentials(awsCreds, *accessConfig)
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
@@ -395,7 +393,7 @@ var _infoCmd = &cobra.Command{
 			}
 		}
 
-		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -433,7 +431,7 @@ var _downCmd = &cobra.Command{
 			}
 		}
 
-		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -564,7 +562,7 @@ var _exportCmd = &cobra.Command{
 			}
 		}
 
-		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}

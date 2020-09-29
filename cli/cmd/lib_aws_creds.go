@@ -140,13 +140,9 @@ func awsCredentialsForManagingCluster(accessConfig clusterconfig.AccessConfig, d
 		return *awsCredentials, nil
 	}
 
-	awsCredentials, err = getAWSCredentialsFromCache(accessConfig)
-	if err != nil {
-		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the --aws-key and --aws-secret flags")
-	}
-
+	awsCredentials = awsCredentialsFromCache(accessConfig)
 	if awsCredentials != nil {
-		fmt.Println(fmt.Sprintf("using cached %s (to use different credentials, specify the --aws-key and --aws-secret flags)\n", awsCredentials.MaskedString()))
+		fmt.Println(fmt.Sprintf("using %s from cache (to use different credentials, specify the --aws-key and --aws-secret flags)\n", awsCredentials.MaskedString()))
 		return *awsCredentials, nil
 	}
 
@@ -160,10 +156,7 @@ func awsCredentialsForManagingCluster(accessConfig clusterconfig.AccessConfig, d
 		return *awsCredentials, nil
 	}
 
-	awsCredentials, err = awsCredentialsFromSharedCreds()
-	if err != nil {
-		return AWSCredentials{}, errors.Append(err, "\n\nit may be possible to avoid this error by specifying the --aws-key and --aws-secret flags")
-	}
+	awsCredentials = awsCredentialsFromSharedCreds()
 
 	if awsCredentials != nil {
 		fmt.Println(fmt.Sprintf("using %s from the \"default\" profile configured via `aws configure` (to use different credentials, specify the --aws-key and --aws-secret flags)\n", awsCredentials.MaskedString()))
@@ -267,19 +260,20 @@ func awsCredentialsFromEnvVars() (*AWSCredentials, error) {
 	return &credentials, nil
 }
 
-// Read from "default" profile from credentials specified by AWS_SHARED_CREDENTIALS_FILE (default path: ~/.aws/credentials)
-func awsCredentialsFromSharedCreds() (*AWSCredentials, error) {
+// Read from "default" profile from credentials specified by AWS_SHARED_CREDENTIALS_FILE (default path: ~/.aws/credentials).
+// Returns nil if an error is encountered.
+func awsCredentialsFromSharedCreds() *AWSCredentials {
 	credentials := AWSCredentials{}
 	accessKeyID, secretAccessKey, err := aws.GetCredentialsFromCLIConfigFile()
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	credentials.AWSAccessKeyID = accessKeyID
 	credentials.AWSSecretAccessKey = secretAccessKey
 	credentials.ClusterAWSAccessKeyID = accessKeyID
 	credentials.ClusterAWSSecretAccessKey = secretAccessKey
-	return &credentials, nil
+	return &credentials
 }
 
 func awsCredentialsPrompt() (*AWSCredentials, error) {
@@ -300,26 +294,28 @@ func credentialsCachePath(accessConfig clusterconfig.AccessConfig) string {
 	return filepath.Join(_credentialsCacheDir, fmt.Sprintf("%s-%s.json", *accessConfig.Region, *accessConfig.ClusterName))
 }
 
-func getAWSCredentialsFromCache(accessConfig clusterconfig.AccessConfig) (*AWSCredentials, error) {
+// Read AWS credentials from cache.
+// Returns nil if not found or an error is encountered.
+func awsCredentialsFromCache(accessConfig clusterconfig.AccessConfig) *AWSCredentials {
 	credsPath := credentialsCachePath(accessConfig)
 
 	if !files.IsFile(credsPath) {
-		return nil, nil
+		return nil
 	}
 
 	jsonBytes, err := files.ReadFileBytes(credsPath)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	credentials := AWSCredentials{}
 
 	err = libjson.Unmarshal(jsonBytes, &credentials)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
-	return &credentials, nil
+	return &credentials
 }
 
 func cacheAWSCredentials(awsCreds AWSCredentials, accessConfig clusterconfig.AccessConfig) error {
