@@ -76,7 +76,36 @@ func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	return nil
 }
 
-func getClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig, error) {
+func getNewClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig, error) {
+	accessConfig, err := clusterconfig.DefaultAccessConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if _flagClusterConfig != "" {
+		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
+		if errors.HasError(errs) {
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
+		}
+	}
+
+	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
+		return accessConfig, nil
+	}
+
+	if disallowPrompt {
+		return nil, ErrorClusterAccessConfigOrPromptsRequired()
+	}
+
+	err = cr.ReadPrompt(accessConfig, clusterconfig.AccessPromptValidation)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessConfig, nil
+}
+
+func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.AccessConfig, error) {
 	accessConfig, err := clusterconfig.DefaultAccessConfig()
 	if err != nil {
 		return nil, err
@@ -127,7 +156,7 @@ func getClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig, e
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsCreds AWSCredentials, envName string, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsCreds AWSCredentials, accessConfig clusterconfig.AccessConfig, envName string, disallowPrompt bool) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
@@ -142,10 +171,8 @@ func getInstallClusterConfig(awsCreds AWSCredentials, envName string, disallowPr
 		}
 	}
 
-	err = clusterconfig.RegionPrompt(clusterConfig, disallowPrompt)
-	if err != nil {
-		return nil, err
-	}
+	clusterConfig.ClusterName = *accessConfig.ClusterName
+	clusterConfig.Region = accessConfig.Region
 
 	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
 	if err != nil {
