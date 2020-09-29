@@ -151,17 +151,17 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsCreds, *accessConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
-		if err != nil {
-			exit.Error(err)
-		}
-
 		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		cacheAWSCredentials(awsCreds, *accessConfig)
+
+		clusterConfig, err := getInstallClusterConfig(awsCreds, *accessConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {

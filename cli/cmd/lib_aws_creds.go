@@ -212,7 +212,7 @@ func awsCredentialsFromFlags() (*AWSCredentials, error) {
 		}
 
 		credentials.ClusterAWSAccessKeyID = _flagClusterAWSAccessKeyID
-		credentials.ClusterAWSSecretAccessKey = _flagClusterAWSAccessKeyID
+		credentials.ClusterAWSSecretAccessKey = _flagClusterAWSSecretAccessKey
 	} else {
 		credentials.ClusterAWSAccessKeyID = credentials.AWSAccessKeyID
 		credentials.ClusterAWSSecretAccessKey = credentials.AWSSecretAccessKey
@@ -297,6 +297,7 @@ func credentialsCachePath(accessConfig clusterconfig.AccessConfig) string {
 // Read AWS credentials from cache.
 // Returns nil if not found or an error is encountered.
 func awsCredentialsFromCache(accessConfig clusterconfig.AccessConfig) *AWSCredentials {
+
 	credsPath := credentialsCachePath(accessConfig)
 
 	if !files.IsFile(credsPath) {
