@@ -530,7 +530,7 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 
 	items.Add("aws access key id", s.MaskString(awsCreds.AWSAccessKeyID, 4))
 	if awsCreds.ClusterAWSAccessKeyID != awsCreds.AWSAccessKeyID {
-		items.Add("aws access key id", s.MaskString(awsCreds.ClusterAWSAccessKeyID, 4)+" (cortex)")
+		items.Add("cluster aws access key id", s.MaskString(awsCreds.ClusterAWSAccessKeyID, 4))
 	}
 	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {
