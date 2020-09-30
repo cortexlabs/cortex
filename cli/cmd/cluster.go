@@ -797,6 +797,7 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 
 	infoResponse, err := cluster.Info(operatorConfig)
 	if err != nil {
+		fmt.Println(clusterConfig.UserStr())
 		return err
 	}
 	infoResponse.ClusterConfig.Config = clusterConfig
