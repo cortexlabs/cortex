@@ -57,8 +57,9 @@ const (
 	ErrResponseUnknown                      = "cli.response_unknown"
 	ErrAPINotReady                          = "cli.api_not_ready"
 	ErrOneAWSEnvVarSet                      = "cli.one_aws_env_var_set"
-	ErrOneAWSConfigFieldSet                 = "cli.one_aws_config_field_set"
-	ErrOneAWSConfigFlagSet                  = "cli.one_aws_config_flag_set"
+	ErrOneAWSFlagSet                        = "cli.one_aws_flag_set"
+	ErrOnlyAWSClusterEnvVarSet              = "cli.only_aws_cluster_env_var_set"
+	ErrOnlyAWSClusterFlagSet                = "cli.only_aws_cluster_flag_set"
 	ErrMissingAWSCredentials                = "cli.missing_aws_credentials"
 	ErrCredentialsInClusterConfig           = "cli.credentials_in_cluster_config"
 	ErrClusterUp                            = "cli.cluster_up"
@@ -207,17 +208,24 @@ func ErrorOneAWSEnvVarSet(setEnvVar string, missingEnvVar string) error {
 	})
 }
 
-func ErrorOneAWSConfigFieldSet(setConfigField string, missingConfigField string, configPath string) error {
+func ErrorOneAWSFlagSet(setFlag string, missingFlag string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrOneAWSConfigFieldSet,
-		Message: fmt.Sprintf("only %s is set in %s; please set %s as well", setConfigField, _flagClusterConfig, missingConfigField),
+		Kind:    ErrOneAWSFlagSet,
+		Message: fmt.Sprintf("only flag %s was provided; please provide %s as well", setFlag, missingFlag),
 	})
 }
 
-func ErrorOneAWSFlagSet(setFlag string, missingFlag string) error {
+func ErrorOnlyAWSClusterEnvVarSet() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrOneAWSConfigFlagSet,
-		Message: fmt.Sprintf("only flag %s was provided; please provide %s as well", setFlag, missingFlag),
+		Kind:    ErrOnlyAWSClusterEnvVarSet,
+		Message: "when specifying $CLUSTER_AWS_ACCESS_KEY_ID and $CLUSTER_AWS_SECRET_ACCESS_KEY, please also specify $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY",
+	})
+}
+
+func ErrorOnlyAWSClusterFlagSet() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOnlyAWSClusterFlagSet,
+		Message: "when specifying --cluster-aws-key and --cluster-aws-secret, please also specify --aws-key and --aws-secret",
 	})
 }
 
