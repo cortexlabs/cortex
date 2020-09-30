@@ -253,7 +253,7 @@ elif [ "$cmd" = "update" ]; then
   images_to_build="${images_to_build}${base_images}"
 
   if command -v parallel &> /dev/null ; then
-    ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --colsep=" " build_and_push "$ROOT/images/{1} {1} latest" ::: $all_images
+    ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel -k --colsep=" " build_and_push "$ROOT/images/{1} {1} latest" ::: $all_images
   else
     for image in ${images_to_build}; do
       build_and_push $ROOT/images/$image $image latest
