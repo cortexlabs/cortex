@@ -67,7 +67,7 @@ func clusterInit() {
 	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
 	addAWSCredentialsFlags(_upCmd)
-	addClusterAWSCredentialsFlag(_upCmd)
+	addClusterAWSCredentialsFlags(_upCmd)
 	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to create")
 	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_upCmd)
@@ -83,7 +83,7 @@ func clusterInit() {
 	_configureCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_configureCmd)
 	addAWSCredentialsFlags(_configureCmd)
-	addClusterAWSCredentialsFlag(_configureCmd)
+	addClusterAWSCredentialsFlags(_configureCmd)
 	_configureCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to update")
 	_configureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_configureCmd)
@@ -110,7 +110,7 @@ func addAWSCredentialsFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&_flagAWSSecretAccessKey, "aws-secret", "", "aws secret access key")
 }
 
-func addClusterAWSCredentialsFlag(cmd *cobra.Command) {
+func addClusterAWSCredentialsFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&_flagClusterAWSAccessKeyID, "cluster-aws-key", "", "aws access key id to be used by the cluster")
 	cmd.Flags().StringVar(&_flagClusterAWSSecretAccessKey, "cluster-aws-secret", "", "aws secret access key to be used by the cluster")
 }
