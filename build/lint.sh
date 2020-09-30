@@ -158,7 +158,6 @@ else
   # Check for version warning comments in examples
   output=$(cd "$ROOT/examples" && find . -type f \
   ! -path "./README.md" \
-  ! -path "./utils/*" \
   ! -path "**/__pycache__/*" \
   ! -name "*.json" \
   ! -name "*.txt" \
