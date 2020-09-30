@@ -182,7 +182,7 @@ function cleanup_ecr() {
 }
 
 # images to build
-read -r -d '' all_images << EOM
+all_images="
 tensorflow-serving-cpu
 tensorflow-serving-gpu
 tensorflow-serving-inf
@@ -197,23 +197,23 @@ istio-proxy
 istio-pilot
 istio-citadel
 istio-galley
-EOM
+"
 
 # images to build
-read -r -d '' dev_images << EOM
+dev_images="
 manager
 downloader
-EOM
+"
 
 # images to build
-read -r -d '' base_images << EOM
+base_images="
 python-predictor-cpu
 python-predictor-gpu
 python-predictor-inf
 tensorflow-predictor
 onnx-predictor-cpu
 onnx-predictor-gpu
-EOM
+"
 
 if [ "$cmd" = "clean" ]; then
   cleanup_local
@@ -245,7 +245,7 @@ elif [ "$cmd" = "update" ]; then
   images_to_build="${images_to_build}${base_images}"
 
   if [ command -v parallel &> /dev/null ]; then
-      parallel --colsep=" " build_and_push $ROOT/images/{1} {1} latest ::: $final
+    parallel --colsep=" " build_and_push $ROOT/images/{1} {1} latest ::: $final
   else
     for image in ${images_to_build}; do
       build_and_push $ROOT/images/$image $image latest
