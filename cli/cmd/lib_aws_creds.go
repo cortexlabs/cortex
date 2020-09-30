@@ -190,6 +190,9 @@ func awsCredentialsFromFlags() (*AWSCredentials, error) {
 	credentials := AWSCredentials{}
 
 	if _flagAWSAccessKeyID == "" && _flagAWSSecretAccessKey == "" {
+		if _flagClusterAWSAccessKeyID != "" || _flagClusterAWSSecretAccessKey != "" {
+			return nil, ErrorOnlyAWSClusterFlagSet()
+		}
 		return nil, nil
 	}
 
@@ -229,6 +232,9 @@ func awsCredentialsFromEnvVars() (*AWSCredentials, error) {
 	}
 
 	if os.Getenv("AWS_ACCESS_KEY_ID") == "" && os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		if os.Getenv("CLUSTER_AWS_ACCESS_KEY_ID") != "" || os.Getenv("CLUSTER_AWS_SECRET_ACCESS_KEY") != "" {
+			return nil, ErrorOnlyAWSClusterEnvVarSet()
+		}
 		return nil, nil
 	}
 
