@@ -55,7 +55,7 @@ api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "inter
 
 # whether the operator load balancer should be internet-facing or internal (default: "internet-facing")
 # note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/guides/vpc-peering)
-# see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
+# see https://docs.cortex.dev/v/master/miscellaneous/security#private-operator for more information
 operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
 # whether to disable API gateway cluster-wide
