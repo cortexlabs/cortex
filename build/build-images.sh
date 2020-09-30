@@ -73,11 +73,13 @@ options="
 --no-slim
 "
 
-# TODO verify that it works in both cases
 if command -v parallel &> /dev/null ; then
-  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " $ROOT/build/build-image.sh "images/{1} {1} {2}" ::: $images ::: $options
+  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " $ROOT/build/build-image.sh "images/{1} {1} {2}" ::: $images :::+ $options
 else
-  for image in ${images} && option in ${options}; do
+  MAX=$(echo $images | wc -w)
+  for i in `seq 1 ${MAX}`; do
+    image=$(echo $images | cut -d " " -f $i)
+    option=$(echo $options | cut -d " " -f $i)
     $ROOT/build/build-image.sh images/$image $image $option
   done
 fi

@@ -73,11 +73,13 @@ options="
 --no-slim
 "
 
-# TODO verify that it works in both cases
 if command -v parallel &> /dev/null ; then
-  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " $ROOT/build/push-image.sh "{1} {2}" ::: $images ::: $options
+  ROOT=$ROOT DOCKER_USERNAME=$DOCKER_USERNAME DOCKER_PASSWORD=$DOCKER_PASSWORD SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " $ROOT/build/push-image.sh "{1} {2}" ::: $images :::+ $options
 else
-  for image in ${images}; do
+  MAX=$(echo $images | wc -w)
+  for i in `seq 1 ${MAX}`; do
+    image=$(echo $images | cut -d " " -f $i)
+    option=$(echo $options | cut -d " " -f $i)
     $ROOT/build/push-image.sh $image
   done
 fi
