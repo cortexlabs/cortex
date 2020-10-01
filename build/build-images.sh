@@ -26,10 +26,9 @@ if command -v parallel &> /dev/null ; then
   images=$(join_by "," "${ci_images[@]}")
   ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --eta -k -d"," --colsep=" " $ROOT/build/build-image.sh images/{1} {1} {2} ::: "${images}"
 else
-  MAX=$(echo $images | wc -w)
-  for i in `seq 1 ${MAX}`; do
-    image=$(echo $images | cut -d " " -f $i)
-    option=$(echo $options | cut -d " " -f $i)
+  for args in "${ci_images[@]}"; do
+    image=$(echo $args | cut -d " " -f1)
+    option=$(echo $args | cut -d " " -f2)
     $ROOT/build/build-image.sh images/$image $image $option
   done
 fi

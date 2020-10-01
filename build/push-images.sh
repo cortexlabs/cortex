@@ -26,10 +26,7 @@ if command -v parallel &> /dev/null ; then
   images=$(join_by "," "${ci_images[@]}")
   ROOT=$ROOT DOCKER_USERNAME=$DOCKER_USERNAME DOCKER_PASSWORD=$DOCKER_PASSWORD SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k -d"," --colsep=" " $ROOT/build/push-image.sh {1} {2} ::: "${images}"
 else
-  MAX=$(echo $images | wc -w)
-  for i in `seq 1 ${MAX}`; do
-    image=$(echo $images | cut -d " " -f $i)
-    option=$(echo $options | cut -d " " -f $i)
-    $ROOT/build/push-image.sh $image
+  for args in "${ci_images[@]}"; do
+    $ROOT/build/push-image.sh $args
   done
 fi
