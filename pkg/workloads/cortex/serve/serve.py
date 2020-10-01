@@ -254,6 +254,7 @@ def start_fn():
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
 
+    model_dir = os.getenv("CORTEX_MODEL_DIR")
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
     bucket = os.getenv("CORTEX_BUCKET")
     region = os.getenv("AWS_REGION")
@@ -275,7 +276,7 @@ def start_fn():
             f.truncate()
 
     try:
-        api = get_api(provider, spec_path, cache_dir, bucket, region)
+        api = get_api(provider, spec_path, model_dir, cache_dir, bucket, region)
 
         client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port

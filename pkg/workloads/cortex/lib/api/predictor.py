@@ -78,7 +78,7 @@ class Predictor:
         self.api_spec = api_spec
         self.model_dir = model_dir
 
-        self.model_caching = self._is_model_caching_enabled(api_spec)
+        self.model_caching = self._is_model_caching_enabled()
         self.multiple_processes = self.api_spec["predictor"]["processes_per_replica"] > 1
 
         # model caching can only be enabled when processes_per_replica is 1

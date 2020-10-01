@@ -19,7 +19,7 @@ from pathlib import Path
 import json
 import msgpack
 import datadog
-from typing import Optional
+from typing import Tuple, Union, Optional
 
 from cortex.lib.log import cx_logger
 from cortex.lib.exceptions import CortexException
@@ -52,8 +52,8 @@ class API:
         self.predictor = Predictor(provider, api_spec, model_dir)
 
         self.monitoring = None
-        if kwargs.get("monitoring") is not None:
-            self.monitoring = Monitoring(**kwargs["monitoring"])
+        if self.api_spec.get("monitoring") is not None:
+            self.monitoring = Monitoring(**self.api_spec["monitoring"])
 
         if provider != "local":
             host_ip = os.environ["HOST_IP"]
@@ -181,11 +181,12 @@ def read_msgpack(msgpack_path) -> dict:
 def get_api(
     provider: str,
     spec_path: str,
+    model_dir: str,
     cache_dir: Optional[str],
     bucket: Optional[str],
     region: Optional[str],
 ) -> API:
-    raw_api_spec = get_spec(cache_dir, provider, spec_path, bucket, region)
+    storage, raw_api_spec = get_spec(provider, spec_path, cache_dir, bucket, region)
 
     api = API(
         provider=provider,
@@ -204,14 +205,14 @@ def get_spec(
     cache_dir: Optional[str],
     bucket: Optional[str],
     region: Optional[str],
-) -> dict:
+) -> Tuple[Union[LocalStorage, S3], dict]:
     if provider == "local":
         storage = LocalStorage(cache_dir)
     else:
         storage = S3(bucket=bucket, region=region)
 
     if provider == "local":
-        return read_msgpack(spec_path)
+        return storage, read_msgpack(spec_path)
 
     local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
 
@@ -219,4 +220,4 @@ def get_spec(
         _, key = S3.deconstruct_s3_path(spec_path)
         storage.download_file(key, local_spec_path)
 
-    return read_msgpack(local_spec_path)
+    return storage, read_msgpack(local_spec_path)

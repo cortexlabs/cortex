@@ -20,6 +20,7 @@ import datetime
 import threading as td
 from typing import List, Any, Tuple, Callable, AbstractSet, Optional
 
+from cortex.lib.concurrency import ReadWriteLock
 from cortex.lib.exceptions import WithBreak, CortexException
 from cortex.lib.storage import S3
 from cortex.lib.type import PredictorType
