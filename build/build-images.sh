@@ -18,10 +18,13 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+
 source $ROOT/build/images.sh
+source $ROOT/dev/util.sh
 
 if command -v parallel &> /dev/null ; then
-  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " $ROOT/build/build-image.sh "images/{1} {1} {2}" ::: $images :::+ $options
+  images=$(join_by "," "${ci_images[@]}")
+  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --eta -k -d"," --colsep=" " $ROOT/build/build-image.sh images/{1} {1} {2} ::: "${images}"
 else
   MAX=$(echo $images | wc -w)
   for i in `seq 1 ${MAX}`; do
