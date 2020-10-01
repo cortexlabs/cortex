@@ -3,9 +3,17 @@
 
 <br>
 
-# Build machine learning APIs
+# Model serving for developers
 
-Cortex makes deploying, scaling, and managing machine learning systems in production simple. We believe that developers in any organization should be able to add natural language processing, computer vision, and other machine learning capabilities to their applications without having to worry about infrastructure.
+Cortex is a flexible, production-grade deployment platform for machine learning engineers and data scientists. It is designed to make it easy to build and deploy inference pipelines that are scalable, reproducible, and monitorable by default.
+
+* **Simple.** Write prediction APIs using an intuitive Python interface. Configure infrastructure with a single YAML document. Trigger deployments with one CLI command.
+* **Production-ready.** Cortex automates your cloud infrastructure, spinning up a cluster and provisioning it for inference. On deploy, it containerizes your APIs and serves them to the cluster, implementing load balancing, request-based autoscaling, rolling updates, monitoring, and more.
+* **Easy to integrate.** Cortex fits in your stack. Train models with any data science platform, trigger deployments with any CI/CD workflow, and connect with any analytics platform. Cortex is opinionated about model serving and deployment, but nothing else.
+
+To deploy with Cortex, write your prediction API in Python, configure your infrastructure in YAML, and deploy with the command `cortex deploy`:
+
+![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.18.gif)
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
@@ -15,40 +23,29 @@ Cortex makes deploying, scaling, and managing machine learning systems in produc
 
 # Key features
 
+### Build
+
+* Serve models from any Python framework—including TensorFlow, PyTorch, ONNX, and others.
+* Perform batch and realtime inference.
+* Construct multi-model APIs.
+* Import any model server or library in your prediction APIs.
+* Define preprocessing and postprocessing steps.
+
 ### Deploy
 
-* Run Cortex locally or as a production cluster on your AWS account.
-* Deploy TensorFlow, PyTorch, Keras, ONNX, XGBoost, scikit-learn, and other models as realtime APIs or batch APIs.
-* Define preprocessing and postprocessing steps in Python.
+* Deploy locally on your own machine/VM, or to a Cortex cluster on your AWS account.
+* Run on any hardware or cloud instance type, including spot instances and Inferentia.
+* Customize autoscaling, load balancing, and traffic splitting behavior.
+* Configure A/B testing and other deployment strategies.
 
 ### Manage
 
-* Update APIs with no downtime.
+* Update APIs with zero downtime via rolling updates.
 * Stream logs from your APIs to your CLI.
-* Monitor API performance and track predictions.
-* Run A/B tests.
+* Export API performance and prediction metrics to your CLI, or as JSON.
+* Automatically version deployments for reproducibility.
 
-### Scale
-
-* Automatically scale APIs to handle production traffic.
-* Reduce your cloud infrastructure spend with spot instances.
-* Maximize resource utilization by deploying multiple models per API.
-
-<br>
-
-# How it works
-
-Implement your predictor in `predictor.py`, configure your deployment in `cortex.yaml`, and run `cortex deploy`.
-
-Here's how to deploy GPT-2 as a scalable text generation API:
-
-![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.18.gif)
-
-<br>
-
-# Get started
-
-### Install
+# Install
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
