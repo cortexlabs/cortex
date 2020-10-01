@@ -19,6 +19,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
+source $ROOT/build/images.sh
 source $ROOT/dev/config/build.sh
 source $ROOT/dev/util.sh
 
@@ -189,40 +190,6 @@ export -f blue_echo
 export -f green_echo
 export -f ecr_login
 
-# images to build
-all_images="
-tensorflow-serving-cpu
-tensorflow-serving-gpu
-tensorflow-serving-inf
-cluster-autoscaler
-metrics-server
-inferentia
-neuron-rtd
-nvidia
-fluentd
-statsd
-istio-proxy
-istio-pilot
-istio-citadel
-istio-galley
-"
-
-# images to build
-dev_images="
-manager
-downloader
-"
-
-# images to build
-base_images="
-python-predictor-cpu
-python-predictor-gpu
-python-predictor-inf
-tensorflow-predictor
-onnx-predictor-cpu
-onnx-predictor-gpu
-"
-
 if [ "$cmd" = "clean" ]; then
   cleanup_local
   cleanup_ecr
@@ -236,26 +203,26 @@ elif [ "$cmd" = "update-manager-local" ]; then
 # usage: registry.sh update all|dev|api [--include-slim] [--skip-push]
 # if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
-  images_to_build=""
+  images_to_build=()
 
   if [ "$sub_cmd" == "all" ]; then
     cache_builder $ROOT/images/operator operator
     build_and_push $ROOT/images/operator operator latest
-    images_to_build="${images_to_build}${all_images}"
+    images_to_build+=( "${registry_all_images[@]}" )
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
     cache_builder $ROOT/images/request-monitor request-monitor
     build_and_push $ROOT/images/request-monitor request-monitor latest
-    images_to_build="${images_to_build}${dev_images}"
+    images_to_build+=( "${registry_dev_images[@]}" )
   fi
 
-  images_to_build="${images_to_build}${base_images}"
+  images_to_build+=( "${registry_base_images[@]}" )
 
   if command -v parallel &> /dev/null ; then
-    ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " build_and_push "$ROOT/images/{1} {1} latest" ::: $images_to_build
+    ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " build_and_push "$ROOT/images/{1} {1} latest" ::: "${images_to_build[@]}"
   else
-    for image in ${images_to_build}; do
+    for image in "${images_to_build[@]}"; do
       build_and_push $ROOT/images/$image $image latest
     done
   fi

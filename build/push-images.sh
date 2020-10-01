@@ -18,60 +18,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
-
-images="
-python-predictor-cpu
-python-predictor-gpu
-python-predictor-inf
-tensorflow-serving-cpu
-tensorflow-serving-gpu
-tensorflow-serving-inf
-tensorflow-predictor
-onnx-predictor-cpu
-onnx-predictor-gpu
-operator
-manager
-downloader
-request-monitor
-cluster-autoscaler
-metrics-server
-inferentia
-neuron-rtd
-nvidia
-fluentd
-statsd
-istio-proxy
-istio-pilot
-istio-citadel
-istio-galley
-"
-
-options="
---include-slim
---include-slim
---include-slim
---no-slim
---no-slim
---no-slim
---include-slim
---include-slim
---include-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
---no-slim
-"
+source $ROOT/build/images.sh
 
 if command -v parallel &> /dev/null ; then
   ROOT=$ROOT DOCKER_USERNAME=$DOCKER_USERNAME DOCKER_PASSWORD=$DOCKER_PASSWORD SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " $ROOT/build/push-image.sh "{1} {2}" ::: $images :::+ $options
