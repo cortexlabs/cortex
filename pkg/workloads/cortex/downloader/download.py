@@ -19,9 +19,7 @@ import json
 
 from cortex.lib import util
 from cortex.lib.storage import S3
-from cortex.lib.log import cx_logger
-
-logger = cx_logger()
+from cortex.lib.log import cx_logger as logger
 
 
 def start(args):
@@ -35,9 +33,9 @@ def start(args):
 
         if item_name != "":
             if download_arg.get("hide_from_log", False):
-                logger.info("downloading {}".format(item_name))
+                logger().info("downloading {}".format(item_name))
             else:
-                logger.info("downloading {} from {}".format(item_name, from_path))
+                logger().info("downloading {} from {}".format(item_name, from_path))
 
         if download_arg.get("to_file", False):
             s3_client.download_file(prefix, to_path)
@@ -46,7 +44,7 @@ def start(args):
 
         if download_arg.get("unzip", False):
             if item_name != "" and not download_arg.get("hide_unzipping_log", False):
-                logger.info("unzipping {}".format(item_name))
+                logger().info("unzipping {}".format(item_name))
             if download_arg.get("to_file", False):
                 util.extract_zip(to_path, delete_zip_file=True)
             else:
@@ -55,7 +53,7 @@ def start(args):
                 )
 
     if download_config.get("last_log", "") != "":
-        logger.info(download_config["last_log"])
+        logger().info(download_config["last_log"])
 
 
 def main():

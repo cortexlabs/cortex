@@ -21,13 +21,11 @@ import msgpack
 import datadog
 from typing import Tuple, Union, Optional
 
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 from cortex.lib.exceptions import CortexException
 from cortex.lib.storage import LocalStorage, S3
 
 from cortex.lib.api import Monitoring, Predictor
-
-logger = cx_logger()
 
 
 # This is where the 2nd component is implemented for both cases:
@@ -117,7 +115,7 @@ class API:
                 else:
                     self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
         except:
-            logger.warn("failure encountered while publishing metrics", exc_info=True)
+            logger().warn("failure encountered while publishing metrics", exc_info=True)
 
     def store_metrics_locally(self, status_code, total_time):
         status_code_series = int(status_code / 100)

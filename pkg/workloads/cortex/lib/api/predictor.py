@@ -48,11 +48,9 @@ from cortex.lib.model import (
     ModelsTree,  # only when num workers = 1
 )
 
-from cortex.lib.log import refresh_logger, cx_logger
+from cortex.lib.log import refresh_logger, cx_logger as logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex import consts
-
-logger = cx_logger()
 
 
 class Predictor:
@@ -150,12 +148,18 @@ class Predictor:
         """
 
         # initialize predictor class
+        print("incercam cu impl")
         class_impl = self.class_impl(project_dir)
         try:
+            print("si mai inainte")
             if self.type == PythonPredictorType:
+                print("inainte")
                 if _are_models_specified(None, self.api_spec):
+                    print("aici")
                     initialized_impl = class_impl(python_client=client, config=self.config)
+                    print("si aici")
                     client.set_load_method(initialized_impl.load_model)
+                    print("dar nu si aici")
                 else:
                     initialized_impl = class_impl(config=self.config)
             if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
@@ -222,13 +226,13 @@ class Predictor:
         return initialized_impl
 
     def class_impl(self, project_dir):
-        if self.type == "tensorflow":
+        if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
             target_class_name = "TensorFlowPredictor"
             validations = TENSORFLOW_CLASS_VALIDATION
-        elif self.type == "onnx":
+        elif self.type == ONNXPredictorType:
             target_class_name = "ONNXPredictor"
             validations = ONNX_CLASS_VALIDATION
-        elif self.type == "python":
+        elif self.type == PythonPredictorType:
             target_class_name = "PythonPredictor"
             validations = PYTHON_CLASS_VALIDATION
 
@@ -241,7 +245,9 @@ class Predictor:
             refresh_logger()
 
         try:
+            print("1")
             classes = inspect.getmembers(impl, inspect.isclass)
+            print("2")
             predictor_class = None
             for class_df in classes:
                 if class_df[0] == target_class_name:
@@ -252,11 +258,14 @@ class Predictor:
                             )
                         )
                     predictor_class = class_df[1]
+            print("3")
             if predictor_class is None:
                 raise UserException("{} class is not defined".format(target_class_name))
-
+            print("4")
             _validate_impl(predictor_class, validations, self._api_spec)
+            print("a mers")
         except CortexException as e:
+            print(str(e))
             e.wrap("error in " + self.path)
             raise
         return predictor_class

@@ -23,10 +23,8 @@ from cortex.lib.model import (
     LockedModelsTree,
     CuratedModelResources,
 )
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 from cortex import consts
-
-logger = cx_logger()
 
 
 class TensorFlowClient:

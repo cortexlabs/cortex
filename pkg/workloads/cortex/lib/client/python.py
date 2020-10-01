@@ -15,7 +15,7 @@
 import os
 from typing import Any, Optional, Callable
 
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException, WithBreak
 from cortex.lib.model import (
     ModelsHolder,
@@ -28,8 +28,6 @@ from cortex.lib.model import (
 )
 from cortex.lib.concurrency import LockedFile
 from cortex import consts
-
-logger = cx_logger()
 
 
 class PythonClient:

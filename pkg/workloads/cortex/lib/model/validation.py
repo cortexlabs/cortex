@@ -22,7 +22,7 @@ from fnmatch import fnmatchcase
 
 from cortex.lib import util
 from cortex.lib.storage import S3, LocalStorage
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 from cortex.lib.exceptions import CortexException
 from cortex.lib.type import (
     PythonPredictorType,

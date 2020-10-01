@@ -34,12 +34,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from cortex.lib import util
 from cortex.lib.api import API, get_api
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import LockedFile
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
-
-logger = cx_logger()
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
@@ -214,7 +212,7 @@ def predict(request: Request):
                 local_cache["class_set"].add(predicted_value)
                 response.background = tasks
         except:
-            logger.warn("unable to record prediction metric", exc_info=True)
+            logger().warn("unable to record prediction metric", exc_info=True)
 
     return response
 
@@ -281,7 +279,7 @@ def start_fn():
         client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
-        logger.info("loading the predictor from {}".format(api.predictor.path))
+        logger().info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
         local_cache["api"] = api
@@ -294,7 +292,7 @@ def start_fn():
             predict_route = "/predict"
         local_cache["predict_route"] = predict_route
     except:
-        logger.exception("failed to start api")
+        logger().exception("failed to start api")
         sys.exit(1)
 
     if (
@@ -305,7 +303,7 @@ def start_fn():
         try:
             local_cache["class_set"] = api.get_cached_classes()
         except:
-            logger.warn("an error occurred while attempting to load classes", exc_info=True)
+            logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
     app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])

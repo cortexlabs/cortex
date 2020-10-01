@@ -24,10 +24,11 @@ class PredictorType(collections.namedtuple("PredictorType", "type")):
 
 
 PythonPredictorType = PredictorType("python")
-TensorFlowPredictorType = PredictorType("tensorflow")
-ONNXPredictorType = PredictorType("onnx")
 
+TensorFlowPredictorType = PredictorType("tensorflow")
 TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")
+
+ONNXPredictorType = PredictorType("onnx")
 
 
 def predictor_type_from_string(predictor_type: str) -> PredictorType:

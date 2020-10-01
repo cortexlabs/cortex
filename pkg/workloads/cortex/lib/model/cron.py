@@ -26,7 +26,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 
 from cortex.lib import util
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import LockedFile, get_locked_files
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, WithBreak
@@ -37,8 +37,6 @@ from cortex.lib.type import (
     ONNXPredictorType,
     PredictorType,
 )
-
-logger = cx_logger()
 
 from cortex.lib.model import (
     TensorFlowServingAPI,
@@ -262,7 +260,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
         mp.Process-specific method.
         """
 
-        self.logger = cx_logger()
         self._make_local_models_available()
         while not self._event_stopper.is_set():
             self._update_models_tree()
@@ -628,6 +625,8 @@ class TFSModelLoader(mp.Process):
 
         mp.Process.__init__(self)
 
+        # TODO check what happens if the logger refreshes
+        self.logger = logger()
         self._interval = interval
         self._api_spec = api_spec
         self._tfs_model_dir = tfs_model_dir
@@ -676,7 +675,6 @@ class TFSModelLoader(mp.Process):
         mp.Process-specific method.
         """
 
-        self.logger = cx_logger()
         while not self._event_stopper.is_set():
             self._update_models()
             time.sleep(self._interval)

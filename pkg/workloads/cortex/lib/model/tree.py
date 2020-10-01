@@ -19,11 +19,9 @@ import shutil
 import threading as td
 from typing import List, Dict, Any, Tuple, Callable, AbstractSet
 
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import ReadWriteLock
 from cortex.lib.exceptions import WithBreak
-
-logger = cx_logger()
 
 
 class ModelsTree:
