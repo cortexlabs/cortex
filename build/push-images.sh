@@ -22,6 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
+# if parallel utility is installed, the docker push commands will be parallelized
 if command -v parallel &> /dev/null ; then
   images=$(join_by "," "${ci_images[@]}")
   ROOT=$ROOT DOCKER_USERNAME=$DOCKER_USERNAME DOCKER_PASSWORD=$DOCKER_PASSWORD SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k -d"," --colsep=" " $ROOT/build/push-image.sh {1} {2} ::: "${images}"
