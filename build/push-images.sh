@@ -25,7 +25,7 @@ source $ROOT/dev/util.sh
 # if parallel utility is installed, the docker push commands will be parallelized
 if command -v parallel &> /dev/null ; then
   images=$(join_by "," "${ci_images[@]}")
-  ROOT=$ROOT DOCKER_USERNAME=$DOCKER_USERNAME DOCKER_PASSWORD=$DOCKER_PASSWORD SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k -d"," --colsep=" " $ROOT/build/push-image.sh {1} {2} ::: "${images}"
+  ROOT=$ROOT DOCKER_USERNAME=$DOCKER_USERNAME DOCKER_PASSWORD=$DOCKER_PASSWORD SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -d"," --colsep=" " $ROOT/build/push-image.sh {1} {2} ::: "${images}"
 else
   for args in "${ci_images[@]}"; do
     $ROOT/build/push-image.sh $args

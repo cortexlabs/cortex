@@ -141,20 +141,14 @@ function build_and_push() {
   local dir=$1
   local image=$2
   local tag=$3
+  local slimmable=$4
 
-  build $dir $image $tag
-  push $image $tag
-}
-
-function build_and_push_slim() {
-  local dir=$1
-  local image=$2
-  local tag=$3
+  set -euo pipefail
 
   build $dir $image $tag
   push $image $tag
 
-  if [ "$flag_include_slim" == "true" ]; then
+  if [ "$flag_include_slim" == "true" ] && [ "$slimmable" == "--include-slim" ]; then
     build $dir "${image}-slim" $tag --build-arg SLIM=true
     push ${image}-slim $tag
   fi
@@ -206,24 +200,31 @@ elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
   if [ "$sub_cmd" == "all" ]; then
-    cache_builder $ROOT/images/operator operator
-    build_and_push $ROOT/images/operator operator latest
+    # cache_builder $ROOT/images/operator operator
+    # build_and_push $ROOT/images/operator operator latest
     images_to_build+=( "${registry_all_images[@]}" )
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    cache_builder $ROOT/images/request-monitor request-monitor
-    build_and_push $ROOT/images/request-monitor request-monitor latest
+    # cache_builder $ROOT/images/request-monitor request-monitor
+    # build_and_push $ROOT/images/request-monitor request-monitor latest
     images_to_build+=( "${registry_dev_images[@]}" )
   fi
 
   images_to_build+=( "${registry_base_images[@]}" )
 
   if command -v parallel &> /dev/null ; then
-    ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -k --colsep=" " build_and_push "$ROOT/images/{1} {1} latest" ::: "${images_to_build[@]}"
+    images=$(join_by "," "${images_to_build[@]}")
+    flag_include_slim=$flag_include_slim flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -d"," --colsep=" " build_and_push "$ROOT/images/{1} {1} latest {2}" ::: "${images[@]}"
   else
-    for image in "${images_to_build[@]}"; do
-      build_and_push $ROOT/images/$image $image latest
+    for args in "${images_to_build[@]}"; do
+      image=$(echo $args | cut -d " " -f1)
+      if [ "$(echo $args | wc -w)" == "1" ]; then
+        slimmable="--not-include-slim"
+      else
+        slimmable=$(echo $args | cut -d " " -f2)
+      fi
+      build_and_push $ROOT/images/$image $image latest $slimmable
     done
   fi
 

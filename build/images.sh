@@ -17,34 +17,6 @@
 
 set -euo pipefail
 
-# images to build and push for the CI
-ci_images=(
-"python-predictor-cpu --include-slim"
-"python-predictor-gpu --include-slim"
-"python-predictor-inf --include-slim"
-"tensorflow-serving-cpu"
-"tensorflow-serving-gpu"
-"tensorflow-serving-inf"
-"tensorflow-predictor --include-slim"
-"onnx-predictor-cpu --include-slim"
-"onnx-predictor-gpu --include-slim"
-"operator"
-"manager"
-"downloader"
-"request-monitor"
-"cluster-autoscaler"
-"metrics-server"
-"inferentia"
-"neuron-rtd"
-"nvidia"
-"fluentd"
-"statsd"
-"istio-proxy"
-"istio-pilot"
-"istio-citadel"
-"istio-galley"
-)
-
 # images to build when running a registry command
 registry_all_images=(
 "tensorflow-serving-cpu"
@@ -68,10 +40,13 @@ registry_dev_images=( "manager" "downloader" )
 
 # images to build when running a registry command
 registry_base_images=(
-"python-predictor-cpu"
-"python-predictor-gpu"
-"python-predictor-inf"
-"tensorflow-predictor"
-"onnx-predictor-cpu"
-"onnx-predictor-gpu"
+"python-predictor-cpu --include-slim"
+"python-predictor-gpu --include-slim"
+"python-predictor-inf --include-slim"
+"tensorflow-predictor --include-slim"
+"onnx-predictor-cpu --include-slim"
+"onnx-predictor-gpu --include-slim"
 )
+
+# images to build and push for the CI
+ci_images=( "${registry_all_images[@]}" "${registry_dev_images[@]}" "${registry_base_images[@]}" )

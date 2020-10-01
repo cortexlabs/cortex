@@ -25,11 +25,11 @@ source $ROOT/dev/util.sh
 # if parallel utility is installed, the docker build commands will be parallelized
 if command -v parallel &> /dev/null ; then
   images=$(join_by "," "${ci_images[@]}")
-  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --eta -k -d"," --colsep=" " $ROOT/build/build-image.sh images/{1} {1} {2} ::: "${images}"
+  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -d"," --colsep=" " $ROOT/build/build-image.sh images/{1} {1} {2} ::: "${images}"
 else
   for args in "${ci_images[@]}"; do
     image=$(echo $args | cut -d " " -f1)
-    option=$(echo $args | cut -d " " -f2)
-    $ROOT/build/build-image.sh images/$image $image $option
+    slimmable=$(echo $args | cut -d " " -f2)
+    $ROOT/build/build-image.sh images/$image $image $slimmable
   done
 fi
