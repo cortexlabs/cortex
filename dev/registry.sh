@@ -200,14 +200,14 @@ elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
   if [ "$sub_cmd" == "all" ]; then
-    # cache_builder $ROOT/images/operator operator
-    # build_and_push $ROOT/images/operator operator latest
+    cache_builder $ROOT/images/operator operator
+    build_and_push $ROOT/images/operator operator latest
     images_to_build+=( "${registry_all_images[@]}" )
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    # cache_builder $ROOT/images/request-monitor request-monitor
-    # build_and_push $ROOT/images/request-monitor request-monitor latest
+    cache_builder $ROOT/images/request-monitor request-monitor
+    build_and_push $ROOT/images/request-monitor request-monitor latest
     images_to_build+=( "${registry_dev_images[@]}" )
   fi
 
