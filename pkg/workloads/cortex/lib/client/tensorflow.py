@@ -43,9 +43,9 @@ class TensorFlowClient:
             tf_serving_url: Localhost URL to TF Serving container (i.e. "localhost:9000")
             api_spec: API configuration.
 
-            models: Holding all models into memory. Only when processes_per_replica = 1.
-            model_dir: Where the models are saved on disk. Only when processes_per_replica = 1.
-            models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1.
+            models: Holding all models into memory. Only when processes_per_replica = 1 and caching enabled.
+            model_dir: Where the models are saved on disk. Only when processes_per_replica = 1 and caching enabled.
+            models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1 and caching enabled.
         """
 
         self.tf_serving_url = tf_serving_url
@@ -63,10 +63,8 @@ class TensorFlowClient:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
 
-        if self._api_spec["predictor"]["processes_per_replica"] > 1:
-            self._multiple_processes = True
-        else:
-            self._multiple_processes = False
+        self._multiple_processes = self._api_spec["predictor"]["processes_per_replica"] > 1
+        self._caching_enabled = self._is_model_caching_enabled()
 
         if self._models:
             self._models.set_callback("load", self._load_model)
@@ -83,11 +81,12 @@ class TensorFlowClient:
         Args:
             model_input: Input to the model.
             model_name: Model to use when multiple models are deployed in a single API.
-            model_version: A numerical value indicating the model's version or "latest" or "highest". "latest" not supported when processes_per_replica > 1 and TensorFlowPredictor is used.
+            model_version: A numerical value indicating the model's version or "latest" or "highest". "latest" not supported when processes_per_replica > 0, caching disabled and TensorFlowPredictor is used.
 
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.
         """
+
         if model_version not in ["highest", "latest"] or not model_version.isnumeric():
             raise UserRuntimeException(
                 "model_version must be either a parse-able numeric value or 'highest' or 'latest'"
@@ -96,7 +95,7 @@ class TensorFlowClient:
         if self._multiple_processes and model_version == "latest":
             raise UserRuntimeException(
                 "model_version must be either a parse-able numberic value or 'highest'",
-                "cannot be 'latest' when processes_per_replica > 1 and TensorFlowPredictor is used",
+                "cannot be 'latest' when processes_per_replica > 0, caching is disabled and TensorFlowPredictor is used",
             )
 
         # when predictor:model_path or predictor:models:paths is specified
@@ -125,8 +124,8 @@ class TensorFlowClient:
 
     def _run_inference(self, model_input: Any, model_name: str, model_version: str) -> dict:
         """
-        When processes_per_replica = 1, check/load model and make prediction.
-        When processes_per_replica > 1, attempt to make prediction regardless.
+        When processes_per_replica = 1 and caching enabled, check/load model and make prediction.
+        When processes_per_replica > 0 and caching disabled, attempt to make prediction regardless.
 
         Args:
             model_input: Input to the model.
@@ -147,7 +146,7 @@ class TensorFlowClient:
             tag = model_version
             tags = ["latest", "highest"]
 
-        if self._multiple_processes:
+        if not self._caching_enabled:
             # determine model version
             if tag == "highest":
                 versions = self._client.poll_available_models(model_name)
@@ -162,7 +161,7 @@ class TensorFlowClient:
 
             return self._client.predict(model_input, model_name, model_version)
 
-        if not self._multiple_processes:
+        if not self._multiple_processes and self._caching_enabled:
             # determine model version
             try:
                 if tag != "":
@@ -272,7 +271,7 @@ class TensorFlowClient:
     ) -> Any:
         """
         Loads model into TFS.
-        Must only be used when processes_per_replica = 1.
+        Must only be used when processes_per_replica = 1 and caching enabled.
         """
 
         try:
@@ -288,7 +287,7 @@ class TensorFlowClient:
     def _remove_models(self, model_ids: List[str]) -> None:
         """
         Remove models from TFS.
-        Must only be used when processes_per_replica = 1.
+        Must only be used when processes_per_replica = 1 and caching enabled.
         """
 
         models = {}
@@ -321,7 +320,7 @@ class TensorFlowClient:
     def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
         """
         Get the version for a specific model name based on the version tag - either "latest" or "highest".
-        Must only be used when processes_per_replica = 1.
+        Must only be used when processes_per_replica = 1 and caching enabled.
         """
 
         if tag not in ["latest", "highest"]:
@@ -333,6 +332,15 @@ class TensorFlowClient:
             return versions[index]
         else:
             return max(versions)
+
+    def _is_model_caching_enabled(self) -> bool:
+        """
+        Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
+        """
+        return (
+            self._api_spec["predictor"]["models"]["cache_size"] is not None
+            and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
+        )
 
     @property
     def stub(self):

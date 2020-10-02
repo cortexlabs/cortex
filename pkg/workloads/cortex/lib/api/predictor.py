@@ -74,20 +74,20 @@ class Predictor:
         self.api_spec = api_spec
         self.model_dir = model_dir
 
-        self.model_caching = self._is_model_caching_enabled()
+        self.caching_enabled = self._is_model_caching_enabled()
         self.multiple_processes = self.api_spec["predictor"]["processes_per_replica"] > 1
 
         # model caching can only be enabled when processes_per_replica is 1
         # model side-reloading is supported for any number of processes_per_replica
 
-        if self.model_caching:
+        if self.caching_enabled:
             self.models = ModelsHolder(
                 self.type,
                 self.model_dir,
                 mem_cache_size=self.api_spec["predictor"]["models"]["cache_size"],
                 disk_cache_size=self.api_spec["predictor"]["models"]["disk_cache_size"],
             )
-        elif not self.model_caching and self.type not in [
+        elif not self.caching_enabled and self.type not in [
             TensorFlowPredictorType,
             TensorFlowNeuronPredictorType,
         ]:
@@ -164,8 +164,8 @@ class Predictor:
             refresh_logger()
 
         # initialize the crons
-        if not self.multiple_processes:
-            self.crons += [
+        if not self.multiple_processes and self.caching_enabled:
+            self.crons = [
                 ModelTreeUpdater(
                     interval=10,
                     api_spec=self.api_spec,
@@ -178,20 +178,15 @@ class Predictor:
                     models=self.models,
                     tree=self.models_tree,
                 ),
+                ModelPreloader(
+                    interval=10,
+                    caching=self.caching_enabled,
+                    models=self.models,
+                    tree=self.models_tree,
+                ),
             ]
-            if self.model_caching:
-                self.crons.append(
-                    ModelPreloader(
-                        interval=10,
-                        caching=self.model_caching,
-                        models=self.models,
-                        tree=self.models_tree,
-                    ),
-                )
-
-        # start the crons
-        for cron in self.crons:
-            cron.start()
+            for cron in self.crons:
+                cron.start()
 
         return initialized_impl
 

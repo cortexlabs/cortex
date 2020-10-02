@@ -50,9 +50,9 @@ class PythonClient:
             models: Holding all models into memory.
             model_dir: Where the models are saved on disk.
 
-            models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1.
-            lock_dir: Where the resource locks are found. Only when processes_per_replica > 1.
-            load_model_fn: Model loader function. Only when processes_per_replica = 1.
+            models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1 and caching enabled.
+            lock_dir: Where the resource locks are found. Only when processes_per_replica > 0 and caching disabled.
+            load_model_fn: Model loader function. Only when processes_per_replica = 1 and caching enabled.
         """
 
         self._api_spec = api_spec
@@ -69,10 +69,8 @@ class PythonClient:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
 
-        if self._api_spec["predictor"]["processes_per_replica"] > 1:
-            self._multiple_processes = True
-        else:
-            self._multiple_processes = False
+        self._multiple_processes = self._api_spec["predictor"]["processes_per_replica"] > 1
+        self._caching_enabled = self._is_model_caching_enabled()
 
         if callable(load_model_fn):
             self._models.set_callback("load", load_model_fn)
@@ -163,7 +161,7 @@ class PythonClient:
             tag = model_version
             tags = ["latest", "highest"]
 
-        if self._multiple_processes:
+        if not self._caching_enabled:
             # determine model version
             if tag != "":
                 model_version = self._get_model_version_from_disk(model_name, tag)
@@ -204,7 +202,7 @@ class PythonClient:
                         else:
                             model, _ = self._models.get_model(model_name, model_version, tag)
 
-        if not self._multiple_processes:
+        if not self._multiple_processes and self._caching_enabled:
             # determine model version
             try:
                 if tag != "":
@@ -282,7 +280,7 @@ class PythonClient:
     def _get_model_version_from_disk(self, model_name: str, tag: str) -> str:
         """
         Get the version for a specific model name based on the version tag - either "latest" or "highest".
-        Must only be used when processes_per_replica > 1.
+        Must only be used when processes_per_replica > 0 and caching disabled.
         """
 
         if tag not in ["latest", "highest"]:
@@ -305,7 +303,7 @@ class PythonClient:
     def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
         """
         Get the version for a specific model name based on the version tag - either "latest" or "highest".
-        Must only be used when processes_per_replica = 1.
+        Must only be used when processes_per_replica = 1 and caching enabled.
         """
 
         if tag not in ["latest", "highest"]:
@@ -317,6 +315,15 @@ class PythonClient:
             return versions[index]
         else:
             return max(versions)
+
+    def _is_model_caching_enabled(self) -> bool:
+        """
+        Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
+        """
+        return (
+            self._api_spec["predictor"]["models"]["cache_size"] is not None
+            and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
+        )
 
     # TODO retrieve sessions properly for cortex get
     @property

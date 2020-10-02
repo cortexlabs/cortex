@@ -57,8 +57,8 @@ class ONNXClient:
             models: Holding all models into memory.
             model_dir: Where the models are saved on disk.
 
-            models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1.
-            lock_dir: Where the resource locks are found. Only when processes_per_replica > 1.
+            models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1 and caching enabled.
+            lock_dir: Where the resource locks are found. Only when caching disabled.
         """
         if not onnx_dependencies_installed:
             raise NameError("onnx dependencies not installed")
@@ -77,10 +77,8 @@ class ONNXClient:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
 
-        if self._api_spec["predictor"]["processes_per_replica"] > 1:
-            self._multiple_processes = True
-        else:
-            self._multiple_processes = False
+        self._multiple_processes = self._api_spec["predictor"]["processes_per_replica"] > 1
+        self._caching_enabled = self._is_model_caching_enabled()
 
         self._models.set_callback("load", self._load_model)
 
@@ -172,7 +170,7 @@ class ONNXClient:
             tag = model_version
             tags = ["latest", "highest"]
 
-        if self._multiple_processes:
+        if not self._caching_enabled:
             # determine model version
             if tag != "":
                 model_version = self._get_model_version_from_disk(model_name, tag)
@@ -213,7 +211,7 @@ class ONNXClient:
                         else:
                             model, _ = self._models.get_model(model_name, model_version, tag)
 
-        if not self._multiple_processes:
+        if not self._multiple_processes and self._caching_enabled:
             # determine model version
             try:
                 if tag != "":
@@ -317,7 +315,7 @@ class ONNXClient:
     def _get_model_version_from_disk(self, model_name: str, tag: str) -> str:
         """
         Get the version for a specific model name based on the version tag - either "latest" or "highest".
-        Must only be used when processes_per_replica > 1.
+        Must only be used when caching disabled and processes_per_replica > 0.
         """
 
         if tag not in ["latest", "highest"]:
@@ -340,7 +338,7 @@ class ONNXClient:
     def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
         """
         Get the version for a specific model name based on the version tag - either "latest" or "highest".
-        Must only be used when processes_per_replica = 1.
+        Must only be used when processes_per_replica = 1 and caching enabled.
         """
 
         if tag not in ["latest", "highest"]:
@@ -352,6 +350,15 @@ class ONNXClient:
             return versions[index]
         else:
             return max(versions)
+
+    def _is_model_caching_enabled(self) -> bool:
+        """
+        Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
+        """
+        return (
+            self._api_spec["predictor"]["models"]["cache_size"] is not None
+            and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
+        )
 
     # TODO retrieve sessions properly for cortex get
     @property

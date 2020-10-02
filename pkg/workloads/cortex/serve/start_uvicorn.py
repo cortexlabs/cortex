@@ -57,6 +57,13 @@ def load_tensorflow_serving_models():
         tfs.add_models_config(models, base_paths, replace_models=False)
 
 
+def is_model_caching_enabled(api_spec: dir) -> bool:
+    return (
+        api_spec["predictor"]["models"]["cache_size"] is not None
+        and api_spec["predictor"]["models"]["disk_cache_size"] is not None
+    )
+
+
 def main():
     with open("/src/cortex/serve/log_config.yaml", "r") as f:
         log_config = yaml.load(f, yaml.FullLoader)
@@ -87,10 +94,11 @@ def main():
 
     predictor_type = predictor_type_from_api_spec(api_spec)
     multiple_processes = api_spec["predictor"]["processes_per_replica"] > 1
+    caching_enabled = is_model_caching_enabled(api_spec)
     model_dir = os.environ["CORTEX_MODEL_DIR"]
 
-    # start side-reloading when processes_per_replica > 1
-    if multiple_processes and predictor_type not in [
+    # start side-reloading when model caching not enabled > 1
+    if not caching_enabled and predictor_type not in [
         TensorFlowPredictorType,
         TensorFlowNeuronPredictorType,
     ]:
@@ -100,7 +108,7 @@ def main():
             download_dir=model_dir,
         )
         cron.start()
-    elif multiple_processes and predictor_type == TensorFlowPredictorType:
+    elif not caching_enabled and predictor_type == TensorFlowPredictorType:
         tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
         tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
         cron = TFSModelLoader(
@@ -111,8 +119,10 @@ def main():
             download_dir=model_dir,
         )
         cron.start()
-    elif multiple_processes and predictor_type == TensorFlowNeuronPredictorType:
+    elif not caching_enabled and predictor_type == TensorFlowNeuronPredictorType:
         load_tensorflow_serving_models()
+
+    # TODO if the cron is present, wait until it does its first pass
 
     # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
     uvicorn.run(
