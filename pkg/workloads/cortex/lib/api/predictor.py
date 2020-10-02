@@ -150,7 +150,6 @@ class Predictor:
         # initialize predictor class
         class_impl = self.class_impl(project_dir)
         try:
-            print("si mai inainte")
             if self.type == PythonPredictorType:
                 if _are_models_specified(None, self.api_spec):
                     initialized_impl = class_impl(python_client=client, config=self.config)

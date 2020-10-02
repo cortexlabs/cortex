@@ -1160,7 +1160,7 @@ class ModelsGC(AbstractLoopingThread):
             tree: Model tree representation of the available models on the S3 upstream.
         """
 
-        td.AbstractLoopingThread.__init__(self, interval, self._run_gc)
+        AbstractLoopingThread.__init__(self, interval, self._run_gc)
 
         self._api_spec = api_spec
         self._models = models
@@ -1182,7 +1182,7 @@ class ModelsGC(AbstractLoopingThread):
         # run the cron every 10 seconds
         self._lock_timeout = 10.0
 
-        self._event_stopper = thread.Event()
+        self._event_stopper = td.Event()
         self._stopped = False
 
     def _run_gc(self) -> None:
@@ -1217,6 +1217,22 @@ class ModelsGC(AbstractLoopingThread):
 
     def _remove_stale_models(self) -> None:
 
+        # TODO fix key error
+        # Traceback (most recent call last):
+        #     File "/opt/conda/envs/env/lib/python3.6/threading.py", line 916, in _bootstrap_inner
+        #         self.run()
+        #     File "/src/cortex/lib/model/cron.py", line 1115, in run
+        #         self._runnable()
+        #     File "/src/cortex/lib/model/cron.py", line 1196, in _run_gc
+        #         self._remove_stale_models()
+        #     File "/src/cortex/lib/model/cron.py", line 1244, in _remove_stale_models
+        #         self._models.remove_model(model_name, model_version)
+        #     File "/src/cortex/lib/model/model.py", line 428, in remove_model
+        #         self._remove_model(model_id, True, True)
+        #     File "/src/cortex/lib/model/model.py", line 514, in _remove_model
+        #         self._models[model_id]["model"] = None
+        #     KeyError: 'yert-1'
+
         # get available upstream S3 model IDs
         s3_model_names = self._tree.get_model_names()
         s3_model_versions = [
@@ -1231,7 +1247,7 @@ class ModelsGC(AbstractLoopingThread):
 
         # get model IDs loaded into memory or on disk.
         with LockedGlobalModelsGC(self._models, "r"):
-            present_model_ids = self.get_model_ids()
+            present_model_ids = self._models.get_model_ids()
 
         # remove models that don't exist in the S3 upstream
         ghost_model_ids = list(set(s3_model_ids) - set(present_model_ids))

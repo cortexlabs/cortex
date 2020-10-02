@@ -159,7 +159,7 @@ class ModelsHolder:
 
     #################
 
-    def global_acquire(self, mode: str) -> None:
+    def global_acquire(self, mode: str, timeout: Optional[float] = None) -> None:
         """
         Acquire shared/exclusive (R/W) access over all models.
 
@@ -167,6 +167,7 @@ class ModelsHolder:
 
         Args:
             mode: "r" for read lock, "w" for write lock.
+            timeout: How many seconds to wait to acquire the lock.
         """
         self._global_lock.acquire(mode)
 
