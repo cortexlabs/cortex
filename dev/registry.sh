@@ -141,7 +141,7 @@ function build_and_push() {
   local dir=$1
   local image=$2
   local tag=$3
-  local slimmable=$4
+  local slimmable=${4:-""}
 
   set -euo pipefail
 
@@ -220,7 +220,7 @@ elif [ "$cmd" = "update" ]; then
     for args in "${images_to_build[@]}"; do
       image=$(echo $args | cut -d " " -f1)
       if [ "$(echo $args | wc -w)" == "1" ]; then
-        slimmable="--not-include-slim"
+        slimmable=""
       else
         slimmable=$(echo $args | cut -d " " -f2)
       fi

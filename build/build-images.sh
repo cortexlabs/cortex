@@ -29,7 +29,11 @@ if command -v parallel &> /dev/null ; then
 else
   for args in "${ci_images[@]}"; do
     image=$(echo $args | cut -d " " -f1)
-    slimmable=$(echo $args | cut -d " " -f2)
+    if [ "$(echo $args | wc -w)" == "1" ]; then
+      slimmable=""
+    else
+      slimmable=$(echo $args | cut -d " " -f2)
+    fi
     $ROOT/build/build-image.sh images/$image $image $slimmable
   done
 fi
