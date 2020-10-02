@@ -210,7 +210,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
             lock_dir: Path to where the resource locks are stored.
         """
 
-        mp.Process.__init__(self)
+        mp.Process.__init__(self, daemon=True)
 
         self._interval = interval
         self._api_spec = api_spec
@@ -623,7 +623,7 @@ class TFSModelLoader(mp.Process):
             lock_dir: Directory in which model timestamps are stored.
         """
 
-        mp.Process.__init__(self)
+        mp.Process.__init__(self, daemon=True)
 
         # TODO check what happens if the logger refreshes
         self.logger = logger()

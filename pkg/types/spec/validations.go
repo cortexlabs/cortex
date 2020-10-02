@@ -718,6 +718,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 				ModelPath: *predictor.ModelPath,
 			},
 		}
+		*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
 		modelWrapError = func(err error) error {
 			return errors.Wrap(err, userconfig.ModelPathKey)
 		}
@@ -741,6 +742,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 						path.Name,
 					)
 				}
+				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
@@ -749,6 +751,8 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
 			}
+
+			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
 			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
@@ -870,6 +874,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 				SignatureKey: predictor.SignatureKey,
 			},
 		}
+		*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
 		modelWrapError = func(err error) error {
 			return errors.Wrap(err, userconfig.ModelPathKey)
 		}
@@ -884,6 +889,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 				if path.SignatureKey == nil && predictor.Models.SignatureKey != nil {
 					path.SignatureKey = predictor.Models.SignatureKey
 				}
+				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
@@ -892,6 +898,8 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
 			}
+
+			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
 			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
@@ -1030,6 +1038,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 				ModelPath: *predictor.ModelPath,
 			},
 		}
+		*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
 		modelWrapError = func(err error) error {
 			return errors.Wrap(err, userconfig.ModelPathKey)
 		}
@@ -1053,6 +1062,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 						path.Name,
 					)
 				}
+				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
@@ -1061,6 +1071,8 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
 			}
+
+			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
 			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
