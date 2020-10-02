@@ -5,47 +5,30 @@
 
 # Model serving for developers
 
-Cortex is a flexible, production-grade deployment platform for machine learning engineers and data scientists. It is designed to make it easy to build and deploy inference pipelines that are scalable, reproducible, and monitorable by default.
+Cortex makes it easy to deploy machine learning to production.
 
-* **Simple.** Write prediction APIs using an intuitive Python interface. Configure infrastructure with a single YAML document. Trigger deployments with one CLI command.
-* **Production-ready.** Cortex automates your cloud infrastructure, spinning up a cluster and provisioning it for inference. On deploy, it containerizes your APIs and serves them to the cluster, implementing load balancing, request-based autoscaling, rolling updates, monitoring, and more.
-* **Easy to integrate.** Cortex fits in your stack. Train models with any data science platform, trigger deployments with any CI/CD workflow, and connect with any analytics platform. Cortex is opinionated about model serving and deployment, but nothing else.
+### What you can do with Cortex
 
-To deploy with Cortex, write your prediction API in Python, configure your infrastructure in YAML, and deploy with the command `cortex deploy`:
+* **Write APIs in Python.** Define any real-time or batch inference pipeline as simple Python APIs, regardless of framework or hardware.
+* **Configure infrastructure in YAML.** Define autoscaling behavior, monitoring, compute resources, update strategies, and more—or use Cortex's defaults.
+* **Worry less about DevOps.** You don't need to bring your own cluster or containerize your models—Cortex automates your cloud infrastructure.
+* **Scale to handle production traffic.** Handle traffic with request-based autoscaling. Optimize spend with spot instances and multi-model APIs.
+* **Integrate with your stack.** Integrate Cortex with any data science platform and CI/CD tooling, without changing your workflow.
+* **Run on your AWS account.** Run Cortex on your AWS account (GCP coming soon), maintaining control over resource utilization and data access.
 
 ![Demo](https://d1zqebknpdh033.cloudfront.net/demo/gif/v0.18.gif)
 
-<!-- Delete on release branches -->
-<!-- CORTEX_VERSION_README_MINOR -->
-[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
-# Key features
+<!-- Delete on release branches -->
+<!-- CORTEX_VERSION_README_MINOR -->
 
-### Build
+[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
-* Serve models from any Python framework—including TensorFlow, PyTorch, ONNX, and others.
-* Perform batch and realtime inference.
-* Construct multi-model APIs.
-* Import any model server or library in your prediction APIs.
-* Define preprocessing and postprocessing steps.
+# Get started
 
-### Deploy
-
-* Deploy locally on your own machine/VM, or to a Cortex cluster on your AWS account.
-* Run on any hardware or cloud instance type, including spot instances and Inferentia.
-* Customize autoscaling, load balancing, and traffic splitting behavior.
-* Configure A/B testing and other deployment strategies.
-
-### Manage
-
-* Update APIs with zero downtime via rolling updates.
-* Stream logs from your APIs to your CLI.
-* Export API performance and prediction metrics to your CLI, or as JSON.
-* Automatically version deployments for reproducibility.
-
-# Install
+### Install
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
