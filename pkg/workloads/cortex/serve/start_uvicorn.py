@@ -17,6 +17,17 @@ import yaml
 import os
 import json
 
+from cortex.lib.type import (
+    predictor_type_from_api_spec,
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+    ONNXPredictorType,
+)
+from cortex.lib.model import (
+    FileBasedModelsTreeUpdater,  # only when num workers > 1
+    TFSModelLoader,
+)
 from cortex.lib.api import get_spec
 from cortex.lib.checkers.pod import wait_neuron_rtd
 
@@ -35,8 +46,8 @@ def load_tensorflow_serving_models():
 
     # determine if multiple TF processes are required
     num_processes = 1
-    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
-    if has_multiple_servers:
+    has_multiple_tf_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
+    if has_multiple_tf_servers:
         num_processes = int(os.environ["CORTEX_PROCESSES_PER_REPLICA"])
 
     # initialize models for each TF process
@@ -56,8 +67,8 @@ def main():
         wait_neuron_rtd()
 
     # strictly for Inferentia
-    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
-    if has_multiple_servers:
+    has_multiple_tf_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
+    if has_multiple_tf_servers:
         base_serving_port = int(os.environ["CORTEX_TF_BASE_SERVING_PORT"])
         num_processes = int(os.environ["CORTEX_PROCESSES_PER_REPLICA"])
         used_ports = {}
@@ -72,10 +83,35 @@ def main():
     cache_dir = os.getenv("CORTEX_CACHE_DIR")  # when it's deployed locally
     bucket = os.getenv("CORTEX_BUCKET")  # when it's deployed to AWS
     region = os.getenv("AWS_REGION")  # when it's deployed to AWS
-    _, raw_api_spec = get_spec(provider, spec_path, cache_dir, bucket, region)
+    _, api_spec = get_spec(provider, spec_path, cache_dir, bucket, region)
 
-    # load tensorflow models into TFS
-    if raw_api_spec["predictor"]["type"] == "tensorflow":
+    predictor_type = predictor_type_from_api_spec(api_spec)
+    multiple_processes = api_spec["predictor"]["processes_per_replica"] > 1
+    model_dir = os.environ["CORTEX_MODEL_DIR"]
+
+    # start side-reloading when processes_per_replica > 1
+    if multiple_processes and predictor_type not in [
+        TensorFlowPredictorType,
+        TensorFlowNeuronPredictorType,
+    ]:
+        cron = FileBasedModelsTreeUpdater(
+            interval=10,
+            api_spec=api_spec,
+            download_dir=model_dir,
+        )
+        cron.start()
+    elif multiple_processes and predictor_type == TensorFlowPredictorType:
+        tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
+        tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
+        cron = TFSModelLoader(
+            interval=10,
+            api_spec=api_spec,
+            address=f"{tf_serving_host}:{tf_serving_port}",
+            tfs_model_dir=model_dir,
+            download_dir=model_dir,
+        )
+        cron.start()
+    elif multiple_processes and predictor_type == TensorFlowNeuronPredictorType:
         load_tensorflow_serving_models()
 
     # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py

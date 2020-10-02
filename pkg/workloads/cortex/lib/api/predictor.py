@@ -35,8 +35,6 @@ from cortex.lib.client.onnx import ONNXClient
 
 # crons
 from cortex.lib.model import (
-    FileBasedModelsTreeUpdater,  # only when num workers > 1
-    TFSModelLoader,
     ModelsGC,
     ModelTreeUpdater,
     ModelPreloader,
@@ -166,30 +164,8 @@ class Predictor:
             refresh_logger()
 
         # initialize the crons
-        if self.multiple_processes and self.type not in [
-            TensorFlowPredictorType,
-            TensorFlowNeuronPredictorType,
-        ]:
-            self.crons = [
-                FileBasedModelsTreeUpdater(
-                    interval=10, api_spec=self.api_spec, download_dir=self.model_dir
-                )
-            ]
-        elif self.multiple_processes and self.type in [
-            TensorFlowPredictorType,
-            TensorFlowNeuronPredictorType,
-        ]:
-            self.crons = [
-                TFSModelLoader(
-                    interval=10,
-                    api_spec=self.api_spec,
-                    address=client.tf_serving_url,
-                    tfs_model_dir=self.model_dir,
-                    download_dir=self.model_dir,
-                )
-            ]
-        else:
-            self.crons = [
+        if not self.multiple_processes:
+            self.crons += [
                 ModelTreeUpdater(
                     interval=10,
                     api_spec=self.api_spec,
