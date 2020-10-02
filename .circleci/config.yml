@@ -49,6 +49,7 @@ jobs:
       - checkout
       - setup_remote_docker
       - install-go
+      - run: sudo apt update && sudo apt install parallel -y
       - run: sudo pip install awscli
       - run: make ci-build-images
       - run: make ci-build-cli
