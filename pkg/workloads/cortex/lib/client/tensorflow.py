@@ -87,12 +87,12 @@ class TensorFlowClient:
             dict: TensorFlow Serving response converted to a dictionary.
         """
 
-        if model_version not in ["highest", "latest"] or not model_version.isnumeric():
+        if model_version not in ["highest", "latest"] and not model_version.isnumeric():
             raise UserRuntimeException(
                 "model_version must be either a parse-able numeric value or 'highest' or 'latest'"
             )
 
-        if self._multiple_processes and model_version == "latest":
+        if not self._caching_enabled and model_version == "latest":
             raise UserRuntimeException(
                 "model_version must be either a parse-able numberic value or 'highest'",
                 "cannot be 'latest' when processes_per_replica > 0, caching is disabled and TensorFlowPredictor is used",

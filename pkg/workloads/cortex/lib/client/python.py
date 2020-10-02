@@ -50,9 +50,9 @@ class PythonClient:
             models: Holding all models into memory.
             model_dir: Where the models are saved on disk.
 
-            models_tree: A tree of the available models from upstream. Only when processes_per_replica = 1 and caching enabled.
+            models_tree: A tree of the available models from upstream.
             lock_dir: Where the resource locks are found. Only when processes_per_replica > 0 and caching disabled.
-            load_model_fn: Model loader function. Only when processes_per_replica = 1 and caching enabled.
+            load_model_fn: Model loader function.
         """
 
         self._api_spec = api_spec
@@ -90,7 +90,7 @@ class PythonClient:
             The model as loaded by load_model method.
         """
 
-        if model_version not in ["highest", "latest"] or not model_version.isnumeric():
+        if model_version not in ["highest", "latest"] and not model_version.isnumeric():
             raise UserRuntimeException(
                 "model_version must be either a parse-able numeric value or 'highest' or 'latest'"
             )
@@ -123,7 +123,7 @@ class PythonClient:
         if self._models_dir:
             if model_name is None:
                 raise UserRuntimeException("model_name was not specified")
-            if self._multiple_processes:
+            if not self._caching_enabled:
                 available_models = find_ondisk_models_with_lock(self._lock_dir)
                 if model_name not in available_models:
                     raise UserRuntimeException(
@@ -168,7 +168,8 @@ class PythonClient:
             model_id = model_name + "-" + model_version
 
             # grab shared access to versioned model
-            with LockedFile(model_id, "r", reader_lock=True) as f:
+            resource = os.path.join(self._lock_dir, model_id + ".txt")
+            with LockedFile(resource, "r", reader_lock=True) as f:
 
                 # check model status
                 file_status = f.read()
@@ -199,8 +200,7 @@ class PythonClient:
                                 current_upstream_ts,
                                 tags,
                             )
-                        else:
-                            model, _ = self._models.get_model(model_name, model_version, tag)
+                        model, _ = self._models.get_model(model_name, model_version, tag)
 
         if not self._multiple_processes and self._caching_enabled:
             # determine model version
