@@ -148,18 +148,13 @@ class Predictor:
         """
 
         # initialize predictor class
-        print("incercam cu impl")
         class_impl = self.class_impl(project_dir)
         try:
             print("si mai inainte")
             if self.type == PythonPredictorType:
-                print("inainte")
                 if _are_models_specified(None, self.api_spec):
-                    print("aici")
                     initialized_impl = class_impl(python_client=client, config=self.config)
-                    print("si aici")
                     client.set_load_method(initialized_impl.load_model)
-                    print("dar nu si aici")
                 else:
                     initialized_impl = class_impl(config=self.config)
             if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
@@ -245,27 +240,19 @@ class Predictor:
             refresh_logger()
 
         try:
-            print("1")
             classes = inspect.getmembers(impl, inspect.isclass)
-            print("2")
             predictor_class = None
             for class_df in classes:
                 if class_df[0] == target_class_name:
                     if predictor_class is not None:
                         raise UserException(
-                            "multiple definitions for {} class found; please check your imports and class definitions and ensure that there is only one Predictor class definition".format(
-                                target_class_name
-                            )
+                            f"multiple definitions for {target_class_name} class found; please check your imports and class definitions and ensure that there is only one Predictor class definition"
                         )
                     predictor_class = class_df[1]
-            print("3")
             if predictor_class is None:
-                raise UserException("{} class is not defined".format(target_class_name))
-            print("4")
-            _validate_impl(predictor_class, validations, self._api_spec)
-            print("a mers")
+                raise UserException(f"{target_class_name} class is not defined")
+            _validate_impl(predictor_class, validations, self.api_spec)
         except CortexException as e:
-            print(str(e))
             e.wrap("error in " + self.path)
             raise
         return predictor_class
@@ -309,7 +296,7 @@ class Predictor:
 
 def _are_models_specified(impl: Any, api_spec: dict) -> bool:
     """
-    Checks if models have been specified when the API spec (cortex.yaml).
+    Checks if models have been specified in the API spec (cortex.yaml).
 
     Args:
         impl: Dummy argument for the predictor validation.
@@ -371,28 +358,36 @@ ONNX_CLASS_VALIDATION = {
 
 def _validate_impl(impl, impl_req, api_spec):
     for optional_func_signature in impl_req.get("optional", []):
-        _validate_optional_fn_args(impl, optional_func_signature)
+        _validate_optional_fn_args(impl, optional_func_signature, api_spec)
 
     for required_func_signature in impl_req.get("required", []):
-        _validate_required_fn_args(impl, required_func_signature)
+        _validate_required_fn_args(impl, required_func_signature, api_spec)
 
     for required_func_signature in impl_req.get("conditional", []):
         if required_func_signature["condition"](impl, api_spec):
-            _validate_required_fn_args(impl, required_func_signature)
+            _validate_required_fn_args(impl, required_func_signature, api_spec)
 
 
-def _validate_optional_fn_args(impl, func_signature):
+def _validate_optional_fn_args(impl, func_signature, api_spec):
     if getattr(impl, func_signature["name"], None):
-        _validate_required_fn_args(impl, func_signature)
+        _validate_required_fn_args(impl, func_signature, api_spec)
 
 
-def _validate_required_fn_args(impl, func_signature):
+def _validate_required_fn_args(impl, func_signature, api_spec):
+    target_class_name = impl.__name__
+
     fn = getattr(impl, func_signature["name"], None)
     if not fn:
-        raise UserException(f'required function "{func_signature["name"]}" is not defined')
+        raise UserException(
+            f"class {target_class_name}",
+            f'required method "{func_signature["name"]}" is not defined',
+        )
 
     if not callable(fn):
-        raise UserException(f'"{func_signature["name"]}" is defined, but is not a function')
+        raise UserException(
+            f"class {target_class_name}",
+            f'"{func_signature["name"]}" is defined, but is not a method',
+        )
 
     required_args = func_signature.get("required_args", [])
     optional_args = func_signature.get("optional_args", [])
@@ -408,25 +403,33 @@ def _validate_required_fn_args(impl, func_signature):
     for arg_name in required_args:
         if arg_name not in argspec.args:
             raise UserException(
-                f'invalid signature for function "{fn_str}": "{arg_name}" is a required argument, but was not provided'
+                f"class {target_class_name}",
+                f'invalid signature for method "{fn_str}"',
+                f'"{arg_name}" is a required argument, but was not provided',
             )
 
         if arg_name == "self":
             if argspec.args[0] != "self":
                 raise UserException(
-                    f'invalid signature for function "{fn_str}": "self" must be the first argument'
+                    f"class {target_class_name}",
+                    f'invalid signature for method "{fn_str}"',
+                    f'"self" must be the first argument',
                 )
 
     seen_args = []
     for arg_name in argspec.args:
         if arg_name not in required_args and arg_name not in optional_args:
             raise UserException(
-                f'invalid signature for function "{fn_str}": "{arg_name}" is not a supported argument'
+                f"class {target_class_name}",
+                f'invalid signature for method "{fn_str}"',
+                f'"{arg_name}" is not a supported argument',
             )
 
         if arg_name in seen_args:
             raise UserException(
-                f'invalid signature for function "{fn_str}": "{arg_name}" is duplicated'
+                f"class {target_class_name}",
+                f'invalid signature for method "{fn_str}"',
+                f'"{arg_name}" is duplicated',
             )
 
         seen_args.append(arg_name)
