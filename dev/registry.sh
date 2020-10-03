@@ -60,62 +60,31 @@ function ecr_login() {
 }
 
 function create_registry() {
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-cpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-cpu-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-gpu-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-inf --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-inf-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-cpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-inf --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-predictor --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-predictor-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-cpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-cpu-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-gpu-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/downloader --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/inferentia --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/neuron-rtd --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/nvidia --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/fluentd --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/statsd --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-proxy --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-pilot --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-citadel --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-galley --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/request-monitor --region=$REGISTRY_REGION || true
+  for image in "${all_images[@]}"; do
+    aws ecr create-repository --repository-name=cortexlabs/$image --region=$REGISTRY_REGION || true
+  done
 }
 
 ### HELPERS ###
 
 function build() {
-  local dir=$1
-  local image=$2
-  local tag=$3
+  local image=$1
+  local tag=$2
+  local dir="${ROOT}/images/${image/-slim}"
+
+  build_args=""
+  if [[ "$image" == *"-slim"* ]]; then
+    build_args="--build-arg SLIM=true"
+  fi
 
   blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $REGISTRY_URL/cortexlabs/$image:$tag "${@:4}"
+  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $REGISTRY_URL/cortexlabs/$image:$tag $build_args
   green_echo "Built $image:$tag\n"
 }
 
-function build_base() {
-  local dir=$1
-  local image=$2
-
-  blue_echo "Building $image..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:latest
-  green_echo "Built $image\n"
-}
-
 function cache_builder() {
-  local dir=$1
-  local image=$2
+  local image=$1
+  local dir="${ROOT}/images/${image/-slim}"
 
   blue_echo "Building $image-builder..."
   docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:latest --target builder
@@ -138,20 +107,13 @@ function push() {
 }
 
 function build_and_push() {
-  local dir=$1
-  local image=$2
-  local tag=$3
-  local slimmable=${4:-""}
+  local image=$1
+  local tag=$2
 
-  set -euo pipefail
+  set -euo pipefail  # necessary since this is called in a new shell by parallel
 
-  build $dir $image $tag
+  build $image $tag
   push $image $tag
-
-  if [ "$flag_include_slim" == "true" ] && [ "$slimmable" == "--include-slim" ]; then
-    build $dir "${image}-slim" $tag --build-arg SLIM=true
-    push ${image}-slim $tag
-  fi
 }
 
 function cleanup_local() {
@@ -192,7 +154,7 @@ elif [ "$cmd" = "create" ]; then
   create_registry
 
 elif [ "$cmd" = "update-manager-local" ]; then
-  build $ROOT/images/manager manager latest
+  build manager latest
 
 # usage: registry.sh update all|dev|api [--include-slim] [--skip-push]
 # if parallel utility is installed, the docker build commands will be parallelized
@@ -200,31 +162,26 @@ elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
   if [ "$sub_cmd" == "all" ]; then
-    cache_builder $ROOT/images/operator operator
-    build_and_push $ROOT/images/operator operator latest
-    images_to_build+=( "${registry_all_images[@]}" )
+    cache_builder operator
+    images_to_build+=( "${non_dev_images[@]}" )
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    cache_builder $ROOT/images/request-monitor request-monitor
-    build_and_push $ROOT/images/request-monitor request-monitor latest
-    images_to_build+=( "${registry_dev_images[@]}" )
+    cache_builder request-monitor
+    images_to_build+=( "${dev_images[@]}" )
   fi
 
-  images_to_build+=( "${registry_base_images[@]}" )
+  images_to_build+=( "${user_facing_images[@]}" )
+
+  if [ "$flag_include_slim" == "true" ]; then
+    images_to_build+=( "${user_facing_slim_images[@]}" )
+  fi
 
   if command -v parallel &> /dev/null ; then
-    images=$(join_by "," "${images_to_build[@]}")
-    flag_include_slim=$flag_include_slim flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --halt now,fail=1 --eta -d"," --colsep=" " build_and_push "$ROOT/images/{1} {1} latest {2}" ::: "${images[@]}"
+    flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 build_and_push "{} latest" ::: "${images_to_build[@]}"
   else
-    for args in "${images_to_build[@]}"; do
-      image=$(echo $args | cut -d " " -f1)
-      if [ "$(echo $args | wc -w)" == "1" ]; then
-        slimmable=""
-      else
-        slimmable=$(echo $args | cut -d " " -f2)
-      fi
-      build_and_push $ROOT/images/$image $image latest $slimmable
+    for image in "${images_to_build[@]}"; do
+      build_and_push $image latest
     done
   fi
 

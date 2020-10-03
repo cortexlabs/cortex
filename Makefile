@@ -144,6 +144,7 @@ tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@python3 -m pip install black
+	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; else sudo apt-get install -y parallel; fi
 
 format:
 	@./dev/format.sh
