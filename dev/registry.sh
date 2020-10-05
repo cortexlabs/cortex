@@ -73,7 +73,7 @@ function build() {
   local dir="${ROOT}/images/${image/-slim}"
 
   build_args=""
-  if [[ "$image" == *"-slim"* ]]; then
+  if [[ "$image" == *"-slim" ]]; then
     build_args="--build-arg SLIM=true"
   fi
 

@@ -29,7 +29,7 @@ if [ "$image" == "inferentia" ]; then
 fi
 
 build_args=""
-if [[ "$image" == *"-slim"* ]]; then
+if [[ "$image" == *"-slim" ]]; then
   build_args="--build-arg SLIM=true"
 fi
 
