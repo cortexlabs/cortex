@@ -288,8 +288,6 @@ class ModelsHolder:
             "not-available" and 0 for the upstream timestamp when the model is not available.
         """
         model_id = f"{model_name}-{model_version}"
-        if model_id in self._models and self._models[model_id]["model"] is not None:
-            return True, self._models[model_id]["upstream_timestamp"]
         if model_id in self._models:
             if self._models[model_id]["model"] is not None:
                 return "in-memory", self._models[model_id]["upstream_timestamp"]
@@ -425,7 +423,36 @@ class ModelsHolder:
         Removes a model from memory and disk if it exists.
         """
         model_id = f"{model_name}-{model_version}"
-        self._remove_model(model_id, True, True)
+        self.remove_model_by_id(model_id, True, True)
+
+    def remove_model_by_id(
+        self, model_id: str, mem: bool, disk: bool, del_reference: bool = False
+    ) -> None:
+        """
+        Remove a model from this object and/or from disk.
+
+        Args:
+            model_id: The model ID to remove.
+            mem: Whether to remove the model from memory or not.
+            disk: Whether to remove the model from disk or not.
+            del_reference: Whether to remove the model reference or not. Don't touch this unless you know what you do.
+        """
+        if mem:
+            self._models[model_id]["model"] = None
+
+        if disk:
+            disk_path = self._models[model_id]["disk_path"]
+            shutil.rmtree(disk_path)
+            model_top_dir = os.path.dirname(disk_path)
+            if os.path.isdir(model_top_dir) and len(os.listdir(model_top_dir)) == 0:
+                try:
+                    shutil.rmtree(model_top_dir)
+                except FileNotFoundError:
+                    pass
+
+        if disk or del_reference:
+            del self._models[model_id]
+            del self._timestamps[model_id]
 
     #################
 
@@ -463,9 +490,9 @@ class ModelsHolder:
 
         if not dry_run:
             for model_id in stale_mem_model_ids:
-                self._remove_model(model_id, mem=True, disk=False)
+                self.remove_model_by_id(model_id, mem=True, disk=False)
             for model_id in stale_disk_model_ids:
-                self._remove_model(model_id, mem=False, disk=True)
+                self.remove_model_by_id(model_id, mem=False, disk=True)
 
         if len(stale_mem_model_ids) > 0 or len(stale_disk_model_ids) > 0:
             collected = True
@@ -500,30 +527,6 @@ class ModelsHolder:
                 model_ids.append(model_id)
 
         return model_ids
-
-    def _remove_model(self, model_id: str, mem: bool, disk: bool) -> None:
-        """
-        Remove a model from this object and/or from disk.
-
-        Args:
-            model_id: The model ID to remove.
-            mem: Whether to remove the model from memory or not.
-            disk: Whether to remove the model from disk or not.
-        """
-        if mem:
-            self._models[model_id]["model"] = None
-        if disk:
-            disk_path = self._models[model_id]["disk_path"]
-            shutil.rmtree(disk_path)
-            model_top_dir = os.path.dirname(disk_path)
-            if os.path.isdir(model_top_dir) and len(os.listdir(model_top_dir)) == 0:
-                try:
-                    shutil.rmtree(model_top_dir)
-                except FileNotFoundError:
-                    pass
-
-            del self._models[model_id]
-            del self._timestamps[model_id]
 
     #################
 
@@ -577,8 +580,8 @@ class LockedModel:
         self,
         models: ModelsHolder,
         mode: str,
-        model_name: str,
-        model_version: str,
+        model_name: str = "",
+        model_version: str = "",
         model_id: str = "",
     ):
         """

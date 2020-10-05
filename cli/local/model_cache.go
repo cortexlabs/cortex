@@ -58,7 +58,12 @@ func CacheModels(apiSpec *spec.API, onlyLocalModels bool, awsClient *aws.Client)
 		if wasAlreadyCached {
 			modelsThatWereCachedAlready++
 		}
-		localModelCache.TargetPath = apiSpec.CuratedModelResources[i].Name
+		if len(model.Versions) == 0 {
+			localModelCache.TargetPath = filepath.Join(apiSpec.CuratedModelResources[i].Name, "1")
+		} else {
+			localModelCache.TargetPath = apiSpec.CuratedModelResources[i].Name
+		}
+		
 		localModelCaches = append(localModelCaches, localModelCache)
 	}
 	apiSpec.LocalModelCaches = localModelCaches

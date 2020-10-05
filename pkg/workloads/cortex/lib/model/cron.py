@@ -52,6 +52,56 @@ from cortex.lib.model import (
 )
 
 
+class AbstractLoopingThread(td.Thread):
+    """
+    Abstract class of the td.Thread class.
+
+    Takes a function and keeps calling it in a loop every certain interval.
+    """
+
+    def __init__(self, interval: int, runnable: Callable[[], None]):
+        td.Thread.__init__(self, daemon=True)
+
+        self._interval = interval
+        self._runnable = runnable
+
+        if not callable(self._runnable):
+            raise ValueError("runnable parameter must be a callable function")
+
+        self._event_stopper = td.Event()
+        self._stopped = False
+
+    def run(self):
+        """
+        td.Thread-specific method.
+        """
+
+        while not self._event_stopper.is_set():
+            self._runnable()
+            time.sleep(self._interval)
+        self._stopped = True
+
+    def stop(self, blocking: bool = False):
+        """
+        Stop the thread.
+
+        Args:
+            blocking: Whether to wait until the thread is stopped or not.
+        """
+
+        self._event_stopper.set()
+        if blocking:
+            self.join()
+
+    def join(self):
+        """
+        Block until the thread finishes.
+        """
+
+        while not self._stopped:
+            time.sleep(0.001)
+
+
 def find_all_s3_models(
     is_dir_used: bool,
     models_dir: str,
@@ -358,6 +408,8 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     f.write("not available")
             shutil.rmtree(os.path.join(self._download_dir, model_name))
 
+        print("cron FileBasedModelsTreeUpdater heartbeat")
+
     def _refresh_model(
         self,
         idx: int,
@@ -528,12 +580,61 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     f.write("available " + str(model_ts))
 
 
+class FileBasedModelsGC(AbstractLoopingThread):
+    """
+    GC for models that no longer exist on disk. To be used with FileBasedModelsTreeUpdater.
+    """
+
+    def __init__(
+        self,
+        interval: int,
+        models: ModelsHolder,
+        download_dir: str,
+        lock_dir: str = "/run/cron",
+    ):
+        """
+        Args:
+            interval: How often to run the GC. Measured in seconds.
+            download_dir: Path to where the models are stored.
+            lock_dir: Path to where the resource locks are stored.
+        """
+        AbstractLoopingThread.__init__(self, interval, self._run_gc)
+
+        self.logger = logger()
+
+        self._models = models
+        self._download_dir = download_dir
+        self._lock_dir = lock_dir
+
+    def _run_gc(self):
+        on_disk_model_ids = find_ondisk_model_ids_with_lock(self._lock_dir)
+        in_memory_model_ids = self._models.get_model_ids()
+
+        print(
+            "cron FileBasedModelsGC heartbeat",
+            "|",
+            "present model IDS",
+            self._models.get_model_ids(),
+        )
+
+        for in_memory_id in in_memory_model_ids:
+            if in_memory_id not in on_disk_model_ids:
+                with LockedModel(self._models, "w", model_id=in_memory_id):
+                    if self._models.has_model_id(in_memory_id)[0] == "in-memory":
+                        model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
+                        self.logger.info(
+                            f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk (in process {mp.current_process().pid} and thread {td.get_ident()}"
+                        )
+                        self._models.remove_model_by_id(
+                            in_memory_id, mem=True, disk=False, del_reference=True
+                        )
+
+
 def find_ondisk_models_with_lock(lock_dir: str) -> Dict[str, List[str]]:
     """
     Returns all available models from the disk.
-    To be used in conjunction with FileBasedModelsTreeUpdater.
+    To be used in conjunction with FileBasedModelsTreeUpdater/FileBasedModelsGC.
 
-    This function should never be used for determining whether a model has to be loaded or not.
     Can be used for Python/TensorFlow/ONNX clients.
 
     Args:
@@ -550,10 +651,11 @@ def find_ondisk_models_with_lock(lock_dir: str) -> Dict[str, List[str]]:
     models = {}
 
     for locked_file in get_locked_files(lock_dir):
-        _model_name, _model_version = os.path.splitext(locked_file)[0].rsplit("-", maxsplit=1)
         with LockedFile(os.path.join(lock_dir, locked_file), "r", reader_lock=True) as f:
             status = f.read()
+
         if status.startswith("available"):
+            _model_name, _model_version = os.path.splitext(locked_file)[0].rsplit("-", maxsplit=1)
             if _model_name not in models:
                 models[_model_name] = [_model_version]
             else:
@@ -562,11 +664,37 @@ def find_ondisk_models_with_lock(lock_dir: str) -> Dict[str, List[str]]:
     return models
 
 
+def find_ondisk_model_ids_with_lock(lock_dir: str) -> Dict[str, List[str]]:
+    """
+    Returns all available model IDs from the disk.
+    To be used in conjunction with FileBasedModelsTreeUpdater/FileBasedModelsGC.
+
+    Can be used for Python/TensorFlow/ONNX clients.
+
+    Args:
+        lock_dir: Path to where the resource locks are stored.
+
+    Returns:
+        A list with all model IDs present on disk.
+    """
+    model_ids = []
+
+    for locked_file in get_locked_files(lock_dir):
+        with LockedFile(os.path.join(lock_dir, locked_file), "r", reader_lock=True) as f:
+            status = f.read()
+
+        if status.startswith("available"):
+            model_id = os.path.splitext(locked_file)[0]
+            model_ids.append(model_id)
+
+    return model_ids
+
+
 def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], List[int]]:
     """
     Returns all available versions/timestamps of a model from the disk.
+    To be used in conjunction with FileBasedModelsTreeUpdater/FileBasedModelsGC.
 
-    This function should never be used for determining whether a model has to be loaded or not.
     Can be used for Python/TensorFlow/ONNX clients.
 
     Args:
@@ -1085,56 +1213,6 @@ def find_ondisk_models(models_dir: str) -> Dict[str, List[str]]:
         models[model_name] = model_versions
 
     return models
-
-
-class AbstractLoopingThread(td.Thread):
-    """
-    Abstract class of the td.Thread class.
-
-    Takes a function and keeps calling it in a loop every certain interval.
-    """
-
-    def __init__(self, interval: int, runnable: Callable[[], None]):
-        td.Thread.__init__(self, daemon=True)
-
-        self._interval = interval
-        self._runnable = runnable
-
-        if not callable(self._runnable):
-            raise ValueError("runnable parameter must be a callable function")
-
-        self._event_stopper = td.Event()
-        self._stopped = False
-
-    def run(self):
-        """
-        td.Thread-specific method.
-        """
-
-        while not self._event_stopper.is_set():
-            self._runnable()
-            time.sleep(self._interval)
-        self._stopped = True
-
-    def stop(self, blocking: bool = False):
-        """
-        Stop the thread.
-
-        Args:
-            blocking: Whether to wait until the thread is stopped or not.
-        """
-
-        self._event_stopper.set()
-        if blocking:
-            self.join()
-
-    def join(self):
-        """
-        Block until the thread finishes.
-        """
-
-        while not self._stopped:
-            time.sleep(0.001)
 
 
 class ModelsGC(AbstractLoopingThread):

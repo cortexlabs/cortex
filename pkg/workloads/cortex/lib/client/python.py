@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+import threading as td
+import multiprocessing as mp
 from typing import Any, Optional, Callable
 
 from cortex.lib.log import cx_logger as logger
@@ -193,13 +195,29 @@ class PythonClient:
                 if update_model:
                     with LockedModel(self._models, "w", model_name, model_version):
                         status, _ = self._models.has_model(model_name, model_version)
-                        if status == "not-available":
-                            self._models.load_model(
-                                model_name,
-                                model_version,
-                                current_upstream_ts,
-                                tags,
-                            )
+                        if status == "not-available" or (
+                            status == "in-memory" and upstream_ts < current_upstream_ts
+                        ):
+                            if status == "not-available":
+                                logger().info(
+                                    f"loading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})"
+                                )
+                            else:
+                                logger().info(
+                                    f"reloading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})"
+                                )
+                            try:
+                                self._models.load_model(
+                                    model_name,
+                                    model_version,
+                                    current_upstream_ts,
+                                    tags,
+                                )
+                            except Exception as e:
+                                raise UserRuntimeException(
+                                    f"failed (re-)loading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})",
+                                    str(e),
+                                )
                         model, _ = self._models.get_model(model_name, model_version, tag)
 
         if not self._multiple_processes and self._caching_enabled:

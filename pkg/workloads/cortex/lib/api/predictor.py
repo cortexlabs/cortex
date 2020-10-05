@@ -35,6 +35,7 @@ from cortex.lib.client.onnx import ONNXClient
 
 # crons
 from cortex.lib.model import (
+    FileBasedModelsGC,
     ModelsGC,
     ModelTreeUpdater,
     ModelPreloader,
@@ -124,6 +125,11 @@ class Predictor:
 
         if self.type == PythonPredictorType:
             client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
+            if not self.caching_enabled:
+                cron = FileBasedModelsGC(
+                    interval=10, models=self.models, download_dir=self.model_dir
+                )
+                cron.start()
 
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
@@ -163,9 +169,11 @@ class Predictor:
         finally:
             refresh_logger()
 
+        self.crons = []
+
         # initialize the crons
         if not self.multiple_processes and self.caching_enabled:
-            self.crons = [
+            self.crons += [
                 ModelTreeUpdater(
                     interval=10,
                     api_spec=self.api_spec,
@@ -185,8 +193,14 @@ class Predictor:
                     tree=self.models_tree,
                 ),
             ]
-            for cron in self.crons:
-                cron.start()
+
+        if not self.caching_enabled and self.type in [PythonPredictorType, ONNXPredictorType]:
+            self.crons += [
+                FileBasedModelsGC(interval=10, models=self.models, download_dir=self.model_dir)
+            ]
+
+        for cron in self.crons:
+            cron.start()
 
         return initialized_impl
 

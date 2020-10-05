@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+import threading as td
+import multiprocessing as mp
 from typing import Any, Optional
 
 try:
@@ -138,13 +140,22 @@ class ONNXClient:
         Run the inference on model model_name of version model_version.
         """
 
-        model = self._get_model(model_name, model_version)
-        if model is None:
+        try:
+            model = self._get_model(model_name, model_version)
+            if model is None:
+                raise UserRuntimeException(
+                    f"model {model_name} of version {model_version} wasn't found"
+                )
+        except Exception as e:
+            raise
+
+        try:
+            input_dict = convert_to_onnx_input(model_input, model["signatures"], model_name)
+            return model["session"].run([], input_dict)
+        except Exception as e:
             raise UserRuntimeException(
-                f"model {model_name} of version {model_version} wasn't found"
+                f"failed inference with model {model_name} of version {model_version}", str(e)
             )
-        input_dict = convert_to_onnx_input(model_input, model["signatures"], model_name)
-        return model["session"].run([], input_dict)
 
     def _get_model(self, model_name: str, model_version: str) -> Any:
         """
@@ -202,13 +213,29 @@ class ONNXClient:
                 if update_model:
                     with LockedModel(self._models, "w", model_name, model_version):
                         status, _ = self._models.has_model(model_name, model_version)
-                        if status == "not-available":
-                            self._models.load_model(
-                                model_name,
-                                model_version,
-                                current_upstream_ts,
-                                tags,
-                            )
+                        if status == "not-available" or (
+                            status == "in-memory" and upstream_ts < current_upstream_ts
+                        ):
+                            if status == "not-available":
+                                logger().info(
+                                    f"loading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})"
+                                )
+                            else:
+                                logger().info(
+                                    f"reloading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})"
+                                )
+                            try:
+                                self._models.load_model(
+                                    model_name,
+                                    model_version,
+                                    current_upstream_ts,
+                                    tags,
+                                )
+                            except Exception as e:
+                                raise UserRuntimeException(
+                                    f"failed (re-)loading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})",
+                                    str(e),
+                                )
                         model, _ = self._models.get_model(model_name, model_version, tag)
 
         if not self._multiple_processes and self._caching_enabled:

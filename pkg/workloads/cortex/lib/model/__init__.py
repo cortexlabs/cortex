@@ -23,8 +23,10 @@ from cortex.lib.model.validation import (
 )
 from cortex.lib.model.cron import (
     FileBasedModelsTreeUpdater,
-    find_ondisk_model_info,
+    FileBasedModelsGC,
     find_ondisk_models_with_lock,
+    find_ondisk_model_ids_with_lock,
+    find_ondisk_model_info,
     TFSModelLoader,
     find_ondisk_models,
     ModelsGC,
