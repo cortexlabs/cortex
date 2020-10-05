@@ -193,7 +193,7 @@ make cli  # the binary will be placed in <path/to/cortex>/bin/cortex
 cortex-dev version  # should show "master"
 ```
 
-If you wish to parallelize the build process, the `parallel` GNU utility needs to be installed. Then, set the `NUM_BUILD_PROCS` environment variable to the desired number of parallel jobs. For ease of use, export `NUM_BUILD_PROCS` in `dev/config/build.sh`.
+If you wish to parallelize the build process, the `parallel` GNU utility needs to be installed. Once installed, set the `NUM_BUILD_PROCS` environment variable to the desired number of parallel jobs. For ease of use, export `NUM_BUILD_PROCS` in `dev/config/build.sh`.
 
 ### Cortex cluster
 
