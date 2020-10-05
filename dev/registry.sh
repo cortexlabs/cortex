@@ -178,7 +178,7 @@ elif [ "$cmd" = "update" ]; then
   fi
 
   if command -v parallel &> /dev/null ; then
-    flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 build_and_push "{} latest" ::: "${images_to_build[@]}"
+    flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta build_and_push "{} latest" ::: "${images_to_build[@]}"
   else
     for image in "${images_to_build[@]}"; do
       build_and_push $image latest
