@@ -24,7 +24,7 @@ source $ROOT/dev/util.sh
 
 # if parallel utility is installed, the docker build commands will be parallelized
 if command -v parallel &> /dev/null ; then
-  num_procs="${NUM_BUILD_PROCS:=-1}"
+  num_procs="${NUM_BUILD_PROCS:=1}"
   ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $num_procs $ROOT/build/build-image.sh {} ::: "${all_images[@]}"
 else
   for image in "${all_images[@]}"; do
