@@ -144,6 +144,7 @@ tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@python3 -m pip install black
+	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; elif [[ "$$OSTYPE" == "linux"* ]]; then sudo apt-get install -y parallel; else echo "your operating system is not supported"; fi
 
 format:
 	@./dev/format.sh
@@ -173,56 +174,10 @@ test-examples:
 ###############
 
 ci-build-images:
-	@./build/build-image.sh images/python-predictor-cpu python-predictor-cpu --include-slim
-	@./build/build-image.sh images/python-predictor-gpu python-predictor-gpu --include-slim
-	@./build/build-image.sh images/python-predictor-inf python-predictor-inf --include-slim
-	@./build/build-image.sh images/tensorflow-serving-cpu tensorflow-serving-cpu
-	@./build/build-image.sh images/tensorflow-serving-gpu tensorflow-serving-gpu
-	@./build/build-image.sh images/tensorflow-serving-inf tensorflow-serving-inf
-	@./build/build-image.sh images/tensorflow-predictor tensorflow-predictor --include-slim
-	@./build/build-image.sh images/onnx-predictor-cpu onnx-predictor-cpu --include-slim
-	@./build/build-image.sh images/onnx-predictor-gpu onnx-predictor-gpu --include-slim
-	@./build/build-image.sh images/operator operator
-	@./build/build-image.sh images/manager manager
-	@./build/build-image.sh images/downloader downloader
-	@./build/build-image.sh images/request-monitor request-monitor
-	@./build/build-image.sh images/cluster-autoscaler cluster-autoscaler
-	@./build/build-image.sh images/metrics-server metrics-server
-	@./build/build-image.sh images/inferentia inferentia
-	@./build/build-image.sh images/neuron-rtd neuron-rtd
-	@./build/build-image.sh images/nvidia nvidia
-	@./build/build-image.sh images/fluentd fluentd
-	@./build/build-image.sh images/statsd statsd
-	@./build/build-image.sh images/istio-proxy istio-proxy
-	@./build/build-image.sh images/istio-pilot istio-pilot
-	@./build/build-image.sh images/istio-citadel istio-citadel
-	@./build/build-image.sh images/istio-galley istio-galley
+	@./build/build-images.sh
 
 ci-push-images:
-	@./build/push-image.sh python-predictor-cpu --include-slim
-	@./build/push-image.sh python-predictor-gpu --include-slim
-	@./build/push-image.sh python-predictor-inf --include-slim
-	@./build/push-image.sh tensorflow-serving-cpu
-	@./build/push-image.sh tensorflow-serving-gpu
-	@./build/push-image.sh tensorflow-serving-inf
-	@./build/push-image.sh tensorflow-predictor --include-slim
-	@./build/push-image.sh onnx-predictor-cpu --include-slim
-	@./build/push-image.sh onnx-predictor-gpu --include-slim
-	@./build/push-image.sh operator
-	@./build/push-image.sh manager
-	@./build/push-image.sh downloader
-	@./build/push-image.sh request-monitor
-	@./build/push-image.sh cluster-autoscaler
-	@./build/push-image.sh metrics-server
-	@./build/push-image.sh inferentia
-	@./build/push-image.sh neuron-rtd
-	@./build/push-image.sh nvidia
-	@./build/push-image.sh fluentd
-	@./build/push-image.sh statsd
-	@./build/push-image.sh istio-proxy
-	@./build/push-image.sh istio-pilot
-	@./build/push-image.sh istio-citadel
-	@./build/push-image.sh istio-galley
+	@./build/push-images.sh
 
 ci-build-cli:
 	@./build/cli.sh
