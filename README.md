@@ -28,7 +28,7 @@ Cortex makes it simple to deploy machine learning models to production.
 * **Run on your AWS account.** Run Cortex on your AWS account (GCP coming soon), maintaining control over resource utilization and data access.
 
 <br>
-<p align="center"> <img src="https://cortex-gifs.s3-us-west-2.amazonaws.com/final_optimized.gif" width="800"> </p>
+<p align="center"> <img src="https://cortex-gifs.s3-us-west-2.amazonaws.com/v2_optimized.gif" width="800"> </p>
 <br>
 
 # Get started
