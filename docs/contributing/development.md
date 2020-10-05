@@ -193,6 +193,8 @@ make cli  # the binary will be placed in <path/to/cortex>/bin/cortex
 cortex-dev version  # should show "master"
 ```
 
+If you wish to parallelize the build process, the `parallel` GNU utility needs to be installed. By default, the number of parallel jobs is set to the number of cores the devbox has. To override that, set the `NUM_BUILD_PROCS` environment variable to the desired number of parallel jobs.
+
 ### Cortex cluster
 
 Start Cortex:
