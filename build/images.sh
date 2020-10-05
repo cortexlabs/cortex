@@ -14,39 +14,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# images to build/push for development and CI commands
 
 set -euo pipefail
 
-# images to build when running a registry command
-registry_all_images=(
-"tensorflow-serving-cpu"
-"tensorflow-serving-gpu"
-"tensorflow-serving-inf"
-"cluster-autoscaler"
-"metrics-server"
-"inferentia"
-"neuron-rtd"
-"nvidia"
-"fluentd"
-"statsd"
-"istio-proxy"
-"istio-pilot"
-"istio-citadel"
-"istio-galley"
+user_facing_images=(
+  "python-predictor-cpu"
+  "python-predictor-gpu"
+  "python-predictor-inf"
+  "tensorflow-predictor"
+  "onnx-predictor-cpu"
+  "onnx-predictor-gpu"
 )
 
-# images to build when running a registry command
-registry_dev_images=( "manager" "downloader" )
-
-# images to build when running a registry command
-registry_base_images=(
-"python-predictor-cpu --include-slim"
-"python-predictor-gpu --include-slim"
-"python-predictor-inf --include-slim"
-"tensorflow-predictor --include-slim"
-"onnx-predictor-cpu --include-slim"
-"onnx-predictor-gpu --include-slim"
+user_facing_slim_images=(
+  "python-predictor-cpu-slim"
+  "python-predictor-gpu-slim"
+  "python-predictor-inf-slim"
+  "tensorflow-predictor-slim"
+  "onnx-predictor-cpu-slim"
+  "onnx-predictor-gpu-slim"
 )
 
-# images to build and push for the CI
-ci_images=( "${registry_all_images[@]}" "${registry_dev_images[@]}" "${registry_base_images[@]}" )
+dev_images=(
+  "manager"
+  "request-monitor"
+  "downloader"
+)
+
+non_dev_images=(
+  "operator"
+  "tensorflow-serving-cpu"
+  "tensorflow-serving-gpu"
+  "tensorflow-serving-inf"
+  "cluster-autoscaler"
+  "metrics-server"
+  "inferentia"
+  "neuron-rtd"
+  "nvidia"
+  "fluentd"
+  "statsd"
+  "istio-proxy"
+  "istio-pilot"
+  "istio-citadel"
+  "istio-galley"
+)
+
+all_images=( "${user_facing_images[@]}" "${user_facing_slim_images[@]}" "${dev_images[@]}" "${non_dev_images[@]}" )

@@ -35,15 +35,13 @@ function join_by() {
   shift
 
   local F=0
-  for x in "$@"
-  do
-      if [[ F -eq 1 ]]
-      then
-          echo -n "$SEPARATOR"
-      else
-          F=1
-      fi
-      echo -n "$x"
+  for x in "$@"; do
+    if [[ F -eq 1 ]]; then
+      echo -n "$SEPARATOR"
+    else
+      F=1
+    fi
+    echo -n "$x"
   done
   echo
 }

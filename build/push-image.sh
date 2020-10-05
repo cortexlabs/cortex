@@ -19,34 +19,14 @@ set -euo pipefail
 
 CORTEX_VERSION=master
 
-slim="false"
-while [[ $# -gt 0 ]]; do
-  key="$1"
-  case $key in
-    --include-slim)
-    slim="true"
-    shift
-    ;;
-    *)
-    positional_args+=("$1")
-    shift
-    ;;
-  esac
-done
-set -- "${positional_args[@]}"
-
 image=$1
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-docker push cortexlabs/${image}:${CORTEX_VERSION}
-
-if [ "$slim" == "true" ]; then
-  if [ "$image" == "python-predictor-gpu" ]; then
-    for cuda in 10.0 10.1 10.2 11.0; do
-      docker push cortexlabs/${image}-slim:${CORTEX_VERSION}-cuda${cuda}
-    done
-  else
-    docker push cortexlabs/${image}-slim:${CORTEX_VERSION}
-  fi
+if [ "$image" == "python-predictor-gpu-slim" ]; then
+  for cuda in 10.0 10.1 10.2 11.0; do
+    docker push cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda}
+  done
+else
+  docker push cortexlabs/${image}:${CORTEX_VERSION}
 fi
