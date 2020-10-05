@@ -5,11 +5,12 @@
 
 # Model serving for developers
 
-Cortex makes it simple to deploy machine learning models to production.
-
 <img src="https://uploads-ssl.webflow.com/5f6030ed637ab64288922cff/5f6ba3b8a56985d25e9dfe8b_deploy-cli-p-1080.png" width="537" height="292">
 
 <br>
+
+
+Cortex makes it simple to deploy machine learning models to production.
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
@@ -17,7 +18,7 @@ Cortex makes it simple to deploy machine learning models to production.
 [install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 
-### What you can do with Cortex
+# What you can do with Cortex
 
 * **Write APIs in Python.** Define any real-time or batch inference pipeline as simple Python APIs, regardless of framework or hardware.
 * **Configure infrastructure in YAML.** Define autoscaling behavior, monitoring, compute resources, update strategies, and more—or use Cortex's defaults.
@@ -26,7 +27,8 @@ Cortex makes it simple to deploy machine learning models to production.
 * **Integrate with your stack.** Integrate Cortex with any data science platform and CI/CD tooling, without changing your workflow.
 * **Run on your AWS account.** Run Cortex on your AWS account (GCP coming soon), maintaining control over resource utilization and data access.
 
-![Demo](https://cortex-gifs.s3-us-west-2.amazonaws.com/final_optimized.gif)
+<p align="center"> <img src="https://cortex-gifs.s3-us-west-2.amazonaws.com/final_optimized.gif" width="800"> </p>
+<br>
 
 # Get started
 
