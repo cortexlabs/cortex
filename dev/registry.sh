@@ -177,9 +177,8 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${user_facing_slim_images[@]}" )
   fi
 
-  if command -v parallel &> /dev/null ; then
-    num_procs="${NUM_BUILD_PROCS:=1}"
-    flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $num_procs build_and_push "{} latest" ::: "${images_to_build[@]}"
+  if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
+    flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{} latest" ::: "${images_to_build[@]}"
   else
     for image in "${images_to_build[@]}"; do
       build_and_push $image latest
