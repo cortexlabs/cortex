@@ -1,0 +1,153 @@
+# Copyright 2020 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: minimal
+  components:
+    cni:
+      enabled: false
+    ingressGateways:
+      - name: istio-ingressgateway
+        enabled: false
+      - name: ingressgateway-operator
+        enabled: true
+        namespace: istio-system
+        label:
+          app: operator-istio-gateway
+          istio: ingressgateway-operator
+        k8s:
+          serviceAnnotations:
+            service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+            service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+            service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "{{ env['CORTEX_OPERATOR_LOAD_BALANCER_TAGS'] }}"
+            {% if config.get('operator_load_balancer_scheme') == 'internal' %}
+            service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+            {% endif %}
+          service:
+            type: LoadBalancer
+            externalTrafficPolicy: Local # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
+            selector:
+              app: operator-istio-gateway
+              istio: ingressgateway-operator
+            ports:
+              - name: status-port  # should be first in the list, see https://github.com/istio/istio/issues/12503
+                port: 15021
+                targetPort: 15021
+              - name: http2
+                port: 80
+                targetPort: 80
+              - name: https
+                port: 443
+                targetPort: 443
+              - name: tls  # used for SNI
+                port: 15443
+                targetPort: 15443
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          replicaCount: 1
+          hpaSpec:
+            minReplicas: 1
+            maxReplicas: 5
+            metrics:
+              - type: Resource
+                resource:
+                  name: cpu
+                  targetAverageUtilization: 80
+            scaleTargetRef:
+              apiVersion: apps/v1
+              kind: Deployment
+              name: ingressgateway-operator
+      - name: ingressgateway-apis
+        enabled: true
+        namespace: istio-system
+        label:
+          app: apis-istio-gateway
+          istio: ingressgateway-apis
+        k8s:
+          serviceAnnotations:
+            service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+            service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "{{ env['CORTEX_API_LOAD_BALANCER_TAGS'] }}"
+            service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+            service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"  # "https" is the name of the https port below
+            {% if config.get('api_load_balancer_scheme') == 'internal' %}
+            service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+            {% endif %}
+            {% if config.get('ssl_certificate_arn', '') != '' %}
+            service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "{{ config['ssl_certificate_arn'] }}"
+            {% endif %}
+          service:
+            type: LoadBalancer
+            externalTrafficPolicy: Local # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
+            selector:
+              app: apis-istio-gateway
+              istio: ingressgateway-apis
+            ports:
+              - name: status-port  # should be first in the list, see https://github.com/istio/istio/issues/12503
+                port: 15021
+                targetPort: 15021
+              - name: http2
+                port: 80
+                targetPort: 80
+              - name: https
+                port: 443
+                targetPort: 443
+              - name: tls  # used for SNI
+                port: 15443
+                targetPort: 15443
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
+            requests:
+              cpu: 200m
+              memory: 128Mi
+          replicaCount: 1
+          hpaSpec:
+            minReplicas: 1
+            maxReplicas: 5
+            metrics:
+              - type: Resource
+                resource:
+                  name: cpu
+                  targetAverageUtilization: 80
+            scaleTargetRef:
+              apiVersion: apps/v1
+              kind: Deployment
+              name: ingressgateway-apis
+  values:
+    global:
+      defaultResources:
+        requests:
+          cpu: 10m
+      proxy:
+        autoInject: disabled
+    gateways:
+      istio-ingressgateway:
+        debug: info
+        runAsRoot: true
+        autoscaleEnabled: true
+        secretVolumes:
+        - name: customgateway-certs
+          secretName: istio-customgateway-certs
+          mountPath: /etc/istio/customgateway-certs
+        - name: customgateway-ca-certs
+          secretName: istio-customgateway-ca-certs
+          mountPath: /etc/istio/customgateway-ca-certs

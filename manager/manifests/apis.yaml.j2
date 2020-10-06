@@ -27,6 +27,7 @@ spec:
         protocol: HTTP
       hosts:
         - "*"
+    {% if config.get('ssl_certificate_arn', '') == '' %}
     - port:
         number: 443
         name: https
@@ -37,3 +38,11 @@ spec:
         mode: SIMPLE
         serverCertificate: /etc/istio/customgateway-certs/tls.crt
         privateKey: /etc/istio/customgateway-certs/tls.key
+    {% else %}
+    - port:
+        number: 443
+        name: https
+        protocol: HTTP
+      hosts:
+        - "*"
+    {% endif %}
