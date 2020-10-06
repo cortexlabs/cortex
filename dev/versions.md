@@ -53,6 +53,11 @@
 1. Find the latest patch release for the minor kubernetes version that EKS uses by default (here are [their versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html))
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
 
+### Istio client
+
+1. Find the version of istio that we use in `images/manager/Dockerfile`
+1. Follow the "Update non-versioned modules" instructions using the updated version for `istio.io/client-go`
+
 ### docker/engine/client
 
 1. Find the latest tag from [releases](https://github.com/docker/engine/releases)
@@ -82,6 +87,7 @@ _note: docker client installation may be able to be improved, see https://github
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
 1. `go get k8s.io/client-go@v0.17.6 && go get k8s.io/apimachinery@v0.17.6 && go get k8s.io/api@v0.17.6`
+1. `go get istio.io/client-go@1.7.3 && go get istio.io/api@1.7.3`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.7.1`
 1. `go get github.com/cortexlabs/yaml@581aea36a2e4db10f8696587e48cac5248d64f4d`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
@@ -168,11 +174,11 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## Istio
 
-1. Find the latest [release](https://github.com/istio/istio/releases/) and check the [changelog](https://istio.io/about/notes/) and [option changes](https://istio.io/docs/reference/config/installation-options-changes/) (here are the [latest configuration options](https://istio.io/docs/reference/config/installation-options/))
-1. Update the version in all `images/istio-*` Dockerfiles
+1. Find the latest [release](https://istio.io/latest/news/releases) and check the release notes (here are the [latest IstioOperator Options](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/))
 1. Update the version in `images/manager/Dockerfile`
-1. Update `istio-values.yaml`, `apis.yaml`, and `operator.yaml` as necessary (make sure to maintain all Cortex environment variables)
-1. Update `setup_istio()` in `install.sh` as necessary
+1. Update the version in all `images/istio-*` Dockerfiles
+1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
+1. Update `install.sh` as necessary
 
 ## Metrics server
 
@@ -234,11 +240,6 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
      1. `brew upgrade kubernetes-cli`
      1. refresh shell
      1. `kubectl version`
-
-## helm
-
-1. Find the latest 2.X release on [GitHub](https://github.com/helm/helm/releases) (Istio does not work with helm 3)
-1. Update the version in `images/manager/Dockerfile`
 
 ## Ubuntu base images
 

@@ -44,8 +44,8 @@ require (
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
-	istio.io/api v0.0.0-20200827131210-bd18678dabfe
-	istio.io/client-go v0.0.0-20200819194923-681da205868c
+	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
+	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
 	k8s.io/api v0.18.1
 	k8s.io/apimachinery v0.18.1
 	k8s.io/client-go v0.18.1

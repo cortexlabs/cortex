@@ -494,9 +494,14 @@ gotest.tools v2.2.0+incompatible/go.mod h1:DsYFclhRJ6vuDpmuTbkuFWG+y2sxOXAzmJt81
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
+istio.io/api v0.0.0-20200807024414-e900e2f47215/go.mod h1:88HN3o1fSD1jo+Z1WTLlJfMm9biopur6Ct9BFKjiB64=
 istio.io/api v0.0.0-20200812202721-24be265d41c3/go.mod h1:88HN3o1fSD1jo+Z1WTLlJfMm9biopur6Ct9BFKjiB64=
 istio.io/api v0.0.0-20200827131210-bd18678dabfe h1:klCcV1WHG0r7rl+vaqloWOMeEI9vmhoSM4apWst8sZU=
 istio.io/api v0.0.0-20200827131210-bd18678dabfe/go.mod h1:88HN3o1fSD1jo+Z1WTLlJfMm9biopur6Ct9BFKjiB64=
+istio.io/api v0.0.0-20200911191701-0dc35ad5c478 h1:vOw9fVFdz0Lr+AyVMr6Gb8CilyiXyNboy269MBdimOs=
+istio.io/api v0.0.0-20200911191701-0dc35ad5c478/go.mod h1:88HN3o1fSD1jo+Z1WTLlJfMm9biopur6Ct9BFKjiB64=
+istio.io/client-go v0.0.0-20200807182027-d287a5abb594 h1:Rdokv2iBpeIgsER6tas937QlCKB2dTB6p+X3uP6Dzsw=
+istio.io/client-go v0.0.0-20200807182027-d287a5abb594/go.mod h1:q726ySPDHo2Ob6LHZ9oXWr8nNf8Sm0uIzYQ7B4XjnvA=
 istio.io/client-go v0.0.0-20200819194923-681da205868c h1:PYbfS5Z624mzRf1nePWtmuXEDf4mYO/OGR08kLIAulE=
 istio.io/client-go v0.0.0-20200819194923-681da205868c/go.mod h1:SO65MWt7I45dvUwuDowoiB0SVcGpfWZfUTlopvYpbZc=
 istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a h1:w7zILua2dnYo9CxImhpNW4NE/8ZxEoc/wfBfHrhUhrE=
