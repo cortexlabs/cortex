@@ -157,6 +157,13 @@ func DeleteAPI(apiName string) error {
 		errList = append(errList, err)
 	}
 
+	if ContainersHaveAPINameVolume(containers) {
+		err = DeleteVolume(apiName)
+		if err != nil {
+			errList = append(errList, err)
+		}
+	}
+
 	_, err = FindAPISpec(apiName)
 	if err == nil {
 		_, err := files.DeleteDirIfPresent(filepath.Join(_localWorkspaceDir, "apis", apiName))

@@ -316,6 +316,11 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		}
 	}
 
+	modelVolume := api.Name
+	if err := DeleteVolume(modelVolume); err != nil {
+		return errors.Wrap(err, api.Identify())
+	}
+
 	mounts := []mount.Mount{}
 	for _, modelCache := range api.LocalModelCaches {
 		mounts = append(mounts, mount.Mount{
@@ -324,6 +329,11 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			Target: filepath.Join(_modelDir, modelCache.TargetPath),
 		})
 	}
+	mounts = append(mounts, mount.Mount{
+		Type:   mount.TypeVolume,
+		Source: modelVolume,
+		Target: _modelDir,
+	})
 
 	serveHostConfig := &container.HostConfig{
 		Runtime:   serveRuntime,
@@ -472,6 +482,28 @@ func DeleteContainers(apiName string) error {
 	}
 	if err != nil {
 		return errors.Wrap(err, "api", apiName)
+	}
+	return nil
+}
+
+func ContainersHaveAPINameVolume(containers []dockertypes.Container) bool {
+	for _, container := range containers {
+		apiName := container.Labels["apiName"]
+		for _, mounted := range container.Mounts {
+			if mounted.Type == mount.TypeVolume && mounted.Name == apiName {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func DeleteVolume(volumeName string) error {
+	if _, err := docker.MustDockerClient().VolumeInspect(context.Background(), volumeName); err == nil {
+		if err := docker.MustDockerClient().VolumeRemove(context.Background(), volumeName, false); err != nil {
+			return err
+		}
 	}
 	return nil
 }
