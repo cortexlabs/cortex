@@ -81,7 +81,7 @@ try:
     Specific = FileSystemStoragePathSourceConfig.ServableVersionPolicy.Specific
     from google.protobuf import json_format
 
-    tensorflow_dependencies_installed = False
+    tensorflow_dependencies_installed = True
     DTYPE_TO_TF_TYPE, DTYPE_TO_VALUE_KEY = _define_types()
 
 except ImportError:

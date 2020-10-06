@@ -622,7 +622,7 @@ class FileBasedModelsGC(AbstractLoopingThread):
                 with LockedModel(self._models, "w", model_id=in_memory_id):
                     if self._models.has_model_id(in_memory_id)[0] == "in-memory":
                         model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
-                        self.logger.info(
+                        self.logger().info(
                             f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk (in process {mp.current_process().pid} and thread {td.get_ident()}"
                         )
                         self._models.remove_model_by_id(
@@ -746,8 +746,9 @@ class TFSModelLoader(mp.Process):
             interval: How often to update the models tree. Measured in seconds.
             api_spec: Identical copy of pkg.type.spec.api.API.
             address: An address with the "host:port" format to where TFS is located.
-            download_dir: Path to where the models are stored.
             tfs_model_dir: Path to where the models are stored within the TFS container.
+            download_dir: Path to where the models are stored.
+            temp_dir: Directory where models are temporarily stored.
             lock_dir: Directory in which model timestamps are stored.
         """
 
@@ -802,6 +803,10 @@ class TFSModelLoader(mp.Process):
         """
         mp.Process-specific method.
         """
+
+        os.makedirs(self._tfs_model_dir, exist_ok=True)
+        os.makedirs(self._temp_dir, exist_ok=True)
+        os.makedirs(self._lock_dir, exist_ok=True)
 
         while not self._event_stopper.is_set():
             self._update_models()
@@ -898,14 +903,14 @@ class TFSModelLoader(mp.Process):
                 try:
                     model_name, model_version = tfs_model_id.rsplit("-", maxsplit=1)
                     self._client.remove_single_model(model_name, model_version)
-                    logger.info(
+                    logger().info(
                         "model '{}' of version '{}' has been unloaded".format(
                             model_name, model_version
                         )
                     )
                 except gprc.RpcError as error:
                     if error.code() == grpc.StatusCode.UNAVAILABLE:
-                        logger.warning(
+                        logger().warning(
                             "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
                                 model_name, model_version, str(e)
                             )
@@ -936,12 +941,12 @@ class TFSModelLoader(mp.Process):
                         self._client.remove_single_model(model_name, model_version)
                     except gprc.RpcError as error:
                         if error.code() == grpc.StatusCode.UNAVAILABLE:
-                            logger.warning(
+                            logger().warning(
                                 "TFS server unresponsive after trying to unload model '{}' of version '{}': ".format(
                                     model_name, model_version, str(e)
                                 )
                             )
-                        logger.warning("TFS server is unresponsive")
+                        logger().warning("TFS server is unresponsive")
                         return
                     model_reloaded = True
                 elif model_id not in self._old_ts_state:
@@ -963,14 +968,14 @@ class TFSModelLoader(mp.Process):
                 except Exception as e:
                     try:
                         self._client.remove_single_model(model_name, model_version)
-                        logger.warning(
+                        logger().warning(
                             "model '{}' of version '{}' couldn't be loaded: {}".format(
                                 model_name, model_version, str(e)
                             )
                         )
                     except grpc.RpcError as error:
                         if error.code() == grpc.StatusCode.UNAVAILABLE:
-                            logger.warning(
+                            logger().warning(
                                 "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
                                     model_name, model_version, str(e)
                                 )
@@ -984,14 +989,14 @@ class TFSModelLoader(mp.Process):
                 # save timestamp of loaded model
                 if model_reloaded:
                     current_ts_state[model_id] = model_ts
-                    logger.info(
+                    logger().info(
                         "model '{}' of version '{}' has been reloaded".format(
                             model_name, model_version
                         )
                     )
                 elif first_time_load:
                     current_ts_state[model_id] = model_ts
-                    logger.info(
+                    logger().info(
                         "model '{}' of version '{}' has been loaded".format(
                             model_name, model_version
                         )
@@ -1176,7 +1181,7 @@ class TFSModelLoader(mp.Process):
         return signature_key
 
     def _reset_when_tfs_unresponsive(self):
-        logger.warning("TFS server is unresponsive")
+        logger().warning("TFS server is unresponsive")
 
         self._client = TensorFlowServingAPI(self._tfs_address)
 
