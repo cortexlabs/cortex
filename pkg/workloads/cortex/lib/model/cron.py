@@ -819,12 +819,15 @@ class TFSModelLoader(mp.Process):
         self._old_ts_state = {}
         self._client = TensorFlowServingAPI(self._tfs_address)
 
+        self._load_local_models()
+
         self._local_ran_once = False
         while not self._event_stopper.is_set():
             self._update_models()
             if not self._local_ran_once:
                 self._ran_once.set()
                 self._local_ran_once = True
+            print("cron TFSModelTreeUpdater heartbeat")
             time.sleep(self._interval)
         self._stopped.set()
 
@@ -942,10 +945,12 @@ class TFSModelLoader(mp.Process):
         # # update TFS models
         current_ts_state = {}
         for model_name, model_versions in ondisk_models.items():
+            if model_name in self._local_model_names:
+                continue
             ts = self._update_tfs_model(
                 model_name, model_versions, timestamps, model_names, versions
             )
-            if type(ts) == dict:
+            if isinstance(ts, dict):
                 current_ts_state = {**current_ts_state, **ts}
             else:
                 return
@@ -966,12 +971,12 @@ class TFSModelLoader(mp.Process):
         # could be cast to a short-lived thread
         # required for printing the model stats when cortex getting
         resource = os.path.join(self._lock_dir, "model_timestamps.json")
-        with LockedFile(resource, "w") as f:
+        with open(resource, "w") as f:
             json.dump(self._old_ts_state, f, indent=2)
 
         # save model stats for TFS to disk
         resource = os.path.join(self._lock_dir, "models_tfs.json")
-        with LockedFile(resource, "w") as f:
+        with open(resource, "w") as f:
             json.dump(self._client.models, f, indent=2)
 
     def _refresh_model(
@@ -1211,6 +1216,36 @@ class TFSModelLoader(mp.Process):
 
         return current_ts_state
 
+    def _load_local_models(self) -> None:
+        for model_name in self._local_model_names:
+            for model_version in self._spec_models[model_name]["versions"]:
+                model_disk_path = os.path.join(self._tfs_model_dir, model_name)
+                try:
+                    self._client.add_single_model(
+                        model_name,
+                        model_version,
+                        model_disk_path,
+                        self._determine_model_signature_key(model_name),
+                        timeout=30.0,
+                    )
+                except Exception as e:
+                    try:
+                        self._client.remove_single_model(model_name, model_version)
+                        logger().warning(
+                            "model '{}' of version '{}' couldn't be loaded: {}".format(
+                                model_name, model_version, str(e)
+                            )
+                        )
+                    except grpc.RpcError as error:
+                        if error.code() == grpc.StatusCode.UNAVAILABLE:
+                            logger().warning(
+                                "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                                    model_name, model_version, str(e)
+                                )
+                            )
+                        self._reset_when_tfs_unresponsive()
+                        return None
+
     def _is_this_a_newer_model_id(self, model_id: str, timestamp: int) -> bool:
         return model_id in self._old_ts_state and self._old_ts_state[model_id] < timestamp
 
@@ -1218,7 +1253,7 @@ class TFSModelLoader(mp.Process):
         if self._models_dir:
             signature_key = self._api_spec["predictor"]["models"]["signature_key"]
         else:
-            signature_key = self._spec_model_names[model_name]["signature_key"]
+            signature_key = self._spec_models[model_name]["signature_key"]
 
         return signature_key
 
@@ -1230,6 +1265,28 @@ class TFSModelLoader(mp.Process):
         resource = os.path.join(self._lock_dir, "models_tfs.json")
         with LockedFile(resource, "w") as f:
             json.dump(self._client.models, f, indent=2)
+
+
+class TFSAPIServingThreadUpdater(AbstractLoopingThread):
+    def __init__(self, interval: int, client: TensorFlowServingAPI, lock_dir: str = "/run/cron"):
+        AbstractLoopingThread.__init__(self, interval, self._runnable)
+
+        self._client = client
+        self._lock_dir = lock_dir
+
+    def _runnable(self) -> None:
+        resource = os.path.join(self._lock_dir, "models_tfs.json")
+
+        try:
+            with open(resource, "r") as f:
+                try:
+                    models = json.load(f)
+                except json.JSONDecodeError:
+                    return
+        except Exception:
+            return
+
+        self._client.models = models
 
 
 def find_ondisk_models(models_dir: str) -> Dict[str, List[str]]:

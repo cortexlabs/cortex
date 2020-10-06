@@ -156,7 +156,7 @@ class TensorFlowClient:
                             model_name, tag
                         )
                     )
-                model_version = max(versions)
+                model_version = str(max(map(lambda x: int(x), versions)))
             model_id = model_name + "-" + model_version
 
             return self._client.predict(model_input, model_name, model_version)
