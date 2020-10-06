@@ -327,7 +327,7 @@ function setup_istio() {
   fi
 
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
-  istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
+  istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml >/dev/null
 }
 
 function validate_cortex() {
