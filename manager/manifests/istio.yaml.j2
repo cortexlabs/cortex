@@ -17,6 +17,12 @@ kind: IstioOperator
 spec:
   profile: minimal
   components:
+    pilot:  # "pilot" referrs to the istiod container
+      k8s:
+        resources:
+          requests:
+            cpu: 490m
+            memory: 2048Mi
     cni:
       enabled: false
     ingressGateways:
