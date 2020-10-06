@@ -262,7 +262,7 @@ def start_fn():
 
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
-        with LockedFile("/run/used_ports", "r+") as f:
+        with LockedFile("/run/used_ports.json", "r+") as f:
             used_ports = json.load(f)
             for port in used_ports.keys():
                 if not used_ports[port]:

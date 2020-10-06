@@ -96,6 +96,11 @@ def main():
     multiple_processes = api_spec["predictor"]["processes_per_replica"] > 1
     caching_enabled = is_model_caching_enabled(api_spec)
     model_dir = os.environ["CORTEX_MODEL_DIR"]
+    
+    # create cron dirs if they don't exist
+    if not caching_enabled:
+        os.makedirs("/run/cron", exist_ok=True)
+        os.makedirs("/tmp/cron", exist_ok=True)
 
     # start side-reloading when model caching not enabled > 1
     if not caching_enabled and predictor_type not in [
@@ -121,6 +126,7 @@ def main():
         cron.start()
     elif not caching_enabled and predictor_type == TensorFlowNeuronPredictorType:
         load_tensorflow_serving_models()
+        cron = None
 
     # TODO if the cron is present, wait until it does its first pass
 

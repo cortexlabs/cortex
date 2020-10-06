@@ -502,7 +502,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					},
 					kcore.EnvVar{
 						Name:  "TF_GRPC_MAX_CONCURRENT_STREAMS",
-						Value: fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ThreadsPerProcess),
+						Value: fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ThreadsPerProcess+10),
 					},
 				)
 			}
@@ -605,7 +605,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			"--model_config_file=" + _tfServingEmptyModelConfig,
 			"--max_num_load_retries=" + _tfServingMaxReloadTimes,
 			"--load_retry_interval_micros=" + _tfServingLoadTimeMicros,
-			fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess),
+			fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+10),
 		}
 	}
 

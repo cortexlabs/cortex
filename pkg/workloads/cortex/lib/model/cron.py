@@ -22,6 +22,7 @@ import shutil
 import itertools
 import json
 import grpc
+import copy
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 
@@ -755,17 +756,13 @@ class TFSModelLoader(mp.Process):
         mp.Process.__init__(self, daemon=True)
 
         # TODO check what happens if the logger refreshes
-        self.logger = logger()
         self._interval = interval
         self._api_spec = api_spec
+        self._tfs_address = address
         self._tfs_model_dir = tfs_model_dir
         self._download_dir = download_dir
         self._temp_dir = temp_dir
         self._lock_dir = lock_dir
-
-        self._tfs_address = address
-        self._client = TensorFlowServingAPI(address)
-        self._old_ts_state = {}
 
         self._s3_paths = []
         self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
@@ -804,9 +801,9 @@ class TFSModelLoader(mp.Process):
         mp.Process-specific method.
         """
 
-        os.makedirs(self._tfs_model_dir, exist_ok=True)
-        os.makedirs(self._temp_dir, exist_ok=True)
-        os.makedirs(self._lock_dir, exist_ok=True)
+        self.logger = logger()
+        self._old_ts_state = {}
+        self._client = TensorFlowServingAPI(self._tfs_address)
 
         while not self._event_stopper.is_set():
             self._update_models()
@@ -883,14 +880,12 @@ class TFSModelLoader(mp.Process):
             shutil.rmtree(os.path.join(self._download_dir, model_name))
             self._client.remove_models([model_name], [model_versions])
 
-        # TODO move the code within the for loop in a separate method
-
         # check tfs connection
         tfs_unresponsive = not self._client.is_tfs_accessible()
         if tfs_unresponsive:
             self._reset_when_tfs_unresponsive()
             return
-
+        
         # remove versioned models from TFS that no longer exist on disk
         tfs_model_ids = self._client.get_registered_model_ids()
         ondisk_models = find_ondisk_models(self._download_dir)
@@ -918,89 +913,14 @@ class TFSModelLoader(mp.Process):
                     self._reset_when_tfs_unresponsive()
                     return
 
-        # update TFS models
+        # # update TFS models
         current_ts_state = {}
         for model_name, model_versions in ondisk_models.items():
-
-            # get the right order of model versions with respect to the model ts order
-            model_timestamps = timestamps[model_names.index(model_name)]
-            filtered_model_versions = []
-            for idx, model_ts in enumerate(model_timestamps):
-                if versions[model_name][idx] in model_versions:
-                    filtered_model_versions.append(versions[model_name][idx])
-
-            for model_version, model_ts in zip(filtered_model_versions, model_timestamps):
-                model_ts = int(model_ts.timestamp())
-
-                # remove outdated model
-                model_id = f"{model_name}-{model_version}"
-                model_reloaded = False
-                first_time_load = False
-                if model_id in self._old_ts_state and self._old_ts_state[model_id] < model_ts:
-                    try:
-                        self._client.remove_single_model(model_name, model_version)
-                    except gprc.RpcError as error:
-                        if error.code() == grpc.StatusCode.UNAVAILABLE:
-                            logger().warning(
-                                "TFS server unresponsive after trying to unload model '{}' of version '{}': ".format(
-                                    model_name, model_version, str(e)
-                                )
-                            )
-                        logger().warning("TFS server is unresponsive")
-                        return
-                    model_reloaded = True
-                elif model_id not in self._old_ts_state:
-                    first_time_load = True
-
-                if not model_reloaded and not first_time_load:
-                    continue
-
-                # load model
-                model_disk_path = os.path.join(self._tfs_model_dir, model_name)
-                try:
-                    self._client.add_single_model(
-                        model_name,
-                        model_version,
-                        model_disk_path,
-                        self._determine_model_signature_key(model_name),
-                        timeout=30.0,
-                    )
-                except Exception as e:
-                    try:
-                        self._client.remove_single_model(model_name, model_version)
-                        logger().warning(
-                            "model '{}' of version '{}' couldn't be loaded: {}".format(
-                                model_name, model_version, str(e)
-                            )
-                        )
-                    except grpc.RpcError as error:
-                        if error.code() == grpc.StatusCode.UNAVAILABLE:
-                            logger().warning(
-                                "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
-                                    model_name, model_version, str(e)
-                                )
-                            )
-                        self._reset_when_tfs_unresponsive()
-                        return
-
-                    model_reloaded = False
-                    first_time_load = False
-
-                # save timestamp of loaded model
-                if model_reloaded:
-                    current_ts_state[model_id] = model_ts
-                    logger().info(
-                        "model '{}' of version '{}' has been reloaded".format(
-                            model_name, model_version
-                        )
-                    )
-                elif first_time_load:
-                    current_ts_state[model_id] = model_ts
-                    logger().info(
-                        "model '{}' of version '{}' has been loaded".format(
-                            model_name, model_version
-                        )
-                    )
+            ts = self._update_tfs_model(model_name, model_versions, timestamps, model_names, versions)
+            if type(ts) == dict:
+                current_ts_state = {**current_ts_state, **ts}
+            else:
+                return
 
         # save model timestamp states
         for model_id, ts in current_ts_state.items():
@@ -1168,6 +1088,97 @@ class TFSModelLoader(mp.Process):
                 if os.path.exists(ondisk_model_version_path):
                     shutil.rmtree(ondisk_model_version_path)
                 shutil.move(temp_dest, ondisk_model_version_path)
+
+    def _update_tfs_model(self, model_name: str, model_versions: str, _s3_timestamps: List[List[datetime.datetime]], _s3_model_names: List[str], _s3_versions: Dict[str, List[str]],) -> Optional[Dict[str, int]]:
+
+        # to prevent overwriting mistakes
+        s3_timestamps = copy.deepcopy(_s3_timestamps)
+        s3_model_names = copy.deepcopy(_s3_model_names)
+        s3_versions = copy.deepcopy(_s3_versions)
+
+        current_ts_state = {}
+
+        # get the right order of model versions with respect to the model ts order
+        model_timestamps = s3_timestamps[s3_model_names.index(model_name)]
+        filtered_model_versions = []
+        for idx, model_ts in enumerate(model_timestamps):
+            if s3_versions[model_name][idx] in model_versions:
+                filtered_model_versions.append(s3_versions[model_name][idx])
+
+        for model_version, model_ts in zip(filtered_model_versions, model_timestamps):
+            model_ts = int(model_ts.timestamp())
+
+            # remove outdated model
+            model_id = f"{model_name}-{model_version}"
+            model_reloaded = False
+            first_time_load = False
+            if model_id in self._old_ts_state and self._old_ts_state[model_id] < model_ts:
+                try:
+                    self._client.remove_single_model(model_name, model_version)
+                except gprc.RpcError as error:
+                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                        logger().warning(
+                            "TFS server unresponsive after trying to unload model '{}' of version '{}': ".format(
+                                model_name, model_version, str(e)
+                            )
+                        )
+                    logger().warning("TFS server is unresponsive")
+                    return None
+                model_reloaded = True
+            elif model_id not in self._old_ts_state:
+                first_time_load = True
+
+            if not model_reloaded and not first_time_load:
+                continue
+
+            # load model
+            model_disk_path = os.path.join(self._tfs_model_dir, model_name)
+            try:
+                self._client.add_single_model(
+                    model_name,
+                    model_version,
+                    model_disk_path,
+                    self._determine_model_signature_key(model_name),
+                    timeout=30.0,
+                )
+            except Exception as e:
+                try:
+                    self._client.remove_single_model(model_name, model_version)
+                    logger().warning(
+                        "model '{}' of version '{}' couldn't be loaded: {}".format(
+                            model_name, model_version, str(e)
+                        )
+                    )
+                except grpc.RpcError as error:
+                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                        logger().warning(
+                            "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                                model_name, model_version, str(e)
+                            )
+                        )
+                    self._reset_when_tfs_unresponsive()
+                    return None
+
+                model_reloaded = False
+                first_time_load = False
+
+            # save timestamp of loaded model
+            if model_reloaded:
+                current_ts_state[model_id] = model_ts
+                logger().info(
+                    "model '{}' of version '{}' has been reloaded".format(
+                        model_name, model_version
+                    )
+                )
+            elif first_time_load:
+                current_ts_state[model_id] = model_ts
+                logger().info(
+                    "model '{}' of version '{}' has been loaded".format(
+                        model_name, model_version
+                    )
+                )
+
+        return current_ts_state
 
     def _is_this_a_newer_model_id(self, model_id: str, timestamp: int) -> bool:
         return model_id in self._old_ts_state and self._old_ts_state[model_id] < timestamp

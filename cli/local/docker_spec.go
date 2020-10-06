@@ -349,7 +349,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			"--model_config_file=" + _tfServingEmptyModelConfig,
 			"--max_num_load_retries=" + _tfServingMaxReloadTimes,
 			"--load_retry_interval_micros=" + _tfServingLoadTimeMicros,
-			fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess),
+			fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+10),
 		},
 		ExposedPorts: nat.PortSet{
 			_tfServingPortStr + "/tcp": struct{}{},
