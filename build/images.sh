@@ -56,8 +56,6 @@ non_dev_images=(
   "statsd"
   "istio-proxy"
   "istio-pilot"
-  "istio-citadel"
-  "istio-galley"
 )
 
 all_images=( "${user_facing_images[@]}" "${user_facing_slim_images[@]}" "${dev_images[@]}" "${non_dev_images[@]}" )

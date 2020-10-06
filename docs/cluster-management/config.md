@@ -100,6 +100,4 @@ image_fluentd: cortexlabs/fluentd:master
 image_statsd: cortexlabs/statsd:master
 image_istio_proxy: cortexlabs/istio-proxy:master
 image_istio_pilot: cortexlabs/istio-pilot:master
-image_istio_citadel: cortexlabs/istio-citadel:master
-image_istio_galley: cortexlabs/istio-galley:master
 ```

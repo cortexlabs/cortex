@@ -655,12 +655,6 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
 		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
 	}
-	if clusterConfig.ImageIstioCitadel != defaultConfig.ImageIstioCitadel {
-		items.Add(clusterconfig.ImageIstioCitadelUserKey, clusterConfig.ImageIstioCitadel)
-	}
-	if clusterConfig.ImageIstioGalley != defaultConfig.ImageIstioGalley {
-		items.Add(clusterconfig.ImageIstioGalleyUserKey, clusterConfig.ImageIstioGalley)
-	}
 
 	return items.String()
 }
