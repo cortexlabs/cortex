@@ -16,11 +16,15 @@ import os
 import imp
 import inspect
 import dill
+import shutil
+import datetime
+import glob
 from typing import Any, Optional, Union
 
 # types
 from cortex.lib.type import (
     predictor_type_from_api_spec,
+    PredictorType,
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
@@ -48,6 +52,11 @@ from cortex.lib.model import (
     ModelsTree,  # only when num workers = 1
 )
 
+# model validation
+from cortex.lib.model import validate_model_paths
+
+# misc
+from cortex.lib.storage import S3
 from cortex.lib.log import refresh_logger, cx_logger as logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex import consts
@@ -88,6 +97,7 @@ class Predictor:
                 self.model_dir,
                 mem_cache_size=self.api_spec["predictor"]["models"]["cache_size"],
                 disk_cache_size=self.api_spec["predictor"]["models"]["disk_cache_size"],
+                on_download_callback=model_downloader,
             )
         elif not self.caching_enabled and self.type not in [
             TensorFlowPredictorType,
@@ -97,10 +107,7 @@ class Predictor:
         else:
             self.models = None
 
-        if self.multiple_processes or (
-            not self.multiple_processes
-            and self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]
-        ):
+        if self.multiple_processes:
             self.models_tree = None
         else:
             self.models_tree = ModelsTree()
@@ -421,3 +428,63 @@ def _validate_required_fn_args(impl, func_signature, api_spec):
             )
 
         seen_args.append(arg_name)
+
+
+def model_downloader(
+    predictor_type: PredictorType,
+    bucket_name: str,
+    model_name: str,
+    model_version: str,
+    model_path: str,
+    temp_dir: str,
+    model_dir: str,
+) -> datetime.datetime:
+    """
+    Downloads model to disk. Validates the S3 model path and the downloaded model as well.
+
+    Args:
+        bucket_name: Name of the bucket where the model is stored.
+        model_name: Name of the model. Is part of the model's local path.
+        model_version: Version of the model. Is part of the model's local path.
+        model_path: S3 model prefix to the versioned model.
+        temp_dir: Where to temporarily store the model for validation.
+        model_dir: The top directory of where all models are stored locally.
+
+    Returns:
+        The model's timestamp. None if the model didn't pass the validation, if it doesn't exist or if there are not enough permissions.
+    """
+
+    s3_client = S3(bucket_name, client_config={})
+
+    # validate upstream S3 model
+    sub_paths, ts = s3_client.search(model_path)
+    try:
+        validate_model_paths(sub_paths, predictor_type, model_path)
+    except CortexException:
+        shutil.rmtree(temp_dest)
+        return None
+
+    # download model to temp dir
+    temp_dest = os.path.join(temp_dir, model_name, model_version)
+    try:
+        s3_client.download_dir_contents(model_path, temp_dest)
+    except CortexException:
+        shutil.rmtree(temp_dest)
+        return None
+
+    # validate model
+    model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+    try:
+        validate_model_paths(model_contents, predictor_type, temp_dest)
+    except CortexException:
+        shutil.rmtree(temp_dest)
+        return None
+
+    # move model to dest dir
+    model_top_dir = os.path.join(model_dir, model_name)
+    ondisk_model_version = os.path.join(model_top_dir, model_version)
+    if os.path.isdir(ondisk_model_version):
+        shutil.rmtree(ondisk_model_version)
+    shutil.move(temp_dest, ondisk_model_version)
+
+    return max(ts)

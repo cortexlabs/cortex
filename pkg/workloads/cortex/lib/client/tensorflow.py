@@ -20,6 +20,7 @@ from cortex.lib.model import (
     TensorFlowServingAPI,
     ModelsHolder,
     ModelsTree,
+    LockedModel,
     LockedModelsTree,
     CuratedModelResources,
 )

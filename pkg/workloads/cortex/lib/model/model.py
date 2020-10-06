@@ -15,75 +15,13 @@
 import os
 import time
 import shutil
-import glob
 import datetime
 import threading as td
 from typing import List, Any, Tuple, Callable, AbstractSet, Optional
 
 from cortex.lib.concurrency import ReadWriteLock
 from cortex.lib.exceptions import WithBreak, CortexException
-from cortex.lib.storage import S3
 from cortex.lib.type import PredictorType
-
-
-def model_downloader(
-    predictor_type: PredictorType,
-    bucket_name: str,
-    model_name: str,
-    model_version: str,
-    model_path: str,
-    temp_dir: str,
-    model_dir: str,
-) -> datetime.datetime:
-    """
-    Downloads model to disk. Validates the S3 model path and the downloaded model as well.
-
-    Args:
-        bucket_name: Name of the bucket where the model is stored.
-        model_name: Name of the model. Is part of the model's local path.
-        model_version: Version of the model. Is part of the model's local path.
-        model_path: S3 model prefix to the versioned model.
-        temp_dir: Where to temporarily store the model for validation.
-        model_dir: The top directory of where all models are stored locally.
-
-    Returns:
-        The model's timestamp. None if the model didn't pass the validation, if it doesn't exist or if there are not enough permissions.
-    """
-
-    s3_client = S3(bucket_name, client_config={})
-
-    # validate upstream S3 model
-    sub_paths, ts = s3_client.search(model_path)
-    try:
-        validate_model_paths(sub_paths, predictor_type, model_path)
-    except CortexException:
-        shutil.rmtree(temp_dest)
-        return None
-
-    # download model to temp dir
-    temp_dest = os.path.join(temp_dir, model_name, model_version)
-    try:
-        s3_client.download_dir_contents(model_path, temp_dest)
-    except CortexException:
-        shutil.rmtree(temp_dest)
-        return None
-
-    # validate model
-    model_contents = glob.glob(temp_dest + "*/**", recursive=True)
-    try:
-        validate_model_paths(model_contents, predictor_type, temp_dest)
-    except CortexException:
-        shutil.rmtree(temp_dest)
-        return None
-
-    # move model to dest dir
-    model_top_dir = os.path.join(model_dir, model_name)
-    ondisk_model_version = os.path.join(model_top_dir, model_version)
-    if os.path.isdir(ondisk_model_version):
-        shutil.rmtree(ondisk_model_version)
-    shutil.move(temp_dest, ondisk_model_version)
-
-    return max(ts)
 
 
 class ModelsHolder:
@@ -99,7 +37,7 @@ class ModelsHolder:
         temp_dir: str = "/tmp/cron",
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
-        on_download_callback: Callable[[str, str, str, int], datetime.datetime] = model_downloader,
+        on_download_callback: Optional[Callable[[str, str, str, int], datetime.datetime]] = None,
         on_load_callback: Optional[Callable[[str], Any]] = None,
         on_remove_callback: Optional[Callable[[List[str]], None]] = None,
     ):
@@ -437,6 +375,9 @@ class ModelsHolder:
             disk: Whether to remove the model from disk or not.
             del_reference: Whether to remove the model reference or not. Don't touch this unless you know what you do.
         """
+        if model_id not in self._models:
+            return None
+
         if mem:
             self._models[model_id]["model"] = None
 
