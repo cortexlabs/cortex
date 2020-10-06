@@ -303,6 +303,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         except FileExistsError:
             pass
 
+        self._ran_once = mp.Event()
         self._event_stopper = mp.Event()
         self._stopped = mp.Event()
 
@@ -312,8 +313,13 @@ class FileBasedModelsTreeUpdater(mp.Process):
         """
 
         self._make_local_models_available()
+
+        self._local_ran_once = False
         while not self._event_stopper.is_set():
             self._update_models_tree()
+            if not self._local_ran_once:
+                self._ran_once.set()
+                self._local_ran_once = True
             time.sleep(self._interval)
         self._stopped.set()
 
@@ -336,6 +342,13 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         while not self._stopped.is_set():
             time.sleep(0.001)
+
+    def ran_once(self) -> bool:
+        """
+        Tells whether the TFS loader loop has run at least once.
+        """
+
+        return self._ran_once.is_set()
 
     def _make_local_models_available(self) -> None:
         timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
@@ -755,7 +768,6 @@ class TFSModelLoader(mp.Process):
 
         mp.Process.__init__(self, daemon=True)
 
-        # TODO check what happens if the logger refreshes
         self._interval = interval
         self._api_spec = api_spec
         self._tfs_address = address
@@ -793,6 +805,7 @@ class TFSModelLoader(mp.Process):
                 "'tensorflow' predictor type is the only allowed type for this cron"
             )
 
+        self._ran_once = mp.Event()
         self._event_stopper = mp.Event()
         self._stopped = mp.Event()
 
@@ -801,12 +814,17 @@ class TFSModelLoader(mp.Process):
         mp.Process-specific method.
         """
 
+        # TODO check what happens if the logger refreshes
         self.logger = logger()
         self._old_ts_state = {}
         self._client = TensorFlowServingAPI(self._tfs_address)
 
+        self._local_ran_once = False
         while not self._event_stopper.is_set():
             self._update_models()
+            if not self._local_ran_once:
+                self._ran_once.set()
+                self._local_ran_once = True
             time.sleep(self._interval)
         self._stopped.set()
 
@@ -830,6 +848,13 @@ class TFSModelLoader(mp.Process):
         while not self._stopped.is_set():
             time.sleep(0.001)
 
+    def ran_once(self) -> bool:
+        """
+        Tells whether the TFS loader loop has run at least once.
+        """
+
+        return self._ran_once.is_set()
+
     def _update_models(self) -> None:
         # don't update when the models:dir is a local path
         if self._is_dir_used and not self._models_dir.startswith("s3://"):
@@ -851,22 +876,23 @@ class TFSModelLoader(mp.Process):
             self._s3_model_names,
         )
 
-        # TODO download models concurrently
-
         # update models on the local disk if changes have been detected
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
-        for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
-            zip(model_names, bucket_names, sub_paths)
-        ):
-            self._refresh_model(
-                idx,
-                model_name,
-                model_paths[idx],
-                versions[model_name],
-                timestamps[idx],
-                bucket_sub_paths,
-                bucket_name,
-            )
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
+            for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
+                zip(model_names, bucket_names, sub_paths)
+            ):
+                self._refresh_model(
+                    idx,
+                    model_name,
+                    model_paths[idx],
+                    versions[model_name],
+                    timestamps[idx],
+                    bucket_sub_paths,
+                    bucket_name,
+                )
+            [future.result() for future in futures]
 
         # remove models that no longer appear in model_names
         for model_name, model_versions in find_ondisk_models(self._download_dir).items():
@@ -885,7 +911,7 @@ class TFSModelLoader(mp.Process):
         if tfs_unresponsive:
             self._reset_when_tfs_unresponsive()
             return
-        
+
         # remove versioned models from TFS that no longer exist on disk
         tfs_model_ids = self._client.get_registered_model_ids()
         ondisk_models = find_ondisk_models(self._download_dir)
@@ -916,7 +942,9 @@ class TFSModelLoader(mp.Process):
         # # update TFS models
         current_ts_state = {}
         for model_name, model_versions in ondisk_models.items():
-            ts = self._update_tfs_model(model_name, model_versions, timestamps, model_names, versions)
+            ts = self._update_tfs_model(
+                model_name, model_versions, timestamps, model_names, versions
+            )
             if type(ts) == dict:
                 current_ts_state = {**current_ts_state, **ts}
             else:
@@ -1089,7 +1117,14 @@ class TFSModelLoader(mp.Process):
                     shutil.rmtree(ondisk_model_version_path)
                 shutil.move(temp_dest, ondisk_model_version_path)
 
-    def _update_tfs_model(self, model_name: str, model_versions: str, _s3_timestamps: List[List[datetime.datetime]], _s3_model_names: List[str], _s3_versions: Dict[str, List[str]],) -> Optional[Dict[str, int]]:
+    def _update_tfs_model(
+        self,
+        model_name: str,
+        model_versions: str,
+        _s3_timestamps: List[List[datetime.datetime]],
+        _s3_model_names: List[str],
+        _s3_versions: Dict[str, List[str]],
+    ) -> Optional[Dict[str, int]]:
 
         # to prevent overwriting mistakes
         s3_timestamps = copy.deepcopy(_s3_timestamps)
@@ -1166,16 +1201,12 @@ class TFSModelLoader(mp.Process):
             if model_reloaded:
                 current_ts_state[model_id] = model_ts
                 logger().info(
-                    "model '{}' of version '{}' has been reloaded".format(
-                        model_name, model_version
-                    )
+                    "model '{}' of version '{}' has been reloaded".format(model_name, model_version)
                 )
             elif first_time_load:
                 current_ts_state[model_id] = model_ts
                 logger().info(
-                    "model '{}' of version '{}' has been loaded".format(
-                        model_name, model_version
-                    )
+                    "model '{}' of version '{}' has been loaded".format(model_name, model_version)
                 )
 
         return current_ts_state
