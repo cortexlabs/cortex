@@ -45,6 +45,8 @@ jobs:
   build-and-deploy:
     docker:
       - image: circleci/python:3.6
+    environment:
+      NUM_BUILD_PROCS: "2"
     steps:
       - checkout
       - setup_remote_docker
