@@ -285,10 +285,20 @@ class ONNXClient:
                 with LockedModel(self._models, "w", model_name, model_version):
 
                     # check model status
-                    status, _ = self._models.has_model(model_name, model_version)
+                    status, upstream_ts = self._models.has_model(model_name, model_version)
 
-                    # download model
-                    if status == "not-available":
+                    # refresh disk model
+                    if status == "not-available" or (
+                        status in ["on-disk", "in-memory"] and upstream_ts < current_upstream_ts
+                    ):
+                        # remove model from disk and references
+                        if status in ["on-disk", "in-memory"]:
+                            logger().info(
+                                f"removing model references from memory and from disk for {model_name} {model_version}"
+                            )
+                            self._models.remove_model(model_name, model_version)
+
+                        # download model
                         date = self._models.download_model(
                             upstream_model["bucket"],
                             model_name,
@@ -300,16 +310,15 @@ class ONNXClient:
                         current_upstream_ts = date.timestamp()
 
                     # load model
-                    if status == "not-available":
-                        try:
-                            self._models.load_model(
-                                model_name,
-                                model_version,
-                                current_upstream_ts,
-                                tags,
-                            )
-                        except Exception:
-                            raise WithBreak
+                    try:
+                        self._models.load_model(
+                            model_name,
+                            model_version,
+                            current_upstream_ts,
+                            tags,
+                        )
+                    except Exception:
+                        raise WithBreak
 
                     # retrieve model
                     model, _ = self._models.get_model(model_name, model_version, tag)

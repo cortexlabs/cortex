@@ -19,6 +19,7 @@ import datetime
 import threading as td
 from typing import List, Any, Tuple, Callable, AbstractSet, Optional
 
+from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import ReadWriteLock
 from cortex.lib.exceptions import WithBreak, CortexException
 from cortex.lib.type import PredictorType
@@ -441,6 +442,7 @@ class ModelsHolder:
             self._disk_cache_size - len(exclude_disk_model_ids)
         )
 
+        logger().info(f"collecting models {stale_mem_model_ids} from TFS server")
         if self._remove_callback and not dry_run:
             self._remove_callback(stale_mem_model_ids)
 
@@ -450,6 +452,7 @@ class ModelsHolder:
             len(stale_disk_model_ids) - self._disk_cache_size :
         ]
 
+        logger().info(f"collecting models {stale_disk_model_ids} from disk")
         if not dry_run:
             for model_id in stale_mem_model_ids:
                 self.remove_model_by_id(model_id, mem=True, disk=False)
