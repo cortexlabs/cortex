@@ -133,9 +133,6 @@ class TensorFlowClient:
             model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are named on disk.
             model_version: Version of the model, as it's found on disk. Can also infer the version number from "latest" and "highest" tags.
 
-        Exceptions:
-            RuntimeError: if another thread tried to load the model at the very same time.
-
         Returns:
             The prediction.
         """
@@ -175,7 +172,9 @@ class TensorFlowClient:
                     )
             except ValueError:
                 # if model_name hasn't been found
-                return None
+                raise UserRuntimeException(
+                    f"'{model_name}' model of tag {model_version} wasn't found in the list of available models"
+                )
 
             models_stats = []
             for model_id in self._models.get_model_ids():

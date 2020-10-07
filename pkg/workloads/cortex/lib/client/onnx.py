@@ -247,7 +247,9 @@ class ONNXClient:
                     )
             except ValueError:
                 # if model_name hasn't been found
-                return None
+                raise UserRuntimeException(
+                    f"'{model_name}' model of tag {model_version} wasn't found in the list of available models"
+                )
 
             # grab shared access to model tree
             available_model = True
