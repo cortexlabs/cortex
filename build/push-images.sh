@@ -17,16 +17,16 @@
 
 set -euo pipefail
 
-CORTEX_VERSION=master
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-image=$1
+source $ROOT/build/images.sh
+source $ROOT/dev/util.sh
 
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
-if [ "$image" == "python-predictor-gpu-slim" ]; then
-  for cuda in 10.0 10.1 10.2 11.0; do
-    docker push cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda}
-  done
+# if parallel utility is installed, the docker push commands will be parallelized
+if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
+  ROOT=$ROOT DOCKER_USERNAME=$DOCKER_USERNAME DOCKER_PASSWORD=$DOCKER_PASSWORD SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS $ROOT/build/push-image.sh {} ::: "${all_images[@]}"
 else
-  docker push cortexlabs/${image}:${CORTEX_VERSION}
+  for image in "${all_images[@]}"; do
+    $ROOT/build/push-image.sh $image
+  done
 fi

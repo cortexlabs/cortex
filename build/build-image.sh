@@ -21,51 +21,25 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 CORTEX_VERSION=master
 
-slim="false"
-while [[ $# -gt 0 ]]; do
-  key="$1"
-  case $key in
-    --include-slim)
-    slim="true"
-    shift
-    ;;
-    *)
-    positional_args+=("$1")
-    shift
-    ;;
-  esac
-done
-set -- "${positional_args[@]}"
-
-dir=$1
-image=$2
+image=$1
+dir="${ROOT}/images/${image/-slim}"
 
 if [ "$image" == "inferentia" ]; then
   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
 fi
 
-docker build "$ROOT" \
-  -f $dir/Dockerfile \
-  -t cortexlabs/${image} \
-  -t cortexlabs/${image}:${CORTEX_VERSION}
+build_args=""
+if [[ "$image" == *"-slim" ]]; then
+  build_args="--build-arg SLIM=true"
+fi
 
-if [ "$slim" == "true" ]; then
-  if [ "${image}" == "python-predictor-gpu" ]; then
-    cuda=("10.0" "10.1" "10.2" "11.0")
-    cudnn=("7" "7" "7" "8")
-
-    for i in ${!cudnn[@]}; do
-      docker build "$ROOT" \
-        -f $dir/Dockerfile \
-        --build-arg SLIM=true \
-        --build-arg CUDA_VERSION=${cuda[$i]} \
-        --build-arg CUDNN=${cudnn[$i]} \
-        -t cortexlabs/${image}-slim:${CORTEX_VERSION}-cuda${cuda[$i]}
-    done
-  else
-    docker build "$ROOT" \
-      -f $dir/Dockerfile \
-      --build-arg SLIM=true \
-      -t cortexlabs/${image}-slim:${CORTEX_VERSION}
-  fi
+if [ "${image}" == "python-predictor-gpu-slim" ]; then
+  cuda=("10.0" "10.1" "10.2" "11.0")
+  cudnn=("7" "7" "7" "8")
+  for i in ${!cudnn[@]}; do
+    build_args="${build_args} --build-arg CUDA_VERSION=${cuda[$i]} --build-arg CUDNN=${cudnn[$i]}"
+    docker build "$ROOT" -f $dir/Dockerfile $build_args -t cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}
+  done
+else
+  docker build "$ROOT" -f $dir/Dockerfile $build_args -t cortexlabs/${image}:${CORTEX_VERSION}
 fi
