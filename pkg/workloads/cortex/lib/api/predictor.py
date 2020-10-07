@@ -57,6 +57,7 @@ from cortex.lib.model import validate_model_paths
 
 # misc
 from cortex.lib.storage import S3
+from cortex.lib import util
 from cortex.lib.log import refresh_logger, cx_logger as logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex import consts
@@ -191,12 +192,12 @@ class Predictor:
                     tree=self.models_tree,
                     ondisk_models_dir=self.model_dir,
                 ),
-                ModelsGC(
-                    interval=10,
-                    api_spec=self.api_spec,
-                    models=self.models,
-                    tree=self.models_tree,
-                ),
+                # ModelsGC(
+                #     interval=10,
+                #     api_spec=self.api_spec,
+                #     models=self.models,
+                #     tree=self.models_tree,
+                # ),
                 # ModelPreloader(
                 #     interval=10,
                 #     caching=self.caching_enabled,
@@ -438,7 +439,7 @@ def model_downloader(
     model_path: str,
     temp_dir: str,
     model_dir: str,
-) -> datetime.datetime:
+) -> Optional[datetime.datetime]:
     """
     Downloads model to disk. Validates the S3 model path and the downloaded model as well.
 
@@ -454,6 +455,10 @@ def model_downloader(
         The model's timestamp. None if the model didn't pass the validation, if it doesn't exist or if there are not enough permissions.
     """
 
+    logger().info(
+        f"downloading from bucket {bucket_name}/{model_path}, model {model_name} {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
+    )
+
     s3_client = S3(bucket_name, client_config={})
 
     # validate upstream S3 model
@@ -461,7 +466,7 @@ def model_downloader(
     try:
         validate_model_paths(sub_paths, predictor_type, model_path)
     except CortexException:
-        shutil.rmtree(temp_dest)
+        logger().info(f"failed validating {model_name} {model_version}")
         return None
 
     # download model to temp dir
@@ -469,20 +474,24 @@ def model_downloader(
     try:
         s3_client.download_dir_contents(model_path, temp_dest)
     except CortexException:
+        logger().info(f"failed downloading {model_name} {model_version} to temp dir {temp_dest}")
         shutil.rmtree(temp_dest)
         return None
 
     # validate model
     model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+    model_contents = util.remove_non_empty_directory_paths(model_contents)
     try:
         validate_model_paths(model_contents, predictor_type, temp_dest)
     except CortexException:
+        logger().info(f"failed validating {model_name} {model_version} from temp dir")
         shutil.rmtree(temp_dest)
         return None
 
     # move model to dest dir
     model_top_dir = os.path.join(model_dir, model_name)
     ondisk_model_version = os.path.join(model_top_dir, model_version)
+    logger().info(f"moving {model_name} {model_version} to final dir {ondisk_model_version}")
     if os.path.isdir(ondisk_model_version):
         shutil.rmtree(ondisk_model_version)
     shutil.move(temp_dest, ondisk_model_version)

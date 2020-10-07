@@ -50,7 +50,7 @@ class ModelsHolder:
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
             on_download_callback(<predictor_type>, <model_name>, <model_version>, <model_path>, <temp_dir>, <model_dir>): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
             on_load_callback(<disk_model_path>, **kwargs): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
-            on_remove_callback(<list of model IDs to remove>): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.
+            on_remove_callback(<list of model IDs to remove>, **kwargs): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.
         """
         self._predictor_type = predictor_type
         self._model_dir = model_dir
@@ -253,6 +253,7 @@ class ModelsHolder:
         Args:
             model_name: The name of the model.
             model_version: The version of the model.
+            version_tag: The tag associated with the given model. If the tag is present, its count will be increased by one.
 
         Returns:
             The model and the model's upstream timestamp.
@@ -356,6 +357,23 @@ class ModelsHolder:
             "a download callback must be provided; use set_callback to set a callback"
         )
 
+    def unload_model(self, model_name: str, model_version: str, kwargs: dict = {}) -> None:
+        """
+        Unloads a model from memory. If applicable, it gets called before remove_model/remove_model_by_id.
+
+        Args:
+            model_name: The name of the model.
+            model_version: The version of the model.
+            kwargs: Passable arguments to the remove callback.
+
+        Raises:
+            Exceptions if the remove callback raises any.
+        """
+
+        if self._remove_callback:
+            model_id = f"{model_name}-{model_version}"
+            self._remove_callback([model_id], **kwargs)
+
     def remove_model(self, model_name: str, model_version: str) -> None:
         """
         Removes a model from memory and disk if it exists.
@@ -384,12 +402,15 @@ class ModelsHolder:
         if disk:
             disk_path = self._models[model_id]["disk_path"]
             shutil.rmtree(disk_path)
-            model_top_dir = os.path.dirname(disk_path)
-            if os.path.isdir(model_top_dir) and len(os.listdir(model_top_dir)) == 0:
-                try:
-                    shutil.rmtree(model_top_dir)
-                except FileNotFoundError:
-                    pass
+            # TODO check if this portion of code can be removed
+            # the suspicion is that by deleting a top directory, then this might interfere with the downloading
+            # procedure of another model with the same name
+            # model_top_dir = os.path.dirname(disk_path)
+            # if os.path.isdir(model_top_dir) and len(os.listdir(model_top_dir)) == 0:
+            #     try:
+            #         shutil.rmtree(model_top_dir)
+            #     except FileNotFoundError:
+            #         pass
 
         if disk or del_reference:
             del self._models[model_id]

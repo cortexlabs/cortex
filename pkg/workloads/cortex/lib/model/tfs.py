@@ -136,12 +136,18 @@ class TensorFlowServingAPI:
         model_disk_path: str,
         signature_key: Optional[str] = None,
         timeout: Optional[float] = None,
+        max_retries: int = 0,
     ) -> None:
         """
         Wrapper for add_models method.
         """
         self.add_models(
-            [model_name], [[model_version]], [model_disk_path], [signature_key], timeout
+            [model_name],
+            [[model_version]],
+            [model_disk_path],
+            [signature_key],
+            timeout=timeout,
+            max_retries=max_retries,
         )
 
     def remove_single_model(
@@ -163,6 +169,7 @@ class TensorFlowServingAPI:
         signature_keys: List[Optional[str]],
         skip_if_present: bool = False,
         timeout: Optional[float] = None,
+        max_retries: int = 0,
     ) -> None:
         """
         Add models to TFS. If they can't be loaded, use remove_models to remove them from TFS.
@@ -173,6 +180,7 @@ class TensorFlowServingAPI:
             model_disk_paths: The common model disk path of multiple versioned models of the same model name (i.e. modelA/ for modelA/1 and modelA/2).
             skip_if_present: If the models are already loaded, don't make a new request to TFS.
             signature_keys: The signature keys as set in cortex.yaml. If an element is set to None, then "predict" key will be assumed.
+            max_retries: How many times to call ReloadConfig before giving up.
         Raises:
             grpc.RpcError in case something bad happens while communicating.
                 StatusCode.DEADLINE_EXCEEDED when timeout is encountered. StatusCode.UNAVAILABLE when the service is unreachable.
@@ -212,7 +220,17 @@ class TensorFlowServingAPI:
         model_server_config.model_config_list.CopyFrom(config_list)
         request.config.CopyFrom(model_server_config)
 
-        response = self._service.HandleReloadConfigRequest(request, timeout)
+        print("timeout", timeout, "max_retries", max_retries)
+        while max_retries >= 0:
+            max_retries -= 1
+            try:
+                response = self._service.HandleReloadConfigRequest(request, timeout)
+                break
+            except grpc.RpcError as err:
+                if err.code() == grpc.StatusCode.UNKNOWN:
+                    time.sleep(0.125)
+                else:
+                    raise
 
         if not (response and response.status.error_code == 0):
             if response:

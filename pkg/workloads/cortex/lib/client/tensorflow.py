@@ -148,6 +148,7 @@ class TensorFlowClient:
             tags = ["latest", "highest"]
 
         if not self._caching_enabled:
+
             # determine model version
             if tag == "highest":
                 versions = self._client.poll_available_models(model_name)
@@ -163,6 +164,9 @@ class TensorFlowClient:
             return self._client.predict(model_input, model_name, model_version)
 
         if not self._multiple_processes and self._caching_enabled:
+
+            # TODO make it handle OOM situations (implies a file-based synchronization mechanism)
+
             # determine model version
             try:
                 if tag != "":
@@ -173,19 +177,27 @@ class TensorFlowClient:
                 # if model_name hasn't been found
                 return None
 
+            models_stats = []
+            for model_id in self._models.get_model_ids():
+                models_stats = self._models.has_model_id(model_id)
+            print("model stats", models_stats)
+
             # grab shared access to model tree
             available_model = True
+            logger().info(f"grabbing access to {model_name} {model_version}")
             with LockedModelsTree(self._models_tree, "r", model_name, model_version):
 
                 # check if the versioned model exists
                 model_id = model_name + "-" + model_version
                 if model_id not in self._models_tree:
                     available_model = False
+                    logger().info(f"model {model_id} is not available")
                     raise WithBreak
 
                 # retrieve model tree's metadata
                 upstream_model = self._models_tree[model_id]
-                current_upstream_ts = upstream_model["timestamp"]
+                current_upstream_ts = int(upstream_model["timestamp"].timestamp())
+                logger().info(f"model {model_id} is available")
 
             if not available_model:
                 if tag == "":
@@ -202,19 +214,27 @@ class TensorFlowClient:
             update_model = False
             prediction = None
             with LockedModel(self._models, "r", model_name, model_version):
+                logger().info(f"checking the {model_name} {model_version} status")
                 status, upstream_ts = self._models.has_model(model_name, model_version)
                 if status in ["not-available", "on-disk"] or (
                     status != "not-available" and upstream_ts < current_upstream_ts
                 ):
+                    logger().info(
+                        f"model {model_name} {model_version} is not loaded (with status {status} or older ts)"
+                    )
                     update_model = True
                     raise WithBreak
 
                 # run prediction
+                logger().info(f"run the prediction on {model_name} {model_version}")
                 self._models.get_model(model_name, model_version, tag)
                 prediction = self._client.predict(model_input, model_name, model_version)
 
             # download, load into memory the model and retrieve it
             if update_model:
+                logger().info(
+                    f"model {model_name} {model_version} is not loaded; downloading and loading"
+                )
                 # grab exclusive access to models holder
                 with LockedModel(self._models, "w", model_name, model_version):
 
@@ -223,6 +243,7 @@ class TensorFlowClient:
 
                     # download model
                     if status == "not-available":
+                        logger().info(f"downloading model {model_name} {model_version}")
                         date = self._models.download_model(
                             upstream_model["bucket"],
                             model_name,
@@ -230,11 +251,24 @@ class TensorFlowClient:
                             upstream_model["path"],
                         )
                         if not date:
+                            logger().info(
+                                f"download callback raised exception for {model_name} {model_version}"
+                            )
                             raise WithBreak
+                        logger().info(f"successful download for {model_name} {model_version}")
                         current_upstream_ts = date.timestamp()
+
+                    # unload model from TFS
+                    try:
+                        logger().info(f"unloading {model_name} {model_version}")
+                        self._models.unload_model(model_name, model_version)
+                    except Exception:
+                        logger().info(f"failed unloading {model_name} {model_version}")
+                        raise
 
                     # load model
                     try:
+                        logger().info(f"loading {model_name} {model_version}")
                         self._models.load_model(
                             model_name,
                             model_version,
@@ -247,9 +281,11 @@ class TensorFlowClient:
                             },
                         )
                     except Exception:
-                        raise WithBreak
+                        logger().info(f"failed loading {model_name} {model_version}")
+                        raise
 
                     # run prediction
+                    logger().info(f"run the prediction on {model_name} {model_version}")
                     self._models.get_model(model_name, model_version, tag)
                     prediction = self._client.predict(model_input, model_name, model_version)
 
@@ -272,12 +308,13 @@ class TensorFlowClient:
     ) -> Any:
         """
         Loads model into TFS.
-        Must only be used when processes_per_replica = 1 and caching enabled.
+        Must only be used when caching enabled.
         """
 
         try:
+            model_dir = os.path.split(model_path)[0]
             self._client.add_single_model(
-                model_name, model_version, model_path, signature_key, timeout=30.0
+                model_name, model_version, model_dir, signature_key, timeout=30.0, max_retries=3
             )
         except Exception as e:
             self._client.remove_single_model(model_name, model_version)
@@ -288,7 +325,7 @@ class TensorFlowClient:
     def _remove_models(self, model_ids: List[str]) -> None:
         """
         Remove models from TFS.
-        Must only be used when processes_per_replica = 1 and caching enabled.
+        Must only be used when caching enabled.
         """
 
         models = {}
@@ -301,7 +338,7 @@ class TensorFlowClient:
 
         model_names = []
         model_versions = []
-        for model_name, versions in models:
+        for model_name, versions in models.items():
             model_names.append(model_name)
             model_versions.append(versions)
 
