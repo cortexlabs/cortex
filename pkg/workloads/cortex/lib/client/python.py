@@ -282,15 +282,16 @@ class PythonClient:
                         current_upstream_ts = date.timestamp()
 
                     # load model
-                    try:
-                        self._models.load_model(
-                            model_name,
-                            model_version,
-                            current_upstream_ts,
-                            tags,
-                        )
-                    except Exception:
-                        raise WithBreak
+                    if status == "not-available":
+                        try:
+                            self._models.load_model(
+                                model_name,
+                                model_version,
+                                current_upstream_ts,
+                                tags,
+                            )
+                        except Exception:
+                            raise WithBreak
 
                     # retrieve model
                     model, _ = self._models.get_model(model_name, model_version, tag)

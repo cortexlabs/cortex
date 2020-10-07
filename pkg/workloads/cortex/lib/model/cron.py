@@ -1420,6 +1420,7 @@ class ModelsGC(AbstractLoopingThread):
         for model_id in ghost_model_ids:
             model_name, model_version = model_id.rsplit("-", maxsplit=1)
             with LockedModel(self._models, "w", model_name, model_version):
+                self._models.unload_model(model_name, model_version)
                 self._models.remove_model(model_name, model_version)
 
 

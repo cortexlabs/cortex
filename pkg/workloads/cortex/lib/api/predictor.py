@@ -192,12 +192,12 @@ class Predictor:
                     tree=self.models_tree,
                     ondisk_models_dir=self.model_dir,
                 ),
-                # ModelsGC(
-                #     interval=10,
-                #     api_spec=self.api_spec,
-                #     models=self.models,
-                #     tree=self.models_tree,
-                # ),
+                ModelsGC(
+                    interval=10,
+                    api_spec=self.api_spec,
+                    models=self.models,
+                    tree=self.models_tree,
+                ),
                 # ModelPreloader(
                 #     interval=10,
                 #     caching=self.caching_enabled,

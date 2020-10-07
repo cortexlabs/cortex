@@ -440,7 +440,7 @@ class TensorFlowServingAPI:
                 ) from e
 
         # run prediction
-        response_proto = self._stub.Predict(prediction_request, timeout=timeout)
+        response_proto = self._pred.Predict(prediction_request, timeout=timeout)
 
         # interpret response message
         results_dict = json_format.MessageToDict(response_proto)

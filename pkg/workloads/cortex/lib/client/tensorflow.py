@@ -257,31 +257,34 @@ class TensorFlowClient:
                         logger().info(f"successful download for {model_name} {model_version}")
                         current_upstream_ts = date.timestamp()
 
-                    # unload model from TFS
-                    try:
-                        logger().info(f"unloading {model_name} {model_version}")
-                        self._models.unload_model(model_name, model_version)
-                    except Exception:
-                        logger().info(f"failed unloading {model_name} {model_version}")
-                        raise
+                    if status == "not-available":
+                        # unload model from TFS
+                        try:
+                            logger().info(f"unloading {model_name} {model_version}")
+                            self._models.unload_model(model_name, model_version)
+                        except Exception:
+                            logger().info(f"failed unloading {model_name} {model_version}")
+                            raise
 
-                    # load model
-                    try:
-                        logger().info(f"loading {model_name} {model_version}")
-                        self._models.load_model(
-                            model_name,
-                            model_version,
-                            current_upstream_ts,
-                            tags,
-                            kwargs={
-                                "model_name": model_name,
-                                "model_version": model_version,
-                                "signature_key": self._determine_model_signature_key(model_name),
-                            },
-                        )
-                    except Exception:
-                        logger().info(f"failed loading {model_name} {model_version}")
-                        raise
+                        # load model
+                        try:
+                            logger().info(f"loading {model_name} {model_version}")
+                            self._models.load_model(
+                                model_name,
+                                model_version,
+                                current_upstream_ts,
+                                tags,
+                                kwargs={
+                                    "model_name": model_name,
+                                    "model_version": model_version,
+                                    "signature_key": self._determine_model_signature_key(
+                                        model_name
+                                    ),
+                                },
+                            )
+                        except Exception:
+                            logger().info(f"failed loading {model_name} {model_version}")
+                            raise
 
                     # run prediction
                     logger().info(f"run the prediction on {model_name} {model_version}")
