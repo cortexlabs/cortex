@@ -222,7 +222,7 @@ function main() {
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
-  echo " ✓"
+  echo "✓"
 
   echo -n "￮ configuring autoscaling "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
@@ -317,7 +317,6 @@ function setup_secrets() {
 }
 
 function setup_istio() {
-  echo -n "."
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
   if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
@@ -327,7 +326,8 @@ function setup_istio() {
   fi
 
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
-  istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml >/dev/null
+
+  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
 }
 
 function validate_cortex() {
@@ -433,6 +433,19 @@ function validate_cortex() {
   done
 
   echo " ✓"
+}
+
+function output_if_error() {
+  set +e
+  rm --force /tmp/suppress.out 2> /dev/null
+  ${1+"$@"} > /tmp/suppress.out 2>&1
+  if [ "$?" != "0" ]; then
+    echo
+    cat /tmp/suppress.out
+    exit 1
+  fi
+  rm --force /tmp/suppress.out 2> /dev/null
+  set -e
 }
 
 main
