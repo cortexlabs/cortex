@@ -16,9 +16,12 @@ apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   profile: minimal
-  hub: cortexlabs/cortex  # default is docker.io/istio
+  hub: {{ env['CORTEX_IMAGE_ISTIO_PROXY_HUB'] }}  # this is only used by the proxy, since pilot overrides it
+  tag: {{ env['CORTEX_IMAGE_ISTIO_PROXY_TAG'] }}  # this is only used by the proxy, since pilot overrides it
   components:
     pilot:  # "pilot" referrs to the istiod container
+      hub: {{ env['CORTEX_IMAGE_ISTIO_PILOT_HUB'] }}
+      tag: {{ env['CORTEX_IMAGE_ISTIO_PILOT_TAG'] }}
       k8s:
         resources:
           requests:
@@ -146,9 +149,9 @@ spec:
           cpu: 10m
       proxy:
         autoInject: disabled
-        image: istio-proxy  # default is proxyv2
+        image: {{ env['CORTEX_IMAGE_ISTIO_PROXY_IMAGE'] }}
     pilot:
-      image: istio-pilot  # default is pilot
+      image: {{ env['CORTEX_IMAGE_ISTIO_PILOT_IMAGE'] }}
     gateways:
       istio-ingressgateway:
         debug: info
