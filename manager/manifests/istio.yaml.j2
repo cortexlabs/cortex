@@ -16,8 +16,8 @@ apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   profile: minimal
-  hub: {{ env['CORTEX_IMAGE_ISTIO_PROXY_HUB'] }}  # this is only used by the proxy, since pilot overrides it
-  tag: {{ env['CORTEX_IMAGE_ISTIO_PROXY_TAG'] }}  # this is only used by the proxy, since pilot overrides it
+  hub: {{ env['CORTEX_IMAGE_ISTIO_PROXY_HUB'] }}  # this is only used by proxy, since pilot overrides it (proxy doesn't have dedicated hub config)
+  tag: {{ env['CORTEX_IMAGE_ISTIO_PROXY_TAG'] }}  # this is only used by proxy, since pilot overrides it (proxy doesn't have dedicated tag config)
   components:
     pilot:  # "pilot" referrs to the istiod container
       hub: {{ env['CORTEX_IMAGE_ISTIO_PILOT_HUB'] }}
@@ -66,12 +66,12 @@ spec:
                 port: 15443
                 targetPort: 15443
           resources:
-            limits:
-              cpu: 2000m
-              memory: 1024Mi
             requests:
               cpu: 100m
               memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
@@ -123,12 +123,12 @@ spec:
                 port: 15443
                 targetPort: 15443
           resources:
-            limits:
-              cpu: 2000m
-              memory: 1024Mi
             requests:
               cpu: 200m
               memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
