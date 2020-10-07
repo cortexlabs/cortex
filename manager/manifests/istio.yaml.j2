@@ -19,7 +19,7 @@ spec:
   hub: {{ env['CORTEX_IMAGE_ISTIO_PROXY_HUB'] }}  # this is only used by proxy, since pilot overrides it (proxy doesn't have dedicated hub config)
   tag: {{ env['CORTEX_IMAGE_ISTIO_PROXY_TAG'] }}  # this is only used by proxy, since pilot overrides it (proxy doesn't have dedicated tag config)
   components:
-    pilot:  # "pilot" referrs to the istiod container
+    pilot:  # "pilot" refers to the istiod container
       hub: {{ env['CORTEX_IMAGE_ISTIO_PILOT_HUB'] }}
       tag: {{ env['CORTEX_IMAGE_ISTIO_PILOT_TAG'] }}
       k8s:
