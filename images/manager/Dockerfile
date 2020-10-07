@@ -26,18 +26,8 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.19.0/b
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
 
-RUN curl -LO https://get.helm.sh/helm-v2.16.7-linux-amd64.tar.gz && \
-    tar -zxvf helm-v2.16.7-linux-amd64.tar.gz && \
-    chmod +x linux-amd64/helm && \
-    mv linux-amd64/helm /usr/local/bin/helm && \
-    rm -rf linux-amd64 && \
-    rm helm-v2.16.7-linux-amd64.tar.gz
-
-RUN ISTIO_VERSION=1.4.2 && \
-    curl -L "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-linux.tar.gz" | tar xz && \
-    mkdir ./istio-manifests && \
-    mv ./istio-${ISTIO_VERSION}/install/kubernetes/helm/* ./istio-manifests/ && \
-    rm -rf ./istio-${ISTIO_VERSION}
+ENV ISTIO_VERSION 1.7.3
+RUN curl -L https://istio.io/downloadIstio | sh -
 
 COPY manager /root
 

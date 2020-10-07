@@ -89,8 +89,6 @@ type Config struct {
 	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
 	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
 	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel          string             `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley           string             `json:"image_istio_galley" yaml:"image_istio_galley"`
 }
 
 type SpotConfig struct {
@@ -447,20 +445,6 @@ var UserValidation = &cr.StructValidation{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/istio-pilot:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioCitadel",
-			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-citadel:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioGalley",
-			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-galley:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -1161,8 +1145,6 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageStatsdUserKey, cc.ImageStatsd)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
-	items.Add(ImageIstioCitadelUserKey, cc.ImageIstioCitadel)
-	items.Add(ImageIstioGalleyUserKey, cc.ImageIstioGalley)
 
 	return items
 }

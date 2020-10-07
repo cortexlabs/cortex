@@ -30,16 +30,25 @@ def export(base_key, value):
     if value is None:
         return
     elif type(value) is list:
-        print(
-            'export {}="{}"'.format(
-                base_key.upper(), yaml.dump(value, default_flow_style=True).strip()
-            )
-        )
+        print(f'export {base_key.upper()}="{yaml.dump(value, default_flow_style=True).strip()}"')
     elif type(value) is dict:
         for key, child in value.items():
             export(base_key + "_" + key, child)
     else:
-        print('export {}="{}"'.format(base_key.upper(), value))
+        print(f'export {base_key.upper()}="{value}"')
+        if base_key.lower().startswith("cortex_image_"):
+            hub = value.rsplit("/", 1)[0]
+            suffix = value.rsplit("/", 1)[1]
+            if ":" in suffix:
+                image = suffix.split(":")[0]
+                tag = suffix.split(":")[1]
+            else:
+                image = suffix
+                tag = "latest"
+
+            print(f'export {base_key.upper()}_HUB="{hub}"')
+            print(f'export {base_key.upper()}_IMAGE="{image}"')
+            print(f'export {base_key.upper()}_TAG="{tag}"')
 
 
 def exportTags(tags, env_var_name, tag_overrides={}):

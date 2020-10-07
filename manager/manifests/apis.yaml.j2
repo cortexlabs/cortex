@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
   name: apis-gateway
@@ -27,6 +27,7 @@ spec:
         protocol: HTTP
       hosts:
         - "*"
+    {% if config.get('ssl_certificate_arn', '') == '' %}
     - port:
         number: 443
         name: https
@@ -37,3 +38,11 @@ spec:
         mode: SIMPLE
         serverCertificate: /etc/istio/customgateway-certs/tls.crt
         privateKey: /etc/istio/customgateway-certs/tls.key
+    {% else %}
+    - port:
+        number: 443
+        name: https
+        protocol: HTTP
+      hosts:
+        - "*"
+    {% endif %}

@@ -58,8 +58,6 @@ const (
 	ImageStatsdKey                         = "image_statsd"
 	ImageIstioProxyKey                     = "image_istio_proxy"
 	ImageIstioPilotKey                     = "image_istio_pilot"
-	ImageIstioCitadelKey                   = "image_istio_citadel"
-	ImageIstioGalleyKey                    = "image_istio_galley"
 
 	// User facing string
 	APIVersionUserKey                          = "cluster version"
@@ -103,6 +101,4 @@ const (
 	ImageStatsdUserKey                         = "statsd image"
 	ImageIstioProxyUserKey                     = "istio proxy image"
 	ImageIstioPilotUserKey                     = "istio pilot image"
-	ImageIstioCitadelUserKey                   = "istio citadel image"
-	ImageIstioGalleyUserKey                    = "istio galley image"
 )

@@ -220,8 +220,9 @@ function main() {
 
   echo -n "￮ configuring networking "
   setup_istio
-  envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
-  echo " ✓"
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
+  kubectl apply -f /workspace/apis.yaml >/dev/null
+  echo "✓"
 
   echo -n "￮ configuring autoscaling "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
@@ -316,7 +317,6 @@ function setup_secrets() {
 }
 
 function setup_istio() {
-  echo -n "."
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
   if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
@@ -325,36 +325,9 @@ function setup_istio() {
     kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
   fi
 
-  helm template istio-manifests/istio-init --name istio-init --namespace istio-system | kubectl apply -f - >/dev/null
-  until grep -q "virtualservice" <<< $(kubectl api-resources); do
-    echo -n "."
-    sleep 3
-  done
-  echo -n "."
-  sleep 3  # Sleep a bit longer to be safe, since there are multiple Istio initialization containers
-  echo -n "."
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
 
-  helm template istio-manifests/istio-cni --name istio-cni --namespace kube-system | kubectl apply -f - >/dev/null
-  until [ "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset istio-cni-node -n kube-system -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-    echo -n "."
-    sleep 3
-  done
-
-  export CORTEX_API_LOAD_BALANCER_ANNOTATION=""
-  if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ]; then
-    export CORTEX_API_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
-  fi
-  export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION=""
-  if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
-    export CORTEX_OPERATOR_LOAD_BALANCER_ANNOTATION='service.beta.kubernetes.io/aws-load-balancer-internal: "true"'
-  fi
-
-  export CORTEX_SSL_CERTIFICATE_ANNOTATION=""
-  if [[ -n "$CORTEX_SSL_CERTIFICATE_ARN" ]]; then
-    export CORTEX_SSL_CERTIFICATE_ANNOTATION="service.beta.kubernetes.io/aws-load-balancer-ssl-cert: $CORTEX_SSL_CERTIFICATE_ARN"
-  fi
-
-  envsubst < manifests/istio-values.yaml | helm template istio-manifests/istio --values - --name istio --namespace istio-system | kubectl apply -f - >/dev/null
+  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
 }
 
 function validate_cortex() {
@@ -460,6 +433,19 @@ function validate_cortex() {
   done
 
   echo " ✓"
+}
+
+function output_if_error() {
+  set +e
+  rm --force /tmp/suppress.out 2> /dev/null
+  ${1+"$@"} > /tmp/suppress.out 2>&1
+  if [ "$?" != "0" ]; then
+    echo
+    cat /tmp/suppress.out
+    exit 1
+  fi
+  rm --force /tmp/suppress.out 2> /dev/null
+  set -e
 }
 
 main

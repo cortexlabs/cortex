@@ -98,7 +98,7 @@ spec:
       name: http
 
 ---
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
   name: operator-gateway
@@ -125,7 +125,7 @@ spec:
         privateKey: /etc/istio/customgateway-certs/tls.key
 
 ---
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: operator
