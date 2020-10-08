@@ -23,64 +23,218 @@ mkdir /workspace
 
 arg1="$1"
 
-function ensure_eks() {
-  # Cluster statuses: https://github.com/aws/aws-sdk-go/blob/master/service/eks/api.go#L2785
+function main() {
+  if [ "$arg1" = "--update" ]; then
+    cluster_configure
+  else
+    cluster_up
+  fi
+}
+
+function cluster_up() {
+  create_eks
+
+  start_pre_download_images
+
+  if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "public" ]; then
+    create_vpc_link
+  fi
+
+  echo -n "￮ updating cluster configuration "
+  setup_configmap
+  setup_secrets
+  echo "✓"
+
+  echo -n "￮ configuring networking "
+  setup_istio
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
+  kubectl apply -f /workspace/apis.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring autoscaling "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring logging "
+  envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring metrics "
+  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
+  echo "✓"
+
+  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+    echo -n "￮ configuring gpu support "
+    envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
+    echo "✓"
+  fi
+
+  if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+    echo -n "￮ configuring inf support "
+    envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
+    echo "✓"
+  fi
+
+  if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "public" ]; then
+    create_vpc_link_integration
+  fi
+
+  restart_operator
+
+  validate_cortex
+
+  await_pre_download_images
+
+  if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
+    echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing, but you may now set up VPC Peering)"
+  else
+    echo -e "\ncortex is ready!"
+  fi
+}
+
+function cluster_configure() {
+  check_eks
+
+  resize_nodegroup
+
+  echo -n "￮ updating cluster configuration "
+  setup_configmap
+  setup_secrets
+  echo "✓"
+
+  restart_operator
+
+  validate_cortex
+
+  echo -e "\ncortex is ready!"
+}
+
+# creates the eks cluster and configures kubectl
+function create_eks() {
   set +e
   cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json 2> /dev/null)
   cluster_info_exit_code=$?
   set -e
 
-  # No cluster
-  if [ $cluster_info_exit_code -ne 0 ]; then
-    if [ "$arg1" = "--update" ]; then
-      echo "error: there is no cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing cortex cluster or create a cortex cluster with \`cortex cluster up\`"
+  # cluster already exists
+  if [ $cluster_info_exit_code -eq 0 ]; then
+    set +e
+    # cluster statuses: https://github.com/aws/aws-sdk-go/blob/master/service/eks/api.go#L6883
+    cluster_status=$(echo "$cluster_info" | jq -r 'first | .Status')
+    set -e
+
+    if [ "$cluster_status" == "ACTIVE" ]; then
+      echo "error: there is already a cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION"
+      exit 1
+    elif [ "$cluster_status" == "DELETING" ]; then
+      echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning down; please try again once it is completely deleted (may take a few minutes)"
+      exit 1
+    elif [ "$cluster_status" == "CREATING" ]; then
+      echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning up; please try again once it is ready"
+      exit 1
+    elif [ "$cluster_status" == "UPDATING" ]; then
+      echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently updating; please try again once it is ready"
+      exit 1
+    elif [ "$cluster_status" == "FAILED" ]; then
+      echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is failed; delete it with \`eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION\` and try again"
+      exit 1
+    else  # cluster exists, but is has an unknown status (unexpected)
+      echo "error: there is already a cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION (status: ${cluster_status})"
       exit 1
     fi
+  fi
 
-    echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
+  echo -e "￮ spinning up the cluster (this will take about 15 minutes) ...\n"
+  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > /workspace/eks.yaml
+  eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f /workspace/eks.yaml
+  echo
 
-    python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > /workspace/eks.yaml
-    eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f /workspace/eks.yaml
+  if [ "${CORTEX_SPOT,,}" == "true" ]; then
+    suspend_spot_az_rebalance
+  fi
 
-    if [ "$CORTEX_SPOT" == "True" ]; then
-      asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
-      asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
-      if [ "$asg_name" = "" ] || [ "$asg_name" = "null" ]; then
-        echo -e "unable to find autoscaling group name from info:\n$asg_info"
-        exit 1
-      fi
-      aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
-    fi
+  write_kubeconfig
+}
 
-    echo  # cluster is ready
-    return
+# checks that the eks cluster is active and configures kubectl
+function check_eks() {
+  set +e
+  cluster_info=$(eksctl get cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json 2> /dev/null)
+  cluster_info_exit_code=$?
+  set -e
+
+  # no cluster
+  if [ $cluster_info_exit_code -ne 0 ]; then
+    echo "error: there is no cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION; please update your configuration to point to an existing cortex cluster or create a cortex cluster with \`cortex cluster up\`"
+    exit 1
   fi
 
   set +e
+  # cluster statuses: https://github.com/aws/aws-sdk-go/blob/master/service/eks/api.go#L6883
   cluster_status=$(echo "$cluster_info" | jq -r 'first | .Status')
   set -e
-
-  if [[ "$cluster_status" == "ACTIVE" ]] && [[ "$arg1" != "--update" ]]; then
-    echo "error: there is already a cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION"
-    exit 1
-  fi
 
   if [ "$cluster_status" == "DELETING" ]; then
     echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning down; please try again once it is completely deleted (may take a few minutes)"
     exit 1
-  fi
-
-  if [ "$cluster_status" == "CREATING" ]; then
+  elif [ "$cluster_status" == "CREATING" ]; then
     echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently spinning up; please try again once it is ready"
     exit 1
-  fi
-
-  if [ "$cluster_status" == "FAILED" ]; then
+  elif [ "$cluster_status" == "UPDATING" ]; then
+    echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is currently updating; please try again once it is ready"
+    exit 1
+  elif [ "$cluster_status" == "FAILED" ]; then
     echo "error: your cortex cluster named \"$CORTEX_CLUSTER_NAME\" in $CORTEX_REGION is failed; delete it with \`eksctl delete cluster --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION\` and try again"
     exit 1
   fi
 
-  # Check for change in min/max instances
+  # cluster status is ACTIVE or unknown (in which case we'll assume things are ok instead of erroring)
+
+  write_kubeconfig
+}
+
+function write_kubeconfig() {
+  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
+  out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/miscellaneous/security#running-cortex-cluster-commands-from-different-iam-users"; exit 1; fi
+}
+
+function setup_configmap() {
+  kubectl -n=default create configmap 'cluster-config' \
+    --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+
+  kubectl -n=default create configmap 'env-vars' \
+    --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
+    --from-literal='CORTEX_REGION'=$CORTEX_REGION \
+    --from-literal='AWS_REGION'=$CORTEX_REGION \
+    --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
+    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
+    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
+    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
+    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+}
+
+function setup_secrets() {
+  kubectl -n=default create secret generic 'aws-credentials' \
+    --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
+    --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+}
+
+function restart_operator() {
+  echo -n "￮ starting operator "
+  kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
+  printed_dot="false"
+  until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; printed_dot="true"; sleep 2; done
+  envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
+  if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
+}
+
+function resize_nodegroup() {
+  # check for change in min/max instances
   asg_on_demand_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-on-demand\`)]")
   asg_on_demand_length=$(echo "$asg_on_demand_info" | jq -r 'length')
   asg_on_demand_name=""
@@ -162,114 +316,81 @@ function ensure_eks() {
   fi
 }
 
-function main() {
-  mkdir -p /workspace
+function suspend_spot_az_rebalance() {
+  asg_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
+  asg_name=$(echo "$asg_info" | jq -r 'first | .AutoScalingGroupName')
+  if [ "$asg_name" = "" ] || [ "$asg_name" = "null" ]; then
+    echo -e "unable to find autoscaling group name from info:\n$asg_info"
+    exit 1
+  fi
+  aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_name --scaling-processes AZRebalance
+}
 
-  # create cluster (if it doesn't already exist)
-  ensure_eks
-
-  # create VPC Link for API Gateway
-  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "public" ]; then
-    vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
-    if [ "$vpc_id" = "" ] || [ "$vpc_id" = "null" ]; then
-      echo "unable to find cortex vpc"
-      exit 1
-    fi
-
-    # filter all private subnets belonging to cortex cluster
-    private_subnets=$(aws ec2 describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s '.[].Subnets[].SubnetId' | tr -d '"')
-    if [ "$private_subnets" = "" ] || [ "$private_subnets" = "null" ]; then
-      echo "unable to find cortex private subnets"
-      exit 1
-    fi
-
-    # get default security group for cortex VPC
-    default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
-    if [ "$default_security_group" = "" ] || [ "$default_security_group" = "null" ]; then
-      echo "unable to find cortex default security group"
-      exit 1
-    fi
-
-    # create VPC Link
-    create_vpc_link_output=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags "$CORTEX_TAGS_JSON" --name $CORTEX_CLUSTER_NAME --subnet-ids $private_subnets --security-group-ids $default_security_group)
-    vpc_link_id=$(echo $create_vpc_link_output | jq .VpcLinkId | tr -d '"')
-    if [ "$vpc_link_id" = "" ] || [ "$vpc_link_id" = "null" ]; then
-      echo -e "unable to extract vpc link ID from create-vpc-link output:\n$create_vpc_link_output"
-      exit 1
-    fi
+function create_vpc_link() {
+  # get VPC ID
+  vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
+  if [ "$vpc_id" = "" ] || [ "$vpc_id" = "null" ]; then
+    echo "unable to find cortex vpc"
+    exit 1
   fi
 
-  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
-  out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/miscellaneous/security#running-cortex-cluster-commands-from-different-iam-users"; exit 1; fi
-
-  # pre-download images on cortex cluster up
-  if [ "$arg1" != "--update" ]; then
-    if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
-      envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
-    elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
-      envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
-    else
-      envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
-    fi
+  # filter all private subnets belonging to cortex cluster
+  private_subnets=$(aws ec2 describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s '.[].Subnets[].SubnetId' | tr -d '"')
+  if [ "$private_subnets" = "" ] || [ "$private_subnets" = "null" ]; then
+    echo "unable to find cortex private subnets"
+    exit 1
   fi
 
-  echo -n "￮ updating cluster configuration "
-  setup_configmap
-  setup_secrets
-  echo "✓"
+  # get default security group for cortex VPC
+  default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
+  if [ "$default_security_group" = "" ] || [ "$default_security_group" = "null" ]; then
+    echo "unable to find cortex default security group"
+    exit 1
+  fi
 
-  echo -n "￮ configuring networking "
-  setup_istio
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
-  kubectl apply -f /workspace/apis.yaml >/dev/null
-  echo "✓"
+  # create VPC Link
+  create_vpc_link_output=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags "$CORTEX_TAGS_JSON" --name $CORTEX_CLUSTER_NAME --subnet-ids $private_subnets --security-group-ids $default_security_group)
+  vpc_link_id=$(echo $create_vpc_link_output | jq .VpcLinkId | tr -d '"')
+  if [ "$vpc_link_id" = "" ] || [ "$vpc_link_id" = "null" ]; then
+    echo -e "unable to extract vpc link ID from create-vpc-link output:\n$create_vpc_link_output"
+    exit 1
+  fi
+}
 
-  echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
-  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+function create_vpc_link_integration() {
+  echo -n "￮ creating api gateway vpc link integration "
+  api_id=$(python get_api_gateway_id.py)
+  python create_gateway_integration.py $api_id $vpc_link_id
   echo "✓"
+  echo -n "￮ waiting for api gateway vpc link integration "
+  until [ "$(aws apigatewayv2 get-vpc-link --region $CORTEX_REGION --vpc-link-id $vpc_link_id | jq .VpcLinkStatus | tr -d '"')" = "AVAILABLE" ]; do echo -n "."; sleep 3; done
+  echo " ✓"
+}
 
-  echo -n "￮ configuring logging "
-  envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+function setup_istio() {
+  envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
-  echo -n "￮ configuring metrics "
-  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
-  envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
+    WEBSITE=localhost
+    openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
+    kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
+  fi
 
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
+  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
+}
+
+function start_pre_download_images() {
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
-    echo -n "￮ configuring gpu support "
-    envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
+    envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
+  elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+    envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
+  else
+    envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
   fi
+}
 
-  if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
-    echo -n "￮ configuring inf support "
-    envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
-  fi
-
-  # add VPC Link integration to API Gateway
-  if [ "$arg1" != "--update" ] && [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "public" ]; then
-    echo -n "￮ creating api gateway vpc link integration "
-    api_id=$(python get_api_gateway_id.py)
-    python create_gateway_integration.py $api_id $vpc_link_id
-    echo "✓"
-    echo -n "￮ waiting for api gateway vpc link integration "
-    until [ "$(aws apigatewayv2 get-vpc-link --region $CORTEX_REGION --vpc-link-id $vpc_link_id | jq .VpcLinkStatus | tr -d '"')" = "AVAILABLE" ]; do echo -n "."; sleep 3; done
-    echo " ✓"
-  fi
-
-  echo -n "￮ starting operator "
-  kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
-  printed_dot="false"
-  until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; printed_dot="true"; sleep 2; done
-  envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-  if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
-
-  validate_cortex
-
+function await_pre_download_images() {
   if kubectl get daemonset image-downloader -n=default &>/dev/null; then
     echo -n "￮ downloading docker images "
     printed_dot="false"
@@ -284,50 +405,6 @@ function main() {
     kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
     if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
   fi
-
-  if [ "$arg1" != "--update" ] && [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
-    echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing, but you may now set up VPC Peering)"
-  else
-    echo -e "\ncortex is ready!"
-  fi
-}
-
-function setup_configmap() {
-  kubectl -n=default create configmap 'cluster-config' \
-    --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-
-  kubectl -n=default create configmap 'env-vars' \
-    --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
-    --from-literal='CORTEX_REGION'=$CORTEX_REGION \
-    --from-literal='AWS_REGION'=$CORTEX_REGION \
-    --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
-    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
-    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
-    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-}
-
-function setup_secrets() {
-  kubectl -n=default create secret generic 'aws-credentials' \
-    --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
-    --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-}
-
-function setup_istio() {
-  envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
-
-  if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
-    WEBSITE=localhost
-    openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
-    kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
-  fi
-
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
-
-  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
 }
 
 function validate_cortex() {
