@@ -659,7 +659,7 @@ var _exportCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.RawAPIKey(), path.Join(baseDir, apiSpec.FileName))
+			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.RawAPIKey(info.ClusterConfig.ClusterName), path.Join(baseDir, apiSpec.FileName))
 			if err != nil {
 				exit.Error(err)
 			}
