@@ -437,13 +437,16 @@ class ModelsHolder:
         if self._mem_cache_size <= 0 or self._disk_cache_size <= 0:
             return collected
 
+        # TODO retrieve model IDs that go over the specified threshold,
+        # BUT for models only present on disk (probably another parameter is required to specify that)
+        # it's not mission critical
         stale_mem_model_ids = self._lru_model_ids(self._mem_cache_size)
         stale_disk_model_ids = self._lru_model_ids(
             self._disk_cache_size - len(exclude_disk_model_ids)
         )
 
-        logger().info(f"collecting models {stale_mem_model_ids} from TFS server")
         if self._remove_callback and not dry_run:
+            logger().info(f"collecting models {stale_mem_model_ids} from TFS")
             self._remove_callback(stale_mem_model_ids)
 
         # don't delete excluded model IDs from disk
@@ -452,8 +455,8 @@ class ModelsHolder:
             len(stale_disk_model_ids) - self._disk_cache_size :
         ]
 
-        logger().info(f"collecting models {stale_disk_model_ids} from disk")
         if not dry_run:
+            logger().info(f"collecting models {stale_disk_model_ids} from memory/disk")
             for model_id in stale_mem_model_ids:
                 self.remove_model_by_id(model_id, mem=True, disk=False)
             for model_id in stale_disk_model_ids:

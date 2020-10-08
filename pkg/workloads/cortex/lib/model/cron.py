@@ -1397,7 +1397,7 @@ class ModelsGC(AbstractLoopingThread):
 
         # otherwise, grab exclusive access to all models with exclusive access preference
         # and remove excess models from cache
-        if acquired:
+        if not acquired:
             logger().info("grabbing exclusive access preference for GC")
             self._models.set_global_preference_policy("w")
             with LockedGlobalModelsGC(self._models, "w"):

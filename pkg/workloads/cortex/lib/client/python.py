@@ -245,7 +245,7 @@ class PythonClient:
 
                 # retrieve model tree's metadata
                 upstream_model = self._models_tree[model_id]
-                current_upstream_ts = upstream_model["timestamp"]
+                current_upstream_ts = int(upstream_model["timestamp"].timestamp())
 
             if not available_model:
                 return None
