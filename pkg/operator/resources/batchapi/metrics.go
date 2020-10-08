@@ -181,7 +181,7 @@ func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricData
 			Label: aws.String("Succeeded"),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cluster.LogGroup),
+					Namespace:  aws.String(config.Cluster.ClusterName),
 					MetricName: aws.String("Succeeded"),
 					Dimensions: getJobDimensionsCounter(jobKey),
 				},
@@ -194,7 +194,7 @@ func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricData
 			Label: aws.String("Failed"),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cluster.LogGroup),
+					Namespace:  aws.String(config.Cluster.ClusterName),
 					MetricName: aws.String("Failed"),
 					Dimensions: getJobDimensionsCounter(jobKey),
 				},
@@ -207,7 +207,7 @@ func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricData
 			Label: aws.String("AverageTimePerBatch"),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cluster.LogGroup),
+					Namespace:  aws.String(config.Cluster.ClusterName),
 					MetricName: aws.String("TimePerBatch"),
 					Dimensions: getJobDimensionsHistogram(jobKey),
 				},
@@ -220,7 +220,7 @@ func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricData
 			Label: aws.String("Total"),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cluster.LogGroup),
+					Namespace:  aws.String(config.Cluster.ClusterName),
 					MetricName: aws.String("TimePerBatch"),
 					Dimensions: getJobDimensionsHistogram(jobKey),
 				},

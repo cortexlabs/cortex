@@ -68,7 +68,6 @@ type Config struct {
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
-	LogGroup                   string             `json:"log_group" yaml:"log_group"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
@@ -287,13 +286,6 @@ var UserValidation = &cr.StructValidation{
 				TreatNullAsEmpty: true,
 				Validator:        validateBucketNameOrEmpty,
 			},
-		},
-		{
-			StructField: "LogGroup",
-			StringValidation: &cr.StringValidation{
-				MaxLength: 63,
-			},
-			DefaultField: "ClusterName",
 		},
 		{
 			StructField: "SubnetVisibility",
@@ -1122,7 +1114,6 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(InstancePoolsUserKey, *cc.SpotConfig.InstancePools)
 		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
-	items.Add(LogGroupUserKey, cc.LogGroup)
 	items.Add(SubnetVisibilityUserKey, cc.SubnetVisibility)
 	items.Add(NATGatewayUserKey, cc.NATGateway)
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)

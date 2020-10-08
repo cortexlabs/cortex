@@ -183,7 +183,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createLogGroupIfNotFound(awsClient, clusterConfig.LogGroup, clusterConfig.Tags)
+		err = createLogGroupIfNotFound(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
