@@ -75,7 +75,7 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 
 func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
 	projectID := hash.Bytes(projectBytes)
-	projectKey := spec.ProjectKey(projectID)
+	projectKey := spec.ProjectKey(projectID, config.Cluster.ClusterName)
 	projectFileMap, err := archive.UnzipMemToMem(projectBytes)
 	if err != nil {
 		return nil, err

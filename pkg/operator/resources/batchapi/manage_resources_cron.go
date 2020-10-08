@@ -141,7 +141,7 @@ func ManageJobResources() error {
 
 	// existing k8sjob but job is not in progress
 	for jobID := range strset.Difference(k8sJobIDSet, inProgressJobIDSet) {
-		jobKey := spec.JobKey{APIName: k8sJobMap[jobID].Labels["apiName"], ID: k8sJobMap[jobID].Labels["jobID"]}
+		jobKey := spec.JobKey{APIName: k8sJobMap[jobID].Labels["apiName"], ID: k8sJobMap[jobID].Labels["jobID"], ClusterName: config.Cluster.ClusterName}
 
 		// delete both k8sjob and queue
 		err := deleteJobRuntimeResources(jobKey)

@@ -78,8 +78,9 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 	jobID := spec.MonotonicallyDecreasingID()
 
 	jobKey := spec.JobKey{
-		APIName: apiSpec.Name,
-		ID:      jobID,
+		APIName:     apiSpec.Name,
+		ID:          jobID,
+		ClusterName: config.Cluster.ClusterName,
 	}
 
 	tags := map[string]string{

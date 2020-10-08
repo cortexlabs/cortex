@@ -135,7 +135,7 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 
 func getMostRecentlySubmittedJobStates(apiName string, count int) ([]*JobState, error) {
 	// a single job state may include 5 files on average, overshoot the number of files needed
-	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, spec.BatchAPIJobPrefix(apiName), false, pointer.Int64(int64(count*_averageFilesPerJobState)))
+	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, spec.BatchAPIJobPrefix(apiName, config.Cluster.ClusterName), false, pointer.Int64(int64(count*_averageFilesPerJobState)))
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func getMostRecentlySubmittedJobStates(apiName string, count int) ([]*JobState, 
 
 	jobStateCount := 0
 	for _, jobID := range jobIDOrder {
-		jobState := getJobStateFromFiles(spec.JobKey{APIName: apiName, ID: jobID}, lastUpdatedMaps[jobID])
+		jobState := getJobStateFromFiles(spec.JobKey{APIName: apiName, ID: jobID, ClusterName: config.Cluster.ClusterName}, lastUpdatedMaps[jobID])
 		jobStates = append(jobStates, &jobState)
 
 		jobStateCount++

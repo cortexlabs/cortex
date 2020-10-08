@@ -19,6 +19,7 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -50,7 +51,8 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	defer socket.Close()
 
 	batchapi.ReadLogs(spec.JobKey{
-		APIName: deployedResource.Name,
-		ID:      jobID,
+		APIName:     deployedResource.Name,
+		ID:          jobID,
+		ClusterName: config.Cluster.ClusterName,
 	}, socket)
 }
