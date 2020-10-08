@@ -1377,7 +1377,7 @@ class ModelsGC(AbstractLoopingThread):
             )
         if not collectible:
             logger().info("removing stale models (p1)")
-            # self._remove_stale_models()
+            self._remove_stale_models()
             return
 
         # try to grab exclusive access to all models with shared access preference
@@ -1408,9 +1408,12 @@ class ModelsGC(AbstractLoopingThread):
                 )
 
         logger().info("removing stale models (p2)")
-        # self._remove_stale_models()
+        self._remove_stale_models()
 
     def _remove_stale_models(self) -> None:
+        """
+        Remove models that exist locally in-memory and on-disk that no longer appear on the S3 upstream.
+        """
 
         # get available upstream S3 model IDs
         s3_model_names = self._tree.get_model_names()
@@ -1429,12 +1432,17 @@ class ModelsGC(AbstractLoopingThread):
             present_model_ids = self._models.get_model_ids()
 
         # remove models that don't exist in the S3 upstream
-        ghost_model_ids = list(set(s3_model_ids) - set(present_model_ids))
+        ghost_model_ids = list(set(present_model_ids) - set(s3_model_ids))
         for model_id in ghost_model_ids:
             model_name, model_version = model_id.rsplit("-", maxsplit=1)
             with LockedModel(self._models, "w", model_name, model_version):
-                self._models.unload_model(model_name, model_version)
-                self._models.remove_model(model_name, model_version)
+                status, ts = self._models.has_model(model_name, model_version)
+                if status in ["in-memory", "on-disk"]:
+                    logger().info("removing stale model {model_name} of version {model_version}")
+                if status == "in-memory":
+                    self._models.unload_model(model_name, model_version)
+                if status in ["in-memory", "on-disk"]:
+                    self._models.remove_model(model_name, model_version)
 
 
 class ModelTreeUpdater(AbstractLoopingThread):
