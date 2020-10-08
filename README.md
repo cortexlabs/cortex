@@ -7,18 +7,18 @@
 
 <br>
 
-Cortex makes it easy to deploy machine learning models in production.
-
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 
 [install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
+Cortex makes it easy to deploy machine learning models in production.
+
 <br>
 
 # What you can do with Cortex
 
-## Write APIs in Python
+### Write APIs in Python
 
 Define any real-time or batch inference pipeline as simple Python APIs, regardless of framework or hardware.
 
@@ -33,7 +33,7 @@ class PythonPredictor:
     return self.analyzer(payload["text"])[0]
 ```
 
-## Configure infrastructure in YAML
+### Configure infrastructure in YAML
 
 Define autoscaling behavior, monitoring, compute resources, update strategies, and more—or use Cortex's defaults.
 
@@ -51,7 +51,7 @@ Define autoscaling behavior, monitoring, compute resources, update strategies, a
     min_replicas: 3
 ```
 
-## Focus on machine learning engineering, not DevOps
+### Focus on machine learning engineering, not DevOps
 
 You don't need to bring your own cluster or containerize your models. Cortex automates your cloud infrastructure.
 
@@ -66,7 +66,7 @@ configuring metrics ...
 cortex is ready!
 ```
 
-## Scale to handle production traffic
+### Scale to handle production traffic
 
 Handle traffic with request-based autoscaling. Optimize spend with spot instances and multi-model APIs.
 
@@ -77,7 +77,7 @@ status   last-update   replicas   requests   latency
 live     10h           10         100m       100ms
 ```
 
-## Integrate with your stack
+### Integrate with your stack
 
 Integrate Cortex with any data science platform and CI/CD tooling, without changing your workflow.
 
@@ -89,16 +89,18 @@ import mlflow
 ...
 ```
 
-## Run on your AWS account
+### Run on your AWS account
 
 Run Cortex on your AWS account (GCP support is coming soon), maintaining control over resource utilization and data access.
 
-```bash
+```yaml
 region: us-west-2
 instance_type: p2.xlarge
 min_instances: 1
 max_instances: 5
 ```
+
+<br>
 
 # Get started
 
