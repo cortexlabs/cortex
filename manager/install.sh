@@ -442,8 +442,8 @@ function validate_cortex() {
         echo "operator endpoint reachable: $operator_endpoint_reachable"
       fi
       if [ "$operator_endpoint" != "" ]; then
-        echo "operator curl response (404 is expected):"
-        curl --max-time 3 $operator_endpoint
+        echo "operator curl response:"
+        curl --max-time 3 "${operator_endpoint}/verifycortex"
       fi
       echo
       exit 1
@@ -493,7 +493,7 @@ function validate_cortex() {
 
     if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
       if [ "$operator_endpoint_reachable" != "true" ]; then
-        if ! curl --max-time 3 $operator_endpoint >/dev/null 2>&1; then
+        if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
           continue
         fi
         operator_endpoint_reachable="true"
