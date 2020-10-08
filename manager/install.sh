@@ -445,6 +445,7 @@ function validate_cortex() {
         echo "operator curl response (404 is expected):"
         curl --max-time 3 $operator_endpoint
       fi
+      echo
       exit 1
     fi
 
