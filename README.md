@@ -3,14 +3,14 @@
 
 <br>
 
-# Model serving for developers
-
-<br>
-
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 
 [install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
+
+# Model serving for developers
+
+<br>
 
 Cortex makes it easy to deploy machine learning models in production.
 
