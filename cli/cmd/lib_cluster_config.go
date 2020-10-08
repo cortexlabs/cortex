@@ -276,11 +276,6 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.Bucket = cachedClusterConfig.Bucket
 
-	if userClusterConfig.LogGroup != "" && userClusterConfig.LogGroup != cachedClusterConfig.LogGroup {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.LogGroupKey, cachedClusterConfig.LogGroup)
-	}
-	userClusterConfig.LogGroup = cachedClusterConfig.LogGroup
-
 	if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
 	}
@@ -544,7 +539,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	if clusterConfig.SubnetVisibility == clusterconfig.PrivateSubnetVisibility {
 		privateSubnetMsg = ", and will use private subnets for all EC2 instances"
 	}
-	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.LogGroup, privateSubnetMsg)
+	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.ClusterName, privateSubnetMsg)
 
 	if clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
 		fmt.Print("warning: you've disabled API Gateway cluster-wide, so APIs will not be able to create API Gateway endpoints (they will still be reachable via the API load balancer; see https://docs.cortex.dev/deployments/networking for more information)\n\n")
@@ -592,9 +587,6 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	}
 	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
-	if clusterConfig.LogGroup != defaultConfig.LogGroup {
-		items.Add(clusterconfig.LogGroupUserKey, clusterConfig.LogGroup)
-	}
 
 	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
 	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
