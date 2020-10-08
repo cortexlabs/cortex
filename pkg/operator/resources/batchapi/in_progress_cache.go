@@ -37,7 +37,7 @@ func jobKeyFromInProgressS3Key(s3Key string) spec.JobKey {
 	apiName := s3PathSplit[len(s3PathSplit)-2]
 	jobID := s3PathSplit[len(s3PathSplit)-1]
 
-	return spec.JobKey{APIName: apiName, ID: jobID, ClusterName: config.Cluster.ClusterName}
+	return spec.JobKey{APIName: apiName, ID: jobID}
 }
 
 func uploadInProgressFile(jobKey spec.JobKey) error {

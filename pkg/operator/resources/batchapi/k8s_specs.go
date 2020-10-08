@@ -51,7 +51,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.Cluster.ClusterName),
 			})
 		}
 	}
@@ -100,7 +100,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.Cluster.ClusterName),
 			})
 		}
 	}
@@ -150,7 +150,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.Cluster.ClusterName),
 			})
 		}
 	}

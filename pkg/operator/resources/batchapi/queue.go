@@ -58,7 +58,7 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 	apiNameSplit := dashSplit[1 : len(dashSplit)-1]
 	apiName := strings.Join(apiNameSplit, "-")
 
-	return spec.JobKey{APIName: apiName, ID: jobID, ClusterName: config.Cluster.ClusterName}
+	return spec.JobKey{APIName: apiName, ID: jobID}
 }
 
 func createFIFOQueue(jobKey spec.JobKey, tags map[string]string) (string, error) {

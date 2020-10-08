@@ -27,9 +27,8 @@ import (
 )
 
 type JobKey struct {
-	ID          string `json:"job_id"`
-	APIName     string `json:"api_name"`
-	ClusterName string `json:"cluster_name"`
+	ID      string `json:"job_id"`
+	APIName string `json:"api_name"`
 }
 
 func (j JobKey) UserString() string {
@@ -37,13 +36,13 @@ func (j JobKey) UserString() string {
 }
 
 // e.g. /<cluster name>/jobs/<cortex version>/<api_name>/<job_id>/spec.json
-func (j JobKey) SpecFilePath() string {
-	return path.Join(j.Prefix(), "spec.json")
+func (j JobKey) SpecFilePath(clusterName string) string {
+	return path.Join(j.Prefix(clusterName), "spec.json")
 }
 
 // e.g. /<cluster name>/jobs/<cortex version>/<api_name>/<job_id>
-func (j JobKey) Prefix() string {
-	return s.EnsureSuffix(path.Join(BatchAPIJobPrefix(j.APIName, j.ClusterName), j.ID), "/")
+func (j JobKey) Prefix(clusterName string) string {
+	return s.EnsureSuffix(path.Join(BatchAPIJobPrefix(j.APIName, clusterName), j.ID), "/")
 }
 
 func (j JobKey) K8sName() string {

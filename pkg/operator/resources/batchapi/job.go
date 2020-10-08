@@ -78,9 +78,8 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 	jobID := spec.MonotonicallyDecreasingID()
 
 	jobKey := spec.JobKey{
-		APIName:     apiSpec.Name,
-		ID:          jobID,
-		ClusterName: config.Cluster.ClusterName,
+		APIName: apiSpec.Name,
+		ID:      jobID,
 	}
 
 	tags := map[string]string{
@@ -135,7 +134,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 
 func downloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
 	jobSpec := spec.Job{}
-	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.SpecFilePath())
+	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.SpecFilePath(config.Cluster.ClusterName))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
 	}
@@ -143,7 +142,7 @@ func downloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
 }
 
 func uploadJobSpec(jobSpec *spec.Job) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath())
+	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath(config.Cluster.ClusterName))
 	if err != nil {
 		return err
 	}

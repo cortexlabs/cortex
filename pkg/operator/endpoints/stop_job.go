@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -32,7 +31,7 @@ func StopJob(w http.ResponseWriter, r *http.Request) {
 	apiName := vars["apiName"]
 	jobID := vars["jobID"]
 
-	err := batchapi.StopJob(spec.JobKey{APIName: apiName, ID: jobID, ClusterName: config.Cluster.ClusterName})
+	err := batchapi.StopJob(spec.JobKey{APIName: apiName, ID: jobID})
 	if err != nil {
 		respondError(w, r, err)
 		return

@@ -20,7 +20,6 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
@@ -45,7 +44,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobKey := spec.JobKey{APIName: apiName, ID: jobID, ClusterName: config.Cluster.ClusterName}
+	jobKey := spec.JobKey{APIName: apiName, ID: jobID}
 
 	jobStatus, err := batchapi.GetJobStatus(jobKey)
 	if err != nil {
