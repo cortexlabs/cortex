@@ -231,9 +231,6 @@ class TensorFlowClient:
 
             # download, load into memory the model and retrieve it
             if update_model:
-                logger().info(
-                    f"model {model_name} {model_version} is not loaded; downloading and loading"
-                )
                 # grab exclusive access to models holder
                 with LockedModel(self._models, "w", model_name, model_version):
 
@@ -247,21 +244,27 @@ class TensorFlowClient:
                         # unload model from TFS
                         if status == "in-memory":
                             try:
-                                logger().info(f"unloading {model_name} {model_version}")
+                                logger().info(
+                                    f"unloading model {model_name} of version {model_version} from TFS"
+                                )
                                 self._models.unload_model(model_name, model_version)
                             except Exception:
-                                logger().info(f"failed unloading {model_name} {model_version}")
+                                logger().info(
+                                    f"failed unloading model {model_name} of version {model_version} from TFS"
+                                )
                                 raise
 
                         # remove model from disk and references
                         if status in ["on-disk", "in-memory"]:
                             logger().info(
-                                f"removing model references from memory and from disk for {model_name} {model_version}"
+                                f"removing model references from memory and from disk for model {model_name} of version {model_version}"
                             )
                             self._models.remove_model(model_name, model_version)
 
                         # download model
-                        logger().info(f"downloading model {model_name} {model_version}")
+                        logger().info(
+                            f"downloading model {model_name} of version {model_version} from the S3 upstream"
+                        )
                         date = self._models.download_model(
                             upstream_model["bucket"],
                             model_name,
@@ -269,16 +272,14 @@ class TensorFlowClient:
                             upstream_model["path"],
                         )
                         if not date:
-                            logger().info(
-                                f"download callback raised exception for {model_name} {model_version}"
-                            )
                             raise WithBreak
-                        logger().info(f"successful download for {model_name} {model_version}")
                         current_upstream_ts = date.timestamp()
 
                     # load model
                     try:
-                        logger().info(f"loading {model_name} {model_version}")
+                        logger().info(
+                            f"loading model {model_name} of version {model_version} into memory"
+                        )
                         self._models.load_model(
                             model_name,
                             model_version,
@@ -291,11 +292,9 @@ class TensorFlowClient:
                             },
                         )
                     except Exception:
-                        logger().info(f"failed loading {model_name} {model_version}")
-                        raise
+                        raise WithBreak
 
                     # run prediction
-                    logger().info(f"run the prediction on {model_name} {model_version}")
                     self._models.get_model(model_name, model_version, tag)
                     prediction = self._client.predict(model_input, model_name, model_version)
 

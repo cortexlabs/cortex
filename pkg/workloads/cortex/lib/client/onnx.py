@@ -218,11 +218,11 @@ class ONNXClient:
                         ):
                             if status == "not-available":
                                 logger().info(
-                                    f"loading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})"
+                                    f"loading model {model_name} of version {model_version} (thread {td.get_ident()})"
                                 )
                             else:
                                 logger().info(
-                                    f"reloading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})"
+                                    f"reloading model {model_name} of version {model_version} (thread {td.get_ident()})"
                                 )
                             try:
                                 self._models.load_model(
@@ -233,7 +233,7 @@ class ONNXClient:
                                 )
                             except Exception as e:
                                 raise UserRuntimeException(
-                                    f"failed (re-)loading model {model_name} of version {model_version} (process {mp.current_process().pid}, thread {td.get_ident()})",
+                                    f"failed (re-)loading model {model_name} of version {model_version} (thread {td.get_ident()})",
                                     str(e),
                                 )
                         model, _ = self._models.get_model(model_name, model_version, tag)
@@ -291,14 +291,22 @@ class ONNXClient:
                     if status == "not-available" or (
                         status in ["on-disk", "in-memory"] and upstream_ts < current_upstream_ts
                     ):
-                        # remove model from disk and references
+                        # remove model from disk and memory
                         if status in ["on-disk", "in-memory"]:
-                            logger().info(
-                                f"removing model references from memory and from disk for {model_name} {model_version}"
-                            )
+                            if status == "on-disk":
+                                logger().info(
+                                    f"removing model from disk for model {model_name} of version {model_version}"
+                                )
+                            else:
+                                logger().info(
+                                    f"removing model from disk and memory for model {model_name} of version {model_version}"
+                                )
                             self._models.remove_model(model_name, model_version)
 
                         # download model
+                        logger().info(
+                            f"downloading model {model_name} of version {model_version} from the S3 upstream"
+                        )
                         date = self._models.download_model(
                             upstream_model["bucket"],
                             model_name,
@@ -311,6 +319,9 @@ class ONNXClient:
 
                     # load model
                     try:
+                        logger().info(
+                            f"loading model {model_name} of version {model_version} into memory"
+                        )
                         self._models.load_model(
                             model_name,
                             model_version,

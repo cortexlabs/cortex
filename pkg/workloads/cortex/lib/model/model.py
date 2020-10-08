@@ -421,7 +421,7 @@ class ModelsHolder:
 
     def garbage_collect(
         self, exclude_disk_model_ids: List[str] = [], dry_run: bool = False
-    ) -> bool:
+    ) -> Tuple[bool, List[str], List[str]]:
         """
         Removes stale in-memory and on-disk models based on LRU policy.
         Also calls the "remove" callback before removing the models from this object. The callback must not raise any exceptions.
@@ -431,7 +431,7 @@ class ModelsHolder:
             dry_run: Just test if there are any models to remove. Can apply shared lock (R) instead.
 
         Returns:
-            True when models had to be collected. False otherwise.
+            A 3-element tuple. First element tells whether models had to be collected. The 2nd and 3rd elements contain the model IDs that were removed from memory and disk respectively.
         """
         collected = False
         if self._mem_cache_size <= 0 or self._disk_cache_size <= 0:
@@ -456,7 +456,8 @@ class ModelsHolder:
         ]
 
         if not dry_run:
-            logger().info(f"collecting models {stale_disk_model_ids} from memory/disk")
+            logger().info(f"collecting models {stale_mem_model_ids} from memory")
+            logger().info(f"collecting models {stale_disk_model_ids} from disk")
             for model_id in stale_mem_model_ids:
                 self.remove_model_by_id(model_id, mem=True, disk=False)
             for model_id in stale_disk_model_ids:
@@ -465,7 +466,7 @@ class ModelsHolder:
         if len(stale_mem_model_ids) > 0 or len(stale_disk_model_ids) > 0:
             collected = True
 
-        return collected
+        return collected, stale_mem_model_ids, stale_disk_model_ids
 
     def get_model_ids(self) -> List[str]:
         """
@@ -497,6 +498,22 @@ class ModelsHolder:
         return model_ids
 
     #################
+
+
+def ids_to_models(model_ids: List[str]) -> Dict[str, List[str]]:
+    """
+    Convert model IDs (MODEL_NAME-MODEL_VERSION) to a dictionary with its keys being
+    the model names and its values being lists of the associated versions for each given model name.
+    """
+
+    models = {}
+    for model_id in model_ids:
+        model_name, model_version = model_id.rsplit("-", maxsplit=1)
+        if model_name not in models:
+            models[model_name] = [model_version]
+        else:
+            models[model_name].append(model_version)
+    return models
 
 
 class LockedGlobalModelsGC:

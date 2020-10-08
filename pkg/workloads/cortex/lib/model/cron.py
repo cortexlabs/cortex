@@ -44,6 +44,7 @@ from cortex.lib.model import (
     validate_models_dir_paths,
     validate_model_paths,
     ModelsHolder,
+    ids_to_models,
     LockedGlobalModelsGC,
     LockedModel,
     CuratedModelResources,
@@ -351,8 +352,20 @@ class FileBasedModelsTreeUpdater(mp.Process):
         return self._ran_once.is_set()
 
     def _make_local_models_available(self) -> None:
+        """
+        Make local models (provided through predictor:model_path or models:paths) available on disk.
+        """
+
         timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
-        for local_model_name in self._local_model_names:
+
+        if len(self._local_model_names) > 0:
+            message = "local model "
+        elif len(self._local_model_names) > 1:
+            message = "local models "
+        else:
+            return None
+
+        for local_model_name, idx in enumerate(self._local_model_names):
             versions = self._spec_models[local_model_name]["versions"]
             if len(versions) == 0:
                 resource = os.path.join(self._lock_dir, local_model_name + "-" + "1" + ".txt")
@@ -364,6 +377,18 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 )
                 with LockedFile(resource, "w") as f:
                     f.write("available " + str(int(timestamp_utc)))
+
+            message += f"{local_model_name} "
+            if len(versions) == 1:
+                message += f"(version {versions[0]})"
+            else:
+                message += f"(versions {','.join(versions)})"
+            if idx + 1 < len(self._local_model_names):
+                message += ", "
+            else:
+                message += "have been made available on disk"
+
+        logger().info(message)
 
     def _update_models_tree(self) -> None:
         # don't update when the models:dir is a local path
@@ -637,7 +662,7 @@ class FileBasedModelsGC(AbstractLoopingThread):
                     if self._models.has_model_id(in_memory_id)[0] == "in-memory":
                         model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
                         self.logger().info(
-                            f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk (in process {mp.current_process().pid} and thread {td.get_ident()}"
+                            f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3 (thread {td.get_ident()}"
                         )
                         self._models.remove_model_by_id(
                             in_memory_id, mem=True, disk=False, del_reference=True
@@ -1369,46 +1394,43 @@ class ModelsGC(AbstractLoopingThread):
 
     def _run_gc(self) -> None:
 
-        logger().info("checking if there are any models to collect")
         # are there any models to collect (aka remove) from cache
         with LockedGlobalModelsGC(self._models, "r"):
-            collectible = self._models.garbage_collect(
+            collectible, _, _ = self._models.garbage_collect(
                 exclude_disk_model_ids=self._local_model_ids, dry_run=True
             )
         if not collectible:
-            logger().info("removing stale models (p1)")
             self._remove_stale_models()
             return
 
         # try to grab exclusive access to all models with shared access preference
         # and if it works, remove excess models from cache
         self._models.set_global_preference_policy("r")
-        logger().info(f"grabbing shared access preference for GC w/ timeout {self._lock_timeout}")
         with LockedGlobalModelsGC(self._models, "w", self._lock_timeout) as lg:
             acquired = lg.acquired
             if not acquired:
                 raise WithBreak
 
-            logger().info("GC-ing with shared access preference")
-            print(
-                "collected models",
-                self._models.garbage_collect(exclude_disk_model_ids=self._local_model_ids),
+            _, rmed_mem_ids, rmed_disk_ids = self._models.garbage_collect(
+                exclude_disk_model_ids=self._local_model_ids
             )
 
         # otherwise, grab exclusive access to all models with exclusive access preference
         # and remove excess models from cache
         if not acquired:
-            logger().info("grabbing exclusive access preference for GC")
             self._models.set_global_preference_policy("w")
             with LockedGlobalModelsGC(self._models, "w"):
-                logger().info("GC-ing with exclusive access preference")
-                print(
-                    "collected models",
-                    self._models.garbage_collect(exclude_disk_model_ids=self._local_model_ids),
+                _, rmed_mem_ids, rmed_disk_ids = self._models.garbage_collect(
+                    exclude_disk_model_ids=self._local_model_ids
                 )
             self._models.set_global_preference_policy("r")
 
-        logger().info("removing stale models (p2)")
+        rmed_mem_models = ids_to_models(rmed_mem_ids)
+        rmed_disk_models = ids_to_models(rmed_disk_ids)
+
+        self._log_removed_models(rmed_mem_models, memory=True)
+        self._log_removed_models(rmed_disk_models, disk=True)
+
         self._remove_stale_models()
 
     def _remove_stale_models(self) -> None:
@@ -1441,12 +1463,43 @@ class ModelsGC(AbstractLoopingThread):
             model_name, model_version = model_id.rsplit("-", maxsplit=1)
             with LockedModel(self._models, "w", model_name, model_version):
                 status, ts = self._models.has_model(model_name, model_version)
-                if status in ["in-memory", "on-disk"]:
-                    logger().info("removing stale model {model_name} of version {model_version}")
                 if status == "in-memory":
+                    logger().info(f"unloading stale model {model_name} of version {model_version}")
                     self._models.unload_model(model_name, model_version)
                 if status in ["in-memory", "on-disk"]:
+                    logger().info(f"removing stale model {model_name} of version {model_version}")
                     self._models.remove_model(model_name, model_version)
+
+    def _log_removed_models(
+        self, models: Dict[str, List[str]], memory: bool = False, disk: bool = False
+    ) -> None:
+        """
+        Log the removed models from disk/memory.
+        """
+
+        if len(models) == 0:
+            return None
+
+        if len(models) > 1:
+            message = "models "
+        else:
+            message = "model "
+
+        for idx, (model_name, versions) in enumerate(models.items()):
+            message += f"{model_name} "
+            if len(versions) == 1:
+                message += f"(version {versions[0]})"
+            else:
+                message += f"(versions {','.join(versions)})"
+            if idx + 1 < len(models):
+                message += ", "
+            else:
+                if memory:
+                    message += "have been removed from the memory cache"
+                if disk:
+                    message += "have been removed from the disk cache"
+
+        logger().info(message)
 
 
 class ModelTreeUpdater(AbstractLoopingThread):
