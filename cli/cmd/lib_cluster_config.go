@@ -356,52 +356,52 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	if s.Obj(cachedClusterConfig.ImageRequestMonitor) != s.Obj(userClusterConfig.ImageRequestMonitor) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageRequestMonitorKey, cachedClusterConfig.ImageRequestMonitor)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageRequestMonitor = cachedClusterConfig.ImageRequestMonitor
 
 	if s.Obj(cachedClusterConfig.ImageClusterAutoscaler) != s.Obj(userClusterConfig.ImageClusterAutoscaler) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageClusterAutoscalerKey, cachedClusterConfig.ImageClusterAutoscaler)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageClusterAutoscaler = cachedClusterConfig.ImageClusterAutoscaler
 
 	if s.Obj(cachedClusterConfig.ImageMetricsServer) != s.Obj(userClusterConfig.ImageMetricsServer) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageMetricsServerKey, cachedClusterConfig.ImageMetricsServer)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageMetricsServer = cachedClusterConfig.ImageMetricsServer
 
 	if s.Obj(cachedClusterConfig.ImageInferentia) != s.Obj(userClusterConfig.ImageInferentia) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageInferentiaKey, cachedClusterConfig.ImageInferentia)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageInferentia = cachedClusterConfig.ImageInferentia
 
 	if s.Obj(cachedClusterConfig.ImageNeuronRTD) != s.Obj(userClusterConfig.ImageNeuronRTD) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageNeuronRTDKey, cachedClusterConfig.ImageNeuronRTD)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageNeuronRTD = cachedClusterConfig.ImageNeuronRTD
 
 	if s.Obj(cachedClusterConfig.ImageNvidia) != s.Obj(userClusterConfig.ImageNvidia) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageNvidiaKey, cachedClusterConfig.ImageNvidia)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageNvidia = cachedClusterConfig.ImageNvidia
 
 	if s.Obj(cachedClusterConfig.ImageFluentd) != s.Obj(userClusterConfig.ImageFluentd) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageFluentdKey, cachedClusterConfig.ImageFluentd)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageFluentd = cachedClusterConfig.ImageFluentd
 
 	if s.Obj(cachedClusterConfig.ImageStatsd) != s.Obj(userClusterConfig.ImageStatsd) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageStatsdKey, cachedClusterConfig.ImageStatsd)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageStatsd = cachedClusterConfig.ImageStatsd
 
 	if s.Obj(cachedClusterConfig.ImageIstioProxy) != s.Obj(userClusterConfig.ImageIstioProxy) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioProxyKey, cachedClusterConfig.ImageIstioProxy)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageIstioProxy = cachedClusterConfig.ImageIstioProxy
 
 	if s.Obj(cachedClusterConfig.ImageIstioPilot) != s.Obj(userClusterConfig.ImageIstioPilot) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioPilotKey, cachedClusterConfig.ImageIstioPilot)
 	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+	userClusterConfig.ImageIstioPilot = cachedClusterConfig.ImageIstioPilot
 
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
