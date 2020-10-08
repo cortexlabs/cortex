@@ -421,6 +421,7 @@ function validate_cortex() {
   operator_endpoint=""
   operator_pod_name=""
   operator_pod_is_ready=""
+  operator_pod_status=""
 
   while true; do
     # 30 minute timeout
@@ -430,6 +431,9 @@ function validate_cortex() {
       echo -e "\ndebugging info:"
       echo "operator pod name: $operator_pod_name"
       echo "operator pod is ready: $operator_pod_is_ready"
+      if [ "$operator_pod_status" != "" ]; then
+        echo "operator pod status: $operator_pod_status"
+      fi
       echo "operator pod ready cycles: $operator_pod_ready_cycles"
       echo "api load balancer status: $api_load_balancer"
       echo "operator load balancer status: $operator_load_balancer"
@@ -441,6 +445,7 @@ function validate_cortex() {
         echo "operator curl response (404 is expected):"
         curl --max-time 3 $operator_endpoint
       fi
+      echo
       exit 1
     fi
 
@@ -454,8 +459,15 @@ function validate_cortex() {
       operator_pod_is_ready=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
       if [ "$operator_pod_is_ready" == "true" ]; then
         ((operator_pod_ready_cycles++))
+        operator_pod_status=""
       else
         operator_pod_ready_cycles=0
+        operator_pod_status=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0]}')
+        if [[ "$operator_pod_status" == *"ImagePullBackOff"* ]]; then
+          echo -e "\nerror: the operator image you specified could not be pulled:"
+          echo $operator_pod_status
+          exit 1
+        fi
       fi
     fi
 
