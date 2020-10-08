@@ -1406,6 +1406,7 @@ class ModelsGC(AbstractLoopingThread):
                     "collected models",
                     self._models.garbage_collect(exclude_disk_model_ids=self._local_model_ids),
                 )
+            self._models.set_global_preference_policy("r")
 
         logger().info("removing stale models (p2)")
         self._remove_stale_models()
