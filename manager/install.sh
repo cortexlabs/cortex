@@ -463,7 +463,7 @@ function validate_cortex() {
         operator_pod_ready_cycles=0
         operator_pod_status=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0]}')
         if [[ "$operator_pod_status" == *"ImagePullBackOff"* ]]; then
-          echo "error: the operator image you specified could not be pulled:"
+          echo -e "\nerror: the operator image you specified could not be pulled:"
           echo $operator_pod_status
           exit 1
         fi
