@@ -139,7 +139,6 @@ min_instances: 2
 max_instances: 5
 bucket: cortex-cluster-<your_name>
 region: us-west-2
-log_group: cortex
 cluster_name: cortex
 
 image_operator: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest
