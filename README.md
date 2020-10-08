@@ -16,7 +16,7 @@ Cortex makes it easy to deploy machine learning models in production.
 
 <br>
 
-# What you can do with Cortex
+## What you can do with Cortex
 
 ### Write APIs in Python
 
@@ -102,7 +102,7 @@ max_instances: 5
 
 <br>
 
-# Get started
+## Get started
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
