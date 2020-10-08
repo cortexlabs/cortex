@@ -31,6 +31,12 @@ func respond(w http.ResponseWriter, response interface{}) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func respondPlainText(w http.ResponseWriter, response string) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(response))
+}
+
 func respondError(w http.ResponseWriter, r *http.Request, err error, strs ...string) {
 	respondErrorCode(w, r, http.StatusBadRequest, err, strs...)
 }

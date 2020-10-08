@@ -21,5 +21,5 @@ import (
 )
 
 func VerifyCortex(w http.ResponseWriter, r *http.Request) {
-	respond(w, "ok")
+	respondPlainText(w, "ok")
 }
