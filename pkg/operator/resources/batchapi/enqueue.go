@@ -49,7 +49,7 @@ func randomMessageID() string {
 }
 
 func updateLiveness(jobKey spec.JobKey) error {
-	s3Key := path.Join(jobKey.Prefix(), _enqueuingLivenessFile)
+	s3Key := path.Join(jobKey.Prefix(config.Cluster.ClusterName), _enqueuingLivenessFile)
 	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
 	if err != nil {
 		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())

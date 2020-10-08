@@ -35,14 +35,14 @@ func (j JobKey) UserString() string {
 	return fmt.Sprintf("%s (%s api)", j.ID, j.APIName)
 }
 
-// e.g. /jobs/<cortex version>/<api_name>/<job_id>/spec.json
-func (j JobKey) SpecFilePath() string {
-	return path.Join(j.Prefix(), "spec.json")
+// e.g. /<cluster name>/jobs/<cortex version>/<api_name>/<job_id>/spec.json
+func (j JobKey) SpecFilePath(clusterName string) string {
+	return path.Join(j.Prefix(clusterName), "spec.json")
 }
 
-// e.g. /jobs/<cortex version>/<api_name>/<job_id>
-func (j JobKey) Prefix() string {
-	return s.EnsureSuffix(path.Join(BatchAPIJobPrefix(j.APIName), j.ID), "/")
+// e.g. /<cluster name>/jobs/<cortex version>/<api_name>/<job_id>
+func (j JobKey) Prefix(clusterName string) string {
+	return s.EnsureSuffix(path.Join(BatchAPIJobPrefix(j.APIName, clusterName), j.ID), "/")
 }
 
 func (j JobKey) K8sName() string {
@@ -65,6 +65,6 @@ type Job struct {
 	StartTime       time.Time `json:"start_time"`
 }
 
-func BatchAPIJobPrefix(apiName string) string {
-	return filepath.Join("jobs", consts.CortexVersion, apiName)
+func BatchAPIJobPrefix(apiName string, clusterName string) string {
+	return filepath.Join(clusterName, "jobs", consts.CortexVersion, apiName)
 }
