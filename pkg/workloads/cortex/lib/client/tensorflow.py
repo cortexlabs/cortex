@@ -368,7 +368,7 @@ class TensorFlowClient:
     def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
         """
         Get the version for a specific model name based on the version tag - either "latest" or "highest".
-        Must only be used when processes_per_replica = 1 and caching enabled.
+        Must only be used when processes_per_replica = 1 and caching is enabled.
         """
 
         if tag not in ["latest", "highest"]:
@@ -379,7 +379,7 @@ class TensorFlowClient:
             index = timestamps.index(max(timestamps))
             return versions[index]
         else:
-            return max(versions)
+            return str(max(map(lambda x: int(x), versions)))
 
     def _is_model_caching_enabled(self) -> bool:
         """

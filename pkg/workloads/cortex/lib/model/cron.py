@@ -1431,6 +1431,9 @@ class ModelsGC(AbstractLoopingThread):
         with LockedGlobalModelsGC(self._models, "r"):
             present_model_ids = self._models.get_model_ids()
 
+        # exclude local models from removal
+        present_model_ids = list(set(present_model_ids) - set(self._local_model_ids))
+
         # remove models that don't exist in the S3 upstream
         ghost_model_ids = list(set(present_model_ids) - set(s3_model_ids))
         for model_id in ghost_model_ids:
