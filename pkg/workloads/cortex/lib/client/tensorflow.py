@@ -393,7 +393,7 @@ class TensorFlowClient:
     @property
     def metadata(self) -> dict:
         """
-        When the caching is disabled, the dictionary will be like in the following example:
+        When caching is disabled, the returned dictionary will be like in the following example:
         {
             ...
             "image-classifier-inception-1569014553": {
@@ -457,7 +457,35 @@ class TensorFlowClient:
             }
             ...
         }
+
+        Or when the caching is enabled, the following represents the kind of returned dictionary:
+        {
+            ...
+            "image-classifier-inception": {
+                "versions": [
+                    "1569014553",
+                    "1569014559"
+                ],
+                "timestamps": [
+                    "1601668127",
+                    "1601668120"
+                ]
+            }
+            ...
+        }
         """
 
         if not self._caching_enabled:
+            # the models dictionary has another field for each key entry
+            # called timestamp inserted by TFSAPIServingThreadUpdater thread
             return self._client.models
+        else:
+            models_info = self._models_tree.get_all_models_info()
+            for model_name in models_info.keys():
+                del models_info[model_name]["bucket"]
+                del models_info[model_name]["model_paths"]
+            return models_info
+
+    @property
+    def caching(self) -> bool:
+        return self._caching_enabled

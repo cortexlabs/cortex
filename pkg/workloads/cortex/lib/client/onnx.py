@@ -413,7 +413,7 @@ class ONNXClient:
     @property
     def metadata(self) -> dict:
         """
-        When the caching is disabled, the returned dictionary will be like in the following example:
+        The returned dictionary will be like in the following example:
         {
             ...
             "yolov3": {
@@ -431,6 +431,16 @@ class ONNXClient:
         """
         if not self._caching_enabled:
             return find_ondisk_models_with_lock(self._lock_dir, include_timestamps=True)
+        else:
+            models_info = self._models_tree.get_all_models_info()
+            for model_name in models_info.keys():
+                del models_info[model_name]["bucket"]
+                del models_info[model_name]["model_paths"]
+            return models_info
+
+    @property
+    def caching(self) -> bool:
+        return self._caching_enabled
 
 
 # https://github.com/microsoft/onnxruntime/blob/v0.4.0/onnxruntime/python/onnxruntime_pybind_mlvalue.cc

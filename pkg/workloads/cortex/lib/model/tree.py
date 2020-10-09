@@ -260,6 +260,61 @@ class ModelsTree:
 
         return list(model_names)
 
+    def get_all_models_info(self) -> dict:
+        """
+        Gets model info about the available versions and model timestamps.
+
+        Locking is not required.
+
+        It's like model_info method, but for all model names.
+
+        Example of returned dictionary.
+        ```json
+        {
+            ...
+            "modelA": {
+                "bucket": "bucket-0",
+                "model_paths": ["modelA/1", "modelA/4", "modelA/7", ...],
+                "versions": [1,4,7, ...],
+                "timestamps": [12884999, 12874449, 12344931, ...]
+            }
+            ...
+        }
+        ```
+        """
+
+        models_info = {}
+        models = self.models.copy()
+
+        # extract model names
+        model_names = set()
+        for model_id in models:
+            model_name = model_id.rsplit("-", maxsplit=1)[0]
+            model_names.add(model_name)
+        model_names = list(model_names)
+
+        # build models info dictionary
+        for model_name in model_names:
+            model_info = {
+                "model_paths": [],
+                "versions": [],
+                "timestamps": [],
+            }
+            for model_id in models:
+                _model_name, model_version = model_id.rsplit("-", maxsplit=1)
+                if _model_name == model_name:
+                    if "bucket" not in model_info:
+                        model_info["bucket"] = models[model_id]["bucket"]
+                    model_info["model_paths"] += [
+                        os.path.join(models[model_id]["path"], model_version)
+                    ]
+                    model_info["versions"] += [model_version]
+                    model_info["timestamps"] += [models[model_id]["timestamp"]]
+
+            models_info[model_name] = model_info
+
+        return models_info
+
     def __getitem__(self, model_id: str) -> dict:
         """
         Each value of a key (model ID) is a dictionary with the following format:
