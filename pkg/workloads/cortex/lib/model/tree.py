@@ -275,7 +275,7 @@ class ModelsTree:
             "modelA": {
                 "bucket": "bucket-0",
                 "model_paths": ["modelA/1", "modelA/4", "modelA/7", ...],
-                "versions": [1,4,7, ...],
+                "versions": ["1","4","7", ...],
                 "timestamps": [12884999, 12874449, 12344931, ...]
             }
             ...
@@ -309,7 +309,7 @@ class ModelsTree:
                         os.path.join(models[model_id]["path"], model_version)
                     ]
                     model_info["versions"] += [model_version]
-                    model_info["timestamps"] += [models[model_id]["timestamp"]]
+                    model_info["timestamps"] += [int(models[model_id]["timestamp"])]
 
             models_info[model_name] = model_info
 

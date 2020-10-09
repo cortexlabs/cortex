@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -329,9 +329,7 @@ func syncAPITable(syncAPI *schema.SyncAPI, env cliconfig.Environment) (string, e
 
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("curl:"), apiEndpoint)
 
-	if syncAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || syncAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(&syncAPI.Status, apiEndpoint)
-	}
+	out += "\n" + describeModelInput(&syncAPI.Status, syncAPI.Spec.Predictor, apiEndpoint)
 
 	out += titleStr("configuration") + strings.TrimSpace(syncAPI.Spec.UserStr(env.Provider))
 
@@ -491,58 +489,110 @@ func classificationMetricsStr(metrics *metrics.Metrics) string {
 	return out
 }
 
-func describeModelInput(status *status.Status, apiEndpoint string) string {
+func describeModelInput(status *status.Status, predictor *userconfig.Predictor, apiEndpoint string) string {
 	if status.Updated.Ready+status.Stale.Ready == 0 {
 		return "the model's input schema will be available when the api is live\n"
 	}
 
-	apiSummary, err := getAPISummary(apiEndpoint)
+	apiModelSummary, apiTFLiveReloadingSummary, err := getAPISummary(apiEndpoint, predictor)
 	if err != nil {
 		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
 	}
 
-	numRows := 0
-	for _, inputSignatures := range apiSummary.ModelSignatures {
-		numRows += len(inputSignatures)
+	if apiModelSummary != nil {
+		t, err := parseAPIModelSummary(apiModelSummary)
+		if err != nil {
+			return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+		}
+		return t
 	}
+	t, err := parseAPITFLiveReloadingSummary(apiTFLiveReloadingSummary)
+	if err != nil {
+		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+	}
+	return t
+}
 
-	usesDefaultModel := false
-	rows := make([][]interface{}, numRows)
-	rowNum := 0
-	for modelName, inputSignatures := range apiSummary.ModelSignatures {
-		for inputName, inputSignature := range inputSignatures {
-			shapeStr := make([]string, len(inputSignature.Shape))
-			for idx, dim := range inputSignature.Shape {
-				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
+func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
+	numRows := 0
+	tags := make(map[string][]int64)
+	for modelName := range summary.ModelMetadata {
+		numRows += len(summary.ModelMetadata[modelName].Versions)
+		highestVersion := int64(0)
+		latestTimestamp := int64(0)
+		for i, version := range summary.ModelMetadata[modelName].Versions {
+			v, err := strconv.ParseInt(version, 10, 64)
+			if err != nil {
+				return "", err
 			}
+			if v > highestVersion {
+				highestVersion = v
+			}
+			timestamp := summary.ModelMetadata[modelName].Timestamps[i]
+			if timestamp > latestTimestamp {
+				latestTimestamp = timestamp
+			}
+		}
+		tags[modelName] = []int64{highestVersion, latestTimestamp}
+	}
+	rows := make([][]interface{}, numRows)
+
+	rowNum := 0
+	for modelName := range summary.ModelMetadata {
+		highestVersion := strconv.FormatInt(tags[modelName][0], 10)
+		latestTimestamp := tags[modelName][1]
+
+		for idx, version := range summary.ModelMetadata[modelName].Versions {
+			timestamp := summary.ModelMetadata[modelName].Timestamps[idx]
+			date := time.Unix(timestamp, 0)
+
+			applicableTags := "-"
+			if highestVersion == version && latestTimestamp == timestamp {
+				applicableTags = "latest/highest"
+			} else if highestVersion == version {
+				applicableTags = "highest"
+			} else if latestTimestamp == timestamp {
+				applicableTags = "latest"
+			}
+
 			rows[rowNum] = []interface{}{
 				modelName,
-				inputName,
-				inputSignature.Type,
-				"(" + strings.Join(shapeStr, ", ") + ")",
+				summary.ModelMetadata[modelName].Versions[idx],
+				applicableTags,
+				date.Format("02 Jan 06 15:04:05 MST"),
 			}
 			rowNum++
 		}
-		if modelName == consts.SingleModelName {
-			usesDefaultModel = true
-		}
 	}
 
-	inputTitle := "input"
-	if usesDefaultModel {
-		inputTitle = "model input"
-	}
 	t := table.Table{
 		Headers: []table.Header{
-			{Title: "model name", MaxWidth: 32, Hidden: usesDefaultModel},
-			{Title: inputTitle, MaxWidth: 32},
-			{Title: "type", MaxWidth: 10},
-			{Title: "shape", MaxWidth: 20},
+			{
+				Title:    "model name",
+				MaxWidth: 32,
+			},
+			{
+				Title:    "model version",
+				MaxWidth: 16,
+			},
+			{
+				Title:    "version tags",
+				MaxWidth: 14,
+			},
+			{
+				Title:    "edit time",
+				MaxWidth: 32,
+			},
 		},
 		Rows: rows,
 	}
 
-	return t.MustFormat()
+	return t.MustFormat(), nil
+}
+
+func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (string, error) {
+
+	return "", nil
 }
 
 func makeRequest(request *http.Request) (http.Header, []byte, error) {
@@ -574,30 +624,34 @@ func makeRequest(request *http.Request) (http.Header, []byte, error) {
 	return response.Header, bodyBytes, nil
 }
 
-func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
+func getAPISummary(apiEndpoint string, predictor *userconfig.Predictor) (*schema.APIModelSummary, *schema.APITFLiveReloadingSummary, error) {
 	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
+		return nil, nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	_, response, err := makeRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var apiSummary schema.APISummary
-	err = json.DecodeWithNumber(response, &apiSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
+	var apiModelSummary schema.APIModelSummary
+	var apiTFLiveReloadingSummary schema.APITFLiveReloadingSummary
 
-	for _, inputSignatures := range apiSummary.ModelSignatures {
-		for _, inputSignature := range inputSignatures {
-			inputSignature.Shape = cast.JSONNumbers(inputSignature.Shape)
+	cachingEnabled := predictor.Models != nil && predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil
+	if predictor.Type == userconfig.TensorFlowPredictorType && !cachingEnabled {
+		err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "unable to parse api summary response")
 		}
+		return nil, &apiTFLiveReloadingSummary, nil
 	}
 
-	return &apiSummary, nil
+	err = json.DecodeWithNumber(response, &apiModelSummary)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "unable to parse api summary response")
+	}
+	return &apiModelSummary, nil, nil
 }
 
 func titleStr(title string) string {

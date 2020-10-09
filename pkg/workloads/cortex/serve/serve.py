@@ -236,11 +236,7 @@ def get_summary():
     if hasattr(local_cache["client"], "metadata"):
         client = local_cache["client"]
         predictor = local_cache["api"].predictor
-
         response["model_metadata"] = client.metadata
-        response["caching"] = client.caching
-        response["live-reloading"] = not client.caching
-        response["type"] = predictor.type
 
     return response
 
