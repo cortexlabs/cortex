@@ -60,6 +60,8 @@ Handle traffic with request-based autoscaling. Minimize spend with spot instance
 ```bash
 $ cortex get text-generator
 
+endpoint: https://example.com/text-generator
+
 status   last-update   replicas   requests   latency
 live     10h           10         100m       100ms
 ```
