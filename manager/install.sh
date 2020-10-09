@@ -551,7 +551,7 @@ function validate_cortex() {
       operator_endpoint_reachable="true"
     fi
 
-    if [[ $success_cycles -lt 5 ]]; then
+    if [[ $success_cycles -lt 3 ]]; then
       ((success_cycles++))
       continue
     fi
