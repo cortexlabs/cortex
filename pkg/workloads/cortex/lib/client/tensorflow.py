@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import os
-from typing import Any, Optional, List
+import copy
+from typing import Any, Dict, Optional, List
 
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException, WithBreak
 from cortex.lib.model import (
@@ -390,9 +391,73 @@ class TensorFlowClient:
         )
 
     @property
-    def stub(self):
-        return self._stub
+    def metadata(self) -> dict:
+        """
+        When the caching is disabled, the dictionary will be like in the following example:
+        {
+            ...
+            "image-classifier-inception-1569014553": {
+                "disk_path": "/mnt/model/image-classifier-inception/1569014553",
+                "signature_def": {
+                    "predict": {
+                    "inputs": {
+                        "images": {
+                        "name": "images:0",
+                        "dtype": "DT_FLOAT",
+                        "tensorShape": {
+                            "dim": [
+                            {
+                                "size": "-1"
+                            },
+                            {
+                                "size": "-1"
+                            },
+                            {
+                                "size": "-1"
+                            },
+                            {
+                                "size": "3"
+                            }
+                            ]
+                        }
+                        }
+                    },
+                    "outputs": {
+                        "classes": {
+                        "name": "module_apply_default/InceptionV3/Logits/SpatialSqueeze:0",
+                        "dtype": "DT_FLOAT",
+                        "tensorShape": {
+                            "dim": [
+                            {
+                                "size": "-1"
+                            },
+                            {
+                                "size": "1001"
+                            }
+                            ]
+                        }
+                        }
+                    },
+                    "methodName": "tensorflow/serving/predict"
+                    }
+                },
+                "signature_key": "predict",
+                "input_signature": {
+                    "images": {
+                    "shape": [
+                        -1,
+                        -1,
+                        -1,
+                        3
+                    ],
+                    "type": "float32"
+                    }
+                },
+                "timestamp": 1602025473
+            }
+            ...
+        }
+        """
 
-    @property
-    def input_signatures(self):
-        return self._input_signatures
+        if not self._caching_enabled:
+            return self._client.models

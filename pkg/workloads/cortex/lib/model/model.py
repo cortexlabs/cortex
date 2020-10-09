@@ -17,7 +17,7 @@ import time
 import shutil
 import datetime
 import threading as td
-from typing import List, Any, Tuple, Callable, AbstractSet, Optional
+from typing import Dict, List, Any, Tuple, Callable, AbstractSet, Optional
 
 from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import ReadWriteLock

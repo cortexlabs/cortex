@@ -410,15 +410,27 @@ class ONNXClient:
             and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
         )
 
-    # TODO retrieve sessions properly for cortex get
     @property
-    def sessions(self):
-        return self._sessions
-
-    # TODO retrieve input_signatures properly for cortex get
-    @property
-    def input_signatures(self):
-        return self._input_signatures
+    def metadata(self) -> dict:
+        """
+        When the caching is disabled, the returned dictionary will be like in the following example:
+        {
+            ...
+            "yolov3": {
+                "versions": [
+                    "2",
+                    "1"
+                ],
+                "timestamps": [
+                    "1601668127",
+                    "1601668127"
+                ]
+            }
+            ...
+        }
+        """
+        if not self._caching_enabled:
+            return find_ondisk_models_with_lock(self._lock_dir, include_timestamps=True)
 
 
 # https://github.com/microsoft/onnxruntime/blob/v0.4.0/onnxruntime/python/onnxruntime_pybind_mlvalue.cc

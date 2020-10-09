@@ -669,7 +669,9 @@ class FileBasedModelsGC(AbstractLoopingThread):
                         )
 
 
-def find_ondisk_models_with_lock(lock_dir: str) -> Dict[str, List[str]]:
+def find_ondisk_models_with_lock(
+    lock_dir: str, include_timestamps: bool = False
+) -> Union[Dict[str, List[str]], Dict[str, Dict[str, Any]]]:
     """
     Returns all available models from the disk.
     To be used in conjunction with FileBasedModelsTreeUpdater/FileBasedModelsGC.
@@ -678,12 +680,26 @@ def find_ondisk_models_with_lock(lock_dir: str) -> Dict[str, List[str]]:
 
     Args:
         lock_dir: Path to where the resource locks are stored.
+        include_timestamps: Whether to include timestamps for each version of each model.
 
     Returns:
-        Dictionary with available model names and their associated versions.
+        Dictionary with available model names and their associated versions when include_timestamps is False.
         {
-            "model-A": [177, 245, 247],
-            "model-B": [1],
+            "model-A": ["177", "245", "247"],
+            "model-B": ["1"],
+            ...
+        }
+
+        Dictionary with available model names and their associated versions/timestamps when include_timestamps is True.
+        {
+            "model-A": {
+                "versions": ["177", "245", "247"],
+                "timestamps": [1602198945, 1602198946, 1602198947]
+            }
+            "model-B": {
+                "versions": ["1"],
+                "timestamps": [1602198567]
+            },
             ...
         }
     """
@@ -694,11 +710,19 @@ def find_ondisk_models_with_lock(lock_dir: str) -> Dict[str, List[str]]:
             status = f.read()
 
         if status.startswith("available"):
+            timestamp = status.split(" ")[1]
             _model_name, _model_version = os.path.splitext(locked_file)[0].rsplit("-", maxsplit=1)
             if _model_name not in models:
-                models[_model_name] = [_model_version]
+                if include_timestamps:
+                    models[_model_name] = {"versions": [_model_version], "timestamps": [timestamp]}
+                else:
+                    models[_model_name] = [_model_version]
             else:
-                models[_model_name] += [_model_version]
+                if include_timestamps:
+                    models[_model_name]["versions"] += [_model_version]
+                    models[_model_name]["timestamps"] += [timestamp]
+                else:
+                    models[_model_name] += [_model_version]
 
     return models
 
@@ -1293,23 +1317,46 @@ class TFSModelLoader(mp.Process):
 
 
 class TFSAPIServingThreadUpdater(AbstractLoopingThread):
-    def __init__(self, interval: int, client: TensorFlowServingAPI, lock_dir: str = "/run/cron"):
+    def __init__(
+        self,
+        interval: int,
+        client: TensorFlowServingAPI,
+        lock_dir: str = "/run/cron",
+    ):
         AbstractLoopingThread.__init__(self, interval, self._runnable)
 
         self._client = client
         self._lock_dir = lock_dir
 
     def _runnable(self) -> None:
-        resource = os.path.join(self._lock_dir, "models_tfs.json")
+        resource_models = os.path.join(self._lock_dir, "models_tfs.json")
 
         try:
-            with open(resource, "r") as f:
+            with open(resource_models, "r") as f:
                 try:
                     models = json.load(f)
                 except json.JSONDecodeError:
                     return
         except Exception:
             return
+
+        resource_ts = os.path.join(self._lock_dir, "model_timestamps.json")
+        try:
+            with open(resource_ts, "r") as f:
+                try:
+                    timestamps = json.load(f)
+                except json.JSONDecodeError:
+                    return
+        except Exception:
+            return
+
+        non_intersecting_model_ids = set(models.keys()).symmetric_difference(timestamps.keys())
+        for non_intersecting_model_id in non_intersecting_model_ids:
+            del models[non_intersecting_model_id]
+            del timestamps[non_intersecting_model_id]
+
+        for model_id in timestamps.keys():
+            models[model_id]["timestamp"] = timestamps[model_id]
 
         self._client.models = models
 

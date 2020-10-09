@@ -379,12 +379,24 @@ class PythonClient:
             and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
         )
 
-    # TODO retrieve sessions properly for cortex get
     @property
-    def sessions(self):
-        return None
-
-    # TODO retrieve input_signatures properly for cortex get
-    @property
-    def input_signatures(self):
-        return None
+    def metadata(self) -> dict:
+        """
+        When the caching is disabled, the returned dictionary will be like in the following example:
+        {
+            ...
+            "yolov3": {
+                "versions": [
+                    "2",
+                    "1"
+                ],
+                "timestamps": [
+                    "1601668127",
+                    "1601668127"
+                ]
+            }
+            ...
+        }
+        """
+        if not self._caching_enabled:
+            return find_ondisk_models_with_lock(self._lock_dir, include_timestamps=True)

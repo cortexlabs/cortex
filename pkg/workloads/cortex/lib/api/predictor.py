@@ -143,7 +143,11 @@ class Predictor:
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
             client = TensorFlowClient(
-                tf_serving_address, self.api_spec, self.models, self.model_dir, self.models_tree
+                tf_serving_address,
+                self.api_spec,
+                self.models,
+                self.model_dir,
+                self.models_tree,
             )
             if not self.caching_enabled:
                 cron = TFSAPIServingThreadUpdater(interval=2.5, client=client._client)

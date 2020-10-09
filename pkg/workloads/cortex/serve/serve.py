@@ -233,8 +233,8 @@ def build_predict_args(request: Request):
 def get_summary():
     response = {"message": API_SUMMARY_MESSAGE}
 
-    if hasattr(local_cache["client"], "input_signatures"):
-        response["model_signatures"] = local_cache["client"].input_signatures
+    if hasattr(local_cache["client"], "metadata"):
+        response["model_metadata"] = local_cache["client"].metadata
 
     return response
 
