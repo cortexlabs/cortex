@@ -19,7 +19,7 @@ import json
 from helpers import get_operator_load_balancer
 
 
-def get_operator_target_group_arn():
+def get_operator_target_group_status():
     cluster_name = os.environ["CORTEX_CLUSTER_NAME"]
     region = os.environ["CORTEX_REGION"]
 
@@ -50,4 +50,4 @@ def get_target_health(target_group_arn, client_elbv2):
 
 
 if __name__ == "__main__":
-    print(get_operator_target_group_arn(), end="")
+    print(get_operator_target_group_status(), end="")

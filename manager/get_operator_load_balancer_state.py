@@ -14,7 +14,6 @@
 
 import boto3
 import os
-import json
 
 from helpers import get_operator_load_balancer
 

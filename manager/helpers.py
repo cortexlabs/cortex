@@ -33,13 +33,13 @@ def _get_load_balancer(load_balancer_tag, cluster_name, client_elbv2):
         ]
         for tag_description in tag_descriptions:
             foundClusterNameTag = False
-            foundOperatorTag = False
+            foundLoadBalancerTag = False
             for tags in tag_description["Tags"]:
                 if tags["Key"] == "cortex.dev/cluster-name" and tags["Value"] == cluster_name:
                     foundClusterNameTag = True
                 if tags["Key"] == "cortex.dev/load-balancer" and tags["Value"] == load_balancer_tag:
-                    foundOperatorTag = True
-            if foundClusterNameTag and foundOperatorTag:
+                    foundLoadBalancerTag = True
+            if foundClusterNameTag and foundLoadBalancerTag:
                 return load_balancers[tag_description["ResourceArn"]]
 
-    raise Exception("unable to find cortex operator load balancer")
+    raise Exception(f"unable to find {load_balancer_tag} load balancer")

@@ -14,12 +14,11 @@
 
 import boto3
 import os
-import json
 
 from helpers import get_api_load_balancer
 
 
-def get_operator_load_balancer_state():
+def get_api_load_balancer_state():
     cluster_name = os.environ["CORTEX_CLUSTER_NAME"]
     region = os.environ["CORTEX_REGION"]
 
@@ -30,4 +29,4 @@ def get_operator_load_balancer_state():
 
 
 if __name__ == "__main__":
-    print(get_operator_load_balancer_state(), end="")
+    print(get_api_load_balancer_state(), end="")

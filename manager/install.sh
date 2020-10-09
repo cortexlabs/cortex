@@ -89,7 +89,7 @@ function cluster_up() {
 
   echo -e "\ncortex is ready!"
   if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
-    echo -e "note: you will need to set up VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/guides/vpc-peering"
+    echo -e "note: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/guides/vpc-peering"
   fi
 }
 
