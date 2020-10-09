@@ -53,23 +53,6 @@ Configure autoscaling, monitoring, compute resources, update strategies, and mor
 
 <br>
 
-### Focus on machine learning, not DevOps
-
-You don't need to bring your own cluster or containerize your models, Cortex automates your cloud infrastructure.
-
-```bash
-$ cortex cluster up
-
-confguring networking ...
-configuring autoscaling ...
-configuring logging ...
-configuring metrics ...
-
-cortex is ready!
-```
-
-<br>
-
 ### Scale to handle production traffic
 
 Handle traffic with request-based autoscaling. Minimize spend with spot instances and multi-model APIs.
@@ -111,6 +94,23 @@ region: us-west-2
 instance_type: p2.xlarge
 min_instances: 1
 max_instances: 5
+```
+
+<br>
+
+### Focus on machine learning, not DevOps
+
+You don't need to bring your own cluster or containerize your models, Cortex automates your cloud infrastructure.
+
+```bash
+$ cortex cluster up
+
+confguring networking ...
+configuring autoscaling ...
+configuring logging ...
+configuring metrics ...
+
+cortex is ready!
 ```
 
 <br>
