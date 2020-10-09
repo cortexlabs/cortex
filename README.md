@@ -1,8 +1,6 @@
 <!-- Delete on release branches -->
 <img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
 
-<br>
-
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 
@@ -11,12 +9,6 @@
 <br>
 
 # Model serving at scale
-
-<br>
-
-Cortex makes it easy to deploy machine learning models in production.
-
-<br>
 
 ### Write APIs in Python
 
