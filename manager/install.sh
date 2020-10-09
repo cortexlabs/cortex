@@ -103,12 +103,6 @@ function cluster_configure() {
   setup_secrets
   echo "✓"
 
-  echo -n "￮ configuring networking "
-  setup_istio
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
-  kubectl apply -f /workspace/apis.yaml >/dev/null
-  echo "✓"
-
   restart_operator
 
   validate_cortex
