@@ -87,11 +87,7 @@ function cluster_up() {
 
   await_pre_download_images
 
-  if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
-    echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing, but you may now set up VPC Peering)"
-  else
-    echo -e "\ncortex is ready!"
-  fi
+  echo -e "\ncortex is ready!"
 }
 
 function cluster_configure() {
