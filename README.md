@@ -8,15 +8,15 @@
 
 [install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
-# Model serving for developers
+<br>
+
+# Model serving at scale
 
 <br>
 
 Cortex makes it easy to deploy machine learning models in production.
 
 <br>
-
-## What you can do with Cortex
 
 ### Write APIs in Python
 
@@ -51,7 +51,7 @@ Define autoscaling behavior, monitoring, compute resources, update strategies, a
     min_replicas: 3
 ```
 
-### Focus on machine learning engineering, not DevOps
+### Focus on machine learning, not DevOps
 
 You don't need to bring your own cluster or containerize your models. Cortex automates your cloud infrastructure.
 
@@ -86,6 +86,7 @@ import tensorflow
 import torch
 import transformers
 import mlflow
+
 ...
 ```
 
