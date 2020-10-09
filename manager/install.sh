@@ -449,7 +449,7 @@ function validate_cortex() {
         echo "operator endpoint: $operator_endpoint"
       fi
       if [ "$api_endpoint" != "" ]; then
-        echo "operator endpoint: $api_endpoint"
+        echo "api endpoint: $api_endpoint"
       fi
       if [ "$operator_load_balancer_state" != "" ]; then
         echo "operator load balancer state: $operator_load_balancer_state"
@@ -504,6 +504,7 @@ function validate_cortex() {
       success_cycles=0
       continue
     fi
+    operator_pod_status=""  # reset operator_pod_status since now the operator is active
 
     if [ "$operator_endpoint" == "" ]; then
       out=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]')
