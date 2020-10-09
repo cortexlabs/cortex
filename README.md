@@ -117,7 +117,7 @@ cortex is ready!
 
 <br>
 
-## Get started
+### Get started
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
