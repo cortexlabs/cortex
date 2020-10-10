@@ -17,6 +17,8 @@ limitations under the License.
 package slices
 
 import (
+	"strconv"
+
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -51,4 +53,16 @@ func Int64ToString(vals []int64) []string {
 		stringSlice = append(stringSlice, s.Int64(elem))
 	}
 	return stringSlice
+}
+
+func StringToInt64(vals []string) ([]int64, error) {
+	int64Slice := []int64{}
+	for _, elem := range vals {
+		if int64Val, err := strconv.ParseInt(elem, 10, 64); err != nil {
+			return []int64{}, err
+		} else {
+			int64Slice = append(int64Slice, int64Val)
+		}
+	}
+	return int64Slice, nil
 }

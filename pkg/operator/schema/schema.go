@@ -81,16 +81,16 @@ type ErrorResponse struct {
 }
 
 type APITFLiveReloadingSummary struct {
-	Message       string                     `json:"message"`
-	ModelMetadata map[string]TFModelMetadata `json:"model_metadata"`
+	Message       string                       `json:"message"`
+	ModelMetadata map[string]TFModelIDMetadata `json:"model_metadata"`
 }
 
-type TFModelMetadata struct {
-	DiskPath        string `json:"disk_path"`
-	SignatureKey    string `json:"signature_key"`
-	Timestamp       string `json:"timestamp"`
-	InputSignatures map[string]InputSignature
-	SignatureDef    map[string]interface{} `json:"signature_def"`
+type TFModelIDMetadata struct {
+	DiskPath        string                    `json:"disk_path"`
+	SignatureKey    string                    `json:"signature_key"`
+	InputSignatures map[string]InputSignature `json:"input_signature"`
+	Timestamp       int64                     `json:"timestamp"`
+	SignatureDef    map[string]interface{}    `json:"signature_def"`
 }
 
 type InputSignature struct {

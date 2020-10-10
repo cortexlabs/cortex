@@ -491,18 +491,18 @@ func classificationMetricsStr(metrics *metrics.Metrics) string {
 
 func describeModelInput(status *status.Status, predictor *userconfig.Predictor, apiEndpoint string) string {
 	if status.Updated.Ready+status.Stale.Ready == 0 {
-		return "the model's input schema will be available when the api is live\n"
+		return "the models' metadata schema will be available when the api is live\n"
 	}
 
 	apiModelSummary, apiTFLiveReloadingSummary, err := getAPISummary(apiEndpoint, predictor)
 	if err != nil {
-		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
 	}
 
 	if apiModelSummary != nil {
 		t, err := parseAPIModelSummary(apiModelSummary)
 		if err != nil {
-			return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+			return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
 		}
 		return t
 	}
@@ -535,8 +535,8 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 		}
 		tags[modelName] = []int64{highestVersion, latestTimestamp}
 	}
-	rows := make([][]interface{}, numRows)
 
+	rows := make([][]interface{}, numRows)
 	rowNum := 0
 	for modelName := range summary.ModelMetadata {
 		highestVersion := strconv.FormatInt(tags[modelName][0], 10)
@@ -544,7 +544,6 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 
 		for idx, version := range summary.ModelMetadata[modelName].Versions {
 			timestamp := summary.ModelMetadata[modelName].Timestamps[idx]
-			date := time.Unix(timestamp, 0)
 
 			applicableTags := "-"
 			if highestVersion == version && latestTimestamp == timestamp {
@@ -554,6 +553,8 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 			} else if latestTimestamp == timestamp {
 				applicableTags = "latest"
 			}
+
+			date := time.Unix(timestamp, 0)
 
 			rows[rowNum] = []interface{}{
 				modelName,
@@ -591,8 +592,133 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 }
 
 func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (string, error) {
+	highestVersions := make(map[string]int64)
+	latestTimestamps := make(map[string]int64)
 
-	return "", nil
+	numRows := 0
+	models := make(map[string]schema.GenericModelMetadata, 0)
+	for modelID := range summary.ModelMetadata {
+		timestamp := summary.ModelMetadata[modelID].Timestamp
+		modelName, modelVersion, err := getModelFromModelID(modelID)
+		if err != nil {
+			return "", err
+		}
+		if _, ok := models[modelName]; !ok {
+			models[modelName] = schema.GenericModelMetadata{
+				Versions:   []string{strconv.FormatInt(modelVersion, 10)},
+				Timestamps: []int64{timestamp},
+			}
+		} else {
+			model := models[modelName]
+			model.Versions = append(model.Versions, strconv.FormatInt(modelVersion, 10))
+			model.Timestamps = append(model.Timestamps, timestamp)
+			models[modelName] = model
+		}
+		if _, ok := highestVersions[modelName]; !ok {
+			highestVersions[modelName] = modelVersion
+		} else {
+			if modelVersion > highestVersions[modelName] {
+				highestVersions[modelName] = modelVersion
+			}
+		}
+		if _, ok := latestTimestamps[modelName]; !ok {
+			latestTimestamps[modelName] = timestamp
+		} else {
+			if timestamp > latestTimestamps[modelName] {
+				latestTimestamps[modelName] = timestamp
+			}
+		}
+		numRows += len(summary.ModelMetadata[modelID].InputSignatures)
+	}
+
+	rows := make([][]interface{}, numRows)
+	rowNum := 0
+	for modelName := range models {
+		highestVersion := highestVersions[modelName]
+		latestTimestamp := latestTimestamps[modelName]
+
+		for _, modelVersion := range models[modelName].Versions {
+			modelID := fmt.Sprintf("%s-%s", modelName, modelVersion)
+
+			inputSignatures := summary.ModelMetadata[modelID].InputSignatures
+			timestamp := summary.ModelMetadata[modelID].Timestamp
+			versionInt, err := strconv.ParseInt(modelVersion, 10, 64)
+			if err != nil {
+				return "", err
+			}
+
+			applicableTags := "-"
+			if highestVersion == versionInt && latestTimestamp == timestamp {
+				applicableTags = "latest/highest"
+			} else if highestVersion == versionInt {
+				applicableTags = "highest"
+			} else if latestTimestamp == timestamp {
+				applicableTags = "latest"
+			}
+
+			date := time.Unix(timestamp, 0)
+
+			for inputName, inputSignature := range inputSignatures {
+				shapeStr := make([]string, len(inputSignature.Shape))
+				for idx, dim := range inputSignature.Shape {
+					shapeStr[idx] = s.ObjFlatNoQuotes(dim)
+				}
+				rows[rowNum] = []interface{}{
+					modelName,
+					modelVersion,
+					inputName,
+					inputSignature.Type,
+					"(" + strings.Join(shapeStr, ", ") + ")",
+					applicableTags,
+					date.Format("02 Jan 06 15:04:05 MST"),
+				}
+				rowNum++
+			}
+		}
+	}
+
+	t := table.Table{
+		Headers: []table.Header{
+			{
+				Title:    "model name",
+				MaxWidth: 32,
+			},
+			{
+				Title:    "model version",
+				MaxWidth: 16,
+			},
+			{
+				Title:    "model input",
+				MaxWidth: 32,
+			},
+			{
+				Title:    "type",
+				MaxWidth: 10,
+			},
+			{
+				Title:    "shape",
+				MaxWidth: 20,
+			},
+			{
+				Title:    "version tags",
+				MaxWidth: 14,
+			},
+			{
+				Title:    "edit time",
+				MaxWidth: 32,
+			},
+		},
+		Rows: rows,
+	}
+
+	return t.MustFormat(), nil
+}
+
+func getModelFromModelID(modelID string) (modelName string, modelVersion int64, err error) {
+	splitIndex := strings.LastIndex(modelID, "-")
+	modelName = modelID[:splitIndex]
+	modelVersion, err = strconv.ParseInt(modelID[splitIndex+1:], 10, 64)
+	return
 }
 
 func makeRequest(request *http.Request) (http.Header, []byte, error) {
