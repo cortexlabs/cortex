@@ -5,7 +5,7 @@
   predictor:
     type: tensorflow
     path: predictor.py
-    model_path: s3://cortex-examples/tensorflow/resnet50_neuron
+    model_path: s3://cortex-examples/tensorflow/resnet50_neuron/
     processes_per_replica: 4
     threads_per_process: 256
     config:

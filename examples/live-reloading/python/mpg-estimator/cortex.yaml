@@ -1,10 +1,8 @@
 # WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
 
-- name: iris-classifier
+- name: mpg-estimator
   kind: SyncAPI
   predictor:
-    type: tensorflow
+    type: python
     path: predictor.py
-    model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
-  monitoring:
-    model_type: classification
+    model_path: s3://cortex-0/models/python/mpg-estimator

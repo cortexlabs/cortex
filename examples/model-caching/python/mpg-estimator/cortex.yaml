@@ -1,0 +1,11 @@
+- name: mpg-estimator
+  kind: SyncAPI
+  predictor:
+    type: python
+    path: predictor.py
+    models:
+      paths:
+        - name: mpg-estimator
+          model_path: s3://cortex-0/models/python/mpg-estimator
+      cache_size: 1
+      disk_cache_size: 2
