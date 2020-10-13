@@ -654,6 +654,11 @@ func checkCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 		return ErrorInstanceTypeTooSmall()
 	}
 
+	instancePrefix := strings.Split(instanceMetadata.Type, ".")[0]
+	if aws.NLBUnsupportedInstancePrefixes.Has(instancePrefix) {
+		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
+	}
+
 	if err := checkCNISupport(instanceMetadata.Type); err != nil {
 		return err
 	}
