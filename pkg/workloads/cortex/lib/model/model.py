@@ -440,9 +440,9 @@ class ModelsHolder:
         # TODO retrieve model IDs that go over the specified threshold,
         # BUT for models only present on disk (probably another parameter is required to specify that)
         # it's not mission critical
-        stale_mem_model_ids = self._lru_model_ids(self._mem_cache_size)
+        stale_mem_model_ids = self._lru_model_ids(self._mem_cache_size, filter_in_mem=True)
         stale_disk_model_ids = self._lru_model_ids(
-            self._disk_cache_size - len(exclude_disk_model_ids)
+            self._disk_cache_size - len(exclude_disk_model_ids), filter_in_mem=False
         )
 
         if self._remove_callback and not dry_run:
@@ -474,12 +474,13 @@ class ModelsHolder:
         """
         return list(self._models.keys())
 
-    def _lru_model_ids(self, threshold: int) -> List[str]:
+    def _lru_model_ids(self, threshold: int, filter_in_mem: bool) -> List[str]:
         """
         Looking at the LRU, this method gets the model IDs which find themselves at higher indexes than the threshold.
 
         Args:
             threshold: The memory cache size or the disk cache size.
+            filter_in_mem: In the counting process, set whether to only look at models loaded in memory or not. True for only looking at models loaded in memory.
 
         Returns:
             A list of stale model IDs.
@@ -491,8 +492,9 @@ class ModelsHolder:
         }
         model_ids = []
         for counter, model_id in enumerate(timestamps):
-            counter += 1
-            if counter > threshold:
+            if filter_in_mem and self._models[model_id]["model"] is None:
+                continue
+            if counter + 1 > threshold:
                 model_ids.append(model_id)
 
         return model_ids

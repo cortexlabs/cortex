@@ -1540,9 +1540,9 @@ class ModelsGC(AbstractLoopingThread):
                 message += ", "
             else:
                 if memory:
-                    message += "have been removed from the memory cache"
+                    message += " removed from the memory cache"
                 if disk:
-                    message += "have been removed from the disk cache"
+                    message += " removed from the disk cache"
 
         logger().info(message)
 

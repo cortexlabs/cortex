@@ -309,7 +309,7 @@ class ModelsTree:
                         os.path.join(models[model_id]["path"], model_version)
                     ]
                     model_info["versions"] += [model_version]
-                    model_info["timestamps"] += [int(models[model_id]["timestamp"])]
+                    model_info["timestamps"] += [int(models[model_id]["timestamp"].timestamp())]
 
             models_info[model_name] = model_info
 
