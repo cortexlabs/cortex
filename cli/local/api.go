@@ -70,7 +70,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 		return nil, "", err
 	}
 
-	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID)
+	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID, "")
 
 	// apiConfig.Predictor.ModelPath was already added to apiConfig.Predictor.Models for ease of use
 	if len(apiConfig.Predictor.Models) > 0 {

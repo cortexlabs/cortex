@@ -499,18 +499,17 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "verifying operator endpoint", url)
 	}
-	req.Header.Set("Content-Type", "application/json")
 
 	client := http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
+
 	response, err := client.Do(req)
 	if err != nil {
 		return "", ErrorInvalidOperatorEndpoint(url)
 	}
-
 	if response.StatusCode != 200 {
 		return "", ErrorInvalidOperatorEndpoint(url)
 	}

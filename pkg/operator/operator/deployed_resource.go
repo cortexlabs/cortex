@@ -18,7 +18,7 @@ package operator
 
 import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 )
 
 type DeployedResource struct {

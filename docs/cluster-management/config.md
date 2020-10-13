@@ -63,9 +63,6 @@ operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "
 # if set to "none", no APIs will be allowed to use API Gateway
 api_gateway: public  # must be "public" or "none"
 
-# CloudWatch log group for cortex (default: <cluster_name>)
-log_group: cortex
-
 # additional tags to assign to aws resources for labelling and cost allocation (by default, all resources will be tagged with cortex.dev/cluster-name=<cluster_name>)
 tags:  # <string>: <string> map of key/value pairs
 
@@ -100,6 +97,4 @@ image_fluentd: cortexlabs/fluentd:master
 image_statsd: cortexlabs/statsd:master
 image_istio_proxy: cortexlabs/istio-proxy:master
 image_istio_pilot: cortexlabs/istio-pilot:master
-image_istio_citadel: cortexlabs/istio-citadel:master
-image_istio_galley: cortexlabs/istio-galley:master
 ```

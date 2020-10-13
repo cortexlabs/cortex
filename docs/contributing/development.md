@@ -139,7 +139,6 @@ min_instances: 2
 max_instances: 5
 bucket: cortex-cluster-<your_name>
 region: us-west-2
-log_group: cortex
 cluster_name: cortex
 
 image_operator: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest
@@ -155,8 +154,6 @@ image_fluentd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:lates
 image_statsd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/statsd:latest
 image_istio_proxy: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-proxy:latest
 image_istio_pilot: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pilot:latest
-image_istio_citadel: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-citadel:latest
-image_istio_galley: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-galley:latest
 ```
 
 ### Building
@@ -192,6 +189,8 @@ Build the Cortex CLI:
 make cli  # the binary will be placed in <path/to/cortex>/bin/cortex
 cortex-dev version  # should show "master"
 ```
+
+If you wish to parallelize the build process, the `parallel` GNU utility needs to be installed. Once installed, set the `NUM_BUILD_PROCS` environment variable to the desired number of parallel jobs. For ease of use, export `NUM_BUILD_PROCS` in `dev/config/build.sh`.
 
 ### Cortex cluster
 

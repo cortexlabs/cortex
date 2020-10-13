@@ -68,7 +68,6 @@ type Config struct {
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
-	LogGroup                   string             `json:"log_group" yaml:"log_group"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
@@ -89,8 +88,6 @@ type Config struct {
 	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
 	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
 	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel          string             `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley           string             `json:"image_istio_galley" yaml:"image_istio_galley"`
 }
 
 type SpotConfig struct {
@@ -291,13 +288,6 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "LogGroup",
-			StringValidation: &cr.StringValidation{
-				MaxLength: 63,
-			},
-			DefaultField: "ClusterName",
-		},
-		{
 			StructField: "SubnetVisibility",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: SubnetVisibilityStrings(),
@@ -447,20 +437,6 @@ var UserValidation = &cr.StructValidation{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortexlabs/istio-pilot:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioCitadel",
-			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-citadel:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioGalley",
-			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-galley:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -676,6 +652,11 @@ func checkCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
 		strings.HasSuffix(instanceMetadata.Type, "micro") {
 		return ErrorInstanceTypeTooSmall()
+	}
+
+	instancePrefix := strings.Split(instanceMetadata.Type, ".")[0]
+	if aws.NLBUnsupportedInstancePrefixes.Has(instancePrefix) {
+		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
 	}
 
 	if err := checkCNISupport(instanceMetadata.Type); err != nil {
@@ -1138,7 +1119,6 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(InstancePoolsUserKey, *cc.SpotConfig.InstancePools)
 		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
-	items.Add(LogGroupUserKey, cc.LogGroup)
 	items.Add(SubnetVisibilityUserKey, cc.SubnetVisibility)
 	items.Add(NATGatewayUserKey, cc.NATGateway)
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
@@ -1161,8 +1141,6 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageStatsdUserKey, cc.ImageStatsd)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
-	items.Add(ImageIstioCitadelUserKey, cc.ImageIstioCitadel)
-	items.Add(ImageIstioGalleyUserKey, cc.ImageIstioGalley)
 
 	return items
 }

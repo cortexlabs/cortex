@@ -31,4 +31,4 @@ if __name__ == "__main__":
     template = env.get_template(str(template_path.name))
     with open(cluster_config_path, "r") as f:
         cluster_config = yaml.safe_load(f)
-        print(template.render(config=cluster_config))
+        print(template.render(config=cluster_config, env=os.environ))

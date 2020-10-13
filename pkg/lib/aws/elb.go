@@ -20,7 +20,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
+
+// https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-target-groups.html
+var NLBUnsupportedInstancePrefixes = strset.New("c1", "cc1", "cc2", "cg1", "cg2", "cr1", "g1", "g2", "hi1", "hs1", "m1", "m2", "m3", "t1")
 
 // returns the the first load balancer which has all of the specified tags, or nil if no load balancers match
 func (c *Client) FindLoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, error) {

@@ -66,7 +66,7 @@ APIID (uniquely identifies an api configuration for a given deployment)
 		* APIs
 	* DeploymentID (used for refreshing a deployment)
 */
-func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string) *API {
+func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string, clusterName string) *API {
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
@@ -93,13 +93,13 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		ID:           apiID,
 		SpecID:       specID,
 		PredictorID:  predictorID,
-		Key:          Key(apiConfig.Name, apiID),
-		PredictorKey: PredictorKey(apiConfig.Name, predictorID),
+		Key:          Key(apiConfig.Name, apiID, clusterName),
+		PredictorKey: PredictorKey(apiConfig.Name, predictorID, clusterName),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
-		MetadataRoot: MetadataRoot(apiConfig.Name),
+		MetadataRoot: MetadataRoot(apiConfig.Name, clusterName),
 		ProjectID:    projectID,
-		ProjectKey:   ProjectKey(projectID),
+		ProjectKey:   ProjectKey(projectID, clusterName),
 	}
 }
 
@@ -134,8 +134,9 @@ func (api *API) SubtractLocalModelIDs(apis ...*API) []string {
 	return modelIDs.Slice()
 }
 
-func PredictorKey(apiName string, predictorID string) string {
+func PredictorKey(apiName string, predictorID string, clusterName string) string {
 	return filepath.Join(
+		clusterName,
 		"apis",
 		apiName,
 		"predictor",
@@ -144,8 +145,9 @@ func PredictorKey(apiName string, predictorID string) string {
 	)
 }
 
-func Key(apiName string, apiID string) string {
+func Key(apiName string, apiID string, clusterName string) string {
 	return filepath.Join(
+		clusterName,
 		"apis",
 		apiName,
 		"api",
@@ -154,8 +156,9 @@ func Key(apiName string, apiID string) string {
 	)
 }
 
-func (api API) RawAPIKey() string {
+func (api API) RawAPIKey(clusterName string) string {
 	return filepath.Join(
+		clusterName,
 		"apis",
 		api.Name,
 		"raw_api",
@@ -164,16 +167,18 @@ func (api API) RawAPIKey() string {
 	)
 }
 
-func MetadataRoot(apiName string) string {
+func MetadataRoot(apiName string, clusterName string) string {
 	return filepath.Join(
+		clusterName,
 		"apis",
 		apiName,
 		"metadata",
 	)
 }
 
-func ProjectKey(projectID string) string {
+func ProjectKey(projectID string, clusterName string) string {
 	return filepath.Join(
+		clusterName,
 		"projects",
 		projectID+".zip",
 	)

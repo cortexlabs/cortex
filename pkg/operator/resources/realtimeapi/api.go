@@ -30,7 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 )
@@ -52,14 +52,14 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, deploymentID)
+	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, config.Cluster.ClusterName)
 
 	if prevDeployment == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey()); err != nil {
+		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
 			return nil, "", errors.Wrap(err, "upload raw api spec")
 		}
 
@@ -96,7 +96,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey()); err != nil {
+		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
 			return nil, "", errors.Wrap(err, "upload raw api spec")
 		}
 
@@ -152,7 +152,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID())
+	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), config.Cluster.ClusterName)
 
 	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
@@ -436,7 +436,7 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	prefix := filepath.Join("apis", apiName)
+	prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 }
 

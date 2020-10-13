@@ -37,7 +37,6 @@ const (
 	AvailabilityZonesKey                   = "availability_zones"
 	SSLCertificateARNKey                   = "ssl_certificate_arn"
 	BucketKey                              = "bucket"
-	LogGroupKey                            = "log_group"
 	SubnetVisibilityKey                    = "subnet_visibility"
 	NATGatewayKey                          = "nat_gateway"
 	APILoadBalancerSchemeKey               = "api_load_balancer_scheme"
@@ -58,8 +57,6 @@ const (
 	ImageStatsdKey                         = "image_statsd"
 	ImageIstioProxyKey                     = "image_istio_proxy"
 	ImageIstioPilotKey                     = "image_istio_pilot"
-	ImageIstioCitadelKey                   = "image_istio_citadel"
-	ImageIstioGalleyKey                    = "image_istio_galley"
 
 	// User facing string
 	APIVersionUserKey                          = "cluster version"
@@ -82,7 +79,6 @@ const (
 	MaxPriceUserKey                            = "spot max price ($ per hour)"
 	InstancePoolsUserKey                       = "spot instance pools"
 	OnDemandBackupUserKey                      = "on demand backup"
-	LogGroupUserKey                            = "cloudwatch log group"
 	SubnetVisibilityUserKey                    = "subnet visibility"
 	NATGatewayUserKey                          = "nat gateway"
 	APILoadBalancerSchemeUserKey               = "api load balancer scheme"
@@ -103,6 +99,4 @@ const (
 	ImageStatsdUserKey                         = "statsd image"
 	ImageIstioProxyUserKey                     = "istio proxy image"
 	ImageIstioPilotUserKey                     = "istio pilot image"
-	ImageIstioCitadelUserKey                   = "istio citadel image"
-	ImageIstioGalleyUserKey                    = "istio galley image"
 )

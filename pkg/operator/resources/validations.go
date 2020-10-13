@@ -32,7 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 

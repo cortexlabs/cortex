@@ -199,7 +199,7 @@ spec:
             - name: AWS_REGION
               value: $CORTEX_REGION
             - name: LOG_GROUP_NAME
-              value: $CORTEX_LOG_GROUP
+              value: $CORTEX_CLUSTER_NAME
             - name: K8S_NODE_NAME # used by fluentd to avoid a k8s query
               valueFrom:
                 fieldRef:

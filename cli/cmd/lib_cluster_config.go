@@ -276,11 +276,6 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.Bucket = cachedClusterConfig.Bucket
 
-	if userClusterConfig.LogGroup != "" && userClusterConfig.LogGroup != cachedClusterConfig.LogGroup {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.LogGroupKey, cachedClusterConfig.LogGroup)
-	}
-	userClusterConfig.LogGroup = cachedClusterConfig.LogGroup
-
 	if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
 	}
@@ -343,6 +338,66 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.APIGatewaySetting = cachedClusterConfig.APIGatewaySetting
 
+	if s.Obj(cachedClusterConfig.VPCCIDR) != s.Obj(userClusterConfig.VPCCIDR) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.VPCCIDRKey, cachedClusterConfig.VPCCIDR)
+	}
+	userClusterConfig.VPCCIDR = cachedClusterConfig.VPCCIDR
+
+	if s.Obj(cachedClusterConfig.ImageDownloader) != s.Obj(userClusterConfig.ImageDownloader) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageDownloaderKey, cachedClusterConfig.ImageDownloader)
+	}
+	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
+
+	if s.Obj(cachedClusterConfig.ImageRequestMonitor) != s.Obj(userClusterConfig.ImageRequestMonitor) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageRequestMonitorKey, cachedClusterConfig.ImageRequestMonitor)
+	}
+	userClusterConfig.ImageRequestMonitor = cachedClusterConfig.ImageRequestMonitor
+
+	if s.Obj(cachedClusterConfig.ImageClusterAutoscaler) != s.Obj(userClusterConfig.ImageClusterAutoscaler) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageClusterAutoscalerKey, cachedClusterConfig.ImageClusterAutoscaler)
+	}
+	userClusterConfig.ImageClusterAutoscaler = cachedClusterConfig.ImageClusterAutoscaler
+
+	if s.Obj(cachedClusterConfig.ImageMetricsServer) != s.Obj(userClusterConfig.ImageMetricsServer) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageMetricsServerKey, cachedClusterConfig.ImageMetricsServer)
+	}
+	userClusterConfig.ImageMetricsServer = cachedClusterConfig.ImageMetricsServer
+
+	if s.Obj(cachedClusterConfig.ImageInferentia) != s.Obj(userClusterConfig.ImageInferentia) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageInferentiaKey, cachedClusterConfig.ImageInferentia)
+	}
+	userClusterConfig.ImageInferentia = cachedClusterConfig.ImageInferentia
+
+	if s.Obj(cachedClusterConfig.ImageNeuronRTD) != s.Obj(userClusterConfig.ImageNeuronRTD) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageNeuronRTDKey, cachedClusterConfig.ImageNeuronRTD)
+	}
+	userClusterConfig.ImageNeuronRTD = cachedClusterConfig.ImageNeuronRTD
+
+	if s.Obj(cachedClusterConfig.ImageNvidia) != s.Obj(userClusterConfig.ImageNvidia) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageNvidiaKey, cachedClusterConfig.ImageNvidia)
+	}
+	userClusterConfig.ImageNvidia = cachedClusterConfig.ImageNvidia
+
+	if s.Obj(cachedClusterConfig.ImageFluentd) != s.Obj(userClusterConfig.ImageFluentd) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageFluentdKey, cachedClusterConfig.ImageFluentd)
+	}
+	userClusterConfig.ImageFluentd = cachedClusterConfig.ImageFluentd
+
+	if s.Obj(cachedClusterConfig.ImageStatsd) != s.Obj(userClusterConfig.ImageStatsd) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageStatsdKey, cachedClusterConfig.ImageStatsd)
+	}
+	userClusterConfig.ImageStatsd = cachedClusterConfig.ImageStatsd
+
+	if s.Obj(cachedClusterConfig.ImageIstioProxy) != s.Obj(userClusterConfig.ImageIstioProxy) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioProxyKey, cachedClusterConfig.ImageIstioProxy)
+	}
+	userClusterConfig.ImageIstioProxy = cachedClusterConfig.ImageIstioProxy
+
+	if s.Obj(cachedClusterConfig.ImageIstioPilot) != s.Obj(userClusterConfig.ImageIstioPilot) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioPilotKey, cachedClusterConfig.ImageIstioPilot)
+	}
+	userClusterConfig.ImageIstioPilot = cachedClusterConfig.ImageIstioPilot
+
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 	}
@@ -384,13 +439,7 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBackupKey, cachedClusterConfig.SpotConfig.OnDemandBackup), clusterconfig.SpotConfigKey)
 		}
 	}
-
 	userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
-
-	if s.Obj(cachedClusterConfig.VPCCIDR) != s.Obj(userClusterConfig.VPCCIDR) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.VPCCIDRKey, cachedClusterConfig.VPCCIDR)
-	}
-	userClusterConfig.VPCCIDR = cachedClusterConfig.VPCCIDR
 
 	return nil
 }
@@ -490,7 +539,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	if clusterConfig.SubnetVisibility == clusterconfig.PrivateSubnetVisibility {
 		privateSubnetMsg = ", and will use private subnets for all EC2 instances"
 	}
-	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.LogGroup, privateSubnetMsg)
+	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.ClusterName, privateSubnetMsg)
 
 	if clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
 		fmt.Print("warning: you've disabled API Gateway cluster-wide, so APIs will not be able to create API Gateway endpoints (they will still be reachable via the API load balancer; see https://docs.cortex.dev/deployments/networking for more information)\n\n")
@@ -538,9 +587,6 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	}
 	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
-	if clusterConfig.LogGroup != defaultConfig.LogGroup {
-		items.Add(clusterconfig.LogGroupUserKey, clusterConfig.LogGroup)
-	}
 
 	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
 	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
@@ -654,12 +700,6 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	}
 	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
 		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
-	}
-	if clusterConfig.ImageIstioCitadel != defaultConfig.ImageIstioCitadel {
-		items.Add(clusterconfig.ImageIstioCitadelUserKey, clusterConfig.ImageIstioCitadel)
-	}
-	if clusterConfig.ImageIstioGalley != defaultConfig.ImageIstioGalley {
-		items.Add(clusterconfig.ImageIstioGalleyUserKey, clusterConfig.ImageIstioGalley)
 	}
 
 	return items.String()

@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import boto3
+import os
 
-set -euo pipefail
+from helpers import get_operator_load_balancer
 
-CORTEX_VERSION=master
 
-image=$1
+def get_operator_load_balancer_state():
+    cluster_name = os.environ["CORTEX_CLUSTER_NAME"]
+    region = os.environ["CORTEX_REGION"]
 
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    client_elbv2 = boto3.client("elbv2", region_name=region)
 
-if [ "$image" == "python-predictor-gpu-slim" ]; then
-  for cuda in 10.0 10.1 10.2 11.0; do
-    docker push cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda}
-  done
-else
-  docker push cortexlabs/${image}:${CORTEX_VERSION}
-fi
+    load_balancer = get_operator_load_balancer(cluster_name, client_elbv2)
+    return load_balancer["State"]["Code"]
+
+
+if __name__ == "__main__":
+    print(get_operator_load_balancer_state(), end="")

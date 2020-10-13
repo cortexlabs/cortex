@@ -23,15 +23,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	istionetworking "istio.io/api/networking/v1alpha3"
-	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istionetworking "istio.io/api/networking/v1beta1"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 var _virtualServiceTypeMeta = kmeta.TypeMeta{
-	APIVersion: "v1alpha3",
+	APIVersion: "v1beta1",
 	Kind:       "VirtualService",
 }
 

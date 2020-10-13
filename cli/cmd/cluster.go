@@ -183,7 +183,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createLogGroupIfNotFound(awsClient, clusterConfig.LogGroup, clusterConfig.Tags)
+		err = createLogGroupIfNotFound(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -659,7 +659,7 @@ var _exportCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.RawAPIKey(), path.Join(baseDir, apiSpec.FileName))
+			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.RawAPIKey(info.ClusterConfig.ClusterName), path.Join(baseDir, apiSpec.FileName))
 			if err != nil {
 				exit.Error(err)
 			}

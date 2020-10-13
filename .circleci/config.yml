@@ -45,10 +45,13 @@ jobs:
   build-and-deploy:
     docker:
       - image: circleci/python:3.6
+    environment:
+      NUM_BUILD_PROCS: "2"
     steps:
       - checkout
       - setup_remote_docker
       - install-go
+      - run: sudo apt update && sudo apt install parallel -y
       - run: sudo pip install awscli
       - run: make ci-build-images
       - run: make ci-build-cli
