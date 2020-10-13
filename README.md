@@ -12,6 +12,30 @@
 
 # Model serving at scale
 
+### Deploy
+
+* Deploy TensorFlow, PyTorch, ONNX, scikit-learn, and other models
+* Define preprocessing and postprocessing steps in Python
+* Configure APIs as realtime or batch
+* Deploy multiple models per API
+
+### Manage
+
+* Monitor API performance and track predictions
+* Update APIs with no downtime
+* Stream logs from APIs
+* Perform A/B tests
+
+### Scale
+
+* Test locally, scale on your AWS account
+* Autoscale to handle production traffic
+* Reduce costs with spot instances
+
+<br>
+
+## How it works
+
 ### Write APIs in Python
 
 Define any real-time or batch inference pipeline as simple Python APIs, regardless of framework.
@@ -94,6 +118,7 @@ Run Cortex on your AWS account (GCP support is coming soon), maintaining control
 
 region: us-west-2
 instance_type: p2.xlarge
+spot: true
 min_instances: 1
 max_instances: 5
 ```
