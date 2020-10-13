@@ -641,9 +641,18 @@ func CommonPath(paths ...string) string {
 		return path.Clean(paths[0])
 	}
 
+	startsWithSlash := false
+	allStartWithSlash := true
+
 	var splitPaths [][]string
 	shortestPathLength := -1
 	for _, path := range paths {
+		if strings.HasPrefix(path, "/") {
+			startsWithSlash = true
+		} else {
+			allStartWithSlash = false
+		}
+
 		splitPath := slices.RemoveEmpties(strings.Split(path, "/"))
 		splitPaths = append(splitPaths, splitPath)
 
@@ -671,8 +680,15 @@ func CommonPath(paths ...string) string {
 
 		commonPath = filepath.Join(commonPath, element)
 	}
+	if commonPath != "" && startsWithSlash {
+		commonPath = s.EnsurePrefix(commonPath, "/")
+		commonPath = s.EnsureSuffix(commonPath, "/")
+	}
+	if commonPath == "" && allStartWithSlash {
+		commonPath = s.EnsurePrefix(commonPath, "/")
+	}
 
-	return s.EnsurePrefix(commonPath, "/")
+	return commonPath
 }
 
 type DirsOrder string
@@ -736,9 +752,11 @@ func FileTree(paths []string, cwd string, dirsOrder DirsOrder) string {
 	} else if !didTrimCwd && commonPrefix == "" {
 		header = ""
 	} else if didTrimCwd && commonPrefix != "" {
-		header = "./" + commonPrefix + "\n"
+		header = "./" + commonPrefix
+		header = s.EnsureSingleOccurrenceSuffix(header, "/") + "\n"
 	} else if !didTrimCwd && commonPrefix != "" {
-		header = commonPrefix + "\n"
+		header = commonPrefix + "/"
+		header = s.EnsureSingleOccurrenceSuffix(header, "/") + "\n"
 	}
 
 	tree := treeprint.New()

@@ -27,6 +27,14 @@ func ToTitle(str string) string {
 	return strings.Title(strings.ToLower(str))
 }
 
+func EnsureSingleOccurrencePrefix(str string, prefix string) string {
+	return prefix + strings.TrimLeft(str, prefix)
+}
+
+func EnsureSingleOccurrenceSuffix(str string, suffix string) string {
+	return strings.TrimRight(str, suffix) + suffix
+}
+
 func EnsurePrefix(str string, prefix string) string {
 	if prefix != "" && !strings.HasPrefix(str, prefix) {
 		return prefix + str
