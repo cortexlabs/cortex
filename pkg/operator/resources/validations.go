@@ -24,13 +24,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -85,20 +87,48 @@ func ValidateClusterAPIs(apis []userconfig.API, models *[]spec.CuratedModelResou
 		return err
 	}
 
+	deployedRealtimeAPIs := strset.New()
+
+	for _, virtualService := range virtualServices {
+		if virtualService.Labels["apiKind"] == userconfig.RealtimeAPIKind.String() {
+			deployedRealtimeAPIs.Add(virtualService.Labels["apiName"])
+		}
+	}
+
 	didPrintWarning := false
+
+	realtimeAPIs := InclusiveFilterAPIsByKind(apis, userconfig.RealtimeAPIKind)
 
 	for i := range apis {
 		api := &apis[i]
-		if err := spec.ValidateAPI(api, models, projectFiles, types.AWSProviderType, config.AWS); err != nil {
-			return err
-		}
-		if err := validateK8s(api, virtualServices, maxMem); err != nil {
-			return err
+		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind {
+			if err := spec.ValidateAPI(api, models, projectFiles, types.AWSProviderType, config.AWS); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
+			if err := validateK8s(api, virtualServices, maxMem); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
+
+			if !didPrintWarning && api.Networking.LocalPort != nil {
+				fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
+				didPrintWarning = true
+			}
 		}
 
-		if !didPrintWarning && api.Networking.LocalPort != nil {
-			fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
-			didPrintWarning = true
+		if api.Kind == userconfig.TrafficSplitterKind {
+			if err := spec.ValidateTrafficSplitter(api, types.AWSProviderType, config.AWS); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
+			if err := checkIfAPIExists(api.APIs, realtimeAPIs, deployedRealtimeAPIs); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
+			if err := validateEndpointCollisions(api, virtualServices); err != nil {
+				return errors.Wrap(err, api.Identify())
+			}
+		}
+
+		if api.Networking.APIGateway != userconfig.NoneAPIGatewayType && config.Cluster.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
+			return errors.Wrap(ErrorAPIGatewayDisabled(api.Networking.APIGateway), api.Identify(), userconfig.NetworkingKey, userconfig.APIGatewayKey)
 		}
 	}
 
@@ -106,7 +136,6 @@ func ValidateClusterAPIs(apis []userconfig.API, models *[]spec.CuratedModelResou
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateName(dups)
 	}
-
 	dups = findDuplicateEndpoints(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateEndpointInOneDeploy(dups)
@@ -117,7 +146,7 @@ func ValidateClusterAPIs(apis []userconfig.API, models *[]spec.CuratedModelResou
 
 func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem kresource.Quantity) error {
 	if err := validateK8sCompute(api.Compute, maxMem); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
+		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
 	if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -198,7 +227,7 @@ func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclie
 		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService)
 		for endpoint := range endpoints {
 			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Networking.Endpoint, "/") && virtualService.Labels["apiName"] != api.Name {
-				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.Labels["apiName"]), api.Identify(), userconfig.EndpointKey, endpoint)
+				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.Labels["apiName"]), userconfig.NetworkingKey, userconfig.EndpointKey, endpoint)
 			}
 		}
 	}
@@ -240,4 +269,58 @@ func getValidationK8sResources() ([]istioclientnetworking.VirtualService, kresou
 	)
 
 	return virtualServices, maxMem, err
+}
+
+// InclusiveFilterAPIsByKind includes only provided Kinds
+func InclusiveFilterAPIsByKind(apis []userconfig.API, kindsToInclude ...userconfig.Kind) []userconfig.API {
+	kindsToIncludeSet := strset.New()
+	for _, kind := range kindsToInclude {
+		kindsToIncludeSet.Add(kind.String())
+	}
+	fileredAPIs := []userconfig.API{}
+	for _, api := range apis {
+		if kindsToIncludeSet.Has(api.Kind.String()) {
+			fileredAPIs = append(fileredAPIs, api)
+		}
+	}
+	return fileredAPIs
+}
+
+func ExclusiveFilterAPIsByKind(apis []userconfig.API, kindsToExclude ...userconfig.Kind) []userconfig.API {
+	kindsToExcludeSet := strset.New()
+	for _, kind := range kindsToExclude {
+		kindsToExcludeSet.Add(kind.String())
+	}
+	fileredAPIs := []userconfig.API{}
+	for _, api := range apis {
+		if !kindsToExcludeSet.Has(api.Kind.String()) {
+			fileredAPIs = append(fileredAPIs, api)
+		}
+	}
+	return fileredAPIs
+}
+
+// checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed
+func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, deployedRealtimeAPIs strset.Set) error {
+	var missingAPIs []string
+	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
+	for _, trafficSplitAPI := range trafficSplitterAPIs {
+		//check if already deployed
+		deployed := deployedRealtimeAPIs.Has(trafficSplitAPI.Name)
+
+		// check defined apis
+		for _, definedAPI := range apis {
+			if trafficSplitAPI.Name == definedAPI.Name {
+				deployed = true
+			}
+		}
+		if deployed == false {
+			missingAPIs = append(missingAPIs, trafficSplitAPI.Name)
+		}
+	}
+	if len(missingAPIs) != 0 {
+		return ErrorAPIsNotDeployed(missingAPIs)
+	}
+	return nil
+
 }

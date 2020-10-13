@@ -63,13 +63,15 @@ output=$(black --quiet --diff --line-length=100 "$ROOT")
 if [[ $output ]]; then
   echo "python files not properly formatted:"
   echo "$output"
+  black --version
   exit 1
 fi
 
 # Check for missing license
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
-! -path "./.vscode/*" \
+! -path "**/.vscode/*" \
+! -path "**/__pycache__/*" \
 ! -path "./examples/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
@@ -93,7 +95,8 @@ if [ "$is_release_branch" = "true" ]; then
   output=$(cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
   ! -path "./vendor/*" \
-  ! -path "./.vscode/*" \
+  ! -path "**/.vscode/*" \
+  ! -path "**/__pycache__/*" \
   ! -path "./docs/contributing/development.md" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
@@ -111,7 +114,8 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./build/lint.sh" \
   ! -path "./dev/update_version_comments.sh" \
   ! -path "./vendor/*" \
-  ! -path "./.vscode/*" \
+  ! -path "**/.vscode/*" \
+  ! -path "**/__pycache__/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
@@ -153,11 +157,12 @@ else
 
   # Check for version warning comments in examples
   output=$(cd "$ROOT/examples" && find . -type f \
-  ! -name "README.md" \
+  ! -path "./README.md" \
+  ! -path "**/__pycache__/*" \
   ! -name "*.json" \
   ! -name "*.txt" \
   ! -name ".*" \
-  -exec grep -L "WARNING: you are on the master branch, please refer to the examples on the branch that matches your \`cortex version\`" {} \;)
+  -exec grep -L "WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` (e\.g\. for version [0-9]*\.[0-9]*\.\*, run \`git checkout -b [0-9]*\.[0-9]*\` or switch to the \`[0-9]*\.[0-9]*\` branch on GitHub)" {} \;)
   if [[ $output ]]; then
     echo "example file(s) are missing version appropriate comment:"
     echo "$output"
@@ -168,7 +173,8 @@ fi
 # Check for trailing whitespace
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
-! -path "./.vscode/*" \
+! -path "**/.vscode/*" \
+! -path "**/__pycache__/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -182,7 +188,8 @@ fi
 # Check for missing new line at end of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
-! -path "./.vscode/*" \
+! -path "**/.vscode/*" \
+! -path "**/__pycache__/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -196,7 +203,8 @@ fi
 # Check for multiple new lines at end of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
-! -path "./.vscode/*" \
+! -path "**/.vscode/*" \
+! -path "**/__pycache__/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -210,7 +218,8 @@ fi
 # Check for new line(s) at beginning of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
-! -path "./.vscode/*" \
+! -path "**/.vscode/*" \
+! -path "**/__pycache__/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \

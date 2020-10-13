@@ -16,6 +16,8 @@
 
 set -eo pipefail
 
+CORTEX_VERSION_MINOR=master
+
 function get_operator_endpoint() {
   kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
@@ -34,12 +36,17 @@ if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTE
 fi
 
 eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
+out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/miscellaneous/security#running-cortex-cluster-commands-from-different-iam-users"; exit 1; fi
 
 operator_endpoint=$(get_operator_endpoint)
 api_load_balancer_endpoint=$(get_api_load_balancer_endpoint)
-api_gateway_endpoint=$(get_api_gateway_endpoint)
+if [ "$CORTEX_API_GATEWAY" == "public" ]; then
+  api_gateway_endpoint=$(get_api_gateway_endpoint)
+fi
 
 echo -e "\033[1mendpoints:\033[0m"
 echo "operator:          $operator_endpoint"  # before modifying this, search for this prefix
 echo "api load balancer: $api_load_balancer_endpoint"
-echo "api gateway:       $api_gateway_endpoint"
+if [ "$CORTEX_API_GATEWAY" == "public" ]; then
+  echo "api gateway:       $api_gateway_endpoint"
+fi

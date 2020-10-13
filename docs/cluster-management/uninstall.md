@@ -33,14 +33,14 @@ To delete them:
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 
-# identify the name of your cortex s3 bucket
+# identify the name of your cortex S3 bucket
 aws s3 ls
 
-# delete the s3 bucket
+# delete the S3 bucket
 aws s3 rb --force s3://<bucket>
 
-# delete the log group (replace <log_group> with what was configured during installation, default: cortex)
-aws logs describe-log-groups --log-group-name-prefix=<log_group> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
+# delete the log group (replace <cluster_name> with the name of your cluster, default: cortex)
+aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```
 
 If you've configured a custom domain for your APIs, you may wish to remove the SSL Certificate and Hosted Zone for the domain by following these [instructions](../guides/custom-domain.md#cleanup).

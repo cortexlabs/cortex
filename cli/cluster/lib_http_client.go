@@ -27,10 +27,10 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
@@ -51,21 +51,12 @@ func (oc OperatorConfig) AuthHeader() string {
 	return fmt.Sprintf("CortexAWS %s|%s", oc.AWSAccessKeyID, oc.AWSSecretAccessKey)
 }
 
-var _operatorClient = &OperatorClient{
-	Client: &http.Client{
-		Timeout: 600 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	},
-}
-
 func HTTPGet(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
 	req, err := operatorRequest(operatorConfig, "GET", endpoint, nil, qParams)
 	if err != nil {
 		return nil, err
 	}
-	return _operatorClient.MakeRequest(operatorConfig, req)
+	return makeOperatorRequest(operatorConfig, req)
 }
 
 func HTTPPostObjAsJSON(operatorConfig OperatorConfig, endpoint string, requestData interface{}, qParams ...map[string]string) ([]byte, error) {
@@ -83,7 +74,7 @@ func HTTPPostJSON(operatorConfig OperatorConfig, endpoint string, jsonRequestDat
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	return _operatorClient.MakeRequest(operatorConfig, req)
+	return makeOperatorRequest(operatorConfig, req)
 }
 
 func HTTPPostNoBody(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
@@ -91,7 +82,7 @@ func HTTPPostNoBody(operatorConfig OperatorConfig, endpoint string, qParams ...m
 	if err != nil {
 		return nil, err
 	}
-	return _operatorClient.MakeRequest(operatorConfig, req)
+	return makeOperatorRequest(operatorConfig, req)
 }
 
 func HTTPDelete(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
@@ -99,7 +90,7 @@ func HTTPDelete(operatorConfig OperatorConfig, endpoint string, qParams ...map[s
 	if err != nil {
 		return nil, err
 	}
-	return _operatorClient.MakeRequest(operatorConfig, req)
+	return makeOperatorRequest(operatorConfig, req)
 }
 
 type HTTPUploadInput struct {
@@ -139,7 +130,7 @@ func HTTPUpload(operatorConfig OperatorConfig, endpoint string, input *HTTPUploa
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return _operatorClient.MakeRequest(operatorConfig, req)
+	return makeOperatorRequest(operatorConfig, req)
 }
 
 func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Reader) error {
@@ -154,8 +145,8 @@ func addFileToMultipart(fileName string, writer *multipart.Writer, reader io.Rea
 	return nil
 }
 
-func HTTPUploadZip(operatorConfig OperatorConfig, endpoint string, zipInput *zip.Input, fileName string, qParams ...map[string]string) ([]byte, error) {
-	zipBytes, err := zip.ToMem(zipInput)
+func HTTPUploadZip(operatorConfig OperatorConfig, endpoint string, zipInput *archive.Input, fileName string, qParams ...map[string]string) ([]byte, error) {
+	zipBytes, _, err := archive.ZipToMem(zipInput)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to zip configuration file")
 	}
@@ -185,7 +176,7 @@ func operatorRequest(operatorConfig OperatorConfig, method string, endpoint stri
 	return req, nil
 }
 
-func (client *OperatorClient) MakeRequest(operatorConfig OperatorConfig, request *http.Request) ([]byte, error) {
+func makeOperatorRequest(operatorConfig OperatorConfig, request *http.Request) ([]byte, error) {
 	if operatorConfig.Telemetry {
 		values := request.URL.Query()
 		values.Set("clientID", operatorConfig.ClientID)
@@ -195,8 +186,23 @@ func (client *OperatorClient) MakeRequest(operatorConfig OperatorConfig, request
 	request.Header.Set("Authorization", operatorConfig.AuthHeader())
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
+	timeout := 600 * time.Second
+	if request.URL.Path == "/info" {
+		timeout = 10 * time.Second
+	}
+
+	client := &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
 	response, err := client.Do(request)
 	if err != nil {
+		if operatorConfig.EnvName == "" {
+			return nil, errors.Wrap(err, "failed to connect to operator", operatorConfig.OperatorEndpoint)
+		}
 		return nil, ErrorFailedToConnectOperator(err, operatorConfig.EnvName, operatorConfig.OperatorEndpoint)
 	}
 	defer response.Body.Close()

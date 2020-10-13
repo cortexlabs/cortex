@@ -24,7 +24,7 @@
 
 - [Iris classification](pytorch/iris-classifier): deploy a model to classify iris flowers.
 
-- [Text generation](pytorch/text-generator): deploy Hugging Face's DistilGPT2 model to generate text.
+- [Text generation](pytorch/text-generator): deploy Hugging Face's GPT-2 model to generate text.
 
 - [Sentiment analysis](pytorch/sentiment-analyzer): deploy a Hugging Face transformers model for sentiment analysis.
 
@@ -45,6 +45,8 @@
 - [Image classification](pytorch/image-classifier-resnet50): deploy a ResNet50 model from TorchVision to classify images.
 
 - [Object detection](pytorch/object-detector): deploy a Faster R-CNN model from TorchVision to detect objects in images.
+
+- [Question generator](pytorch/question-generator): deploy a transformers model to generate questions given text and the correct answer.
 
 ## ONNX
 

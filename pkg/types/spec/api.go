@@ -18,6 +18,7 @@ package spec
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -31,8 +32,11 @@ import (
 type API struct {
 	*userconfig.API
 	ID                    string                 `json:"id"`
-	Key                   string                 `json:"key"`
+	SpecID                string                 `json:"spec_id"`
+	PredictorID           string                 `json:"predictor_id"`
 	DeploymentID          string                 `json:"deployment_id"`
+	Key                   string                 `json:"key"`
+	PredictorKey          string                 `json:"predictor_key"`
 	LastUpdated           int64                  `json:"last_updated"`
 	MetadataRoot          string                 `json:"metadata_root"`
 	ProjectID             string                 `json:"project_id"`
@@ -54,25 +58,56 @@ type CuratedModelResource struct {
 	Versions []int64 `json:"versions"`
 }
 
-func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projectID string, deploymentID string) *API {
+func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projectID string, deploymentID string, clusterName string) *API {
+	/*
+		APIID (uniquely identifies an api configuration for a given deployment)
+			* SpecID (uniquely identifies api configuration specified by user)
+				* PredictorID (used to determine when rolling updates need to happen)
+					* Resource
+					* Predictor
+					* Monitoring
+					* Compute
+					* ProjectID
+				* Deployment Strategy
+				* Autoscaling
+				* Networking
+				* APIs
+			* DeploymentID (used for refreshing a deployment)
+	*/
 	var buf bytes.Buffer
-	buf.WriteString(apiConfig.Name)
+
+	buf.WriteString(s.Obj(apiConfig.Resource))
 	buf.WriteString(s.Obj(apiConfig.Predictor))
 	buf.WriteString(s.Obj(apiConfig.Monitoring))
-	buf.WriteString(deploymentID)
 	buf.WriteString(projectID)
-	id := hash.Bytes(buf.Bytes())
+	if apiConfig.Compute != nil {
+		buf.WriteString(s.Obj(apiConfig.Compute.Normalized()))
+	}
+	predictorID := hash.Bytes(buf.Bytes())
+
+	buf.Reset()
+	buf.WriteString(predictorID)
+	buf.WriteString(s.Obj(apiConfig.APIs))
+	buf.WriteString(s.Obj(apiConfig.Networking))
+	buf.WriteString(s.Obj(apiConfig.Autoscaling))
+	buf.WriteString(s.Obj(apiConfig.UpdateStrategy))
+	specID := hash.Bytes(buf.Bytes())[:32]
+
+	apiID := fmt.Sprintf("%s-%s-%s", MonotonicallyDecreasingID(), deploymentID, specID) // should be up to 60 characters long
 
 	return &API{
 		API:                   apiConfig,
 		CuratedModelResources: models,
-		ID:                    id,
-		Key:                   Key(apiConfig.Name, id),
+		ID:                    apiID,
+		SpecID:                specID,
+		PredictorID:           predictorID,
+		Key:                   Key(apiConfig.Name, apiID, clusterName),
+		PredictorKey:          PredictorKey(apiConfig.Name, predictorID, clusterName),
 		DeploymentID:          deploymentID,
 		LastUpdated:           time.Now().Unix(),
-		MetadataRoot:          MetadataRoot(apiConfig.Name),
+		MetadataRoot:          MetadataRoot(apiConfig.Name, clusterName),
 		ProjectID:             projectID,
-		ProjectKey:            ProjectKey(projectID),
+		ProjectKey:            ProjectKey(projectID, clusterName),
 	}
 }
 
@@ -125,7 +160,8 @@ func (api *API) NumModels() int {
 	return numModels
 }
 
-func (api *API) ModelIDs() []string {
+// Keep track of models in the model cache used by this API (local only)
+func (api *API) LocalModelIDs() []string {
 	models := []string{}
 	if api != nil && len(api.LocalModelCaches) > 0 {
 		for _, localModelCache := range api.LocalModelCaches {
@@ -147,33 +183,59 @@ func (api *API) ModelNames() []string {
 	return names
 }
 
-func (api *API) SubtractModelIDs(apis ...*API) []string {
-	modelIDs := strset.FromSlice(api.ModelIDs())
+func (api *API) SubtractLocalModelIDs(apis ...*API) []string {
+	modelIDs := strset.FromSlice(api.LocalModelIDs())
 	for _, a := range apis {
-		modelIDs.Remove(a.ModelIDs()...)
+		modelIDs.Remove(a.LocalModelIDs()...)
 	}
 	return modelIDs.Slice()
 }
 
-func Key(apiName string, apiID string) string {
+func PredictorKey(apiName string, predictorID string, clusterName string) string {
 	return filepath.Join(
+		clusterName,
 		"apis",
 		apiName,
-		apiID,
-		consts.CortexVersion+"-spec.msgpack",
+		"predictor",
+		predictorID,
+		consts.CortexVersion+"-spec.json",
 	)
 }
 
-func MetadataRoot(apiName string) string {
+func Key(apiName string, apiID string, clusterName string) string {
 	return filepath.Join(
+		clusterName,
+		"apis",
+		apiName,
+		"api",
+		apiID,
+		consts.CortexVersion+"-spec.json",
+	)
+}
+
+func (api API) RawAPIKey(clusterName string) string {
+	return filepath.Join(
+		clusterName,
+		"apis",
+		api.Name,
+		"raw_api",
+		api.ID,
+		consts.CortexVersion+"-cortex.yaml",
+	)
+}
+
+func MetadataRoot(apiName string, clusterName string) string {
+	return filepath.Join(
+		clusterName,
 		"apis",
 		apiName,
 		"metadata",
 	)
 }
 
-func ProjectKey(projectID string) string {
+func ProjectKey(projectID string, clusterName string) string {
 	return filepath.Join(
+		clusterName,
 		"projects",
 		projectID+".zip",
 	)

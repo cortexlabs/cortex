@@ -25,46 +25,56 @@ import (
 )
 
 type StringPtrValidation struct {
-	Required                      bool
-	Default                       *string
-	AllowExplicitNull             bool
-	AllowEmpty                    bool
-	AllowedValues                 []string
-	DisallowedValues              []string
-	Prefix                        string
-	MaxLength                     int
-	MinLength                     int
-	AlphaNumericDashDotUnderscore bool
-	AlphaNumericDashUnderscore    bool
-	DNS1035                       bool
-	DNS1123                       bool
-	CastInt                       bool
-	CastNumeric                   bool
-	CastScalar                    bool
-	AllowCortexResources          bool
-	RequireCortexResources        bool
-	DockerImageOrEmpty            bool
-	Validator                     func(string) (string, error)
+	Required                             bool
+	Default                              *string
+	AllowExplicitNull                    bool
+	AllowEmpty                           bool
+	AllowedValues                        []string
+	DisallowedValues                     []string
+	Prefix                               string
+	InvalidPrefixes                      []string
+	MaxLength                            int
+	MinLength                            int
+	DisallowLeadingWhitespace            bool
+	DisallowTrailingWhitespace           bool
+	AlphaNumericDashDotUnderscoreOrEmpty bool
+	AlphaNumericDashDotUnderscore        bool
+	AlphaNumericDashUnderscore           bool
+	AWSTag                               bool
+	DNS1035                              bool
+	DNS1123                              bool
+	CastInt                              bool
+	CastNumeric                          bool
+	CastScalar                           bool
+	AllowCortexResources                 bool
+	RequireCortexResources               bool
+	DockerImageOrEmpty                   bool
+	Validator                            func(string) (string, error)
 }
 
 func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 	return &StringValidation{
-		AllowEmpty:                    v.AllowEmpty,
-		AllowedValues:                 v.AllowedValues,
-		DisallowedValues:              v.DisallowedValues,
-		Prefix:                        v.Prefix,
-		MaxLength:                     v.MaxLength,
-		MinLength:                     v.MinLength,
-		AlphaNumericDashDotUnderscore: v.AlphaNumericDashDotUnderscore,
-		AlphaNumericDashUnderscore:    v.AlphaNumericDashUnderscore,
-		DNS1035:                       v.DNS1035,
-		DNS1123:                       v.DNS1123,
-		CastInt:                       v.CastInt,
-		CastNumeric:                   v.CastNumeric,
-		CastScalar:                    v.CastScalar,
-		AllowCortexResources:          v.AllowCortexResources,
-		RequireCortexResources:        v.RequireCortexResources,
-		DockerImageOrEmpty:            v.DockerImageOrEmpty,
+		AllowEmpty:                           v.AllowEmpty,
+		AllowedValues:                        v.AllowedValues,
+		DisallowedValues:                     v.DisallowedValues,
+		Prefix:                               v.Prefix,
+		InvalidPrefixes:                      v.InvalidPrefixes,
+		MaxLength:                            v.MaxLength,
+		MinLength:                            v.MinLength,
+		DisallowLeadingWhitespace:            v.DisallowLeadingWhitespace,
+		DisallowTrailingWhitespace:           v.DisallowTrailingWhitespace,
+		AlphaNumericDashDotUnderscoreOrEmpty: v.AlphaNumericDashDotUnderscoreOrEmpty,
+		AlphaNumericDashDotUnderscore:        v.AlphaNumericDashDotUnderscore,
+		AlphaNumericDashUnderscore:           v.AlphaNumericDashUnderscore,
+		AWSTag:                               v.AWSTag,
+		DNS1035:                              v.DNS1035,
+		DNS1123:                              v.DNS1123,
+		CastInt:                              v.CastInt,
+		CastNumeric:                          v.CastNumeric,
+		CastScalar:                           v.CastScalar,
+		AllowCortexResources:                 v.AllowCortexResources,
+		RequireCortexResources:               v.RequireCortexResources,
+		DockerImageOrEmpty:                   v.DockerImageOrEmpty,
 	}
 }
 

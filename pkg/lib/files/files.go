@@ -46,6 +46,7 @@ var (
 	_homeDir string
 )
 
+// the returned file should be closed by the caller
 func Open(path string) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
@@ -60,6 +61,7 @@ func Open(path string) (*os.File, error) {
 	return file, nil
 }
 
+// the returned file should be closed by the caller
 func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
@@ -74,6 +76,7 @@ func OpenFile(path string, flag int, perm os.FileMode) (*os.File, error) {
 	return file, err
 }
 
+// the returned file should be closed by the caller
 func Create(path string) (*os.File, error) {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
@@ -134,6 +137,26 @@ func CreateFile(path string) error {
 	return nil
 }
 
+func WriteFileFromReader(reader io.Reader, path string) error {
+	cleanPath, err := EscapeTilde(path)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(cleanPath)
+	if err != nil {
+		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, reader)
+	if err != nil {
+		return errors.Wrap(err, errors.Message(ErrorCreateFile(path)))
+	}
+
+	return nil
+}
+
 func WriteFile(data []byte, path string) error {
 	cleanPath, err := EscapeTilde(path)
 	if err != nil {
@@ -175,6 +198,17 @@ func EscapeTilde(path string) (string, error) {
 
 	// path starts with "~/"
 	return filepath.Join(_homeDir, path[2:]), nil
+}
+
+// e.g. ~/path/../path2 -> /home/ubuntu/path2
+// returns without escaping tilde if there was an error
+func Clean(path string) (string, error) {
+	path, err := EscapeTilde(path)
+	path = filepath.Clean(path)
+	if err != nil {
+		return path, err
+	}
+	return path, nil
 }
 
 // e.g. /home/ubuntu/path -> ~/path
@@ -391,11 +425,10 @@ func ParentDir(dir string) string {
 }
 
 func SearchForFile(filename string, dir string) (string, error) {
-	dir, err := EscapeTilde(dir)
+	dir, err := Clean(dir)
 	if err != nil {
 		return "", err
 	}
-	dir = filepath.Clean(dir)
 
 	for true {
 		files, err := ioutil.ReadDir(dir)
@@ -420,11 +453,10 @@ func SearchForFile(filename string, dir string) (string, error) {
 }
 
 func MakeEmptyFile(path string) error {
-	cleanPath, err := EscapeTilde(path)
+	cleanPath, err := Clean(path)
 	if err != nil {
 		return err
 	}
-	cleanPath = filepath.Clean(cleanPath)
 
 	err = os.MkdirAll(filepath.Dir(cleanPath), os.ModePerm)
 	if err != nil {
@@ -564,14 +596,14 @@ func PromptForFilesAboveSize(size int, promptMsgTemplate string) IgnoreFn {
 	}
 }
 
-func ErrorOnBigFilesFn(maxFileSizeBytes int64, maxMemoryUsagePercent float64) IgnoreFn {
+func ErrorOnBigFilesFn(maxFileSizeBytes int64) IgnoreFn {
 	return func(path string, fi os.FileInfo) (bool, error) {
 		if !fi.IsDir() {
 			fileSizeBytes := fi.Size()
 			virtual, _ := mem.VirtualMemory()
-			if int64(virtual.Used)+fileSizeBytes > int64(float64(virtual.Total)*maxMemoryUsagePercent) {
+			if fileSizeBytes > int64(virtual.Available) {
 				return false, errors.Wrap(
-					ErrorInsufficientMemoryToReadFile(fileSizeBytes, int64(float64(virtual.Total)*maxMemoryUsagePercent)-int64(virtual.Used)),
+					ErrorInsufficientMemoryToReadFile(fileSizeBytes, int64(virtual.Available)),
 					path,
 				)
 			}
@@ -767,11 +799,10 @@ func DirPaths(paths []string, addTrailingSlash bool) []string {
 }
 
 func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]string, error) {
-	cleanDir, err := EscapeTilde(dir)
+	cleanDir, err := Clean(dir)
 	if err != nil {
 		return nil, err
 	}
-	cleanDir = filepath.Clean(cleanDir)
 	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
 	if err := CheckDir(cleanDir); err != nil {
@@ -814,11 +845,10 @@ func ListDirRecursive(dir string, relative bool, ignoreFns ...IgnoreFn) ([]strin
 }
 
 func ListDir(dir string, relative bool) ([]string, error) {
-	cleanDir, err := EscapeTilde(dir)
+	cleanDir, err := Clean(dir)
 	if err != nil {
 		return nil, err
 	}
-	cleanDir = filepath.Clean(cleanDir)
 	cleanDir = strings.TrimSuffix(cleanDir, "/")
 
 	if err := CheckDir(cleanDir); err != nil {

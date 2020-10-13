@@ -1,5 +1,7 @@
 # Real-Time License Plate Identification System
 
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)_
+
 This project implements a license plate identification system. On resource-constrained systems, running inferences may prove to be too computationally expensive. One solution is to run the ML in the cloud and have the local (embedded) system act as a client of these services.
 
 ![Demo GIF](https://i.imgur.com/jgkJB59.gif)
@@ -29,11 +31,13 @@ The other two models, *CRAFT* and *CRNN*, can be found in [keras-ocr](https://gi
 A lite version of the deployment is available with `cortex_lite.yaml`. The lite version accepts an image as input and returns an image with the recognized license plates overlayed on top. A single GPU is required for this deployment (i.e. `g4dn.xlarge`).
 
 Once the cortex cluster is created, run
+
 ```bash
 cortex deploy cortex_lite.yaml
 ```
 
 And monitor the API with
+
 ```bash
 cortex get --watch
 ```
@@ -41,13 +45,15 @@ cortex get --watch
 To run an inference on the lite version, the only 3 tools you need are `curl`, `sed` and `base64`. This API expects an URL pointing to an image onto which the inferencing is done. This includes the detection of license plates with *YOLOv3* and the recognition part with *CRAFT* + *CRNN* models.
 
 Export the endpoint & the image's URL by running
+
 ```bash
 export ENDPOINT=your-api-endpoint
 export IMAGE_URL=https://i.imgur.com/r8xdI7P.png
 ```
 
 Then run the following piped commands
-```
+
+```bash
 curl "${ENDPOINT}" -X POST -H "Content-Type: application/json" -d '{"url":"'${IMAGE_URL}'"}' |
 sed 's/"//g' |
 base64 -d > prediction.jpg

@@ -17,6 +17,8 @@ limitations under the License.
 package local
 
 import (
+	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -24,8 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
@@ -41,7 +41,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 		return schema.GetAPIsResponse{}, err
 	}
 
-	syncAPIs := make([]schema.SyncAPI, len(apiSpecList))
+	realtimeAPIs := make([]schema.RealtimeAPI, len(apiSpecList))
 	for i, apiSpec := range apiSpecList {
 		apiStatus, err := GetAPIStatus(&apiSpec)
 		if err != nil {
@@ -53,7 +53,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 			return schema.GetAPIsResponse{}, err
 		}
 
-		syncAPIs[i] = schema.SyncAPI{
+		realtimeAPIs[i] = schema.RealtimeAPI{
 			Spec:    apiSpec,
 			Status:  apiStatus,
 			Metrics: metrics,
@@ -61,7 +61,7 @@ func GetAPIs() (schema.GetAPIsResponse, error) {
 	}
 
 	return schema.GetAPIsResponse{
-		SyncAPIs: syncAPIs,
+		RealtimeAPIs: realtimeAPIs,
 	}, nil
 }
 
@@ -73,7 +73,7 @@ func ListAPISpecs() ([]spec.API, error) {
 
 	apiSpecList := []spec.API{}
 	for _, specPath := range filepaths {
-		if !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+		if !strings.HasSuffix(filepath.Base(specPath), "-spec.json") {
 			continue
 		}
 
@@ -87,7 +87,7 @@ func ListAPISpecs() ([]spec.API, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "api", specPath)
 		}
-		err = msgpack.Unmarshal(bytes, &apiSpec)
+		err = json.Unmarshal(bytes, &apiSpec)
 		if err != nil {
 			return nil, errors.Wrap(err, "api", specPath)
 		}
@@ -105,7 +105,8 @@ func ListVersionMismatchedAPIs() ([]string, error) {
 
 	apiNames := []string{}
 	for _, specPath := range filepaths {
-		if !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+		// Check msgpack for compatibility
+		if !strings.HasSuffix(filepath.Base(specPath), "-spec.json") && !strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
 			continue
 		}
 		apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
@@ -118,12 +119,11 @@ func ListVersionMismatchedAPIs() ([]string, error) {
 			return nil, err
 		}
 		splitKey := strings.Split(key, "/")
-		if len(splitKey) != 3 {
+		if len(splitKey) == 0 {
 			continue
 		}
 		apiNames = append(apiNames, splitKey[0])
 	}
-
 	return apiNames, nil
 }
 
@@ -161,19 +161,14 @@ func GetAPI(apiName string) (schema.GetAPIResponse, error) {
 		apiContainer = containers[1]
 	}
 
-	apiPort := ""
-	for _, port := range apiContainer.Ports {
-		if port.PrivatePort == 8888 {
-			apiPort = s.Uint16(port.PublicPort)
-		}
-	}
+	apiPort := apiSpec.Networking.LocalPort
 
 	return schema.GetAPIResponse{
-		SyncAPI: &schema.SyncAPI{
-			Spec:    *apiSpec,
-			Status:  apiStatus,
-			Metrics: apiMetrics,
-			BaseURL: "http://localhost:" + apiPort,
+		RealtimeAPI: &schema.RealtimeAPI{
+			Spec:     *apiSpec,
+			Status:   apiStatus,
+			Metrics:  apiMetrics,
+			Endpoint: fmt.Sprintf("http://localhost:%d", *apiPort),
 		},
 	}, nil
 }

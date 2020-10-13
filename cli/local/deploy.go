@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func Deploy(env cliconfig.Environment, configPath string, projectFileList []string) (schema.DeployResponse, error) {
+func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, deployDisallowPrompt bool) (schema.DeployResponse, error) {
 	configFileName := filepath.Base(configPath)
 
 	_, err := docker.GetDockerClient()
@@ -62,7 +62,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		}
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil)
 	if err != nil {
 		return schema.DeployResponse{}, err
 	}
@@ -70,7 +70,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 	models := []spec.CuratedModelResource{}
 	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 		return schema.DeployResponse{}, err
 	}
 
@@ -81,12 +81,12 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i, apiConfig := range apiConfigs {
-		api, msg, err := UpdateAPI(&apiConfig, models, configPath, projectID, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, models, configPath, projectID, deployDisallowPrompt, awsClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)
 		} else {
-			results[i].API = *api
+			results[i].API = api
 		}
 	}
 

@@ -31,6 +31,7 @@ import (
 
 type API struct {
 	Resource
+	APIs           []*TrafficSplit `json:"apis" yaml:"apis"`
 	Predictor      *Predictor      `json:"predictor" yaml:"predictor"`
 	Monitoring     *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking     *Networking     `json:"networking" yaml:"networking"`
@@ -39,6 +40,7 @@ type API struct {
 	UpdateStrategy *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
 	Index          int             `json:"index" yaml:"-"`
 	FileName       string          `json:"file_name" yaml:"-"`
+	RawYAMLBytes   []byte          `json:"-" yaml:"-"`
 }
 
 type Predictor struct {
@@ -47,11 +49,12 @@ type Predictor struct {
 	ModelPath              *string                `json:"model_path" yaml:"model_path"`
 	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
 	Models                 *MultiModels           `json:"models" yaml:"models"`
+	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
+	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
+	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
-	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
-	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
 }
@@ -64,6 +67,11 @@ type MultiModels struct {
 	SignatureKey  *string          `json:"signature_key" yaml:"signature_key"`
 }
 
+type TrafficSplit struct {
+	Name   string `json:"name" yaml:"name"`
+	Weight int32  `json:"weight" yaml:"weight"`
+}
+
 type ModelResource struct {
 	Name         string  `json:"name" yaml:"name"`
 	ModelPath    string  `json:"model_path" yaml:"model_path"`
@@ -73,6 +81,11 @@ type ModelResource struct {
 type Monitoring struct {
 	Key       *string   `json:"key" yaml:"key"`
 	ModelType ModelType `json:"model_type" yaml:"model_type"`
+}
+
+type ServerSideBatching struct {
+	MaxBatchSize  int32         `json:"max_batch_size" yaml:"max_batch_size"`
+	BatchInterval time.Duration `json:"batch_interval" yaml:"batch_interval"`
 }
 
 type Networking struct {
@@ -184,23 +197,32 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
-	return map[string]string{
-		EndpointAnnotationKey:                     *api.Networking.Endpoint,
-		APIGatewayAnnotationKey:                   api.Networking.APIGateway.String(),
-		ProcessesPerReplicaAnnotationKey:          s.Int32(api.Predictor.ProcessesPerReplica),
-		ThreadsPerProcessAnnotationKey:            s.Int32(api.Predictor.ThreadsPerProcess),
-		MinReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MinReplicas),
-		MaxReplicasAnnotationKey:                  s.Int32(api.Autoscaling.MaxReplicas),
-		TargetReplicaConcurrencyAnnotationKey:     s.Float64(*api.Autoscaling.TargetReplicaConcurrency),
-		MaxReplicaConcurrencyAnnotationKey:        s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-		WindowAnnotationKey:                       api.Autoscaling.Window.String(),
-		DownscaleStabilizationPeriodAnnotationKey: api.Autoscaling.DownscaleStabilizationPeriod.String(),
-		UpscaleStabilizationPeriodAnnotationKey:   api.Autoscaling.UpscaleStabilizationPeriod.String(),
-		MaxDownscaleFactorAnnotationKey:           s.Float64(api.Autoscaling.MaxDownscaleFactor),
-		MaxUpscaleFactorAnnotationKey:             s.Float64(api.Autoscaling.MaxUpscaleFactor),
-		DownscaleToleranceAnnotationKey:           s.Float64(api.Autoscaling.DownscaleTolerance),
-		UpscaleToleranceAnnotationKey:             s.Float64(api.Autoscaling.UpscaleTolerance),
+	annotations := map[string]string{}
+	if api.Predictor != nil {
+		annotations[ProcessesPerReplicaAnnotationKey] = s.Int32(api.Predictor.ProcessesPerReplica)
+		annotations[ThreadsPerProcessAnnotationKey] = s.Int32(api.Predictor.ThreadsPerProcess)
+
 	}
+
+	if api.Networking != nil {
+		annotations[EndpointAnnotationKey] = *api.Networking.Endpoint
+		annotations[APIGatewayAnnotationKey] = api.Networking.APIGateway.String()
+	}
+
+	if api.Autoscaling != nil {
+		annotations[MinReplicasAnnotationKey] = s.Int32(api.Autoscaling.MinReplicas)
+		annotations[MaxReplicasAnnotationKey] = s.Int32(api.Autoscaling.MaxReplicas)
+		annotations[TargetReplicaConcurrencyAnnotationKey] = s.Float64(*api.Autoscaling.TargetReplicaConcurrency)
+		annotations[MaxReplicaConcurrencyAnnotationKey] = s.Int64(api.Autoscaling.MaxReplicaConcurrency)
+		annotations[WindowAnnotationKey] = api.Autoscaling.Window.String()
+		annotations[DownscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.DownscaleStabilizationPeriod.String()
+		annotations[UpscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.UpscaleStabilizationPeriod.String()
+		annotations[MaxDownscaleFactorAnnotationKey] = s.Float64(api.Autoscaling.MaxDownscaleFactor)
+		annotations[MaxUpscaleFactorAnnotationKey] = s.Float64(api.Autoscaling.MaxUpscaleFactor)
+		annotations[DownscaleToleranceAnnotationKey] = s.Float64(api.Autoscaling.DownscaleTolerance)
+		annotations[UpscaleToleranceAnnotationKey] = s.Float64(api.Autoscaling.UpscaleTolerance)
+	}
+	return annotations
 }
 
 func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
@@ -288,8 +310,17 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
 
-	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
-	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
+	if api.Kind == TrafficSplitterKind {
+		sb.WriteString(fmt.Sprintf("%s:\n", APIsKey))
+		for _, api := range api.APIs {
+			sb.WriteString(s.Indent(api.UserStr(), "  "))
+		}
+	}
+
+	if api.Predictor != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
+		sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
+	}
 
 	if api.Networking != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
@@ -320,10 +351,19 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	return sb.String()
 }
 
+func (trafficSplit *TrafficSplit) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Int32(trafficSplit.Weight)))
+	return sb.String()
+}
+
 func (predictor *Predictor) UserStr() string {
 	var sb strings.Builder
+
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
+
 	if predictor.ModelPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
 	}
@@ -334,8 +374,15 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
+
+	if predictor.Type == TensorFlowPredictorType && predictor.ServerSideBatching != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ServerSideBatchingKey))
+		sb.WriteString(s.Indent(predictor.ServerSideBatching.UserStr(), "  "))
+	}
+
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(predictor.ThreadsPerProcess)))
+
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&predictor.Config)
@@ -376,7 +423,6 @@ func (models *MultiModels) UserStr() string {
 	if models.DiskCacheSize != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDiskCacheSizeKey, s.Int32(*models.DiskCacheSize)))
 	}
-
 	return sb.String()
 }
 
@@ -387,6 +433,13 @@ func (model *ModelResource) UserStr() string {
 	if model.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
 	}
+	return sb.String()
+}
+
+func (batch *ServerSideBatching) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxBatchSizeKey, s.Int32(batch.MaxBatchSize)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", BatchIntervalKey, batch.BatchInterval))
 	return sb.String()
 }
 
@@ -409,6 +462,28 @@ func (networking *Networking) UserStr(provider types.ProviderType) string {
 	}
 	if provider == types.AWSProviderType {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
+	}
+	return sb.String()
+}
+
+// Represent compute using the smallest base units e.g. bytes for Mem, milli for CPU
+func (compute *Compute) Normalized() string {
+	var sb strings.Builder
+	if compute.CPU == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", CPUKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", CPUKey, compute.CPU.MilliValue()))
+	}
+	if compute.GPU > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
+	}
+	if compute.Inf > 0 {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", InfKey, s.Int64(compute.Inf)))
+	}
+	if compute.Mem == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", MemKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", MemKey, compute.Mem.Value()))
 	}
 	return sb.String()
 }
@@ -484,4 +559,12 @@ func (updateStrategy *UpdateStrategy) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxSurgeKey, updateStrategy.MaxSurge))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUnavailableKey, updateStrategy.MaxUnavailable))
 	return sb.String()
+}
+
+func ZeroCompute() Compute {
+	return Compute{
+		CPU: &k8s.Quantity{},
+		Mem: &k8s.Quantity{},
+		GPU: 0,
+	}
 }

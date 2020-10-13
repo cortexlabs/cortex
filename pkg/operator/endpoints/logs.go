@@ -20,6 +20,8 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
@@ -33,8 +35,11 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if deployedResource == nil {
-		respondError(w, r, resources.ErrorAPINotDeployed(apiName))
+	if deployedResource.Kind == userconfig.BatchAPIKind {
+		respondError(w, r, ErrorLogsJobIDRequired(*deployedResource))
+		return
+	} else if deployedResource.Kind != userconfig.RealtimeAPIKind {
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind))
 		return
 	}
 
@@ -46,9 +51,5 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	err = resources.StreamLogs(*deployedResource, socket)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
+	realtimeapi.ReadLogs(apiName, socket)
 }

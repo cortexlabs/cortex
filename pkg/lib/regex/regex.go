@@ -29,6 +29,26 @@ func MatchAnyRegex(s string, regexes []*regexp.Regexp) bool {
 	return false
 }
 
+var _leadingWhitespaceRegex = regexp.MustCompile(`^\s+`)
+
+func HasLeadingWhitespace(s string) bool {
+	return _leadingWhitespaceRegex.MatchString(s)
+}
+
+var _trailingWhitespaceRegex = regexp.MustCompile(`\s+$`)
+
+func HasTrailingWhitespace(s string) bool {
+	return _trailingWhitespaceRegex.MatchString(s)
+}
+
+// letters, numbers, spaces representable in UTF-8, and the following characters: _ . : / + - @
+// = is not supported because it doesn't propagate to the NLB correctly (via the k8s service annotation)
+var _awsTagRegex = regexp.MustCompile(`^[\sa-zA-Z0-9_\-\.:/+@]+$`)
+
+func IsValidAWSTag(s string) bool {
+	return _awsTagRegex.MatchString(s)
+}
+
 var _alphaNumericDashDotUnderscoreRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]+$`)
 
 func IsAlphaNumericDashDotUnderscore(s string) bool {

@@ -32,10 +32,14 @@ const (
 	ErrInvalidYAML                   = "configreader.invalid_yaml"
 	ErrTooLong                       = "configreader.too_long"
 	ErrTooShort                      = "configreader.too_short"
+	ErrLeadingWhitespace             = "configreader.leading_whitespace"
+	ErrTrailingWhitespace            = "configreader.trailing_whitespace"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
+	ErrInvalidAWSTag                 = "configreader.invalid_aws_tag"
 	ErrInvalidDockerImage            = "configreader.invalid_docker_image"
 	ErrMustHavePrefix                = "configreader.must_have_prefix"
+	ErrCantHavePrefix                = "configreader.cant_have_prefix"
 	ErrInvalidInterface              = "configreader.invalid_interface"
 	ErrInvalidFloat64                = "configreader.invalid_float64"
 	ErrInvalidFloat32                = "configreader.invalid_float32"
@@ -112,6 +116,20 @@ func ErrorTooShort(provided string, minLen int) error {
 	})
 }
 
+func ErrorLeadingWhitespace(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrLeadingWhitespace,
+		Message: fmt.Sprintf("%s cannot start with whitespace", s.UserStr(provided)),
+	})
+}
+
+func ErrorTrailingWhitespace(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTrailingWhitespace,
+		Message: fmt.Sprintf("%s cannot end with whitespace", s.UserStr(provided)),
+	})
+}
+
 func ErrorAlphaNumericDashUnderscore(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAlphaNumericDashUnderscore,
@@ -126,6 +144,13 @@ func ErrorAlphaNumericDashDotUnderscore(provided string) error {
 	})
 }
 
+func ErrorInvalidAWSTag(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidAWSTag,
+		Message: fmt.Sprintf("%s must contain only letters, numbers, spaces, and the following characters: _ . : / + - @", s.UserStr(provided)),
+	})
+}
+
 func ErrorInvalidDockerImage(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidDockerImage,
@@ -137,6 +162,13 @@ func ErrorMustHavePrefix(provided string, prefix string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustHavePrefix,
 		Message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStr(prefix)),
+	})
+}
+
+func ErrorCantHavePrefix(provided string, prefix string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCantHavePrefix,
+		Message: fmt.Sprintf("%s cannot start with %s", s.UserStr(provided), s.UserStr(prefix)),
 	})
 }
 
@@ -206,28 +238,28 @@ func ErrorDisallowedValue(provided interface{}) error {
 func ErrorMustBeLessThanOrEqualTo(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeLessThanOrEqualTo,
-		Message: fmt.Sprintf("%s must be less than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("must be less than or equal to %s (got %s)", s.UserStr(boundary), s.UserStr(provided)),
 	})
 }
 
 func ErrorMustBeLessThan(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeLessThan,
-		Message: fmt.Sprintf("%s must be less than %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("must be less than %s (got %s)", s.UserStr(boundary), s.UserStr(provided)),
 	})
 }
 
 func ErrorMustBeGreaterThanOrEqualTo(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeGreaterThanOrEqualTo,
-		Message: fmt.Sprintf("%s must be greater than or equal to %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("must be greater than or equal to %s (got %s)", s.UserStr(boundary), s.UserStr(provided)),
 	})
 }
 
 func ErrorMustBeGreaterThan(provided interface{}, boundary interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustBeGreaterThan,
-		Message: fmt.Sprintf("%s must be greater than %s", s.UserStr(provided), s.UserStr(boundary)),
+		Message: fmt.Sprintf("must be greater than %s (got %s)", s.UserStr(boundary), s.UserStr(provided)),
 	})
 }
 

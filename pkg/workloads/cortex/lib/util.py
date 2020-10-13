@@ -24,6 +24,10 @@ from copy import deepcopy
 from typing import List
 
 
+def has_method(object, method: str):
+    return callable(getattr(object, method, None))
+
+
 def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
     if dest_dir is None:
         dest_dir = os.path.dirname(zip_path)

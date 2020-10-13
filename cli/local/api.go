@@ -27,8 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -36,10 +35,33 @@ import (
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, awsClient *aws.Client) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*spec.API, string, error) {
+	var incompatibleVersion string
+	encounteredVersionMismatch := false
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
 	if err != nil {
-		if errors.GetKind(err) != ErrAPINotDeployed {
+		if errors.GetKind(err) == ErrCortexVersionMismatch {
+			encounteredVersionMismatch = true
+			if incompatibleVersion, err = GetVersionFromAPISpec(apiConfig.Name); err != nil {
+				return nil, "", err
+			}
+
+			incompatibleMinorVersion := strings.Join(strings.Split(incompatibleVersion, ".")[:2], ".")
+			if consts.CortexVersionMinor != incompatibleMinorVersion && !deployDisallowPrompt {
+				prompt.YesOrExit(
+					fmt.Sprintf(
+						"api %s was deployed using CLI version %s but the current CLI version is %s; "+
+							"re-deploying %s with current CLI version %s might yield an unexpected outcome; any cached models won't be deleted\n\n"+
+							"it is recommended to download version %s of the CLI from https://docs.cortex.dev/v/%s/install, delete the API using version %s of the CLI and then re-deploy the API using the latest version of the CLI\n\n"+
+							"do you still want to re-deploy?",
+						apiConfig.Name, incompatibleMinorVersion, consts.CortexVersionMinor, apiConfig.Name, consts.CortexVersionMinor, incompatibleMinorVersion, incompatibleMinorVersion, incompatibleMinorVersion),
+					"", "",
+				)
+			}
+			if err := DeleteAPI(apiConfig.Name); err != nil {
+				return nil, "", err
+			}
+		} else if errors.GetKind(err) != ErrAPINotDeployed {
 			return nil, "", err
 		}
 	}
@@ -68,7 +90,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 	newAPISpec.LocalProjectDir = files.Dir(configPath)
 
 	if areAPIsEqual(newAPISpec, prevAPISpec) {
-		return newAPISpec, fmt.Sprintf("%s is up to date", newAPISpec.Name), nil
+		return newAPISpec, fmt.Sprintf("%s is up to date", newAPISpec.Resource.UserString()), nil
 	}
 
 	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
@@ -95,14 +117,21 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 	}
 
 	if prevAPISpec == nil && len(prevAPIContainers) == 0 {
-		return newAPISpec, fmt.Sprintf("creating %s", newAPISpec.Name), nil
+		if encounteredVersionMismatch {
+			return newAPISpec, fmt.Sprintf(
+				"creating api %s with current CLI version %s",
+				newAPISpec.Name,
+				consts.CortexVersion,
+			), nil
+		}
+		return newAPISpec, fmt.Sprintf("creating %s", newAPISpec.Resource.UserString()), nil
 	}
 
-	return newAPISpec, fmt.Sprintf("updating %s", newAPISpec.Name), nil
+	return newAPISpec, fmt.Sprintf("updating %s", newAPISpec.Resource.UserString()), nil
 }
 
 func writeAPISpec(apiSpec *spec.API) error {
-	apiBytes, err := msgpack.Marshal(apiSpec)
+	apiBytes, err := json.Marshal(apiSpec)
 	if err != nil {
 		return err
 	}
@@ -127,16 +156,10 @@ func areAPIsEqual(a1, a2 *spec.API) bool {
 	if a1 == nil || a2 == nil {
 		return false
 	}
-	if a1.ID != a2.ID {
+	if a1.SpecID != a2.SpecID {
 		return false
 	}
-	if !pointer.AreIntsEqual(a1.Networking.LocalPort, a2.Networking.LocalPort) {
-		return false
-	}
-	if !a1.Compute.Equals(a2.Compute) {
-		return false
-	}
-	if !strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) {
+	if !strset.FromSlice(a1.LocalModelIDs()).IsEqual(strset.FromSlice(a2.LocalModelIDs())) {
 		return false
 	}
 	return true
@@ -201,12 +224,18 @@ func FindAPISpec(apiName string) (*spec.API, error) {
 			if apiSpecVersion != consts.CortexVersion {
 				return nil, ErrorCortexVersionMismatch(apiName, apiSpecVersion)
 			}
+		}
+		if strings.HasSuffix(filepath.Base(specPath), "-spec.json") {
+			apiSpecVersion := GetVersionFromAPISpecFilePath(specPath)
+			if apiSpecVersion != consts.CortexVersion {
+				return nil, ErrorCortexVersionMismatch(apiName, apiSpecVersion)
+			}
 
 			bytes, err := files.ReadFileBytes(specPath)
 			if err != nil {
 				return nil, errors.Wrap(err, "api", apiName)
 			}
-			err = msgpack.Unmarshal(bytes, &apiSpec)
+			err = json.Unmarshal(bytes, &apiSpec)
 			if err != nil {
 				return nil, errors.Wrap(err, "api", apiName)
 			}
@@ -214,6 +243,25 @@ func FindAPISpec(apiName string) (*spec.API, error) {
 		}
 	}
 	return nil, ErrorAPINotDeployed(apiName)
+}
+
+func GetVersionFromAPISpec(apiName string) (string, error) {
+	apiWorkspace := filepath.Join(_localWorkspaceDir, "apis", apiName)
+	if !files.IsDir(apiWorkspace) {
+		return "", ErrorAPINotDeployed(apiName)
+	}
+
+	filepaths, err := files.ListDirRecursive(apiWorkspace, false)
+	if err != nil {
+		return "", errors.Wrap(err, "api", apiName)
+	}
+
+	for _, specPath := range filepaths {
+		if strings.HasSuffix(filepath.Base(specPath), "-spec.json") || strings.HasSuffix(filepath.Base(specPath), "-spec.msgpack") {
+			return GetVersionFromAPISpecFilePath(specPath), nil
+		}
+	}
+	return "", ErrorAPINotDeployed(apiName)
 }
 
 func GetVersionFromAPISpecFilePath(path string) string {

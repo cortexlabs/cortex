@@ -16,20 +16,23 @@ import requests
 import re
 from string import Template
 
-# https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/
+# https://docs.aws.amazon.com/general/latest/gr/eks.html
 # China regions don't seem to support these endpoints (yet?)
 REGIONS = [
     "us-east-1",  # N. Virginia
     "us-east-2",  # Ohio
+    "us-west-1",  # California
     "us-west-2",  # Oregon
     "ca-central-1",  # Montreal
     "sa-east-1",  # Sao Paulo
     "eu-central-1",  # Frankfurt
     "eu-west-1",  # Ireland
     "eu-west-2",  # London
+    "eu-south-1",  # Milan
     "eu-west-3",  # Paris
     "eu-north-1",  # Stockholm
     "me-south-1",  # Bahrain
+    "af-south-1",  # Cape town
     "ap-southeast-1",  # Singapore
     "ap-northeast-1",  # Tokyo
     "ap-southeast-2",  # Sydney
@@ -151,10 +154,7 @@ def get_ebs_metadata(pricing):
         ]
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
-        metadata = {
-            "type": product["attributes"].get("volumeApiName"),
-            "price_gb": float(price),
-        }
+        metadata = {"type": product["attributes"].get("volumeApiName"), "price_gb": float(price)}
 
         # io1 has per IOPS pricing --> add pricing to metadata
         # if storagedevice does not price per IOPS will set value to 0

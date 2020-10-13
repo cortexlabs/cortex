@@ -23,18 +23,21 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/cli/types/flags"
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/lib/zip"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -43,9 +46,8 @@ var (
 	_warningProjectBytes = 1024 * 1024 * 10
 	_warningFileCount    = 1000
 
-	_maxFileSizeBytes      int64   = 1024 * 1024 * 512
-	_maxProjectSizeBytes   int64   = 1024 * 1024 * 512
-	_maxMemoryUsagePercent float64 = 0.9
+	_maxFileSizeBytes    int64 = 1024 * 1024 * 512
+	_maxProjectSizeBytes int64 = 1024 * 1024 * 512
 
 	_flagDeployEnv            string
 	_flagDeployForce          bool
@@ -57,6 +59,7 @@ func deployInit() {
 	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_deployCmd.Flags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
 	_deployCmd.Flags().BoolVarP(&_flagDeployDisallowPrompt, "yes", "y", false, "skip prompts")
+	_deployCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 }
 
 var _deployCmd = &cobra.Command{
@@ -71,7 +74,7 @@ var _deployCmd = &cobra.Command{
 		}
 		telemetry.Event("cli.deploy", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagDeployEnv)
+		err = printEnvIfNotSpecified(_flagDeployEnv, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -103,11 +106,21 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			deployResponse, err = local.Deploy(env, configPath, projectFiles)
+			deployResponse, err = local.Deploy(env, configPath, projectFiles, _flagDeployDisallowPrompt)
 			if err != nil {
 				exit.Error(err)
 			}
 		}
+
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(deployResponse)
+			if err != nil {
+				exit.Error(err)
+			}
+			fmt.Println(string(bytes))
+			return
+		}
+
 		message := deployMessage(deployResponse.Results, env.Name)
 		print.BoldFirstBlock(message)
 	},
@@ -157,7 +170,7 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 			ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 		}
 		ignoreFns = append(ignoreFns,
-			files.ErrorOnBigFilesFn(_maxFileSizeBytes, _maxMemoryUsagePercent),
+			files.ErrorOnBigFilesFn(_maxFileSizeBytes),
 			// must be the last appended IgnoreFn
 			files.ErrorOnProjectSizeLimit(_maxProjectSizeBytes),
 		)
@@ -206,8 +219,8 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 		didPromptFileCount = true
 	}
 
-	projectZipBytes, err := zip.ToMem(&zip.Input{
-		FileLists: []zip.FileListInput{
+	projectZipBytes, _, err := archive.ZipToMem(&archive.Input{
+		FileLists: []archive.FileListInput{
 			{
 				Sources:      projectPaths,
 				RemovePrefix: projectRoot,
@@ -251,9 +264,20 @@ func mergeResultMessages(results []schema.DeployResult) string {
 		}
 	}
 
-	messages := append(okMessages, errMessages...)
+	output := ""
 
-	return strings.Join(messages, "\n")
+	if len(okMessages) > 0 {
+		output += strings.Join(okMessages, "\n")
+		if len(errMessages) > 0 {
+			output += "\n\n"
+		}
+	}
+
+	if len(errMessages) > 0 {
+		output += strings.Join(errMessages, "\n")
+	}
+
+	return output
 }
 
 func didAllResultsError(results []schema.DeployResult) bool {
@@ -280,7 +304,16 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) string
 	var items table.KeyValuePairs
 	items.Add("cortex get"+envArg, "(show api statuses)")
 	items.Add(fmt.Sprintf("cortex get %s%s", apiName, envArg), "(show api info)")
-	items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
+
+	for _, result := range results {
+		if len(result.Error) > 0 {
+			continue
+		}
+		if result.API.API != nil && result.API.Kind == userconfig.RealtimeAPIKind {
+			items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
+			break
+		}
+	}
 
 	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
 		Delimiter: pointer.String(""),

@@ -412,32 +412,7 @@ class TensorFlowServingAPI:
                 )
 
         # create prediction request
-        prediction_request = predict_pb2.PredictRequest()
-        prediction_request.model_spec.name = model_name
-        prediction_request.model_spec.version.value = int(model_version)
-        prediction_request.model_spec.signature_name = signature_key
-
-        # create model input tensors
-        for column_name, value in model_input.items():
-            shape = []
-            for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
-                shape.append(int(dim["size"]))
-
-            sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
-
-            try:
-                tensor_proto = tf.compat.v1.make_tensor_proto(
-                    value, dtype=DTYPE_TO_TF_TYPE[sig_type]
-                )
-                prediction_request.inputs[column_name].CopyFrom(tensor_proto)
-            except Exception as e:
-                raise UserException(
-                    'key "{}"'.format(column_name),
-                    "expected shape {} for model '{}' of version '{}'".format(
-                        shape, model_name, model_version
-                    ),
-                    str(e),
-                ) from e
+        prediction_request = self._create_prediction_request(signature_def, signature_key, model_name, model_version, model_input)
 
         # run prediction
         response_proto = self._pred.Predict(prediction_request, timeout=timeout)
@@ -605,8 +580,71 @@ class TensorFlowServingAPI:
 
         parsed_signature = {}
         for input_name, input_metadata in signature_def_val["inputs"].items():
+            if input_metadata["tensorShape"] == {}:
+                # a scalar with rank 0 and empty shape
+                shape = "scalar"
+            elif input_metadata["tensorShape"].get("unknownRank", False):
+                # unknown rank and shape
+                #
+                # unknownRank is set to True if the model input has no rank
+                # it may lead to an undefined behavior if unknownRank is only checked for its presence
+                # so it also gets to be tested against its value
+                shape = "unknown"
+            elif input_metadata["tensorShape"].get("dim", None):
+                # known rank and known/unknown shape
+                shape = [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]]
+            else:
+                raise UserException(
+                    "invalid 'tensorShape' specification for input '{}' in signature key '{}' for model '{}'",
+                    input_name,
+                    signature_key,
+                    model_name,
+                )
+
             parsed_signature[input_name] = {
-                "shape": [int(dim["size"]) for dim in input_metadata["tensorShape"]["dim"]],
+                "shape": shape if type(shape) == list else [shape],
                 "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,
             }
         return signature_key, parsed_signature
+
+    def _create_prediction_request(self, signature_def: dict, signature_key: str, model_name: str, model_version: int, model_input: Any) -> predict_pb2.PredictRequest:
+        prediction_request = predict_pb2.PredictRequest()
+        prediction_request.model_spec.name = model_name
+        prediction_request.model_spec.version.value = int(model_version)
+        prediction_request.model_spec.signature_name = signature_key
+
+        for column_name, value in model_input.items():
+            if signature_def[signature_key]["inputs"][column_name]["tensorShape"] == {}:
+                shape = "scalar"
+            elif signature_def[signature_key]["inputs"][column_name]["tensorShape"].get(
+                "unknownRank", False
+            ):
+                # unknownRank is set to True if the model input has no rank
+                # it may lead to an undefined behavior if unknownRank is only checked for its presence
+                # so it also gets to be tested against its value
+                shape = "unknown"
+            else:
+                shape = []
+                for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+                    shape.append(int(dim["size"]))
+
+            sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
+
+            try:
+                tensor_proto = tf.compat.v1.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
+                prediction_request.inputs[column_name].CopyFrom(tensor_proto)
+            except Exception as e:
+                if shape == "scalar":
+                    raise UserException(
+                        'key "{}"'.format(column_name), "expected to be a scalar", str(e)
+                    ) from e
+                elif shape == "unknown":
+                    raise UserException(
+                        'key "{}"'.format(column_name), "can be of any rank and shape", str(e)
+                    ) from e
+                else:
+                    raise UserException(
+                        'key "{}"'.format(column_name), "expected shape {}".format(shape), str(e)
+                    ) from e
+
+        return prediction_request

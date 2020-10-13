@@ -1,5 +1,7 @@
 # YOLOv5 Detection model
 
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)_
+
 This example deploys a detection model trained using [ultralytics' yolo repo](https://github.com/ultralytics/yolov5) using ONNX.
 We'll use the `yolov5s` model as an example here.
 In can be used to run inference on youtube videos and returns the annotated video with bounding boxes.
@@ -22,7 +24,7 @@ Once the API has been successfully deployed, export the API's endpoint for conve
 export ENDPOINT=your-api-endpoint
 ```
 
-When making a prediction with [sample.json](sample.json), [this](https://www.youtube.com/watch?v=aUdKzb4LGJ) youtube video will be used.
+When making a prediction with [sample.json](sample.json), [this](https://www.youtube.com/watch?v=aUdKzb4LGJI) youtube video will be used.
 
 To make a request to the model:
 

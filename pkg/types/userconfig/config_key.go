@@ -27,10 +27,17 @@ const (
 	AutoscalingKey    = "autoscaling"
 	UpdateStrategyKey = "update_strategy"
 
+	// TrafficSplitter
+	APIsKey   = "apis"
+	WeightKey = "weight"
+
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"
 	ModelPathKey              = "model_path"
+	ServerSideBatchingKey     = "server_side_batching"
+	ProcessesPerReplicaKey    = "processes_per_replica"
+	ThreadsPerProcessKey      = "threads_per_process"
 	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
@@ -46,6 +53,10 @@ const (
 	ModelsDirKey           = "dir"
 	ModelsCacheSizeKey     = "cache_size"
 	ModelsDiskCacheSizeKey = "disk_cache_size"
+
+	// ServerSideBatching
+	MaxBatchSizeKey  = "max_batch_size"
+	BatchIntervalKey = "batch_interval"
 
 	// ModelResource
 	ModelsNameKey = "name"

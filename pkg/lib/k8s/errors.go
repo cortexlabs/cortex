@@ -63,6 +63,6 @@ func ErrorParseAnnotation(annotationName string, annotationVal string, desiredTy
 func ErrorParseQuantity(qtyStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrParseQuantity,
-		Message: fmt.Sprintf("%s: invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://docs.cortex.dev/v/%s/deployments/compute)", qtyStr, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("%s: invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://docs.cortex.dev/v/%s/advanced/compute)", qtyStr, consts.CortexVersionMinor),
 	})
 }

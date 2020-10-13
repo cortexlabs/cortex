@@ -123,15 +123,16 @@ def apply_inf_settings(nodegroup, cluster_config):
 
     num_chips, hugepages_mem = get_inf_resources(instance_type)
     inf_settings = {
-        "ami": get_ami_image(instance_region),
         "tags": {
-            "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/infa": "true",
-            "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/infa=true",
-            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/infa": str(num_chips),
+            "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/neuron": "true",
+            "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "aws.amazon.com/neuron=true",
+            "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/neuron": str(
+                num_chips
+            ),
             "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": hugepages_mem,
         },
-        "labels": {"aws.amazon.com/infa": "true"},
-        "taints": {"aws.amazon.com/infa": "true:NoSchedule"},
+        "labels": {"aws.amazon.com/neuron": "true"},
+        "taints": {"aws.amazon.com/neuron": "true:NoSchedule"},
     }
     return merge_override(nodegroup, inf_settings)
 
@@ -150,14 +151,6 @@ def get_inf_resources(instance_type):
         num_chips = 16
 
     return num_chips, f"{128 * num_chips}Mi"
-
-
-def get_ami_image(region):
-    if region.startswith("us-east-1"):
-        return "ami-07a7b48058cfe1a73"
-    if region.startswith("us-west-2"):
-        return "ami-00c8c8387d112425c"
-    raise RuntimeError(f"ami image is in region {region} instead of 'us-east-1' or 'us-west-2'")
 
 
 def generate_eks(cluster_config_path):
@@ -201,13 +194,16 @@ def generate_eks(cluster_config_path):
         "metadata": {
             "name": cluster_config["cluster_name"],
             "region": cluster_config["region"],
-            "version": "1.16",
+            "version": "1.17",
             "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
         "availabilityZones": cluster_config["availability_zones"],
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
+
+    if cluster_config.get("vpc_cidr", "") != "":
+        eks["vpc"]["cidr"] = cluster_config["vpc_cidr"]
 
     if cluster_config.get("spot_config") is not None and cluster_config["spot_config"].get(
         "on_demand_backup", False

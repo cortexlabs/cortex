@@ -15,28 +15,49 @@
 import sys
 import yaml
 import json
+from copy import deepcopy
 
 
 def export(base_key, value):
-    if base_key.lower().startswith("cortex_tags"):
-        inlined_tags = ",".join([f"{k}={v}" for k, v in value.items()])
-        print(f"export CORTEX_TAGS={inlined_tags}")
-        print(f"export CORTEX_TAGS_JSON='{json.dumps(value)}'")
+    if base_key.lower() == "cortex_tags":
+        exportTags(value, "CORTEX_TAGS")
+        exportTags(
+            value, "CORTEX_OPERATOR_LOAD_BALANCER_TAGS", {"cortex.dev/load-balancer": "operator"}
+        )
+        exportTags(value, "CORTEX_API_LOAD_BALANCER_TAGS", {"cortex.dev/load-balancer": "api"})
         return
 
     if value is None:
         return
     elif type(value) is list:
-        print(
-            'export {}="{}"'.format(
-                base_key.upper(), yaml.dump(value, default_flow_style=True).strip()
-            )
-        )
+        print(f'export {base_key.upper()}="{yaml.dump(value, default_flow_style=True).strip()}"')
     elif type(value) is dict:
         for key, child in value.items():
             export(base_key + "_" + key, child)
     else:
-        print('export {}="{}"'.format(base_key.upper(), value))
+        print(f'export {base_key.upper()}="{value}"')
+        if base_key.lower().startswith("cortex_image_"):
+            hub = value.rsplit("/", 1)[0]
+            suffix = value.rsplit("/", 1)[1]
+            if ":" in suffix:
+                image = suffix.split(":")[0]
+                tag = suffix.split(":")[1]
+            else:
+                image = suffix
+                tag = "latest"
+
+            print(f'export {base_key.upper()}_HUB="{hub}"')
+            print(f'export {base_key.upper()}_IMAGE="{image}"')
+            print(f'export {base_key.upper()}_TAG="{tag}"')
+
+
+def exportTags(tags, env_var_name, tag_overrides={}):
+    tags = deepcopy(tags)
+    for k, v in tag_overrides.items():
+        tags[k] = v
+    inlined_tags = ",".join([f"{k}={v}" for k, v in tags.items()])
+    print(f"export {env_var_name}='{inlined_tags}'")
+    print(f"export {env_var_name}_JSON='{json.dumps(tags)}'")
 
 
 for config_path in sys.argv[1:]:

@@ -9,8 +9,8 @@ enabled=1' > /etc/yum.repos.d/neuron.repo
 RUN rpm --import https://yum.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB
 
 RUN yum install -y \
-    aws-neuron-tools-1.0.6554.0 \
-    aws-neuron-runtime-1.0.6222.0 \
+    aws-neuron-tools-1.0.10616.0 \
+    aws-neuron-runtime-1.0.9197.0 \
     procps-ng-3.3.10-26.amzn2.x86_64 \
     gzip \
     tar
@@ -19,4 +19,4 @@ ENV PATH="/opt/aws/neuron/bin:${PATH}"
 
 RUN ln -s /sock/neuron.sock /run/neuron.sock
 
-CMD neuron-rtd -g unix:/sock/neuron.sock -x
+CMD neuron-rtd -g unix:/sock/neuron.sock --log-console

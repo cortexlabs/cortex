@@ -59,6 +59,8 @@ func Init() error {
 		return errors.FirstError(errs...)
 	}
 
+	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
+
 	AWS, err = aws.NewFromEnv(*Cluster.Region)
 	if err != nil {
 		return err
@@ -86,33 +88,33 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
-	if err != nil {
-		return err
-	} else if apiGateway == nil {
-		return ErrorNoAPIGateway()
-	}
-	Cluster.APIGateway = *apiGateway
-
-	if Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-		vpcLink, err := AWS.GetVPCLinkByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
+	if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
+		apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
 		if err != nil {
 			return err
-		} else if vpcLink == nil {
-			return ErrorNoVPCLink()
+		} else if apiGateway == nil {
+			return ErrorNoAPIGateway()
 		}
-		Cluster.VPCLink = vpcLink
+		Cluster.APIGateway = apiGateway
 
-		integration, err := AWS.GetVPCLinkIntegration(*Cluster.APIGateway.ApiId, *Cluster.VPCLink.VpcLinkId)
-		if err != nil {
-			return err
-		} else if integration == nil {
-			return ErrorNoVPCLinkIntegration()
+		if Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+			vpcLink, err := AWS.GetVPCLinkByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
+			if err != nil {
+				return err
+			} else if vpcLink == nil {
+				return ErrorNoVPCLink()
+			}
+			Cluster.VPCLink = vpcLink
+
+			integration, err := AWS.GetVPCLinkIntegration(*Cluster.APIGateway.ApiId, *Cluster.VPCLink.VpcLinkId)
+			if err != nil {
+				return err
+			} else if integration == nil {
+				return ErrorNoVPCLinkIntegration()
+			}
+			Cluster.VPCLinkIntegration = integration
 		}
-		Cluster.VPCLinkIntegration = integration
 	}
-
-	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
 	if K8s, err = k8s.New("default", Cluster.OperatorInCluster); err != nil {
 		return err

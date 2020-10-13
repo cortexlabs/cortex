@@ -26,3 +26,22 @@ function green_echo() {
 function error_echo() {
   echo -e "\033[1;31mERROR: \033[0m$1"
 }
+
+function join_by() {
+  # Argument #1 is the separator. It can be multi-character.
+  # Argument #2, 3, and so on, are the elements to be joined.
+  # Usage: join_by ", " "${array[@]}"
+  local SEPARATOR="$1"
+  shift
+
+  local F=0
+  for x in "$@"; do
+    if [[ F -eq 1 ]]; then
+      echo -n "$SEPARATOR"
+    else
+      F=1
+    fi
+    echo -n "$x"
+  done
+  echo
+}

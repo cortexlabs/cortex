@@ -19,10 +19,10 @@ Also, please use the VS Code [yaml extension](https://marketplace.visualstudio.c
 To install Go on linux, run:
 
 ```bash
-wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz && \
-sudo tar -xvf go1.14.2.linux-amd64.tar.gz && \
+wget https://dl.google.com/go/go1.14.7.linux-amd64.tar.gz && \
+sudo tar -xvf go1.14.7.linux-amd64.tar.gz && \
 sudo mv go /usr/local && \
-rm go1.14.2.linux-amd64.tar.gz
+rm go1.14.7.linux-amd64.tar.gz
 ```
 
 ### Docker
@@ -64,6 +64,8 @@ E.g. to install it globally, run:
 
 ```bash
 sudo python -m pip install awscli
+
+aws configure
 ```
 
 ## Cortex dev environment
@@ -129,18 +131,14 @@ export CLI_BUCKET_NAME="cortex-cli-<your_name>"
 export CLI_BUCKET_REGION="us-west-2"
 ```
 
-Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, `aws_access_key_id`, `aws_secret_access_key`, and all registry URLs accordingly:
+Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, and all registry URLs accordingly:
 
 ```yaml
-aws_access_key_id: ***
-aws_secret_access_key: ***
-
 instance_type: m5.large
 min_instances: 2
 max_instances: 5
 bucket: cortex-cluster-<your_name>
 region: us-west-2
-log_group: cortex
 cluster_name: cortex
 
 image_operator: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest
@@ -156,8 +154,6 @@ image_fluentd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:lates
 image_statsd: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/statsd:latest
 image_istio_proxy: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-proxy:latest
 image_istio_pilot: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pilot:latest
-image_istio_citadel: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-citadel:latest
-image_istio_galley: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-galley:latest
 ```
 
 ### Building
@@ -168,6 +164,10 @@ Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashr
 export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs"  # set the default image for APIs
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"  # redirect analytics to our dev environment
 export CORTEX_TELEMETRY_SEGMENT_WRITE_KEY="0WvoJyCey9z1W2EW7rYTPJUMRYat46dl"  # redirect error reporting to our dev environment
+
+export AWS_ACCESS_KEY_ID=""
+export AWS_SECRET_ACCESS_KEY=""
+
 alias cortex-dev='<path/to/cortex>/bin/cortex'  # replace <path/to/cortex> with the path to the cortex repo that you cloned
 ```
 
@@ -190,6 +190,8 @@ make cli  # the binary will be placed in <path/to/cortex>/bin/cortex
 cortex-dev version  # should show "master"
 ```
 
+If you wish to parallelize the build process, the `parallel` GNU utility needs to be installed. Once installed, set the `NUM_BUILD_PROCS` environment variable to the desired number of parallel jobs. For ease of use, export `NUM_BUILD_PROCS` in `dev/config/build.sh`.
+
 ### Cortex cluster
 
 Start Cortex:
@@ -207,39 +209,7 @@ make cluster-down
 ### Deploy an example
 
 ```bash
-cd examples/pytorch/iris-classifier
-```
-
-Take note of the following images:
-
-```bash
-# for Python Predictor
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-cpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-gpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-inf:latest
-
-# for TensorFlow Predictor
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-cpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-gpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-serving-inf:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/tensorflow-predictor:latest
-
-# for ONNX Predictor
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-predictor-cpu:latest
-XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/onnx-predictor-gpu:latest
-```
-
-Edit `cortex.yaml` and override `image`/`tensorflow_serving_image` with the appropriate image(s) for the given predictor type:
-
-```yaml
-# cortex.yaml
-
-- name: my-api
-  ...
-  predictor:
-    type: python
-    image: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-predictor-cpu:latest
-  ...
+cortex deploy examples/pytorch/iris-classifier --env aws
 ```
 
 ## Off-cluster operator

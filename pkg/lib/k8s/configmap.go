@@ -17,6 +17,8 @@ limitations under the License.
 package k8s
 
 import (
+	"context"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -51,7 +53,7 @@ func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
 
 func (c *Client) CreateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
 	configMap.TypeMeta = _configMapTypeMeta
-	configMap, err := c.configMapClient.Create(configMap)
+	configMap, err := c.configMapClient.Create(context.Background(), configMap, kmeta.CreateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -60,7 +62,7 @@ func (c *Client) CreateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, 
 
 func (c *Client) UpdateConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, error) {
 	configMap.TypeMeta = _configMapTypeMeta
-	configMap, err := c.configMapClient.Update(configMap)
+	configMap, err := c.configMapClient.Update(context.Background(), configMap, kmeta.UpdateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -79,7 +81,7 @@ func (c *Client) ApplyConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, e
 }
 
 func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {
-	configMap, err := c.configMapClient.Get(name, kmeta.GetOptions{})
+	configMap, err := c.configMapClient.Get(context.Background(), name, kmeta.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -102,7 +104,7 @@ func (c *Client) GetConfigMapData(name string) (map[string]string, error) {
 }
 
 func (c *Client) DeleteConfigMap(name string) (bool, error) {
-	err := c.configMapClient.Delete(name, _deleteOpts)
+	err := c.configMapClient.Delete(context.Background(), name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -116,7 +118,7 @@ func (c *Client) ListConfigMaps(opts *kmeta.ListOptions) ([]kcore.ConfigMap, err
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
-	configMapList, err := c.configMapClient.List(*opts)
+	configMapList, err := c.configMapClient.List(context.Background(), *opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

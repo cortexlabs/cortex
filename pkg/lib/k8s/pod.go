@@ -18,6 +18,7 @@ package k8s
 
 import (
 	"bytes"
+	"context"
 	"regexp"
 	"strings"
 	"time"
@@ -86,7 +87,7 @@ func Pod(spec *PodSpec) *kcore.Pod {
 
 func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	pod.TypeMeta = _podTypeMeta
-	pod, err := c.podClient.Create(pod)
+	pod, err := c.podClient.Create(context.Background(), pod, kmeta.CreateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -95,7 +96,7 @@ func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 
 func (c *Client) UpdatePod(pod *kcore.Pod) (*kcore.Pod, error) {
 	pod.TypeMeta = _podTypeMeta
-	pod, err := c.podClient.Update(pod)
+	pod, err := c.podClient.Update(context.Background(), pod, kmeta.UpdateOptions{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -142,6 +143,33 @@ func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 
 var _evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
 
+func WasPodOOMKilled(pod *kcore.Pod) bool {
+	if pod.Status.Reason == ReasonEvicted && _evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
+		return true
+	}
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		if containerStatus.LastTerminationState.Terminated != nil {
+			exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+			reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
+			if _killStatuses[exitCode] {
+				if strings.Contains(reason, "oom") {
+					return true
+				}
+			}
+		} else if containerStatus.State.Terminated != nil {
+			exitCode := containerStatus.State.Terminated.ExitCode
+			reason := strings.ToLower(containerStatus.State.Terminated.Reason)
+			if _killStatuses[exitCode] {
+				if strings.Contains(reason, "oom") {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 func GetPodStatus(pod *kcore.Pod) PodStatus {
 	if pod == nil {
 		return PodStatusUnknown
@@ -157,7 +185,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		if allPodStatus == PodStatusErrImagePull {
 			return PodStatusErrImagePull
 		}
-		return initPodStatus
+		return PodStatusPending
 	case kcore.PodSucceeded:
 		return PodStatusSucceeded
 	case kcore.PodFailed:
@@ -191,6 +219,7 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		if pod.ObjectMeta.DeletionTimestamp != nil {
 			return PodStatusTerminating
 		}
+
 		return PodStatusFromContainerStatuses(pod.Status.ContainerStatuses)
 	default:
 		return PodStatusUnknown
@@ -206,6 +235,9 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 	numKilled := 0
 	numKilledOOM := 0
 
+	if len(containerStatuses) == 0 {
+		return PodStatusPending
+	}
 	for _, containerStatus := range containerStatuses {
 		if containerStatus.State.Running != nil && containerStatus.Ready == true {
 			numRunning++
@@ -276,7 +308,7 @@ func (c *Client) WaitForPodRunning(name string, numSeconds int) error {
 }
 
 func (c *Client) GetPod(name string) (*kcore.Pod, error) {
-	pod, err := c.podClient.Get(name, kmeta.GetOptions{})
+	pod, err := c.podClient.Get(context.Background(), name, kmeta.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -288,7 +320,7 @@ func (c *Client) GetPod(name string) (*kcore.Pod, error) {
 }
 
 func (c *Client) DeletePod(name string) (bool, error) {
-	err := c.podClient.Delete(name, _deleteOpts)
+	err := c.podClient.Delete(context.Background(), name, _deleteOpts)
 	if kerrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -302,7 +334,7 @@ func (c *Client) ListPods(opts *kmeta.ListOptions) ([]kcore.Pod, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
-	podList, err := c.podClient.List(*opts)
+	podList, err := c.podClient.List(context.Background(), *opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -339,18 +371,18 @@ func PodMap(pods []kcore.Pod) map[string]kcore.Pod {
 }
 
 func PodComputesEqual(podSpec1, podSpec2 *kcore.PodSpec) bool {
-	cpu1, mem1, gpu1 := TotalPodCompute(podSpec1)
-	cpu2, mem2, gpu2 := TotalPodCompute(podSpec2)
-	return cpu1.Equal(cpu2) && mem1.Equal(mem2) && gpu1 == gpu2
+	cpu1, mem1, gpu1, inf1 := TotalPodCompute(podSpec1)
+	cpu2, mem2, gpu2, inf2 := TotalPodCompute(podSpec2)
+	return cpu1.Equal(cpu2) && mem1.Equal(mem2) && gpu1 == gpu2 && inf1 == inf2
 }
 
-func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
+func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64, int64) {
 	totalCPU := Quantity{}
 	totalMem := Quantity{}
-	var totalGPU int64
+	var totalGPU, totalInf int64
 
 	if podSpec == nil {
-		return totalCPU, totalMem, totalGPU
+		return totalCPU, totalMem, totalGPU, totalInf
 	}
 
 	for _, container := range podSpec.Containers {
@@ -363,9 +395,12 @@ func TotalPodCompute(podSpec *kcore.PodSpec) (Quantity, Quantity, int64) {
 		if gpu, ok := requests["nvidia.com/gpu"]; ok {
 			totalGPU += gpu.Value()
 		}
+		if inf, ok := requests["aws.amazon.com/neuron"]; ok {
+			totalInf += inf.Value()
+		}
 	}
 
-	return totalCPU, totalMem, totalGPU
+	return totalCPU, totalMem, totalGPU, totalInf
 }
 
 // Example of running a shell command: []string{"/bin/bash", "-c", "ps aux | grep my-proc"}

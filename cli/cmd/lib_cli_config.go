@@ -499,18 +499,17 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "verifying operator endpoint", url)
 	}
-	req.Header.Set("Content-Type", "application/json")
 
 	client := http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
+
 	response, err := client.Do(req)
 	if err != nil {
 		return "", ErrorInvalidOperatorEndpoint(url)
 	}
-
 	if response.StatusCode != 200 {
 		return "", ErrorInvalidOperatorEndpoint(url)
 	}
@@ -888,6 +887,28 @@ func removeEnvFromCLIConfig(envName string) error {
 	}
 
 	return nil
+}
+
+// returns the list of environment names, and whether any of them were the default
+func getEnvNamesByOperatorEndpoint(operatorEndpoint string) ([]string, bool, error) {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return nil, false, err
+	}
+
+	var envNames []string
+	isDefaultEnv := false
+
+	for _, env := range cliConfig.Environments {
+		if env.OperatorEndpoint != nil && s.LastSplit(*env.OperatorEndpoint, "//") == s.LastSplit(operatorEndpoint, "//") {
+			envNames = append(envNames, env.Name)
+			if env.Name == cliConfig.DefaultEnvironment {
+				isDefaultEnv = true
+			}
+		}
+	}
+
+	return envNames, isDefaultEnv, nil
 }
 
 func readCLIConfig() (cliconfig.CLIConfig, error) {

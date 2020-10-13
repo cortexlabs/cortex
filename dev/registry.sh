@@ -19,6 +19,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
+source $ROOT/build/images.sh
 source $ROOT/dev/config/build.sh
 source $ROOT/dev/util.sh
 
@@ -51,70 +52,39 @@ ecr_logged_in=false
 function ecr_login() {
   if [ "$ecr_logged_in" = false ]; then
     blue_echo "Logging in to ECR..."
-    ecr_login_command=$(aws ecr get-login --no-include-email --region $REGISTRY_REGION)
-    eval $ecr_login_command
+    aws ecr get-login-password --region $REGISTRY_REGION | docker login --username AWS --password-stdin $REGISTRY_URL
+    aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com  # this is for the inferentia device plugin image
     ecr_logged_in=true
     green_echo "Success\n"
   fi
 }
 
 function create_registry() {
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-cpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-cpu-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-gpu-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-inf --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/python-predictor-inf-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-cpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-serving-inf --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-predictor --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/tensorflow-predictor-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-cpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-cpu-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-gpu --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/onnx-predictor-gpu-slim --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/operator --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/manager --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/downloader --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/cluster-autoscaler --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/metrics-server --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/inferentia --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/neuron-rtd --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/nvidia --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/fluentd --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/statsd --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-proxy --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-pilot --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-citadel --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/istio-galley --region=$REGISTRY_REGION || true
-  aws ecr create-repository --repository-name=cortexlabs/request-monitor --region=$REGISTRY_REGION || true
+  for image in "${all_images[@]}"; do
+    aws ecr create-repository --repository-name=cortexlabs/$image --region=$REGISTRY_REGION || true
+  done
 }
 
 ### HELPERS ###
 
 function build() {
-  local dir=$1
-  local image=$2
-  local tag=$3
+  local image=$1
+  local tag=$2
+  local dir="${ROOT}/images/${image/-slim}"
+
+  build_args=""
+  if [[ "$image" == *"-slim" ]]; then
+    build_args="--build-arg SLIM=true"
+  fi
 
   blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $REGISTRY_URL/cortexlabs/$image:$tag "${@:4}"
+  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $REGISTRY_URL/cortexlabs/$image:$tag $build_args
   green_echo "Built $image:$tag\n"
 }
 
-function build_base() {
-  local dir=$1
-  local image=$2
-
-  blue_echo "Building $image..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:latest
-  green_echo "Built $image\n"
-}
-
 function cache_builder() {
-  local dir=$1
-  local image=$2
+  local image=$1
+  local dir="${ROOT}/images/${image/-slim}"
 
   blue_echo "Building $image-builder..."
   docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:latest --target builder
@@ -137,26 +107,13 @@ function push() {
 }
 
 function build_and_push() {
-  local dir=$1
-  local image=$2
-  local tag=$3
+  local image=$1
+  local tag=$2
 
-  build $dir $image $tag
+  set -euo pipefail  # necessary since this is called in a new shell by parallel
+
+  build $image $tag
   push $image $tag
-}
-
-function build_and_push_slim() {
-  local dir=$1
-  local image=$2
-  local tag=$3
-
-  build $dir $image $tag
-  push $image $tag
-
-  if [ "$flag_include_slim" == "true" ]; then
-    build $dir "${image}-slim" $tag --build-arg SLIM=true
-    push ${image}-slim $tag
-  fi
 }
 
 function cleanup_local() {
@@ -181,6 +138,14 @@ function cleanup_ecr() {
   done
 }
 
+# export functions for parallel command
+export -f build_and_push
+export -f push
+export -f build
+export -f blue_echo
+export -f green_echo
+export -f ecr_login
+
 if [ "$cmd" = "clean" ]; then
   cleanup_local
   cleanup_ecr
@@ -189,44 +154,36 @@ elif [ "$cmd" = "create" ]; then
   create_registry
 
 elif [ "$cmd" = "update-manager-local" ]; then
-  build $ROOT/images/manager manager latest
+  build manager latest
 
 # usage: registry.sh update all|dev|api [--include-slim] [--skip-push]
+# if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
+  images_to_build=()
+
   if [ "$sub_cmd" == "all" ]; then
-    build_and_push $ROOT/images/tensorflow-serving-cpu tensorflow-serving-cpu latest
-    build_and_push $ROOT/images/tensorflow-serving-gpu tensorflow-serving-gpu latest
-    build_and_push $ROOT/images/tensorflow-serving-inf tensorflow-serving-inf latest
-
-    cache_builder $ROOT/images/operator operator
-    build_and_push $ROOT/images/operator operator latest
-
-    build_and_push $ROOT/images/cluster-autoscaler cluster-autoscaler latest
-    build_and_push $ROOT/images/metrics-server metrics-server latest
-    build_and_push $ROOT/images/inferentia inferentia latest
-    build_and_push $ROOT/images/neuron-rtd neuron-rtd latest
-    build_and_push $ROOT/images/nvidia nvidia latest
-    build_and_push $ROOT/images/fluentd fluentd latest
-    build_and_push $ROOT/images/statsd statsd latest
-    build_and_push $ROOT/images/istio-proxy istio-proxy latest
-    build_and_push $ROOT/images/istio-pilot istio-pilot latest
-    build_and_push $ROOT/images/istio-citadel istio-citadel latest
-    build_and_push $ROOT/images/istio-galley istio-galley latest
+    cache_builder operator
+    images_to_build+=( "${non_dev_images[@]}" )
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    cache_builder $ROOT/images/request-monitor request-monitor
-    build_and_push $ROOT/images/request-monitor request-monitor latest
-    build_and_push $ROOT/images/manager manager latest
-    build_and_push $ROOT/images/downloader downloader latest
+    cache_builder request-monitor
+    images_to_build+=( "${dev_images[@]}" )
   fi
 
-  build_and_push_slim $ROOT/images/python-predictor-cpu python-predictor-cpu latest
-  build_and_push_slim $ROOT/images/python-predictor-gpu python-predictor-gpu latest
-  build_and_push_slim $ROOT/images/python-predictor-inf python-predictor-inf latest
-  build_and_push_slim $ROOT/images/tensorflow-predictor tensorflow-predictor latest
-  build_and_push_slim $ROOT/images/onnx-predictor-cpu onnx-predictor-cpu latest
-  build_and_push_slim $ROOT/images/onnx-predictor-gpu onnx-predictor-gpu latest
+  images_to_build+=( "${user_facing_images[@]}" )
+
+  if [ "$flag_include_slim" == "true" ]; then
+    images_to_build+=( "${user_facing_slim_images[@]}" )
+  fi
+
+  if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
+    flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{} latest" ::: "${images_to_build[@]}"
+  else
+    for image in "${images_to_build[@]}"; do
+      build_and_push $image latest
+    done
+  fi
 
   cleanup_local
 fi

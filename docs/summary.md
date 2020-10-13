@@ -2,29 +2,39 @@
 
 * [Build machine learning APIs](../README.md)
 * [Install](cluster-management/install.md)
-* [Tutorial](../examples/sklearn/iris-classifier/README.md)
+* [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [Chat with us](https://gitter.im/cortexlabs/cortex)
-* [Email us](mailto:hello@cortex.dev)
-* [We're hiring](https://angel.co/cortex-labs-inc/jobs)
+* [Contact us](miscellaneous/contact-us.md)
 
 ## Deployments
 
-* [Exporting models](deployments/exporting.md)
-* [Predictor implementation](deployments/predictors.md)
-* [API configuration](deployments/api-configuration.md)
-* [API deployment](deployments/deployment.md)
-* [Parellelism](deployments/parallelism.md)
-* [Autoscaling](deployments/autoscaling.md)
-* [Networking](deployments/networking.md)
+* [Realtime API](deployments/realtime-api.md)
+  * [Predictor implementation](deployments/realtime-api/predictors.md)
+  * [API configuration](deployments/realtime-api/api-configuration.md)
+  * [API deployment](deployments/realtime-api/deployment.md)
+  * [API statuses](deployments/realtime-api/statuses.md)
+  * [Parallelism](deployments/realtime-api/parallelism.md)
+  * [Autoscaling](deployments/realtime-api/autoscaling.md)
+  * [Prediction monitoring](deployments/realtime-api/prediction-monitoring.md)
+  * [Traffic Splitter](deployments/realtime-api/traffic-splitter.md)
+  * [Realtime API tutorial](../examples/pytorch/text-generator/README.md)
+* [Batch API](deployments/batch-api.md)
+  * [Predictor implementation](deployments/batch-api/predictors.md)
+  * [API configuration](deployments/batch-api/api-configuration.md)
+  * [API deployment](deployments/batch-api/deployment.md)
+  * [Endpoints](deployments/batch-api/endpoints.md)
+  * [Job statuses](deployments/batch-api/statuses.md)
+  * [Batch API tutorial](../examples/batch/image-classifier/README.md)
+
+## Advanced
+
 * [Compute](deployments/compute.md)
 * [Using GPUs](deployments/gpus.md)
 * [Using Inferentia](deployments/inferentia.md)
-* [Prediction monitoring](deployments/prediction-monitoring.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
-* [API statuses](deployments/statuses.md)
+* [Networking](deployments/networking.md)
 
 ## Cluster management
 
@@ -49,16 +59,18 @@
 * [404/503 API responses](troubleshooting/api-request-errors.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 * [TF session in predict()](troubleshooting/tf-session-in-predict.md)
+* [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
 
 ## Guides
 
+* [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
 * [Set up a custom domain](guides/custom-domain.md)
 * [Set up VPC peering](guides/vpc-peering.md)
-* [Add a batch runner API](guides/batch-runner.md)
 * [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
+* [Set up kubectl](guides/kubectl-setup.md)
 
 ## Contributing
 

@@ -8,14 +8,6 @@ The Cortex cluster may be configured by providing a configuration file to `corte
 ```yaml
 # cluster.yaml
 
-# AWS credentials (if not specified, ~/.aws/credentials will be checked) (can be overridden by $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY)
-aws_access_key_id: ***
-aws_secret_access_key: ***
-
-# optional AWS credentials for the operator which may be used to restrict its AWS access (defaults to the AWS credentials set above)
-cortex_aws_access_key_id: ***
-cortex_aws_secret_access_key: ***
-
 # EKS cluster name for cortex (default: cortex)
 cluster_name: cortex
 
@@ -63,11 +55,13 @@ api_load_balancer_scheme: internet-facing  # must be "internet-facing" or "inter
 
 # whether the operator load balancer should be internet-facing or internal (default: "internet-facing")
 # note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/guides/vpc-peering)
-# see https://docs.cortex.dev/v/master/miscellaneous/security#private-cluster for more information
+# see https://docs.cortex.dev/v/master/miscellaneous/security#private-operator for more information
 operator_load_balancer_scheme: internet-facing  # must be "internet-facing" or "internal"
 
-# CloudWatch log group for cortex (default: <cluster_name>)
-log_group: cortex
+# whether to disable API gateway cluster-wide
+# if set to "public" (the default), each API can specify whether to use API Gateway
+# if set to "none", no APIs will be allowed to use API Gateway
+api_gateway: public  # must be "public" or "none"
 
 # additional tags to assign to aws resources for labelling and cost allocation (by default, all resources will be tagged with cortex.dev/cluster-name=<cluster_name>)
 tags:  # <string>: <string> map of key/value pairs
@@ -78,9 +72,12 @@ spot: false
 
 # see https://docs.cortex.dev/v/master/guides/custom-domain for instructions on how to set up a custom domain
 ssl_certificate_arn:
+
+# primary CIDR block for the cluster's VPC (default: 192.168.0.0/16)
+# vpc_cidr: 192.168.0.0/16
 ```
 
-The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [API configuration](../deployments/api-configuration.md).
+The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and in your [Batch API configuration](../deployments/batch-api/api-configuration.md).
 
 The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
 
@@ -100,6 +97,4 @@ image_fluentd: cortexlabs/fluentd:master
 image_statsd: cortexlabs/statsd:master
 image_istio_proxy: cortexlabs/istio-proxy:master
 image_istio_pilot: cortexlabs/istio-pilot:master
-image_istio_citadel: cortexlabs/istio-citadel:master
-image_istio_galley: cortexlabs/istio-galley:master
 ```

@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -41,10 +40,6 @@ func errStrFailedToConnect(u url.URL) string {
 	return "failed to connect to " + urls.TrimQueryParamsURL(u)
 }
 
-func getCloudFormationURL(clusterName, region string) string {
-	return fmt.Sprintf("https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText=-%s-", region, clusterName)
-}
-
 const (
 	ErrInvalidProvider                      = "cli.invalid_provider"
 	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
@@ -54,6 +49,7 @@ const (
 	ErrOperatorConfigFromLocalEnvironment   = "cli.operater_config_from_local_environment"
 	ErrFieldNotFoundInEnvironment           = "cli.field_not_found_in_environment"
 	ErrInvalidOperatorEndpoint              = "cli.invalid_operator_endpoint"
+	ErrNoOperatorLoadBalancer               = "cli.no_operator_load_balancer"
 	ErrCortexYAMLNotFound                   = "cli.cortex_yaml_not_found"
 	ErrConnectToDockerDaemon                = "cli.connect_to_docker_daemon"
 	ErrDockerPermissions                    = "cli.docker_permissions"
@@ -61,7 +57,11 @@ const (
 	ErrResponseUnknown                      = "cli.response_unknown"
 	ErrAPINotReady                          = "cli.api_not_ready"
 	ErrOneAWSEnvVarSet                      = "cli.one_aws_env_var_set"
-	ErrOneAWSConfigFieldSet                 = "cli.one_aws_config_field_set"
+	ErrOneAWSFlagSet                        = "cli.one_aws_flag_set"
+	ErrOnlyAWSClusterEnvVarSet              = "cli.only_aws_cluster_env_var_set"
+	ErrOnlyAWSClusterFlagSet                = "cli.only_aws_cluster_flag_set"
+	ErrMissingAWSCredentials                = "cli.missing_aws_credentials"
+	ErrCredentialsInClusterConfig           = "cli.credentials_in_cluster_config"
 	ErrClusterUp                            = "cli.cluster_up"
 	ErrClusterConfigure                     = "cli.cluster_configure"
 	ErrClusterInfo                          = "cli.cluster_info"
@@ -69,13 +69,6 @@ const (
 	ErrClusterRefresh                       = "cli.cluster_refresh"
 	ErrClusterDown                          = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames                 = "cli.duplicate_cli_env_names"
-	ErrClusterUpInProgress                  = "cli.cluster_up_in_progress"
-	ErrClusterAlreadyCreated                = "cli.cluster_already_created"
-	ErrClusterDownInProgress                = "cli.cluster_down_in_progress"
-	ErrClusterAlreadyDeleted                = "cli.cluster_already_deleted"
-	ErrFailedClusterStatus                  = "cli.failed_cluster_status"
-	ErrClusterDoesNotExist                  = "cli.cluster_does_not_exist"
-	ErrAWSCredentialsRequired               = "cli.aws_credentials_required"
 	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
 	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported          = "cli.shell_completion_not_supported"
@@ -138,6 +131,13 @@ func ErrorInvalidOperatorEndpoint(endpoint string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidOperatorEndpoint,
 		Message: fmt.Sprintf("%s is not a cortex operator endpoint; run `cortex cluster info` to show your operator endpoint or run `cortex cluster up` to spin up a new cluster", endpoint),
+	})
+}
+
+func ErrorNoOperatorLoadBalancer() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoOperatorLoadBalancer,
+		Message: "unable to locate operator load balancer",
 	})
 }
 
@@ -208,10 +208,39 @@ func ErrorOneAWSEnvVarSet(setEnvVar string, missingEnvVar string) error {
 	})
 }
 
-func ErrorOneAWSConfigFieldSet(setConfigField string, missingConfigField string, configPath string) error {
+func ErrorOneAWSFlagSet(setFlag string, missingFlag string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrOneAWSConfigFieldSet,
-		Message: fmt.Sprintf("only %s is set in %s; please set %s as well", setConfigField, _flagClusterConfig, missingConfigField),
+		Kind:    ErrOneAWSFlagSet,
+		Message: fmt.Sprintf("only flag %s was provided; please provide %s as well", setFlag, missingFlag),
+	})
+}
+
+func ErrorOnlyAWSClusterEnvVarSet() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOnlyAWSClusterEnvVarSet,
+		Message: "when specifying $CLUSTER_AWS_ACCESS_KEY_ID and $CLUSTER_AWS_SECRET_ACCESS_KEY, please also specify $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY",
+	})
+}
+
+func ErrorOnlyAWSClusterFlagSet() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOnlyAWSClusterFlagSet,
+		Message: "when specifying --cluster-aws-key and --cluster-aws-secret, please also specify --aws-key and --aws-secret",
+	})
+}
+
+func ErrorMissingAWSCredentials() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMissingAWSCredentials,
+		Message: "unable to find aws credentials; please specify aws credentials using the flags --aws-key and --aws-secret",
+	})
+}
+
+// Deprecation: specifying aws creds in cluster configuration is no longer supported
+func ErrorCredentialsInClusterConfig(cmd string, path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCredentialsInClusterConfig,
+		Message: fmt.Sprintf("specifying credentials in the cluster configuration is no longer supported, please specify aws credentials using flags (e.g. cortex cluster %s --config %s --aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>) or set environment variables; see https://docs.cortex.dev/v/%s/miscellaneous/security#iam-permissions for more information", cmd, path, consts.CortexVersionMinor),
 	})
 }
 
@@ -263,55 +292,6 @@ func ErrorClusterDown(out string) error {
 	})
 }
 
-func ErrorClusterDoesNotExist(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterDoesNotExist,
-		Message: fmt.Sprintf("there is no cluster named \"%s\" in %s", clusterName, region),
-	})
-}
-
-func ErrorClusterUpInProgress(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterUpInProgress,
-		Message: fmt.Sprintf("creation of cluster \"%s\" in %s is currently in progress", clusterName, region),
-	})
-}
-
-func ErrorClusterAlreadyCreated(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAlreadyCreated,
-		Message: fmt.Sprintf("a cluster named \"%s\" already exists in %s", clusterName, region),
-	})
-}
-
-func ErrorClusterDownInProgress(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterDownInProgress,
-		Message: fmt.Sprintf("deletion of cluster \"%s\" in %s is currently in progress", clusterName, region),
-	})
-}
-
-func ErrorClusterAlreadyDeleted(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAlreadyDeleted,
-		Message: fmt.Sprintf("cluster \"%s\" in %s has already been deleted (or does not exist)", clusterName, region),
-	})
-}
-
-func ErrorFailedClusterStatus(status clusterstate.Status, clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFailedClusterStatus,
-		Message: fmt.Sprintf("cluster \"%s\" in %s encountered an unexpected status %s; please try to delete the cluster with `cortex cluster down`, or delete the cloudformation stacks directly from your AWS console (%s)", clusterName, region, string(status), getCloudFormationURL(clusterName, region)),
-	})
-}
-
-func ErrorAWSCredentialsRequired() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAWSCredentialsRequired,
-		Message: "AWS credentials are required; please set them in your cluster configuration file (if you're using one), your environment variables (i.e. AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY), or your AWS CLI (i.e. via `aws configure`)",
-	})
-}
-
 func ErrorClusterConfigOrPromptsRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterConfigOrPromptsRequired,
@@ -347,6 +327,6 @@ func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.Provid
 	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
-		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/deployments/predictors#project-files); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/deployments/realtime-api/predictors#project-files for Realtime API and https://docs.cortex.dev/v/%s/deployments/batch-api/predictors#project-files for Batch API); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }

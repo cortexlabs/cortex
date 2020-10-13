@@ -17,7 +17,7 @@ import base64
 import time
 from pathlib import Path
 import json
-import msgpack
+import threading
 import datadog
 from typing import Tuple, Union, Optional
 
@@ -44,6 +44,9 @@ class API:
         self.cache_dir = cache_dir
 
         self.id = api_spec["id"]
+        self.predictor_id = kwargs["predictor_id"]
+        self.deployment_id = kwargs["deployment_id"]
+
         self.key = api_spec["key"]
         self.metadata_root = api_spec["metadata_root"]
         self.name = api_spec["name"]
@@ -57,6 +60,9 @@ class API:
             host_ip = os.environ["HOST_IP"]
             datadog.initialize(statsd_host=host_ip, statsd_port="8125")
             self.statsd = datadog.statsd
+
+        if provider == "local":
+            self.metrics_file_lock = threading.Lock()
 
     def get_cached_classes(self):
         prefix = os.path.join(self.metadata_root, "classes") + "/"
@@ -77,7 +83,11 @@ class API:
             raise ValueError("unable to store class {}".format(class_name)) from e
 
     def metric_dimensions_with_id(self):
-        return [{"Name": "APIName", "Value": self.name}, {"Name": "APIID", "Value": self.id}]
+        return [
+            {"Name": "APIName", "Value": self.name},
+            {"Name": "PredictorID", "Value": self.predictor_id},
+            {"Name": "DeploymentID", "Value": self.deployment_id},
+        ]
 
     def metric_dimensions(self):
         return [{"Name": "APIName", "Value": self.name}]
@@ -119,12 +129,15 @@ class API:
 
     def store_metrics_locally(self, status_code, total_time):
         status_code_series = int(status_code / 100)
-
         status_code_file_name = f"/mnt/workspace/{os.getpid()}.{status_code_series}XX"
-        self.increment_counter_file(status_code_file_name, 1)
-
         request_time_file = f"/mnt/workspace/{os.getpid()}.request_time"
-        self.increment_counter_file(request_time_file, total_time)
+
+        self.metrics_file_lock.acquire()
+        try:
+            self.increment_counter_file(status_code_file_name, 1)
+            self.increment_counter_file(request_time_file, total_time)
+        finally:
+            self.metrics_file_lock.release()
 
     def increment_counter_file(self, file_name, value):
         previous_val = 0
@@ -171,11 +184,6 @@ class API:
             }
 
 
-def read_msgpack(msgpack_path) -> dict:
-    with open(msgpack_path, "rb") as msgpack_file:
-        return msgpack.load(msgpack_file, raw=False)
-
-
 def get_api(
     provider: str,
     spec_path: str,
@@ -196,7 +204,6 @@ def get_api(
 
     return api
 
-
 def get_spec(
     provider: str,
     spec_path: str,
@@ -210,12 +217,16 @@ def get_spec(
         storage = S3(bucket=bucket, region=region)
 
     if provider == "local":
-        return storage, read_msgpack(spec_path)
+        return storage, read_json(spec_path)
 
-    local_spec_path = os.path.join(cache_dir, "api_spec.msgpack")
+    local_spec_path = os.path.join(cache_dir, "api_spec.json")
 
     if not os.path.isfile(local_spec_path):
         _, key = S3.deconstruct_s3_path(spec_path)
         storage.download_file(key, local_spec_path)
 
-    return storage, read_msgpack(local_spec_path)
+    return storage, read_json(local_spec_path)
+
+def read_json(json_path: str):
+    with open(json_path) as json_file:
+        return json.load(json_file)

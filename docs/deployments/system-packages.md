@@ -7,7 +7,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 Cortex looks for a file named `dependencies.sh` in the top level Cortex project directory (i.e. the directory which contains `cortex.yaml`). For example:
 
 ```text
-./iris-classifier/
+./my-classifier/
 ├── cortex.yaml
 ├── predictor.py
 ├── ...
@@ -50,7 +50,7 @@ Cortex's base Docker images are listed below. Depending on the Cortex Predictor 
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x6 -->
 * Python Predictor (CPU): `cortexlabs/python-predictor-cpu-slim:master`
-* Python Predictor (GPU): `cortexlabs/python-predictor-gpu-slim:master`
+* Python Predictor (GPU): `cortexlabs/python-predictor-gpu-slim:master-cuda10.1` (also available in cuda10.0, cuda10.2, and cuda11.0)
 * Python Predictor (Inferentia): `cortexlabs/python-predictor-inf-slim:master`
 * TensorFlow Predictor (CPU, GPU, Inferentia): `cortexlabs/tensorflow-predictor-slim:master`
 * ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu-slim:master`

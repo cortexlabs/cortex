@@ -150,7 +150,7 @@ func ErrorOnDemandBaseCapacityGreaterThanMax(onDemandBaseCapacity int64, max int
 func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
-		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value: %s", configKey, configKey, s.UserStr(prevVal)),
+		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value (%s)", configKey, configKey, s.UserStr(prevVal)),
 	})
 }
 
@@ -239,13 +239,13 @@ func ErrorIOPSTooLarge(iops int64, volumeSize int64) error {
 func ErrorCantOverrideDefaultTag() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCantOverrideDefaultTag,
-		Message: fmt.Sprintf("the \"%s\" tag cannot be overridden (it is set by default, and it must always be equal to your cluster name)", ClusterNameTag),
+		Message: fmt.Sprintf("the \"%s\" tag cannot be overridden (it is set by default, and will always be equal to your cluster name)", ClusterNameTag),
 	})
 }
 
 func ErrorSSLCertificateARNNotFound(sslCertificateARN string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSSLCertificateARNNotFound,
-		Message: fmt.Sprintf("unable to find the specified ssl certificate in region %s: %s", region, sslCertificateARN),
+		Message: fmt.Sprintf("unable to find the specified ssl certificate in %s: %s", region, sslCertificateARN),
 	})
 }

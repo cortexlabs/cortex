@@ -24,7 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
-	istionetworkingclient "istio.io/client-go/pkg/clientset/versioned/typed/networking/v1alpha3"
+	istionetworkingclient "istio.io/client-go/pkg/clientset/versioned/typed/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientdynamic "k8s.io/client-go/dynamic"
@@ -43,7 +43,7 @@ import (
 var (
 	_home         = kclienthomedir.HomeDir()
 	_deletePolicy = kmeta.DeletePropagationBackground
-	_deleteOpts   = &kmeta.DeleteOptions{
+	_deleteOpts   = kmeta.DeleteOptions{
 		PropagationPolicy: &_deletePolicy,
 	}
 )
@@ -94,7 +94,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
-	client.virtualServiceClient = istioClient.NetworkingV1alpha3().VirtualServices(namespace)
+	client.virtualServiceClient = istioClient.NetworkingV1beta1().VirtualServices(namespace)
 
 	client.podClient = client.clientset.CoreV1().Pods(namespace)
 	client.nodeClient = client.clientset.CoreV1().Nodes()

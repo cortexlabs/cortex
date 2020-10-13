@@ -32,13 +32,14 @@ type InfoResponse struct {
 }
 
 type NodeInfo struct {
-	Name             string             `json:"name"`
-	InstanceType     string             `json:"instance_type"`
-	IsSpot           bool               `json:"is_spot"`
-	Price            float64            `json:"price"`
-	NumReplicas      int                `json:"num_replicas"`
-	ComputeCapacity  userconfig.Compute `json:"compute_capacity"`  // the total resources available to the user on a node
-	ComputeAvailable userconfig.Compute `json:"compute_available"` // unused resources on a node
+	Name                 string             `json:"name"`
+	InstanceType         string             `json:"instance_type"`
+	IsSpot               bool               `json:"is_spot"`
+	Price                float64            `json:"price"`
+	NumReplicas          int                `json:"num_replicas"`
+	ComputeUserCapacity  userconfig.Compute `json:"compute_user_capacity"`  // the total resources available to the user on a node
+	ComputeAvailable     userconfig.Compute `json:"compute_available"`      // unused resources on a node
+	ComputeUserRequested userconfig.Compute `json:"compute_user_requested"` // total resources requested by user on a node
 }
 
 type DeployResponse struct {
@@ -46,25 +47,46 @@ type DeployResponse struct {
 }
 
 type DeployResult struct {
-	API     spec.API
+	API     *spec.API
 	Message string
 	Error   string
 }
 
 type GetAPIsResponse struct {
-	SyncAPIs []SyncAPI `json:"sync_apis"`
+	RealtimeAPIs     []RealtimeAPI     `json:"realtime_apis"`
+	BatchAPIs        []BatchAPI        `json:"batch_apis"`
+	TrafficSplitters []TrafficSplitter `json:"traffic_splitters"`
 }
 
-type SyncAPI struct {
+type RealtimeAPI struct {
 	Spec         spec.API        `json:"spec"`
 	Status       status.Status   `json:"status"`
 	Metrics      metrics.Metrics `json:"metrics"`
-	BaseURL      string          `json:"base_url"`
+	Endpoint     string          `json:"endpoint"`
 	DashboardURL string          `json:"dashboard_url"`
 }
 
+type TrafficSplitter struct {
+	Spec     spec.API `json:"spec"`
+	Endpoint string   `json:"endpoint"`
+}
+
 type GetAPIResponse struct {
-	SyncAPI *SyncAPI `json:"sync_api"`
+	RealtimeAPI     *RealtimeAPI     `json:"realtime_api"`
+	BatchAPI        *BatchAPI        `json:"batch_api"`
+	TrafficSplitter *TrafficSplitter `json:"traffic_splitter"`
+}
+
+type BatchAPI struct {
+	Spec        spec.API           `json:"spec"`
+	JobStatuses []status.JobStatus `json:"job_statuses"`
+	Endpoint    string             `json:"endpoint"`
+}
+
+type GetJobResponse struct {
+	APISpec   spec.API         `json:"api_spec"`
+	JobStatus status.JobStatus `json:"job_status"`
+	Endpoint  string           `json:"endpoint"`
 }
 
 type DeleteResponse struct {

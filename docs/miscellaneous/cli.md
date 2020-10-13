@@ -2,7 +2,19 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## deploy
+## Installing a specific version of the CLI
+
+```bash
+# Replace `INSERT_CORTEX_VERSION` with the complete CLI version (e.g. 0.18.1):
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/vINSERT_CORTEX_VERSION/get-cli.sh)"
+
+# For example to download CLI version 0.18.1 (Note the 'v'):
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.18.1/get-cli.sh)"
+```
+
+## Command overview
+
+### deploy
 
 ```text
 create or update apis
@@ -11,40 +23,42 @@ Usage:
   cortex deploy [CONFIG_FILE] [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -f, --force        override the in-progress api update
-  -y, --yes          skip prompts
-  -h, --help         help for deploy
+  -e, --env string      environment to use (default "local")
+  -f, --force           override the in-progress api update
+  -y, --yes             skip prompts
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for deploy
 ```
 
-## get
+### get
 
 ```text
-get information about apis
+get information about apis or jobs
 
 Usage:
-  cortex get [API_NAME] [flags]
+  cortex get [API_NAME] [JOB_ID] [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -w, --watch        re-run the command every second
-  -h, --help         help for get
+  -e, --env string      environment to use (default "local")
+  -w, --watch           re-run the command every 2 seconds
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for get
 ```
 
-## logs
+### logs
 
 ```text
 stream logs from an api
 
 Usage:
-  cortex logs API_NAME [flags]
+  cortex logs API_NAME [JOB_ID] [flags]
 
 Flags:
   -e, --env string   environment to use (default "local")
   -h, --help         help for logs
 ```
 
-## refresh
+### refresh
 
 ```text
 restart all replicas for an api (without downtime)
@@ -53,12 +67,13 @@ Usage:
   cortex refresh API_NAME [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -f, --force        override the in-progress api update
-  -h, --help         help for refresh
+  -e, --env string      environment to use (default "local")
+  -f, --force           override the in-progress api update
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for refresh
 ```
 
-## predict
+### predict
 
 ```text
 make a prediction request using a json file
@@ -71,22 +86,23 @@ Flags:
   -h, --help         help for predict
 ```
 
-## delete
+### delete
 
 ```text
-delete an api
+delete any kind of api or stop a batch job
 
 Usage:
-  cortex delete API_NAME [flags]
+  cortex delete API_NAME [JOB_ID] [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
-  -f, --force        delete the api without confirmation
-  -c, --keep-cache   keep cached data for the api
-  -h, --help         help for delete
+  -e, --env string      environment to use (default "local")
+  -f, --force           delete the api without confirmation
+  -c, --keep-cache      keep cached data for the api
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for delete
 ```
 
-## cluster up
+### cluster up
 
 ```text
 spin up a cluster
@@ -95,13 +111,17 @@ Usage:
   cortex cluster up [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -e, --env string      environment to configure (default "aws")
-  -y, --yes             skip prompts
-  -h, --help            help for up
+  -c, --config string               path to a cluster configuration file
+      --aws-key string              aws access key id
+      --aws-secret string           aws secret access key
+      --cluster-aws-key string      aws access key id to be used by the cluster
+      --cluster-aws-secret string   aws secret access key to be used by the cluster
+  -e, --env string                  environment to create (default "aws")
+  -y, --yes                         skip prompts
+  -h, --help                        help for up
 ```
 
-## cluster info
+### cluster info
 
 ```text
 get information about a cluster
@@ -110,14 +130,16 @@ Usage:
   cortex cluster info [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -e, --env string      environment to configure (default "aws")
-  -d, --debug           save the current cluster state to a file
-  -y, --yes             skip prompts
-  -h, --help            help for info
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -e, --env string          environment to update (default "aws")
+  -d, --debug               save the current cluster state to a file
+  -y, --yes                 skip prompts
+  -h, --help                help for info
 ```
 
-## cluster configure
+### cluster configure
 
 ```text
 update a cluster's configuration
@@ -126,13 +148,30 @@ Usage:
   cortex cluster configure [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -e, --env string      environment to configure (default "aws")
-  -y, --yes             skip prompts
-  -h, --help            help for configure
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -e, --env string          environment to update (default "aws")
+  -y, --yes                 skip prompts
+  -h, --help                help for configure
 ```
 
-## cluster down
+### cluster export
+
+```text
+download the code and configuration for all APIs deployed in a cluster
+
+Usage:
+  cortex cluster export [flags]
+
+Flags:
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -h, --help                help for export
+```
+
+### cluster down
 
 ```text
 spin down a cluster
@@ -141,12 +180,14 @@ Usage:
   cortex cluster down [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -y, --yes             skip prompts
-  -h, --help            help for down
+  -c, --config string       path to a cluster configuration file
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -y, --yes                 skip prompts
+  -h, --help                help for down
 ```
 
-## env configure
+### env configure
 
 ```text
 configure an environment
@@ -163,7 +204,7 @@ Flags:
   -h, --help                           help for configure
 ```
 
-## env list
+### env list
 
 ```text
 list all configured environments
@@ -175,7 +216,7 @@ Flags:
   -h, --help   help for list
 ```
 
-## env default
+### env default
 
 ```text
 set the default environment
@@ -187,7 +228,7 @@ Flags:
   -h, --help   help for default
 ```
 
-## env delete
+### env delete
 
 ```text
 delete an environment configuration
@@ -199,7 +240,7 @@ Flags:
   -h, --help   help for delete
 ```
 
-## version
+### version
 
 ```text
 print the cli and cluster versions
@@ -212,7 +253,7 @@ Flags:
   -h, --help         help for version
 ```
 
-## completion
+### completion
 
 ```text
 generate shell completion scripts

@@ -177,11 +177,12 @@ async def parse_payload(request: Request, call_next):
 
 
 def predict(request: Request):
+    tasks = BackgroundTasks()
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
-    args = build_predict_args(request)
+    kwargs = build_predict_kwargs(request)
 
-    prediction = predictor_impl.predict(**args)
+    prediction = predictor_impl.predict(**kwargs)
 
     if isinstance(prediction, bytes):
         response = Response(content=prediction, media_type="application/octet-stream")
@@ -207,27 +208,49 @@ def predict(request: Request):
                 api.monitoring.model_type == "classification"
                 and predicted_value not in local_cache["class_set"]
             ):
-                tasks = BackgroundTasks()
                 tasks.add_task(api.upload_class, class_name=predicted_value)
                 local_cache["class_set"].add(predicted_value)
-                response.background = tasks
         except:
             logger().warn("unable to record prediction metric", exc_info=True)
+
+    if util.has_method(predictor_impl, "post_predict"):
+        kwargs = build_post_predict_kwargs(prediction, request)
+        request_thread_pool.submit(predictor_impl.post_predict, **kwargs)
+
+    if len(tasks.tasks) > 0:
+        response.background = tasks
 
     return response
 
 
-def build_predict_args(request: Request):
-    args = {}
+def build_predict_kwargs(request: Request):
+    kwargs = {}
 
     if "payload" in local_cache["predict_fn_args"]:
-        args["payload"] = request.state.payload
+        kwargs["payload"] = request.state.payload
     if "headers" in local_cache["predict_fn_args"]:
-        args["headers"] = request.headers
+        kwargs["headers"] = request.headers
     if "query_params" in local_cache["predict_fn_args"]:
-        args["query_params"] = request.query_params
+        kwargs["query_params"] = request.query_params
+    if "batch_id" in local_cache["predict_fn_args"]:
+        kwargs["batch_id"] = None
 
-    return args
+    return kwargs
+
+
+def build_post_predict_kwargs(response, request: Request):
+    kwargs = {}
+
+    if "payload" in local_cache["post_predict_fn_args"]:
+        kwargs["payload"] = request.state.payload
+    if "headers" in local_cache["post_predict_fn_args"]:
+        kwargs["headers"] = request.headers
+    if "query_params" in local_cache["post_predict_fn_args"]:
+        kwargs["query_params"] = request.query_params
+    if "response" in local_cache["post_predict_fn_args"]:
+        kwargs["response"] = response
+
+    return kwargs
 
 
 def get_summary():
@@ -289,6 +312,11 @@ def start_fn():
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
         local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+        if util.has_method(predictor_impl, "post_predict"):
+            local_cache["post_predict_fn_args"] = inspect.getfullargspec(
+                predictor_impl.post_predict
+            ).args
+
         predict_route = "/"
         if provider != "local":
             predict_route = "/predict"

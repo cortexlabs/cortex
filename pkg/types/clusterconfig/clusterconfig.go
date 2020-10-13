@@ -18,10 +18,12 @@ package clusterconfig
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net"
+	"net/http"
 	"regexp"
 	"strings"
 
-	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -36,13 +38,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 )
 
-const ClusterNameTag = "cortex.dev/cluster-name"
+const (
+	ClusterNameTag = "cortex.dev/cluster-name"
+
+	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
+	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
+)
 
 var (
-	_spotInstanceDistributionLength = 2
-	_maxInstancePools               = 20
+	_maxInstancePools            = 20
+	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
+	_invalidTagPrefixes  = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
 )
 
 type Config struct {
@@ -60,11 +68,12 @@ type Config struct {
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
-	LogGroup                   string             `json:"log_group" yaml:"log_group"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	APIGatewaySetting          APIGatewaySetting  `json:"api_gateway" yaml:"api_gateway"`
+	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
 	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
 	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
 	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
@@ -79,8 +88,6 @@ type Config struct {
 	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
 	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
 	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel          string             `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley           string             `json:"image_istio_galley" yaml:"image_istio_galley"`
 }
 
 type SpotConfig struct {
@@ -100,7 +107,7 @@ type InternalConfig struct {
 	APIVersion         string                    `json:"api_version"`
 	OperatorInCluster  bool                      `json:"operator_in_cluster"`
 	InstanceMetadata   aws.InstanceMetadata      `json:"instance_metadata"`
-	APIGateway         apigatewayv2.Api          `json:"api_gateway"`
+	APIGateway         *apigatewayv2.Api         `json:"api_gateway"`
 	VPCLink            *apigatewayv2.VpcLink     `json:"vpc_link"`
 	VPCLinkIntegration *apigatewayv2.Integration `json:"vpc_link_integration"`
 }
@@ -157,6 +164,22 @@ var UserValidation = &cr.StructValidation{
 				AllowExplicitNull:  true,
 				AllowEmpty:         true,
 				ConvertNullToEmpty: true,
+				KeyStringValidator: &cr.StringValidation{
+					MinLength:                  1,
+					MaxLength:                  127,
+					DisallowLeadingWhitespace:  true,
+					DisallowTrailingWhitespace: true,
+					InvalidPrefixes:            _invalidTagPrefixes,
+					AWSTag:                     true,
+				},
+				ValueStringValidator: &cr.StringValidation{
+					MinLength:                  1,
+					MaxLength:                  255,
+					DisallowLeadingWhitespace:  true,
+					DisallowTrailingWhitespace: true,
+					InvalidPrefixes:            _invalidTagPrefixes,
+					AWSTag:                     true,
+				},
 			},
 		},
 		{
@@ -265,13 +288,6 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "LogGroup",
-			StringValidation: &cr.StringValidation{
-				MaxLength: 63,
-			},
-			DefaultField: "ClusterName",
-		},
-		{
 			StructField: "SubnetVisibility",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: SubnetVisibilityStrings(),
@@ -315,6 +331,22 @@ var UserValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return LoadBalancerSchemeFromString(str), nil
+			},
+		},
+		{
+			StructField: "APIGatewaySetting",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: APIGatewaySettingStrings(),
+				Default:       PublicAPIGatewaySetting.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return APIGatewaySettingFromString(str), nil
+			},
+		},
+		{
+			StructField: "VPCCIDR",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: validateVPCCIDR,
 			},
 		},
 		{
@@ -408,37 +440,6 @@ var UserValidation = &cr.StructValidation{
 				Validator: validateImageVersion,
 			},
 		},
-		{
-			StructField: "ImageIstioCitadel",
-			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-citadel:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioGalley",
-			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-galley:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		// Extra keys that exist in the cluster config file
-		{
-			Key: "aws_access_key_id",
-			Nil: true,
-		},
-		{
-			Key: "aws_secret_access_key",
-			Nil: true,
-		},
-		{
-			Key: "cortex_aws_access_key_id",
-			Nil: true,
-		},
-		{
-			Key: "cortex_aws_secret_access_key",
-			Nil: true,
-		},
 	},
 }
 
@@ -508,6 +509,17 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 	}
 }
 
+func SQSNamePrefix(clusterName string) string {
+	// 10 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
+	return hash.String(clusterName)[:10] + "-"
+}
+
+// returns hash of cluster name and adds trailing "-"
+func (cc *Config) SQSNamePrefix() string {
+	return SQSNamePrefix(cc.ClusterName)
+}
+
+// this validates the user-provided cluster config
 func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
@@ -581,8 +593,15 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if cc.Tags[ClusterNameTag] != "" && cc.Tags[ClusterNameTag] != cc.ClusterName {
-		return ErrorCantOverrideDefaultTag()
+	for tagName, tagValue := range cc.Tags {
+		if strings.HasPrefix(tagName, "cortex.dev/") {
+			if tagName != ClusterNameTag {
+				return errors.Wrap(cr.ErrorCantHavePrefix(tagName, "cortex.dev/"), TagsKey)
+			}
+			if tagValue != cc.ClusterName {
+				return errors.Wrap(ErrorCantOverrideDefaultTag(), TagsKey)
+			}
+		}
 	}
 	cc.Tags[ClusterNameTag] = cc.ClusterName
 
@@ -629,14 +648,47 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	return nil
 }
 
-func CheckCortexSupport(instanceMetadata aws.InstanceMetadata) error {
+func checkCortexSupport(instanceMetadata aws.InstanceMetadata) error {
 	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
 		strings.HasSuffix(instanceMetadata.Type, "micro") {
 		return ErrorInstanceTypeTooSmall()
 	}
 
-	if _, ok := awsutils.InstanceENIsAvailable[instanceMetadata.Type]; !ok {
-		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
+	if err := checkCNISupport(instanceMetadata.Type); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Check the instance type against the list of supported instance types for the current default CNI version
+// Returns nil if unable to perform the check successfully
+func checkCNISupport(instanceType string) error {
+	if _cachedCNISupportedInstances == nil {
+		// set to empty string to cache errors too
+		_cachedCNISupportedInstances = pointer.String("")
+
+		res, err := http.Get(_cniSupportedInstancesURL)
+		if err != nil {
+			return nil
+		}
+
+		body, err := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			return nil
+		}
+
+		_cachedCNISupportedInstances = pointer.String(string(body))
+	}
+
+	// sanity check the response
+	if !strings.Contains(*_cachedCNISupportedInstances, "m5.large") {
+		return nil
+	}
+
+	if !strings.Contains(*_cachedCNISupportedInstances, instanceType) {
+		return ErrorInstanceTypeNotSupported(instanceType)
 	}
 
 	return nil
@@ -727,7 +779,6 @@ func applyPromptDefaults(defaults Config) *Config {
 		InstanceType: pointer.String("m5.large"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
-		Spot:         pointer.Bool(true),
 	}
 
 	if defaults.Region != nil {
@@ -741,9 +792,6 @@ func applyPromptDefaults(defaults Config) *Config {
 	}
 	if defaults.MaxInstances != nil {
 		defaultConfig.MaxInstances = defaults.MaxInstances
-	}
-	if defaults.Spot != nil {
-		defaultConfig.Spot = defaults.Spot
 	}
 
 	return defaultConfig
@@ -786,6 +834,9 @@ func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
 	if disallowPrompt {
+		if clusterConfig.Region == nil {
+			clusterConfig.Region = defaults.Region
+		}
 		if clusterConfig.InstanceType == nil {
 			clusterConfig.InstanceType = defaults.InstanceType
 		}
@@ -951,6 +1002,15 @@ func validateBucketName(bucket string) (string, error) {
 	return bucket, nil
 }
 
+func validateVPCCIDR(cidr string) (string, error) {
+	_, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	return cidr, nil
+}
+
 func validateInstanceType(instanceType string) (string, error) {
 	var foundInstance *aws.InstanceMetadata
 	for _, instanceMap := range aws.InstanceMetadatas {
@@ -964,7 +1024,7 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorInvalidInstanceType(instanceType)
 	}
 
-	err := CheckCortexSupport(*foundInstance)
+	err := checkCortexSupport(*foundInstance)
 	if err != nil {
 		return "", err
 	}
@@ -1054,11 +1114,14 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(InstancePoolsUserKey, *cc.SpotConfig.InstancePools)
 		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
-	items.Add(LogGroupUserKey, cc.LogGroup)
 	items.Add(SubnetVisibilityUserKey, cc.SubnetVisibility)
 	items.Add(NATGatewayUserKey, cc.NATGateway)
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
 	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
+	items.Add(APIGatewaySettingUserKey, cc.APIGatewaySetting)
+	if cc.VPCCIDR != nil {
+		items.Add(VPCCIDRKey, *cc.VPCCIDR)
+	}
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
@@ -1073,8 +1136,6 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageStatsdUserKey, cc.ImageStatsd)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
-	items.Add(ImageIstioCitadelUserKey, cc.ImageIstioCitadel)
-	items.Add(ImageIstioGalleyUserKey, cc.ImageIstioGalley)
 
 	return items
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package docker
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -24,9 +25,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -161,12 +164,34 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		jsonmessage.DisplayJSONMessagesStream(pullOutput, os.Stderr, termFd, isTerm, nil)
 		fmt.Println()
 	case PrintDots:
+		var err error
 		fmt.Printf("￮ downloading docker image %s ", image)
-		defer fmt.Print(" ✓\n")
+		defer func() {
+			if err == nil {
+				fmt.Print(" ✓\n")
+			} else {
+				fmt.Print(" x\n")
+			}
+		}()
+		d := json.NewDecoder(pullOutput)
+		var result jsonmessage.JSONMessage
 		dotCron := cron.Run(print.Dot, nil, 2*time.Second)
 		defer dotCron.Cancel()
-		// wait until the pull has completed
-		if _, err := ioutil.ReadAll(pullOutput); err != nil {
+		for {
+			if e := d.Decode(&result); e != nil {
+				if e == io.EOF {
+					return true, nil
+				}
+				err = e
+				return false, err
+			}
+
+			if result.Error != nil {
+				err = result.Error
+				break
+			}
+		}
+		if err != nil {
 			return false, err
 		}
 	default:
@@ -220,6 +245,64 @@ func StreamDockerLogsFn(containerID string, dockerClient *Client) func() error {
 
 		return nil
 	}
+}
+
+// The provided input will be extracted into the container's containerPath directory
+func CopyToContainer(containerID string, input *archive.Input, containerPath string) error {
+	if !strings.HasPrefix(containerPath, "/") {
+		return errors.ErrorUnexpected("containerPath must start with /")
+	}
+
+	dockerClient, err := GetDockerClient()
+	if err != nil {
+		return err
+	}
+
+	// this is necessary to ensure that missing parent directories are created in the container
+	input.AddPrefix = filepath.Join(containerPath, input.AddPrefix)
+
+	buf := new(bytes.Buffer)
+	_, err = archive.TarToWriter(input, buf)
+	if err != nil {
+		return err
+	}
+
+	err = dockerClient.CopyToContainer(context.Background(), containerID, "/", buf, dockertypes.CopyToContainerOptions{
+		AllowOverwriteDirWithFile: true,
+	})
+	if err != nil {
+		return WrapDockerError(err)
+	}
+
+	return nil
+}
+
+// The file or directory name of containerPath will be preserved in localDir
+// For example, if the container has /aaa/zzz.txt,
+//   - CopyFromContainer(_, "/aaa", "~/test") will create "~/test/aaa/zzz.txt"
+//   - CopyFromContainer(_, "/aaa/zzz.txt", "~/test") will create "~/test/zzz.txt"
+func CopyFromContainer(containerID string, containerPath string, localDir string) error {
+	if !strings.HasPrefix(containerPath, "/") {
+		return errors.ErrorUnexpected("containerPath must start with /")
+	}
+
+	dockerClient, err := GetDockerClient()
+	if err != nil {
+		return err
+	}
+
+	reader, _, err := dockerClient.CopyFromContainer(context.Background(), containerID, containerPath)
+	if err != nil {
+		return WrapDockerError(err)
+	}
+	defer reader.Close()
+
+	_, err = archive.UntarReaderToDir(reader, localDir)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {

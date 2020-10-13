@@ -25,6 +25,7 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -78,9 +79,15 @@ const (
 	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
+	ErrKindIsNotSupportedByProvider         = "spec.kind_is_not_supported_by_provider"
+	ErrKeyIsNotSupportedForKind             = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
+	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
+	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
+	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
+	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
 )
 
 var _modelCurrentStructure = `
@@ -91,14 +98,14 @@ var _modelCurrentStructure = `
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration for Realtime API documentation and see https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/api-configuration for documentation)", consts.CortexVersionMinor),
+		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration for Realtime API documentation and see https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 
@@ -473,7 +480,7 @@ func ErrorInvalidONNXModelPath(modelPath string, s3Path bool, includeVersionMess
 func ErrorMissingModel(predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingModel,
-		Message: fmt.Sprintf("at least one model must be specified for %s predictor type; use fields %s:%s or %s:%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
+		Message: fmt.Sprintf("at least one model must be specified for the %s predictor type; use fields %s.%s or %s.%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
 	})
 }
 
@@ -547,6 +554,20 @@ func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
 	})
 }
 
+func ErrorKindIsNotSupportedByProvider(kind userconfig.Kind, provider types.ProviderType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrKindIsNotSupportedByProvider,
+		Message: fmt.Sprintf("%s kind is not supported on %s provider", kind.String(), provider.String()),
+	})
+}
+
+func ErrorKeyIsNotSupportedForKind(key string, kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrKeyIsNotSupportedForKind,
+		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
+	})
+}
+
 func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrComputeResourceConflict,
@@ -566,5 +587,39 @@ func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfInfs,
 		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
+	})
+}
+
+func ErrorInsufficientBatchConcurrencyLevel(maxBatchSize int32, processesPerReplica int32, threadsPerProcess int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInsufficientBatchConcurrencyLevel,
+		Message: fmt.Sprintf(
+			"%s (%d) must be less than or equal to %s * %s (%d * %d = %d)",
+			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ProcessesPerReplicaKey, userconfig.ThreadsPerProcessKey, processesPerReplica, threadsPerProcess, processesPerReplica*threadsPerProcess,
+		),
+	})
+}
+
+func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerProcess int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind: ErrInsufficientBatchConcurrencyLevelInf,
+		Message: fmt.Sprintf(
+			"%s (%d) must be less than or equal to %s (%d)",
+			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ThreadsPerProcessKey, threadsPerProcess,
+		),
+	})
+}
+
+func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIncorrectTrafficSplitterWeight,
+		Message: fmt.Sprintf("expected weights to sum to 100 but found %d", totalWeight),
+	})
+}
+
+func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTrafficSplitterAPIsNotUnique,
+		Message: fmt.Sprintf("%s not unique: %s", s.PluralS("api", len(names)), s.StrsSentence(names, "")),
 	})
 }

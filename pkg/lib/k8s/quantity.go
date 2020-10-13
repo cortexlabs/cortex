@@ -95,6 +95,10 @@ func NewMilliQuantity(milliValue int64) *Quantity {
 	}
 }
 
+func (quantity *Quantity) MilliString() string {
+	return s.Int64(quantity.Quantity.MilliValue()) + "m"
+}
+
 func (quantity *Quantity) ToFloat32() float32 {
 	return float32(quantity.Quantity.MilliValue()) / float32(1000)
 }
@@ -148,6 +152,9 @@ func (quantity *Quantity) AddQty(q2 Quantity) {
 }
 
 func (quantity *Quantity) String() string {
+	if quantity == nil {
+		return "<nil>"
+	}
 	if quantity.UserString != "" {
 		return quantity.UserString
 	}

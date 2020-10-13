@@ -22,26 +22,30 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
 	_cmdStr string
 
 	_configFileExts = []string{"yaml", "yml"}
+	_flagOutput     = flags.PrettyOutputType
 
-	_localDir      string
-	_cliConfigPath string
-	_clientIDPath  string
-	_emailPath     string
-	_debugPath     string
-	_cwd           string
-	_homeDir       string
+	_credentialsCacheDir string
+	_localDir            string
+	_cliConfigPath       string
+	_clientIDPath        string
+	_emailPath           string
+	_debugPath           string
+	_cwd                 string
+	_homeDir             string
 )
 
 type commandType int
@@ -68,6 +72,14 @@ func init() {
 
 	_localDir = filepath.Join(homeDir, ".cortex")
 	err = os.MkdirAll(_localDir, os.ModePerm)
+	if err != nil {
+		err := errors.Wrap(err, "unable to write to home directory", _localDir)
+		exit.Error(err)
+	}
+
+	// ~/.cortex/credentials/
+	_credentialsCacheDir = filepath.Join(_localDir, "credentials")
+	err = os.MkdirAll(_credentialsCacheDir, os.ModePerm)
 	if err != nil {
 		err := errors.Wrap(err, "unable to write to home directory", _localDir)
 		exit.Error(err)
@@ -134,16 +146,16 @@ func Execute() {
 	cobra.EnableCommandSorting = false
 
 	_rootCmd.AddCommand(_deployCmd)
-	_rootCmd.AddCommand(_refreshCmd)
 	_rootCmd.AddCommand(_getCmd)
 	_rootCmd.AddCommand(_logsCmd)
+	_rootCmd.AddCommand(_refreshCmd)
 	_rootCmd.AddCommand(_predictCmd)
 	_rootCmd.AddCommand(_deleteCmd)
 
 	_rootCmd.AddCommand(_clusterCmd)
-	_rootCmd.AddCommand(_versionCmd)
 
 	_rootCmd.AddCommand(_envCmd)
+	_rootCmd.AddCommand(_versionCmd)
 	_rootCmd.AddCommand(_completionCmd)
 
 	updateRootUsage()
@@ -166,7 +178,7 @@ func updateRootUsage() {
 		usage = strings.Replace(usage, "Usage:\n  cortex [command]\n\nAliases:\n  cortex, cx\n\n", "", 1)
 		usage = strings.Replace(usage, "Available Commands:", "api commands:", 1)
 		usage = strings.Replace(usage, "\n  cluster", "\n\ncluster commands:\n  cluster", 1)
-		usage = strings.Replace(usage, "\n  configure", "\n\nother commands:\n  configure", 1)
+		usage = strings.Replace(usage, "\n  env ", "\n\nother commands:\n  env ", 1)
 		usage = strings.Replace(usage, "\n\nUse \"cortex [command] --help\" for more information about a command.", "", 1)
 
 		cmd.Print(usage)
@@ -175,35 +187,36 @@ func updateRootUsage() {
 	})
 }
 
-func wasEnvFlagProvided() bool {
-	for _, str := range os.Args[1:] {
-		if str == "-e" || str == "--env" {
-			return true
+func wasEnvFlagProvided(cmd *cobra.Command) bool {
+	envFlagProvided := false
+	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Shorthand == "e" && flag.Changed {
+			envFlagProvided = true
 		}
-		if strings.HasPrefix(str, "-e=") || strings.HasPrefix(str, "--env=") {
-			return true
-		}
-	}
-	return false
+	})
+
+	return envFlagProvided
 }
 
-func printEnvIfNotSpecified(envName string) error {
-	out, err := envStringIfNotSpecified(envName)
+func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
+	out, err := envStringIfNotSpecified(envName, cmd)
 	if err != nil {
 		return err
 	}
 
-	fmt.Print(out)
+	if _flagOutput == flags.PrettyOutputType {
+		fmt.Print(out)
+	}
 	return nil
 }
 
-func envStringIfNotSpecified(envName string) (string, error) {
+func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error) {
 	envNames, err := listConfiguredEnvNames()
 	if err != nil {
 		return "", err
 	}
 
-	if !wasEnvFlagProvided() && len(envNames) > 1 {
+	if _flagOutput == flags.PrettyOutputType && !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
 		return fmt.Sprintf("using %s environment\n\n", envName), nil
 	}
 

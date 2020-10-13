@@ -1,13 +1,15 @@
 # Image Classifier with ResNet50
 
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)_
+
 This example implements an image recognition system using ResNet50, which allows for the recognition of up to 1000 classes.
 
 ## Deploying
 
 There are 3 Cortex APIs available in this example:
 
+1. [cortex.yaml](cortex.yaml) - can be used with any instances.
 1. [cortex_inf.yaml](cortex_inf.yaml) - to be used with `inf1` instances.
-1. [cortex_cpu.yaml](cortex_cpu.yaml) - to be used with any instances that have CPUs.
 1. [cortex_gpu.yaml](cortex_gpu.yaml) - to be used with GPU instances.
 
 To deploy an API, run:
@@ -19,7 +21,7 @@ cortex deploy <cortex-deployment-yaml>
 E.g.
 
 ```bash
-cortex deploy cortex_cpu.yaml
+cortex deploy cortex_gpu.yaml
 ```
 
 ## Verifying your API

@@ -29,26 +29,28 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
 	DefaultPortInt32 = int32(8888)
 	DefaultPortStr   = "8888"
+	APIContainerName = "api"
 )
 
 const (
 	_specCacheDir                                  = "/mnt/spec"
 	_emptyDirMountPath                             = "/mnt"
 	_emptyDirVolumeName                            = "mnt"
-	_apiContainerName                              = "api"
 	_tfServingContainerName                        = "serve"
 	_tfServingModelName                            = "model"
 	_downloaderInitContainerName                   = "downloader"
@@ -59,6 +61,7 @@ const (
 	_tfServingEmptyModelConfig                     = "/etc/tfs/model_config_server.conf"
 	_tfServingMaxReloadTimes                       = "0"
 	_tfServingLoadTimeMicros                       = "30000000" // 30 seconds
+	_tfServingBatchConfig                          = "/etc/tfs/batch_config.conf"
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
@@ -169,10 +172,10 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 	}
 
 	containers = append(containers, kcore.Container{
-		Name:            _apiContainerName,
+		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             getEnvVars(api, _apiContainerName),
+		Env:             getEnvVars(api, APIContainerName),
 		EnvFrom:         BaseEnvVars,
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
@@ -257,10 +260,10 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	}
 
 	containers = append(containers, kcore.Container{
-		Name:            _apiContainerName,
+		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             getEnvVars(api, _apiContainerName),
+		Env:             getEnvVars(api, APIContainerName),
 		EnvFrom:         BaseEnvVars,
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
@@ -310,10 +313,10 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 	}
 
 	containers = append(containers, kcore.Container{
-		Name:            _apiContainerName,
+		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             getEnvVars(api, _apiContainerName),
+		Env:             getEnvVars(api, APIContainerName),
 		EnvFrom:         BaseEnvVars,
 		VolumeMounts:    DefaultVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
@@ -334,7 +337,16 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 }
 
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
-	envVars := []kcore.EnvVar{}
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "CORTEX_PROVIDER",
+			Value: types.AWSProviderType.String(),
+		},
+		{
+			Name:  "CORTEX_KIND",
+			Value: api.Kind.String(),
+		},
+	}
 
 	for name, val := range api.Predictor.Env {
 		envVars = append(envVars, kcore.EnvVar{
@@ -343,14 +355,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		})
 	}
 
-	envVars = append(envVars,
-		kcore.EnvVar{
-			Name:  "CORTEX_PROVIDER",
-			Value: types.AWSProviderType.String(),
-		},
-	)
-
-	if container == _apiContainerName {
+	if container == APIContainerName {
 		envVars = append(envVars,
 			kcore.EnvVar{
 				Name: "HOST_IP",
@@ -369,25 +374,8 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: s.Int32(api.Predictor.ThreadsPerProcess),
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-			},
-			kcore.EnvVar{
-				Name: "CORTEX_MAX_PROCESS_CONCURRENCY",
-				// add 1 because it was required to achieve the target concurrency for 1 process, 1 thread
-				Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Predictor.ProcessesPerReplica)))),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_SO_MAX_CONN",
-				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
-			},
-			kcore.EnvVar{
 				Name:  "CORTEX_SERVING_PORT",
 				Value: DefaultPortStr,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_API_SPEC",
-				Value: aws.S3Path(config.Cluster.Bucket, api.Key),
 			},
 			kcore.EnvVar{
 				Name:  "CORTEX_CACHE_DIR",
@@ -398,6 +386,46 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
 		)
+
+		if api.Kind == userconfig.RealtimeAPIKind {
+			// Use api spec indexed by PredictorID for realtime apis to prevent rolling updates when SpecID changes without PredictorID changing
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_API_SPEC",
+					Value: aws.S3Path(config.Cluster.Bucket, api.PredictorKey),
+				},
+			)
+		} else {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_API_SPEC",
+					Value: aws.S3Path(config.Cluster.Bucket, api.Key),
+				},
+			)
+		}
+
+		if api.Autoscaling != nil {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
+					Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
+				},
+				kcore.EnvVar{
+					Name: "CORTEX_MAX_PROCESS_CONCURRENCY",
+					// add 1 because it was required to achieve the target concurrency for 1 process, 1 thread
+					Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Predictor.ProcessesPerReplica)))),
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_SO_MAX_CONN",
+					Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
+				},
+			)
+		}
+
+		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
+		if api.Predictor.PythonPath != nil {
+			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath)
+		}
 
 		modelSourceType := "provided"
 		if api.Predictor.Models != nil && api.Predictor.Models.Dir != nil {
@@ -458,8 +486,35 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 	}
 
+	if container == _tfServingContainerName {
+		if api.Predictor.ServerSideBatching != nil {
+			var numBatchedThreads int32
+			if api.Compute.Inf > 0 {
+				// because there are processes_per_replica TF servers
+				numBatchedThreads = 1
+			} else {
+				numBatchedThreads = api.Predictor.ProcessesPerReplica
+			}
+
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "TF_MAX_BATCH_SIZE",
+					Value: s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
+				},
+				kcore.EnvVar{
+					Name:  "TF_BATCH_TIMEOUT_MICROS",
+					Value: s.Int64(api.Predictor.ServerSideBatching.BatchInterval.Microseconds()),
+				},
+				kcore.EnvVar{
+					Name:  "TF_NUM_BATCHED_THREADS",
+					Value: s.Int32(numBatchedThreads),
+				},
+			)
+		}
+	}
+
 	if api.Compute.Inf > 0 {
-		if (api.Predictor.Type == userconfig.PythonPredictorType && container == _apiContainerName) ||
+		if (api.Predictor.Type == userconfig.PythonPredictorType && container == APIContainerName) ||
 			(api.Predictor.Type == userconfig.TensorFlowPredictorType && container == _tfServingContainerName) {
 			envVars = append(envVars,
 				kcore.EnvVar{
@@ -506,7 +561,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					},
 				)
 			}
-			if container == _apiContainerName {
+			if container == APIContainerName {
 				envVars = append(envVars,
 					kcore.EnvVar{
 						Name:  "CORTEX_MULTIPLE_TF_SERVERS",
@@ -582,7 +637,7 @@ func onnxDownloadArgs(api *spec.API) string {
 }
 
 func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
-	var args []string
+	var cmdArgs []string
 	ports := []kcore.ContainerPort{
 		{
 			ContainerPort: _tfBaseServingPortInt32,
@@ -600,12 +655,18 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 
 	if api.Compute.Inf == 0 {
 		// the entrypoint is different for Inferentia-based APIs
-		args = []string{
+		cmdArgs = []string{
 			"--port=" + _tfBaseServingPortStr,
 			"--model_config_file=" + _tfServingEmptyModelConfig,
 			"--max_num_load_retries=" + _tfServingMaxReloadTimes,
 			"--load_retry_interval_micros=" + _tfServingLoadTimeMicros,
 			fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+10),
+		}
+		if api.Predictor.ServerSideBatching != nil {
+			cmdArgs = append(cmdArgs,
+				"--enable_batching=true",
+				"--batching_parameters_file="+_tfServingBatchConfig,
+			)
 		}
 	}
 
@@ -630,7 +691,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		Name:            _tfServingContainerName,
 		Image:           api.Predictor.TensorFlowServingImage,
 		ImagePullPolicy: kcore.PullAlways,
-		Args:            args,
+		Args:            cmdArgs,
 		Env:             getEnvVars(api, _tfServingContainerName),
 		EnvFrom:         BaseEnvVars,
 		VolumeMounts:    volumeMounts,
@@ -665,12 +726,12 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		ReadinessProbe: socketExistsProbe(_neuronRTDSocket),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
-				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
+				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
+				"aws.amazon.com/neuron": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
 			Limits: kcore.ResourceList{
-				"hugepages-2Mi":       *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/infa": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
+				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
+				"aws.amazon.com/neuron": *kresource.NewQuantity(api.Compute.Inf, kresource.DecimalSI),
 			},
 		},
 	}
@@ -737,27 +798,6 @@ func socketExistsProbe(socketName string) *kcore.Probe {
 	}
 }
 
-var _tolerations = []kcore.Toleration{
-	{
-		Key:      "workload",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-	{
-		Key:      "nvidia.com/gpu",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-	{
-		Key:      "aws.amazon.com/infa",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-}
-
 var BaseEnvVars = []kcore.EnvFromSource{
 	{
 		ConfigMapRef: &kcore.ConfigMapEnvSource{
@@ -797,7 +837,7 @@ var Tolerations = []kcore.Toleration{
 		Effect:   kcore.TaintEffectNoSchedule,
 	},
 	{
-		Key:      "aws.amazon.com/infa",
+		Key:      "aws.amazon.com/neuron",
 		Operator: kcore.TolerationOpEqual,
 		Value:    "true",
 		Effect:   kcore.TaintEffectNoSchedule,
@@ -823,6 +863,23 @@ func APILoadBalancerURL() (string, error) {
 	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 }
 
+func APIEndpoint(api *spec.API) (string, error) {
+	var err error
+	baseAPIEndpoint := ""
+
+	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
+		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
+	} else {
+		baseAPIEndpoint, err = APILoadBalancerURL()
+		if err != nil {
+			return "", err
+		}
+		baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
+	}
+
+	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
+}
+
 func GetEndpointFromVirtualService(virtualService *istioclientnetworking.VirtualService) (string, error) {
 	endpoints := k8s.ExtractVirtualServiceEndpoints(virtualService)
 
@@ -831,4 +888,14 @@ func GetEndpointFromVirtualService(virtualService *istioclientnetworking.Virtual
 	}
 
 	return endpoints.GetOne(), nil
+}
+
+func extractCortexAnnotations(obj kmeta.Object) map[string]string {
+	cortexAnnotations := make(map[string]string)
+	for key, value := range obj.GetAnnotations() {
+		if strings.Contains(key, "cortex.dev/") {
+			cortexAnnotations[key] = value
+		}
+	}
+	return cortexAnnotations
 }

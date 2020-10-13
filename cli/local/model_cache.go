@@ -99,7 +99,7 @@ func cacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.L
 		if err != nil {
 			return nil, false, err
 		}
-		localModelCache.ID = hash
+		return hash, nil
 	}
 
 	destModelDir := filepath.Join(_modelCacheDir, localModelCache.ID)

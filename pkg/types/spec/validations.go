@@ -40,23 +40,43 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"gopkg.in/yaml.v2"
+	"github.com/cortexlabs/yaml"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 var AutoscalingTickInterval = 10 * time.Second
 
-func apiValidation(provider types.ProviderType, kind userconfig.Kind) *cr.StructValidation {
+func apiValidation(
+	provider types.ProviderType,
+	resource userconfig.Resource,
+	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+) *cr.StructValidation {
+
 	structFieldValidations := []*cr.StructFieldValidation{}
-	structFieldValidations = append(resourceStructValidations,
-		predictorValidation(),
-		monitoringValidation(),
-		networkingValidation(),
-		computeValidation(provider),
-		autoscalingValidation(provider),
-		updateStrategyValidation(provider),
-	)
+	switch resource.Kind {
+	case userconfig.RealtimeAPIKind:
+		structFieldValidations = append(resourceStructValidations,
+			predictorValidation(),
+			networkingValidation(resource.Kind, clusterConfig),
+			computeValidation(provider),
+			monitoringValidation(),
+			autoscalingValidation(provider),
+			updateStrategyValidation(provider),
+		)
+	case userconfig.BatchAPIKind:
+		structFieldValidations = append(resourceStructValidations,
+			predictorValidation(),
+			networkingValidation(resource.Kind, clusterConfig),
+			computeValidation(provider),
+		)
+	case userconfig.TrafficSplitterKind:
+		structFieldValidations = append(resourceStructValidations,
+			multiAPIsValidation(),
+			networkingValidation(resource.Kind, clusterConfig),
+		)
+	}
 	return &cr.StructValidation{
 		StructFieldValidations: structFieldValidations,
 	}
@@ -81,6 +101,35 @@ var resourceStructValidations = []*cr.StructFieldValidation{
 			return userconfig.KindFromString(str), nil
 		},
 	},
+}
+
+func multiAPIsValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "APIs",
+		StructListValidation: &cr.StructListValidation{
+			Required:         true,
+			TreatNullAsEmpty: true,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Name",
+						StringValidation: &cr.StringValidation{
+							Required:   true,
+							AllowEmpty: false,
+						},
+					},
+					{
+						StructField: "Weight",
+						Int32Validation: &cr.Int32Validation{
+							Required:             true,
+							GreaterThanOrEqualTo: pointer.Int32(0),
+							LessThanOrEqualTo:    pointer.Int32(100),
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func predictorValidation() *cr.StructFieldValidation {
@@ -179,6 +228,7 @@ func predictorValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{},
 				},
 				multiModelValidation(),
+				serverSideBatchingValidation(),
 			},
 		},
 	}
@@ -211,36 +261,48 @@ func monitoringValidation() *cr.StructFieldValidation {
 	}
 }
 
-func networkingValidation() *cr.StructFieldValidation {
+func networkingValidation(
+	kind userconfig.Kind,
+	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+) *cr.StructFieldValidation {
+
+	defaultAPIGatewayType := userconfig.PublicAPIGatewayType
+	if clusterConfig != nil && clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
+		defaultAPIGatewayType = userconfig.NoneAPIGatewayType
+	}
+
+	structFieldValidation := []*cr.StructFieldValidation{
+		{
+			StructField: "Endpoint",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Validator: urls.ValidateEndpoint,
+				MaxLength: 1000, // no particular reason other than it works
+			},
+		},
+		{
+			StructField: "APIGateway",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: userconfig.APIGatewayTypeStrings(),
+				Default:       defaultAPIGatewayType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.APIGatewayTypeFromString(str), nil
+			},
+		},
+	}
+	if kind == userconfig.RealtimeAPIKind {
+		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
+			StructField: "LocalPort",
+			IntPtrValidation: &cr.IntPtrValidation{
+				GreaterThan:       pointer.Int(0),
+				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
+			},
+		})
+	}
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Endpoint",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Validator: urls.ValidateEndpoint,
-						MaxLength: 1000, // no particular reason other than it works
-					},
-				},
-				{
-					StructField: "LocalPort",
-					IntPtrValidation: &cr.IntPtrValidation{
-						GreaterThan:       pointer.Int(0),
-						LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-					},
-				},
-				{
-					StructField: "APIGateway",
-					StringValidation: &cr.StringValidation{
-						AllowedValues: userconfig.APIGatewayTypeStrings(),
-						Default:       userconfig.PublicAPIGatewayType.String(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.APIGatewayTypeFromString(str), nil
-					},
-				},
-			},
+			StructFieldValidations: structFieldValidation,
 		},
 	}
 }
@@ -507,12 +569,70 @@ func multiModelPathsValidation() *cr.StructFieldValidation {
 	}
 }
 
+func serverSideBatchingValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "ServerSideBatching",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			DefaultNil:        true,
+			AllowExplicitNull: true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "MaxBatchSize",
+					Int32Validation: &cr.Int32Validation{
+						Required:             true,
+						GreaterThanOrEqualTo: pointer.Int32(2),
+						LessThanOrEqualTo:    pointer.Int32(1024), // this is an arbitrary limit
+					},
+				},
+				{
+					StructField: "BatchInterval",
+					StringValidation: &cr.StringValidation{
+						Required: true,
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThan: pointer.Duration(libtime.MustParseDuration("0s")),
+					}),
+				},
+			},
+		},
+	}
+}
+
+func surgeOrUnavailableValidator(str string) (string, error) {
+	if strings.HasSuffix(str, "%") {
+		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
+		if !ok {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+		if parsed < 0 || parsed > 100 {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+	} else {
+		parsed, ok := s.ParseInt32(str)
+		if !ok {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+		if parsed < 0 {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+	}
+
+	return str, nil
+}
+
 var resourceStructValidation = cr.StructValidation{
 	AllowExtraFields:       true,
 	StructFieldValidations: resourceStructValidations,
 }
 
-func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFileName string) ([]userconfig.API, error) {
+func ExtractAPIConfigs(
+	configBytes []byte,
+	provider types.ProviderType,
+	configFileName string,
+	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+) ([]userconfig.API, error) {
+
 	var err error
 
 	configData, err := cr.ReadYAMLBytes(configBytes)
@@ -535,22 +655,47 @@ func ExtractAPIConfigs(configBytes []byte, provider types.ProviderType, configFi
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			switch provider {
+			case types.LocalProviderType:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
+			case types.AWSProviderType:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+			}
 		}
 
-		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct.Kind))
+		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
+			if provider == types.LocalProviderType {
+				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, types.LocalProviderType), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
+			}
+		}
 
+		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct, clusterConfig))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here: https://docs.cortex.dev/v/%s/deployments/api-configuration", consts.CortexVersionMinor))
+			switch kind {
+			case userconfig.RealtimeAPIKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
+			case userconfig.BatchAPIKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Batch API can be found at https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration", consts.CortexVersionMinor))
+			case userconfig.TrafficSplitterKind:
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Traffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor))
+			}
 		}
 		api.Index = i
 		api.FileName = configFileName
 
-		api.ApplyDefaultDockerPaths()
+		rawYAMLBytes, err := yaml.Marshal([]map[string]interface{}{data})
+		if err != nil {
+			return nil, errors.Wrap(err, api.Identify())
+		}
+		api.RawYAMLBytes = rawYAMLBytes
+
+		if resourceStruct.Kind == userconfig.RealtimeAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
+			api.ApplyDefaultDockerPaths()
+		}
 
 		apis[i] = api
 	}
@@ -570,22 +715,22 @@ func ValidateAPI(
 	}
 
 	if err := validatePredictor(api, models, projectFiles, providerType, awsClient); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.PredictorKey)
+		return errors.Wrap(err, userconfig.PredictorKey)
 	}
 
 	if api.Autoscaling != nil { // should only be nil for local provider
 		if err := validateAutoscaling(api); err != nil {
-			return errors.Wrap(err, api.Identify(), userconfig.AutoscalingKey)
+			return errors.Wrap(err, userconfig.AutoscalingKey)
 		}
 	}
 
 	if err := validateCompute(api, providerType); err != nil {
-		return errors.Wrap(err, api.Identify(), userconfig.ComputeKey)
+		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
 	if api.UpdateStrategy != nil { // should only be nil for local provider
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
-			return errors.Wrap(err, api.Identify(), userconfig.UpdateStrategyKey)
+			return errors.Wrap(err, userconfig.UpdateStrategyKey)
 		}
 	}
 
@@ -607,6 +752,24 @@ func ValidateAPI(
 		fmt.Println("model.Name", model.Name, "model.ModelPath", model.ModelPath, "model.Versions", model.Versions, "model.S3Path", model.S3Path)
 	}
 	fmt.Print("\n\n")
+
+	return nil
+}
+
+func ValidateTrafficSplitter(
+	api *userconfig.API,
+	providerType types.ProviderType,
+	awsClient *aws.Client,
+) error {
+	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
+		api.Networking.Endpoint = pointer.String("/" + api.Name)
+	}
+	if err := verifyTotalWeight(api.APIs); err != nil {
+		return err
+	}
+	if err := areTrafficSplitterAPIsUnique(api.APIs); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -642,6 +805,16 @@ func validatePredictor(
 	case userconfig.ONNXPredictorType:
 		if err := validateONNXPredictor(predictor, models, providerType, projectFiles, awsClient); err != nil {
 			return err
+		}
+	}
+
+	if api.Kind == userconfig.BatchAPIKind {
+		if predictor.ProcessesPerReplica > 1 {
+			return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, userconfig.BatchAPIKind)
+		}
+
+		if predictor.ThreadsPerProcess > 1 {
+			return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, userconfig.BatchAPIKind)
 		}
 	}
 
@@ -700,6 +873,9 @@ func validateMultiModelsFields(predictor *userconfig.Predictor) error {
 func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
+	}
+	if predictor.ServerSideBatching != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
 	}
 	if predictor.TensorFlowServingImage != "" {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
@@ -855,6 +1031,15 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 
 func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
+
+	if predictor.ServerSideBatching != nil {
+		if api.Compute.Inf == 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevel(predictor.ServerSideBatching.MaxBatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
+		}
+		if api.Compute.Inf > 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevelInf(predictor.ServerSideBatching.MaxBatchSize, predictor.ThreadsPerProcess)
+		}
+	}
 
 	hasSingleModel := predictor.ModelPath != nil
 	hasMultiModels := predictor.Models != nil
@@ -1016,6 +1201,9 @@ func validateTensorFlowModel(
 func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
+	}
+	if predictor.ServerSideBatching != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
 	}
 	if predictor.TensorFlowServingImage != "" {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
@@ -1311,5 +1499,34 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 		return err
 	}
 
+	return nil
+}
+
+func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
+	totalWeight := int32(0)
+	for _, api := range apis {
+		totalWeight += api.Weight
+	}
+	if totalWeight == 100 {
+		return nil
+	}
+	return errors.Wrap(ErrorIncorrectTrafficSplitterWeightTotal(totalWeight), userconfig.APIsKey)
+}
+
+// areTrafficSplitterAPIsUnique gives error if the same API is used multiple times in TrafficSplitter
+func areTrafficSplitterAPIsUnique(apis []*userconfig.TrafficSplit) error {
+	names := make(map[string][]userconfig.TrafficSplit)
+	for _, api := range apis {
+		names[api.Name] = append(names[api.Name], *api)
+	}
+	var notUniqueAPIs []string
+	for name := range names {
+		if len(names[name]) > 1 {
+			notUniqueAPIs = append(notUniqueAPIs, names[name][0].Name)
+		}
+	}
+	if len(notUniqueAPIs) > 0 {
+		return errors.Wrap(ErrorTrafficSplitterAPIsNotUnique(notUniqueAPIs), userconfig.APIsKey)
+	}
 	return nil
 }

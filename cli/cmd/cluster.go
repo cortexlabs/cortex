@@ -19,13 +19,16 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -42,14 +45,20 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
 var (
-	_flagClusterEnv            string
-	_flagClusterConfig         string
-	_flagClusterInfoDebug      bool
-	_flagClusterDisallowPrompt bool
+	_flagClusterEnv                string
+	_flagClusterConfig             string
+	_flagClusterInfoDebug          bool
+	_flagClusterDisallowPrompt     bool
+	_flagAWSAccessKeyID            string
+	_flagAWSSecretAccessKey        string
+	_flagClusterAWSAccessKeyID     string
+	_flagClusterAWSSecretAccessKey string
 )
 
 func clusterInit() {
@@ -57,27 +66,38 @@ func clusterInit() {
 
 	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
-	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	addAWSCredentialsFlags(_upCmd)
+	addClusterAWSCredentialsFlags(_upCmd)
+	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to create")
 	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_upCmd)
 
 	_infoCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_infoCmd)
-	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	addAWSCredentialsFlags(_infoCmd)
+	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to update")
 	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
 	_infoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_infoCmd)
 
 	_configureCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_configureCmd)
-	_configureCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to configure")
+	addAWSCredentialsFlags(_configureCmd)
+	addClusterAWSCredentialsFlags(_configureCmd)
+	_configureCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to update")
 	_configureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_configureCmd)
 
 	_downCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_downCmd)
+	addAWSCredentialsFlags(_downCmd)
 	_downCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_downCmd)
+
+	_exportCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_exportCmd)
+	addAWSCredentialsFlags(_exportCmd)
+	_clusterCmd.AddCommand(_exportCmd)
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
@@ -85,9 +105,19 @@ func addClusterConfigFlag(cmd *cobra.Command) {
 	cmd.Flags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
 }
 
+func addAWSCredentialsFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&_flagAWSAccessKeyID, "aws-key", "", "aws access key id")
+	cmd.Flags().StringVar(&_flagAWSSecretAccessKey, "aws-secret", "", "aws secret access key")
+}
+
+func addClusterAWSCredentialsFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&_flagClusterAWSAccessKeyID, "cluster-aws-key", "", "aws access key id to be used by the cluster")
+	cmd.Flags().StringVar(&_flagClusterAWSSecretAccessKey, "cluster-aws-secret", "", "aws secret access key to be used by the cluster")
+}
+
 var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "manage a cluster",
+	Short: "manage clusters (contains subcommands)",
 }
 
 var _upCmd = &cobra.Command{
@@ -109,32 +139,41 @@ var _upCmd = &cobra.Command{
 			promptForEmail()
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
+		accessConfig, err := getNewClusterAccessConfig(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsCreds, _flagClusterEnv, _flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
-
-		accessConfig := clusterConfig.ToAccessConfig()
 
 		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterState, err := clusterstate.GetClusterState(awsClient, &accessConfig)
+		cacheAWSCredentials(awsCreds, *accessConfig)
+
+		clusterConfig, err := getInstallClusterConfig(awsCreds, *accessConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
 		if err != nil {
-			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the CloudFormation stacks directly from your AWS console (%s)", clusterConfig.ClusterName, *clusterConfig.Region, getCloudFormationURL(*clusterConfig.Region, clusterConfig.ClusterName)))
-			}
 			exit.Error(err)
 		}
 
-		err = assertClusterStatus(&accessConfig, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
+		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = clusterstate.AssertClusterStatus(*accessConfig.ClusterName, *accessConfig.Region, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -144,7 +183,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createLogGroupIfNotFound(awsClient, clusterConfig.LogGroup, clusterConfig.Tags)
+		err = createLogGroupIfNotFound(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -154,25 +193,115 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
-		if err != nil {
-			exit.Error(err)
+		if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
+			err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
+			if err != nil {
+				exit.Error(err)
+			}
 		}
 
-		out, exitCode, err := runManagerUpdateCommand("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
-			awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
-			awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
+			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
+				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
+				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
+			}
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
-			awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
-			helpStr := "\nDebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
-			helpStr += fmt.Sprintf("\n* if your cluster started spinning up, please ensure that your CloudFormation stacks for this cluster have been fully deleted before trying to spin up this cluster again (you can delete your CloudFormation stacks from the AWS console: %s)", getCloudFormationURL(clusterConfig.ClusterName, *clusterConfig.Region))
+			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
+				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
+				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
+			}
+
+			eksCluster, err := awsClient.EKSClusterOrNil(clusterConfig.ClusterName)
+			if err != nil {
+				helpStr := "\ndebugging tips (may or may not apply to this error):"
+				helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+				helpStr += "\n* if your cluster started spinning up, please run `cortex cluster down` to delete the cluster before trying to create this cluster again"
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			// the cluster never started spinning up
+			if eksCluster == nil {
+				exit.Error(ErrorClusterUp(out))
+			}
+
+			clusterTags := map[string]string{clusterconfig.ClusterNameTag: clusterConfig.ClusterName}
+			asgs, err := awsClient.AutoscalingGroups(clusterTags)
+			if err != nil {
+				helpStr := "\ndebugging tips (may or may not apply to this error):"
+				helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+				helpStr += "\n* please run `cortex cluster down` to delete the cluster before trying to create this cluster again"
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			// no autoscaling groups were created
+			if len(asgs) == 0 {
+				helpStr := "\nplease run `cortex cluster down` to delete the cluster before trying to create this cluster again"
+				fmt.Println(helpStr)
+				exit.Error(ErrorClusterUp(out + helpStr))
+			}
+
+			for _, asg := range asgs {
+				activity, err := awsClient.MostRecentASGActivity(*asg.AutoScalingGroupName)
+				if err != nil {
+					helpStr := "\ndebugging tips (may or may not apply to this error):"
+					helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+					helpStr += "\n* please run `cortex cluster down` to delete the cluster before trying to create this cluster again"
+					fmt.Println(helpStr)
+					exit.Error(ErrorClusterUp(out + helpStr))
+				}
+
+				if activity != nil && (activity.StatusCode == nil || *activity.StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful) {
+					status := "(none)"
+					if activity.StatusCode != nil {
+						status = *activity.StatusCode
+					}
+					description := "(none)"
+					if activity.Description != nil {
+						description = *activity.Description
+					}
+
+					helpStr := "\nyour cluster was unable to provision EC2 instances; here is one of the encountered errors:"
+					helpStr += fmt.Sprintf("\n\n> status: %s\n> description: %s", status, description)
+					helpStr += fmt.Sprintf("\n\nadditional error information might be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+					helpStr += "\n\nplease run `cortex cluster down` to delete the cluster before trying to create this cluster again"
+					fmt.Println(helpStr)
+					exit.Error(ErrorClusterUp(out + helpStr))
+				}
+			}
+
+			// No failed asg activities
+			helpStr := "\nplease run `cortex cluster down` to delete the cluster before trying to create this cluster again"
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterUp(out + helpStr))
+		}
+
+		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
+			clusterconfig.ClusterNameTag: clusterConfig.ClusterName,
+			"cortex.dev/load-balancer":   "operator",
+		})
+		if err != nil {
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nunable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
+		}
+		if loadBalancer == nil {
+			exit.Error(errors.Append(ErrorNoOperatorLoadBalancer(), fmt.Sprintf("; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
+		}
+
+		newEnvironment := cliconfig.Environment{
+			Name:               _flagClusterEnv,
+			Provider:           types.AWSProviderType,
+			OperatorEndpoint:   pointer.String("https://" + *loadBalancer.DNSName),
+			AWSAccessKeyID:     pointer.String(awsCreds.ClusterAWSAccessKeyID),
+			AWSSecretAccessKey: pointer.String(awsCreds.ClusterAWSSecretAccessKey),
+		}
+
+		err = addEnvToCLIConfig(newEnvironment)
+		if err != nil {
+			exit.Error(errors.Append(err, fmt.Sprintf("unable to configure cli environment; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
 		}
 
 		fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured for this cluster; append `--env %s` to cortex commands to connect to it (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterEnv, _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
@@ -194,12 +323,19 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
+		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -209,15 +345,14 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		cacheAWSCredentials(awsCreds, *accessConfig)
+
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
-			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the CloudFormation stacks directly from your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
-			}
 			exit.Error(err)
 		}
 
-		err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
+		err = clusterstate.AssertClusterStatus(*accessConfig.ClusterName, *accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -229,13 +364,13 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerUpdateCommand("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := "\nDebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
+			helpStr := "\ndebugging tips (may or may not apply to this error):"
+			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
@@ -256,15 +391,24 @@ var _infoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
+		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
+
+		cacheAWSCredentials(awsCreds, *accessConfig)
 
 		if _flagClusterInfoDebug {
 			cmdDebug(awsCreds, accessConfig)
@@ -285,12 +429,19 @@ var _downCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := getAWSCredentials(_flagClusterConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
+		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfig(_flagClusterDisallowPrompt)
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -300,29 +451,36 @@ var _downCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+
 		warnIfNotAdmin(awsClient)
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
-		if err != nil {
-			if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-				fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please delete the CloudFormation stacks directly from your AWS console: %s", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
-			}
+		if err != nil && errors.GetKind(err) != clusterstate.ErrUnexpectedCloudFormationStatus {
 			exit.Error(err)
 		}
-
-		switch clusterState.Status {
-		case clusterstate.StatusNotFound:
-			exit.Error(ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region))
-		case clusterstate.StatusDeleteComplete:
-			exit.Error(ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region))
+		if err == nil {
+			switch clusterState.Status {
+			case clusterstate.StatusNotFound:
+				exit.Error(clusterstate.ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region))
+			case clusterstate.StatusDeleteComplete:
+				exit.Error(clusterstate.ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region))
+			}
 		}
 
-		if !_flagClusterDisallowPrompt {
+		// updating CLI env is best-effort, so ignore errors
+		loadBalancer, _ := awsClient.FindLoadBalancer(map[string]string{
+			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
+			"cortex.dev/load-balancer":   "operator",
+		})
+
+		if _flagClusterDisallowPrompt {
+			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", *accessConfig.ClusterName, *accessConfig.Region)
+		} else {
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
 
 		fmt.Print("￮ deleting api gateway ")
-		_, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
+		deletedAPIGateway, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
 		if errAPIGateway != nil {
 			fmt.Printf("\n\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis\n", *accessConfig.Region)
@@ -333,7 +491,11 @@ var _downCmd = &cobra.Command{
 			errors.PrintError(errVPCLink)
 		}
 		if errAPIGateway == nil && errVPCLink == nil {
-			fmt.Println("✓")
+			if deletedAPIGateway != nil {
+				fmt.Println("✓")
+			} else {
+				fmt.Println("(n/a)")
+			}
 		} else {
 			fmt.Println()
 		}
@@ -348,19 +510,178 @@ var _downCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
+		fmt.Print("￮ deleting sqs queues ")
+		err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(*accessConfig.ClusterName))
+		if err != nil {
+			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home", clusterconfig.SQSNamePrefix(*accessConfig.ClusterName), *accessConfig.Region)
+			errors.PrintError(err)
+			fmt.Println()
+		} else {
+			fmt.Println("✓")
+		}
+
 		fmt.Println("￮ spinning down the cluster ...")
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv)
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", getCloudFormationURLWithAccessConfig(accessConfig))
+			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
 		}
 
-		cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
-		os.Remove(cachedConfigPath)
+		// best-effort deletion of cli environment(s)
+		if loadBalancer != nil {
+			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(*loadBalancer.DNSName)
+			if len(envNames) > 0 {
+				for _, envName := range envNames {
+					removeEnvFromCLIConfig(envName)
+				}
+				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
+				if isDefaultEnv {
+					fmt.Println("✓ set the default environment to local")
+				}
+			}
+		}
+
+		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", *accessConfig.ClusterName, clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region))
+
+		cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+		os.Remove(cachedClusterConfigPath)
+		uncacheAWSCredentials(*accessConfig)
+	},
+}
+
+var _exportCmd = &cobra.Command{
+	Use:   "export",
+	Short: "download the code and configuration for all APIs deployed in a cluster",
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.cluster.export")
+
+		if _flagClusterConfig != "" {
+			// Deprecation: specifying aws creds in cluster configuration is no longer supported
+			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
+				exit.Error(err)
+			}
+		}
+
+		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		// Check AWS access
+		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
+		if err != nil {
+			exit.Error(err)
+		}
+		warnIfNotAdmin(awsClient)
+
+		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = clusterstate.AssertClusterStatus(*accessConfig.ClusterName, *accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
+			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
+			"cortex.dev/load-balancer":   "operator",
+		})
+		if err != nil {
+			exit.Error(err)
+		}
+		if loadBalancer == nil {
+			exit.Error(ErrorNoOperatorLoadBalancer())
+		}
+
+		operatorConfig := cluster.OperatorConfig{
+			Telemetry:          isTelemetryEnabled(),
+			ClientID:           clientID(),
+			AWSAccessKeyID:     awsCreds.AWSAccessKeyID,
+			AWSSecretAccessKey: awsCreds.AWSSecretAccessKey,
+			OperatorEndpoint:   "https://" + *loadBalancer.DNSName,
+		}
+
+		info, err := cluster.Info(operatorConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		apisResponse, err := cluster.GetAPIs(operatorConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		var apiSpecs []spec.API
+
+		for _, batchAPI := range apisResponse.BatchAPIs {
+			apiSpecs = append(apiSpecs, batchAPI.Spec)
+		}
+
+		for _, realtimeAPI := range apisResponse.RealtimeAPIs {
+			apiSpecs = append(apiSpecs, realtimeAPI.Spec)
+		}
+
+		for _, trafficSplitter := range apisResponse.TrafficSplitters {
+			apiSpecs = append(apiSpecs, trafficSplitter.Spec)
+		}
+
+		if len(apiSpecs) == 0 {
+			fmt.Println(fmt.Sprintf("no apis found in cluster named %s in %s", *accessConfig.ClusterName, *accessConfig.Region))
+			exit.Ok()
+		}
+
+		exportPath := fmt.Sprintf("export-%s-%s", *accessConfig.Region, *accessConfig.ClusterName)
+
+		err = files.CreateDir(exportPath)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		for _, apiSpec := range apiSpecs {
+			baseDir := filepath.Join(exportPath, apiSpec.Name)
+
+			fmt.Println(fmt.Sprintf("exporting %s to %s", apiSpec.Name, baseDir))
+
+			err = files.CreateDir(baseDir)
+			if err != nil {
+				exit.Error(err)
+			}
+
+			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.RawAPIKey(info.ClusterConfig.ClusterName), path.Join(baseDir, apiSpec.FileName))
+			if err != nil {
+				exit.Error(err)
+			}
+
+			if apiSpec.Kind != userconfig.TrafficSplitterKind {
+				zipFileLocation := path.Join(baseDir, path.Base(apiSpec.ProjectKey))
+				err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.ProjectKey, zipFileLocation)
+				if err != nil {
+					exit.Error(err)
+				}
+
+				_, err = archive.UnzipFileToDir(zipFileLocation, baseDir)
+				if err != nil {
+					exit.Error(err)
+				}
+
+				err := os.Remove(zipFileLocation)
+				if err != nil {
+					exit.Error(err)
+				}
+			}
+		}
 	},
 }
 
@@ -419,7 +740,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, disallowPrompt)
 
-	out, exitCode, err := runManagerAccessCommand("/root/info.sh", *accessConfig, awsCreds, _flagClusterEnv)
+	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -450,19 +771,16 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) error {
 	clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 	if err != nil {
-		if errors.GetKind(err) == clusterstate.ErrUnexpectedCloudFormationStatus {
-			fmt.Println(fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or delete the CloudFormation stacks directly from your AWS console (%s)", *accessConfig.ClusterName, *accessConfig.Region, getCloudFormationURLWithAccessConfig(accessConfig)))
-		}
 		return err
 	}
 
 	fmt.Println(clusterState.TableString())
 	if clusterState.Status == clusterstate.StatusCreateFailed || clusterState.Status == clusterstate.StatusDeleteFailed {
-		fmt.Println(fmt.Sprintf("more information can be found in your AWS console: %s", getCloudFormationURLWithAccessConfig(accessConfig)))
+		fmt.Println(fmt.Sprintf("more information can be found in your AWS console: %s", clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)))
 		fmt.Println()
 	}
 
-	err = assertClusterStatus(accessConfig, clusterState.Status, clusterstate.StatusCreateComplete)
+	err = clusterstate.AssertClusterStatus(*accessConfig.ClusterName, *accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
 	if err != nil {
 		return err
 	}
@@ -484,6 +802,7 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 
 	infoResponse, err := cluster.Info(operatorConfig)
 	if err != nil {
+		fmt.Println(clusterConfig.UserStr())
 		return err
 	}
 	infoResponse.ClusterConfig.Config = clusterConfig
@@ -561,11 +880,14 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	numAPIInstances := len(infoResponse.NodeInfos)
 
 	var totalReplicas int
-	var doesClusterHaveGPUs bool
+	var doesClusterHaveGPUs, doesClusterHaveInfs bool
 	for _, nodeInfo := range infoResponse.NodeInfos {
 		totalReplicas += nodeInfo.NumReplicas
-		if nodeInfo.ComputeCapacity.GPU > 0 {
+		if nodeInfo.ComputeUserCapacity.GPU > 0 {
 			doesClusterHaveGPUs = true
+		}
+		if nodeInfo.ComputeUserCapacity.Inf > 0 {
+			doesClusterHaveInfs = true
 		}
 	}
 
@@ -584,9 +906,10 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "instance type"},
 		{Title: "lifecycle"},
 		{Title: "replicas"},
-		{Title: "CPU (free / total)"},
-		{Title: "memory (free / total)"},
-		{Title: "GPU (free / total)", Hidden: !doesClusterHaveGPUs},
+		{Title: "CPU (requested / total allocatable)"},
+		{Title: "memory (requested / total allocatable)"},
+		{Title: "GPU (requested / total allocatable)", Hidden: !doesClusterHaveGPUs},
+		{Title: "Inf (requested / total allocatable)", Hidden: !doesClusterHaveInfs},
 	}
 
 	var rows [][]interface{}
@@ -595,10 +918,12 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		if nodeInfo.IsSpot {
 			lifecycle = "spot"
 		}
-		cpuStr := nodeInfo.ComputeAvailable.CPU.String() + " / " + nodeInfo.ComputeCapacity.CPU.String()
-		memStr := nodeInfo.ComputeAvailable.Mem.String() + " / " + nodeInfo.ComputeCapacity.Mem.String()
-		gpuStr := s.Int64(nodeInfo.ComputeAvailable.GPU) + " / " + s.Int64(nodeInfo.ComputeCapacity.GPU)
-		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, cpuStr, memStr, gpuStr})
+
+		cpuStr := nodeInfo.ComputeUserRequested.CPU.MilliString() + " / " + nodeInfo.ComputeUserCapacity.CPU.MilliString()
+		memStr := nodeInfo.ComputeUserRequested.Mem.String() + " / " + nodeInfo.ComputeUserCapacity.Mem.String()
+		gpuStr := s.Int64(nodeInfo.ComputeUserRequested.GPU) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.GPU)
+		infStr := s.Int64(nodeInfo.ComputeUserRequested.Inf) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.Inf)
+		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, cpuStr, memStr, gpuStr, infStr})
 	}
 
 	t := table.Table{
@@ -649,7 +974,18 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 }
 
 func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
-	out, exitCode, err := runManagerAccessCommand("/root/debug.sh", *accessConfig, awsCreds, _flagClusterEnv)
+	// note: if modifying this string, also change it in files.IgnoreCortexDebug()
+	debugFileName := fmt.Sprintf("cortex-debug-%s.tgz", time.Now().UTC().Format("2006-01-02-15-04-05"))
+
+	containerDebugPath := "/out/" + debugFileName
+	copyFromPaths := []dockerCopyFromPath{
+		{
+			containerPath: containerDebugPath,
+			localDir:      _cwd,
+		},
+	}
+
+	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsCreds, _flagClusterEnv, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -657,28 +993,24 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 		exit.Error(ErrorClusterDebug(out))
 	}
 
-	timestamp := time.Now().UTC().Format("2006-01-02-15-04-05")
-	userDebugPath := fmt.Sprintf("cortex-debug-%s.tgz", timestamp) // note: if modifying this string, also change it in files.IgnoreCortexDebug()
-	err = os.Rename(_debugPath, userDebugPath)
-	if err != nil {
-		exit.Error(errors.WithStack(err))
-	}
-
-	fmt.Println("saved cluster info to ./" + userDebugPath)
+	fmt.Println("saved cluster info to ./" + debugFileName)
 	return
 }
 
 func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	cachedConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
-	if !files.IsFile(cachedConfigPath) {
-		files.MakeEmptyFile(cachedConfigPath)
+	cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
+	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
+
+	copyFromPaths := []dockerCopyFromPath{
+		{
+			containerPath: containerConfigPath,
+			localDir:      files.Dir(cachedClusterConfigPath),
+		},
 	}
 
-	mountedConfigPath := mountedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
-
 	fmt.Print("syncing cluster configuration ...\n\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+mountedConfigPath, *accessConfig, awsCreds, _flagClusterEnv)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, _flagClusterEnv, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -687,35 +1019,8 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	}
 
 	refreshedClusterConfig := &clusterconfig.Config{}
-	readCachedClusterConfigFile(refreshedClusterConfig, cachedConfigPath)
+	readCachedClusterConfigFile(refreshedClusterConfig, cachedClusterConfigPath)
 	return *refreshedClusterConfig
-}
-
-func assertClusterStatus(accessConfig *clusterconfig.AccessConfig, status clusterstate.Status, allowedStatuses ...clusterstate.Status) error {
-	for _, allowedStatus := range allowedStatuses {
-		if status == allowedStatus {
-			return nil
-		}
-	}
-
-	switch status {
-	case clusterstate.StatusCreateInProgress:
-		return ErrorClusterUpInProgress(*accessConfig.ClusterName, *accessConfig.Region)
-	case clusterstate.StatusCreateComplete:
-		return ErrorClusterAlreadyCreated(*accessConfig.ClusterName, *accessConfig.Region)
-	case clusterstate.StatusDeleteInProgress:
-		return ErrorClusterDownInProgress(*accessConfig.ClusterName, *accessConfig.Region)
-	case clusterstate.StatusNotFound:
-		return ErrorClusterDoesNotExist(*accessConfig.ClusterName, *accessConfig.Region)
-	case clusterstate.StatusDeleteComplete:
-		return ErrorClusterAlreadyDeleted(*accessConfig.ClusterName, *accessConfig.Region)
-	default:
-		return ErrorFailedClusterStatus(status, *accessConfig.ClusterName, *accessConfig.Region)
-	}
-}
-
-func getCloudFormationURLWithAccessConfig(accessConfig *clusterconfig.AccessConfig) string {
-	return getCloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region)
 }
 
 func createBucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {
@@ -731,7 +1036,7 @@ func createBucketIfNotFound(awsClient *aws.Client, bucket string, tags map[strin
 			return err
 		}
 	} else {
-		fmt.Print("￮ using existing s3 bucket:", bucket)
+		fmt.Print("￮ using existing s3 bucket: ", bucket)
 	}
 
 	// retry since it's possible that it takes some time for the new bucket to be registered by AWS
@@ -758,30 +1063,27 @@ func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[s
 	}
 	if !logGroupFound {
 		fmt.Print("￮ creating a new cloudwatch log group: ", logGroup)
-		err = awsClient.CreateLogGroup(logGroup)
+		err = awsClient.CreateLogGroup(logGroup, tags)
 		if err != nil {
 			fmt.Print("\n\n")
 			return err
 		}
-	} else {
-		fmt.Print("￮ using existing cloudwatch log group:", logGroup)
+		fmt.Println(" ✓")
+		return nil
 	}
+
+	fmt.Print("￮ using existing cloudwatch log group: ", logGroup)
 
 	// retry since it's possible that it takes some time for the new log group to be registered by AWS
-	for i := 0; i < 10; i++ {
-		err = awsClient.TagLogGroup(logGroup, tags)
-		if err == nil {
-			fmt.Println(" ✓")
-			return nil
-		}
-		if !aws.IsErrCode(err, cloudwatchlogs.ErrCodeResourceNotFoundException) {
-			break
-		}
-		time.Sleep(1 * time.Second)
+	err = awsClient.TagLogGroup(logGroup, tags)
+	if err != nil {
+		fmt.Print("\n\n")
+		return err
 	}
 
-	fmt.Print("\n\n")
-	return err
+	fmt.Println(" ✓")
+
+	return nil
 }
 
 // createOrClearDashboard creates a new dashboard (or clears an existing one if it already exists)

@@ -23,10 +23,10 @@ import (
 )
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
-	s3Key := spec.Key(apiName, apiID)
+	s3Key := spec.Key(apiName, apiID, config.Cluster.ClusterName)
 	var api spec.API
 
-	if err := config.AWS.ReadMsgpackFromS3(&api, config.Cluster.Bucket, s3Key); err != nil {
+	if err := config.AWS.ReadJSONFromS3(&api, config.Cluster.Bucket, s3Key); err != nil {
 		return nil, err
 	}
 

@@ -1,7 +1,7 @@
-# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)
 
 - name: yolov3
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: tensorflow
     path: predictor_yolo.py
@@ -20,7 +20,7 @@
     max_replicas: 2
 
 - name: crnn
-  kind: SyncAPI
+  kind: RealtimeAPI
   predictor:
     type: python
     path: predictor_crnn.py
