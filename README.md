@@ -14,23 +14,23 @@
 
 ### Deploy
 
-* Deploy TensorFlow, PyTorch, ONNX, scikit-learn, and other models
-* Define preprocessing and postprocessing steps in Python
-* Configure APIs as realtime or batch
-* Deploy multiple models per API
+* Deploy TensorFlow, PyTorch, ONNX, scikit-learn, and other models.
+* Define preprocessing and postprocessing steps in Python.
+* Configure APIs as realtime or batch.
+* Deploy multiple models per API.
 
 ### Manage
 
-* Monitor API performance and track predictions
-* Update APIs with no downtime
-* Stream logs from APIs
-* Perform A/B tests
+* Monitor API performance and track predictions.
+* Update APIs with no downtime.
+* Stream logs from APIs.
+* Perform A/B tests.
 
 ### Scale
 
-* Test locally, scale on your AWS account
-* Autoscale to handle production traffic
-* Reduce costs with spot instances
+* Test locally, scale on your AWS account.
+* Autoscale to handle production traffic.
+* Reduce costs with spot instances.
 
 <br>
 
