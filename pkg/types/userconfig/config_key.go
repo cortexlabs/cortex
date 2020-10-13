@@ -36,8 +36,6 @@ const (
 	PathKey                   = "path"
 	ModelPathKey              = "model_path"
 	ServerSideBatchingKey     = "server_side_batching"
-	ProcessesPerReplicaKey    = "processes_per_replica"
-	ThreadsPerProcessKey      = "threads_per_process"
 	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"

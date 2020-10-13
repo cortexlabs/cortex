@@ -63,7 +63,7 @@ func CacheModels(apiSpec *spec.API, onlyLocalModels bool, awsClient *aws.Client)
 		} else {
 			localModelCache.TargetPath = apiSpec.CuratedModelResources[i].Name
 		}
-		
+
 		localModelCaches = append(localModelCaches, localModelCache)
 	}
 	apiSpec.LocalModelCaches = localModelCaches
@@ -99,7 +99,7 @@ func cacheModel(model spec.CuratedModelResource, awsClient *aws.Client) (*spec.L
 		if err != nil {
 			return nil, false, err
 		}
-		return hash, nil
+		localModelCache.ID = hash
 	}
 
 	destModelDir := filepath.Join(_modelCacheDir, localModelCache.ID)

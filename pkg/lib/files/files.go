@@ -655,14 +655,14 @@ func CommonPath(paths ...string) string {
 	commonPath := ""
 	numPaths := len(splitPaths)
 
-	for level := 0; level < shortestPathLength; level += 1 {
+	for level := 0; level < shortestPathLength; level++ {
 		element := splitPaths[0][level]
 		counter := 1
 		for _, splitPath := range splitPaths[1:] {
 			if splitPath[level] != element {
 				break
 			}
-			counter += 1
+			counter++
 		}
 
 		if counter != numPaths {

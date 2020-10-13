@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"path"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -420,11 +421,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 					Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
 				},
 			)
-		}
-
-		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
-		if api.Predictor.PythonPath != nil {
-			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath)
 		}
 
 		modelSourceType := "provided"

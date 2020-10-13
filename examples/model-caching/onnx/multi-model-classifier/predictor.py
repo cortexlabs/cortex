@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)
 
 import numpy as np
 import cv2, requests
@@ -90,16 +90,10 @@ class ONNXPredictor:
         img = preprocess(img)
 
         # predict
-        results = self.client.predict(img, model_name, model_version)[0]å
+        results = self.client.predict(img, model_name, model_version)[0]
 
         # interpret result
         result = postprocess(results)
         predicted_label = self.image_classes[result]
 
-        return {
-            "label": predicted_label,
-            "model": {
-                "name": model_name,
-                "version": model_version
-            }
-        }
+        return {"label": predicted_label, "model": {"name": model_name, "version": model_version}}

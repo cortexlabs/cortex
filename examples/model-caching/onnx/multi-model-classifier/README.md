@@ -1,5 +1,7 @@
 # Multi-Model Classifier API
 
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)_
+
 This example deploys ResNet50, MobileNet and ShuffleNet models in one API. Query parameters are used for selecting the model and the version.
 
 Since model caching is enabled, there can only be 2 models loaded into memory - loading a 3rd one will lead to the removal of the least recently used one. To witness the adding/removal process of models, check the logs of the API by running `cortex logs multi-model-classifier` once the API is up.

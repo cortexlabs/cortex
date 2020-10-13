@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)
 
 import requests
 import numpy as np
@@ -43,13 +43,7 @@ class TensorFlowPredictor:
         elif model_name in ["resnet50", "inception"]:
             predicted_label = self.predict_image_classifier(model_name, payload["url"])
 
-        return {
-            "label": predicted_label,
-            "model": {
-                "model": model_name,
-                "version": model_version
-            }
-        }
+        return {"label": predicted_label, "model": {"model": model_name, "version": model_version}}
 
     def predict_image_classifier(self, model, img_url):
         img = get_url_image(img_url)

@@ -161,7 +161,7 @@ func (api *API) NumModels() int {
 }
 
 // Keep track of models in the model cache used by this API (local only)
-func (api *API) LocalModelIDs() []string {
+func (api *API) ModelIDs() []string {
 	models := []string{}
 	if api != nil && len(api.LocalModelCaches) > 0 {
 		for _, localModelCache := range api.LocalModelCaches {
@@ -183,10 +183,10 @@ func (api *API) ModelNames() []string {
 	return names
 }
 
-func (api *API) SubtractLocalModelIDs(apis ...*API) []string {
-	modelIDs := strset.FromSlice(api.LocalModelIDs())
+func (api *API) SubtractModelIDs(apis ...*API) []string {
+	modelIDs := strset.FromSlice(api.ModelIDs())
 	for _, a := range apis {
-		modelIDs.Remove(a.LocalModelIDs()...)
+		modelIDs.Remove(a.ModelIDs()...)
 	}
 	return modelIDs.Slice()
 }

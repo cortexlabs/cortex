@@ -22,12 +22,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -71,7 +71,7 @@ func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), realtimeAPI.Endpoint)
 
 	if realtimeAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || realtimeAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(&realtimeAPI.Status, realtimeAPI.Endpoint)
+		out += "\n" + describeModelInput(&realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
 	}
 
 	out += titleStr("configuration") + strings.TrimSpace(realtimeAPI.Spec.UserStr(env.Provider))
@@ -254,6 +254,72 @@ func describeModelInput(status *status.Status, predictor *userconfig.Predictor, 
 		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
 	}
 	return t
+}
+
+func getModelFromModelID(modelID string) (modelName string, modelVersion int64, err error) {
+	splitIndex := strings.LastIndex(modelID, "-")
+	modelName = modelID[:splitIndex]
+	modelVersion, err = strconv.ParseInt(modelID[splitIndex+1:], 10, 64)
+	return
+}
+
+func makeRequest(request *http.Request) (http.Header, []byte, error) {
+	client := http.Client{
+		Timeout: 600 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		bodyBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, _errStrRead)
+		}
+		return nil, nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
+	}
+
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, _errStrRead)
+	}
+	return response.Header, bodyBytes, nil
+}
+
+func getAPISummary(apiEndpoint string, predictor *userconfig.Predictor) (*schema.APIModelSummary, *schema.APITFLiveReloadingSummary, error) {
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "unable to request api summary")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	_, response, err := makeRequest(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var apiModelSummary schema.APIModelSummary
+	var apiTFLiveReloadingSummary schema.APITFLiveReloadingSummary
+
+	cachingEnabled := predictor.Models != nil && predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil
+	if predictor.Type == userconfig.TensorFlowPredictorType && !cachingEnabled {
+		err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "unable to parse api summary response")
+		}
+		return nil, &apiTFLiveReloadingSummary, nil
+	}
+
+	err = json.DecodeWithNumber(response, &apiModelSummary)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "unable to parse api summary response")
+	}
+	return &apiModelSummary, nil, nil
 }
 
 func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
@@ -463,66 +529,4 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 	}
 
 	return t.MustFormat(), nil
-}
-
-func getModelFromModelID(modelID string) (modelName string, modelVersion int64, err error) {
-	splitIndex := strings.LastIndex(modelID, "-")
-	modelName = modelID[:splitIndex]
-	modelVersion, err = strconv.ParseInt(modelID[splitIndex+1:], 10, 64)
-	return
-}
-
-func makeRequest(request *http.Request) (http.Header, []byte, error) {
-	client := http.Client{
-		Timeout: 600 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		bodyBytes, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, _errStrRead)
-		}
-		return nil, nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
-	}
-
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, _errStrRead)
-	}
-	return response.Header, bodyBytes, nil
-}
-
-func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	_, response, err := makeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var apiSummary schema.APISummary
-	err = json.DecodeWithNumber(response, &apiSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
-
-	for _, inputSignatures := range apiSummary.ModelSignatures {
-		for _, inputSignature := range inputSignatures {
-			inputSignature.Shape = cast.JSONNumbers(inputSignature.Shape)
-		}
-	}
-
-	return &apiSummary, nil
 }

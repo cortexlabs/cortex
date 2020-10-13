@@ -378,7 +378,7 @@ var _neuronTfVersionedExpectedStructMessage = `
   └── 2434389194/ (Version prefix, usually a timestamp)
 	  └── saved_model.pb
 `
-var _neuronTfExpectedStructMessage = ` 
+var _neuronTfExpectedStructMessage = `
   %s
   └── saved_model.pb
 `

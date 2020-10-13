@@ -58,11 +58,11 @@ func Int64ToString(vals []int64) []string {
 func StringToInt64(vals []string) ([]int64, error) {
 	int64Slice := []int64{}
 	for _, elem := range vals {
-		if int64Val, err := strconv.ParseInt(elem, 10, 64); err != nil {
+		int64Val, err := strconv.ParseInt(elem, 10, 64)
+		if err != nil {
 			return []int64{}, err
-		} else {
-			int64Slice = append(int64Slice, int64Val)
 		}
+		int64Slice = append(int64Slice, int64Val)
 	}
 	return int64Slice, nil
 }

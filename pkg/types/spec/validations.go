@@ -599,28 +599,6 @@ func serverSideBatchingValidation() *cr.StructFieldValidation {
 	}
 }
 
-func surgeOrUnavailableValidator(str string) (string, error) {
-	if strings.HasSuffix(str, "%") {
-		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
-		if !ok {
-			return "", ErrorInvalidSurgeOrUnavailable(str)
-		}
-		if parsed < 0 || parsed > 100 {
-			return "", ErrorInvalidSurgeOrUnavailable(str)
-		}
-	} else {
-		parsed, ok := s.ParseInt32(str)
-		if !ok {
-			return "", ErrorInvalidSurgeOrUnavailable(str)
-		}
-		if parsed < 0 {
-			return "", ErrorInvalidSurgeOrUnavailable(str)
-		}
-	}
-
-	return str, nil
-}
-
 var resourceStructValidation = cr.StructValidation{
 	AllowExtraFields:       true,
 	StructFieldValidations: resourceStructValidations,
@@ -1499,34 +1477,5 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 		return err
 	}
 
-	return nil
-}
-
-func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
-	totalWeight := int32(0)
-	for _, api := range apis {
-		totalWeight += api.Weight
-	}
-	if totalWeight == 100 {
-		return nil
-	}
-	return errors.Wrap(ErrorIncorrectTrafficSplitterWeightTotal(totalWeight), userconfig.APIsKey)
-}
-
-// areTrafficSplitterAPIsUnique gives error if the same API is used multiple times in TrafficSplitter
-func areTrafficSplitterAPIsUnique(apis []*userconfig.TrafficSplit) error {
-	names := make(map[string][]userconfig.TrafficSplit)
-	for _, api := range apis {
-		names[api.Name] = append(names[api.Name], *api)
-	}
-	var notUniqueAPIs []string
-	for name := range names {
-		if len(names[name]) > 1 {
-			notUniqueAPIs = append(notUniqueAPIs, names[name][0].Name)
-		}
-	}
-	if len(notUniqueAPIs) > 0 {
-		return errors.Wrap(ErrorTrafficSplitterAPIsNotUnique(notUniqueAPIs), userconfig.APIsKey)
-	}
 	return nil
 }

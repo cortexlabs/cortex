@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch, please refer to the examples on the branch that matches your `cortex version`
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)
 
 import mlflow.sklearn
 import numpy as np
@@ -15,9 +15,9 @@ class PythonPredictor:
         model_name = query_params.get("model")
         model_version = query_params.get("version")
 
-        model = self.client.get_model(model_name, model_version) 
+        model = self.client.get_model(model_name, model_version)
         model_input = [
-            payload["cylinders"],   
+            payload["cylinders"],
             payload["displacement"],
             payload["horsepower"],
             payload["weight"],
@@ -25,10 +25,4 @@ class PythonPredictor:
         ]
         result = model.predict([model_input]).item()
 
-        return {
-            "prediction": result,
-            "model": {
-                "name": model_name,
-                "version": model_version
-            }
-        }
+        return {"prediction": result, "model": {"name": model_name, "version": model_version}}

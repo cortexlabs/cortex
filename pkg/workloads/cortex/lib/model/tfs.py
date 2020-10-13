@@ -412,7 +412,9 @@ class TensorFlowServingAPI:
                 )
 
         # create prediction request
-        prediction_request = self._create_prediction_request(signature_def, signature_key, model_name, model_version, model_input)
+        prediction_request = self._create_prediction_request(
+            signature_def, signature_key, model_name, model_version, model_input
+        )
 
         # run prediction
         response_proto = self._pred.Predict(prediction_request, timeout=timeout)
@@ -607,7 +609,14 @@ class TensorFlowServingAPI:
             }
         return signature_key, parsed_signature
 
-    def _create_prediction_request(self, signature_def: dict, signature_key: str, model_name: str, model_version: int, model_input: Any) -> predict_pb2.PredictRequest:
+    def _create_prediction_request(
+        self,
+        signature_def: dict,
+        signature_key: str,
+        model_name: str,
+        model_version: int,
+        model_input: Any,
+    ) -> predict_pb2.PredictRequest:
         prediction_request = predict_pb2.PredictRequest()
         prediction_request.model_spec.name = model_name
         prediction_request.model_spec.version.value = int(model_version)
@@ -625,13 +634,17 @@ class TensorFlowServingAPI:
                 shape = "unknown"
             else:
                 shape = []
-                for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"]["dim"]:
+                for dim in signature_def[signature_key]["inputs"][column_name]["tensorShape"][
+                    "dim"
+                ]:
                     shape.append(int(dim["size"]))
 
             sig_type = signature_def[signature_key]["inputs"][column_name]["dtype"]
 
             try:
-                tensor_proto = tf.compat.v1.make_tensor_proto(value, dtype=DTYPE_TO_TF_TYPE[sig_type])
+                tensor_proto = tf.compat.v1.make_tensor_proto(
+                    value, dtype=DTYPE_TO_TF_TYPE[sig_type]
+                )
                 prediction_request.inputs[column_name].CopyFrom(tensor_proto)
             except Exception as e:
                 if shape == "scalar":

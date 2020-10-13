@@ -71,7 +71,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 		return nil, "", err
 	}
 
-	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID)
+	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID, "")
 
 	apiJSONDump, err := json.MarshalIndent(newAPISpec.CuratedModelResources, "", "  ")
 	if err != nil {
@@ -159,7 +159,7 @@ func areAPIsEqual(a1, a2 *spec.API) bool {
 	if a1.SpecID != a2.SpecID {
 		return false
 	}
-	if !strset.FromSlice(a1.LocalModelIDs()).IsEqual(strset.FromSlice(a2.LocalModelIDs())) {
+	if !strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) {
 		return false
 	}
 	return true

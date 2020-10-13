@@ -204,6 +204,7 @@ def get_api(
 
     return api
 
+
 def get_spec(
     provider: str,
     spec_path: str,
@@ -226,6 +227,7 @@ def get_spec(
         storage.download_file(key, local_spec_path)
 
     return storage, read_json(local_spec_path)
+
 
 def read_json(json_path: str):
     with open(json_path) as json_file:
