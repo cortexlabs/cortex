@@ -34,18 +34,6 @@
 
 <br>
 
-## Get started
-
-<!-- CORTEX_VERSION_README_MINOR -->
-```bash
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
-```
-
-<!-- CORTEX_VERSION_README_MINOR -->
-See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
-
-<br>
-
 ## How it works
 
 ### Write APIs in Python
@@ -149,3 +137,15 @@ configuring autoscaling ...
 
 cortex is ready!
 ```
+
+<br>
+
+## Get started
+
+<!-- CORTEX_VERSION_README_MINOR -->
+```bash
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
+```
+
+<!-- CORTEX_VERSION_README_MINOR -->
+See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
