@@ -70,7 +70,7 @@ func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment
 
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), realtimeAPI.Endpoint)
 
-	if realtimeAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || realtimeAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
+	if !(realtimeAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && realtimeAPI.Spec.Predictor.ModelPath == nil && realtimeAPI.Spec.Predictor.Models == nil) {
 		out += "\n" + describeModelInput(&realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
 	}
 
@@ -375,11 +375,17 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 		}
 	}
 
+	usesCortexDefaultModelName := false
+	if _, ok := summary.ModelMetadata[consts.SingleModelName]; ok {
+		usesCortexDefaultModelName = true
+	}
+
 	t := table.Table{
 		Headers: []table.Header{
 			{
 				Title:    "model name",
 				MaxWidth: 32,
+				Hidden:   usesCortexDefaultModelName,
 			},
 			{
 				Title:    "model version",
@@ -494,11 +500,17 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 		}
 	}
 
+	usesCortexDefaultModelName := false
+	if _, ok := summary.ModelMetadata[consts.SingleModelName]; ok {
+		usesCortexDefaultModelName = true
+	}
+
 	t := table.Table{
 		Headers: []table.Header{
 			{
 				Title:    "model name",
 				MaxWidth: 32,
+				Hidden:   usesCortexDefaultModelName,
 			},
 			{
 				Title:    "model version",

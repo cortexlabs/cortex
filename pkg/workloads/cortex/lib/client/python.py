@@ -101,7 +101,7 @@ class PythonClient:
             )
 
         # when predictor:model_path or predictor:models:paths is specified
-        if self._models_dir is None:
+        if not self._models_dir:
 
             # when predictor:model_path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
@@ -395,8 +395,8 @@ class PythonClient:
                     "1"
                 ],
                 "timestamps": [
-                    "1601668127",
-                    "1601668127"
+                    1601668127,
+                    1601668127
                 ]
             }
             ...

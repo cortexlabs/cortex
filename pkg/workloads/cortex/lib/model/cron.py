@@ -639,8 +639,6 @@ class FileBasedModelsGC(AbstractLoopingThread):
         """
         AbstractLoopingThread.__init__(self, interval, self._run_gc)
 
-        self.logger = logger()
-
         self._models = models
         self._download_dir = download_dir
         self._lock_dir = lock_dir
@@ -661,8 +659,8 @@ class FileBasedModelsGC(AbstractLoopingThread):
                 with LockedModel(self._models, "w", model_id=in_memory_id):
                     if self._models.has_model_id(in_memory_id)[0] == "in-memory":
                         model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
-                        self.logger().info(
-                            f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3 (thread {td.get_ident()}"
+                        logger().info(
+                            f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3 (thread {td.get_ident()})"
                         )
                         self._models.remove_model_by_id(
                             in_memory_id, mem=True, disk=False, del_reference=True
@@ -710,7 +708,7 @@ def find_ondisk_models_with_lock(
             status = f.read()
 
         if status.startswith("available"):
-            timestamp = status.split(" ")[1]
+            timestamp = int(status.split(" ")[1])
             _model_name, _model_version = os.path.splitext(locked_file)[0].rsplit("-", maxsplit=1)
             if _model_name not in models:
                 if include_timestamps:

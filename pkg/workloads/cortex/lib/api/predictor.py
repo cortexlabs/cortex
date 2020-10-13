@@ -85,6 +85,11 @@ class Predictor:
         self.config = api_spec["predictor"].get("config", {})
 
         self.api_spec = api_spec
+
+        self.crons = []
+        if not _are_models_specified(None, self.api_spec):
+            return
+
         self.model_dir = model_dir
 
         self.caching_enabled = self._is_model_caching_enabled()
@@ -114,13 +119,12 @@ class Predictor:
         else:
             self.models_tree = ModelsTree()
 
-        self.crons = []
-
     def initialize_client(
         self, tf_serving_host: Optional[str] = None, tf_serving_port: Optional[str] = None
     ) -> Union[PythonClient, TensorFlowClient, ONNXClient]:
         """
         Initialize client that gives access to models specified in the API spec (cortex.yaml).
+        Only applies when models are provided in the API spec.
 
         Args:
             tf_serving_host: Host of TF serving server. To be only used when the TensorFlow predictor is used.
@@ -133,31 +137,30 @@ class Predictor:
         signature_message = None
         client = None
 
-        if self.type == PythonPredictorType:
-            client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
-            if not self.caching_enabled:
-                cron = FileBasedModelsGC(
-                    interval=10, models=self.models, download_dir=self.model_dir
+        if _are_models_specified(None, self.api_spec):
+            if self.type == PythonPredictorType:
+                client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
+                if not self.caching_enabled:
+                    cron = FileBasedModelsGC(
+                        interval=10, models=self.models, download_dir=self.model_dir
+                    )
+                    cron.start()
+
+            if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
+                tf_serving_address = tf_serving_host + ":" + tf_serving_port
+                client = TensorFlowClient(
+                    tf_serving_address,
+                    self.api_spec,
+                    self.models,
+                    self.model_dir,
+                    self.models_tree,
                 )
-                cron.start()
+                if not self.caching_enabled:
+                    cron = TFSAPIServingThreadUpdater(interval=2.5, client=client._client)
+                    cron.start()
 
-        if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
-            tf_serving_address = tf_serving_host + ":" + tf_serving_port
-            client = TensorFlowClient(
-                tf_serving_address,
-                self.api_spec,
-                self.models,
-                self.model_dir,
-                self.models_tree,
-            )
-            if not self.caching_enabled:
-                cron = TFSAPIServingThreadUpdater(interval=2.5, client=client._client)
-                cron.start()
-
-        if self.type == ONNXPredictorType:
-            client = ONNXClient(self.api_spec, self.models, self.model_dir, self.models_tree)
-
-        # show client.input_signatures with logger.info
+            if self.type == ONNXPredictorType:
+                client = ONNXClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
         return client
 
@@ -205,35 +208,34 @@ class Predictor:
         finally:
             refresh_logger()
 
-        self.crons = []
+        # initialize the crons if models have been specified
+        if _are_models_specified(None, self.api_spec):
+            if not self.multiple_processes and self.caching_enabled:
+                self.crons += [
+                    ModelTreeUpdater(
+                        interval=10,
+                        api_spec=self.api_spec,
+                        tree=self.models_tree,
+                        ondisk_models_dir=self.model_dir,
+                    ),
+                    ModelsGC(
+                        interval=10,
+                        api_spec=self.api_spec,
+                        models=self.models,
+                        tree=self.models_tree,
+                    ),
+                    # ModelPreloader(
+                    #     interval=10,
+                    #     caching=self.caching_enabled,
+                    #     models=self.models,
+                    #     tree=self.models_tree,
+                    # ),
+                ]
 
-        # initialize the crons
-        if not self.multiple_processes and self.caching_enabled:
-            self.crons += [
-                ModelTreeUpdater(
-                    interval=10,
-                    api_spec=self.api_spec,
-                    tree=self.models_tree,
-                    ondisk_models_dir=self.model_dir,
-                ),
-                ModelsGC(
-                    interval=10,
-                    api_spec=self.api_spec,
-                    models=self.models,
-                    tree=self.models_tree,
-                ),
-                # ModelPreloader(
-                #     interval=10,
-                #     caching=self.caching_enabled,
-                #     models=self.models,
-                #     tree=self.models_tree,
-                # ),
-            ]
-
-        if not self.caching_enabled and self.type in [PythonPredictorType, ONNXPredictorType]:
-            self.crons += [
-                FileBasedModelsGC(interval=10, models=self.models, download_dir=self.model_dir)
-            ]
+            if not self.caching_enabled and self.type in [PythonPredictorType, ONNXPredictorType]:
+                self.crons += [
+                    FileBasedModelsGC(interval=10, models=self.models, download_dir=self.model_dir)
+                ]
 
         for cron in self.crons:
             cron.start()
