@@ -30,7 +30,19 @@
 
 * Test locally, scale on your AWS account.
 * Autoscale to handle production traffic.
-* Reduce costs with spot instances.
+* Reduce cost with spot instances.
+
+<br>
+
+## Get started
+
+<!-- CORTEX_VERSION_README_MINOR -->
+```bash
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
+```
+
+<!-- CORTEX_VERSION_README_MINOR -->
+See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
 
 <br>
 
@@ -47,10 +59,10 @@ from transformers import pipeline
 
 class PythonPredictor:
   def __init__(self, config):
-    self.analyzer = pipeline(task="text-generation")
+    self.model = pipeline(task="text-generation")
 
   def predict(self, payload):
-    return self.analyzer(payload["text"])[0]
+    return self.model(payload["text"])[0]
 ```
 
 <br>
@@ -69,8 +81,6 @@ Configure autoscaling, monitoring, compute resources, update strategies, and mor
     api_gateway: public
   compute:
     gpu: 1
-  monitoring:
-    model_type: classification
   autoscaling:
     min_replicas: 3
 ```
@@ -87,7 +97,7 @@ $ cortex get text-generator
 endpoint: https://example.com/text-generator
 
 status   last-update   replicas   requests   latency
-live     10h           10         100m       100ms
+live     10h           10         100000     100ms
 ```
 
 <br>
@@ -117,7 +127,7 @@ Run Cortex on your AWS account (GCP support is coming soon), maintaining control
 # cluster.yaml
 
 region: us-west-2
-instance_type: p2.xlarge
+instance_type: g4dn.xlarge
 spot: true
 min_instances: 1
 max_instances: 5
@@ -132,22 +142,10 @@ You don't need to bring your own cluster or containerize your models, Cortex aut
 ```bash
 $ cortex cluster up
 
-configuring autoscaling ...
 confguring networking ...
 configuring logging ...
 configuring metrics ...
+configuring autoscaling ...
 
 cortex is ready!
 ```
-
-<br>
-
-### Get started
-
-<!-- CORTEX_VERSION_README_MINOR -->
-```bash
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
-```
-
-<!-- CORTEX_VERSION_README_MINOR -->
-See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
