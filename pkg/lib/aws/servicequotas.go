@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
@@ -42,7 +43,7 @@ func (c *Client) VerifyInstanceQuota(instanceType string) error {
 		instancePrefix = "standard"
 	}
 
-	var cpuLimit int
+	var cpuLimit *int
 	err := c.ServiceQuotas().ListServiceQuotasPages(
 		&servicequotas.ListServiceQuotasInput{
 			ServiceCode: aws.String("ec2"),
@@ -62,7 +63,7 @@ func (c *Client) VerifyInstanceQuota(instanceType string) error {
 				}
 
 				if strings.ToLower(*metricClass) == instancePrefix+"/ondemand" {
-					cpuLimit = int(*quota.Value) // quota is specified in number of vCPU permitted per family
+					cpuLimit = pointer.Int(int(*quota.Value)) // quota is specified in number of vCPU permitted per family
 					return false
 				}
 			}
@@ -73,7 +74,7 @@ func (c *Client) VerifyInstanceQuota(instanceType string) error {
 		return errors.WithStack(err)
 	}
 
-	if cpuLimit == 0 {
+	if cpuLimit != nil && *cpuLimit == 0 {
 		return ErrorInstanceTypeLimitIsZero(instanceType, c.Region)
 	}
 
