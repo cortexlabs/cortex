@@ -37,7 +37,9 @@ def get_load_balancer_https_target_group_arn(load_balancer_arn, client_elbv2):
             if listener["Port"] == 443:
                 return listener["DefaultActions"][0]["TargetGroupArn"]
 
-    raise Exception("unable to find cortex operator load balancer's https target group")
+    raise Exception(
+        f"unable to find https target group for operator load balancer ({load_balancer_arn})"
+    )
 
 
 def get_target_health(target_group_arn, client_elbv2):
