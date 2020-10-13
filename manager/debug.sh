@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set +e
+
 CORTEX_VERSION_MINOR=master
 
 debug_out_path="$1"
@@ -31,21 +33,35 @@ echo -n "gathering cluster data"
 
 mkdir -p /cortex-debug/k8s
 for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments hpa services virtualservices gateways ingresses configmaps jobs replicasets events; do
-  kubectl describe $resource --all-namespaces &>/dev/null > "/cortex-debug/k8s/${resource}"
-  kubectl get $resource --all-namespaces &>/dev/null > "/cortex-debug/k8s/${resource}-list"
+  kubectl describe $resource --all-namespaces > "/cortex-debug/k8s/${resource}" 2>&1
+  kubectl get $resource --all-namespaces > "/cortex-debug/k8s/${resource}-list" 2>&1
   echo -n "."
 done
 
 mkdir -p /cortex-debug/logs
-kubectl get pods --all-namespaces -o json | jq '.items[] | "kubectl logs -n \(.metadata.namespace) \(.metadata.name) --all-containers --timestamps --tail=10000 &>/dev/null > /cortex-debug/logs/\(.metadata.namespace).\(.metadata.name) && echo -n ."' | xargs -n 1 bash -c
+kubectl get pods --all-namespaces -o json | jq '.items[] | "kubectl logs -n \(.metadata.namespace) \(.metadata.name) --all-containers --timestamps --tail=10000 > /cortex-debug/logs/\(.metadata.namespace).\(.metadata.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
 
-kubectl top pods --all-namespaces --containers=true &>/dev/null > "/cortex-debug/k8s/top_pods"
-kubectl top nodes &>/dev/null > "/cortex-debug/k8s/top_nodes"
+kubectl top pods --all-namespaces --containers=true > "/cortex-debug/k8s/top_pods" 2>&1
+kubectl top nodes > "/cortex-debug/k8s/top_nodes" 2>&1
 
 mkdir -p /cortex-debug/aws
-aws --region=$CORTEX_REGION autoscaling describe-auto-scaling-groups &>/dev/null > "/cortex-debug/aws/asgs"
+aws --region=$CORTEX_REGION autoscaling describe-auto-scaling-groups > "/cortex-debug/aws/asgs" 2>&1
 echo -n "."
-aws --region=$CORTEX_REGION autoscaling describe-scaling-activities &>/dev/null > "/cortex-debug/aws/asg-activities"
+aws --region=$CORTEX_REGION autoscaling describe-scaling-activities > "/cortex-debug/aws/asg-activities" 2>&1
+echo -n "."
+python get_operator_load_balancer_state.py > "/cortex-debug/aws/operator_load_balancer_state" 2>&1
+python get_api_load_balancer_state.py > "/cortex-debug/aws/api_load_balancer_state" 2>&1
+python get_operator_target_group_status.py > "/cortex-debug/aws/operator_load_balancer_target_group_status" 2>&1
+echo -n "."
+
+mkdir -p /cortex-debug/misc
+operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json 2>/dev/null | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+echo "$operator_endpoint" > /cortex-debug/misc/operator_endpoint
+if [ "$operator_endpoint" == "" ]; then
+  echo "unable to get operator endpoint" > /cortex-debug/misc/operator_curl
+else
+  curl -sv --max-time 5 "${operator_endpoint}/verifycortex" > /cortex-debug/misc/operator_curl 2>&1
+fi
 echo -n "."
 
 (cd / && tar -czf cortex-debug.tgz cortex-debug)

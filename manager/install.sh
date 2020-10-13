@@ -87,10 +87,9 @@ function cluster_up() {
 
   await_pre_download_images
 
+  echo -e "\ncortex is ready!"
   if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
-    echo -e "\ncortex is ready! (it may take a few minutes for your private operator load balancer to finish initializing, but you may now set up VPC Peering)"
-  else
-    echo -e "\ncortex is ready!"
+    echo -e "note: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/guides/vpc-peering"
   fi
 }
 
@@ -414,14 +413,16 @@ function validate_cortex() {
 
   echo -n "￮ waiting for load balancers "
 
-  operator_load_balancer="waiting"
-  api_load_balancer="waiting"
-  operator_endpoint_reachable="false"
-  operator_pod_ready_cycles=0
-  operator_endpoint=""
   operator_pod_name=""
   operator_pod_is_ready=""
   operator_pod_status=""
+  operator_endpoint=""
+  api_endpoint=""
+  operator_load_balancer_state=""
+  api_load_balancer_state=""
+  operator_target_group_status=""
+  operator_endpoint_reachable=""
+  success_cycles=0
 
   while true; do
     # 30 minute timeout
@@ -429,16 +430,31 @@ function validate_cortex() {
     if [ "$now" -ge "$(($validation_start_time+1800))" ]; then
       echo -e "\n\ntimeout has occurred when validating your cortex cluster"
       echo -e "\ndebugging info:"
-      echo "operator pod name: $operator_pod_name"
-      echo "operator pod is ready: $operator_pod_is_ready"
+      if [ "$operator_pod_name" != "" ]; then
+        echo "operator pod name: $operator_pod_name"
+      fi
+      if [ "$operator_pod_is_ready" != "" ]; then
+        echo "operator pod is ready: $operator_pod_is_ready"
+      fi
       if [ "$operator_pod_status" != "" ]; then
         echo "operator pod status: $operator_pod_status"
       fi
-      echo "operator pod ready cycles: $operator_pod_ready_cycles"
-      echo "api load balancer status: $api_load_balancer"
-      echo "operator load balancer status: $operator_load_balancer"
-      echo "operator endpoint: $operator_endpoint"
-      if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+      if [ "$operator_endpoint" != "" ]; then
+        echo "operator endpoint: $operator_endpoint"
+      fi
+      if [ "$api_endpoint" != "" ]; then
+        echo "api endpoint: $api_endpoint"
+      fi
+      if [ "$operator_load_balancer_state" != "" ]; then
+        echo "operator load balancer state: $operator_load_balancer_state"
+      fi
+      if [ "$api_load_balancer_state" != "" ]; then
+        echo "api load balancer state: $api_load_balancer_state"
+      fi
+      if [ "$operator_target_group_status" != "" ]; then
+        echo "operator target group status: $operator_target_group_status"
+      fi
+      if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ] && [ "$operator_endpoint_reachable" != "" ]; then
         echo "operator endpoint reachable: $operator_endpoint_reachable"
       fi
       if [ "$operator_endpoint" != "" ]; then
@@ -450,59 +466,26 @@ function validate_cortex() {
     fi
 
     echo -n "."
-    sleep 3
+    sleep 5
 
     operator_pod_name=$(kubectl -n=default get pods -o=name --sort-by=.metadata.creationTimestamp | (grep "^pod/operator-" || true) | tail -1)
     if [ "$operator_pod_name" == "" ]; then
-      operator_pod_ready_cycles=0
-    else
-      operator_pod_is_ready=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
-      if [ "$operator_pod_is_ready" == "true" ]; then
-        ((operator_pod_ready_cycles++))
-        operator_pod_status=""
-      else
-        operator_pod_ready_cycles=0
-        operator_pod_status=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0]}')
-        if [[ "$operator_pod_status" == *"ImagePullBackOff"* ]]; then
-          echo -e "\nerror: the operator image you specified could not be pulled:"
-          echo $operator_pod_status
-          exit 1
-        fi
+      success_cycles=0
+      continue
+    fi
+
+    operator_pod_is_ready=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
+    if [ "$operator_pod_is_ready" != "true" ]; then
+      operator_pod_status=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0]}')
+      if [[ "$operator_pod_status" == *"ImagePullBackOff"* ]]; then
+        echo -e "\nerror: the operator image you specified could not be pulled:"
+        echo $operator_pod_status
+        echo
+        exit 1
       fi
-    fi
 
-    if [ "$operator_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]')
-      if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
-        continue
-      fi
-      operator_load_balancer="ready"
-    fi
-
-    if [ "$api_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]')
-      if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
-        continue
-      fi
-      api_load_balancer="ready"
-    fi
-
-    if [ "$operator_endpoint" = "" ]; then
-      operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
-    fi
-
-    if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
-      if [ "$operator_endpoint_reachable" != "true" ]; then
-        if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
-          continue
-        fi
-        operator_endpoint_reachable="true"
-      fi
-    fi
-
-    if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
-      num_restart=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
-      if [[ $num_restart -ge 2 ]]; then
+      num_restarts=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+      if [[ $num_restarts -ge 2 ]]; then
         echo -e "\n\nan error occurred when starting the cortex operator"
         echo -e "\noperator logs (currently running container):\n"
         kubectl -n=default logs "$operator_pod_name"
@@ -511,10 +494,59 @@ function validate_cortex() {
         echo
         exit 1
       fi
+
+      success_cycles=0
+      continue
+    fi
+    operator_pod_status=""  # reset operator_pod_status since now the operator is active
+
+    if [ "$operator_endpoint" == "" ]; then
+      out=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]')
+      if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
+        success_cycles=0
+        continue
+      fi
+      operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+    fi
+
+    if [ "$api_endpoint" == "" ]; then
+      out=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]')
+      if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
+        success_cycles=0
+        continue
+      fi
+      api_endpoint=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+    fi
+
+    operator_load_balancer_state="$(python get_operator_load_balancer_state.py)"  # don't cache this result
+    if [ "$operator_load_balancer_state" != "active" ]; then
+      success_cycles=0
       continue
     fi
 
-    if [[ $operator_pod_ready_cycles -lt 3 ]]; then
+    api_load_balancer_state="$(python get_api_load_balancer_state.py)"  # don't cache this result
+    if [ "$api_load_balancer_state" != "active" ]; then
+      success_cycles=0
+      continue
+    fi
+
+    operator_target_group_status="$(python get_operator_target_group_status.py)"  # don't cache this result
+    if [ "$operator_target_group_status" != "healthy" ]; then
+      success_cycles=0
+      continue
+    fi
+
+    if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+      operator_endpoint_reachable="false"  # don't cache this result
+      if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
+        success_cycles=0
+        continue
+      fi
+      operator_endpoint_reachable="true"
+    fi
+
+    if [[ $success_cycles -lt 3 ]]; then
+      ((success_cycles++))
       continue
     fi
 
