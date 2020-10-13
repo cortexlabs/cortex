@@ -44,8 +44,8 @@ class API:
         self.cache_dir = cache_dir
 
         self.id = api_spec["id"]
-        self.predictor_id = kwargs["predictor_id"]
-        self.deployment_id = kwargs["deployment_id"]
+        self.predictor_id = api_spec["predictor_id"]
+        self.deployment_id = api_spec["deployment_id"]
 
         self.key = api_spec["key"]
         self.metadata_root = api_spec["metadata_root"]

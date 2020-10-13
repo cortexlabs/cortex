@@ -26,7 +26,7 @@ import botocore
 
 from cortex import consts
 from cortex.lib import util
-from cortex.lib.type import API, get_spec
+from cortex.lib.type import API, get_spec, get_api
 from cortex.lib.log import cx_logger
 from cortex.lib.concurrency import LockedFile
 from cortex.lib.storage import S3, LocalStorage
@@ -218,7 +218,8 @@ def start():
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
-    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+    bucket = os.getenv("CORTEX_BUCKET")
+    region = os.getenv("AWS_REGION")
 
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
@@ -233,25 +234,22 @@ def start():
             json.dump(used_ports, f)
             f.truncate()
 
-    raw_api_spec = get_spec(provider, storage, cache_dir, api_spec_path)
+    api = get_api(provider, api_spec_path, model_dir, cache_dir, bucket, region)
+    storage, api_spec = get_spec(provider, api_spec_path, cache_dir, bucket, region)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
-
-    api = API(
-        provider=provider, storage=storage, model_dir=model_dir, cache_dir=cache_dir, **raw_api_spec
-    )
 
     client = api.predictor.initialize_client(
         tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
     )
     cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-    predictor_impl = api.predictor.initialize_impl(project_dir, client, raw_api_spec, job_spec)
+    predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
 
     local_cache["api_spec"] = api
     local_cache["provider"] = provider
     local_cache["job_spec"] = job_spec
     local_cache["predictor_impl"] = predictor_impl
     local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
-    local_cache["sqs_client"] = boto3.client("sqs", region_name=os.environ["AWS_REGION"])
+    local_cache["sqs_client"] = boto3.client("sqs", region_name=region)
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
 

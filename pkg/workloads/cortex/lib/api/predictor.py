@@ -19,6 +19,7 @@ import dill
 import shutil
 import datetime
 import glob
+from copy import deepcopy
 from typing import Any, Optional, Union
 
 # types
@@ -161,25 +162,44 @@ class Predictor:
         return client
 
     def initialize_impl(
-        self, project_dir: str, client: Optional[Union[PythonClient, TensorFlowClient, ONNXClient]]
+        self,
+        project_dir: str,
+        client: Union[Union[PythonClient, TensorFlowClient, ONNXClient]],
+        job_spec: Optional[dict] = None,
     ):
         """
         Initialize predictor class as provided by the user.
+
+        job_spec is a dictionary when the "kind" of the API is set to "BatchAPI". Otherwise, it's None.
         """
 
-        # initialize predictor class
+        # build args
         class_impl = self.class_impl(project_dir)
+        constructor_args = inspect.getfullargspec(class_impl.__init__).args
+        config = deepcopy(self.config)
+        args = {}
+        if job_spec is not None and job_spec.get("config") is not None:
+            util.merge_dicts_in_place_overwrite(config, job_spec["config"])
+        if "config" in constructor_args:
+            args["config"] = config
+        if "job_spec" in constructor_args:
+            args["job_spec"] = job_spec
+
+        # initialize predictor class
         try:
             if self.type == PythonPredictorType:
                 if _are_models_specified(None, self.api_spec):
-                    initialized_impl = class_impl(python_client=client, config=self.config)
+                    args["python_client"] = client
+                    initialized_impl = class_impl(**args)
                     client.set_load_method(initialized_impl.load_model)
                 else:
-                    initialized_impl = class_impl(config=self.config)
+                    initialized_impl = class_impl(**args)
             if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
-                initialized_impl = class_impl(tensorflow_client=client, config=self.config)
+                args["tensorflow_client"] = client
+                initialized_impl = class_impl(**args)
             if self.type == ONNXPredictorType:
-                initialized_impl = class_impl(onnx_client=client, config=self.config)
+                args["onnx_client"] = client
+                initialized_impl = class_impl(**args)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
         finally:
@@ -281,7 +301,8 @@ class Predictor:
         Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
         """
         if (
-            self.api_spec["predictor"]["models"]["cache_size"] is not None
+            self.api_spec["predictor"]["models"]
+            and self.api_spec["predictor"]["models"]["cache_size"] is not None
             and self.api_spec["predictor"]["models"]["disk_cache_size"] is not None
         ):
             return True
@@ -302,9 +323,11 @@ def _are_models_specified(impl: Any, api_spec: dict) -> bool:
         impl: Dummy argument for the predictor validation.
         api_spec: API configuration.
     """
-    if (
-        api_spec["predictor"]["model_path"] is not None
-        or api_spec["predictor"]["models"]["dir"] is not None
+    if api_spec["predictor"]["model_path"] is not None:
+        return True
+
+    if api_spec["predictor"]["models"] and (
+        api_spec["predictor"]["models"]["dir"] is not None
         or len(api_spec["predictor"]["models"]["paths"]) > 0
     ):
         return True

@@ -83,9 +83,11 @@ try:
 
     tensorflow_dependencies_installed = True
     DTYPE_TO_TF_TYPE, DTYPE_TO_VALUE_KEY = _define_types()
+    predictRequestClass = predict_pb2.PredictRequest
 
 except ImportError:
     tensorflow_dependencies_installed = False
+    predictRequestClass = Any
 
 
 class TensorFlowServingAPI:
@@ -616,7 +618,7 @@ class TensorFlowServingAPI:
         model_name: str,
         model_version: int,
         model_input: Any,
-    ) -> predict_pb2.PredictRequest:
+    ) -> predictRequestClass:
         prediction_request = predict_pb2.PredictRequest()
         prediction_request.model_spec.name = model_name
         prediction_request.model_spec.version.value = int(model_version)

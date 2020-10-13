@@ -65,7 +65,10 @@ class PythonClient:
 
         self._spec_models = CuratedModelResources(api_spec["curated_model_resources"])
 
-        if self._api_spec["predictor"]["models"]["dir"] is not None:
+        if (
+            self._api_spec["predictor"]["models"]
+            and self._api_spec["predictor"]["models"]["dir"] is not None
+        ):
             self._models_dir = True
         else:
             self._models_dir = False
@@ -375,7 +378,8 @@ class PythonClient:
         Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
         """
         return (
-            self._api_spec["predictor"]["models"]["cache_size"] is not None
+            self._api_spec["predictor"]["models"]
+            and self._api_spec["predictor"]["models"]["cache_size"] is not None
             and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
         )
 

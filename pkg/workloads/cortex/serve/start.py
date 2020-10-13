@@ -60,7 +60,8 @@ def load_tensorflow_serving_models():
 
 def is_model_caching_enabled(api_spec: dir) -> bool:
     return (
-        api_spec["predictor"]["models"]["cache_size"] is not None
+        api_spec["predictor"]["models"]
+        and api_spec["predictor"]["models"]["cache_size"] is not None
         and api_spec["predictor"]["models"]["disk_cache_size"] is not None
     )
 
@@ -134,7 +135,7 @@ def main():
         while not cron.ran_once():
             time.sleep(0.25)
 
-    if raw_api_spec["kind"] == "RealtimeAPI":
+    if api_spec["kind"] == "RealtimeAPI":
         # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
         uvicorn.run(
             "cortex.serve.wsgi:app",
@@ -149,6 +150,9 @@ def main():
             log_level="info",
         )
     else:
+        if cron:
+            cron.stop()
+
         from cortex.serve import batch
 
         batch.start()
