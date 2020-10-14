@@ -459,6 +459,10 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 			return string(bytes), nil
 		}
 
+		if len(apisRes) == 0 {
+			exit.Error(errors.ErrorUnexpected(fmt.Sprintf("unable to find API %s", apiName)))
+		}
+
 		apiRes := apisRes[0]
 
 		if apiRes.Spec.Kind == userconfig.RealtimeAPIKind {
@@ -483,7 +487,13 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return string(bytes), nil
 	}
 
-	return realtimeAPITable(apisRes[0], env)
+	if len(apisRes) == 0 {
+		exit.Error(errors.ErrorUnexpected(fmt.Sprintf("unable to find API %s", apiName)))
+	}
+
+	apiRes := apisRes[0]
+
+	return realtimeAPITable(apiRes, env)
 }
 
 func titleStr(title string) string {

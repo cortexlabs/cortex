@@ -173,20 +173,22 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 	return trafficSplitters, nil
 }
 
-func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIResponse, error) {
+func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.VirtualService.Labels["apiID"])
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	endpoint, err := operator.APIEndpoint(api)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
-	return schema.APIResponse{
-		Spec:     *api,
-		Endpoint: endpoint,
+	return []schema.APIResponse{
+		{
+			Spec:     *api,
+			Endpoint: endpoint,
+		},
 	}, nil
 }
 

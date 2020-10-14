@@ -254,18 +254,18 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	return batchAPIList, nil
 }
 
-func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIResponse, error) {
+func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	virtualService := deployedResource.VirtualService
 
 	apiID := virtualService.Labels["apiID"]
 	api, err := operator.DownloadAPISpec(deployedResource.Name, apiID)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", deployedResource.Name)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
@@ -275,12 +275,12 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIRespon
 
 	endpoint, err := operator.APIEndpoint(api)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	pods, err := config.K8s.ListPodsByLabel("apiName", deployedResource.Name)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	jobIDToPodsMap := map[string][]kcore.Pod{}
@@ -290,7 +290,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIRespon
 
 	inProgressJobKeys, err := listAllInProgressJobKeysByAPI(deployedResource.Name)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	jobStatuses := []status.JobStatus{}
@@ -298,7 +298,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIRespon
 	for _, jobKey := range inProgressJobKeys {
 		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
 		if err != nil {
-			return schema.APIResponse{}, err
+			return nil, err
 		}
 
 		jobStatuses = append(jobStatuses, *jobStatus)
@@ -308,7 +308,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIRespon
 	if len(jobStatuses) < 10 {
 		jobStates, err := getMostRecentlySubmittedJobStates(deployedResource.Name, 10+len(jobStatuses))
 		if err != nil {
-			return schema.APIResponse{}, err
+			return nil, err
 		}
 		for _, jobState := range jobStates {
 			if jobIDSet.Has(jobState.ID) {
@@ -318,7 +318,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIRespon
 
 			jobStatus, err := getJobStatusFromJobState(jobState, nil, nil)
 			if err != nil {
-				return schema.APIResponse{}, err
+				return nil, err
 			}
 
 			jobStatuses = append(jobStatuses, *jobStatus)
@@ -328,9 +328,11 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIRespon
 		}
 	}
 
-	return schema.APIResponse{
-		Spec:        *api,
-		JobStatuses: jobStatuses,
-		Endpoint:    endpoint,
+	return []schema.APIResponse{
+		{
+			Spec:        *api,
+			JobStatuses: jobStatuses,
+			Endpoint:    endpoint,
+		},
 	}, nil
 }

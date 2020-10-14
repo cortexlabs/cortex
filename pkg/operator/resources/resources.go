@@ -320,24 +320,16 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	var api schema.APIResponse
-
 	switch deployedResource.Kind {
 	case userconfig.RealtimeAPIKind:
-		api, err = realtimeapi.GetAPIByName(deployedResource)
+		return realtimeapi.GetAPIByName(deployedResource)
 	case userconfig.BatchAPIKind:
-		api, err = batchapi.GetAPIByName(deployedResource)
+		return batchapi.GetAPIByName(deployedResource)
 	case userconfig.TrafficSplitterKind:
-		api, err = trafficsplitter.GetAPIByName(deployedResource)
+		return trafficsplitter.GetAPIByName(deployedResource)
 	default:
 		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return []schema.APIResponse{api}, nil
 }
 
 //checkIfUsedByTrafficSplitter checks if api is used by a deployed TrafficSplitter

@@ -271,35 +271,37 @@ func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
 	return apiNames, apiIDs
 }
 
-func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIResponse, error) {
+func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	status, err := GetStatus(deployedResource.Name)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	metrics, err := GetMetrics(api)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	apiEndpoint, err := operator.APIEndpoint(api)
 	if err != nil {
-		return schema.APIResponse{}, err
+		return nil, err
 	}
 
 	dashboardURL := DashboardURL()
 
-	return schema.APIResponse{
-		Spec:         *api,
-		Status:       status,
-		Metrics:      metrics,
-		Endpoint:     apiEndpoint,
-		DashboardURL: &dashboardURL,
+	return []schema.APIResponse{
+		{
+			Spec:         *api,
+			Status:       status,
+			Metrics:      metrics,
+			Endpoint:     apiEndpoint,
+			DashboardURL: &dashboardURL,
+		},
 	}, nil
 }
 
