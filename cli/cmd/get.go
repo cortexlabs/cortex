@@ -273,7 +273,6 @@ func getAPIsInAllEnvironments() (string, error) {
 
 			if len(allBatchAPIs) > 0 {
 				out += "\n"
-
 			}
 
 			out += t.MustFormat()

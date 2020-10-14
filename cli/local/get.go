@@ -42,7 +42,8 @@ func GetAPIs() ([]schema.APIResponse, error) {
 	}
 
 	apiResponses := make([]schema.APIResponse, len(apiSpecList))
-	for i, apiSpec := range apiSpecList {
+	for i := range apiSpecList {
+		apiSpec := apiSpecList[i]
 		apiStatus, err := GetAPIStatus(&apiSpec)
 		if err != nil {
 			return nil, err
