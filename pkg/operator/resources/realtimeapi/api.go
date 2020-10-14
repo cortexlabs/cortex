@@ -223,7 +223,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.RealtimeAPI, error) {
+func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIResponse, error) {
 	statuses, err := GetAllStatuses(deployments, pods)
 	if err != nil {
 		return nil, err
@@ -240,7 +240,7 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Real
 		return nil, err
 	}
 
-	realtimeAPIs := make([]schema.RealtimeAPI, len(apis))
+	realtimeAPIs := make([]schema.APIResponse, len(apis))
 
 	for i, api := range apis {
 		endpoint, err := operator.APIEndpoint(&api)
@@ -248,10 +248,10 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.Real
 			return nil, err
 		}
 
-		realtimeAPIs[i] = schema.RealtimeAPI{
+		realtimeAPIs[i] = schema.APIResponse{
 			Spec:     api,
-			Status:   statuses[i],
-			Metrics:  allMetrics[i],
+			Status:   &statuses[i],
+			Metrics:  &allMetrics[i],
 			Endpoint: endpoint,
 		}
 	}
@@ -271,35 +271,35 @@ func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
 	return apiNames, apiIDs
 }
 
-func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
+func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIResponse, error) {
 	status, err := GetStatus(deployedResource.Name)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
 	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
 	metrics, err := GetMetrics(api)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
 	apiEndpoint, err := operator.APIEndpoint(api)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
-	return &schema.GetAPIResponse{
-		RealtimeAPI: &schema.RealtimeAPI{
-			Spec:         *api,
-			Status:       *status,
-			Metrics:      *metrics,
-			Endpoint:     apiEndpoint,
-			DashboardURL: DashboardURL(),
-		},
+	dashboardURL := DashboardURL()
+
+	return schema.APIResponse{
+		Spec:         *api,
+		Status:       status,
+		Metrics:      metrics,
+		Endpoint:     apiEndpoint,
+		DashboardURL: &dashboardURL,
 	}, nil
 }
 

@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -167,17 +168,17 @@ func getAPIsInAllEnvironments() (string, error) {
 		return "", err
 	}
 
-	var allRealtimeAPIs []schema.RealtimeAPI
+	var allRealtimeAPIs []schema.APIResponse
 	var allRealtimeAPIEnvs []string
-	var allBatchAPIs []schema.BatchAPI
+	var allBatchAPIs []schema.APIResponse
 	var allBatchAPIEnvs []string
-	var allTrafficSplitters []schema.TrafficSplitter
+	var allTrafficSplitters []schema.APIResponse
 	var allTrafficSplitterEnvs []string
 
 	type getAPIsOutput struct {
-		EnvName  string                 `json:"env_name"`
-		Response schema.GetAPIsResponse `json:"response"`
-		Error    string                 `json:"error"`
+		EnvName string               `json:"env_name"`
+		APIs    []schema.APIResponse `json:"apis"`
+		Error   string               `json:"error"`
 	}
 
 	allAPIsOutput := []getAPIsOutput{}
@@ -185,7 +186,7 @@ func getAPIsInAllEnvironments() (string, error) {
 	errorsMap := map[string]error{}
 	// get apis from both environments
 	for _, env := range cliConfig.Environments {
-		var apisRes schema.GetAPIsResponse
+		var apisRes []schema.APIResponse
 		var err error
 		if env.Provider == types.AWSProviderType {
 			apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
@@ -194,23 +195,24 @@ func getAPIsInAllEnvironments() (string, error) {
 		}
 
 		apisOutput := getAPIsOutput{
-			EnvName:  env.Name,
-			Response: apisRes,
+			EnvName: env.Name,
+			APIs:    apisRes,
 		}
 
 		if err == nil {
-			for range apisRes.BatchAPIs {
-				allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)
+			for _, api := range apisRes {
+				switch api.Spec.Kind {
+				case userconfig.BatchAPIKind:
+					allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)
+					allBatchAPIs = append(allBatchAPIs, api)
+				case userconfig.RealtimeAPIKind:
+					allRealtimeAPIEnvs = append(allRealtimeAPIEnvs, env.Name)
+					allRealtimeAPIs = append(allRealtimeAPIs, api)
+				case userconfig.TrafficSplitterKind:
+					allTrafficSplitterEnvs = append(allTrafficSplitterEnvs, env.Name)
+					allTrafficSplitters = append(allTrafficSplitters, api)
+				}
 			}
-			for range apisRes.RealtimeAPIs {
-				allRealtimeAPIEnvs = append(allRealtimeAPIEnvs, env.Name)
-			}
-			for range apisRes.TrafficSplitters {
-				allTrafficSplitterEnvs = append(allTrafficSplitterEnvs, env.Name)
-			}
-			allRealtimeAPIs = append(allRealtimeAPIs, apisRes.RealtimeAPIs...)
-			allBatchAPIs = append(allBatchAPIs, apisRes.BatchAPIs...)
-			allTrafficSplitters = append(allTrafficSplitters, apisRes.TrafficSplitters...)
 		} else {
 			apisOutput.Error = err.Error()
 			errorsMap[env.Name] = err
@@ -271,6 +273,7 @@ func getAPIsInAllEnvironments() (string, error) {
 
 			if len(allBatchAPIs) > 0 {
 				out += "\n"
+
 			}
 
 			out += t.MustFormat()
@@ -312,7 +315,7 @@ func hideReplicaCountColumns(t *table.Table) {
 }
 
 func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
-	var apisRes schema.GetAPIsResponse
+	var apisRes []schema.APIResponse
 	var err error
 
 	if env.Provider == types.AWSProviderType {
@@ -343,7 +346,22 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(apisRes.RealtimeAPIs) == 0 && len(apisRes.BatchAPIs) == 0 && len(apisRes.TrafficSplitters) == 0 {
+	var allRealtimeAPIs []schema.APIResponse
+	var allBatchAPIs []schema.APIResponse
+	var allTrafficSplitters []schema.APIResponse
+
+	for _, api := range apisRes {
+		switch api.Spec.Kind {
+		case userconfig.BatchAPIKind:
+			allBatchAPIs = append(allBatchAPIs, api)
+		case userconfig.RealtimeAPIKind:
+			allRealtimeAPIs = append(allRealtimeAPIs, api)
+		case userconfig.TrafficSplitterKind:
+			allTrafficSplitters = append(allTrafficSplitters, api)
+		}
+	}
+
+	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 {
 		mismatchedAPIMessage, err := getLocalVersionMismatchedAPIsMessage()
 		if err == nil && len(mismatchedAPIMessage) > 0 {
 			return console.Bold("no apis are deployed") + "\n\n" + mismatchedAPIMessage, nil
@@ -353,28 +371,28 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 
 	out := ""
 
-	if len(apisRes.BatchAPIs) > 0 {
+	if len(allBatchAPIs) > 0 {
 		envNames := []string{}
-		for range apisRes.BatchAPIs {
+		for range allBatchAPIs {
 			envNames = append(envNames, env.Name)
 		}
 
-		t := batchAPIsTable(apisRes.BatchAPIs, envNames)
+		t := batchAPIsTable(allBatchAPIs, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
 		out += t.MustFormat()
 	}
 
-	if len(apisRes.RealtimeAPIs) > 0 {
+	if len(allRealtimeAPIs) > 0 {
 		envNames := []string{}
-		for range apisRes.RealtimeAPIs {
+		for range allRealtimeAPIs {
 			envNames = append(envNames, env.Name)
 		}
 
-		t := realtimeAPIsTable(apisRes.RealtimeAPIs, envNames)
+		t := realtimeAPIsTable(allRealtimeAPIs, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-		if len(apisRes.BatchAPIs) > 0 {
+		if len(allBatchAPIs) > 0 {
 			out += "\n"
 		}
 
@@ -385,16 +403,16 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		out += t.MustFormat()
 	}
 
-	if len(apisRes.TrafficSplitters) > 0 {
+	if len(allTrafficSplitters) > 0 {
 		envNames := []string{}
-		for range apisRes.TrafficSplitters {
+		for range allTrafficSplitters {
 			envNames = append(envNames, env.Name)
 		}
 
-		t := trafficSplitterListTable(apisRes.TrafficSplitters, envNames)
+		t := trafficSplitterListTable(allTrafficSplitters, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-		if len(apisRes.BatchAPIs) > 0 || len(apisRes.RealtimeAPIs) > 0 {
+		if len(allBatchAPIs) > 0 || len(allRealtimeAPIs) > 0 {
 			out += "\n"
 		}
 
@@ -428,42 +446,44 @@ func getLocalVersionMismatchedAPIsMessage() (string, error) {
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	if env.Provider == types.AWSProviderType {
-		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+		apisRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 		if err != nil {
 			return "", err
 		}
 
 		if _flagOutput == flags.JSONOutputType {
-			bytes, err := libjson.Marshal(apiRes)
+			bytes, err := libjson.Marshal(apisRes)
 			if err != nil {
 				return "", err
 			}
 			return string(bytes), nil
 		}
 
-		if apiRes.RealtimeAPI != nil {
-			return realtimeAPITable(apiRes.RealtimeAPI, env)
+		apiRes := apisRes[0]
+
+		if apiRes.Spec.Kind == userconfig.RealtimeAPIKind {
+			return realtimeAPITable(apiRes, env)
 		}
-		if apiRes.TrafficSplitter != nil {
-			return trafficSplitterTable(apiRes.TrafficSplitter, env)
+		if apiRes.Spec.Kind != userconfig.TrafficSplitterKind {
+			return trafficSplitterTable(apiRes, env)
 		}
-		return batchAPITable(*apiRes.BatchAPI), nil
+		return batchAPITable(apiRes), nil
 	}
 
-	apiRes, err := local.GetAPI(apiName)
+	apisRes, err := local.GetAPI(apiName)
 	if err != nil {
 		return "", err
 	}
 
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(apiRes)
+		bytes, err := libjson.Marshal(apisRes)
 		if err != nil {
 			return "", err
 		}
 		return string(bytes), nil
 	}
 
-	return realtimeAPITable(apiRes.RealtimeAPI, env)
+	return realtimeAPITable(apisRes[0], env)
 }
 
 func titleStr(title string) string {

@@ -45,7 +45,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
@@ -623,21 +622,7 @@ var _exportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		var apiSpecs []spec.API
-
-		for _, batchAPI := range apisResponse.BatchAPIs {
-			apiSpecs = append(apiSpecs, batchAPI.Spec)
-		}
-
-		for _, realtimeAPI := range apisResponse.RealtimeAPIs {
-			apiSpecs = append(apiSpecs, realtimeAPI.Spec)
-		}
-
-		for _, trafficSplitter := range apisResponse.TrafficSplitters {
-			apiSpecs = append(apiSpecs, trafficSplitter.Spec)
-		}
-
-		if len(apiSpecs) == 0 {
+		if len(apisResponse) == 0 {
 			fmt.Println(fmt.Sprintf("no apis found in cluster named %s in %s", *accessConfig.ClusterName, *accessConfig.Region))
 			exit.Ok()
 		}
@@ -649,24 +634,24 @@ var _exportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		for _, apiSpec := range apiSpecs {
-			baseDir := filepath.Join(exportPath, apiSpec.Name)
+		for _, apiResponse := range apisResponse {
+			baseDir := filepath.Join(exportPath, apiResponse.Spec.Name)
 
-			fmt.Println(fmt.Sprintf("exporting %s to %s", apiSpec.Name, baseDir))
+			fmt.Println(fmt.Sprintf("exporting %s to %s", apiResponse.Spec.Name, baseDir))
 
 			err = files.CreateDir(baseDir)
 			if err != nil {
 				exit.Error(err)
 			}
 
-			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.RawAPIKey(info.ClusterConfig.ClusterName), path.Join(baseDir, apiSpec.FileName))
+			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiResponse.Spec.RawAPIKey(info.ClusterConfig.ClusterName), path.Join(baseDir, apiResponse.Spec.FileName))
 			if err != nil {
 				exit.Error(err)
 			}
 
-			if apiSpec.Kind != userconfig.TrafficSplitterKind {
-				zipFileLocation := path.Join(baseDir, path.Base(apiSpec.ProjectKey))
-				err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiSpec.ProjectKey, zipFileLocation)
+			if apiResponse.Spec.Kind != userconfig.TrafficSplitterKind {
+				zipFileLocation := path.Join(baseDir, path.Base(apiResponse.Spec.ProjectKey))
+				err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiResponse.Spec.ProjectKey, zipFileLocation)
 				if err != nil {
 					exit.Error(err)
 				}

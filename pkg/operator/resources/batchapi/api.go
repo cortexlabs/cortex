@@ -169,8 +169,8 @@ func deleteS3Resources(apiName string) error {
 }
 
 // Returns all batch apis, for each API returning the most recently submitted job and all running jobs
-func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.BatchAPI, error) {
-	batchAPIsMap := map[string]*schema.BatchAPI{}
+func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.APIResponse, error) {
+	batchAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
 	for _, job := range k8sJobs {
@@ -210,7 +210,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 
-		batchAPIsMap[apiName] = &schema.BatchAPI{
+		batchAPIsMap[apiName] = &schema.APIResponse{
 			Spec:        *api,
 			Endpoint:    endpoint,
 			JobStatuses: jobStatuses,
@@ -245,7 +245,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 	}
 
-	batchAPIList := make([]schema.BatchAPI, 0, len(batchAPIsMap))
+	batchAPIList := make([]schema.APIResponse, 0, len(batchAPIsMap))
 
 	for _, batchAPI := range batchAPIsMap {
 		batchAPIList = append(batchAPIList, *batchAPI)
@@ -254,18 +254,18 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	return batchAPIList, nil
 }
 
-func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
+func GetAPIByName(deployedResource *operator.DeployedResource) (schema.APIResponse, error) {
 	virtualService := deployedResource.VirtualService
 
 	apiID := virtualService.Labels["apiID"]
 	api, err := operator.DownloadAPISpec(deployedResource.Name, apiID)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
 	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", deployedResource.Name)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
@@ -275,12 +275,12 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 
 	endpoint, err := operator.APIEndpoint(api)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
 	pods, err := config.K8s.ListPodsByLabel("apiName", deployedResource.Name)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
 	jobIDToPodsMap := map[string][]kcore.Pod{}
@@ -290,7 +290,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 
 	inProgressJobKeys, err := listAllInProgressJobKeysByAPI(deployedResource.Name)
 	if err != nil {
-		return nil, err
+		return schema.APIResponse{}, err
 	}
 
 	jobStatuses := []status.JobStatus{}
@@ -298,7 +298,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 	for _, jobKey := range inProgressJobKeys {
 		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
 		if err != nil {
-			return nil, err
+			return schema.APIResponse{}, err
 		}
 
 		jobStatuses = append(jobStatuses, *jobStatus)
@@ -308,7 +308,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 	if len(jobStatuses) < 10 {
 		jobStates, err := getMostRecentlySubmittedJobStates(deployedResource.Name, 10+len(jobStatuses))
 		if err != nil {
-			return nil, err
+			return schema.APIResponse{}, err
 		}
 		for _, jobState := range jobStates {
 			if jobIDSet.Has(jobState.ID) {
@@ -318,7 +318,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 
 			jobStatus, err := getJobStatusFromJobState(jobState, nil, nil)
 			if err != nil {
-				return nil, err
+				return schema.APIResponse{}, err
 			}
 
 			jobStatuses = append(jobStatuses, *jobStatus)
@@ -328,11 +328,9 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 		}
 	}
 
-	return &schema.GetAPIResponse{
-		BatchAPI: &schema.BatchAPI{
-			Spec:        *api,
-			JobStatuses: jobStatuses,
-			Endpoint:    endpoint,
-		},
+	return schema.APIResponse{
+		Spec:        *api,
+		JobStatuses: jobStatuses,
+		Endpoint:    endpoint,
 	}, nil
 }

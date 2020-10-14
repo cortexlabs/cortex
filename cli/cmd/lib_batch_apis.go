@@ -41,7 +41,7 @@ const (
 	_timeFormat       = "02 Jan 2006 15:04:05 MST"
 )
 
-func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table {
+func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(batchAPIs))
 
 	for i, batchAPI := range batchAPIs {
@@ -82,7 +82,7 @@ func batchAPIsTable(batchAPIs []schema.BatchAPI, envNames []string) table.Table 
 	}
 }
 
-func batchAPITable(batchAPI schema.BatchAPI) string {
+func batchAPITable(batchAPI schema.APIResponse) string {
 	jobRows := make([][]interface{}, 0, len(batchAPI.JobStatuses))
 
 	out := ""

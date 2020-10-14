@@ -24,28 +24,28 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
-func GetAPIs(operatorConfig OperatorConfig) (schema.GetAPIsResponse, error) {
+func GetAPIs(operatorConfig OperatorConfig) ([]schema.APIResponse, error) {
 	httpRes, err := HTTPGet(operatorConfig, "/get")
 	if err != nil {
-		return schema.GetAPIsResponse{}, err
+		return nil, err
 	}
 
-	var apisRes schema.GetAPIsResponse
+	var apisRes []schema.APIResponse
 	if err = json.Unmarshal(httpRes, &apisRes); err != nil {
-		return schema.GetAPIsResponse{}, errors.Wrap(err, "/get", string(httpRes))
+		return nil, errors.Wrap(err, "/get", string(httpRes))
 	}
 	return apisRes, nil
 }
 
-func GetAPI(operatorConfig OperatorConfig, apiName string) (schema.GetAPIResponse, error) {
+func GetAPI(operatorConfig OperatorConfig, apiName string) ([]schema.APIResponse, error) {
 	httpRes, err := HTTPGet(operatorConfig, "/get/"+apiName)
 	if err != nil {
-		return schema.GetAPIResponse{}, err
+		return nil, err
 	}
 
-	var apiRes schema.GetAPIResponse
+	var apiRes []schema.APIResponse
 	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
-		return schema.GetAPIResponse{}, errors.Wrap(err, "/get/"+apiName, string(httpRes))
+		return nil, errors.Wrap(err, "/get/"+apiName, string(httpRes))
 	}
 
 	return apiRes, nil

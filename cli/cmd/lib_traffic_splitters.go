@@ -36,12 +36,12 @@ const (
 	_titleAPIs              = "apis"
 )
 
-func trafficSplitterTable(trafficSplitter *schema.TrafficSplitter, env cliconfig.Environment) (string, error) {
+func trafficSplitterTable(trafficSplitter schema.APIResponse, env cliconfig.Environment) (string, error) {
 	var out string
 
 	lastUpdated := time.Unix(trafficSplitter.Spec.LastUpdated, 0)
 
-	t, err := trafficSplitTable(*trafficSplitter, env)
+	t, err := trafficSplitTable(trafficSplitter, env)
 	if err != nil {
 		return "", err
 	}
@@ -58,25 +58,27 @@ func trafficSplitterTable(trafficSplitter *schema.TrafficSplitter, env cliconfig
 	return out, nil
 }
 
-func trafficSplitTable(trafficSplitter schema.TrafficSplitter, env cliconfig.Environment) (table.Table, error) {
+func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environment) (table.Table, error) {
 	rows := make([][]interface{}, 0, len(trafficSplitter.Spec.APIs))
 
 	for _, api := range trafficSplitter.Spec.APIs {
-		apiRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), api.Name)
+		apisRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), api.Name)
 		if err != nil {
 			return table.Table{}, err
 		}
-		lastUpdated := time.Unix(apiRes.RealtimeAPI.Spec.LastUpdated, 0)
+
+		apiRes := apisRes[0]
+		lastUpdated := time.Unix(apiRes.Spec.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			env.Name,
-			apiRes.RealtimeAPI.Spec.Name,
+			apiRes.Spec.Name,
 			api.Weight,
-			apiRes.RealtimeAPI.Status.Message(),
-			apiRes.RealtimeAPI.Status.Requested,
+			apiRes.Status.Message(),
+			apiRes.Status.Requested,
 			libtime.SinceStr(&lastUpdated),
-			latencyStr(&apiRes.RealtimeAPI.Metrics),
-			code2XXStr(&apiRes.RealtimeAPI.Metrics),
-			code5XXStr(&apiRes.RealtimeAPI.Metrics),
+			latencyStr(apiRes.Metrics),
+			code2XXStr(apiRes.Metrics),
+			code5XXStr(apiRes.Metrics),
 		})
 	}
 
@@ -96,7 +98,7 @@ func trafficSplitTable(trafficSplitter schema.TrafficSplitter, env cliconfig.Env
 	}, nil
 }
 
-func trafficSplitterListTable(trafficSplitter []schema.TrafficSplitter, envNames []string) table.Table {
+func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(trafficSplitter))
 	for i, splitAPI := range trafficSplitter {
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
