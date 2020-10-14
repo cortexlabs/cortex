@@ -485,7 +485,7 @@ def model_downloader(
     """
 
     logger().info(
-        f"downloading from bucket {bucket_name}/{model_path}, model {model_name} {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
+        f"downloading from bucket {bucket_name}/{model_path}, model {model_name} of version {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
     )
 
     s3_client = S3(bucket_name, client_config={})
