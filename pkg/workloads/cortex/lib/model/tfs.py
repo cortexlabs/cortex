@@ -256,7 +256,7 @@ class TensorFlowServingAPI:
         timeout: Optional[float] = None,
     ) -> None:
         """
-        Add models to TFS.
+        Remove models to TFS.
 
         Args:
             model_names: List of model names to add.

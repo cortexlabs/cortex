@@ -14,6 +14,7 @@
 
 import os
 import copy
+import grpc
 from typing import Any, Dict, Optional, List
 
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException, WithBreak
@@ -216,6 +217,7 @@ class TensorFlowClient:
             # grab shared access to models holder and retrieve model
             update_model = False
             prediction = None
+            tfs_was_unresponsive = False
             with LockedModel(self._models, "r", model_name, model_version):
                 logger().info(f"checking the {model_name} {model_version} status")
                 status, upstream_ts = self._models.has_model(model_name, model_version)
@@ -223,7 +225,7 @@ class TensorFlowClient:
                     status != "not-available" and upstream_ts < current_upstream_ts
                 ):
                     logger().info(
-                        f"model {model_name} {model_version} is not loaded (with status {status} or older ts)"
+                        f"model {model_name} of {model_version} is not loaded (with status {status} or older ts)"
                     )
                     update_model = True
                     raise WithBreak
@@ -231,7 +233,26 @@ class TensorFlowClient:
                 # run prediction
                 logger().info(f"run the prediction on {model_name} {model_version}")
                 self._models.get_model(model_name, model_version, tag)
-                prediction = self._client.predict(model_input, model_name, model_version)
+                try:
+                    prediction = self._client.predict(model_input, model_name, model_version)
+                except grpc.RpcError as e:
+                    # effectively when it got restarted
+                    if len(self._client.poll_available_models(model_name)) > 0:
+                        raise
+                    tfs_was_unresponsive = True
+
+            # remove model from disk and memory references if TFS gets unresponsive
+            if tfs_was_unresponsive:
+                with LockedModel(self._models, "w", model_name, model_version):
+                    available_versions = self._client.poll_available_models(model_name)
+                    status, _ = self._models.has_model(model_name, model_version)
+                    if not (status == "in-memory" and model_version not in available_versions):
+                        raise WithBreak
+
+                    logger().info(
+                        f"removing model {model_name} of version {model_version} because TFS got unresponsive"
+                    )
+                    self._models.remove_model(model_name, model_version)
 
             # download, load into memory the model and retrieve it
             if update_model:
