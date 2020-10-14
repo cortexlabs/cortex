@@ -327,7 +327,7 @@ function suspend_spot_az_rebalance() {
 
 function create_vpc_link() {
   # get VPC ID
-  vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:eksctl.cluster.k8s.io/v1alpha1/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
+  vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:cortex.dev/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
   if [ "$vpc_id" = "" ] || [ "$vpc_id" = "null" ]; then
     echo "unable to find cortex vpc"
     exit 1
