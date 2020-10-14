@@ -16,8 +16,8 @@ class ONNXPredictor:
     def __init__(self, onnx_client, config):
         self.client = onnx_client
         # Get the input shape from the ONNX runtime
-        (signature,) = onnx_client.input_signatures.values()
-        _, _, height, width = signature["images"]["shape"]
+        (signature,) = onnx_client.get_model()["input_signatures"].values()
+        _, _, height, width = signature["shape"]
         self.input_size = (width, height)
         self.config = config
         with open("labels.json") as buf:

@@ -20,42 +20,42 @@ set -euo pipefail
 
 user_facing_images=(
   "python-predictor-cpu"
-  # "python-predictor-gpu"
-  # "python-predictor-inf"
-  # "tensorflow-predictor"
-  # "onnx-predictor-cpu"
-  # "onnx-predictor-gpu"
+  "python-predictor-gpu"
+  "python-predictor-inf"
+  "tensorflow-predictor"
+  "onnx-predictor-cpu"
+  "onnx-predictor-gpu"
 )
 
 user_facing_slim_images=(
   # "python-predictor-cpu-slim"
-  # "python-predictor-gpu-slim"
-  # "python-predictor-inf-slim"
-  # "tensorflow-predictor-slim"
-  # "onnx-predictor-cpu-slim"
-  # "onnx-predictor-gpu-slim"
+  "python-predictor-gpu-slim"
+  "python-predictor-inf-slim"
+  "tensorflow-predictor-slim"
+  "onnx-predictor-cpu-slim"
+  "onnx-predictor-gpu-slim"
 )
 
 dev_images=(
-  # "manager"
-  # "request-monitor"
-  # "downloader"
+  "manager"
+  "request-monitor"
+  "downloader"
 )
 
 non_dev_images=(
-  # "operator"
-  # "tensorflow-serving-cpu"
-  # "tensorflow-serving-gpu"
-  # "tensorflow-serving-inf"
-  # "cluster-autoscaler"
-  # "metrics-server"
-  # "inferentia"
-  # "neuron-rtd"
-  # "nvidia"
-  # "fluentd"
-  # "statsd"
-  # "istio-proxy"
-  # "istio-pilot"
+  "operator"
+  "tensorflow-serving-cpu"
+  "tensorflow-serving-gpu"
+  "tensorflow-serving-inf"
+  "cluster-autoscaler"
+  "metrics-server"
+  "inferentia"
+  "neuron-rtd"
+  "nvidia"
+  "fluentd"
+  "statsd"
+  "istio-proxy"
+  "istio-pilot"
 )
 
 all_images=( "${user_facing_images[@]}" "${user_facing_slim_images[@]}" "${dev_images[@]}" "${non_dev_images[@]}" )

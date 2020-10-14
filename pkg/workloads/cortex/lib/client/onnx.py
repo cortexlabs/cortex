@@ -15,7 +15,7 @@
 import os
 import threading as td
 import multiprocessing as mp
-from typing import Any, Optional
+from typing import Any, Tuple, Optional
 
 try:
     import onnxruntime as rt
@@ -87,19 +87,21 @@ class ONNXClient:
 
         self._models.set_callback("load", self._load_model)
 
-    def predict(
-        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "highest"
-    ) -> Any:
+    def _validate_model_args(
+        self, model_name: Optional[str] = None, model_version: str = "highest"
+    ) -> Tuple[str, str]:
         """
-        Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
+        Validate the model name and model version.
 
         Args:
-            model_input: Input to the model.
-            model_name: Model to use when multiple models are deployed in a single API.
+            model_name: Name of the model.
             model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
 
         Returns:
-            The prediction returned from the model.
+            The processed model_name, model_version tuple if they had to go through modification.
+
+        Raises:
+            UserRuntimeException if the validation fails.
         """
 
         if model_version not in ["highest", "latest"] and not model_version.isnumeric():
@@ -112,7 +114,7 @@ class ONNXClient:
 
             # when predictor:model_path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
-                return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, model_version)
+                return consts.SINGLE_MODEL_NAME, model_version
 
             # when predictor:models:paths is specified
             if model_name is None:
@@ -136,6 +138,27 @@ class ONNXClient:
                         f"'{model_name}' model wasn't found in the list of available models"
                     )
 
+        return model_name, model_version
+
+    def predict(
+        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "highest"
+    ) -> Any:
+        """
+        Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
+
+        Args:
+            model_input: Input to the model.
+            model_name: Model to use when multiple models are deployed in a single API.
+            model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+
+        Returns:
+            The prediction returned from the model.
+
+        Raises:
+            UserRuntimeException if the validation fails.
+        """
+
+        model_name, model_version = self._validate_model_args(model_name, model_version)
         return self._run_inference(model_input, model_name, model_version)
 
     def _run_inference(self, model_input: Any, model_name: str, model_version: str) -> Any:
@@ -159,6 +182,32 @@ class ONNXClient:
             raise UserRuntimeException(
                 f"failed inference with model {model_name} of version {model_version}", str(e)
             )
+
+    def get_model(self, model_name: Optional[str] = None, model_version: str = "highest") -> dict:
+        """
+        Validate input and then return the model loaded into a dictionary.
+        The counting of tag calls is recorded with this method (just like with the predict method).
+
+        Args:
+            model_name: Model to use when multiple models are deployed in a single API.
+            model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+
+        Returns:
+            The model as returned by _load_model method.
+
+        Raises:
+            UserRuntimeException if the validation fails.
+        """
+        model_name, model_version = self._validate_model_args(model_name, model_version)
+        try:
+            model = self._get_model(model_name, model_version)
+            if model is None:
+                raise UserRuntimeException(
+                    f"model {model_name} of version {model_version} wasn't found"
+                )
+        except Exception as e:
+            raise
+        return model
 
     def _get_model(self, model_name: str, model_version: str) -> Any:
         """
@@ -409,7 +458,7 @@ class ONNXClient:
         Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
         """
         return (
-            self.api_spec["predictor"]["models"]
+            self._api_spec["predictor"]["models"]
             and self._api_spec["predictor"]["models"]["cache_size"] is not None
             and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
         )

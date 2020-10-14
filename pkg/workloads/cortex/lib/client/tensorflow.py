@@ -389,7 +389,7 @@ class TensorFlowClient:
         Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
         """
         return (
-            self.api_spec["predictor"]["models"]
+            self._api_spec["predictor"]["models"]
             and self._api_spec["predictor"]["models"]["cache_size"] is not None
             and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
         )
