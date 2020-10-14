@@ -142,9 +142,19 @@ class S3(object):
     def search(self, prefix="", suffix="") -> Tuple[List[str], List[datetime.datetime]]:
         paths = []
         timestamps = []
+
+        keys = []
+        tss = []
         for key, ts in self._get_matching_s3_keys_generator(prefix, suffix):
-            paths.append(key)
-            timestamps.append(ts)
+            keys.append(key)
+            tss.append(ts)
+
+        for key, ts in zip(keys, tss):
+            matches = [p.find(key) for p in keys]
+            matches = [match for match in matches if match != -1]
+            if len(matches) == 1:
+                paths.append(key)
+                timestamps.append(ts)
 
         return paths, timestamps
 

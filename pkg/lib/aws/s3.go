@@ -137,13 +137,14 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 
 	_, key, err := SplitS3Path(s3Path)
 	if err != nil {
-		return paths, []string{}, err
+		return []string{}, []string{}, err
 	}
 
-	allPaths, err := c.GetPrefixesFromS3Path(s3Path, includeDirObjects, maxResults)
+	allS3Objects, err := c.ListS3PathDir(s3Path, includeDirObjects, maxResults)
 	if err != nil {
-		return paths, allPaths, err
+		return []string{}, []string{}, err
 	}
+	allPaths := ConvertS3ObjectsToKeys(allS3Objects...)
 
 	pathKeys := slices.RemoveEmpties(strings.Split(key, "/"))
 	for _, path := range allPaths {
@@ -159,30 +160,12 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 	return slices.UniqueStrings(paths), allPaths, nil
 }
 
-func (c *Client) GetPrefixesFromS3Path(s3Path string, includeDirObjects bool, maxResults *int64) ([]string, error) {
+func ConvertS3ObjectsToKeys(s3Object ...*s3.Object) []string {
 	paths := []string{}
-
-	_, key, err := SplitS3Path(s3Path)
-	if err != nil {
-		return paths, err
-	}
-
-	if yes, err := c.IsS3PathFile(s3Path); err != nil {
-		return paths, err
-	} else if yes {
-		return append(paths, key), nil
-	}
-
-	objects, err := c.ListS3PathDir(s3Path, includeDirObjects, maxResults)
-	if err != nil {
-		return paths, err
-	}
-
-	for _, object := range objects {
+	for _, object := range s3Object {
 		paths = append(paths, *object.Key)
 	}
-
-	return paths, nil
+	return paths
 }
 
 func GetBucketRegionFromS3Path(s3Path string) (string, error) {

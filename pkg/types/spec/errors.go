@@ -360,7 +360,7 @@ var _tfVersionedExpectedStructMessage = `
           ├── variables.index
           ├── variables.data-00000-of-00003
           ├── variables.data-00001-of-00003
-		  └── variables.data-00002-of-...
+          └── variables.data-00002-of-...
 `
 var _tfExpectedStructMessage = `
   %s
@@ -369,14 +369,14 @@ var _tfExpectedStructMessage = `
       ├── variables.index
       ├── variables.data-00000-of-00003
       ├── variables.data-00001-of-00003
-	  └── variables.data-00002-of-...
+      └── variables.data-00002-of-...
 `
 var _neuronTfVersionedExpectedStructMessage = `
   %s
   ├── 1523423423/ (Version prefix, usually a timestamp)
   |   └── saved_model.pb
   └── 2434389194/ (Version prefix, usually a timestamp)
-	  └── saved_model.pb
+      └── saved_model.pb
 `
 var _neuronTfExpectedStructMessage = `
   %s

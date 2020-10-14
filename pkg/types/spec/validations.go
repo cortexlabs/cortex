@@ -965,10 +965,11 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 				return errors.Wrap(err, modelName)
 			}
 
-			modelSubPaths, err := awsClientForBucket.GetPrefixesFromS3Path(modelResource.ModelPath, false, pointer.Int64(1000))
+			modelSubS3Objects, err := awsClientForBucket.ListS3PathDir(modelResource.ModelPath, false, pointer.Int64(1000))
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
+			modelSubPaths := aws.ConvertS3ObjectsToKeys(modelSubS3Objects...)
 
 			if err = validatePythonS3ModelDir(modelResource.ModelPath, awsClientForBucket); err != nil {
 				if errors.GetKind(err) == errors.ErrNotCortexError {
@@ -1134,10 +1135,11 @@ func validateTensorFlowModel(
 				return errors.Wrap(err, modelName)
 			}
 
-			modelSubPaths, err := awsClientForBucket.GetPrefixesFromS3Path(modelResource.ModelPath, false, pointer.Int64(1000))
+			modelSubS3Objects, err := awsClientForBucket.ListS3PathDir(modelResource.ModelPath, false, pointer.Int64(1000))
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
+			modelSubPaths := aws.ConvertS3ObjectsToKeys(modelSubS3Objects...)
 
 			if err = validateTFServingS3ModelDir(modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
 				if errors.GetKind(err) == errors.ErrNotCortexError {
@@ -1303,10 +1305,11 @@ func validateONNXModel(
 				return errors.Wrap(err, modelName)
 			}
 
-			modelSubPaths, err := awsClientForBucket.GetPrefixesFromS3Path(modelResource.ModelPath, false, pointer.Int64(1000))
+			modelSubS3Objects, err := awsClientForBucket.ListS3PathDir(modelResource.ModelPath, false, pointer.Int64(1000))
 			if err != nil {
 				return errors.Wrap(err, modelName)
 			}
+			modelSubPaths := aws.ConvertS3ObjectsToKeys(modelSubS3Objects...)
 
 			if err := validateONNXS3ModelDir(modelResource.ModelPath, awsClientForBucket); err != nil {
 				if errors.GetKind(err) == errors.ErrNotCortexError {

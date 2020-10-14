@@ -364,7 +364,7 @@ class TensorFlowClient:
         if self._models_dir:
             signature_key = self._api_spec["predictor"]["models"]["signature_key"]
         else:
-            signature_key = self._spec_model_names[model_name]["signature_key"]
+            signature_key = self._spec_models[model_name]["signature_key"]
 
         return signature_key
 
