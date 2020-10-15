@@ -764,7 +764,7 @@ func validatePredictor(
 	if predictor.Models != nil && predictor.ModelPath != nil {
 		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
 	}
-	if err := validateMultiModelsFields(predictor); err != nil {
+	if err := validateMultiModelsFields(api); err != nil {
 		return err
 	}
 
@@ -819,7 +819,9 @@ func validatePredictor(
 	return nil
 }
 
-func validateMultiModelsFields(predictor *userconfig.Predictor) error {
+func validateMultiModelsFields(api *userconfig.API) error {
+	predictor := api.Predictor
+
 	if predictor.Models == nil {
 		return nil
 	}
@@ -830,6 +832,14 @@ func validateMultiModelsFields(predictor *userconfig.Predictor) error {
 	if len(predictor.Models.Paths) > 0 && predictor.Models.Dir != nil {
 		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 	}
+
+	if predictor.Models.CacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
+		return errors.Wrap(ErrorKeyIsNotSupportedForKind(userconfig.ModelsCacheSizeKey, api.Kind), userconfig.ModelsKey)
+	}
+	if predictor.Models.DiskCacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
+		return errors.Wrap(ErrorKeyIsNotSupportedForKind(userconfig.ModelsDiskCacheSizeKey, api.Kind), userconfig.ModelsKey)
+	}
+
 	if (predictor.Models.CacheSize == nil && predictor.Models.DiskCacheSize != nil) ||
 		(predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize == nil) {
 		return errors.Wrap(ErrorSpecifyAllOrNone(userconfig.ModelsCacheSizeKey, userconfig.ModelsDiskCacheSizeKey), userconfig.ModelsKey)
