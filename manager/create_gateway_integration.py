@@ -52,10 +52,10 @@ def get_listener_arn(elb_arn, client_elb):
         for listener in listener_page["Listeners"]:
             if listener["Port"] == 80:
                 return listener["ListenerArn"]
-    raise Exception("Could not find ELB port 80 listener")
+    raise Exception(f"Could not find port 80 listener on elb {elb_arn}")
 
 
-def create_gateway_intregration(api_id, vpc_link_id):
+def create_gateway_integration(api_id, vpc_link_id):
     client_elb = boto3.client("elbv2", region_name=os.environ["CORTEX_REGION"])
     client_apigateway = boto3.client("apigatewayv2", region_name=os.environ["CORTEX_REGION"])
 
@@ -76,4 +76,4 @@ def create_gateway_intregration(api_id, vpc_link_id):
 if __name__ == "__main__":
     api_id = str(sys.argv[1])
     vpc_link_id = str(sys.argv[2])
-    create_gateway_intregration(api_id, vpc_link_id)
+    create_gateway_integration(api_id, vpc_link_id)
