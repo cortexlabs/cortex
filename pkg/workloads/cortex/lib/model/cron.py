@@ -861,10 +861,13 @@ class TFSModelLoader(mp.Process):
         mp.Process-specific method.
         """
 
-        # TODO check what happens if the logger refreshes
-        self.logger = logger()
         self._old_ts_state = {}
         self._client = TensorFlowServingAPI(self._tfs_address)
+
+        # wait until TFS is responsive
+        while not self._client.is_tfs_accessible():
+            self._reset_when_tfs_unresponsive()
+            time.sleep(1.0)
 
         self._load_local_models()
 
