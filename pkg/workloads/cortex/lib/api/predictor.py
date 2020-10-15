@@ -208,8 +208,8 @@ class Predictor:
         finally:
             refresh_logger()
 
-        # initialize the crons if models have been specified
-        if _are_models_specified(None, self.api_spec):
+        # initialize the crons if models have been specified and if the API kind is RealtimeAPI
+        if _are_models_specified(None, self.api_spec) and self.api_spec["kind"] == "RealtimeAPI":
             if not self.multiple_processes and self.caching_enabled:
                 self.crons += [
                     ModelTreeUpdater(
@@ -341,12 +341,21 @@ PYTHON_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "config"],
+            "optional_args": ["job_spec"],
             "condition_args": {"python_client": _are_models_specified},
         },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id"],
+        },
+    ],
+    "optional": [
+        {"name": "on_job_complete", "required_args": ["self"]},
+        {
+            "name": "post_predict",
+            "required_args": ["self"],
+            "optional_args": ["response", "payload", "query_params", "headers"],
         },
     ],
     "conditional": [
@@ -360,24 +369,48 @@ PYTHON_CLASS_VALIDATION = {
 
 TENSORFLOW_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "required_args": ["self", "tensorflow_client", "config"]},
+        {
+            "name": "__init__",
+            "required_args": ["self", "tensorflow_client", "config"],
+            "optional_args": ["job_spec"],
+        },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id"],
         },
-    ]
+    ],
+    "optional": [
+        {"name": "on_job_complete", "required_args": ["self"]},
+        {
+            "name": "post_predict",
+            "required_args": ["self"],
+            "optional_args": ["response", "payload", "query_params", "headers"],
+        },
+    ],
 }
 
 ONNX_CLASS_VALIDATION = {
     "required": [
-        {"name": "__init__", "required_args": ["self", "onnx_client", "config"]},
+        {
+            "name": "__init__",
+            "required_args": ["self", "onnx_client", "config"],
+            "optional_args": ["job_spec"],
+        },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id"],
         },
-    ]
+    ],
+    "optional": [
+        {"name": "on_job_complete", "required_args": ["self"]},
+        {
+            "name": "post_predict",
+            "required_args": ["self"],
+            "optional_args": ["response", "payload", "query_params", "headers"],
+        },
+    ],
 }
 
 
