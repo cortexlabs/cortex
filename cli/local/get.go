@@ -54,13 +54,11 @@ func GetAPIs() ([]schema.APIResponse, error) {
 			return nil, err
 		}
 
-		apiPort := apiSpec.Networking.LocalPort
-
 		apiResponses[i] = schema.APIResponse{
 			Spec:     apiSpec,
 			Status:   &apiStatus,
 			Metrics:  &metrics,
-			Endpoint: fmt.Sprintf("http://localhost:%d", *apiPort),
+			Endpoint: fmt.Sprintf("http://localhost:%d", *apiSpec.Networking.LocalPort),
 		}
 	}
 
@@ -163,14 +161,12 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		apiContainer = containers[1]
 	}
 
-	apiPort := apiSpec.Networking.LocalPort
-
 	return []schema.APIResponse{
 		{
 			Spec:     *apiSpec,
 			Status:   &apiStatus,
 			Metrics:  &apiMetrics,
-			Endpoint: fmt.Sprintf("http://localhost:%d", *apiPort),
+			Endpoint: fmt.Sprintf("http://localhost:%d", *apiSpec.Networking.LocalPort),
 		},
 	}, nil
 }

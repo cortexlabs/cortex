@@ -57,7 +57,7 @@ type APIResponse struct {
 	JobStatuses  []status.JobStatus `json:"job_statuses,omitempty"`
 }
 
-type GetJobResponse struct {
+type JobResponse struct {
 	APISpec   spec.API         `json:"api_spec"`
 	JobStatus status.JobStatus `json:"job_status"`
 	Endpoint  string           `json:"endpoint"`

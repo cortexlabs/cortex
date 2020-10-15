@@ -464,13 +464,16 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 		apiRes := apisRes[0]
 
-		if apiRes.Spec.Kind == userconfig.RealtimeAPIKind {
+		switch apiRes.Spec.Kind {
+		case userconfig.RealtimeAPIKind:
 			return realtimeAPITable(apiRes, env)
-		}
-		if apiRes.Spec.Kind != userconfig.TrafficSplitterKind {
+		case userconfig.TrafficSplitterKind:
 			return trafficSplitterTable(apiRes, env)
+		case userconfig.BatchAPIKind:
+			return batchAPITable(apiRes), nil
+		default:
+			return "", errors.ErrorUnexpected(fmt.Sprintf("encountered unexpected kind %s for api %s", apiRes.Spec.Kind, apiRes.Spec.Name))
 		}
-		return batchAPITable(apiRes), nil
 	}
 
 	apisRes, err := local.GetAPI(apiName)

@@ -64,7 +64,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := schema.GetJobResponse{
+	response := schema.JobResponse{
 		JobStatus: *jobStatus,
 		APISpec:   *spec,
 		Endpoint:  urls.Join(endpoint, jobKey.ID),

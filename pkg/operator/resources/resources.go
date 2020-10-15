@@ -155,13 +155,13 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 
 	if err == nil && api != nil {
 		apiEndpoint, _ := operator.APIEndpoint(api)
-		apiSpec := *api
 
 		return &schema.APIResponse{
-			Spec:     apiSpec,
+			Spec:     *api,
 			Endpoint: apiEndpoint,
-		}, msg, err
+		}, msg, nil
 	}
+
 	return nil, msg, err
 }
 
