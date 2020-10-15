@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/flags"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
@@ -60,8 +61,7 @@ var _refreshCmd = &cobra.Command{
 		}
 
 		if env.Provider == types.LocalProviderType {
-			print.BoldFirstLine("`cortex refresh` is not supported in the local environment; use `cortex deploy` instead")
-			return
+			exit.Error(errors.Append(ErrorNotSupportedInLocalEnvironment(), "; use `cortex deploy` instead"))
 		}
 		refreshResponse, err := cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)
 		if err != nil {

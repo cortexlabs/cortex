@@ -31,56 +31,57 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, deployDisallowPrompt bool) (schema.DeployResponse, error) {
+func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, deployDisallowPrompt bool) ([]schema.DeployResult, error) {
 	configFileName := filepath.Base(configPath)
 
 	_, err := docker.GetDockerClient()
 	if err != nil {
-		return schema.DeployResponse{}, err
+		return nil, err
 	}
 
 	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
-		return schema.DeployResponse{}, err
+		return nil, err
 	}
 
 	projectFiles, err := newProjectFiles(projectFileList, configPath)
 	if err != nil {
-		return schema.DeployResponse{}, err
+		return nil, err
 	}
 
 	var awsClient *aws.Client
 	if env.AWSAccessKeyID != nil {
 		awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
 		if err != nil {
-			return schema.DeployResponse{}, err
+			return nil, err
 		}
 	} else {
 		awsClient, err = aws.NewAnonymousClient()
 		if err != nil {
-			return schema.DeployResponse{}, err
+			return nil, err
 		}
 	}
 
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil)
 	if err != nil {
-		return schema.DeployResponse{}, err
+		return nil, err
 	}
 
 	models := []spec.CuratedModelResource{}
 	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
-		return schema.DeployResponse{}, err
+		return nil, err
 	}
 
 	projectID, err := files.HashFile(projectFileList[0], projectFileList[1:]...)
 	if err != nil {
-		return schema.DeployResponse{}, errors.Wrap(err, "failed to hash directory", filepath.Dir(configPath))
+		return nil, errors.Wrap(err, "failed to hash directory", filepath.Dir(configPath))
 	}
 
 	results := make([]schema.DeployResult, len(apiConfigs))
-	for i, apiConfig := range apiConfigs {
+	for i := range apiConfigs {
+		apiConfig := apiConfigs[i]
 		api, msg, err := UpdateAPI(&apiConfig, models, configPath, projectID, deployDisallowPrompt, awsClient)
 		results[i].Message = msg
 		if err != nil {
@@ -90,7 +91,5 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		}
 	}
 
-	return schema.DeployResponse{
-		Results: results,
-	}, nil
+	return results, nil
 }

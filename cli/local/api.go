@@ -29,13 +29,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*schema.APIResponse, string, error) {
 	var incompatibleVersion string
 	encounteredVersionMismatch := false
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
@@ -90,7 +91,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 	newAPISpec.LocalProjectDir = files.Dir(configPath)
 
 	if areAPIsEqual(newAPISpec, prevAPISpec) {
-		return newAPISpec, fmt.Sprintf("%s is up to date", newAPISpec.Resource.UserString()), nil
+		return toAPIResponse(newAPISpec), fmt.Sprintf("%s is up to date", newAPISpec.Resource.UserString()), nil
 	}
 
 	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
@@ -118,16 +119,24 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 
 	if prevAPISpec == nil && len(prevAPIContainers) == 0 {
 		if encounteredVersionMismatch {
-			return newAPISpec, fmt.Sprintf(
+			return toAPIResponse(newAPISpec), fmt.Sprintf(
 				"creating api %s with current CLI version %s",
 				newAPISpec.Name,
 				consts.CortexVersion,
 			), nil
 		}
-		return newAPISpec, fmt.Sprintf("creating %s", newAPISpec.Resource.UserString()), nil
+
+		return toAPIResponse(newAPISpec), fmt.Sprintf("creating %s", newAPISpec.Resource.UserString()), nil
 	}
 
-	return newAPISpec, fmt.Sprintf("updating %s", newAPISpec.Resource.UserString()), nil
+	return toAPIResponse(newAPISpec), fmt.Sprintf("updating %s", newAPISpec.Resource.UserString()), nil
+}
+
+func toAPIResponse(api *spec.API) *schema.APIResponse {
+	return &schema.APIResponse{
+		Spec:     *api,
+		Endpoint: fmt.Sprintf("http://localhost:%d", api.Networking.LocalPort),
+	}
 }
 
 func writeAPISpec(apiSpec *spec.API) error {

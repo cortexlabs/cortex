@@ -89,14 +89,14 @@ var _deployCmd = &cobra.Command{
 			exit.Error(ErrorDeployFromTopLevelDir("root", env.Provider))
 		}
 
-		var deployResponse schema.DeployResponse
+		var deployResults []schema.DeployResult
 		if env.Provider == types.AWSProviderType {
 			deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
 			if err != nil {
 				exit.Error(err)
 			}
 
-			deployResponse, err = cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
+			deployResults, err = cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -106,14 +106,14 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			deployResponse, err = local.Deploy(env, configPath, projectFiles, _flagDeployDisallowPrompt)
+			deployResults, err = local.Deploy(env, configPath, projectFiles, _flagDeployDisallowPrompt)
 			if err != nil {
 				exit.Error(err)
 			}
 		}
 
 		if _flagOutput == flags.JSONOutputType {
-			bytes, err := libjson.Marshal(deployResponse)
+			bytes, err := libjson.Marshal(deployResults)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -121,7 +121,7 @@ var _deployCmd = &cobra.Command{
 			return
 		}
 
-		message := deployMessage(deployResponse.Results, env.Name)
+		message := deployMessage(deployResults, env.Name)
 		print.BoldFirstBlock(message)
 	},
 }
@@ -292,7 +292,7 @@ func didAllResultsError(results []schema.DeployResult) bool {
 func getAPICommandsMessage(results []schema.DeployResult, envName string) string {
 	apiName := "<api_name>"
 	if len(results) == 1 {
-		apiName = results[0].API.Name
+		apiName = results[0].API.Spec.Name
 	}
 
 	defaultEnv := getDefaultEnv(_generalCommandType)
@@ -309,7 +309,7 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) string
 		if len(result.Error) > 0 {
 			continue
 		}
-		if result.API.API != nil && result.API.Kind == userconfig.RealtimeAPIKind {
+		if result.API != nil && result.API.Spec.Kind == userconfig.RealtimeAPIKind {
 			items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
 			break
 		}
