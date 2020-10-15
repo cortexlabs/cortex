@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import datetime
 import threading as td
 import multiprocessing as mp
 from typing import Any, Optional, Callable
@@ -73,6 +74,8 @@ class PythonClient:
         else:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
+            self._spec_local_model_names = self._spec_models.get_local_model_names()
+            self._local_model_ts = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
 
         self._multiple_processes = self._api_spec["predictor"]["processes_per_replica"] > 1
         self._caching_enabled = self._is_model_caching_enabled()
@@ -258,7 +261,9 @@ class PythonClient:
             with LockedModel(self._models, "r", model_name, model_version):
                 status, upstream_ts = self._models.has_model(model_name, model_version)
                 if status in ["not-available", "on-disk"] or (
-                    status != "not-available" and upstream_ts < current_upstream_ts
+                    status != "not-available"
+                    and upstream_ts < current_upstream_ts
+                    and not (status == "in-memory" and model_name in self._spec_local_model_names)
                 ):
                     update_model = True
                     raise WithBreak
@@ -273,8 +278,11 @@ class PythonClient:
                     status, upstream_ts = self._models.has_model(model_name, model_version)
 
                     # refresh disk model
-                    if status == "not-available" or (
-                        status in ["on-disk", "in-memory"] and upstream_ts < current_upstream_ts
+                    if model_name not in self._spec_local_model_names and (
+                        status == "not-available"
+                        or (
+                            status in ["on-disk", "in-memory"] and upstream_ts < current_upstream_ts
+                        )
                     ):
                         if status == "not-available":
                             logger().info(
@@ -314,6 +322,10 @@ class PythonClient:
                         if not date:
                             raise WithBreak
                         current_upstream_ts = date.timestamp()
+
+                    # give the local model a timestamp initialized at start time
+                    if model_name in self._spec_local_model_names:
+                        current_upstream_ts = self._local_model_ts
 
                     # load model
                     try:

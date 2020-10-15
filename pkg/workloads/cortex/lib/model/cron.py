@@ -1176,7 +1176,7 @@ class TFSModelLoader(mp.Process):
         _s3_timestamps: List[List[datetime.datetime]],
         _s3_model_names: List[str],
         _s3_versions: Dict[str, List[str]],
-    ) -> Optional[Dict[str, int]]:
+    ) -> Optional[int]:
 
         # to prevent overwriting mistakes
         s3_timestamps = copy.deepcopy(_s3_timestamps)
@@ -1350,8 +1350,10 @@ class TFSAPIServingThreadUpdater(AbstractLoopingThread):
 
         non_intersecting_model_ids = set(models.keys()).symmetric_difference(timestamps.keys())
         for non_intersecting_model_id in non_intersecting_model_ids:
-            del models[non_intersecting_model_id]
-            del timestamps[non_intersecting_model_id]
+            if non_intersecting_model_id in models:
+                del models[non_intersecting_model_id]
+            if non_intersecting_model_id in timestamps:
+                del timestamps[non_intersecting_model_id]
 
         for model_id in timestamps.keys():
             models[model_id]["timestamp"] = timestamps[model_id]
