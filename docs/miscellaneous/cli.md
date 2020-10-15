@@ -148,12 +148,14 @@ Usage:
   cortex cluster configure [flags]
 
 Flags:
-  -c, --config string       path to a cluster configuration file
-      --aws-key string      aws access key id
-      --aws-secret string   aws secret access key
-  -e, --env string          environment to update (default "aws")
-  -y, --yes                 skip prompts
-  -h, --help                help for configure
+  -c, --config string               path to a cluster configuration file
+      --aws-key string              aws access key id
+      --aws-secret string           aws secret access key
+      --cluster-aws-key string      aws access key id to be used by the cluster
+      --cluster-aws-secret string   aws secret access key to be used by the cluster
+  -e, --env string                  environment to update (default "aws")
+  -y, --yes                         skip prompts
+  -h, --help                        help for configure
 ```
 
 ### cluster export
@@ -213,7 +215,8 @@ Usage:
   cortex env list [flags]
 
 Flags:
-  -h, --help   help for list
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for list
 ```
 
 ### env default

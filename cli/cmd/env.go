@@ -18,9 +18,12 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -45,6 +48,7 @@ func envInit() {
 	_envCmd.AddCommand(_envConfigureCmd)
 
 	_envListCmd.Flags().SortFlags = false
+	_envListCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 	_envCmd.AddCommand(_envListCmd)
 
 	_envDefaultCmd.Flags().SortFlags = false
@@ -123,6 +127,15 @@ var _envListCmd = &cobra.Command{
 		cliConfig, err := readCLIConfig()
 		if err != nil {
 			exit.Error(err)
+		}
+
+		if _flagOutput == flags.JSONOutputType {
+			bytes, err := libjson.Marshal(cliConfig.Environments)
+			if err != nil {
+				exit.Error(err)
+			}
+			fmt.Println(string(bytes))
+			return
 		}
 
 		defaultEnv := getDefaultEnv(_generalCommandType)
