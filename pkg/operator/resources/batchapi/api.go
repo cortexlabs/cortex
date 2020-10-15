@@ -169,8 +169,8 @@ func deleteS3Resources(apiName string) error {
 }
 
 // Returns all batch apis, for each API returning the most recently submitted job and all running jobs
-func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.BatchAPI, error) {
-	batchAPIsMap := map[string]*schema.BatchAPI{}
+func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.APIResponse, error) {
+	batchAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
 	for _, job := range k8sJobs {
@@ -210,7 +210,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 
-		batchAPIsMap[apiName] = &schema.BatchAPI{
+		batchAPIsMap[apiName] = &schema.APIResponse{
 			Spec:        *api,
 			Endpoint:    endpoint,
 			JobStatuses: jobStatuses,
@@ -245,7 +245,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 	}
 
-	batchAPIList := make([]schema.BatchAPI, 0, len(batchAPIsMap))
+	batchAPIList := make([]schema.APIResponse, 0, len(batchAPIsMap))
 
 	for _, batchAPI := range batchAPIsMap {
 		batchAPIList = append(batchAPIList, *batchAPI)
@@ -254,7 +254,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	return batchAPIList, nil
 }
 
-func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
+func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	virtualService := deployedResource.VirtualService
 
 	apiID := virtualService.Labels["apiID"]
@@ -328,8 +328,8 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 		}
 	}
 
-	return &schema.GetAPIResponse{
-		BatchAPI: &schema.BatchAPI{
+	return []schema.APIResponse{
+		{
 			Spec:        *api,
 			JobStatuses: jobStatuses,
 			Endpoint:    endpoint,

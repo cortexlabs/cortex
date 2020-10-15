@@ -30,39 +30,39 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-func GetAPIs() (schema.GetAPIsResponse, error) {
+func GetAPIs() ([]schema.APIResponse, error) {
 	_, err := docker.GetDockerClient()
 	if err != nil {
-		return schema.GetAPIsResponse{}, err
+		return nil, err
 	}
 
 	apiSpecList, err := ListAPISpecs()
 	if err != nil {
-		return schema.GetAPIsResponse{}, err
+		return nil, err
 	}
 
-	realtimeAPIs := make([]schema.RealtimeAPI, len(apiSpecList))
-	for i, apiSpec := range apiSpecList {
+	apiResponses := make([]schema.APIResponse, len(apiSpecList))
+	for i := range apiSpecList {
+		apiSpec := apiSpecList[i]
 		apiStatus, err := GetAPIStatus(&apiSpec)
 		if err != nil {
-			return schema.GetAPIsResponse{}, err
+			return nil, err
 		}
 
 		metrics, err := GetAPIMetrics(&apiSpec)
 		if err != nil {
-			return schema.GetAPIsResponse{}, err
+			return nil, err
 		}
 
-		realtimeAPIs[i] = schema.RealtimeAPI{
-			Spec:    apiSpec,
-			Status:  apiStatus,
-			Metrics: metrics,
+		apiResponses[i] = schema.APIResponse{
+			Spec:     apiSpec,
+			Status:   &apiStatus,
+			Metrics:  &metrics,
+			Endpoint: fmt.Sprintf("http://localhost:%d", *apiSpec.Networking.LocalPort),
 		}
 	}
 
-	return schema.GetAPIsResponse{
-		RealtimeAPIs: realtimeAPIs,
-	}, nil
+	return apiResponses, nil
 }
 
 func ListAPISpecs() ([]spec.API, error) {
@@ -127,48 +127,46 @@ func ListVersionMismatchedAPIs() ([]string, error) {
 	return apiNames, nil
 }
 
-func GetAPI(apiName string) (schema.GetAPIResponse, error) {
+func GetAPI(apiName string) ([]schema.APIResponse, error) {
 	_, err := docker.GetDockerClient()
 	if err != nil {
-		return schema.GetAPIResponse{}, err
+		return nil, err
 	}
 
 	apiSpec, err := FindAPISpec(apiName)
 	if err != nil {
-		return schema.GetAPIResponse{}, err
+		return nil, err
 	}
 
 	apiStatus, err := GetAPIStatus(apiSpec)
 	if err != nil {
-		return schema.GetAPIResponse{}, err
+		return nil, err
 	}
 
 	apiMetrics, err := GetAPIMetrics(apiSpec)
 	if err != nil {
-		return schema.GetAPIResponse{}, err
+		return nil, err
 	}
 
 	containers, err := GetContainersByAPI(apiName)
 	if err != nil {
-		return schema.GetAPIResponse{}, err
+		return nil, err
 	}
 
 	if len(containers) == 0 {
-		return schema.GetAPIResponse{}, ErrorAPIContainersNotFound(apiName)
+		return nil, ErrorAPIContainersNotFound(apiName)
 	}
 	apiContainer := containers[0]
 	if len(containers) == 2 && apiContainer.Labels["type"] != "api" {
 		apiContainer = containers[1]
 	}
 
-	apiPort := apiSpec.Networking.LocalPort
-
-	return schema.GetAPIResponse{
-		RealtimeAPI: &schema.RealtimeAPI{
+	return []schema.APIResponse{
+		{
 			Spec:     *apiSpec,
-			Status:   apiStatus,
-			Metrics:  apiMetrics,
-			Endpoint: fmt.Sprintf("http://localhost:%d", *apiPort),
+			Status:   &apiStatus,
+			Metrics:  &apiMetrics,
+			Endpoint: fmt.Sprintf("http://localhost:%d", *apiSpec.Networking.LocalPort),
 		},
 	}, nil
 }

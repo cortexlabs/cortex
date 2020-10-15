@@ -60,16 +60,16 @@ func getReadyRealtimeAPIReplicasOrNil(operatorConfig OperatorConfig, apiName str
 		return nil
 	}
 
-	var apiRes schema.GetAPIResponse
+	var apiRes schema.APIResponse
 	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
 		return nil
 	}
 
-	if apiRes.RealtimeAPI == nil {
+	if apiRes.Status == nil {
 		return nil
 	}
 
-	totalReady := apiRes.RealtimeAPI.Status.Updated.Ready + apiRes.RealtimeAPI.Status.Stale.Ready
+	totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
 	return &totalReady
 }
 

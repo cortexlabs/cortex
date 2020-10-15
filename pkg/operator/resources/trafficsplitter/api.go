@@ -141,10 +141,10 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 	return destinations
 }
 
-func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.TrafficSplitter, error) {
+func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
 	apiNames := []string{}
 	apiIDs := []string{}
-	trafficSplitters := []schema.TrafficSplitter{}
+	trafficSplitters := []schema.APIResponse{}
 
 	for _, virtualService := range virtualServices {
 		if virtualService.Labels["apiKind"] == userconfig.TrafficSplitterKind.String() {
@@ -164,7 +164,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 			return nil, err
 		}
 
-		trafficSplitters = append(trafficSplitters, schema.TrafficSplitter{
+		trafficSplitters = append(trafficSplitters, schema.APIResponse{
 			Spec:     trafficSplitter,
 			Endpoint: endpoint,
 		})
@@ -173,7 +173,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 	return trafficSplitters, nil
 }
 
-func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIResponse, error) {
+func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.VirtualService.Labels["apiID"])
 	if err != nil {
 		return nil, err
@@ -184,8 +184,8 @@ func GetAPIByName(deployedResource *operator.DeployedResource) (*schema.GetAPIRe
 		return nil, err
 	}
 
-	return &schema.GetAPIResponse{
-		TrafficSplitter: &schema.TrafficSplitter{
+	return []schema.APIResponse{
+		{
 			Spec:     *api,
 			Endpoint: endpoint,
 		},

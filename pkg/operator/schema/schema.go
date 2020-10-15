@@ -42,48 +42,22 @@ type NodeInfo struct {
 	ComputeUserRequested userconfig.Compute `json:"compute_user_requested"` // total resources requested by user on a node
 }
 
-type DeployResponse struct {
-	Results []DeployResult `json:"results"`
-}
-
 type DeployResult struct {
-	API     *spec.API
-	Message string
-	Error   string
+	API     *APIResponse `json:"api"`
+	Message string       `json:"message"`
+	Error   string       `json:"error"`
 }
 
-type GetAPIsResponse struct {
-	RealtimeAPIs     []RealtimeAPI     `json:"realtime_apis"`
-	BatchAPIs        []BatchAPI        `json:"batch_apis"`
-	TrafficSplitters []TrafficSplitter `json:"traffic_splitters"`
+type APIResponse struct {
+	Spec         spec.API           `json:"spec"`
+	Status       *status.Status     `json:"status,omitempty"`
+	Metrics      *metrics.Metrics   `json:"metrics,omitempty"`
+	Endpoint     string             `json:"endpoint"`
+	DashboardURL *string            `json:"dashboard_url,omitempty"`
+	JobStatuses  []status.JobStatus `json:"job_statuses,omitempty"`
 }
 
-type RealtimeAPI struct {
-	Spec         spec.API        `json:"spec"`
-	Status       status.Status   `json:"status"`
-	Metrics      metrics.Metrics `json:"metrics"`
-	Endpoint     string          `json:"endpoint"`
-	DashboardURL string          `json:"dashboard_url"`
-}
-
-type TrafficSplitter struct {
-	Spec     spec.API `json:"spec"`
-	Endpoint string   `json:"endpoint"`
-}
-
-type GetAPIResponse struct {
-	RealtimeAPI     *RealtimeAPI     `json:"realtime_api"`
-	BatchAPI        *BatchAPI        `json:"batch_api"`
-	TrafficSplitter *TrafficSplitter `json:"traffic_splitter"`
-}
-
-type BatchAPI struct {
-	Spec        spec.API           `json:"spec"`
-	JobStatuses []status.JobStatus `json:"job_statuses"`
-	Endpoint    string             `json:"endpoint"`
-}
-
-type GetJobResponse struct {
+type JobResponse struct {
 	APISpec   spec.API         `json:"api_spec"`
 	JobStatus status.JobStatus `json:"job_status"`
 	Endpoint  string           `json:"endpoint"`

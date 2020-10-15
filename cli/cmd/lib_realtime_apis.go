@@ -41,10 +41,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment) (string, error) {
+func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment) (string, error) {
 	var out string
 
-	t := realtimeAPIsTable([]schema.RealtimeAPI{*realtimeAPI}, []string{env.Name})
+	t := realtimeAPIsTable([]schema.APIResponse{realtimeAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 	t.FindHeaderByTitle(_titleRealtimeAPI).Hidden = true
 	if env.Provider == types.LocalProviderType {
@@ -56,14 +56,14 @@ func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment
 	if env.Provider != types.LocalProviderType && realtimeAPI.Spec.Monitoring != nil {
 		switch realtimeAPI.Spec.Monitoring.ModelType {
 		case userconfig.ClassificationModelType:
-			out += "\n" + classificationMetricsStr(&realtimeAPI.Metrics)
+			out += "\n" + classificationMetricsStr(realtimeAPI.Metrics)
 		case userconfig.RegressionModelType:
-			out += "\n" + regressionMetricsStr(&realtimeAPI.Metrics)
+			out += "\n" + regressionMetricsStr(realtimeAPI.Metrics)
 		}
 	}
 
-	if realtimeAPI.DashboardURL != "" {
-		out += "\n" + console.Bold("metrics dashboard: ") + realtimeAPI.DashboardURL + "\n"
+	if realtimeAPI.DashboardURL != nil {
+		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
 	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint
@@ -71,7 +71,7 @@ func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), realtimeAPI.Endpoint)
 
 	if realtimeAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || realtimeAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(&realtimeAPI.Status, realtimeAPI.Endpoint)
+		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Endpoint)
 	}
 
 	out += titleStr("configuration") + strings.TrimSpace(realtimeAPI.Spec.UserStr(env.Provider))
@@ -79,7 +79,7 @@ func realtimeAPITable(realtimeAPI *schema.RealtimeAPI, env cliconfig.Environment
 	return out, nil
 }
 
-func realtimeAPIsTable(realtimeAPIs []schema.RealtimeAPI, envNames []string) table.Table {
+func realtimeAPIsTable(realtimeAPIs []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(realtimeAPIs))
 
 	var totalFailed int32
@@ -98,10 +98,10 @@ func realtimeAPIsTable(realtimeAPIs []schema.RealtimeAPI, envNames []string) tab
 			realtimeAPI.Status.Requested,
 			realtimeAPI.Status.Updated.TotalFailed(),
 			libtime.SinceStr(&lastUpdated),
-			latencyStr(&realtimeAPI.Metrics),
-			code2XXStr(&realtimeAPI.Metrics),
-			code4XXStr(&realtimeAPI.Metrics),
-			code5XXStr(&realtimeAPI.Metrics),
+			latencyStr(realtimeAPI.Metrics),
+			code2XXStr(realtimeAPI.Metrics),
+			code4XXStr(realtimeAPI.Metrics),
+			code5XXStr(realtimeAPI.Metrics),
 		})
 
 		totalFailed += realtimeAPI.Status.Updated.TotalFailed()

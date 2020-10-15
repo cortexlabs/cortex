@@ -73,7 +73,7 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 	}, nil
 }
 
-func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) (*schema.DeployResponse, error) {
+func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) ([]schema.DeployResult, error) {
 	projectID := hash.Bytes(projectBytes)
 	projectKey := spec.ProjectKey(projectID, config.Cluster.ClusterName)
 	projectFileMap, err := archive.UnzipMemToMem(projectBytes)
@@ -110,23 +110,27 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	// This is done if user specifies RealtimeAPIs in same file as TrafficSplitter
 	apiConfigs = append(ExclusiveFilterAPIsByKind(apiConfigs, userconfig.TrafficSplitterKind), InclusiveFilterAPIsByKind(apiConfigs, userconfig.TrafficSplitterKind)...)
 
-	results := make([]schema.DeployResult, len(apiConfigs))
-	for i, apiConfig := range apiConfigs {
+	results := make([]schema.DeployResult, 0, len(apiConfigs))
+	for i := range apiConfigs {
+		apiConfig := apiConfigs[i]
 		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
-		results[i].Message = msg
-		if err != nil {
-			results[i].Error = errors.ErrorStr(err)
-		} else {
-			results[i].API = api
+
+		result := schema.DeployResult{
+			Message: msg,
+			API:     api,
 		}
+
+		if err != nil {
+			result.Error = errors.ErrorStr(err)
+		}
+
+		results = append(results, result)
 	}
 
-	return &schema.DeployResponse{
-		Results: results,
-	}, nil
+	return results, nil
 }
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema.APIResponse, string, error) {
 	deployedResource, err := GetDeployedResourceByNameOrNil(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
@@ -136,16 +140,29 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
+	var api *spec.API
+	var msg string
 	switch apiConfig.Kind {
 	case userconfig.RealtimeAPIKind:
-		return realtimeapi.UpdateAPI(apiConfig, projectID, force)
+		api, msg, err = realtimeapi.UpdateAPI(apiConfig, projectID, force)
 	case userconfig.BatchAPIKind:
-		return batchapi.UpdateAPI(apiConfig, projectID)
+		api, msg, err = batchapi.UpdateAPI(apiConfig, projectID)
 	case userconfig.TrafficSplitterKind:
-		return trafficsplitter.UpdateAPI(apiConfig, force)
+		api, msg, err = trafficsplitter.UpdateAPI(apiConfig, force)
 	default:
 		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
+
+	if err == nil && api != nil {
+		apiEndpoint, _ := operator.APIEndpoint(api)
+
+		return &schema.APIResponse{
+			Spec:     *api,
+			Endpoint: apiEndpoint,
+		}, msg, nil
+	}
+
+	return nil, msg, err
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
@@ -217,7 +234,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	}, nil
 }
 
-func GetAPIs() (*schema.GetAPIsResponse, error) {
+func GetAPIs() ([]schema.APIResponse, error) {
 	var deployments []kapps.Deployment
 	var k8sJobs []kbatch.Job
 	var pods []kcore.Pod
@@ -286,14 +303,17 @@ func GetAPIs() (*schema.GetAPIsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &schema.GetAPIsResponse{
-		BatchAPIs:        batchAPIList,
-		RealtimeAPIs:     realtimeAPIList,
-		TrafficSplitters: trafficSplitterList,
-	}, nil
+
+	response := make([]schema.APIResponse, 0, len(realtimeAPIList)+len(batchAPIList)+len(trafficSplitterList))
+
+	response = append(response, realtimeAPIList...)
+	response = append(response, batchAPIList...)
+	response = append(response, trafficSplitterList...)
+
+	return response, nil
 }
 
-func GetAPI(apiName string) (*schema.GetAPIResponse, error) {
+func GetAPI(apiName string) ([]schema.APIResponse, error) {
 	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
 		return nil, err
