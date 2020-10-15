@@ -365,7 +365,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         else:
             return None
 
-        for local_model_name, idx in enumerate(self._local_model_names):
+        for idx, local_model_name in enumerate(self._local_model_names):
             versions = self._spec_models[local_model_name]["versions"]
             if len(versions) == 0:
                 resource = os.path.join(self._lock_dir, local_model_name + "-" + "1" + ".txt")
@@ -381,12 +381,12 @@ class FileBasedModelsTreeUpdater(mp.Process):
             message += f"{local_model_name} "
             if len(versions) == 1:
                 message += f"(version {versions[0]})"
-            else:
+            elif len(versions) > 1:
                 message += f"(versions {','.join(versions)})"
             if idx + 1 < len(self._local_model_names):
                 message += ", "
             else:
-                message += "have been made available on disk"
+                message += "now available on disk"
 
         logger().info(message)
 
