@@ -18,6 +18,7 @@ import sys
 import subprocess
 from typing import List, Optional, Tuple, Callable
 from io import BytesIO
+from cortex.exceptions import CortexBinaryException
 
 
 def run():
@@ -32,7 +33,6 @@ def run():
 def run_cli(
     args: List[str],
     cwd: Optional[str] = None,
-    stdout_iterator: Callable[[str], bool] = None,
     hide_output: bool = False,
 ) -> Tuple[int, str]:
     output = ""
@@ -41,7 +41,6 @@ def run_cli(
         cwd=cwd,
         stderr=subprocess.STDOUT,
         stdout=subprocess.PIPE,
-        text=True,
         encoding="utf8",
     )
 
@@ -49,12 +48,6 @@ def run_cli(
         output += c
         if not hide_output:
             sys.stdout.write(c)
-
-        if stdout_iterator is not None:
-            should_continue = stdout_iterator(c)
-            if not should_continue:
-                process.terminate()
-                break
 
     process.wait()
 
@@ -66,8 +59,8 @@ def run_cli(
         for i in reversed(range(len(output_split))):
             line = output_split[i]
             if line.startswith("error: "):
-                raise CortexClientException(line)
-        raise CortexClientException(output)
+                raise CortexBinaryException(line)
+        raise CortexBinaryException(output)
 
     return process.returncode, output
 
@@ -87,7 +80,3 @@ def get_cli_path() -> str:
             f"unable to find cortex binary at {cli_path}, please reinstall the cortex client using `pip uninstall cortex` and then `pip install cortex`"
         )
     return cli_path
-
-
-class CortexClientException(Exception):
-    pass

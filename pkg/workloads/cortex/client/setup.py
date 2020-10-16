@@ -14,10 +14,11 @@
 
 from setuptools import setup, find_packages
 from setuptools.command.install import install
+
 import sys
 
 
-class CustomInstallCommand(install):
+class InstallBinary(install):
     def run(self):
         install.run(self)
 
@@ -26,16 +27,6 @@ class CustomInstallCommand(install):
         import sys
         import os
         import stat
-
-        # for development purposes
-        if os.environ.get("CORTEX_CLI_PATH") is not None:
-            print("skipping cli download because environment variable `CORTEX_CLI_PATH` is set")
-            return
-
-        if os.path.exists("/usr/local/bin/cortex"):
-            raise Exception(
-                "it appears that a cortex binary is already installed on this machine using other means; please delete with `sudo rm /usr/local/bin/cortex` to avoid conflicts"
-            )
 
         dest_path = os.path.join(self.install_lib, "cortex", "binary", "cli")
 
@@ -46,6 +37,9 @@ class CustomInstallCommand(install):
                 raise Exception("cortex is only on mac and linux")
 
             cortex_version = self.config_vars["dist_version"]
+
+            if "dev" in cortex_version:
+                cortex_version = "master"
 
             download_url = f"https://s3-us-west-2.amazonaws.com/get-cortex/{cortex_version}/cli/{platform}/cortex"
 
@@ -59,11 +53,14 @@ class CustomInstallCommand(install):
 
 setup(
     name="cortex",
-    version="master",  # CORTEX_VERSION
-    description="",
-    author="Cortex Labs",
+    version="0.20.0.dev3",  # CORTEX_VERSION
+    description="Model serving at scale",
+    author="cortex.dev",
     author_email="dev@cortexlabs.com",
-    install_requires=["dill>=0.3.0", "requests>=2.20.0", "msgpack>=0.6.0"],
+    license="Apache License 2.0",
+    long_description_content_type="text/markdown",
+    long_description=open("README.md").read(),
+    url="https://github.com/cortexlabs/cortex",
     setup_requires=(["setuptools"]),
     packages=find_packages(),
     package_data={"cortex.binary": ["cli"]},
@@ -72,8 +69,22 @@ setup(
             "cortex = cortex.binary:run",
         ],
     },
+    python_requires=">=3.6.1",
     cmdclass={
-        "install": CustomInstallCommand,
+        "install": InstallBinary,
     },
-    # include_package_data=True,
+    classifiers=[
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Intended Audience :: Developers",
+    ],
+    project_urls={
+        "Bug Reports": "https://github.com/cortexlabs/cortex/issues",
+        "Chat with us": "https://gitter.im/cortexlabs/cortex",
+        "Documentation": "https://docs.cortex.dev",
+        "Source Code": "https://github.com/cortexlabs/cortex",
+    },
 )

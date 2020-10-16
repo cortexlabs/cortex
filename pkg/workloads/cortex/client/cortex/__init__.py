@@ -12,4 +12,128 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex.client import *
+from typing import List, Dict, Optional, Tuple, Callable, Union
+import json
+
+from cortex.client import Client
+from cortex.binary import run_cli
+from cortex.exceptions import NotFound
+
+
+def client(env: str):
+    """
+    Initialize a client based on the specified environment.
+
+    Args:
+        env: Name of the environment to use to initialize the Cortex client.
+
+    Returns:
+        Cortex client that can be used to deploy and manage APIs in the specified environment.
+    """
+    environments = env_list()
+
+    found = False
+
+    for environment in environments:
+        if environment["name"] == env:
+            found = True
+
+    if not found:
+        raise NotFound(f"can't find environment {env}, create one by calling `new_cluster_client`")
+
+    return Client(env)
+
+
+def local_client(
+    aws_access_key_id: Optional[str] = None,
+    aws_secret_access_key: Optional[str] = None,
+    aws_region: Optional[str] = None,
+) -> Client:
+    """
+    Initialize a client to deploy and manage APIs locally.
+    The specified AWS credentials will used to download models from S3, authenticate to ECR and be passed in to your local API deployments.
+
+    Args:
+        aws_access_key_id: AWS Credentials that will be used for authentication.
+        aws_secret_access_key: AWS Credentials that will be used for authentication.
+        aws_region: AWS region.
+
+    Returns:
+        Cortex client that can be used to deploy and manage APIs locally.
+    """
+    args = [
+        "env",
+        "configure",
+        "--provider",
+        "local",
+    ]
+
+    if aws_region is not None:
+        args += ["--aws-region", aws_region]
+
+    if aws_access_key_id is not None:
+        args += ["--aws-access-key-id", aws_access_key_id]
+
+    if aws_secret_access_key is not None:
+        args += ["--aws-secret-access-key", aws_secret_access_key]
+
+    print(args)
+
+    run_cli(args, hide_output=True)
+
+    return Client("local")
+
+
+def new_cluster_client(
+    name: str,
+    operator_endpoint: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+) -> Client:
+    """
+    Create a new Initialize a client to deploy and manage APIs on a Cortex cluster.
+
+    Args:
+        name: Name of the environment to create.
+        operator_endpoint: The endpoint for the operator of your Cortex Cluster. You can get this endpoint using the Cortex CLI command `cortex cluster info -c cluster.yaml`.
+        aws_access_key_id: AWS Credentials that will be used for authentication.
+        aws_secret_access_key: AWS Credentials that will be used for authentication.
+
+    Returns:
+        Cortex client that can be used to deploy and manage APIs on a Cortex Cluster.
+    """
+    run_cli(
+        [
+            "env",
+            "configure",
+            name,
+            "--provider",
+            "aws",
+            "--operator-endpoint",
+            operator_endpoint,
+            "--aws-access-key-id",
+            aws_access_key_id,
+            "--aws-secret-access-key",
+            aws_secret_access_key,
+        ],
+        hide_output=True,
+    )
+
+    return Client(name)
+
+
+def env_list() -> list:
+    """
+    List all environments configured on this machine.
+    """
+    _, output = run_cli(["env", "list", "--output", "json"], hide_output=True)
+    return json.loads(output)
+
+
+def env_delete(name: str):
+    """
+    Delete an environment configured on this machine.
+    Args:
+        name (str): Name of the environment to delete.
+    """
+    run_cli(["env", "delete", name], hide_output=True)
