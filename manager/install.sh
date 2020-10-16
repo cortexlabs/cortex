@@ -356,6 +356,7 @@ function create_vpc_link() {
   fi
 }
 
+# must be called after create_vpc_link() since $vpc_link_id is reused
 function create_vpc_link_integration() {
   echo -n "￮ creating api gateway vpc link integration "
   api_id=$(python get_api_gateway_id.py)
