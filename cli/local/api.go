@@ -129,7 +129,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 func toAPIResponse(api *spec.API) *schema.APIResponse {
 	return &schema.APIResponse{
 		Spec:     *api,
-		Endpoint: fmt.Sprintf("http://localhost:%d", api.Networking.LocalPort),
+		Endpoint: fmt.Sprintf("http://localhost:%d", *api.Networking.LocalPort),
 	}
 }
 
