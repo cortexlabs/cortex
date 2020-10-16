@@ -41,6 +41,7 @@ from cortex.lib.type import (
 
 from cortex.lib.model import (
     TensorFlowServingAPI,
+    TensorFlowServingAPIClones,
     validate_models_dir_paths,
     validate_model_paths,
     ModelsHolder,
@@ -796,9 +797,10 @@ class TFSModelLoader(mp.Process):
         self,
         interval: int,
         api_spec: dict,
-        address: str,
         tfs_model_dir: str,
         download_dir: str,
+        address: Optional[str] = None,
+        addresses: Optional[List[str]] = None,
         temp_dir: str = "/tmp/cron",
         lock_dir: str = "/run/cron",
     ):
@@ -813,15 +815,26 @@ class TFSModelLoader(mp.Process):
             lock_dir: Directory in which model timestamps are stored.
         """
 
+        if address and addresses:
+            raise ValueError("address and addresses arguments cannot be passed in at the same time")
+        if not address and not addresses:
+            raise ValueError("must pass in at least one of the two arguments: address or addresses")
+
         mp.Process.__init__(self, daemon=True)
 
         self._interval = interval
         self._api_spec = api_spec
-        self._tfs_address = address
         self._tfs_model_dir = tfs_model_dir
         self._download_dir = download_dir
         self._temp_dir = temp_dir
         self._lock_dir = lock_dir
+
+        if address:
+            self._tfs_address = address
+            self._tfs_addresses = None
+        else:
+            self._tfs_address = None
+            self._tfs_addresses = addresses
 
         self._s3_paths = []
         self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
@@ -862,7 +875,11 @@ class TFSModelLoader(mp.Process):
         """
 
         self._old_ts_state = {}
-        self._client = TensorFlowServingAPI(self._tfs_address)
+
+        if self._tfs_address:
+            self._client = TensorFlowServingAPI(self._tfs_address)
+        else:
+            self._client = TensorFlowServingAPIClones(self._tfs_addresses)
 
         # wait until TFS is responsive
         while not self._client.is_tfs_accessible():
@@ -1175,7 +1192,7 @@ class TFSModelLoader(mp.Process):
     def _update_tfs_model(
         self,
         model_name: str,
-        model_versions: str,
+        model_versions: List[str],
         _s3_timestamps: List[List[datetime.datetime]],
         _s3_model_names: List[str],
         _s3_versions: Dict[str, List[str]],
@@ -1192,8 +1209,13 @@ class TFSModelLoader(mp.Process):
         model_timestamps = s3_timestamps[s3_model_names.index(model_name)]
         filtered_model_versions = []
         for idx, model_ts in enumerate(model_timestamps):
+            if len(s3_versions[model_name]) == 0:
+                filtered_model_versions.append("1")
+                continue
             if s3_versions[model_name][idx] in model_versions:
                 filtered_model_versions.append(s3_versions[model_name][idx])
+
+        print("ziped versions and ts", list(zip(filtered_model_versions, model_timestamps)))
 
         for model_version, model_ts in zip(filtered_model_versions, model_timestamps):
             model_ts = int(model_ts.timestamp())
@@ -1310,7 +1332,10 @@ class TFSModelLoader(mp.Process):
     def _reset_when_tfs_unresponsive(self):
         logger().warning("TFS server is unresponsive")
 
-        self._client = TensorFlowServingAPI(self._tfs_address)
+        if self._tfs_address:
+            self._client = TensorFlowServingAPI(self._tfs_address)
+        else:
+            self._client = TensorFlowServingAPIClones(self._tfs_addresses)
 
         resource = os.path.join(self._lock_dir, "models_tfs.json")
         with LockedFile(resource, "w") as f:

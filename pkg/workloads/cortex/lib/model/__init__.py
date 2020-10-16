@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from cortex.lib.model.model import ModelsHolder, LockedGlobalModelsGC, LockedModel, ids_to_models
-from cortex.lib.model.tfs import TensorFlowServingAPI
+from cortex.lib.model.tfs import TensorFlowServingAPI, TensorFlowServingAPIClones
 from cortex.lib.model.tree import ModelsTree, LockedModelsTree
 from cortex.lib.model.type import CuratedModelResources
 from cortex.lib.model.validation import (

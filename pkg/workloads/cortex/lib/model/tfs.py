@@ -663,3 +663,154 @@ class TensorFlowServingAPI:
                     ) from e
 
         return prediction_request
+
+
+class TensorFlowServingAPIClones:
+    """
+    TFS API to load/unload models from multiple TFS server clones. Built on top of TensorFlowServingAPI.
+    """
+
+    def __init__(self, addresses: List[str]):
+        """
+        Args:
+            addresses: A list of addresses with the "host:port" format.
+        """
+
+        if len(addresses) == 0:
+            raise ValueError("addresses list must have at least one address")
+        self._clients = [TensorFlowServingAPI(address) for address in addresses]
+
+    def is_tfs_accessible(self) -> bool:
+        """
+        Tests whether all TFS servers are accessible or not.
+        """
+        return False not in [client.is_tfs_accessible() for client in self._clients]
+
+    def add_single_model(
+        self,
+        model_name: str,
+        model_version: str,
+        model_disk_path: str,
+        signature_key: Optional[str] = None,
+        timeout: Optional[float] = None,
+        max_retries: int = 0,
+    ) -> None:
+        """
+        Wrapper for add_models method.
+        """
+        for client in self._clients:
+            client.add_single_model(
+                model_name, model_version, model_disk_path, signature_key, timeout, max_retries
+            )
+
+    def remove_single_model(
+        self,
+        model_name: str,
+        model_version: str,
+        timeout: Optional[float] = None,
+    ) -> None:
+        """
+        Wrapper for remove_models method.
+        """
+        for client in self._clients:
+            client.remove_single_model(model_name, model_version, timeout)
+
+    def add_models(
+        self,
+        model_names: List[str],
+        model_versions: List[List[str]],
+        model_disk_paths: List[str],
+        signature_keys: List[Optional[str]],
+        skip_if_present: bool = False,
+        timeout: Optional[float] = None,
+        max_retries: int = 0,
+    ) -> None:
+        """
+        Add the same models to multiple TFS servers. If they can't be loaded, use remove_models to remove them from TFS.
+
+        Args:
+            model_names: List of model names to add.
+            model_versions: List of lists - each element is a list of versions for a given model name.
+            model_disk_paths: The common model disk path of multiple versioned models of the same model name (i.e. modelA/ for modelA/1 and modelA/2).
+            skip_if_present: If the models are already loaded, don't make a new request to TFS.
+            signature_keys: The signature keys as set in cortex.yaml. If an element is set to None, then "predict" key will be assumed.
+            max_retries: How many times to call ReloadConfig before giving up.
+        Raises:
+            grpc.RpcError in case something bad happens while communicating.
+                StatusCode.DEADLINE_EXCEEDED when timeout is encountered. StatusCode.UNAVAILABLE when the service is unreachable.
+            cortex.lib.exceptions.CortexException if a non-0 response code is returned (i.e. model couldn't be loaded).
+            cortex.lib.exceptions.UserException when a model couldn't be validated for the signature def.
+        """
+        for client in self._clients:
+            client.add_models(
+                model_names,
+                model_versions,
+                model_disk_paths,
+                signature_keys,
+                skip_if_present,
+                timeout,
+                max_retries,
+            )
+
+    def remove_models(
+        self,
+        model_names: List[str],
+        model_versions: List[List[str]],
+        timeout: Optional[float] = None,
+    ) -> None:
+        """
+        Remove the same models from multiple TFS servers.
+
+        Args:
+            model_names: List of model names to add.
+            model_versions: List of lists - each element is a list of versions for a given model name.
+        Raises:
+            grpc.RpcError in case something bad happens while communicating.
+                StatusCode.DEADLINE_EXCEEDED when timeout is encountered. StatusCode.UNAVAILABLE when the service is unreachable.
+            cortex.lib.exceptions.CortexException if a non-0 response code is returned (i.e. model couldn't be unloaded).
+        """
+        for client in self._clients:
+            client.remove_models(model_names, model_versions, timeout)
+
+    def refresh(self, timeout: Optional[float] = None) -> None:
+        """
+        Reloads existing models if they have changed on disk. Applicable to all TFS servers.
+
+        Note: doesn't appear to be reloading models that have changed on disk. Probably the best way is to
+        remove_single_model and then call add_single_model to reload a versioned model.
+
+        Raises:
+            grpc.RpcError in case something bad happens while communicating.
+                StatusCode.DEADLINE_EXCEEDED when timeout is encountered. StatusCode.UNAVAILABLE when the service is unreachable.
+            cortex.lib.exceptions.CortexException if a non-0 response code is returned (i.e. model couldn't be reloaded).
+        """
+        for client in self._clients:
+            client.refresh(timeout)
+
+    def poll_available_models(self, model_name: str) -> List[str]:
+        """
+        Gets the available model versions from TFS.
+        Since all TFS servers are assumed to have the same models in memory, it makes sense to just poll one.
+
+        Args:
+            model_name: The model name to check for versions.
+
+        Returns:
+            List of the available versions for the given model from TFS.
+        """
+
+        # iterate through all clients to make sure they are all online
+        for client in self._clients:
+            versions = client.poll_available_models(model_name)
+        return versions
+
+    def get_registered_model_ids(self) -> List[str]:
+        """
+        Get the registered model IDs (doesn't poll the TFS server).
+        Since all TFS servers are assumed to have the same models in memory, it makes sense to just poll one.
+        """
+        return self._clients[0].get_registered_model_ids()
+
+    @property
+    def models(self) -> dict:
+        return self._clients[0].models

@@ -33,17 +33,10 @@ from cortex.lib.api import get_spec
 from cortex.lib.checkers.pod import wait_neuron_rtd
 
 
-def load_tensorflow_serving_models():
+def prepare_tfs_servers_api(api_spec: dict, model_dir: str) -> TFSModelLoader:
     # get TFS address-specific details
-    model_dir = os.environ["CORTEX_MODEL_DIR"]
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
     tf_base_serving_port = int(os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000"))
-
-    # get models from environment variable
-    models = os.environ["CORTEX_MODELS"].split(",")
-    models = [model.strip() for model in models]
-
-    from cortex.lib.server.tensorflow import TensorFlowServing
 
     # determine if multiple TF processes are required
     num_processes = 1
@@ -52,10 +45,25 @@ def load_tensorflow_serving_models():
         num_processes = int(os.environ["CORTEX_PROCESSES_PER_REPLICA"])
 
     # initialize models for each TF process
-    base_paths = [os.path.join(model_dir, name) for name in models]
+    addresses = []
     for w in range(int(num_processes)):
-        tfs = TensorFlowServing(f"{tf_serving_host}:{tf_base_serving_port+w}")
-        tfs.add_models_config(models, base_paths, replace_models=False)
+        addresses.append(f"{tf_serving_host}:{tf_base_serving_port+w}")
+
+    if len(addresses) == 1:
+        return TFSModelLoader(
+            interval=10,
+            api_spec=api_spec,
+            address=addresses[0],
+            tfs_model_dir=model_dir,
+            download_dir=model_dir,
+        )
+    return TFSModelLoader(
+        interval=10,
+        api_spec=api_spec,
+        addresses=addresses,
+        tfs_model_dir=model_dir,
+        download_dir=model_dir,
+    )
 
 
 def are_models_specified(api_spec: dict) -> bool:
@@ -95,9 +103,9 @@ def main():
 
     # strictly for Inferentia
     has_multiple_tf_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
+    num_processes = int(os.environ["CORTEX_PROCESSES_PER_REPLICA"])
     if has_multiple_tf_servers:
         base_serving_port = int(os.environ["CORTEX_TF_BASE_SERVING_PORT"])
-        num_processes = int(os.environ["CORTEX_PROCESSES_PER_REPLICA"])
         used_ports = {}
         for w in range(int(num_processes)):
             used_ports[str(base_serving_port + w)] = False
@@ -151,12 +159,22 @@ def main():
         )
         cron.start()
     elif not caching_enabled and predictor_type == TensorFlowNeuronPredictorType:
-        load_tensorflow_serving_models()
+        cron = prepare_tfs_servers_api(api_spec, model_dir)
+        cron.start()
 
     # wait until the cron finishes its first pass
     if cron:
         while not cron.ran_once():
             time.sleep(0.25)
+
+        # disable live reloading for the TF predictor when Inferentia is used and when multiple processes are used
+        if (
+            not caching_enabled
+            and predictor_type == TensorFlowNeuronPredictorType
+            and has_multiple_tf_servers
+            and num_processes
+        ):
+            cron.stop()
 
     if api_spec["kind"] == "RealtimeAPI":
         # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
