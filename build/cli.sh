@@ -36,6 +36,10 @@ function build_and_upload() {
   if [ "$upload" == "true" ]; then
     echo "Uploading Cortex CLI to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex"
     aws s3 cp cortex s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex --only-show-errors
+
+    zip cortex.zip cortex
+    echo "Uploading zipped Cortex CLI to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex.zip"
+    aws s3 cp cortex.zip s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/cli/$os/cortex.zip --only-show-errors
   fi
   echo "Done ✓"
   rm cortex
