@@ -184,7 +184,6 @@ class TensorFlowClient:
             models_stats = []
             for model_id in self._models.get_model_ids():
                 models_stats = self._models.has_model_id(model_id)
-            print("model stats", models_stats)
 
             # grab shared access to model tree
             available_model = True

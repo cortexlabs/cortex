@@ -448,7 +448,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     f.write("not available")
             shutil.rmtree(os.path.join(self._download_dir, model_name))
 
-        print("cron FileBasedModelsTreeUpdater heartbeat")
+        logger().debug(f"{self.__class__.__name__} cron heartbeat")
 
     def _refresh_model(
         self,
@@ -648,12 +648,7 @@ class FileBasedModelsGC(AbstractLoopingThread):
         on_disk_model_ids = find_ondisk_model_ids_with_lock(self._lock_dir)
         in_memory_model_ids = self._models.get_model_ids()
 
-        print(
-            "cron FileBasedModelsGC heartbeat",
-            "|",
-            "present model IDS",
-            self._models.get_model_ids(),
-        )
+        logger().debug(f"{self.__class__.__name__} cron heartbeat")
 
         for in_memory_id in in_memory_model_ids:
             if in_memory_id not in on_disk_model_ids:
@@ -894,7 +889,7 @@ class TFSModelLoader(mp.Process):
             if not self._local_ran_once:
                 self._ran_once.set()
                 self._local_ran_once = True
-            print("cron TFSModelTreeUpdater heartbeat")
+            logger().debug(f"{self.__class__.__name__} cron heartbeat")
             time.sleep(self._interval)
         self._stopped.set()
 
@@ -1214,8 +1209,6 @@ class TFSModelLoader(mp.Process):
                 continue
             if s3_versions[model_name][idx] in model_versions:
                 filtered_model_versions.append(s3_versions[model_name][idx])
-
-        print("ziped versions and ts", list(zip(filtered_model_versions, model_timestamps)))
 
         for model_version, model_ts in zip(filtered_model_versions, model_timestamps):
             model_ts = int(model_ts.timestamp())
@@ -1692,7 +1685,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
             model_names, versions, model_paths, sub_paths, timestamps, bucket_names
         )
 
-        print("ModelTreeUpdater heartbeat", self._tree.models.keys())
+        logger().debug(f"{self.__class__.__name__} cron heartbeat")
 
 
 class ModelPreloader(AbstractLoopingThread):

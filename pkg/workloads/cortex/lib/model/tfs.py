@@ -222,7 +222,6 @@ class TensorFlowServingAPI:
         model_server_config.model_config_list.CopyFrom(config_list)
         request.config.CopyFrom(model_server_config)
 
-        print("timeout", timeout, "max_retries", max_retries)
         while max_retries >= 0:
             max_retries -= 1
             try:
