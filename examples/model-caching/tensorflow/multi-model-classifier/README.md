@@ -71,3 +71,7 @@ The expected response is:
 ```json
 {"label": "setosa"}
 ```
+
+---
+
+Now, inspect `cortex get multi-model-classifier` to see when and which models were removed in this process of making requests to different versions of the same model.

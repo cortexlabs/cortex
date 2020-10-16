@@ -160,7 +160,7 @@ class ModelVersion(IntEnum):
     PROVIDED = 2  # for models provided with version directories (1, 2, 452, etc).
 
 
-# to be used when predictor:model_path or predictor:models:paths is used
+# to be used when predictor:model_path, predictor:models:paths or predictor:models:dir is used
 ModelTemplate = {
     PythonPredictorType: {
         OneOfAllPlaceholder(ModelVersion.PROVIDED): {

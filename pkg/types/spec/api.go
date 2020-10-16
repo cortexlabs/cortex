@@ -58,22 +58,22 @@ type CuratedModelResource struct {
 	Versions []int64 `json:"versions"`
 }
 
+/*
+	APIID (uniquely identifies an api configuration for a given deployment)
+		* SpecID (uniquely identifies api configuration specified by user)
+			* PredictorID (used to determine when rolling updates need to happen)
+				* Resource
+				* Predictor
+				* Monitoring
+				* Compute
+				* ProjectID
+			* Deployment Strategy
+			* Autoscaling
+			* Networking
+			* APIs
+		* DeploymentID (used for refreshing a deployment)
+*/
 func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projectID string, deploymentID string, clusterName string) *API {
-	/*
-		APIID (uniquely identifies an api configuration for a given deployment)
-			* SpecID (uniquely identifies api configuration specified by user)
-				* PredictorID (used to determine when rolling updates need to happen)
-					* Resource
-					* Predictor
-					* Monitoring
-					* Compute
-					* ProjectID
-				* Deployment Strategy
-				* Autoscaling
-				* Networking
-				* APIs
-			* DeploymentID (used for refreshing a deployment)
-	*/
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))

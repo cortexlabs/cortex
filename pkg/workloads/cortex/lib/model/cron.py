@@ -59,7 +59,7 @@ class AbstractLoopingThread(td.Thread):
     """
     Abstract class of the td.Thread class.
 
-    Takes a function and keeps calling it in a loop every certain interval.
+    Takes a method and keeps calling it in a loop every certain interval.
     """
 
     def __init__(self, interval: int, runnable: Callable[[], None]):
@@ -69,7 +69,7 @@ class AbstractLoopingThread(td.Thread):
         self._runnable = runnable
 
         if not callable(self._runnable):
-            raise ValueError("runnable parameter must be a callable function")
+            raise ValueError("runnable parameter must be a callable method")
 
         self._event_stopper = td.Event()
         self._stopped = False
@@ -804,6 +804,7 @@ class TFSModelLoader(mp.Process):
             interval: How often to update the models tree. Measured in seconds.
             api_spec: Identical copy of pkg.type.spec.api.API.
             address: An address with the "host:port" format to where TFS is located.
+            addresses: A list of addresses with the "host:port" format to where the TFS servers are located.
             tfs_model_dir: Path to where the models are stored within the TFS container.
             download_dir: Path to where the models are stored.
             temp_dir: Directory where models are temporarily stored.

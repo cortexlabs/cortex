@@ -19,7 +19,6 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -74,16 +73,8 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 
 	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID, "")
 
-	apiJSONDump, err := json.MarshalIndent(newAPISpec.CuratedModelResources, "", "  ")
-	if err != nil {
-		log.Fatalf("error while dumping curated_model_resources spec: %v", err)
-	}
-	fmt.Printf("--- JSON curated_model_resources dump:\n%s\n\n", apiJSONDump)
-
-	// return nil, "", &errors.Error{}
-
 	if newAPISpec.NumLocalModels() > 0 {
-		if err := CacheModels(newAPISpec, true, awsClient); err != nil {
+		if err := CacheLocalModels(newAPISpec, true); err != nil {
 			return nil, "", err
 		}
 	}

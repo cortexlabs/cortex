@@ -28,7 +28,7 @@ user_facing_images=(
 )
 
 user_facing_slim_images=(
-  # "python-predictor-cpu-slim"
+  "python-predictor-cpu-slim"
   "python-predictor-gpu-slim"
   "python-predictor-inf-slim"
   "tensorflow-predictor-slim"

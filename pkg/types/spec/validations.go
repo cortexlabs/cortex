@@ -18,7 +18,6 @@ package spec
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"strings"
 	"time"
@@ -31,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -711,25 +709,6 @@ func ValidateAPI(
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
 		}
 	}
-
-	// TODO to remove when no longer required
-	apiYAMLDump, err := yaml.Marshal(&api)
-	if err != nil {
-		log.Fatalf("error while dumping api spec: %v", err)
-	}
-	fmt.Printf("--- YAML api dump:\n%s\n\n", string(apiYAMLDump))
-
-	apiJSONDump, err := json.Marshal(&api)
-	if err != nil {
-		log.Fatalf("error while dumping api spec: %v", err)
-	}
-	fmt.Printf("--- JSON api dump:\n%s\n\n", string(apiJSONDump))
-
-	fmt.Println("--- model dump")
-	for _, model := range *models {
-		fmt.Println("model.Name", model.Name, "model.ModelPath", model.ModelPath, "model.Versions", model.Versions, "model.S3Path", model.S3Path)
-	}
-	fmt.Print("\n\n")
 
 	return nil
 }

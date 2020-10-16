@@ -167,8 +167,6 @@ class TensorFlowClient:
 
         if not self._multiple_processes and self._caching_enabled:
 
-            # TODO make it handle OOM situations (implies a file-based synchronization mechanism)
-
             # determine model version
             try:
                 if tag != "":
@@ -187,30 +185,28 @@ class TensorFlowClient:
 
             # grab shared access to model tree
             available_model = True
-            logger().info(f"grabbing access to {model_name} {model_version}")
+            logger().info(f"grabbing access to model {model_name} of version {model_version}")
             with LockedModelsTree(self._models_tree, "r", model_name, model_version):
 
                 # check if the versioned model exists
                 model_id = model_name + "-" + model_version
                 if model_id not in self._models_tree:
                     available_model = False
-                    logger().info(f"model {model_id} is not available")
+                    logger().info(f"model {model_name} of version {model_version} is not available")
                     raise WithBreak
 
                 # retrieve model tree's metadata
                 upstream_model = self._models_tree[model_id]
                 current_upstream_ts = int(upstream_model["timestamp"].timestamp())
-                logger().info(f"model {model_id} is available")
+                logger().info(f"model {model_name} of version {model_version} is available")
 
             if not available_model:
                 if tag == "":
                     raise UserException(
-                        "model '{}' of version '{}' couldn't be found".format(
-                            model_name, model_version
-                        )
+                        f"model '{model_name}' of version '{model_version}' couldn't be found"
                     )
                 raise UserException(
-                    "model '{}' accessed with tag '{}' couldn't be found".format(model_name, tag)
+                    f"model '{model_name}' accessed with tag '{tag}' couldn't be found"
                 )
 
             # grab shared access to models holder and retrieve model
@@ -224,13 +220,15 @@ class TensorFlowClient:
                     status != "not-available" and upstream_ts < current_upstream_ts
                 ):
                     logger().info(
-                        f"model {model_name} of {model_version} is not loaded (with status {status} or older ts)"
+                        f"model {model_name} of version {model_version} is not loaded (with status {status} or older ts)"
                     )
                     update_model = True
                     raise WithBreak
 
                 # run prediction
-                logger().info(f"run the prediction on {model_name} {model_version}")
+                logger().info(
+                    f"run the prediction on model {model_name} of version {model_version}"
+                )
                 self._models.get_model(model_name, model_version, tag)
                 try:
                     prediction = self._client.predict(model_input, model_name, model_version)
@@ -326,14 +324,10 @@ class TensorFlowClient:
                 return prediction
             if tag == "":
                 raise UserException(
-                    "could not run prediction on model '{}' of version '{}' because the model couldn't be loaded or isn't available".format(
-                        model_name, model_version
-                    )
+                    f"could not run prediction on model '{model_name}' of version '{model_version}' because the model couldn't be loaded or isn't available"
                 )
             raise UserException(
-                "could not run prediction on model '{}' accessed with '{}' tag because the model couldn't be loaded or isn't available".format(
-                    model_name, tag
-                )
+                f"could not run prediction on model '{model_name}' accessed with '{tag}' tag because the model couldn't be loaded or isn't available"
             )
 
     def _load_model(

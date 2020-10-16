@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +16,6 @@ import os, fcntl, time
 from typing import List
 
 from cortex.lib.exceptions import CortexException, WithBreak
-
-# TODO might have to implement a writer-preference RW file lock.
 
 
 class FileLock:

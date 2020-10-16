@@ -88,6 +88,15 @@ def ensure_suffix(string, suffix):
 
 
 def get_leftmost_part_of_path(path: str) -> str:
+    """
+    Gets the leftmost part of a path.
+
+    If a path looks like
+    /models/tensorflow/iris/15559399
+
+    Then this function will return
+    /models/
+    """
     basename = ""
     while path:
         path, basename = os.path.split(path)

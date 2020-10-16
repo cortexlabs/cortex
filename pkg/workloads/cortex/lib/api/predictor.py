@@ -224,6 +224,7 @@ class Predictor:
                         models=self.models,
                         tree=self.models_tree,
                     ),
+                    # to be un-commented once this is tested
                     # ModelPreloader(
                     #     interval=10,
                     #     caching=self.caching_enabled,
@@ -528,7 +529,7 @@ def model_downloader(
     try:
         validate_model_paths(sub_paths, predictor_type, model_path)
     except CortexException:
-        logger().info(f"failed validating {model_name} {model_version}")
+        logger().info(f"failed validating model {model_name} of version {model_version}")
         return None
 
     # download model to temp dir
@@ -536,7 +537,9 @@ def model_downloader(
     try:
         s3_client.download_dir_contents(model_path, temp_dest)
     except CortexException:
-        logger().info(f"failed downloading {model_name} {model_version} to temp dir {temp_dest}")
+        logger().info(
+            f"failed downloading model {model_name} of version {model_version} to temp dir {temp_dest}"
+        )
         shutil.rmtree(temp_dest)
         return None
 
@@ -546,14 +549,18 @@ def model_downloader(
     try:
         validate_model_paths(model_contents, predictor_type, temp_dest)
     except CortexException:
-        logger().info(f"failed validating {model_name} {model_version} from temp dir")
+        logger().info(
+            f"failed validating model {model_name} of version {model_version} from temp dir"
+        )
         shutil.rmtree(temp_dest)
         return None
 
     # move model to dest dir
     model_top_dir = os.path.join(model_dir, model_name)
     ondisk_model_version = os.path.join(model_top_dir, model_version)
-    logger().info(f"moving {model_name} {model_version} to final dir {ondisk_model_version}")
+    logger().info(
+        f"moving model {model_name} of version {model_version} to final dir {ondisk_model_version}"
+    )
     if os.path.isdir(ondisk_model_version):
         shutil.rmtree(ondisk_model_version)
     shutil.move(temp_dest, ondisk_model_version)
