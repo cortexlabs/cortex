@@ -18,6 +18,7 @@ package spec
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -412,9 +413,21 @@ func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
 	})
 }
 
+var _pwRegex = regexp.MustCompile(`"password":"[^"]+"`)
+var _authRegex = regexp.MustCompile(`"auth":"[^"]+"`)
+
 func ErrorUnexpectedDockerSecretData(reason string, secretData map[string][]byte) error {
+	secretDataStr := map[string]string{}
+
+	for key, value := range secretData {
+		valueStr := string(value)
+		valueStr = _pwRegex.ReplaceAllString(valueStr, `"password":"<omitted>"`)
+		valueStr = _authRegex.ReplaceAllString(valueStr, `"auth":"<omitted>"`)
+		secretDataStr[key] = valueStr
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnexpectedDockerSecretData,
-		Message: fmt.Sprintf("unexpected docker registry secret data: %s, got: %s", reason, s.UserStr(secretData)),
+		Message: fmt.Sprintf("unexpected docker registry secret data: %s, got: %s", reason, s.UserStr(secretDataStr)),
 	})
 }
