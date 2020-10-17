@@ -428,6 +428,6 @@ func ErrorUnexpectedDockerSecretData(reason string, secretData map[string][]byte
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnexpectedDockerSecretData,
-		Message: fmt.Sprintf("unexpected docker registry secret data: %s, got: %s", reason, s.UserStr(secretDataStr)),
+		Message: fmt.Sprintf("docker registry secret named \"%s\" found, but unexpected data (%s); got: %s", _dockerPullSecretName, reason, s.UserStr(secretDataStr)),
 	})
 }
