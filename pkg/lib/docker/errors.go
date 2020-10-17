@@ -70,13 +70,18 @@ func ErrorImageInaccessible(image string, providerType types.ProviderType, cause
 	message := fmt.Sprintf("%s is not accessible", image)
 
 	if cause != nil {
-		message += "\n\n" + errors.Message(cause)
+		message += "\n" + errors.Message(cause)
 	}
 
 	if providerType == types.LocalProviderType {
-		message += fmt.Sprintf("\n\nyou can download your image with `docker pull %s` (if your registry is private, run `docker login` first)", image)
+		message += fmt.Sprintf("\n\nyou can download your image with `docker pull %s` and try this command again", image)
+		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
+			message += " (if your registry is private, run `docker login` first)"
+		}
 	} else if providerType == types.AWSProviderType {
-		message += fmt.Sprintf("\n\nif you are trying to use a private docker registry, see https://docs.cortex.dev/v/%s/guides/private-docker", consts.CortexVersionMinor)
+		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
+			message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/guides/private-docker", consts.CortexVersionMinor)
+		}
 	}
 
 	return errors.WithStack(&errors.Error{
