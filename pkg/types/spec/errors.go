@@ -72,6 +72,7 @@ const (
 	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
 	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
 	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
+	ErrUnexpectedDockerSecretData           = "spec.unexpected_docker_secret_data"
 )
 
 func ErrorMalformedConfig() error {
@@ -408,5 +409,12 @@ func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrTrafficSplitterAPIsNotUnique,
 		Message: fmt.Sprintf("%s not unique: %s", s.PluralS("api", len(names)), s.StrsSentence(names, "")),
+	})
+}
+
+func ErrorUnexpectedDockerSecretData(reason string, secretData map[string][]byte) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnexpectedDockerSecretData,
+		Message: fmt.Sprintf("unexpected docker registry secret data: %s, got: %s", reason, s.UserStr(secretData)),
 	})
 }

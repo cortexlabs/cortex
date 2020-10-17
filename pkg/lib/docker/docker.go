@@ -37,6 +37,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/types"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -47,13 +48,22 @@ var NoAuth string
 
 var _cachedClient *Client
 
+func init() {
+	NoAuth, _ = EncodeAuthConfig(dockertypes.AuthConfig{})
+}
+
 type Client struct {
 	*dockerclient.Client
 	Info dockertypes.Info
 }
 
-func init() {
-	NoAuth, _ = EncodeAuthConfig(dockertypes.AuthConfig{})
+type K8sAuthSecret struct {
+	Auths map[string]K8sAuthSecretCreds `json:"auths"`
+}
+
+type K8sAuthSecretCreds struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func GetDockerClient() (*Client, error) {
@@ -146,7 +156,7 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		return false, err
 	}
 
-	if err := CheckLocalImageAccessible(dockerClient, image); err == nil {
+	if err := CheckImageExistsLocally(dockerClient, image); err == nil {
 		return false, nil
 	}
 
@@ -314,14 +324,14 @@ func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 	return registryAuth, nil
 }
 
-func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string) error {
+func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string, providerType types.ProviderType) error {
 	if _, err := dockerClient.DistributionInspect(context.Background(), dockerImage, authConfig); err != nil {
-		return ErrorImageInaccessible(dockerImage, err)
+		return ErrorImageInaccessible(dockerImage, providerType, err)
 	}
 	return nil
 }
 
-func CheckLocalImageAccessible(dockerClient *Client, dockerImage string) error {
+func CheckImageExistsLocally(dockerClient *Client, dockerImage string) error {
 	images, err := dockerClient.ImageList(context.Background(), dockertypes.ImageListOptions{})
 	if err != nil {
 		return WrapDockerError(err)
@@ -337,7 +347,8 @@ func CheckLocalImageAccessible(dockerClient *Client, dockerImage string) error {
 			return nil
 		}
 	}
-	return ErrorImageInaccessible(dockerImage, nil)
+
+	return ErrorImageDoesntExistLocally(dockerImage)
 }
 
 func ExtractImageTag(dockerImage string) string {
