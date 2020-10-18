@@ -31,6 +31,7 @@ import (
 const _numConcurrent = 5
 const _numRequestsPerThread = -1
 const _requestDelay = 0 * time.Second
+const _num_main_loops = 10
 
 var _client = &http.Client{
 	Timeout: 600 * time.Second,
@@ -39,7 +40,9 @@ var _client = &http.Client{
 	},
 }
 
-func main() {
+func run() {
+	start := time.Now()
+
 	if _numRequestsPerThread > 0 {
 		fmt.Printf("spawning %d threads, %d requests each, %s delay on each\n", _numConcurrent, _numRequestsPerThread, _requestDelay.String())
 	} else {
@@ -68,6 +71,20 @@ func main() {
 	}
 
 	fmt.Println()
+	fmt.Println("elapsed time:", time.Now().Sub(start))
+}
+
+func main() {
+	start := time.Now()
+	loop_num := 1
+	for true {
+		run()
+		if loop_num >= _num_main_loops {
+			break
+		}
+		loop_num++
+	}
+	fmt.Println("total elapsed time:", time.Now().Sub(start))
 }
 
 func makeRequestLoop(url string, jsonBytes []byte) {
