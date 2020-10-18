@@ -417,17 +417,17 @@ var _pwRegex = regexp.MustCompile(`"password":"[^"]+"`)
 var _authRegex = regexp.MustCompile(`"auth":"[^"]+"`)
 
 func ErrorUnexpectedDockerSecretData(reason string, secretData map[string][]byte) error {
-	secretDataStr := map[string]string{}
+	secretDataStrMap := map[string]string{}
 
 	for key, value := range secretData {
 		valueStr := string(value)
 		valueStr = _pwRegex.ReplaceAllString(valueStr, `"password":"<omitted>"`)
 		valueStr = _authRegex.ReplaceAllString(valueStr, `"auth":"<omitted>"`)
-		secretDataStr[key] = valueStr
+		secretDataStrMap[key] = valueStr
 	}
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnexpectedDockerSecretData,
-		Message: fmt.Sprintf("docker registry secret named \"%s\" found, but unexpected data (%s); got: %s", _dockerPullSecretName, reason, s.UserStr(secretDataStr)),
+		Message: fmt.Sprintf("docker registry secret named \"%s\" was found, but contains unexpected data (%s); got: %s", _dockerPullSecretName, reason, s.UserStr(secretDataStrMap)),
 	})
 }

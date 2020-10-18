@@ -1330,44 +1330,44 @@ func getDockerAuthStrFromK8s(dockerClient *docker.Client, k8sClient *k8s.Client)
 		return docker.NoAuth, nil
 	}
 
-	dockerAuthData, ok := secretData[".dockerconfigjson"]
+	authData, ok := secretData[".dockerconfigjson"]
 	if !ok {
 		return "", ErrorUnexpectedDockerSecretData("should contain \".dockerconfigjson\" key", secretData)
 	}
 
-	var dockerAuth docker.K8sAuthSecret
-	err = json.Unmarshal(dockerAuthData, &dockerAuth)
+	var authSecret docker.K8sAuthSecret
+	err = json.Unmarshal(authData, &authSecret)
 	if err != nil {
 		return "", ErrorUnexpectedDockerSecretData(errors.Message(err), secretData)
 	}
-	if len(dockerAuth.Auths) != 1 {
+	if len(authSecret.Auths) != 1 {
 		return "", ErrorUnexpectedDockerSecretData("should contain a single set of credentials", secretData)
 	}
 
-	var auth dockertypes.AuthConfig
-	for registryAddress, creds := range dockerAuth.Auths {
-		auth = dockertypes.AuthConfig{
+	var dockerAuth dockertypes.AuthConfig
+	for registryAddress, creds := range authSecret.Auths {
+		dockerAuth = dockertypes.AuthConfig{
 			Username:      creds.Username,
 			Password:      creds.Password,
 			ServerAddress: registryAddress,
 		}
 	}
-	if auth.Username == "" {
+	if dockerAuth.Username == "" {
 		return "", ErrorUnexpectedDockerSecretData("missing username", secretData)
 	}
-	if auth.Password == "" {
+	if dockerAuth.Password == "" {
 		return "", ErrorUnexpectedDockerSecretData("missing password", secretData)
 	}
-	if auth.ServerAddress == "" {
+	if dockerAuth.ServerAddress == "" {
 		return "", ErrorUnexpectedDockerSecretData("missing registry address", secretData)
 	}
 
-	_, err = dockerClient.RegistryLogin(context.Background(), auth)
+	_, err = dockerClient.RegistryLogin(context.Background(), dockerAuth)
 	if err != nil {
 		return "", err
 	}
 
-	dockerAuthStr, err := docker.EncodeAuthConfig(auth)
+	dockerAuthStr, err := docker.EncodeAuthConfig(dockerAuth)
 	if err != nil {
 		return "", err
 	}
