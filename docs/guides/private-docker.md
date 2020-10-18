@@ -40,8 +40,12 @@ kubectl delete secret --namespace default registry-credentials
 
 ## Removing your credentials
 
-To remove your docker credentials from the cluster, run this command:
+To remove your docker credentials from the cluster, run the following commands:
 
 ```bash
 kubectl delete secret --namespace default registry-credentials
+
+kubectl patch serviceaccount default \
+  --namespace default \
+  -p "{\"imagePullSecrets\": []}"
 ```
