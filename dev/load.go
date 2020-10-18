@@ -31,13 +31,26 @@ import (
 const _numConcurrent = 5
 const _numRequestsPerThread = -1
 const _requestDelay = 0 * time.Second
-const _num_main_loops = 10
+const _numMainLoops = 10
 
 var _client = &http.Client{
 	Timeout: 600 * time.Second,
 	Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	},
+}
+
+func main() {
+	start := time.Now()
+	loopNum := 1
+	for true {
+		run()
+		if loopNum >= _numMainLoops {
+			break
+		}
+		loopNum++
+	}
+	fmt.Println("total elapsed time:", time.Now().Sub(start))
 }
 
 func run() {
@@ -72,19 +85,6 @@ func run() {
 
 	fmt.Println()
 	fmt.Println("elapsed time:", time.Now().Sub(start))
-}
-
-func main() {
-	start := time.Now()
-	loop_num := 1
-	for true {
-		run()
-		if loop_num >= _num_main_loops {
-			break
-		}
-		loop_num++
-	}
-	fmt.Println("total elapsed time:", time.Now().Sub(start))
 }
 
 func makeRequestLoop(url string, jsonBytes []byte) {
