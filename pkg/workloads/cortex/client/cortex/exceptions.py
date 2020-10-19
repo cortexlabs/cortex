@@ -15,8 +15,7 @@
 
 class CortexException(Exception):
     """
-    Base class for all Cortex's errors.
-    Each custom exception should be derived from this class
+    Base class for all Cortex's errors. Each custom exception should be derived from this class.
     """
 
     pass
@@ -24,7 +23,7 @@ class CortexException(Exception):
 
 class CortexBinaryException(CortexException):
     """
-    Raise when binary execution returns an unexpected non-zero return code
+    Raise when binary execution returns an unexpected non-zero return code.
     """
 
     pass
@@ -32,7 +31,7 @@ class CortexBinaryException(CortexException):
 
 class NotFound(CortexException):
     """
-    Raise when specified resource or name not found
+    Raise when the specified resource or name is not found.
     """
 
     pass

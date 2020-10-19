@@ -24,16 +24,24 @@ def client(env: str):
     """
     Initialize a client based on the specified environment.
 
-    To deploy your API locally:
+    To deploy and manage APIs locally:
         import cortex
         c = cortex.client("local")
         c.deploy("./cortex.yaml")
 
-    To deploy your API to a cluster:
-        1. Spin up a cluster using the CLI command `cortex cluster up` in terminal.
+    To deploy and manage APIs on a new cluster:
+        1. Spin up a cluster using the CLI command (if you haven't done so already) `cortex cluster up`.
            An environment named `aws` will be created for you by the CLI once the cluster has spun up.
-        2. import cortex
+        2. Initialize your client:
+           import cortex
            c = cortex.client("aws")
+           c.deploy("./cortex.yaml")
+
+    To deploy and manage APIs on an existing cluster:
+        1. Use the command `cortex cluster info` to get the Operator Endpoint.
+        2. Configure a client to your cluster:
+           import cortex
+           c = cortex.new_cluster_client("aws", operator_endpoint, aws_access_key_id, aws_secret_access_key)
            c.deploy("./cortex.yaml")
 
     Args:
@@ -98,7 +106,7 @@ def new_cluster_client(
     aws_secret_access_key: str,
 ) -> Client:
     """
-    Create a new Initialize a client to deploy and manage APIs on a Cortex cluster.
+    Create a new environment for your Cortex Cluster and initialize a client to deploy and manage APIs on that cluster.
 
     Args:
         name: Name of the environment to create.

@@ -25,6 +25,9 @@ MIXED_CORTEX_MARKER = "~~cortex~~"
 
 
 def run():
+    """
+    Runs the CLI from terminal.
+    """
     try:
         process = subprocess.run([get_cli_path()] + sys.argv[1:], cwd=os.getcwd())
     except KeyboardInterrupt:
@@ -34,24 +37,37 @@ def run():
 
 def run_cli(
     args: List[str],
-    cwd: Optional[str] = None,
     hide_output: bool = False,
     mixed: bool = False,
 ) -> str:
-    output = ""
-    result = ""
-    result_found = False
+    """
+    Runs the Cortex binary with the specified arguments.
+
+    Args:
+        args: Arguments to use when invoking the Cortex binary.
+        hide_output: Flag to prevent streaming Cortex binary output to stdout. Defaults to False.
+        mixed: Used to handle Cortex binary output that should go to standard out and local. Defaults to False.
+
+    Raises:
+        CortexBinaryException: Cortex command returned an error.
+
+    Returns:
+        The stdout from the Cortex command.
+    """
 
     env = os.environ.copy()
     env["CORTEX_CLI_INVOKER"] = "python"
     process = subprocess.Popen(
         [get_cli_path()] + args,
-        cwd=cwd,
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
         encoding="utf8",
         env=env,
     )
+
+    output = ""
+    result = ""
+    result_found = False
 
     for c in iter(lambda: process.stdout.read(1), ""):
         output += c
@@ -83,6 +99,17 @@ def run_cli(
 
 
 def get_cli_path() -> str:
+    """
+    Get the location of the CLI.
+    Default location is directory containing the `cortex.binary` package.
+    The location can be overridden by setting the `CORTEX_CLI_PATH` to the location of the CLI.
+
+    Raises:
+        Exception: Unable to find the CLI.
+
+    Returns:
+        str: The location of the CLI in the local filesystem.
+    """
     if os.environ.get("CORTEX_CLI_PATH") is not None:
         cli_path = os.environ["CORTEX_CLI_PATH"]
         if not os.path.exists(cli_path):

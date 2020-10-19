@@ -40,7 +40,7 @@ class Client:
         wait: bool = False,
     ) -> list:
         """
-        Deploy or update APIs.
+        Deploy or update APIs specified in the config_file.
 
         Args:
             config_file: Local path to a yaml file defining Cortex APIs.
@@ -108,7 +108,7 @@ class Client:
 
     def get_api(self, api_name: str) -> dict:
         """
-        Get information about a specific API  such as the API specification, endpoint, dashboard, status and metrics (if applicable).
+        Get information about a specific API such as the API specification, endpoint, status and metrics (if applicable).
 
         Args:
             api_name: Name of the API
@@ -123,7 +123,7 @@ class Client:
 
     def list_apis(self) -> list:
         """
-        List of information about APIs such as the API specification, endpoint, dashboard, status and metrics (if applicable).
+        List all APIs in the environment such as the API specification, endpoint, status and metrics (if applicable).
 
         Returns:
             List of information about APIs.
@@ -196,7 +196,6 @@ class Client:
         Args:
             api_name: Name of the Batch API.
             job_id: ID of the Job to stop.
-            keep_cache: Retain the cached data for this API. Defaults to False.
         """
         args = [
             "delete",
@@ -204,13 +203,9 @@ class Client:
             job_id,
             "--env",
             self.env,
-            "--force",
             "-o",
             "json",
         ]
-
-        if keep_cache:
-            args += "--keep-cache"
 
         run_cli(args)
 
