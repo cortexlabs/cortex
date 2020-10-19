@@ -43,17 +43,31 @@ func operatorLogStream(jobKey spec.JobKey) string {
 
 // Checks if log group exists before creating it
 func ensureLogGroupForAPI(apiName string) error {
-	output, err := config.AWS.CloudWatchLogs().DescribeLogGroups(&cloudwatchlogs.DescribeLogGroupsInput{
-		Limit:              aws.Int64(1),
-		LogGroupNamePrefix: aws.String(logGroupNameForAPI(apiName)),
-	})
+	apiNameLogGroup := logGroupNameForAPI(apiName)
+	logGroupExists := false
+
+	err := config.AWS.CloudWatchLogs().DescribeLogGroupsPages(
+		&cloudwatchlogs.DescribeLogGroupsInput{
+			LogGroupNamePrefix: aws.String(apiNameLogGroup),
+		},
+		func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
+			for _, output := range page.LogGroups {
+				if *output.LogGroupName == apiNameLogGroup {
+					logGroupExists = true
+					return false
+				}
+			}
+			return true
+		},
+	)
+
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	if len(output.LogGroups) == 0 {
+	if !logGroupExists {
 		input := &cloudwatchlogs.CreateLogGroupInput{
-			LogGroupName: aws.String(logGroupNameForAPI(apiName)),
+			LogGroupName: aws.String(apiNameLogGroup),
 		}
 
 		// There should always be a default tag. Tags are only empty when running local operator without the tags field specified in a cluster.yaml.
