@@ -47,7 +47,7 @@ func ensureLogGroupForAPI(apiName string) error {
 
 	logGroupExists, err := config.AWS.DoesLogGroupExist(apiNameLogGroup)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	if !logGroupExists {
