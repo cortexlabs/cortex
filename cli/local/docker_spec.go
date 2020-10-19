@@ -463,7 +463,7 @@ func retryWithNvidiaRuntime(err error, containerConfig *container.Config, hostCo
 	}
 
 	if _, ok := docker.MustDockerClient().Info.Runtimes["nvidia"]; ok {
-		fmt.Println("retrying API deployment using nvidia runtime because device driver for GPU was not found")
+		localPrintln("retrying API deployment using nvidia runtime because device driver for GPU was not found")
 		hostConfig.Runtime = "nvidia"
 		hostConfig.Resources.DeviceRequests = nil
 		containerCreateRequest, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")

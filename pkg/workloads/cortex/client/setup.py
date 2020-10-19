@@ -28,41 +28,57 @@ class InstallBinary(install):
         import sys
         import os
         import stat
+        import shutil
 
-        dest_path = os.path.join(self.install_lib, "cortex", "binary", "cli")
+        dest_dir = os.path.join(self.install_lib, "cortex", "binary")
 
-        if not os.path.exists(dest_path):
+        zip_file_path = os.path.join(dest_dir, "cli.zip")
+        cli_file_path = os.path.join(dest_dir, "cli")
+
+        if not os.path.exists(cli_file_path):
             platform = sys.platform
 
             if platform != "darwin" and platform != "linux":
-                raise Exception("cortex is only on mac and linux")
+                raise Exception("cortex is only supported on mac and linux")
 
             cortex_version = self.config_vars["dist_version"]
 
             if "dev" in cortex_version:
                 cortex_version = "master"
 
-            download_url = f"https://s3-us-west-2.amazonaws.com/get-cortex/{cortex_version}/cli/{platform}/cortex"
+            download_url = f"https://s3-us-west-2.amazonaws.com/get-cortex/{cortex_version}/cli/{platform}/cortex.zip"
 
-            with open(dest_path, "wb") as f:
-                r = requests.get(download_url, allow_redirects=True)
-                f.write(r.content)
+            print("downloading cortex cli zip...")
+            with requests.get(download_url, stream=True) as r:
+                with open(zip_file_path, "wb") as f:
+                    shutil.copyfileobj(r.raw, f)
 
-            f = Path(dest_path)
+            zip_dir = os.path.join(dest_dir, "cli_dir")
+
+            print("unzipping cortex cli...")
+            shutil.unpack_archive(zip_file_path, zip_dir)
+            shutil.move(os.path.join(zip_dir, "cortex"), cli_file_path)
+            shutil.rmtree(zip_dir)
+            os.remove(zip_file_path)
+
+            f = Path(cli_file_path)
             f.chmod(f.stat().st_mode | stat.S_IEXEC)
 
 
+with open("README.md") as f:
+    long_description = f.read()
+
 setup(
     name="cortex",
-    version="0.20.0.dev3",  # CORTEX_VERSION
+    version="master",  # CORTEX_VERSION
     description="Model serving at scale",
     author="cortex.dev",
-    author_email="dev@cortexlabs.com",
+    author_email="dev@cortex.dev",
     license="Apache License 2.0",
     long_description_content_type="text/markdown",
-    long_description=open("README.md").read(),
-    url="https://github.com/cortexlabs/cortex",
-    setup_requires=(["setuptools"]),
+    long_description=long_description,
+    url="https://www.cortex.dev",
+    setup_requires=(["setuptools", "requests", "wheel"]),
     packages=find_packages(),
     package_data={"cortex.binary": ["cli"]},
     entry_points={

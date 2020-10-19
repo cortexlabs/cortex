@@ -20,12 +20,14 @@ type OutputType int
 
 const (
 	UnknownOutputType OutputType = iota
+	MixedOutputType              // Internal only
 	PrettyOutputType
 	JSONOutputType
 )
 
 var _outputTypes = []string{
 	"unknown",
+	"mixed",
 	"pretty",
 	"json",
 }
@@ -37,6 +39,10 @@ func OutputTypeFromString(s string) OutputType {
 		}
 	}
 	return UnknownOutputType
+}
+
+func UserOutputTypeStrings() []string {
+	return _outputTypes[2:]
 }
 
 func OutputTypeStrings() []string {

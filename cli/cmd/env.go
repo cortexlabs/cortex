@@ -48,7 +48,7 @@ func envInit() {
 	_envCmd.AddCommand(_envConfigureCmd)
 
 	_envListCmd.Flags().SortFlags = false
-	_envListCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
+	_envListCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
 	_envCmd.AddCommand(_envListCmd)
 
 	_envDefaultCmd.Flags().SortFlags = false

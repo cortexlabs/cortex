@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import os
 import time
 import sys
 import subprocess
@@ -56,23 +57,18 @@ class Client:
             "--env",
             self.env,
             "-o",
-            "json",
+            "mixed",
         ]
 
         if force:
             args.append("--force")
 
-        _, output = run_cli(
+        output = run_cli(
             args,
+            mixed=True,
         )
 
-        output_split = output.split("\n")
-
-        deploy_results = []
-
-        for line in output_split:
-            if line.startswith("["):
-                deploy_results = json.loads(line)
+        deploy_results = json.loads(output.strip())
 
         if not wait:
             return deploy_results
@@ -87,11 +83,14 @@ class Client:
                 for c in iter(lambda: process.stdout.read(1), ""):
                     sys.stdout.write(c)
 
+            env = os.environ.copy()
+            env["CORTEX_CLI_INVOKER"] = "python"
             process = subprocess.Popen(
-                [get_cli_path()] + ["logs", api_name],
+                [get_cli_path(), "logs", api_name],
                 stderr=subprocess.STDOUT,
                 stdout=subprocess.PIPE,
                 encoding="utf8",
+                env=env,
             )
 
             streamer = threading.Thread(target=stream_to_stdout, args=(process,))
@@ -117,16 +116,10 @@ class Client:
         Returns:
             Get of information about the specific API.
         """
-        _, output = run_cli(["get", api_name, "--env", self.env, "-o", "json"], hide_output=True)
+        output = run_cli(["get", api_name, "--env", self.env, "-o", "json"], hide_output=True)
 
-        output_split = output.split("\n")
-
-        for line in output_split:
-            if line.startswith("[") or line.startswith("{"):
-                apis = json.loads(line)
-                return apis[0]
-
-        return {}
+        apis = json.loads(output.strip())
+        return apis[0]
 
     def list_apis(self) -> list:
         """
@@ -137,15 +130,9 @@ class Client:
         """
         args = ["get", "-o", "json", "--env", self.env]
 
-        _, output = run_cli(args, hide_output=True)
+        output = run_cli(args, hide_output=True)
 
-        output_split = output.split("\n")
-
-        for line in output_split:
-            if line.startswith("[") or line.startswith("{"):
-                return json.loads(line)
-
-        return {}
+        return json.loads(output.strip())
 
     def get_job(self, api_name: str, job_id: str) -> dict:
         """
@@ -158,28 +145,19 @@ class Client:
         Returns:
             Information about the job.
         """
-        _, output = run_cli(
+        output = run_cli(
             ["get", api_name, job_id, "--env", self.env, "-o", "json"], hide_output=True
         )
 
-        output_split = output.split("\n")
+        return json.loads(output.strip())
 
-        for line in output_split:
-            if line.startswith("[") or line.startswith("{"):
-                return json.loads(line)
-
-        return {}
-
-    def refresh(self, api_name: str, force: bool = False) -> dict:
+    def refresh(self, api_name: str, force: bool = False):
         """
         Restart all of the replicas for a Realtime API without downtime.
 
         Args:
             api_name: API to refresh.
             force: Override the in-progress API update. Defaults to False.
-
-        Returns:
-            dict: The status of the refresh.
         """
         args = ["refresh", api_name, "--env", self.env, "-o", "json"]
 
@@ -218,7 +196,6 @@ class Client:
         Args:
             api_name: Name of the Batch API.
             job_id: ID of the Job to stop.
-            env : Name of the environment hosting this API.
             keep_cache: Retain the cached data for this API. Defaults to False.
         """
         args = [
@@ -262,8 +239,6 @@ class Client:
         Args:
             api_name: Name of the Batch API.
             job_id: Job ID.
-            stdout_iterator: A function that gets called on each character in the log stream and returns if the streaming should continue. Defaults to None.
-            hide_output: Disable streaming the logs to stdout. Defaults to False.
         """
         run_cli(
             ["logs", api_name, job_id, "--env", self.env],

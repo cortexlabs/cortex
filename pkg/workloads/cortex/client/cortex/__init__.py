@@ -24,6 +24,18 @@ def client(env: str):
     """
     Initialize a client based on the specified environment.
 
+    To deploy your API locally:
+        import cortex
+        c = cortex.client("local")
+        c.deploy("./cortex.yaml")
+
+    To deploy your API to a cluster:
+        1. Spin up a cluster using the CLI command `cortex cluster up` in terminal.
+           An environment named `aws` will be created for you by the CLI once the cluster has spun up.
+        2. import cortex
+           c = cortex.client("aws")
+           c.deploy("./cortex.yaml")
+
     Args:
         env: Name of the environment to use to initialize the Cortex client.
 
@@ -45,9 +57,9 @@ def client(env: str):
 
 
 def local_client(
-    aws_access_key_id: Optional[str] = None,
-    aws_secret_access_key: Optional[str] = None,
-    aws_region: Optional[str] = None,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+    aws_region: str,
 ) -> Client:
     """
     Initialize a client to deploy and manage APIs locally.
@@ -66,18 +78,13 @@ def local_client(
         "configure",
         "--provider",
         "local",
+        "--aws-region",
+        aws_region,
+        "--aws-access-key-id",
+        aws_access_key_id,
+        "--aws-secret-access-key",
+        aws_secret_access_key,
     ]
-
-    if aws_region is not None:
-        args += ["--aws-region", aws_region]
-
-    if aws_access_key_id is not None:
-        args += ["--aws-access-key-id", aws_access_key_id]
-
-    if aws_secret_access_key is not None:
-        args += ["--aws-secret-access-key", aws_secret_access_key]
-
-    print(args)
 
     run_cli(args, hide_output=True)
 
@@ -126,14 +133,14 @@ def env_list() -> list:
     """
     List all environments configured on this machine.
     """
-    _, output = run_cli(["env", "list", "--output", "json"], hide_output=True)
-    return json.loads(output)
+    output = run_cli(["env", "list", "--output", "json"], hide_output=True)
+    return json.loads(output.strip())
 
 
 def env_delete(name: str):
     """
     Delete an environment configured on this machine.
     Args:
-        name (str): Name of the environment to delete.
+        name: Name of the environment to delete.
     """
     run_cli(["env", "delete", name], hide_output=True)

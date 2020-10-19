@@ -14,15 +14,17 @@
 
 import os
 from os import path
+import base64
 import sys
 import subprocess
 from typing import List, Optional, Tuple, Callable
 from io import BytesIO
 from cortex.exceptions import CortexBinaryException
 
+MIXED_CORTEX_MARKER = "~~cortex~~"
+
 
 def run():
-    print("running here!")
     try:
         process = subprocess.run([get_cli_path()] + sys.argv[1:], cwd=os.getcwd())
     except KeyboardInterrupt:
@@ -34,35 +36,50 @@ def run_cli(
     args: List[str],
     cwd: Optional[str] = None,
     hide_output: bool = False,
-) -> Tuple[int, str]:
+    mixed: bool = False,
+) -> str:
     output = ""
+    result = ""
+    result_found = False
+
+    env = os.environ.copy()
+    env["CORTEX_CLI_INVOKER"] = "python"
     process = subprocess.Popen(
         [get_cli_path()] + args,
         cwd=cwd,
-        stderr=subprocess.STDOUT,
+        stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
         encoding="utf8",
+        env=env,
     )
 
-    for c in iter(lambda: process.stdout.read(1), ""):  # replace '' with b'' for Python 3
+    for c in iter(lambda: process.stdout.read(1), ""):
         output += c
+        if mixed:
+            if output[-2:] == "\n~":
+                result_found = True
+                result = "~"
+                output = output[:-1]
+            if result_found:
+                if c == "\n":
+                    result_found = False
+                    result = result[len(MIXED_CORTEX_MARKER) : -len(MIXED_CORTEX_MARKER)]
+                    result = base64.b64decode(result).decode("utf8")
+                else:
+                    result += c
+
         if not hide_output:
-            sys.stdout.write(c)
+            if (not mixed) or (mixed and not result_found):
+                sys.stdout.write(c)
 
     process.wait()
 
     if process.returncode == 0:
-        return process.returncode, output
+        if mixed:
+            return result
+        return output
 
-    if process.returncode == 1:
-        output_split = output.split("\n")
-        for i in reversed(range(len(output_split))):
-            line = output_split[i]
-            if line.startswith("error: "):
-                raise CortexBinaryException(line)
-        raise CortexBinaryException(output)
-
-    return process.returncode, output
+    raise CortexBinaryException(process.stderr.read())
 
 
 def get_cli_path() -> str:
