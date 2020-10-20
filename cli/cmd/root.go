@@ -134,8 +134,8 @@ func initTelemetry() {
 		Enabled: true,
 		UserID:  cID,
 		Properties: map[string]string{
-			"client_id":   cID,
-			"cli_invoker": invoker,
+			"client_id": cID,
+			"invoker":   invoker,
 		},
 		Environment: "cli",
 		LogErrors:   false,

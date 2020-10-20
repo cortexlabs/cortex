@@ -38,8 +38,16 @@ class InstallBinary(install):
         if not os.path.exists(cli_file_path):
             platform = sys.platform
 
-            if not platform.startswith("darwin") and not platform.startswith("linux"):
-                raise Exception("cortex is only supported on mac and linux")
+            # recommended way to check platform: https://docs.python.org/3/library/sys.html#sys.platform
+            if sys.platform.startswith("darwin"):
+                platform = "darwin"
+            if sys.platform.startswith("linux"):
+                platform = "linux"
+
+            if platform != "darwin" and platform != "linux":
+                raise Exception(
+                    f"platform {platform} is not supported; cortex is only supported on mac and linux"
+                )
 
             cortex_version = self.config_vars["dist_version"]
 
@@ -86,6 +94,7 @@ setup(
             "cortex = cortex.binary:run",
         ],
     },
+    install_requires=(["importlib-resources; python_version < '3.7'"]),
     python_requires=">=3.6.1",
     cmdclass={
         "install": InstallBinary,

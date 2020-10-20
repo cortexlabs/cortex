@@ -21,6 +21,7 @@ import (
 	"github.com/cortexlabs/cortex/cli/types/flags"
 )
 
+// Can be overwritten by CLI commands
 var OutputType flags.OutputType = flags.PrettyOutputType
 
 func localPrintln(a ...interface{}) {

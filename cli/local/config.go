@@ -20,7 +20,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -73,6 +72,4 @@ func init() {
 		err := errors.Wrap(err, "unable to write to home directory", _modelCacheDir)
 		exit.Error(err)
 	}
-
-	OutputType = flags.PrettyOutputType
 }

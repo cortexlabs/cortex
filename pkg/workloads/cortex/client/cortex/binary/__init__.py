@@ -38,7 +38,7 @@ def run():
 def run_cli(
     args: List[str],
     hide_output: bool = False,
-    mixed: bool = False,
+    mixed_output: bool = False,
 ) -> str:
     """
     Runs the Cortex binary with the specified arguments.
@@ -46,13 +46,13 @@ def run_cli(
     Args:
         args: Arguments to use when invoking the Cortex CLI.
         hide_output: Flag to prevent streaming CLI output to stdout.
-        mixed: Used to handle CLI output that both prints to stdout and should be returned.
+        mixed_output: Used to handle CLI output that both prints to stdout and should be returned.
 
     Raises:
         CortexBinaryException: Cortex CLI command returned an error.
 
     Returns:
-        The stdout from the Cortex CLI command, or the result if mixed output.
+        The stdout from the Cortex CLI command, or the result if mixed_output output.
     """
 
     env = os.environ.copy()
@@ -71,7 +71,7 @@ def run_cli(
 
     for c in iter(lambda: process.stdout.read(1), ""):
         output += c
-        if mixed:
+        if mixed_output:
             if output[-2:] == "\n~":
                 result_found = True
                 result = "~"
@@ -85,13 +85,13 @@ def run_cli(
                     result += c
 
         if not hide_output:
-            if (not mixed) or (mixed and not result_found):
+            if (not mixed_output) or (mixed_output and not result_found):
                 sys.stdout.write(c)
 
     process.wait()
 
     if process.returncode == 0:
-        if mixed:
+        if mixed_output:
             return result
         return output
 
@@ -119,9 +119,20 @@ def get_cli_path() -> str:
             )
         return cli_path
 
-    cli_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "cli")
-    if not os.path.exists(cli_path):
+    try:
+        import importlib.resources as pkg_resources
+    except ImportError:
+        # Try backported to PY<37 `importlib_resources`.
+        import importlib_resources as pkg_resources
+
+    from cortex import binary
+
+    try:
+        with pkg_resources.path(binary, "cli") as p:
+            cli_path = p
+    except FileNotFoundError as e:
         raise Exception(
             f"unable to find cortex binary at {cli_path}, please reinstall the cortex client by running `pip uninstall cortex` and then `pip install cortex`"
-        )
-    return cli_path
+        ) from e
+
+    return str(cli_path)

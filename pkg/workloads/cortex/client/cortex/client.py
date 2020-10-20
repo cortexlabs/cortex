@@ -63,7 +63,7 @@ class Client:
         if force:
             args.append("--force")
 
-        output = run_cli(args, mixed=True)
+        output = run_cli(args, mixed_output=True)
 
         deploy_results = json.loads(output.strip())
 
@@ -217,9 +217,8 @@ class Client:
         Args:
             api_name: Name of the API.
         """
-        run_cli(
-            ["logs", api_name, "--env", self.env],
-        )
+        args = ["logs", api_name, "--env", self.env]
+        run_cli(args)
 
     def stream_job_logs(
         self,
@@ -233,6 +232,5 @@ class Client:
             api_name: Name of the Batch API.
             job_id: Job ID.
         """
-        run_cli(
-            ["logs", api_name, job_id, "--env", self.env],
-        )
+        args = ["logs", api_name, job_id, "--env", self.env]
+        run_cli(args)

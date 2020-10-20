@@ -11,7 +11,7 @@ pip install cortex
 
 You must have [Docker](https://docs.docker.com/install) installed to run Cortex locally or to create a cluster on AWS.
 
-See [here](../miscellaneous/cli.md#install-cortex-cli-without-python-dependency) to install Cortex CLI without a dependency on Python.
+See [here](../miscellaneous/cli.md#install-cortex-cli-without-python-client) to install Cortex CLI without the Python Client.
 
 ## Deploy an example
 
@@ -22,6 +22,7 @@ git clone -b master https://github.com/cortexlabs/cortex.git
 ```
 
 ### Using the CLI
+
 ```bash
 # deploy the model as a realtime api
 cortex deploy cortex/examples/pytorch/text-generator/cortex.yaml
@@ -45,6 +46,7 @@ cortex delete text-generator
 ```
 
 ### In Python
+
 ```python
 import cortex
 import requests

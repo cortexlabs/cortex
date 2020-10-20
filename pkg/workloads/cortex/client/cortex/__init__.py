@@ -59,7 +59,9 @@ def client(env: str):
             found = True
 
     if not found:
-        raise NotFound(f"can't find environment {env}, create one by calling `cluster_client`")
+        raise NotFound(
+            f"can't find environment {env}, create one by calling `cortex.cluster_client()`"
+        )
 
     return Client(env)
 
