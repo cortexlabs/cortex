@@ -74,7 +74,7 @@ def get_model(model_name: Optional[str] = None, model_version: str = "highest") 
 
 When the `predictor.model_path` field is used, you can retrieve the model by running `python_client.get_model()`, because there's only one `model_name` in and because `model_version` is already set to `highest`, which means it will be picking up the model with the highest version number (if applicable).
 
-When the `predictor.models.paths` field is used, the `model_name` is the name of the model that is has been given in the API spec config.
+When the `predictor.models.paths` field is used, the `model_name` is the name of the model that it has been given in the API spec config.
 
 #### ONNX
 
@@ -97,9 +97,9 @@ def predict(model_input: Any, model_name: Optional[str] = None, model_version: s
 
 When the `predictor.model_path` field is used, you can retrieve the model by running `onnx_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `highest`, which means it will be picking up the model with the highest version number (if applicable).
 
-When the `predictor.models.paths` field is used, the `model_name` is the name of the model that is has been given in the API spec config.
+When the `predictor.models.paths` field is used, the `model_name` is the name of the model that it has been given in the API spec config.
 
-You can also retrieve the model by calling the `onnx_client.get_model` method - same arguments as for the `predict` method. This can be useful for retrieving the model input/output signatures. Here's how the retrieved metadata can look like:
+You can also retrieve the model by calling the `onnx_client.get_model` method - same arguments as for the `predict` method. This can be useful for retrieving the model's input/output signatures. Here's how the retrieved metadata can look like:
 
 ```python
 {
@@ -313,10 +313,10 @@ Model caching is only available when the `predictor.models` field is specified. 
 * `cache_size` represents the number of models to keep in memory.
 * `disk_cache_size` represents the number of models to keep on disk. Must be equal or greater than `cache_size`.
 
-With this modification in, nothing else has to be modified to the predictor's implementation. It's a drop-in mechanism.
+With this modification in, nothing else has to be changed to the predictor's implementation. It's a drop-in functionality.
 
 ### Caveats
 
 In the background, Cortex runs a special kind of garbage collector periodically (every 10 seconds) that looks in the memory/on-disk and checks if the number of models exceeds the threshold `cache_size`/`disk_cache_size` - if so, the least recently used models are evicted.
 
-The limitation in this is that if lots of models are loaded in that 10 second timeframe (and the one after that and so on), then the steady state number of models in memory/on-disk can end up being higher than the specified threshold in the API spec config. This can potentially lead to OOM if too many are loaded. This is especially true when full scans across the whole number of models are continuously happening.
+The limitation in this is that if lots of models are loaded in that 10 second timeframe (and the one after that and so on), then the steady state number of models in memory/on-disk can end up being higher than the specified threshold in the API spec config. This can potentially lead to OOM if too many are loaded. This is especially true when full scans across the whole number of models are continuously conducted.
