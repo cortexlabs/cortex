@@ -98,24 +98,8 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"AWS_REGION="+awsClient.Region,
 	)
 
-	modelSourceType := "provided"
-	if api.Predictor.Models != nil && api.Predictor.Models.Dir != nil {
-		modelSourceType = "directory"
-	}
-	if api.Predictor.Type == userconfig.PythonPredictorType && api.Predictor.Models == nil && api.Predictor.ModelPath == nil {
-		modelSourceType = "none"
-	}
-	envs = append(envs, "CORTEX_MODEL_SOURCE_TYPE="+modelSourceType)
-
 	if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
 		envs = append(envs, "CORTEX_MODEL_DIR="+_modelDir)
-	}
-
-	if api.Predictor.Models != nil && api.Predictor.Models.CacheSize != nil && api.Predictor.Models.DiskCacheSize != nil {
-		envs = append(envs,
-			"CORTEX_MODEL_CACHE_SIZE="+s.Int32(*api.Predictor.Models.CacheSize),
-			"CORTEX_MODEL_DISK_CACHE_SIZE="+s.Int32(*api.Predictor.Models.DiskCacheSize),
-		)
 	}
 
 	cortexPythonPath := _projectDir

@@ -423,38 +423,11 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			)
 		}
 
-		modelSourceType := "provided"
-		if api.Predictor.Models != nil && api.Predictor.Models.Dir != nil {
-			modelSourceType = "directory"
-		}
-		if api.Predictor.Type == userconfig.PythonPredictorType && api.Predictor.Models == nil && api.Predictor.ModelPath == nil {
-			modelSourceType = "none"
-		}
-		envVars = append(envVars,
-			kcore.EnvVar{
-				Name:  "CORTEX_MODEL_SOURCE_TYPE",
-				Value: modelSourceType,
-			},
-		)
-
 		if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_MODEL_DIR",
 					Value: path.Join(_emptyDirMountPath, "model"),
-				},
-			)
-		}
-
-		if api.Predictor.Models != nil && api.Predictor.Models.CacheSize != nil && api.Predictor.Models.DiskCacheSize != nil {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_CACHE_SIZE",
-					Value: s.Int32(*api.Predictor.Models.CacheSize),
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_DISK_CACHE_SIZE",
-					Value: s.Int32(*api.Predictor.Models.DiskCacheSize),
 				},
 			)
 		}
