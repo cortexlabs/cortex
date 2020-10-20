@@ -14,6 +14,15 @@ Reference the section below which corresponds to your Predictor type: [Python](#
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
+    model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (optional)
+    models: # use this when multiple models per API are desired (optional)
+      dir: <string> # S3 path to a directory holding multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
+      paths: # list of S3 paths to specific directory models
+        - name: <string> # unique name for the model (e.g. text-generator) (required)
+          model_path: <string> # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (required)
+        ...
+      cache_size: <int> # how many models to keep in memory (optional)
+      disk_cache_size: <int> # how many models to keep on disk (optional)
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
@@ -50,7 +59,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -60,13 +69,18 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
-    model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'models' must be provided)
+    model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (either this or 'models' must be provided)
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
-      - name: <string> # unique name for the model (e.g. text-generator) (required)
-        model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
-        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-      ...
+      dir: <string> # S3 path to a directory holding multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
+      paths:
+        - name: <string> # unique name for the model (e.g. text-generator) (required)
+          model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (required)
+          signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+        ...
+      signature_key: # name of the signature def to use for prediction for 'dir'-specified models or for models specified using 'paths' that haven't had a signature key set
+      cache_size: <int> # how many models to keep in memory (optional)
+      disk_cache_size: <int> # how many models to keep on disk (optional)
     server_side_batching:  # (optional)
       max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
       batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
@@ -107,7 +121,7 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
 
 ## ONNX Predictor
 
@@ -117,12 +131,16 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-    model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (either this or 'models' must be provided)
+    model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (either this or 'models' must be provided)
     models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
-      - name: <string> # unique name for the model (e.g. text-generator) (required)
-        model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
-        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-      ...
+      dir: <string> # S3 path to a directory holding multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
+      paths:
+        - name: <string> # unique name for the model (e.g. text-generator) (required)
+          model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (required)
+          signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+        ...
+      cache_size: <int> # how many models to keep in memory (optional)
+      disk_cache_size: <int> # how many models to keep on disk (optional)
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
@@ -158,4 +176,4 @@ See additional documentation for [parallelism](parallelism.md), [autoscaling](au
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).

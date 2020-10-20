@@ -52,7 +52,7 @@ class PythonPredictor:
 # initialization code and variables can be declared here in global scope
 
 class PythonPredictor:
-    def __init__(self, config):
+    def __init__(self, config, python_client):
         """(Required) Called once before the API becomes available. Performs
         setup such as downloading/initializing the model or downloading a
         vocabulary.
@@ -61,8 +61,12 @@ class PythonPredictor:
             config (required): Dictionary passed from API configuration (if
                 specified). This may contain information on where to download
                 the model and/or metadata.
+            python_client (optional): Python client which is used to
+                retrieve models for prediction. This should be saved for use in predict().
+                Required when `predictor.model_path` or `predictor.models`
+                field is specified in the api configuration yaml.
         """
-        pass
+        self.client = python_client # optional
 
     def predict(self, payload, query_params, headers):
         """(Required) Called once per request. Preprocesses the request payload
@@ -99,6 +103,23 @@ class PythonPredictor:
             headers (optional): A dictionary of the headers sent in the request.
         """
         pass
+
+    def load_model(self, model_path):
+        """(Optional) Called when a model is requested by a request.
+
+        Required method when `predictor.model_path` or `predictor.models`
+        field is specified in the api configuration yaml.
+
+        Warning: this method must not make any modification to the model's
+        contents on the disk.
+
+        Args:
+            model_path: The disk path to the model (as it's found on the API replica).
+
+        Returns:
+            The loaded model from disk. The returned object is what the
+            self.client.get_model method will return.
+        """
 ```
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
@@ -132,6 +153,37 @@ class PythonPredictor:
         tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
         prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
         return self.tokenizer.decode(prediction[0])
+```
+
+<!-- CORTEX_VERSION_MINOR -->
+Here is the Predictor for [examples/live-reloading/python/mpg-estimator](https://github.com/cortexlabs/cortex/tree/feature/master/examples/live-reloading/python/mpg-estimator):
+
+```python
+import mlflow.sklearn
+import numpy as np
+
+
+class PythonPredictor:
+    def __init__(self, config, python_client):
+        self.client = python_client
+
+    def load_model(self, model_path):
+        return mlflow.sklearn.load_model(model_path)
+
+    def predict(self, payload, query_params):
+        model_version = query_params.get("version")
+
+        model = self.client.get_model(model_version=model_version)
+        model_input = [
+            payload["cylinders"],
+            payload["displacement"],
+            payload["horsepower"],
+            payload["weight"],
+            payload["acceleration"],
+        ]
+        result = model.predict([model_input]).item()
+
+        return {"prediction": result, "model": {"version": model_version}}
 ```
 
 ### Pre-installed packages
