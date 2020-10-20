@@ -105,7 +105,7 @@ class PythonPredictor:
         pass
 
     def load_model(self, model_path):
-        """(Optional) Called when a model is requested by a request.
+        """(Optional) Called by Cortex to load a model when necessary.
 
         Required method when `predictor.model_path` or `predictor.models`
         field is specified in the api configuration yaml.

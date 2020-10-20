@@ -17,7 +17,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (optional)
     models: # use this when multiple models per API are desired (optional)
       dir: <string> # S3 path to a directory holding multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
-      paths: # list of S3 paths to specific directory models
+      paths: # list of S3 paths to specific directory models (either this or 'models' must be provided)
         - name: <string> # unique name for the model (e.g. text-generator) (required)
           model_path: <string> # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (required)
         ...
@@ -73,7 +73,7 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
       dir: <string> # S3 path to a directory holding multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
-      paths:
+      paths: # list of S3 paths to specific directory models (either this or 'models' must be provided)
         - name: <string> # unique name for the model (e.g. text-generator) (required)
           model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (required)
           signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
@@ -134,7 +134,7 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (either this or 'models' must be provided)
     models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
       dir: <string> # S3 path to a directory holding multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
-      paths:
+      paths: # list of S3 paths to specific directory models (either this or 'models' must be provided)
         - name: <string> # unique name for the model (e.g. text-generator) (required)
           model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model/) (required)
           signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)

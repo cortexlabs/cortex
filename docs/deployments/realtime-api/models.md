@@ -12,10 +12,10 @@ The following is a table showing when live reloading / model caching is possible
 |----------------|---------------------------|----------------------------------|---------------|
 | Python         | processes_per_replica = 1 | yes                              | yes           |
 |                | processes_per_replica > 1 | yes                              | no            |
-| ONNX           | processes_per_replica = 1 | yes                              | yes           |
-|                | processes_per_replica > 1 | yes                              | no            |
 | TensorFlow     | processes_per_replica = 1 | yes                              | yes           |
 |                | processes_per_replica > 1 | yes (no when inferentia is used) | no            |
+| ONNX           | processes_per_replica = 1 | yes                              | yes           |
+|                | processes_per_replica > 1 | yes                              | no            |
 
 ## Live model reloading
 
@@ -76,6 +76,29 @@ When the `predictor.model_path` field is used, you can retrieve the model by run
 
 When the `predictor.models.paths` field is used, the `model_name` is the name of the model that it has been given in the API spec config.
 
+#### TensorFlow
+
+For the TensorFlow predictor, to run a prediction, you need to call the `tensorflow_client.predict` method of the `tensorflow_client` client that's passed to the predictor's constructor.
+
+```python
+def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "highest") -> dict:
+    """
+    Run prediction.
+
+    Args:
+        model_input: Input to the model.
+        model_name: Model to use when multiple models are deployed in a single API.
+        model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+
+    Returns:
+        dict: Prediction.
+    """
+```
+
+When the `predictor.model_path` field is used, you can retrieve the model by running `tensorflow_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `highest`, which means it will be picking up the model with the highest version number (if applicable).
+
+When the `predictor.models.paths` field is used, the `model_name` is the name of the model that is has been given in the API spec config.
+
 #### ONNX
 
 For the ONNX predictor, to run a prediction, you need to call the `onnx_client.predict` method of the `onnx_client` client that's passed to the predictor's constructor.
@@ -114,29 +137,6 @@ You can also retrieve the model by calling the `onnx_client.get_model` method - 
     }
 }
 ```
-
-#### TensorFlow
-
-For the TensorFlow predictor, to run a prediction, you need to call the `tensorflow_client.predict` method of the `tensorflow_client` client that's passed to the predictor's constructor.
-
-```python
-def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "highest") -> dict:
-    """
-    Run prediction.
-
-    Args:
-        model_input: Input to the model.
-        model_name: Model to use when multiple models are deployed in a single API.
-        model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
-
-    Returns:
-        dict: Prediction.
-    """
-```
-
-When the `predictor.model_path` field is used, you can retrieve the model by running `tensorflow_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `highest`, which means it will be picking up the model with the highest version number (if applicable).
-
-When the `predictor.models.paths` field is used, the `model_name` is the name of the model that is has been given in the API spec config.
 
 ### Individual models
 
@@ -190,27 +190,6 @@ or for a versioned model:
       ├── MLmodel
       ├── conda.yaml
       └── model.pkl
-```
-
-#### ONNX
-
-For the ONNX predictor, every model (or each versioned model) must contain a single `*.onnx` file.
-
-Example of accepted directory structure:
-
-```text
-  models/model-A/
-  └── model.onnx
-```
-
-or for a versioned model:
-
-```text
-  models/model-A/
-  ├── 1523423423/ (Version prefix, a timestamp)
-  |   └── model.onnx
-  └── 2434389194/ (Version prefix, a timestamp)
-      └── model.onnx
 ```
 
 #### TensorFlow
@@ -268,6 +247,27 @@ or for a versioned model:
   |   └── saved_model.pb
   └── 2434389194/ (Version prefix, a timestamp)
       └── saved_model.pb
+```
+
+#### ONNX
+
+For the ONNX predictor, every model (or each versioned model) must contain a single `*.onnx` file.
+
+Example of accepted directory structure:
+
+```text
+  models/model-A/
+  └── model.onnx
+```
+
+or for a versioned model:
+
+```text
+  models/model-A/
+  ├── 1523423423/ (Version prefix, a timestamp)
+  |   └── model.onnx
+  └── 2434389194/ (Version prefix, a timestamp)
+      └── model.onnx
 ```
 
 ### Models from dir
