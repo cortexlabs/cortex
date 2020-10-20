@@ -44,15 +44,15 @@ def run_cli(
     Runs the Cortex binary with the specified arguments.
 
     Args:
-        args: Arguments to use when invoking the Cortex binary.
-        hide_output: Flag to prevent streaming Cortex binary output to stdout.
-        mixed: Used to handle Cortex binary output that should go to standard out and local.
+        args: Arguments to use when invoking the Cortex CLI.
+        hide_output: Flag to prevent streaming CLI output to stdout.
+        mixed: Used to handle CLI output that both prints to stdout and should be returned.
 
     Raises:
-        CortexBinaryException: Cortex command returned an error.
+        CortexBinaryException: Cortex CLI command returned an error.
 
     Returns:
-        The stdout from the Cortex command.
+        The stdout from the Cortex CLI command, or the result if mixed output.
     """
 
     env = os.environ.copy()
@@ -101,8 +101,9 @@ def run_cli(
 def get_cli_path() -> str:
     """
     Get the location of the CLI.
-    Default location is directory containing the `cortex.binary` package.
-    The location can be overridden by setting the `CORTEX_CLI_PATH` to the location of the CLI.
+
+    Default location is the directory containing the `cortex.binary` package.
+    The location can be overridden by setting the `CORTEX_CLI_PATH` environment variable.
 
     Raises:
         Exception: Unable to find the CLI.
@@ -121,6 +122,6 @@ def get_cli_path() -> str:
     cli_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "cli")
     if not os.path.exists(cli_path):
         raise Exception(
-            f"unable to find cortex binary at {cli_path}, please reinstall the cortex client using `pip uninstall cortex` and then `pip install cortex`"
+            f"unable to find cortex binary at {cli_path}, please reinstall the cortex client by running `pip uninstall cortex` and then `pip install cortex`"
         )
     return cli_path

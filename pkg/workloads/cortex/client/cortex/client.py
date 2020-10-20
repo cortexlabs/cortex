@@ -29,7 +29,7 @@ class Client:
         A client to deploy and manage APIs in the specified environment.
 
         Args:
-            env: Environment to use.
+            env: Name of the environment to use.
         """
         self.env = env
 
@@ -44,11 +44,11 @@ class Client:
 
         Args:
             config_file: Local path to a yaml file defining Cortex APIs.
-            force: Override the in-progress api updates.
-            wait: Polls and streams logs until APIs are ready.
+            force: Override any in-progress api updates.
+            wait: Streams logs until the APIs are ready.
 
         Returns:
-            Deployment status, API specification and endpoint for each API.
+            Deployment status, API specification, and endpoint for each API.
         """
 
         args = [
@@ -63,10 +63,7 @@ class Client:
         if force:
             args.append("--force")
 
-        output = run_cli(
-            args,
-            mixed=True,
-        )
+        output = run_cli(args, mixed=True)
 
         deploy_results = json.loads(output.strip())
 
@@ -93,7 +90,7 @@ class Client:
                 env=env,
             )
 
-            streamer = threading.Thread(target=stream_to_stdout, args=(process,))
+            streamer = threading.Thread(target=stream_to_stdout, args=(process))
             streamer.start()
 
             while process.poll() is None:
@@ -104,17 +101,18 @@ class Client:
                     process.terminate()
                     break
                 time.sleep(2)
+
         return deploy_results
 
     def get_api(self, api_name: str) -> dict:
         """
-        Get information about a specific API such as the API specification, endpoint, status and metrics (if applicable).
+        Get information about an API.
 
         Args:
-            api_name: Name of the API
+            api_name: Name of the API.
 
         Returns:
-            Get of information about the specific API.
+            Information about the API, including the API specification, endpoint, status, and metrics (if applicable).
         """
         output = run_cli(["get", api_name, "--env", self.env, "-o", "json"], hide_output=True)
 
@@ -123,10 +121,10 @@ class Client:
 
     def list_apis(self) -> list:
         """
-        List all APIs in the environment such as the API specification, endpoint, status and metrics (if applicable).
+        List all APIs in the environment.
 
         Returns:
-            List of information about APIs.
+            List of APIs, including information such as the API specification, endpoint, status, and metrics (if applicable).
         """
         args = ["get", "-o", "json", "--env", self.env]
 
@@ -136,14 +134,14 @@ class Client:
 
     def get_job(self, api_name: str, job_id: str) -> dict:
         """
-        Get information about a submitted job such as the job status, worker status and job progress.
+        Get information about a submitted job.
 
         Args:
             api_name: Name of the Batch API.
             job_id: Job ID.
 
         Returns:
-            Information about the job.
+            Information about the job, including the job status, worker status, and job progress.
         """
         args = ["get", api_name, job_id, "--env", self.env, "-o", "json"]
 
@@ -156,8 +154,8 @@ class Client:
         Restart all of the replicas for a Realtime API without downtime.
 
         Args:
-            api_name: API to refresh.
-            force: Override the in-progress API update.
+            api_name: Name of the API to refresh.
+            force: Override an already in-progress API update.
         """
         args = ["refresh", api_name, "--env", self.env, "-o", "json"]
 
@@ -168,11 +166,11 @@ class Client:
 
     def delete_api(self, api_name: str, keep_cache: bool = False):
         """
-        Delete this API.
+        Delete an API.
 
         Args:
             api_name: Name of the API to delete.
-            keep_cache: Retain the cached data for this API.
+            keep_cache: Whether to retain the cached data for this API.
         """
         args = [
             "delete",

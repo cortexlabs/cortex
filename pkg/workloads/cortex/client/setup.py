@@ -48,7 +48,7 @@ class InstallBinary(install):
 
             download_url = f"https://s3-us-west-2.amazonaws.com/get-cortex/{cortex_version}/cli/{platform}/cortex.zip"
 
-            print("downloading cortex cli zip...")
+            print("downloading cortex cli...")
             with requests.get(download_url, stream=True) as r:
                 with open(zip_file_path, "wb") as f:
                     shutil.copyfileobj(r.raw, f)

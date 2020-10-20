@@ -30,8 +30,8 @@ def client(env: str):
         c.deploy("./cortex.yaml")
 
     To deploy and manage APIs on a new cluster:
-        1. Spin up a cluster using the CLI command (if you haven't done so already) `cortex cluster up`.
-           An environment named `aws` will be created for you by the CLI once the cluster has spun up.
+        1. Spin up a cluster using the CLI command `cortex cluster up`.
+           An environment named "aws" will be created once the cluster is ready.
         2. Initialize your client:
            import cortex
            c = cortex.client("aws")
@@ -45,7 +45,7 @@ def client(env: str):
            c.deploy("./cortex.yaml")
 
     Args:
-        env: Name of the environment to use to initialize the Cortex client.
+        env: Name of the environment to use.
 
     Returns:
         Cortex client that can be used to deploy and manage APIs in the specified environment.
@@ -71,11 +71,13 @@ def local_client(
 ) -> Client:
     """
     Initialize a client to deploy and manage APIs locally.
-    The specified AWS credentials will used to download models from S3, authenticate to ECR and be passed in to your local API deployments.
+
+    The specified AWS credentials will be used by the CLI to download models
+    from S3 and authenticate to ECR, and will be set in your Predictor.
 
     Args:
-        aws_access_key_id: AWS Credentials that will be used for authentication.
-        aws_secret_access_key: AWS Credentials that will be used for authentication.
+        aws_access_key_id: AWS access key ID.
+        aws_secret_access_key: AWS secret access key.
         aws_region: AWS region.
 
     Returns:
@@ -106,13 +108,13 @@ def cluster_client(
     aws_secret_access_key: str,
 ) -> Client:
     """
-    Create a new environment for your Cortex Cluster and initialize a client to deploy and manage APIs on that cluster.
+    Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
 
     Args:
         name: Name of the environment to create.
-        operator_endpoint: The endpoint for the operator of your Cortex Cluster. You can get this endpoint using the Cortex CLI command `cortex cluster info -c cluster.yaml`.
-        aws_access_key_id: AWS Credentials that will be used for authentication.
-        aws_secret_access_key: AWS Credentials that will be used for authentication.
+        operator_endpoint: The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
+        aws_access_key_id: AWS access key ID.
+        aws_secret_access_key: AWS secret access key.
 
     Returns:
         Cortex client that can be used to deploy and manage APIs on a Cortex Cluster.
@@ -148,6 +150,7 @@ def env_list() -> list:
 def env_delete(name: str):
     """
     Delete an environment configured on this machine.
+
     Args:
         name: Name of the environment to delete.
     """
