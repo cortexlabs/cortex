@@ -7,12 +7,83 @@ It is possible to serve multiple models in the same Cortex API using any type of
 
 ## Python Predictor
 
+### Specifying models in API config
+
+<!-- CORTEX_VERSION_MINOR -->
+The following template is based on the [live-reloading/python/mpg-estimator](https://github.com/cortexlabs/cortex/tree/master/examples/live-reloading/python/mpg-estimator) example.
+
+#### `cortex.yaml`
+
+Even though it looks as if there's only a single model served, there are actually 4 different versions served from `s3://cortex-0/models/python/mpg-estimator`, thus fitting the bill.
+
+```yaml
+- name: mpg-estimator
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    model_path: s3://cortex-0/models/python/mpg-estimator/
+```
+
+#### `predictor.py`
+
+```python
+import mlflow.sklearn
+import numpy as np
+
+
+class PythonPredictor:
+    def __init__(self, config, python_client):
+        self.client = python_client
+
+    def load_model(self, model_path):
+        return mlflow.sklearn.load_model(model_path)
+
+    def predict(self, payload, query_params):
+        model_version = query_params.get("version")
+
+        # process the input
+        # ...
+
+        model = self.client.get_model(model_version=model_version)
+        result = model.predict(model_input)
+
+        return {"prediction": result, "model": {"version": model_version}}
+```
+
+#### Making predictions
+
+For convenience, we'll export our API's endpoint (yours will be different from mine):
+
+```bash
+$ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-west-2.amazonaws.com/mpg-estimator
+```
+
+Next, we'll make a prediction using the sentiment analyzer model by specifying the model version as a query parameter:
+
+```bash
+$ curl "${api_endpoint}?version=1" -X POST -H "Content-Type: application/json" -d @sample.json
+
+{"prediction": 26.929889872154185, "model": {"version": "1"}}
+```
+
+Then we'll make a prediction using the 2nd version of the model (since they are just duplicate models, it will only return the same result):
+
+```bash
+$ curl "${api_endpoint}?version=2" -X POST -H "Content-Type: application/json" -d @sample.json
+
+{"prediction": 26.929889872154185, "model": {"version": "2"}}
+```
+
+
+### Without specifying models in API config
+
 For the Python Predictor, the API configuration for a multi-model API is similar to single-model APIs. The Predictor's `config` field can be used to customize the behavior of the `predictor.py` implementation.
 
 <!-- CORTEX_VERSION_MINOR -->
 The following template is based on the [pytorch/multi-model-text-analyzer](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/multi-model-text-analyzer) example.
 
-### `cortex.yaml`
+#### `cortex.yaml`
 
 ```yaml
 - name: multi-model-text-analyzer
@@ -24,7 +95,7 @@ The following template is based on the [pytorch/multi-model-text-analyzer](https
     ...
 ```
 
-### `predictor.py`
+#### `predictor.py`
 
 Models should be loaded within the predictor's constructor. Query parameters are encouraged to be used when selecting the model for inference.
 
@@ -59,7 +130,7 @@ class PythonPredictor:
             return JSONResponse({"error": f"unknown model: {model_name}"}, status_code=400)
 ```
 
-### Making predictions
+#### Making predictions
 
 For convenience, we'll export our API's endpoint (yours will be different from mine):
 
@@ -70,7 +141,7 @@ $ api_endpoint=http://a36473270de8b46e79a769850dd3372d-c67035afa37ef878.elb.us-w
 Next, we'll make a prediction using the sentiment analyzer model by specifying the model name as a query parameter:
 
 ```bash
-$ curl ${api_endpoint}?model=sentiment -X POST -H "Content-Type: application/json" -d @sample-sentiment.json
+$ curl "${api_endpoint}?model=sentiment" -X POST -H "Content-Type: application/json" -d @sample-sentiment.json
 
 {"label": "POSITIVE", "score": 0.9998506903648376}
 ```
@@ -78,7 +149,7 @@ $ curl ${api_endpoint}?model=sentiment -X POST -H "Content-Type: application/jso
 Then we'll make a prediction using the text summarizer model:
 
 ```bash
-$ curl ${api_endpoint}?model=summarizer -X POST -H "Content-Type: application/json" -d @sample-summarizer.json
+$ curl "${api_endpoint}?model=summarizer" -X POST -H "Content-Type: application/json" -d @sample-summarizer.json
 
 Machine learning is the study of algorithms and statistical models that computer systems use to perform a specific task. It is seen as a subset of artificial intelligence. Machine learning algorithms are used in a wide variety of applications, such as email filtering and computer vision. In its application across business problems, machine learning is also referred to as predictive analytics.
 ```
@@ -99,12 +170,13 @@ The following template is based on the [tensorflow/multi-model-classifier](https
     type: tensorflow
     path: predictor.py
     models:
-      - name: iris
-        model_path: s3://cortex-examples/tensorflow/iris-classifier/nn
-      - name: inception
-        model_path: s3://cortex-examples/tensorflow/image-classifier/inception
-      - name: resnet50
-        model_path: s3://cortex-examples/tensorflow/multi-model-classifier/resnet50
+      paths:
+        - name: inception
+          model_path: s3://cortex-examples/tensorflow/image-classifier/inception/
+        - name: iris
+          model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
+        - name: resnet50
+          model_path: s3://cortex-examples/tensorflow/resnet50/
       ...
 ```
 
@@ -182,12 +254,13 @@ The following template is based on the [onnx/multi-model-classifier](https://git
     type: onnx
     path: predictor.py
     models:
-      - name: resnet50
-        model_path: s3://cortex-examples/onnx/resnet50/resnet50-v2-7.onnx
-      - name: mobilenet
-        model_path: s3://cortex-examples/onnx/mobilenet/mobilenetv2-7.onnx
-      - name: shufflenet
-        model_path: s3://cortex-examples/onnx/shufflenet/shufflenet-v2-10.onnx
+      paths:
+        - name: resnet50
+          model_path: s3://cortex-examples/onnx/resnet50/
+        - name: mobilenet
+          model_path: s3://cortex-examples/onnx/mobilenet/
+        - name: shufflenet
+          model_path: s3://cortex-examples/onnx/shufflenet/
       ...
 ```
 
