@@ -38,7 +38,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-var _startingPort = 8888
+var _startingPort = 8890
 
 type ProjectFiles struct {
 	relFilePaths []string

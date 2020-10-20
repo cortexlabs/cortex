@@ -31,7 +31,7 @@ import (
 const _numConcurrent = 5
 const _numRequestsPerThread = -1
 const _requestDelay = 0 * time.Second
-const _numMainLoops = 10
+const _numMainLoops = 10 // only relevant if _numRequestsPerThread != -1
 
 var _client = &http.Client{
 	Timeout: 600 * time.Second,
