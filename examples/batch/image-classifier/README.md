@@ -197,7 +197,7 @@ $ curl $BATCH_API_ENDPOINT \
                 "https://i.imgur.com/E4cOSLw.jpg",
                 "https://user-images.githubusercontent.com/4365343/96516272-d40aa980-1234-11eb-949d-8e7e739b8345.jpg",
                 "https://i.imgur.com/jDimNTZ.jpg",
-                "https://imgur.com/a/FPkyOQT"
+                "https://i.imgur.com/WqeovVj.jpg"
             ],
             "batch_size": 2
         },
