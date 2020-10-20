@@ -38,7 +38,7 @@ class InstallBinary(install):
         if not os.path.exists(cli_file_path):
             platform = sys.platform
 
-            if platform != "darwin" and platform != "linux":
+            if not platform.startswith("darwin") and not platform.startswith("linux"):
                 raise Exception("cortex is only supported on mac and linux")
 
             cortex_version = self.config_vars["dist_version"]

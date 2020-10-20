@@ -45,8 +45,8 @@ def run_cli(
 
     Args:
         args: Arguments to use when invoking the Cortex binary.
-        hide_output: Flag to prevent streaming Cortex binary output to stdout. Defaults to False.
-        mixed: Used to handle Cortex binary output that should go to standard out and local. Defaults to False.
+        hide_output: Flag to prevent streaming Cortex binary output to stdout.
+        mixed: Used to handle Cortex binary output that should go to standard out and local.
 
     Raises:
         CortexBinaryException: Cortex command returned an error.

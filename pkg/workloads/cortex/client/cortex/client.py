@@ -44,8 +44,8 @@ class Client:
 
         Args:
             config_file: Local path to a yaml file defining Cortex APIs.
-            force: Override the in-progress api updates. Defaults to False.
-            wait: Polls and streams logs until APIs are ready. Defaults to False.
+            force: Override the in-progress api updates.
+            wait: Polls and streams logs until APIs are ready.
 
         Returns:
             Deployment status, API specification and endpoint for each API.
@@ -73,15 +73,15 @@ class Client:
         if not wait:
             return deploy_results
 
+        def stream_to_stdout(process):
+            for c in iter(lambda: process.stdout.read(1), ""):
+                sys.stdout.write(c)
+
         for deploy_result in deploy_results:
             api_name = deploy_result["api"]["spec"]["name"]
             kind = deploy_result["api"]["spec"]["kind"]
             if kind != "RealtimeAPI":
                 continue
-
-            def stream_to_stdout(process):
-                for c in iter(lambda: process.stdout.read(1), ""):
-                    sys.stdout.write(c)
 
             env = os.environ.copy()
             env["CORTEX_CLI_INVOKER"] = "python"
@@ -145,9 +145,9 @@ class Client:
         Returns:
             Information about the job.
         """
-        output = run_cli(
-            ["get", api_name, job_id, "--env", self.env, "-o", "json"], hide_output=True
-        )
+        args = ["get", api_name, job_id, "--env", self.env, "-o", "json"]
+
+        output = run_cli(args, hide_output=True)
 
         return json.loads(output.strip())
 
@@ -157,7 +157,7 @@ class Client:
 
         Args:
             api_name: API to refresh.
-            force: Override the in-progress API update. Defaults to False.
+            force: Override the in-progress API update.
         """
         args = ["refresh", api_name, "--env", self.env, "-o", "json"]
 
@@ -172,7 +172,7 @@ class Client:
 
         Args:
             api_name: Name of the API to delete.
-            keep_cache: Retain the cached data for this API. Defaults to False.
+            keep_cache: Retain the cached data for this API.
         """
         args = [
             "delete",
@@ -185,7 +185,7 @@ class Client:
         ]
 
         if keep_cache:
-            args += "--keep-cache"
+            args.append("--keep-cache")
 
         run_cli(args, hide_output=True)
 

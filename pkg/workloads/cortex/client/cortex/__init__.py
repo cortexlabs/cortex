@@ -41,7 +41,7 @@ def client(env: str):
         1. Use the command `cortex cluster info` to get the Operator Endpoint.
         2. Configure a client to your cluster:
            import cortex
-           c = cortex.new_cluster_client("aws", operator_endpoint, aws_access_key_id, aws_secret_access_key)
+           c = cortex.cluster_client("aws", operator_endpoint, aws_access_key_id, aws_secret_access_key)
            c.deploy("./cortex.yaml")
 
     Args:
@@ -59,7 +59,7 @@ def client(env: str):
             found = True
 
     if not found:
-        raise NotFound(f"can't find environment {env}, create one by calling `new_cluster_client`")
+        raise NotFound(f"can't find environment {env}, create one by calling `cluster_client`")
 
     return Client(env)
 
@@ -99,7 +99,7 @@ def local_client(
     return Client("local")
 
 
-def new_cluster_client(
+def cluster_client(
     name: str,
     operator_endpoint: str,
     aws_access_key_id: str,
