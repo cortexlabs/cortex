@@ -95,7 +95,7 @@ setup(
         ],
     },
     install_requires=(["importlib-resources; python_version < '3.7'"]),
-    python_requires=">=3.6.1",
+    python_requires=">=3.6",
     cmdclass={
         "install": InstallBinary,
     },
