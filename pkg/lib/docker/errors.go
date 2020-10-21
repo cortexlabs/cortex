@@ -21,13 +21,16 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
-	ErrConnectToDockerDaemon = "docker.connect_to_docker_daemon"
-	ErrDockerPermissions     = "docker.docker_permissions"
-	ErrImageInaccessible     = "docker.image_inaccessible"
+	ErrConnectToDockerDaemon   = "docker.connect_to_docker_daemon"
+	ErrDockerPermissions       = "docker.docker_permissions"
+	ErrImageDoesntExistLocally = "docker.image_doesnt_exist_locally"
+	ErrImageInaccessible       = "docker.image_inaccessible"
 )
 
 func ErrorConnectToDockerDaemon() error {
@@ -56,10 +59,29 @@ func ErrorDockerPermissions(err error) error {
 	})
 }
 
-func ErrorImageInaccessible(image string, cause error) error {
+func ErrorImageDoesntExistLocally(image string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrImageDoesntExistLocally,
+		Message: fmt.Sprintf("%s does not exist locally; download it with `docker pull %s` (if your registry is private, run `docker login` first)", image, image),
+	})
+}
+
+func ErrorImageInaccessible(image string, providerType types.ProviderType, cause error) error {
 	message := fmt.Sprintf("%s is not accessible", image)
+
 	if cause != nil {
-		message += "\n" + errors.Message(cause) // add \n because docker client errors are
+		message += "\n" + errors.Message(cause) // add \n because docker client errors are verbose but useful
+	}
+
+	if providerType == types.LocalProviderType {
+		message += fmt.Sprintf("\n\nyou can download your image with `docker pull %s` and try this command again", image)
+		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
+			message += " (if your registry is private, run `docker login` first)"
+		}
+	} else if providerType == types.AWSProviderType {
+		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
+			message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/guides/private-docker", consts.CortexVersionMinor)
+		}
 	}
 
 	return errors.WithStack(&errors.Error{
