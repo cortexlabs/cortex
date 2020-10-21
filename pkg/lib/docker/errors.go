@@ -70,7 +70,7 @@ func ErrorImageInaccessible(image string, providerType types.ProviderType, cause
 	message := fmt.Sprintf("%s is not accessible", image)
 
 	if cause != nil {
-		message += "\n" + errors.Message(cause)
+		message += "\n" + errors.Message(cause) // add \n because docker client errors are verbose but useful
 	}
 
 	if providerType == types.LocalProviderType {

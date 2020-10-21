@@ -4,13 +4,17 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Until [#1459](https://github.com/cortexlabs/cortex/issues/1459) is addressed, you can use a private docker registry for your Predictor images by following this guide.
 
-Note: The following steps only apply for Cortex clusters. When running Cortex locally, simply run `docker login` and then `docker pull <your_image>` from the command line.
+## Local
 
-## Step 1
+When running Cortex locally, you can use private Docker images by running `docker login` and then `docker pull <your_image>`. The Docker image will be present on your machine, and will be accessible by Cortex the next time you run `cortex deploy`.
+
+## Cluster
+
+### Step 1
 
 Install and configure kubectl ([instructions](kubectl-setup.md)).
 
-## Step 2
+### Step 2
 
 Set the following environment variables, replacing the placeholders with your docker username and password:
 
@@ -32,7 +36,7 @@ kubectl patch serviceaccount default \
   -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 ```
 
-## Updating your credentials
+### Updating your credentials
 
 To remove your docker credentials from the cluster, run this command, then repeat step 2:
 
@@ -40,7 +44,7 @@ To remove your docker credentials from the cluster, run this command, then repea
 kubectl delete secret --namespace default registry-credentials
 ```
 
-## Removing your credentials
+### Removing your credentials
 
 To remove your docker credentials from the cluster, run the following commands:
 
