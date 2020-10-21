@@ -56,6 +56,7 @@ type Client struct {
 	nodeClient           kclientcore.NodeInterface
 	serviceClient        kclientcore.ServiceInterface
 	configMapClient      kclientcore.ConfigMapInterface
+	secretClient         kclientcore.SecretInterface
 	deploymentClient     kclientapps.DeploymentInterface
 	jobClient            kclientbatch.JobInterface
 	ingressClient        kclientextensions.IngressInterface
@@ -100,6 +101,7 @@ func New(namespace string, inCluster bool) (*Client, error) {
 	client.nodeClient = client.clientset.CoreV1().Nodes()
 	client.serviceClient = client.clientset.CoreV1().Services(namespace)
 	client.configMapClient = client.clientset.CoreV1().ConfigMaps(namespace)
+	client.secretClient = client.clientset.CoreV1().Secrets(namespace)
 	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)
 	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
 	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
