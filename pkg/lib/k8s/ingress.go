@@ -111,10 +111,10 @@ func (c *Client) ApplyIngress(ingress *kextensions.Ingress) (*kextensions.Ingres
 
 func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {
 	ingress, err := c.ingressClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	ingress.TypeMeta = _ingressTypeMeta
@@ -123,10 +123,10 @@ func (c *Client) GetIngress(name string) (*kextensions.Ingress, error) {
 
 func (c *Client) DeleteIngress(name string) (bool, error) {
 	err := c.ingressClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil

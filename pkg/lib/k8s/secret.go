@@ -82,10 +82,10 @@ func (c *Client) ApplySecret(secret *kcore.Secret) (*kcore.Secret, error) {
 
 func (c *Client) GetSecret(name string) (*kcore.Secret, error) {
 	secret, err := c.secretClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	secret.TypeMeta = _secretTypeMeta
@@ -105,10 +105,10 @@ func (c *Client) GetSecretData(name string) (map[string][]byte, error) {
 
 func (c *Client) DeleteSecret(name string) (bool, error) {
 	err := c.secretClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil

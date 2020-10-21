@@ -105,10 +105,10 @@ func (c *Client) ApplyHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscal
 
 func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, error) {
 	hpa, err := c.hpaClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	hpa.TypeMeta = _hpaTypeMeta
@@ -117,10 +117,10 @@ func (c *Client) GetHPA(name string) (*kautoscaling.HorizontalPodAutoscaler, err
 
 func (c *Client) DeleteHPA(name string) (bool, error) {
 	err := c.hpaClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil
