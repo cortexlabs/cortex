@@ -17,11 +17,9 @@ limitations under the License.
 package console
 
 import (
-	"github.com/fatih/color"
+	color "github.com/gookit/color"
 )
 
-var _bold = color.New(color.Bold).SprintFunc()
-
 func Bold(a ...interface{}) string {
-	return _bold(a...)
+	return color.Bold.Sprint(a...)
 }
