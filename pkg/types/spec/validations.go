@@ -1335,7 +1335,13 @@ func getDockerAuthStrFromK8s(dockerClient *docker.Client, k8sClient *k8s.Client)
 		return "", ErrorUnexpectedDockerSecretData("should contain \".dockerconfigjson\" key", secretData)
 	}
 
-	var authSecret docker.K8sAuthSecret
+	var authSecret struct {
+		Auths map[string]struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		} `json:"auths"`
+	}
+
 	err = libjson.Unmarshal(authData, &authSecret)
 	if err != nil {
 		return "", ErrorUnexpectedDockerSecretData(errors.Message(err), secretData)

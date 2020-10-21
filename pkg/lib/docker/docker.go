@@ -57,15 +57,6 @@ type Client struct {
 	Info dockertypes.Info
 }
 
-type K8sAuthSecret struct {
-	Auths map[string]K8sAuthSecretCreds `json:"auths"`
-}
-
-type K8sAuthSecretCreds struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 func GetDockerClient() (*Client, error) {
 	if _cachedClient != nil {
 		return _cachedClient, nil
