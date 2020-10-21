@@ -82,12 +82,14 @@ Create a repository to store your image:
 ```bash
 # We create a repository in ECR
 
+export AWS_REGION="***"
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
+export REGISTRY_URL="***"  # this will be in the format "<aws_account_id>.dkr.ecr.<aws_region>.amazonaws.com"
 
-eval $(aws ecr get-login --no-include-email --region us-east-1)
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY_URL
 
-aws ecr create-repository --repository-name=org/my-api --region=us-east-1
+aws ecr create-repository --repository-name=org/my-api --region=$AWS_REGION
 # take note of repository url
 ```
 

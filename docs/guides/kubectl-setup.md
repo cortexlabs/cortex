@@ -12,18 +12,16 @@ Install `kubectl` by following these [instructions](https://kubernetes.io/docs/t
 
 ## Step 2
 
-Install `eksctl` by following these [instructions](https://eksctl.io/introduction/#installation).
+If you don't already have the AWS CLI installed, install it by following these [instructions](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html).
+
+Confirm that `aws --version` >= 1.16, and configure your credentials by running `aws configure` or by exporting the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
 
 ## Step 3
-
-Make sure that your AWS credentials are available in your current shell environment. `eksctl` will search for credentials in the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables, or your `aws` CLI's credentials file (which can be created with `aws configure`).
-
-## Step 4
 
 Run the following command:
 
 ```bash
-$ eksctl utils write-kubeconfig --cluster=<cluster_name> --region=<region>
+$ aws eks update-kubeconfig --name=<cluster_name> --region=<region>
 ```
 
 Where `<cluster_name>` is the name of your cluster and `<region>` is the region of the cluster. These were specified when your cluster was created, either via command line prompts or your cluster configuration file (e.g. `cluster.yaml`). The default cluster name is `cortex`, and the default region is `us-east-1`.
