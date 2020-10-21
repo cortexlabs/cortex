@@ -4,6 +4,8 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Until [#1459](https://github.com/cortexlabs/cortex/issues/1459) is addressed, you can use a private docker registry for your Predictor images by following this guide.
 
+Note: The following steps only apply for Cortex clusters. When running Cortex locally, simply run `docker login` and then `docker pull <your_image>` from the command line.
+
 ## Step 1
 
 Install and configure kubectl ([instructions](kubectl-setup.md)).

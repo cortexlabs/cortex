@@ -18,7 +18,6 @@ package spec
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -34,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -1336,7 +1336,7 @@ func getDockerAuthStrFromK8s(dockerClient *docker.Client, k8sClient *k8s.Client)
 	}
 
 	var authSecret docker.K8sAuthSecret
-	err = json.Unmarshal(authData, &authSecret)
+	err = libjson.Unmarshal(authData, &authSecret)
 	if err != nil {
 		return "", ErrorUnexpectedDockerSecretData(errors.Message(err), secretData)
 	}
