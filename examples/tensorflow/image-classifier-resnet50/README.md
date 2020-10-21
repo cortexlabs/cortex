@@ -55,6 +55,16 @@ Then, deploy each API one at a time and check the results:
 1. Running `python ../../utils/throughput_test.py -i 30 -p 4 -t 24` with the [cortex_gpu.yaml](cortex_gpu.yaml) API running on an `g4dn.xlarge` instance will get **~125 inferences/sec** with an average latency of **85 ms**. Optimizing the model with TensorRT to use FP16 on TF-serving only seems to achieve a 10% performance improvement - one thing to consider is that the TensorRT engines hadn't been built beforehand, so this might have affected the results negatively.
 1. Running `python ../../utils/throughput_test.py -i 30 -p 4 -t 60` with the [cortex_gpu_server_side_batching.yaml](cortex_gpu_batch_sized.yaml) API running on an `g4dn.xlarge` instance will get **~186 inferences/sec** with an average latency of **500 ms**. This achieves a 49% higher throughput than the [cortex_gpu.yaml](cortex_gpu.yaml) API, at the expense of increased latency.
 
+Alternatively to [throughput_test.py](../../utils/throughput_test.py), the `ab` GNU utility can also be used to benchmark the API. This has the advantage that it's not as taxing on your local machine, but the disadvantage that it doesn't implement a cooldown period. You can run `ab` like this:
+
+```bash
+# for making octet-stream requests, which is the default for throughput_test script
+ab -n <number-of-requests> -c <concurrency-level> -p sample.bin -T 'application/octet-stream' -rks 120 $ENDPOINT
+
+# for making json requests, will will have lower performance because the API has to download the image every time
+ab -n <number-of-requests> -c <concurrency-level> -p sample.json -T 'application/json' -rks 120 $ENDPOINT
+```
+
 *Note: `inf1.xlarge` isn't used because the major bottleneck with `inf` instances for this example is with the CPU, and `inf1.2xlarge` has twice the amount of CPU cores for same number of Inferentia ASICs (which is 1), which translates to almost double the throughput.*
 
 ## Exporting SavedModels
