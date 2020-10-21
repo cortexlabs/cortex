@@ -82,6 +82,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name "go.*" \
 ! -name "*.md" \
 ! -name ".*" \
+! -name "*.bin" \
 ! -name "Dockerfile" \
 -exec grep -L "Copyright 2020 Cortex Labs, Inc" {} \;)
 if [[ $output ]]; then
@@ -101,6 +102,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
+  ! -name "*.bin" \
   -exec grep -R -A 5 -e "CORTEX_VERSION" {} \;)
   output=$(echo "$output" | grep -e "master" || true)
   if [[ $output ]]; then
@@ -119,6 +121,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
+  ! -name "*.bin" \
   -exec grep -l "WARNING: you are on the master branch" {} \;)
   if [[ $output ]]; then
     echo "file(s) have the master version warning:"
@@ -132,6 +135,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -name "*.json" \
   ! -name "*.txt" \
   ! -name ".*" \
+  ! -name "*.bin" \
   -exec grep -L -e "this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex" {} \;)
   if [[ $output ]]; then
     echo "examples file(s) are missing appropriate version comment:"
@@ -148,6 +152,7 @@ else
   ! -name "*.json" \
   ! -name "*.txt" \
   ! -name ".*" \
+  ! -name "*.bin" \
   -exec grep -L "WARNING: you are on the master branch, please refer to the docs on the branch that matches your \`cortex version\`" {} \;)
   if [[ $output ]]; then
     echo "docs file(s) are missing appropriate version comment:"
@@ -162,6 +167,7 @@ else
   ! -name "*.json" \
   ! -name "*.txt" \
   ! -name ".*" \
+  ! -name "*.bin" \
   -exec grep -L "WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` (e\.g\. for version [0-9]*\.[0-9]*\.\*, run \`git checkout -b [0-9]*\.[0-9]*\` or switch to the \`[0-9]*\.[0-9]*\` branch on GitHub)" {} \;)
   if [[ $output ]]; then
     echo "example file(s) are missing version appropriate comment:"
@@ -178,6 +184,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
+! -name "*.bin" \
 -exec egrep -l " +$" {} \;)
 if [[ $output ]]; then
   echo "File(s) have lines with trailing whitespace:"
@@ -193,6 +200,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
+! -name "*.bin" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "No new line at end of $0"' || true)
 if [[ $output ]]; then
@@ -208,6 +216,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
+! -name "*.bin" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || echo "Multiple new lines at end of $0"' || true)
 if [[ $output ]]; then
@@ -223,6 +232,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
+! -name "*.bin" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || echo "New line at beginning of $0"' || true)
 if [[ $output ]]; then
