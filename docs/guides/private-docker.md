@@ -38,11 +38,13 @@ kubectl patch serviceaccount default \
 
 ### Updating your credentials
 
-To remove your docker credentials from the cluster, run this command, then repeat step 2:
+To remove your docker credentials from the cluster, run this command:
 
 ```bash
 kubectl delete secret --namespace default registry-credentials
 ```
+
+Then repeat step 2 above with your updated credentials.
 
 ### Removing your credentials
 
