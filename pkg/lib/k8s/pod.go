@@ -309,10 +309,10 @@ func (c *Client) WaitForPodRunning(name string, numSeconds int) error {
 
 func (c *Client) GetPod(name string) (*kcore.Pod, error) {
 	pod, err := c.podClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	pod.TypeMeta = _podTypeMeta
@@ -321,10 +321,10 @@ func (c *Client) GetPod(name string) (*kcore.Pod, error) {
 
 func (c *Client) DeletePod(name string) (bool, error) {
 	err := c.podClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil
