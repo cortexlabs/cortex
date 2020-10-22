@@ -52,7 +52,12 @@ func s3IteratorFromLister(s3Lister schema.S3Lister, fn func(string, *s3.Object) 
 			return err
 		}
 
-		err = config.AWS.S3Iterator(bucket, key, false, nil, func(s3Obj *s3.Object) (bool, error) {
+		awsClientForBucket, err := aws.NewFromClientS3Path(s3Path, config.AWS)
+		if err != nil {
+			return err
+		}
+
+		err = awsClientForBucket.S3Iterator(bucket, key, false, nil, func(s3Obj *s3.Object) (bool, error) {
 			s3FilePath := aws.S3Path(bucket, *s3Obj.Key)
 
 			shouldSkip := false

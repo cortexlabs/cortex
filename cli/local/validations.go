@@ -119,7 +119,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	for i := range apis {
 		api := &apis[i]
 
-		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
+		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient, nil); err != nil {
 			return errors.Wrap(err, api.Identify())
 		}
 
