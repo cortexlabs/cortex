@@ -90,7 +90,7 @@ class Client:
                 env=env,
             )
 
-            streamer = threading.Thread(target=stream_to_stdout, args=(process))
+            streamer = threading.Thread(target=stream_to_stdout, args=(process,))
             streamer.start()
 
             while process.poll() is None:
