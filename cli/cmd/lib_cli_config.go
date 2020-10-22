@@ -414,7 +414,9 @@ func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) 
 }
 
 func promptAWSEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
-	fmt.Print("you can get your cortex operator endpoint using `cortex cluster info` if you already have a cortex cluster running, otherwise run `cortex cluster up` to create a cortex cluster\n\n")
+	if env.OperatorEndpoint == nil {
+		fmt.Print("you can get your cortex operator endpoint using `cortex cluster info` if you already have a cortex cluster running, otherwise run `cortex cluster up` to create a cortex cluster\n\n")
+	}
 	for true {
 		err := cr.ReadPrompt(env, &cr.PromptValidation{
 			SkipNonEmptyFields: true,
