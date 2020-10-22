@@ -2,7 +2,13 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## Installing a specific version of the CLI
+## Install the CLI
+
+```bash
+pip install cortex
+```
+
+## Install the CLI without Python Client
 
 ```bash
 # Replace `INSERT_CORTEX_VERSION` with the complete CLI version (e.g. 0.18.1):

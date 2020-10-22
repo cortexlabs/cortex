@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
@@ -75,7 +76,7 @@ func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCa
 	}
 
 	if uncachedModelCount > 0 {
-		fmt.Println("") // Newline to group all of the model information
+		localPrintln("") // Newline to group all of the model information
 	}
 
 	return localModelCaches, nil
@@ -134,13 +135,13 @@ func cacheModel(modelPath string, localModelCache spec.LocalModelCache, awsClien
 				return err
 			}
 		} else if strings.HasSuffix(modelPath, ".onnx") {
-			fmt.Println(fmt.Sprintf("￮ caching model %s ...", modelPath))
+			localPrintln(fmt.Sprintf("￮ caching model %s ...", modelPath))
 			err := files.CopyFileOverwrite(modelPath, filepath.Join(modelDir, filepath.Base(modelPath)))
 			if err != nil {
 				return err
 			}
 		} else {
-			fmt.Println(fmt.Sprintf("￮ caching model %s ...", modelPath))
+			localPrintln(fmt.Sprintf("￮ caching model %s ...", modelPath))
 			tfModelVersion := filepath.Base(modelPath)
 			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(filepath.Join(modelDir, tfModelVersion), "/"))
 			if err != nil {
@@ -196,10 +197,12 @@ func DeleteCachedModelsByID(modelIDs []string) error {
 }
 
 func downloadModel(modelPath string, modelDir string, awsClientForBucket *aws.Client) error {
-	fmt.Printf("￮ downloading model %s ", modelPath)
-	defer fmt.Print(" ✓\n")
-	dotCron := cron.Run(print.Dot, nil, 2*time.Second)
-	defer dotCron.Cancel()
+	localPrintf("￮ downloading model %s ", modelPath)
+	defer localPrint(" ✓\n")
+	if OutputType != flags.JSONOutputType {
+		dotCron := cron.Run(print.Dot, nil, 2*time.Second)
+		defer dotCron.Cancel()
+	}
 
 	bucket, prefix, err := aws.SplitS3Path(modelPath)
 	if err != nil {
@@ -234,7 +237,7 @@ func downloadModel(modelPath string, modelDir string, awsClientForBucket *aws.Cl
 }
 
 func unzipAndValidate(originalModelPath string, zipFile string, destPath string) error {
-	fmt.Println(fmt.Sprintf("￮ unzipping model %s ...", originalModelPath))
+	localPrintln(fmt.Sprintf("￮ unzipping model %s ...", originalModelPath))
 	tmpDir := filepath.Join(filepath.Dir(destPath), filepath.Base(destPath)+"-tmp")
 	err := files.CreateDir(tmpDir)
 	if err != nil {

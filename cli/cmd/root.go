@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	homedir "github.com/mitchellh/go-homedir"
@@ -122,11 +124,18 @@ func init() {
 
 func initTelemetry() {
 	cID := clientID()
+
+	invoker := os.Getenv("CORTEX_CLI_INVOKER")
+	if invoker == "" {
+		invoker = "direct"
+	}
+
 	telemetry.Init(telemetry.Config{
 		Enabled: true,
 		UserID:  cID,
 		Properties: map[string]string{
 			"client_id": cID,
+			"invoker":   invoker,
 		},
 		Environment: "cli",
 		LogErrors:   false,
@@ -228,4 +237,13 @@ func printLeadingNewLine() {
 		return
 	}
 	fmt.Println("")
+}
+
+func mixedPrint(a interface{}) error {
+	jsonBytes, err := libjson.Marshal(a)
+	if err != nil {
+		return err
+	}
+	fmt.Println(fmt.Sprintf("~~cortex~~%s~~cortex~~", base64.StdEncoding.EncodeToString(jsonBytes)))
+	return nil
 }
