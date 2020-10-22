@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 This guide walks you through installing the Cortex CLI on a Windows 10 machine using the Linux Subsystem as its backend. 
 
-The requirement is to have an x64 system with Windows 10 of **Version 1903** or higher, with **Build 18362** or higher.
+The requirement is an x64 system with Windows 10 of **Version 1903** or higher, with **Build 18362** or higher.
 
 ## Step 1
 
@@ -30,7 +30,15 @@ Setting the font to any of the provided ones helps render all Unicode characters
 
 ## Step 4
 
-Within the Ubuntu terminal, install the Cortex CLI as you'd do it on a Mac/Linux machine.
+Within the Ubuntu terminal, install the Cortex CLI as you'd do it on a Mac/Linux machine. The CLI commands are documented [here](../miscellaneous/cli.md#command-overview).
+
+### Install the CLI with Python Client
+
+```bash
+pip install cortex
+```
+
+### Install the CLI without Python Client
 
 ```bash
 # Replace `INSERT_CORTEX_VERSION` with the complete CLI version (e.g. 0.18.1):
