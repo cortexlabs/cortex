@@ -177,10 +177,10 @@ func (c *Client) ApplyVirtualService(virtualService *istioclientnetworking.Virtu
 
 func (c *Client) GetVirtualService(name string) (*istioclientnetworking.VirtualService, error) {
 	virtualService, err := c.virtualServiceClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	virtualService.TypeMeta = _virtualServiceTypeMeta
@@ -189,10 +189,10 @@ func (c *Client) GetVirtualService(name string) (*istioclientnetworking.VirtualS
 
 func (c *Client) DeleteVirtualService(name string) (bool, error) {
 	err := c.virtualServiceClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil

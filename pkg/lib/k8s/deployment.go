@@ -128,10 +128,10 @@ func (c *Client) ApplyDeployment(deployment *kapps.Deployment) (*kapps.Deploymen
 
 func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
 	deployment, err := c.deploymentClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	deployment.TypeMeta = _deploymentTypeMeta
@@ -140,10 +140,10 @@ func (c *Client) GetDeployment(name string) (*kapps.Deployment, error) {
 
 func (c *Client) DeleteDeployment(name string) (bool, error) {
 	err := c.deploymentClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil

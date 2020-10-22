@@ -1,6 +1,27 @@
-# Install
+Cortex makes it simple to deploy machine learning models in production.
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+### Deploy
+
+* Deploy TensorFlow, PyTorch, ONNX, scikit-learn, and other models.
+* Define preprocessing and postprocessing steps in Python.
+* Configure APIs as realtime or batch.
+* Deploy multiple models per API.
+
+### Manage
+
+* Monitor API performance and track predictions.
+* Update APIs with no downtime.
+* Stream logs from APIs.
+* Perform A/B tests.
+
+### Scale
+
+* Test locally, scale on your AWS account.
+* Autoscale to handle production traffic.
+* Reduce cost with spot instances.
+
+<!-- CORTEX_VERSION_MINOR -->
+[documentation](https://docs.cortex.dev) • [tutorial](https://docs.cortex.dev/deployments/realtime-api/text-generator) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 ## Install the CLI
 
@@ -11,8 +32,6 @@ pip install cortex
 
 You must have [Docker](https://docs.docker.com/install) installed to run Cortex locally or to create a cluster on AWS.
 
-See [here](../miscellaneous/cli.md#install-cortex-cli-without-python-client) to install Cortex CLI without the Python Client.
-
 ## Deploy an example
 
 <!-- CORTEX_VERSION_MINOR -->
@@ -21,8 +40,27 @@ See [here](../miscellaneous/cli.md#install-cortex-cli-without-python-client) to 
 git clone -b master https://github.com/cortexlabs/cortex.git
 ```
 
-### Using the CLI
+### In Python
+```python
+import cortex
+import requests
 
+local_client = cortex.client("local")
+
+# deploy the model as a realtime api and wait for it to become active
+deployments = local_client.deploy("cortex/examples/pytorch/text-generator/cortex.yaml", wait=True)
+
+# get the api's endpoint
+url = deployments[0]["api"]["endpoint"]
+
+# generate text
+print(requests.post(url, json={"text": "machine learning is"}).text)
+
+# delete the api
+local_client.delete_api("text-generator")
+```
+
+### Using the CLI
 ```bash
 # deploy the model as a realtime api
 cortex deploy cortex/examples/pytorch/text-generator/cortex.yaml
@@ -45,27 +83,6 @@ curl <API endpoint> \
 cortex delete text-generator
 ```
 
-### In Python
-
-```python
-import cortex
-import requests
-
-local_client = cortex.client("local")
-
-# deploy the model as a realtime api and wait for it to become active
-deployments = local_client.deploy("cortex/examples/pytorch/text-generator/cortex.yaml", wait=True)
-
-# get the api's endpoint
-url = deployments[0]["api"]["endpoint"]
-
-# generate text
-print(requests.post(url, json={"text": "machine learning is"}).text)
-
-# delete the api
-local_client.delete_api("text-generator")
-```
-
 ## Running at scale on AWS
 
 Run the command below to create a cluster with basic configuration, or see [cluster configuration](config.md) to learn how you can customize your cluster with `cluster.yaml`.
@@ -81,11 +98,3 @@ cortex env default aws
 ```
 
 You can now run the same commands shown above to deploy the text generator to AWS (if you didn't set the default CLI environment, add `--env aws` to the `cortex` commands).
-
-## Next steps
-
-<!-- CORTEX_VERSION_MINOR -->
-* Try the [tutorial](../../examples/pytorch/text-generator/README.md) to learn more about how to use Cortex.
-* Deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
-* See our [exporting guide](../guides/exporting.md) for how to export your model to use in an API.
-* See [uninstall](uninstall.md) if you'd like to spin down your cluster.

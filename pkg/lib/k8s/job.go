@@ -99,10 +99,10 @@ func (c *Client) ApplyJob(job *kbatch.Job) (*kbatch.Job, error) {
 
 func (c *Client) GetJob(name string) (*kbatch.Job, error) {
 	job, err := c.jobClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	job.TypeMeta = _jobTypeMeta
@@ -111,11 +111,10 @@ func (c *Client) GetJob(name string) (*kbatch.Job, error) {
 
 func (c *Client) DeleteJob(name string) (bool, error) {
 	err := c.jobClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
-
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil
