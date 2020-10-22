@@ -132,10 +132,12 @@ func ManageJobResources() error {
 			continue
 		}
 
-		err = checkIfJobCompleted(jobKey, *queueURL, k8sJob)
-		if err != nil {
-			telemetry.Error(err)
-			errors.PrintError(err)
+		if jobState.Status == status.JobRunning {
+			err = checkIfJobCompleted(jobKey, *queueURL, k8sJob)
+			if err != nil {
+				telemetry.Error(err)
+				errors.PrintError(err)
+			}
 		}
 	}
 
