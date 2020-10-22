@@ -14,7 +14,7 @@ In our example, we assume the installation of the Ubuntu distribution.
 
 ## Step 2
 
-Install and configure the Docker Desktop engine app to use the WSL ((Windows Subsystem for Linux)) backend of version 2. The instructions on how to do are found in the [Docker Desktop WSL 2 backend guide](https://docs.docker.com/docker-for-windows/wsl/).
+Install and configure the Docker Desktop engine app to use the WSL (Windows Subsystem for Linux) backend of version 2. The instructions on how to do are found in the [Docker Desktop WSL 2 backend guide](https://docs.docker.com/docker-for-windows/wsl/).
 
 ## Step 3
 
@@ -22,7 +22,7 @@ Run Ubuntu in the terminal on your Windows machine and right-click the window's 
 
 ![step-3a](https://user-images.githubusercontent.com/26958764/96926494-493cdf80-14be-11eb-9fac-4c81e1fac55c.png)
 
-In the *Font* category, set the font to one of the following fonts: **MS Gothic**, **NSimSun**, **SimSun-ExtB**. The recommendation is to use **SimSun-ExtB**. Once selected, click *Okay*.
+In the *Font* category, set the font to one of the following fonts: **MS Gothic**, **NSimSun** or **SimSun-ExtB**. The recommendation is to use **SimSun-ExtB**. Once selected, click *Okay*.
 
 ![step-3b](https://user-images.githubusercontent.com/26958764/96926763-adf83a00-14be-11eb-9584-4eff3faf2377.png)
 
@@ -42,6 +42,6 @@ $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.18.
 
 ## Step 5
 
-Use the Cortex CLI.
+Start using the Cortex CLI.
 
 ![step-5](https://user-images.githubusercontent.com/26958764/96927485-ca48a680-14bf-11eb-909c-f15dbc52af08.png)
