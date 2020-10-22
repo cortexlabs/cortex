@@ -87,6 +87,7 @@ def run_cli(
         if not hide_output:
             if (not mixed_output) or (mixed_output and not result_found):
                 sys.stdout.write(c)
+                sys.stdout.flush()
 
     process.wait()
 
