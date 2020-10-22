@@ -38,6 +38,9 @@ You must have [Docker](https://docs.docker.com/install) installed to run Cortex 
 ```bash
 # clone the Cortex repository
 git clone -b master https://github.com/cortexlabs/cortex.git
+
+# navigate to the Pytorch text generator example
+cd cortex/examples/pytorch/text-generator
 ```
 
 ### In Python
@@ -48,7 +51,7 @@ import requests
 local_client = cortex.client("local")
 
 # deploy the model as a realtime api and wait for it to become active
-deployments = local_client.deploy("cortex/examples/pytorch/text-generator/cortex.yaml", wait=True)
+deployments = local_client.deploy("./cortex.yaml", wait=True)
 
 # get the api's endpoint
 url = deployments[0]["api"]["endpoint"]
@@ -63,7 +66,7 @@ local_client.delete_api("text-generator")
 ### Using the CLI
 ```bash
 # deploy the model as a realtime api
-cortex deploy cortex/examples/pytorch/text-generator/cortex.yaml
+cortex deploy
 
 # view the status of the api
 cortex get --watch
@@ -77,7 +80,7 @@ cortex get text-generator
 # generate text
 curl <API endpoint> \
   -X POST -H "Content-Type: application/json" \
-  -d '{"text": "machine learning is"}' \
+  -d '{"text": "machine learning is"}'
 
 # delete the api
 cortex delete text-generator
