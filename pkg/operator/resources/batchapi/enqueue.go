@@ -236,8 +236,13 @@ func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFi
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
 		writeToJobLogStream(jobSpec.JobKey, fmt.Sprintf("enqueuing contents from file %s", s3Path))
 
+		awsClientForBucket, err := awslib.NewFromClientS3Path(s3Path, config.AWS)
+		if err != nil {
+			return false, err
+		}
+
 		itemIndex := 0
-		err := config.AWS.S3FileIterator(bucket, s3Obj, _s3DownloadChunkSize, func(readCloser io.ReadCloser, isLastChunk bool) (bool, error) {
+		err = awsClientForBucket.S3FileIterator(bucket, s3Obj, _s3DownloadChunkSize, func(readCloser io.ReadCloser, isLastChunk bool) (bool, error) {
 			_, err := bytesBuffer.ReadFrom(readCloser)
 			if err != nil {
 				return false, err
