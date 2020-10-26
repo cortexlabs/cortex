@@ -24,6 +24,8 @@ $ curl http://localhost:8888 \
 "deploy machine learning in production"
 ```
 
+<br>
+
 ## `cortex cluster up`
 
 ### Spin up a Cortex cluster on your AWS account
@@ -35,8 +37,6 @@ cluster_name: cortex
 region: us-east-1
 ```
 
-<br>
-
 ### Run inference on EC2's machine learning instances
 
 ```yaml
@@ -46,8 +46,6 @@ instance_type: g4dn.xlarge
 min_instances: 10
 max_instances: 100
 ```
-
-<br>
 
 ### Save money by configuring spot instances
 
@@ -87,8 +85,6 @@ class PythonPredictor:
         return self.tokenizer.decode(prediction[0])
 ```
 
-<br>
-
 ### Deploy realtime or batch APIs
 
 ```yaml
@@ -99,8 +95,6 @@ kind: RealtimeAPI
 predictor:
   path: predictor.py
 ```
-
-<br>
 
 ### Scale to handle production traffic with request-based autoscaling
 
@@ -113,8 +107,6 @@ autoscaling:
   target_replica_concurrency: 10
 ```
 
-<br>
-
 ### Manage compute resources depending on your inference workloads
 
 ```yaml
@@ -126,8 +118,6 @@ compute:
   mem: 4Gi
 ```
 
-<br>
-
 ### Customize networking for internal or external APIs
 
 ```yaml
@@ -137,8 +127,6 @@ networking:
   endpoint: my-api
   api_gateway: public
 ```
-
-<br>
 
 ### Manage dependencies for reproducible deployments
 
@@ -151,8 +139,6 @@ requests
 
 ...
 ```
-
-<br>
 
 ### Configure traffic splitting for A/B tests
 
@@ -168,8 +154,6 @@ apis:
     weight: 20
 ```
 
-<br>
-
 ### Update APIs with no downtime
 
 ```yaml
@@ -179,8 +163,6 @@ update_strategy:
   max_surge: 25%
   max_unavailable: 25%
 ```
-
-<br>
 
 ### Test and iterate on APIs locally before deploying at scale
 
@@ -207,8 +189,6 @@ aws     text-generator     live       10         1h
 aws     image-classifier   live       10         2h
 aws     object-detector    live       10         3h
 ```
-
-<br>
 
 ### Monitor predictions, requests, and latency
 
