@@ -78,9 +78,8 @@ class PythonPredictor:
         self.model = GPT2LMHeadModel.from_pretrained("gpt2")
 
     def predict(self, payload):
-        input_length = len(payload["text"].split())
         tokens = self.tokenizer.encode(payload["text"], return_tensors="pt")
-        prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
+        prediction = self.model.generate(tokens)
         return self.tokenizer.decode(prediction[0])
 ```
 
