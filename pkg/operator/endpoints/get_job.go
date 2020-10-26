@@ -19,7 +19,6 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
@@ -35,7 +34,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 	apiName := vars["apiName"]
 	jobID, err := getRequiredQueryParam("jobID", r)
 	if err != nil {
-		respondError(w, r, errors.WithStack(err))
+		respondError(w, r, err)
 		return
 	}
 

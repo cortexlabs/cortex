@@ -249,14 +249,14 @@ func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFi
 			}
 			err = streamJSONToQueue(jobSpec, uploader, bytesBuffer, jsonMessageList, &itemIndex)
 			if err != nil {
-				if err != io.ErrUnexpectedEOF || (err == io.ErrUnexpectedEOF && isLastChunk) {
+				if errors.CauseOrSelf(err) != io.ErrUnexpectedEOF || (errors.CauseOrSelf(err) == io.ErrUnexpectedEOF && isLastChunk) {
 					return false, err
 				}
 			}
 			return true, nil
 		})
 		if err != nil {
-			return false, errors.Wrap(err, s3Path)
+			return false, err
 		}
 
 		return true, nil
@@ -292,7 +292,7 @@ func streamJSONToQueue(jobSpec *spec.Job, uploader *sqsBatchUploader, bytesBuffe
 			bytesBuffer.ReadFrom(dec.Buffered())
 			return io.ErrUnexpectedEOF
 		} else if err != nil {
-			return err
+			return errors.Wrap(err, fmt.Sprintf("item %d", *itemIndex))
 		}
 
 		if len(doc) > _messageSizeLimit {

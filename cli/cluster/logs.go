@@ -95,7 +95,6 @@ func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[strin
 	handleConnection(connection, done)
 	closeConnection(connection, done, interrupt)
 	return nil
-
 }
 
 func handleConnection(connection *websocket.Conn, done chan struct{}) {

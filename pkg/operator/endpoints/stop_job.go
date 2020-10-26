@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -32,7 +31,7 @@ func StopJob(w http.ResponseWriter, r *http.Request) {
 	apiName := vars["apiName"]
 	jobID, err := getRequiredQueryParam("jobID", r)
 	if err != nil {
-		respondError(w, r, errors.WithStack(err))
+		respondError(w, r, err)
 		return
 	}
 
