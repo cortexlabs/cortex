@@ -83,14 +83,14 @@ class Client:
             env = os.environ.copy()
             env["CORTEX_CLI_INVOKER"] = "python"
             process = subprocess.Popen(
-                [get_cli_path(), "logs", api_name],
+                [get_cli_path(), "logs", "--env", self.env, api_name],
                 stderr=subprocess.STDOUT,
                 stdout=subprocess.PIPE,
                 encoding="utf8",
                 env=env,
             )
 
-            streamer = threading.Thread(target=stream_to_stdout, args=(process,))
+            streamer = threading.Thread(target=stream_to_stdout, args=[process])
             streamer.start()
 
             while process.poll() is None:
