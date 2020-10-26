@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Build machine learning APIs](../README.md)
+* [Deploy machine learning in production](../README.md)
 * [Install](cluster-management/install.md)
 * [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)

@@ -3,139 +3,220 @@
 
 <br>
 
+# Deploy machine learning in production
+
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 
-[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
+We are building Cortex to help machine learning engineers and data scientists deploy, manage, and scale machine learning in production. Organizations worldwide use Cortex as an alternative to building in-house machine learning infrastructure. You can [get started](https://docs.cortex.dev/install) or learn more by checking out our [docs](https://docs.cortex.dev) and [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples). If you have any questions or feedback, we'd love to hear from you on our [Gitter](https://gitter.im/cortexlabs/cortex)!
 
 <br>
 
-# Model serving at scale
+```bash
+$ cortex deploy --env aws
 
-### Deploy
+creating text-generator
 
-* Deploy TensorFlow, PyTorch, ONNX, scikit-learn, and other models.
-* Define preprocessing and postprocessing steps in Python.
-* Configure APIs as realtime or batch.
-* Deploy multiple models per API.
+$ curl http://localhost:8888 \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"text": "deploy machine learning in"}'
 
-### Manage
+"deploy machine learning in production"
+```
 
-* Monitor API performance and track predictions.
-* Update APIs with no downtime.
-* Stream logs from APIs.
-* Perform A/B tests.
+## `cortex cluster up`
 
-### Scale
+### Spin up a Cortex cluster on your AWS account
 
-* Test locally, scale on your AWS account.
-* Autoscale to handle production traffic.
-* Reduce cost with spot instances.
+```yaml
+# cluster.yaml
 
-<br>
-
-## How it works
-
-### Write APIs in Python
-
-Define any real-time or batch inference pipeline as simple Python APIs, regardless of framework.
-
-```python
-# predictor.py
-
-from transformers import pipeline
-
-class PythonPredictor:
-  def __init__(self, config):
-    self.model = pipeline(task="text-generation")
-
-  def predict(self, payload):
-    return self.model(payload["text"])[0]
+cluster_name: cortex
+region: us-east-1
 ```
 
 <br>
 
-### Configure infrastructure in YAML
+### Run inference on EC2's machine learning instances
 
-Configure autoscaling, monitoring, compute resources, update strategies, and more.
+```yaml
+# cluster.yaml
+
+instance_type: g4dn.xlarge
+min_instances: 10
+max_instances: 100
+```
+
+<br>
+
+### Save money by configuring spot instances
+
+```yaml
+# cluster.yaml
+
+spot: true
+
+spot_config:
+  max_price: 1.0
+  on_demand_backup: true
+```
+
+<br>
+
+## `cortex deploy`
+
+### Import your TensorFlow, PyTorch, ONNX, and other models
+
+```python
+# predictor.py
+
+import torch
+
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+
+class PythonPredictor:
+    def __init__(self, config):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+        self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
+
+    def predict(self, payload):
+        input_length = len(payload["text"].split())
+        tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
+        prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
+        return self.tokenizer.decode(prediction[0])
+```
+
+<br>
+
+### Deploy realtime or batch APIs
 
 ```yaml
 # cortex.yaml
 
-- name: text-generator
-  predictor:
-    path: predictor.py
-  networking:
-    api_gateway: public
-  compute:
-    gpu: 1
-  autoscaling:
-    min_replicas: 3
+name: text-generator
+kind: RealtimeAPI
+predictor:
+  path: predictor.py
 ```
 
 <br>
 
-### Scale to handle production traffic
+### Scale to handle production traffic with request-based autoscaling
 
-Handle traffic with request-based autoscaling. Minimize spend with spot instances and multi-model APIs.
+```yaml
+# cortex.yaml
 
-```bash
-$ cortex get text-generator
-
-endpoint: https://example.com/text-generator
-
-status   last-update   replicas   requests   latency
-live     10h           10         100000     100ms
+autoscaling:
+  min_replicas: 1
+  max_replicas: 10
+  target_replica_concurrency: 10
 ```
 
 <br>
 
-### Integrate with your stack
+### Manage compute resources depending on your inference workloads
 
-Integrate Cortex with any data science platform and CI/CD tooling, without changing your workflow.
+```yaml
+# cortex.yaml
 
-```python
-# predictor.py
+compute:
+  cpu: 1
+  gpu: 1
+  mem: 4Gi
+```
 
-import tensorflow
-import torch
-import transformers
-import mlflow
+<br>
+
+### Customize networking for internal or external APIs
+
+```yaml
+# cortex.yaml
+
+networking:
+  endpoint: my-api
+  api_gateway: public
+```
+
+<br>
+
+### Manage dependencies for reproducible deployments
+
+```txt
+# requirements.txt
+
+numpy
+boto3
+requests
 
 ...
 ```
 
 <br>
 
-### Run on your AWS account
-
-Run Cortex on your AWS account (GCP support is coming soon), maintaining control over resource utilization and data access.
+### Configure traffic splitting for A/B tests
 
 ```yaml
-# cluster.yaml
+# cortex.yaml
 
-region: us-west-2
-instance_type: g4dn.xlarge
-spot: true
-min_instances: 1
-max_instances: 5
+name: text-generator
+kind: TrafficSplitter
+apis:
+  - name: tensorflow-text-generator
+    weight: 80
+  - name: pytorch-text-generator
+    weight: 20
 ```
 
 <br>
 
-### Focus on machine learning, not DevOps
+### Update APIs with no downtime
 
-You don't need to bring your own cluster or containerize your models, Cortex automates your cloud infrastructure.
+```yaml
+# cortex.yaml
+
+update_strategy:
+  max_surge: 25%
+  max_unavailable: 25%
+```
+
+<br>
+
+### Test and iterate on APIs locally before deploying at scale
 
 ```bash
-$ cortex cluster up
+$ cortex deploy --env local
 
-confguring networking ...
-configuring logging ...
-configuring metrics ...
-configuring autoscaling ...
+creating text-generator (local)
 
-cortex is ready!
+$ cortex deploy --env aws
+
+creating text-generator (aws)
+```
+
+<br>
+
+## `cortex get`
+
+### See all of your APIs in one place
+
+```bash
+env     api                status     replicas   last update
+local   text-generator     updating   1          5s
+aws     text-generator     live       10         1h
+aws     image-classifier   live       10         2h
+aws     object-detector    live       10         3h
+```
+
+<br>
+
+### Monitor predictions, requests, and latency
+
+```bash
+$ cortex get text-generator --env aws
+
+status   replicas   last update   latency   2XX       5XX
+live     10         10m           100ms     1000000   10
 ```
 
 <br>
@@ -146,6 +227,3 @@ cortex is ready!
 ```bash
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
 ```
-
-<!-- CORTEX_VERSION_README_MINOR -->
-See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
