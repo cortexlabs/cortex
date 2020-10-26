@@ -129,14 +129,13 @@ networking:
 
 ### Manage dependencies for reproducible deployments
 
-```txt
+```text
 # requirements.txt
 
-numpy
-boto3
-requests
-
-...
+tensorflow
+torch
+transformers
+mlflow
 ```
 
 ### Configure traffic splitting for A/B tests
@@ -165,7 +164,7 @@ update_strategy:
 
 ### Test and iterate on APIs locally before deploying at scale
 
-```bash
+```text
 $ cortex deploy --env local
 
 creating text-generator (local)
