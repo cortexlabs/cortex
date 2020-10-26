@@ -21,7 +21,7 @@ $ curl https://example.com/text-generator \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "deploy machine learning in"}'
 
-"deploy machine learning in production"
+deploy machine learning in production
 ```
 
 <br>
