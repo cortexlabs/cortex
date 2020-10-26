@@ -13,7 +13,7 @@ We are building Cortex to help machine learning engineers and data scientists de
 <br>
 
 ```bash
-$ cortex deploy --env aws
+$ cortex deploy
 
 creating text-generator
 
@@ -181,8 +181,9 @@ creating text-generator (aws)
 
 ### See all of your APIs in one place
 
-```bash
+```text
 env     api                status     replicas   last update
+
 local   text-generator     updating   1          5s
 aws     text-generator     live       10         1h
 aws     image-classifier   live       10         2h
