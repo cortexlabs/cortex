@@ -28,6 +28,12 @@ import (
 
 func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
+	jobID := getOptionalQParam("jobID", r)
+
+	if jobID != "" {
+		ReadJobLogs(w, r)
+		return
+	}
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {

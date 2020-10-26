@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"path"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
@@ -54,10 +53,17 @@ var _logsCmd = &cobra.Command{
 
 		apiName := args[0]
 		if env.Provider == types.AWSProviderType {
-			logPath := path.Join(args...)
-			err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), logPath)
-			if err != nil {
-				exit.Error(err)
+			if len(args) == 1 {
+				err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), apiName)
+				if err != nil {
+					exit.Error(err)
+				}
+			}
+			if len(args) == 2 {
+				err := cluster.StreamJobLogs(MustGetOperatorConfig(env.Name), apiName, args[1])
+				if err != nil {
+					exit.Error(err)
+				}
 			}
 		} else {
 			if len(args) == 2 {

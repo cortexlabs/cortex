@@ -79,7 +79,7 @@ func StopJob(operatorConfig OperatorConfig, apiName string, jobID string) (schem
 		"jobID":   jobID,
 	}
 
-	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch", apiName, jobID), params)
+	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch", apiName), params)
 	if err != nil {
 		return schema.DeleteResponse{}, err
 	}

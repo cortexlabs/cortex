@@ -52,7 +52,7 @@ func (oc OperatorConfig) AuthHeader() string {
 }
 
 func HTTPGet(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
-	req, err := operatorRequest(operatorConfig, "GET", endpoint, nil, qParams)
+	req, err := operatorRequest(operatorConfig, "GET", endpoint, nil, qParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func HTTPPostObjAsJSON(operatorConfig OperatorConfig, endpoint string, requestDa
 
 func HTTPPostJSON(operatorConfig OperatorConfig, endpoint string, jsonRequestData []byte, qParams ...map[string]string) ([]byte, error) {
 	payload := bytes.NewBuffer(jsonRequestData)
-	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, payload, qParams)
+	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, payload, qParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func HTTPPostJSON(operatorConfig OperatorConfig, endpoint string, jsonRequestDat
 }
 
 func HTTPPostNoBody(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
-	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, nil, qParams)
+	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, nil, qParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func HTTPPostNoBody(operatorConfig OperatorConfig, endpoint string, qParams ...m
 }
 
 func HTTPDelete(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
-	req, err := operatorRequest(operatorConfig, http.MethodDelete, endpoint, nil, qParams)
+	req, err := operatorRequest(operatorConfig, http.MethodDelete, endpoint, nil, qParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func HTTPUpload(operatorConfig OperatorConfig, endpoint string, input *HTTPUploa
 		return nil, errors.Wrap(err, _errStrCantMakeRequest)
 	}
 
-	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, body, qParams)
+	req, err := operatorRequest(operatorConfig, http.MethodPost, endpoint, body, qParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func HTTPUploadZip(operatorConfig OperatorConfig, endpoint string, zipInput *arc
 	return HTTPUpload(operatorConfig, endpoint, uploadInput, qParams...)
 }
 
-func operatorRequest(operatorConfig OperatorConfig, method string, endpoint string, body io.Reader, qParams []map[string]string) (*http.Request, error) {
+func operatorRequest(operatorConfig OperatorConfig, method string, endpoint string, body io.Reader, qParams ...map[string]string) (*http.Request, error) {
 	req, err := http.NewRequest(method, operatorConfig.OperatorEndpoint+endpoint, body)
 	if err != nil {
 		return nil, errors.Wrap(err, _errStrCantMakeRequest)

@@ -19,6 +19,7 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -29,7 +30,11 @@ import (
 
 func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
-	jobID := mux.Vars(r)["jobID"]
+	jobID, err := getRequiredQueryParam("jobID", r)
+	if err != nil {
+		respondError(w, r, errors.WithStack(err))
+		return
+	}
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
