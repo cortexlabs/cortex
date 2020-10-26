@@ -182,6 +182,8 @@ creating text-generator (aws)
 ### See all of your APIs in one place
 
 ```text
+$ cortex get
+
 env     api                status     replicas   last update
 
 local   text-generator     updating   1          5s
@@ -192,8 +194,8 @@ aws     object-detector    live       10         3h
 
 ### Monitor predictions, requests, and latency
 
-```bash
-$ cortex get text-generator --env aws
+```text
+$ cortex get text-generator
 
 status   replicas   last update   latency   2XX       5XX
 live     10         10m           100ms     1000000   10
@@ -205,5 +207,5 @@ live     10         10m           100ms     1000000   10
 
 <!-- CORTEX_VERSION_README_MINOR -->
 ```bash
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
+$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
 ```
