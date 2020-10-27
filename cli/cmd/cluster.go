@@ -52,6 +52,8 @@ import (
 var (
 	_flagClusterEnv                string
 	_flagClusterConfig             string
+	_flagClusterName               string
+	_flagClusterRegion             string
 	_flagClusterInfoDebug          bool
 	_flagClusterDisallowPrompt     bool
 	_flagAWSAccessKeyID            string
@@ -89,6 +91,8 @@ func clusterInit() {
 
 	_downCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_downCmd)
+	addClusterNameFlag(_downCmd)
+	addClusterRegionFlag(_downCmd)
 	addAWSCredentialsFlags(_downCmd)
 	_downCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_downCmd)
@@ -102,6 +106,14 @@ func clusterInit() {
 func addClusterConfigFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&_flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
 	cmd.Flags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
+}
+
+func addClusterNameFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&_flagClusterName, "name", "", "", "name of the cluster")
+}
+
+func addClusterRegionFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "", "", "region of the cluster")
 }
 
 func addAWSCredentialsFlags(cmd *cobra.Command) {

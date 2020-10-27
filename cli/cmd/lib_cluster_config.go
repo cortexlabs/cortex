@@ -89,6 +89,13 @@ func getNewClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig
 		}
 	}
 
+	if _flagClusterName != "" {
+		accessConfig.ClusterName = pointer.String(_flagClusterName)
+	}
+	if _flagClusterRegion != "" {
+		accessConfig.Region = pointer.String(_flagClusterRegion)
+	}
+
 	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
 		return accessConfig, nil
 	}
@@ -118,6 +125,13 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 		}
 	}
 
+	if _flagClusterName != "" {
+		accessConfig.ClusterName = pointer.String(_flagClusterName)
+	}
+	if _flagClusterRegion != "" {
+		accessConfig.Region = pointer.String(_flagClusterRegion)
+	}
+
 	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
 		return accessConfig, nil
 	}
@@ -126,10 +140,10 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	if len(cachedPaths) == 1 {
 		cachedAccessConfig := &clusterconfig.AccessConfig{}
 		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.AccessValidation, cachedPaths[0])
-		if accessConfig.ClusterName == nil {
+		if accessConfig.ClusterName == nil && _flagClusterName == "" {
 			accessConfig.ClusterName = cachedAccessConfig.ClusterName
 		}
-		if accessConfig.Region == nil {
+		if accessConfig.Region == nil && _flagClusterRegion == "" {
 			accessConfig.Region = cachedAccessConfig.Region
 		}
 	}

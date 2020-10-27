@@ -195,6 +195,8 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
+      --name string         name of the cluster
+      --region string       region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
   -y, --yes                 skip prompts
