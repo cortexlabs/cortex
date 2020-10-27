@@ -1,6 +1,6 @@
 # YOLOv5 Detection model
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)_
+_this is an example for cortex release 0.21 and may not deploy correctly on other releases of cortex_
 
 This example deploys a detection model trained using [ultralytics' yolo repo](https://github.com/ultralytics/yolov5) using ONNX.
 We'll use the `yolov5s` model as an example here.

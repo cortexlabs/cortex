@@ -1,7 +1,5 @@
 # Batch API deployment
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Once your model is [exported](../../guides/exporting.md), you've implemented a [Predictor](predictors.md), and you've [configured your API](api-configuration.md), you're ready to deploy a Batch API.
 
 ## `cortex deploy`
