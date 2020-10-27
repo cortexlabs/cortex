@@ -145,7 +145,7 @@ dill==0.3.1.1
 fastapi==0.54.1
 joblib==0.16.0
 msgpack==1.0.0
-neuron-cc==1.0.18001.0+0.5312e6a21
+neuron-cc==1.0.20600.0+0.b426b885f
 nltk==3.5
 np-utils==0.5.12.1
 numpy==1.18.2
@@ -160,10 +160,10 @@ scipy==1.3.2
 six==1.15.0
 statsmodels==0.12.0
 sympy==1.6.2
-tensorflow==1.15.3
-tensorflow-neuron==1.15.3.1.0.1965.0
+tensorflow==1.15.4
+tensorflow-neuron==1.15.3.1.0.2043.0
 torch==1.5.1
-torch-neuron==1.5.1.1.0.1532.0
+torch-neuron==1.5.1.1.0.1721.0
 torchvision==0.6.1
 ```
 
