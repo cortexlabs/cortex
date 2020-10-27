@@ -143,6 +143,8 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
+  -n, --name string         aws name of the cluster
+  -r, --region string       aws region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
   -e, --env string          environment to update (default "aws")
@@ -170,21 +172,6 @@ Flags:
   -h, --help                        help for configure
 ```
 
-### cluster export
-
-```text
-download the code and configuration for all APIs deployed in a cluster
-
-Usage:
-  cortex cluster export [flags]
-
-Flags:
-  -c, --config string       path to a cluster configuration file
-      --aws-key string      aws access key id
-      --aws-secret string   aws secret access key
-  -h, --help                help for export
-```
-
 ### cluster down
 
 ```text
@@ -195,10 +182,29 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
+  -n, --name string         aws name of the cluster
+  -r, --region string       aws region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
   -y, --yes                 skip prompts
   -h, --help                help for down
+```
+
+### cluster export
+
+```text
+download the code and configuration for all APIs deployed in a cluster
+
+Usage:
+  cortex cluster export [flags]
+
+Flags:
+  -c, --config string       path to a cluster configuration file
+  -n, --name string         aws name of the cluster
+  -r, --region string       aws region of the cluster
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -h, --help                help for export
 ```
 
 ### env configure
