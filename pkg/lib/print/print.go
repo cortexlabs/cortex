@@ -45,14 +45,14 @@ func StderrBoldFirstLine(msg string) {
 	msgParts := strings.Split(msg, "\n")
 
 	if len(msgParts[0]) > _maxBoldLength {
-		os.Stderr.WriteString(msg)
+		os.Stderr.WriteString(msg + "\n")
 		return
 	}
 
-	os.Stderr.WriteString(console.Bold(msgParts[0]))
+	os.Stderr.WriteString(console.Bold(msgParts[0]) + "\n")
 
 	if len(msgParts) > 1 {
-		os.Stderr.WriteString(strings.Join(msgParts[1:], "\n"))
+		os.Stderr.WriteString(strings.Join(msgParts[1:], "\n") + "\n")
 	}
 }
 
