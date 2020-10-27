@@ -25,7 +25,7 @@ import (
 )
 
 func PrintError(err error, strs ...string) {
-	os.Stderr.WriteString(ErrorStr(err, strs...))
+	os.Stderr.WriteString(ErrorStr(err, strs...) + "\n")
 	// PrintStacktrace(err)
 }
 
