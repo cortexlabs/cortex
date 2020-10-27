@@ -122,4 +122,4 @@ deleting my-api
 <!-- CORTEX_VERSION_MINOR -->
 * [Tutorial](../../../examples/batch/image-classifier/README.md) provides a step-by-step walkthrough of deploying an image classification batch API
 * [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples/batch) demonstrate how to deploy models from common ML libraries
+* [Examples](https://github.com/cortexlabs/cortex/tree/0.21/examples/batch) demonstrate how to deploy models from common ML libraries

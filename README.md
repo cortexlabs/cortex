@@ -1,15 +1,3 @@
-<!-- Delete on release branches -->
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
-
-<br>
-
-<!-- Delete on release branches -->
-<!-- CORTEX_VERSION_README_MINOR -->
-
-[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) • [we're hiring](https://angel.co/cortex-labs-inc/jobs) • [chat with us](https://gitter.im/cortexlabs/cortex)
-
-<br>
-
 # Model serving at scale
 
 ### Deploy
@@ -142,10 +130,9 @@ cortex is ready!
 
 ## Get started
 
-<!-- CORTEX_VERSION_README_MINOR -->
 ```bash
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.20/get-cli.sh)"
+pip install cortex
 ```
 
 <!-- CORTEX_VERSION_README_MINOR -->
-See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
+See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).

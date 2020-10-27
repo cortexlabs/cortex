@@ -55,7 +55,7 @@ func ErrorFailedToConnectOperator(originalError error, envName string, operatorU
 	msg += "\nif you have a cluster running:\n"
 	msg += fmt.Sprintf("    → run `cortex cluster info --env %s` to update your environment (include `--config <cluster.yaml>` if you have a cluster configuration file)\n", envName)
 	// CORTEX_VERSION_MINOR
-	msg += "    → if you set `operator_load_balancer_scheme: internal` in your cluster configuration file, your CLI must run from within a VPC that has access to your cluster's VPC (see https://docs.cortex.dev/v/master/guides/vpc-peering)\n"
+	msg += "    → if you set `operator_load_balancer_scheme: internal` in your cluster configuration file, your CLI must run from within a VPC that has access to your cluster's VPC (see https://docs.cortex.dev/v/0.21/guides/vpc-peering)\n"
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFailedToConnectOperator,

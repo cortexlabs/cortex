@@ -67,8 +67,8 @@ The versions of `tensorflow-neuron` and `torch-neuron` that are used by Cortex a
 A list of model compilation examples for Inferentia can be found on the [`aws/aws-neuron-sdk`](https://github.com/aws/aws-neuron-sdk) repo for [TensorFlow](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/) and for [PyTorch](https://github.com/aws/aws-neuron-sdk/blob/master/docs/pytorch-neuron/README.md). Here are 2 examples implemented with Cortex:
 
 <!-- CORTEX_VERSION_MINOR x2 -->
-1. [ResNet50 in TensorFlow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/image-classifier-resnet50)
-1. [ResNet50 in PyTorch](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/image-classifier-resnet50)
+1. [ResNet50 in TensorFlow](https://github.com/cortexlabs/cortex/tree/0.21/examples/tensorflow/image-classifier-resnet50)
+1. [ResNet50 in PyTorch](https://github.com/cortexlabs/cortex/tree/0.21/examples/pytorch/image-classifier-resnet50)
 
 ### Improving performance
 
