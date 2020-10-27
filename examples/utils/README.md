@@ -1,6 +1,6 @@
 ## Throughput tester
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)_
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.21.*, run `git checkout -b 0.21` or switch to the `0.21` branch on GitHub)_
 
 [throughput_test.py](throughput_test.py) is a Python CLI that can be used to test the throughput of your deployed API. The throughput will vary depending on your API's configuration (specified in your `cortex.yaml` file), your local machine's resources (mostly CPU, since it has to spawn many concurrent requests), and the internet connection on your local machine.
 
