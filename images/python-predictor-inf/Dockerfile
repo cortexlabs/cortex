@@ -6,8 +6,8 @@ RUN apt-get update -qq && apt-get install -y -q \
     echo "deb https://apt.repos.neuron.amazonaws.com bionic main" >> /etc/apt/sources.list.d/neuron.list && \
     wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add - && \
     apt-get update -qq && apt-get install -y -q \
-    aws-neuron-tools=1.1.228.0 && \
-    aws-neuron-runtime=1.1.1402.0 \
+    aws-neuron-tools=1.1.228.0 \
+    aws-neuron-runtime=1.1.1402.0 && \
     apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 ENV PATH=/opt/aws/neuron/bin/:$PATH
