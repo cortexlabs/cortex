@@ -140,10 +140,10 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	if len(cachedPaths) == 1 {
 		cachedAccessConfig := &clusterconfig.AccessConfig{}
 		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.AccessValidation, cachedPaths[0])
-		if accessConfig.ClusterName == nil && _flagClusterName == "" {
+		if accessConfig.ClusterName == nil {
 			accessConfig.ClusterName = cachedAccessConfig.ClusterName
 		}
-		if accessConfig.Region == nil && _flagClusterRegion == "" {
+		if accessConfig.Region == nil {
 			accessConfig.Region = cachedAccessConfig.Region
 		}
 	}
