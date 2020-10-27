@@ -195,7 +195,7 @@ scipy==1.3.2
 six==1.15.0
 statsmodels==0.12.0
 sympy==1.6.2
-tensorflow==1.15.3
+tensorflow==1.15.4
 tensorflow-neuron==1.15.3.1.0.2043.0
 torch==1.5.1
 torch-neuron==1.5.1.1.0.1721.0
