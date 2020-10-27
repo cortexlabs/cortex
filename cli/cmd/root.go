@@ -213,9 +213,10 @@ func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
 		return err
 	}
 
-	if _flagOutput == flags.PrettyOutputType {
+	if out != "" {
 		fmt.Print(out)
 	}
+
 	return nil
 }
 
