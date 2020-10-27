@@ -18,7 +18,6 @@ package operator
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -27,36 +26,7 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 )
 
-type routeToIntegrationMapping struct {
-	APIGatewayRoute  string
-	IntegrationRoute string
-}
-
-func getRouteToIntegrationMapping(apiEndpoint string, isRoutePrefix bool) []routeToIntegrationMapping {
-	mappings := []routeToIntegrationMapping{
-		{
-			apiEndpoint,
-			apiEndpoint,
-		},
-	}
-
-	if isRoutePrefix {
-		// Use {proxy+} instead of {proxy} for greedy matching.
-		// e.g. if the api gateway route is: /api_name/{proxy}
-		// /api_name/a   MATCH
-		// /api_name/a/  will not MATCH
-		// /api_name/a/b will not MATCH
-
-		// {proxy} is being used for now because greedy matching is not required at the moment.
-
-		// Regardless of whether api gateway route uses {proxy} or {proxy+}, the integration route should always use {proxy}
-		mappings = append(mappings, routeToIntegrationMapping{APIGatewayRoute: urls.Join(apiEndpoint, "{proxy}"), IntegrationRoute: urls.Join(apiEndpoint, "{proxy}")})
-	}
-
-	return mappings
-}
-
-func AddAPIToAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGatewayType, isRoutePrefix bool) error {
+func AddAPIToAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
 	if config.Cluster.APIGateway == nil {
 		return nil
 	}
@@ -65,56 +35,46 @@ func AddAPIToAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGateway
 		return nil
 	}
 
-	routeToIntegrationMapping := getRouteToIntegrationMapping(apiEndpoint, isRoutePrefix)
-
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
-	errs := []error{}
+	// check if API Gateway route already exists
+	existingRoute, err := config.AWS.GetRoute(apiGatewayID, endpoint)
+	if err != nil {
+		return err
+	} else if existingRoute != nil {
+		return nil
+	}
 
-	for _, routeMap := range routeToIntegrationMapping {
-		// check if API Gateway route already exists
-		existingRoute, err := config.AWS.GetRoute(apiGatewayID, routeMap.APIGatewayRoute)
+	if config.Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+		err = config.AWS.CreateRoute(apiGatewayID, *config.Cluster.VPCLinkIntegration.IntegrationId, endpoint)
 		if err != nil {
-			errs = append(errs, err)
-			continue
-		} else if existingRoute != nil {
-			return nil
-		}
-
-		if config.Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-			err = config.AWS.CreateRoute(apiGatewayID, *config.Cluster.VPCLinkIntegration.IntegrationId, routeMap.APIGatewayRoute)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-		}
-
-		if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
-			loadBalancerURL, err := APILoadBalancerURL()
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-
-			targetEndpoint := urls.Join(loadBalancerURL, routeMap.IntegrationRoute)
-
-			integrationID, err := config.AWS.CreateHTTPIntegration(apiGatewayID, targetEndpoint)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-
-			err = config.AWS.CreateRoute(apiGatewayID, integrationID, routeMap.APIGatewayRoute)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
+			return err
 		}
 	}
-	return errors.FirstError(errs...)
+
+	if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme {
+		loadBalancerURL, err := APILoadBalancerURL()
+		if err != nil {
+			return err
+		}
+
+		targetEndpoint := urls.Join(loadBalancerURL, endpoint)
+
+		integrationID, err := config.AWS.CreateHTTPIntegration(apiGatewayID, targetEndpoint)
+		if err != nil {
+			return err
+		}
+
+		err = config.AWS.CreateRoute(apiGatewayID, integrationID, endpoint)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func RemoveAPIFromAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGatewayType, isRoutePrefix bool) error {
+func RemoveAPIFromAPIGateway(endpoint string, apiGatewayType userconfig.APIGatewayType) error {
 	if config.Cluster.APIGateway == nil {
 		return nil
 	}
@@ -123,29 +83,24 @@ func RemoveAPIFromAPIGateway(apiEndpoint string, apiGatewayType userconfig.APIGa
 		return nil
 	}
 
-	routeToIntegrationMapping := getRouteToIntegrationMapping(apiEndpoint, isRoutePrefix)
-
 	apiGatewayID := *config.Cluster.APIGateway.ApiId
 
-	errs := []error{}
+	route, err := config.AWS.DeleteRoute(apiGatewayID, endpoint)
+	if err != nil {
+		return err
+	}
 
-	for _, routeMap := range routeToIntegrationMapping {
-		route, err := config.AWS.DeleteRoute(apiGatewayID, routeMap.APIGatewayRoute)
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme && route != nil {
-			integrationID := aws.ExtractRouteIntegrationID(route)
-			if integrationID != "" {
-				err = config.AWS.DeleteIntegration(apiGatewayID, integrationID)
-				if err != nil {
-					errs = append(errs, err)
-				}
+	if config.Cluster.APILoadBalancerScheme == clusterconfig.InternetFacingLoadBalancerScheme && route != nil {
+		integrationID := aws.ExtractRouteIntegrationID(route)
+		if integrationID != "" {
+			err = config.AWS.DeleteIntegration(apiGatewayID, integrationID)
+			if err != nil {
+				return err
 			}
 		}
 	}
-	return errors.FirstError(errs...)
+
+	return nil
 }
 
 func UpdateAPIGateway(
@@ -153,7 +108,6 @@ func UpdateAPIGateway(
 	prevAPIGatewayType userconfig.APIGatewayType,
 	newEndpoint string,
 	newAPIGatewayType userconfig.APIGatewayType,
-	isRoutePrefix bool,
 ) error {
 	if config.Cluster.APIGateway == nil {
 		return nil
@@ -164,11 +118,11 @@ func UpdateAPIGateway(
 	}
 
 	if prevAPIGatewayType == userconfig.PublicAPIGatewayType && newAPIGatewayType == userconfig.NoneAPIGatewayType {
-		return RemoveAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType, isRoutePrefix)
+		return RemoveAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType)
 	}
 
 	if prevAPIGatewayType == userconfig.NoneAPIGatewayType && newAPIGatewayType == userconfig.PublicAPIGatewayType {
-		return AddAPIToAPIGateway(newEndpoint, newAPIGatewayType, isRoutePrefix)
+		return AddAPIToAPIGateway(newEndpoint, newAPIGatewayType)
 	}
 
 	if prevEndpoint == newEndpoint {
@@ -176,17 +130,17 @@ func UpdateAPIGateway(
 	}
 
 	// the endpoint has changed
-	if err := AddAPIToAPIGateway(newEndpoint, newAPIGatewayType, isRoutePrefix); err != nil {
+	if err := AddAPIToAPIGateway(newEndpoint, newAPIGatewayType); err != nil {
 		return err
 	}
-	if err := RemoveAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType, isRoutePrefix); err != nil {
+	if err := RemoveAPIFromAPIGateway(prevEndpoint, prevAPIGatewayType); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func RemoveAPIFromAPIGatewayK8s(virtualService *istioclientnetworking.VirtualService, isRoutePrefix bool) error {
+func RemoveAPIFromAPIGatewayK8s(virtualService *istioclientnetworking.VirtualService) error {
 	if virtualService == nil {
 		return nil // API is not running
 	}
@@ -201,10 +155,10 @@ func RemoveAPIFromAPIGatewayK8s(virtualService *istioclientnetworking.VirtualSer
 		return err
 	}
 
-	return RemoveAPIFromAPIGateway(endpoint, apiGatewayType, isRoutePrefix)
+	return RemoveAPIFromAPIGateway(endpoint, apiGatewayType)
 }
 
-func UpdateAPIGatewayK8s(prevVirtualService *istioclientnetworking.VirtualService, newAPI *spec.API, isRoutePrefix bool) error {
+func UpdateAPIGatewayK8s(prevVirtualService *istioclientnetworking.VirtualService, newAPI *spec.API) error {
 	prevAPIGatewayType, err := userconfig.APIGatewayFromAnnotations(prevVirtualService)
 	if err != nil {
 		return err
@@ -215,5 +169,5 @@ func UpdateAPIGatewayK8s(prevVirtualService *istioclientnetworking.VirtualServic
 		return err
 	}
 
-	return UpdateAPIGateway(prevEndpoint, prevAPIGatewayType, *newAPI.Networking.Endpoint, newAPI.Networking.APIGateway, isRoutePrefix)
+	return UpdateAPIGateway(prevEndpoint, prevAPIGatewayType, *newAPI.Networking.Endpoint, newAPI.Networking.APIGateway)
 }

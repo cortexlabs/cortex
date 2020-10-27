@@ -52,8 +52,8 @@ func GetAPI(operatorConfig OperatorConfig, apiName string) ([]schema.APIResponse
 }
 
 func GetJob(operatorConfig OperatorConfig, apiName string, jobID string) (schema.JobResponse, error) {
-	endpoint := path.Join("/batch", apiName, jobID)
-	httpRes, err := HTTPGet(operatorConfig, endpoint)
+	endpoint := path.Join("/batch", apiName)
+	httpRes, err := HTTPGet(operatorConfig, endpoint, map[string]string{"jobID": jobID})
 	if err != nil {
 		return schema.JobResponse{}, err
 	}
