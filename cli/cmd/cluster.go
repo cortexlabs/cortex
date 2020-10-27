@@ -75,6 +75,8 @@ func clusterInit() {
 
 	_infoCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_infoCmd)
+	addClusterNameFlag(_infoCmd)
+	addClusterRegionFlag(_infoCmd)
 	addAWSCredentialsFlags(_infoCmd)
 	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to update")
 	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
@@ -99,6 +101,8 @@ func clusterInit() {
 
 	_exportCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_exportCmd)
+	addClusterNameFlag(_exportCmd)
+	addClusterRegionFlag(_exportCmd)
 	addAWSCredentialsFlags(_exportCmd)
 	_clusterCmd.AddCommand(_exportCmd)
 }
@@ -109,11 +113,11 @@ func addClusterConfigFlag(cmd *cobra.Command) {
 }
 
 func addClusterNameFlag(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&_flagClusterName, "name", "", "", "name of the cluster")
+	cmd.Flags().StringVarP(&_flagClusterName, "name", "n", "", "aws name of the cluster")
 }
 
 func addClusterRegionFlag(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "", "", "region of the cluster")
+	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "r", "", "aws region of the cluster")
 }
 
 func addAWSCredentialsFlags(cmd *cobra.Command) {
