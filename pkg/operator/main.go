@@ -71,9 +71,8 @@ func main() {
 	routerWithoutAuth.Use(endpoints.PanicMiddleware)
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
 	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitJob).Methods("POST")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.GetJob).Methods("GET")
-	routerWithoutAuth.HandleFunc("/batch/{apiName}/{jobID}", endpoints.StopJob).Methods("DELETE")
-	routerWithoutAuth.HandleFunc("/logs/{apiName}/{jobID}", endpoints.ReadJobLogs)
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.GetJob).Methods("GET")
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.StopJob).Methods("DELETE")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 

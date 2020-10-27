@@ -59,10 +59,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
+		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
 			go deleteK8sResources(api.Name)
-			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway, true)
+			go operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 			return nil, "", err
 		}
 
@@ -88,7 +88,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api, true); err != nil {
+		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
 			return nil, "", err
 		}
 
@@ -119,7 +119,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			return config.AWS.DeleteQueuesWithPrefix(apiQueueNamePrefix(apiName))
 		},
 		func() error {
-			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService, true)
+			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
 			if err != nil {
 				return err
 			}
