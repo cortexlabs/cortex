@@ -33,6 +33,8 @@ max_instances: 100
 spot: true
 ```
 
+<br>
+
 ### Spin up a cluster on your AWS account
 
 ```bash
@@ -72,6 +74,8 @@ networking:
   endpoint: my-api
 ```
 
+<br>
+
 ### Deploy a model to production
 
 ```bash
@@ -80,7 +84,7 @@ $ cortex deploy --env aws
 
 <br>
 
-## One place for managing your machine learning APIs
+## Streamlined machine learning API management
 
 * Monitor API performance
 * Aggregate and stream logs
