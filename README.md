@@ -35,8 +35,6 @@ max_instances: 100
 spot: true
 ```
 
-<br>
-
 ### Spin up a cluster on your AWS account
 
 ```bash
@@ -77,8 +75,6 @@ autoscaling:
 networking:
   endpoint: my-api
 ```
-
-<br>
 
 ### Deploy a model to production
 
