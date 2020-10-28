@@ -5,10 +5,12 @@
 
 # Deploy machine learning models to production
 
+Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Organizations worldwide use Cortex as an alternative to building in-house machine learning infrastructure.
+
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 
-Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Organizations worldwide use Cortex as an alternative to building in-house machine learning infrastructure. You can [get started now](https://docs.cortex.dev/install) or learn more by checking out our [docs](https://docs.cortex.dev) and [examples](https://github.com/cortexlabs/cortex/tree/0.20/examples). If you have any questions or feedback, we'd love to hear from you on our [Gitter](https://gitter.im/cortexlabs/cortex)!
+[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) • [support](https://gitter.im/cortexlabs/cortex)
 
 <br>
 
@@ -31,7 +33,7 @@ max_instances: 100
 spot: true
 ```
 
-**Spin up a cluster on your AWS account**
+### Spin up a cluster on your AWS account
 
 ```bash
 $ cortex cluster up --config cluster.yaml
@@ -70,7 +72,7 @@ networking:
   endpoint: my-api
 ```
 
-**Deploy machine learning in production**
+### Deploy a model to production
 
 ```bash
 $ cortex deploy --env aws
@@ -78,7 +80,7 @@ $ cortex deploy --env aws
 
 <br>
 
-## One tool for managing machine learning APIs
+## One place for managing your machine learning APIs
 
 * Monitor API performance
 * Aggregate and stream logs
@@ -94,6 +96,8 @@ text-generator     live       10         1h            100ms     100000
 image-classifier   live       20         2h            200ms     2000000
 object-detector    live       30         3h            300ms     30000000
 ```
+
+<br>
 
 ## Get started
 
