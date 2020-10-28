@@ -532,3 +532,20 @@ def predict(self, payload):
         content=data, media_type="text/plain")
     return response
 ```
+
+## Chaining APIs
+
+It is possible to make requests from one API to another within a Cortex cluster. All running APIs are accessible from within the predictor at `http://api-<api_name>:8888/predict`, where `<api_name>` is the name of the API you are making a request to.
+
+For example, if there is an api named `text-generator` running in the cluster, you could make a request to it from a different API by using:
+
+```python
+import requests
+
+class PythonPredictor:
+    def predict(self, payload):
+        response = requests.post("http://api-text-generator:8888/predict", json={"text": "machine learning is"})
+        # ...
+```
+
+Note that the autoscaling configuration (i.e. `target_replica_concurrency`) for the API that is making the request should be modified with the understanding that requests will still be considered "in-flight" with the first API as the request is being fulfilled in the second API (during which it will also be considered "in-flight" with the second API). See more details in the [autoscaling docs](autoscaling.md).

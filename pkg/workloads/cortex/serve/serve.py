@@ -21,6 +21,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import math
+import uuid
 import asyncio
 from typing import Any
 
@@ -125,7 +126,10 @@ async def register_request(request: Request, call_next):
     try:
         if is_prediction_request(request):
             if local_cache["provider"] != "local":
-                request_id = request.headers["x-request-id"]
+                if "x-request-id" in request.headers:
+                    request_id = request.headers["x-request-id"]
+                else:
+                    request_id = uuid.uuid1()
                 file_id = f"/mnt/requests/{request_id}"
                 open(file_id, "a").close()
 
