@@ -3,7 +3,7 @@
 
 <br>
 
-# Deploy machine learning to production
+# Deploy machine learning models to production
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
@@ -12,20 +12,12 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 <br>
 
-```bash
-$ pip install cortex
-```
-
-<br>
-
 ## Scalable, reliable, and secure model serving infrastructure
 
-* **Deploy any machine learning model as a realtime or batch API**
-* **Scale to handle production workloads with request-based autoscaling**
-* **Configure A/B tests with traffic splitting**
-* **Save money with spot instances**
-* **Run the Cortex cluster on your AWS account**
-
+* Deploy any machine learning model as a realtime or batch API
+* Scale to handle production workloads with request-based autoscaling
+* Configure A/B tests with traffic splitting
+* Save money with spot instances
 
 ```yaml
 # cluster.yaml
@@ -38,18 +30,28 @@ min_instances: 10
 max_instances: 100
 spot: true
 ```
-<img src="https://uploads-ssl.webflow.com/5f6030ed637ab64288922cff/5f6bc7244d5a3d5f630e78f7_carbon%20(10).png" height="200">
+
+**Spin up a cluster on your AWS account**
+
+```bash
+$ cortex cluster up --config cluster.yaml
+
+￮ configuring autoscaling ✓
+￮ configuring networking ✓
+￮ configuring logging ✓
+
+cortex is ready!
+```
 
 <br>
 
 ## Simple, flexible, and reproducible deployments
 
-* **Deploy models from TensorFlow, PyTorch, ONNX, or any other Python framework**
-* **Customize compute, autoscaling, and networking for each API**
-* **Define inference logic in Python**
-* **Package dependencies, code, and configuration for reproducible deployments**
-* **Test deployments locally before deploying to production**
-* **Import any model server, realtime feature store, library, or tool**
+* Deploy your TensorFlow, PyTorch, ONNX, and other models
+* Define request handling in Python
+* Test deployments locally before deploying to production
+* Customize compute, autoscaling, and networking for each API
+* Package dependencies, code, and configuration for reproducible deployments
 
 ```yaml
 # cortex.yaml
@@ -68,19 +70,33 @@ networking:
   endpoint: my-api
 ```
 
-<img src="https://uploads-ssl.webflow.com/5f6030ed637ab64288922cff/5f6ba3b8a56985d25e9dfe8b_deploy-cli.png" height="200">
+**Deploy machine learning in production**
+
+```bash
+$ cortex deploy --env aws
+```
+
 <br>
 
 ## One tool for managing machine learning APIs
 
-* **Monitor API performance**
-* **Aggregate and stream logs**
-* **Customize prediction tracking**
-* **Exoprt performance data to any analytics tool**
-* **Update APIs with zero downtime**
+* Monitor API performance
+* Aggregate and stream logs
+* Customize prediction tracking
+* Update APIs without any downtime
 
-<img src="https://uploads-ssl.webflow.com/5f6030ed637ab64288922cff/5f99ea232813f90e78bac7a5_carbon%20(33).png" height="200">
-<br>
+```bash
+$ cortex get
 
-# Get started
-You can get started by [installing Cortex](https://docs.cortex.dev) and following our [quickstart tutorial](https://docs.cortex.dev/v/0.21/deployments/realtime-api/text-generator). Additionally, you can test Cortex out by deploying any of our [example APIs.](https://github.com/cortexlabs/cortex/tree/master/examples)
+api                status     replicas   last update   latency   requests
+
+text-generator     live       10         1h            100ms     100000
+image-classifier   live       20         2h            200ms     2000000
+object-detector    live       30         3h            300ms     30000000
+```
+
+## Get started
+
+```bash
+$ pip install cortex
+```
