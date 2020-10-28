@@ -21,6 +21,8 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 * Configure A/B tests with traffic splitting
 * Save money with spot instances
 
+<br>
+
 ```yaml
 # cluster.yaml
 
@@ -57,6 +59,8 @@ cortex is ready!
 * Customize compute, autoscaling, and networking for each API
 * Package dependencies, code, and configuration for reproducible deployments
 
+<br>
+
 ```yaml
 # cortex.yaml
 
@@ -80,6 +84,8 @@ networking:
 
 ```bash
 $ cortex deploy --env aws
+
+creating https://example.com/text-generator
 ```
 
 <br>
@@ -90,6 +96,8 @@ $ cortex deploy --env aws
 * Aggregate and stream logs
 * Customize prediction tracking
 * Update APIs without any downtime
+
+<br>
 
 ```bash
 $ cortex get
