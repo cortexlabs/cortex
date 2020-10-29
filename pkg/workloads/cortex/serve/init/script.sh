@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/with-contenv bash
 
 # Copyright 2020 Cortex Labs, Inc.
 #
@@ -61,7 +61,7 @@ fi
 
 # execute script if present in project's directory
 if [ -f "/mnt/project/dependencies.sh" ]; then
-    bash -e /mnt/project/dependencies.sh
+    exec bash -e /mnt/project/dependencies.sh
 fi
 
 # install from conda-packages.txt
@@ -86,4 +86,18 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-/opt/conda/envs/env/bin/python /src/cortex/serve/start.py
+# prepare uvicorn workers
+if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
+    mkdir /run/uvicorn
+    for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
+        dest_dir="/etc/services.d/uvicorn-$i"
+        dest_script="$dest_dir/run"
+        mkdir $dest_dir
+        echo "#!/usr/bin/with-contenv bash" > $dest_script
+        echo "exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$i.sock" >> $dest_script
+        chmod +x $dest_script
+    done 
+fi
+# run batch otherwise
+
+/opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py
