@@ -91,4 +91,5 @@ You can now run the same commands shown above to deploy the text generator to AW
 * Try the [tutorial](../../examples/pytorch/text-generator/README.md) to learn more about how to use Cortex.
 * Deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
 * See our [exporting guide](../guides/exporting.md) for how to export your model to use in an API.
+* View documentation for [realtime APIs](../deployments/realtime-api.md) or [batch APIs](../deployments/batch-api.md).
 * See [uninstall](uninstall.md) if you'd like to spin down your cluster.
