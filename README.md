@@ -14,11 +14,11 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 <br>
 
-## Scalable, reliable, and secure model serving infrastructure
+## Model serving infrastructure
 
-* Deploy your TensorFlow, PyTorch, scikit-learn and other models as a realtime or batch APIs
+* Deploy your TensorFlow, PyTorch, sklearn and other models as realtime or batch APIs
 * Scale to handle production workloads with request-based autoscaling
-* Run inference on spot instances with on demand backups
+* Run inference on spot instances with on-demand backups
 * Configure A/B tests with traffic splitting
 
 #### Configure your cluster:
@@ -42,18 +42,19 @@ $ cortex cluster up --config cluster.yaml
 ￮ configuring autoscaling ✓
 ￮ configuring networking ✓
 ￮ configuring logging ✓
+￮ configuring metrics dashboard ✓
 
 cortex is ready!
 ```
 
 <br>
 
-## Simple, flexible, and reproducible deployments
+## Reproducible model deployments
 
 * Implement request handling in Python
 * Customize compute, autoscaling, and networking for each API
 * Package dependencies, code, and configuration for reproducible deployments
-* Test locally before deploying to production
+* Test locally before deploying to your production cluster
 
 #### Implement a predictor:
 
@@ -70,7 +71,7 @@ class PythonPredictor:
     return self.model(payload["text"])[0]
 ```
 
-#### Configure a realtime API:
+#### Configure an API:
 
 ```yaml
 # cortex.yaml
@@ -86,7 +87,7 @@ autoscaling:
   min_replicas: 1
   max_replicas: 10
 networking:
-  endpoint: text-generator
+  api_gateway: public
 ```
 
 #### Deploy to production:
@@ -99,7 +100,7 @@ creating https://example.com/text-generator
 
 <br>
 
-## Streamlined machine learning API management
+## API management
 
 * Monitor API performance
 * Aggregate and stream logs
