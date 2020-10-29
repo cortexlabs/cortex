@@ -86,8 +86,9 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-# prepare uvicorn workers
+# prepare webserver
 if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
+    # prepare uvicorn workers
     mkdir /run/uvicorn
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
         dest_dir="/etc/services.d/uvicorn-$i"
@@ -96,8 +97,23 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
         echo "#!/usr/bin/with-contenv bash" > $dest_script
         echo "exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$i.sock" >> $dest_script
         chmod +x $dest_script
-    done 
+    done
+    #prepare nginx
+    dest_dir="/etc/services.d/nginx"
+    dest_script="$dest_dir/run"
+    mkdir $dest_dir
+    echo "#!/usr/bin/with-contenv bash" > $dest_script
+    echo "exec nginx -c /src/cortex/serve/nginx.conf" >> $dest_script
+    chmod +x $dest_script
+# prepare batch otherwise
+else
+    dest_dir="/etc/services.d/batch"
+    dest_script="$dest_dir/run"
+    mkdir $dest_dir
+    echo "#!/usr/bin/with-contenv bash" > $dest_script
+    echo "exec /opt/conda/envs/env/bin/python src/cortex/serve/start/batch.py"
+    chmod +x $dest_dir
 fi
-# run batch otherwise
 
+# run the python initialization script
 /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py

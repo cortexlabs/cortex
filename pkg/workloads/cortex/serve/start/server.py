@@ -12,6 +12,8 @@ def main():
     uvicorn.run(
         "cortex.serve.wsgi:app",
         uds=uds,
+        forwarded_allow_ips="*",
+        proxy_headers=True,
         log_config=log_config,
         log_level="info",
     )

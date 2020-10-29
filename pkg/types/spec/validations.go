@@ -401,7 +401,7 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 					Int64Validation: &cr.Int64Validation{
 						Default:           consts.DefaultMaxReplicaConcurrency,
 						GreaterThan:       pointer.Int64(0),
-						LessThanOrEqualTo: pointer.Int64(math.MaxUint16),
+						LessThanOrEqualTo: pointer.Int64(30000),
 					},
 				},
 				{
