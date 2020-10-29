@@ -5,7 +5,7 @@
 
 # Deploy machine learning models to production
 
-Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Engineering teams use Cortex as an alternative to building in-house machine learning infrastructure.
+Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Machine learning engineering teams use Cortex as an alternative to building in-house machine learning infrastructure.
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
@@ -107,9 +107,9 @@ text-generator     live       30         3h            300ms     30000000
 
 ## Get started
 
+<!-- CORTEX_VERSION_README_MINOR -->
+See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
+
 ```bash
 $ pip install cortex
 ```
-
-<!-- CORTEX_VERSION_README_MINOR -->
-See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
