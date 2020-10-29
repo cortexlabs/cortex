@@ -36,7 +36,7 @@ spot: true
 
 #### Spin up your cluster on your AWS account:
 
-```bash
+```text
 $ cortex cluster up --config cluster.yaml
 
 ￮ configuring autoscaling ✓
@@ -93,9 +93,9 @@ networking:
   endpoint: text-generator
 ```
 
-#### Deploy to production
+#### Deploy to production:
 
-```bash
+```text
 $ cortex deploy cortex.yaml
 
 creating https://example.com/text-generator
@@ -112,7 +112,7 @@ creating https://example.com/text-generator
 
 #### Manage your APIs:
 
-```bash
+```text
 $ cortex get
 
 realtime api       status     replicas   last update   latency   requests
@@ -131,7 +131,7 @@ image-classifier   3      abc   1h
 
 ## Get started
 
-```bash
+```text
 $ pip install cortex
 ```
 
