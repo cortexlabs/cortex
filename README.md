@@ -34,7 +34,7 @@ max_instances: 100
 spot: true
 ```
 
-#### Spin up a cluster on your AWS account
+#### Spin up a cluster on your AWS account:
 
 ```bash
 $ cortex cluster up --config cluster.yaml
@@ -74,7 +74,7 @@ networking:
   endpoint: image-classifier
 ```
 
-#### Deploy to production
+#### Deploy to production:
 
 ```bash
 $ cortex deploy cortex.yaml
