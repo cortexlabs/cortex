@@ -5,7 +5,7 @@
 
 # Deploy machine learning models to production
 
-Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Organizations worldwide use Cortex as an alternative to building in-house machine learning infrastructure.
+Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Engineering teams use Cortex as an alternative to building in-house machine learning infrastructure.
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
@@ -16,7 +16,7 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 ## Scalable, reliable, and secure model serving infrastructure
 
-* Deploy any machine learning model as a realtime or batch API
+* Deploy your TensorFlow, PyTorch, scikit-learn and other models as a realtime or batch APIs
 * Scale to handle production workloads with request-based autoscaling
 * Configure A/B tests with traffic splitting
 * Save money with spot instances
@@ -27,7 +27,6 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 # cluster.yaml
 
 region: us-east-1
-availability_zones: [us-east-1a, us-east-1b]
 api_gateway: public
 instance_type: g4dn.xlarge
 min_instances: 10
@@ -35,7 +34,7 @@ max_instances: 100
 spot: true
 ```
 
-### Spin up a cluster on your AWS account
+Spin up a cluster on your AWS account:
 
 ```bash
 $ cortex cluster up --config cluster.yaml
@@ -51,18 +50,17 @@ cortex is ready!
 
 ## Simple, flexible, and reproducible deployments
 
-* Deploy your TensorFlow, PyTorch, ONNX, and other models
 * Define request handling in Python
-* Test deployments locally before deploying to production
 * Customize compute, autoscaling, and networking for each API
 * Package dependencies, code, and configuration for reproducible deployments
+* Test deployments locally before deploying to production
 
 <br>
 
 ```yaml
 # cortex.yaml
 
-name: text-generator
+name: image-classifier
 kind: RealtimeAPI
 predictor:
   path: predictor.py
@@ -73,15 +71,15 @@ autoscaling:
   min_replicas: 1
   max_replicas: 10
 networking:
-  endpoint: my-api
+  endpoint: image-classifier
 ```
 
-### Deploy a model to production
+Deploy a model to production:
 
 ```bash
-$ cortex deploy --env aws
+$ cortex deploy cortex.yaml
 
-creating https://example.com/text-generator
+creating https://example.com/image-classifier
 ```
 
 <br>
@@ -91,7 +89,7 @@ creating https://example.com/text-generator
 * Monitor API performance
 * Aggregate and stream logs
 * Customize prediction tracking
-* Update APIs without any downtime
+* Update APIs without downtime
 
 <br>
 
@@ -100,9 +98,9 @@ $ cortex get
 
 api                status     replicas   last update   latency   requests
 
-text-generator     live       10         1h            100ms     100000
-image-classifier   live       20         2h            200ms     2000000
-object-detector    live       30         3h            300ms     30000000
+image-classifier   live       10         1h            100ms     100000
+object-detector    live       20         2h            200ms     2000000
+text-generator     live       30         3h            300ms     30000000
 ```
 
 <br>
@@ -112,3 +110,6 @@ object-detector    live       30         3h            300ms     30000000
 ```bash
 $ pip install cortex
 ```
+
+<!-- CORTEX_VERSION_README_MINOR -->
+See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
