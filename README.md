@@ -126,6 +126,7 @@ text-generator     live       34         9h            247ms     71828
 object-detector    live       13         15h           23ms      828459
 image-classifier   live       5          3d 14h        88ms      4523
 
+
 batch api          running jobs   last update
 
 image-classifier   3              1h
