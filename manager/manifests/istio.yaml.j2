@@ -75,7 +75,7 @@ spec:
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
-            maxReplicas: 5
+            maxReplicas: 1  # edit autoscaleEnabled in values if increasing this
             metrics:
               - type: Resource
                 resource:
@@ -132,7 +132,7 @@ spec:
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
-            maxReplicas: 5
+            maxReplicas: 1  # edit autoscaleEnabled in values if increasing this
             metrics:
               - type: Resource
                 resource:
@@ -156,7 +156,7 @@ spec:
       istio-ingressgateway:
         debug: info
         runAsRoot: true
-        autoscaleEnabled: true
+        autoscaleEnabled: false
         secretVolumes:
         - name: customgateway-certs
           secretName: istio-customgateway-certs

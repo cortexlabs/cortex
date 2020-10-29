@@ -191,15 +191,15 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		return
 	}
 
+	err = createK8sJob(apiSpec, jobSpec)
+	if err != nil {
+		handleJobSubmissionError(jobSpec.JobKey, err)
+	}
+
 	err = setRunningStatus(jobSpec.JobKey)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 		return
-	}
-
-	err = createK8sJob(apiSpec, jobSpec)
-	if err != nil {
-		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
 }
 

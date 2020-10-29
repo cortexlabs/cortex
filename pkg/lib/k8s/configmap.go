@@ -82,10 +82,10 @@ func (c *Client) ApplyConfigMap(configMap *kcore.ConfigMap) (*kcore.ConfigMap, e
 
 func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {
 	configMap, err := c.configMapClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	configMap.TypeMeta = _configMapTypeMeta
@@ -105,10 +105,10 @@ func (c *Client) GetConfigMapData(name string) (map[string]string, error) {
 
 func (c *Client) DeleteConfigMap(name string) (bool, error) {
 	err := c.configMapClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil

@@ -29,7 +29,11 @@ import (
 
 func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
-	jobID := mux.Vars(r)["jobID"]
+	jobID, err := getRequiredQueryParam("jobID", r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {

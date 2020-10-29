@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -118,7 +119,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	for i := range apis {
 		api := &apis[i]
 
-		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient); err != nil {
+		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient, nil); err != nil {
 			return errors.Wrap(err, api.Identify())
 		}
 
@@ -151,7 +152,12 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 			}
 		}
 
-		pulledThisImage, err := docker.PullImage(image, dockerAuth, docker.PrintDots)
+		pullVerbosity := docker.PrintDots
+		if OutputType == flags.JSONOutputType {
+			pullVerbosity = docker.NoPrint
+		}
+
+		pulledThisImage, err := docker.PullImage(image, dockerAuth, pullVerbosity)
 		if err != nil {
 			return errors.Wrap(err, "failed to pull image", image)
 		}
@@ -162,7 +168,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	}
 
 	if pulledImage {
-		fmt.Println()
+		localPrintln()
 	}
 
 	portToRunningAPIsMap, err := getPortToRunningAPIsMap()

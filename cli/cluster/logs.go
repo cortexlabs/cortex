@@ -34,10 +34,18 @@ import (
 )
 
 func StreamLogs(operatorConfig OperatorConfig, apiName string) error {
+	return streamLogs(operatorConfig, "/logs/"+apiName)
+}
+
+func StreamJobLogs(operatorConfig OperatorConfig, apiName string, jobID string) error {
+	return streamLogs(operatorConfig, "/logs/"+apiName, map[string]string{"jobID": jobID})
+}
+
+func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[string]string) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	req, err := operatorRequest(operatorConfig, "GET", "/logs/"+apiName, nil, nil)
+	req, err := operatorRequest(operatorConfig, "GET", path, nil, qParams...)
 	if err != nil {
 		return err
 	}

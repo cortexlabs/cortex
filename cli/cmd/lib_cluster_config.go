@@ -89,6 +89,13 @@ func getNewClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig
 		}
 	}
 
+	if _flagClusterName != "" {
+		accessConfig.ClusterName = pointer.String(_flagClusterName)
+	}
+	if _flagClusterRegion != "" {
+		accessConfig.Region = pointer.String(_flagClusterRegion)
+	}
+
 	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
 		return accessConfig, nil
 	}
@@ -116,6 +123,13 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 		if errors.HasError(errs) {
 			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
 		}
+	}
+
+	if _flagClusterName != "" {
+		accessConfig.ClusterName = pointer.String(_flagClusterName)
+	}
+	if _flagClusterRegion != "" {
+		accessConfig.Region = pointer.String(_flagClusterRegion)
 	}
 
 	if accessConfig.ClusterName != nil && accessConfig.Region != nil {

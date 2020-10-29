@@ -1,3 +1,5 @@
+#!make
+
 # Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +15,8 @@
 # limitations under the License.
 
 SHELL := /bin/bash
+-include ./dev/config/env.sh
+export $(shell sed 's/=.*//' ./dev/config/env.sh 2>/dev/null)
 
 #######
 # Dev #
@@ -47,44 +51,44 @@ cluster-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex cluster up --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY
+	@./bin/cortex cluster up --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY
 	@$(MAKE) kubectl
 
 cluster-up-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex cluster up --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes
+	@./bin/cortex cluster up --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes
 	@$(MAKE) kubectl
 
 cluster-down:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex cluster down --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY
+	@./bin/cortex cluster down --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY
 
 cluster-down-y:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex cluster down --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --yes
+	@./bin/cortex cluster down --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --yes
 
 cluster-info:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
-	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex cluster info --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY
+	@./bin/cortex cluster info --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY
 
 cluster-configure:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex cluster configure --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY
+	@./bin/cortex cluster configure --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY
 
 cluster-configure-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@source ./dev/config/env.sh 2>/dev/null; ./bin/cortex cluster configure --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes
+	@./bin/cortex cluster configure --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes
 
 # stop the in-cluster operator
 operator-stop:
