@@ -98,6 +98,12 @@ networking:
 $ cortex deploy cortex.yaml
 
 creating https://example.com/text-generator
+
+$ curl http://https://example.com/text-generator \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"text": "deploy machine learning models in"}'
+
+"deploy machine learning models in production"
 ```
 
 <br>
