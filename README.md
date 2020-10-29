@@ -108,7 +108,10 @@ text-generator     live       30         3h            300ms     30000000
 ## Get started
 
 <!-- CORTEX_VERSION_README_MINOR -->
-See our [installation guide](https://docs.cortex.dev/install), then deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) or bring your own models to build [realtime APIs](https://docs.cortex.dev/deployments/realtime-api) and [batch APIs](https://docs.cortex.dev/deployments/batch-api).
+
+* See our [installation guide](https://docs.cortex.dev/install)
+* Deploy an [example](https://github.com/cortexlabs/cortex/tree/0.21/examples)
+* Bring your own models and build [machine learning APIs](https://docs.cortex.dev/tutorial)
 
 ```bash
 $ pip install cortex
