@@ -10,7 +10,7 @@
 
 # Deploy machine learning models to production
 
-Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Engineering teams use Cortex as an alternative to building in-house machine learning infrastructure.
+Cortex is an open source platform for deploying, managing, and scaling machine learning in production.
 
 <br>
 
