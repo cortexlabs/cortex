@@ -16,10 +16,11 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 ## Model serving infrastructure
 
-* Deploy your TensorFlow, PyTorch, sklearn and other models as realtime or batch APIs
-* Scale to handle production workloads with request-based autoscaling
-* Run inference on spot instances with on-demand backups
-* Configure A/B tests with traffic splitting
+* Supports deploying TensorFlow, PyTorch, sklearn and other models as realtime or batch APIs
+* Ensures high availability with availability zones and automated instance restarts
+* Scales to handle production workloads with request-based autoscaling
+* Runs inference on spot instances with on-demand backups
+* Manages traffic splitting for A/B testing
 
 #### Configure your cluster:
 
@@ -27,6 +28,7 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 # cluster.yaml
 
 region: us-east-1
+availability_zones: [us-east-1a, us-east-1b]
 api_gateway: public
 instance_type: g4dn.xlarge
 min_instances: 10
@@ -54,7 +56,7 @@ cortex is ready!
 * Implement request handling in Python
 * Customize compute, autoscaling, and networking for each API
 * Package dependencies, code, and configuration for reproducible deployments
-* Test locally before deploying to your production cluster
+* Test locally before deploying to your cluster
 
 #### Implement a predictor:
 
