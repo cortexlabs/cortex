@@ -18,8 +18,8 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 * Deploy your TensorFlow, PyTorch, scikit-learn and other models as a realtime or batch APIs
 * Scale to handle production workloads with request-based autoscaling
+* Run on inference on spot instances with on demand backups
 * Configure A/B tests with traffic splitting
-* Save money with spot instances
 
 <br>
 
@@ -55,12 +55,31 @@ cortex is ready!
 * Package dependencies, code, and configuration for reproducible deployments
 * Test locally before deploying to production
 
-<br>
+#### Implement a predictor
+
+```python
+# predictor.py
+
+import torch
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+
+class PythonPredictor:
+    def __init__(self, config):
+        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+        self.model = GPT2LMHeadModel.from_pretrained("gpt2")
+
+    def predict(self, payload):
+        tokens = self.tokenizer.encode(payload["text"], return_tensors="pt")
+        prediction = self.model.generate(tokens)
+        return self.tokenizer.decode(prediction[0])
+```
+
+#### Configure a realtime API
 
 ```yaml
 # cortex.yaml
 
-name: image-classifier
+name: text-generator
 kind: RealtimeAPI
 predictor:
   path: predictor.py
@@ -71,7 +90,7 @@ autoscaling:
   min_replicas: 1
   max_replicas: 10
 networking:
-  endpoint: image-classifier
+  endpoint: text-generator
 ```
 
 #### Deploy to production:
@@ -79,7 +98,7 @@ networking:
 ```bash
 $ cortex deploy cortex.yaml
 
-creating https://example.com/image-classifier
+creating https://example.com/text-generator
 ```
 
 <br>
@@ -98,9 +117,9 @@ $ cortex get
 
 realtime api       status     replicas   last update   latency   requests
 
-image-classifier   live       10         1h            100ms     100000
-object-detector    live       20         2h            200ms     2000000
-text-generator     live       30         3h            300ms     30000000
+image-classifier   live       5          1h            100ms     100000
+object-detector    live       10         2h            200ms     1000000
+text-generator     live       20         3h            300ms     10000000
 
 
 batch api          jobs   id    last update
