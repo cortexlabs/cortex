@@ -3,14 +3,14 @@
 
 <br>
 
-# Deploy machine learning models to production
-
-Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Engineering teams use Cortex as an alternative to building in-house machine learning infrastructure.
-
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 
 [install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) • [support](https://gitter.im/cortexlabs/cortex)
+
+# Deploy machine learning models to production
+
+Cortex is an open source platform for deploying, managing, and scaling machine learning in production. Engineering teams use Cortex as an alternative to building in-house machine learning infrastructure.
 
 <br>
 
@@ -60,18 +60,14 @@ cortex is ready!
 ```python
 # predictor.py
 
-import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import pipeline
 
 class PythonPredictor:
-    def __init__(self, config):
-        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-        self.model = GPT2LMHeadModel.from_pretrained("gpt2")
+  def __init__(self, config):
+    self.model = pipeline(task="text-generation")
 
-    def predict(self, payload):
-        tokens = self.tokenizer.encode(payload["text"], return_tensors="pt")
-        prediction = self.model.generate(tokens)
-        return self.tokenizer.decode(prediction[0])
+  def predict(self, payload):
+    return self.model(payload["text"])[0]
 ```
 
 #### Configure a realtime API:
@@ -135,4 +131,4 @@ image-classifier   3      abc   1h
 $ pip install cortex
 ```
 
-See our [installation guide](https://docs.cortex.dev/install) for next steps.
+See the [installation guide](https://docs.cortex.dev/install) for next steps.
