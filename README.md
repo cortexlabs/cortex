@@ -18,7 +18,7 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 * Deploy your TensorFlow, PyTorch, scikit-learn and other models as a realtime or batch APIs
 * Scale to handle production workloads with request-based autoscaling
-* Run on inference on spot instances with on demand backups
+* Run inference on spot instances with on demand backups
 * Configure A/B tests with traffic splitting
 
 #### Configure your cluster:
