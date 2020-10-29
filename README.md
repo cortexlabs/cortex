@@ -118,9 +118,9 @@ object-detector    live       10         2h            200ms     1000000
 text-generator     live       20         3h            300ms     10000000
 
 
-batch api          jobs   id       last update
+batch api          jobs   last update
 
-image-classifier   3      abc123   1h
+image-classifier   3      1h
 ```
 
 <br>
