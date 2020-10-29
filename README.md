@@ -21,7 +21,7 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 * Run on inference on spot instances with on demand backups
 * Configure A/B tests with traffic splitting
 
-#### Configure your cluster
+#### Configure your cluster:
 
 ```yaml
 # cluster.yaml
@@ -34,7 +34,7 @@ max_instances: 100
 spot: true
 ```
 
-#### Spin up your cluster on your AWS account
+#### Spin up your cluster on your AWS account:
 
 ```bash
 $ cortex cluster up --config cluster.yaml
@@ -55,9 +55,7 @@ cortex is ready!
 * Package dependencies, code, and configuration for reproducible deployments
 * Test locally before deploying to production
 
-<br>
-
-#### Implement a predictor
+#### Implement a predictor:
 
 ```python
 # predictor.py
@@ -76,7 +74,7 @@ class PythonPredictor:
         return self.tokenizer.decode(prediction[0])
 ```
 
-#### Configure a realtime API
+#### Configure a realtime API:
 
 ```yaml
 # cortex.yaml
@@ -112,9 +110,7 @@ creating https://example.com/text-generator
 * Customize prediction tracking
 * Update APIs without downtime
 
-<br>
-
-#### Manage your APIs
+#### Manage your APIs:
 
 ```bash
 $ cortex get
