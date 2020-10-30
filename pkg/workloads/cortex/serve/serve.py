@@ -115,13 +115,17 @@ async def uncaught_exception_handler(request, e):
     response = Response(content="internal server error", status_code=500)
     return response
 
+
 def pretty_print_POST(req):
-    print('{}\n{}\r\n{}\r\n\r\n{}'.format(
-        '-----------START-----------',
-        str(req.method) + ' ' + str(req.url),
-        '\r\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
-        req.body,
-    ))
+    print(
+        "{}\n{}\r\n{}\r\n\r\n{}".format(
+            "-----------START-----------",
+            str(req.method) + " " + str(req.url),
+            "\r\n".join("{}: {}".format(k, v) for k, v in req.headers.items()),
+            req.body,
+        )
+    )
+
 
 @app.middleware("http")
 async def register_request(request: Request, call_next):
@@ -354,5 +358,6 @@ def start_fn():
     app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])
 
     return app
+
 
 app = start()

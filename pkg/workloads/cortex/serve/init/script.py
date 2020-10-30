@@ -76,5 +76,6 @@ def main():
     if raw_api_spec["predictor"]["type"] == "tensorflow":
         load_tensorflow_serving_models()
 
+
 if __name__ == "__main__":
     main()

@@ -3,6 +3,7 @@ import sys
 import uvicorn
 import yaml
 
+
 def main():
     uds = sys.argv[1]
 
@@ -17,6 +18,7 @@ def main():
         log_config=log_config,
         log_level="info",
     )
+
 
 if __name__ == "__main__":
     main()
