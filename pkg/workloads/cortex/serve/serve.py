@@ -77,7 +77,7 @@ def update_api_liveness():
 
 @app.on_event("startup")
 def startup():
-    open("/mnt/workspace/api_readiness.txt", "a").close()
+    open(f"/mnt/workspace/proc-{os.getpid()}-ready.txt", "a").close()
     update_api_liveness()
 
 

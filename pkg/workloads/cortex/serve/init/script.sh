@@ -124,6 +124,12 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     # finish script
     s6_stop_script $dest_dir
 
+    # prepare api readiness checker
+    dest_dir="/etc/services.d/api_readiness"
+    mkdir $dest_dir
+    cp /src/cortex/serve/poll/readiness.sh $dest_dir/run
+    chmod +x $dest_dir/run
+
 # prepare batch otherwise
 else
     dest_dir="/etc/services.d/batch"
