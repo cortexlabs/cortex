@@ -46,11 +46,6 @@ if [ -f "/mnt/project/.env" ]; then
     set +a
 fi
 
-export PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH
-
-# ensure predictor print() statements are always flushed
-export PYTHONUNBUFFERED=TRUE
-
 if [ "$CORTEX_PROVIDER" != "local" ]; then
     if [ "$CORTEX_KIND" == "RealtimeAPI" ]; then
         sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
@@ -86,33 +81,58 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
+s6_start_process() {
+    dest_dir=$1
+    cmd=$2
+
+    dest_script="$dest_dir/run"
+    echo "#!/usr/bin/with-contenv bash" > $dest_script
+    echo $cmd >> $dest_script
+    chmod +x $dest_script
+} 
+
+s6_stop_script() {
+    dest_dir=$1
+
+    dest_script="$dest_dir/finish"
+    echo "#!/usr/bin/execlineb -S0" > $dest_script
+    echo "s6-svscanctl -t /var/run/s6/services" >> $dest_script
+    chmod +x $dest_script
+}
+
 # prepare webserver
 if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
+
     # prepare uvicorn workers
     mkdir /run/uvicorn
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
         dest_dir="/etc/services.d/uvicorn-$i"
-        dest_script="$dest_dir/run"
         mkdir $dest_dir
-        echo "#!/usr/bin/with-contenv bash" > $dest_script
-        echo "exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$i.sock" >> $dest_script
-        chmod +x $dest_script
+        
+        # run script
+        s6_start_process $dest_dir "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$i.sock"
+        # finish script
+        s6_stop_script $dest_dir
     done
-    #prepare nginx
+
+    # prepare nginx
     dest_dir="/etc/services.d/nginx"
-    dest_script="$dest_dir/run"
     mkdir $dest_dir
-    echo "#!/usr/bin/with-contenv bash" > $dest_script
-    echo "exec nginx -c /src/cortex/serve/nginx.conf" >> $dest_script
-    chmod +x $dest_script
+
+    # run script
+    s6_start_process $dest_dir "exec nginx -c /src/cortex/serve/nginx.conf"
+    # finish script
+    s6_stop_script $dest_dir
+
 # prepare batch otherwise
 else
     dest_dir="/etc/services.d/batch"
-    dest_script="$dest_dir/run"
     mkdir $dest_dir
-    echo "#!/usr/bin/with-contenv bash" > $dest_script
-    echo "exec /opt/conda/envs/env/bin/python src/cortex/serve/start/batch.py"
-    chmod +x $dest_dir
+
+    # run script
+    s6_start_process $dest_dir "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python src/cortex/serve/start/batch.py"
+    # finish script
+    s6_stop_script $dest_dir
 fi
 
 # run the python initialization script
