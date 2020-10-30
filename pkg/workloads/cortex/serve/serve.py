@@ -51,14 +51,6 @@ loop.set_default_executor(request_thread_pool)
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 local_cache = {
     "api": None,
     "provider": None,
