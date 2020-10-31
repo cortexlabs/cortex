@@ -170,17 +170,6 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		containers = append(containers, neuronContainer)
 	}
 
-	var lifecycle *kcore.Lifecycle = nil
-	if api.API.Kind == userconfig.RealtimeAPIKind {
-		lifecycle = &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
-					Command: []string{"/usr/sbin/nginx", "-s", "quit"},
-				},
-			},
-		}
-	}
-
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -190,7 +179,7 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
-		Lifecycle:       lifecycle,
+		Lifecycle:       nginxGracefulStopper(api),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
 			Limits:   apiPodResourceLimitsList,
@@ -270,17 +259,6 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		containers = append(containers, neuronContainer)
 	}
 
-	var lifecycle *kcore.Lifecycle = nil
-	if api.API.Kind == userconfig.RealtimeAPIKind {
-		lifecycle = &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
-					Command: []string{"/usr/sbin/nginx", "-s", "quit"},
-				},
-			},
-		}
-	}
-
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -290,7 +268,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
-		Lifecycle:       lifecycle,
+		Lifecycle:       nginxGracefulStopper(api),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
 		},
@@ -335,17 +313,6 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
-	var lifecycle *kcore.Lifecycle = nil
-	if api.API.Kind == userconfig.RealtimeAPIKind {
-		lifecycle = &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
-					Command: []string{"/usr/sbin/nginx", "-s", "quit"},
-				},
-			},
-		}
-	}
-
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -355,7 +322,7 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		VolumeMounts:    DefaultVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
-		Lifecycle:       lifecycle,
+		Lifecycle:       nginxGracefulStopper(api),
 		Resources: kcore.ResourceRequirements{
 			Requests: resourceList,
 			Limits:   resourceLimitsList,
@@ -828,6 +795,21 @@ func socketExistsProbe(socketName string) *kcore.Probe {
 			},
 		},
 	}
+}
+
+func nginxGracefulStopper(api *spec.API) *kcore.Lifecycle {
+	if api.API.Kind == userconfig.RealtimeAPIKind {
+		return &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
+					// the sleep is required to wait for any k8s-related race conditions
+					// as described in https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
+					Command: []string{"/bin/sh", "-c", "sleep 5; /usr/sbin/nginx -s quit; while pgrep -x nginx; do sleep 1; done"},
+				},
+			},
+		}
+	}
+	return nil
 }
 
 var BaseEnvVars = []kcore.EnvFromSource{
