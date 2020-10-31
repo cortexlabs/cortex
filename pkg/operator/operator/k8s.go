@@ -170,6 +170,17 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		containers = append(containers, neuronContainer)
 	}
 
+	var lifecycle *kcore.Lifecycle = nil
+	if api.API.Kind == userconfig.RealtimeAPIKind {
+		lifecycle = &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
+					Command: []string{"/usr/sbin/nginx", "-s", "quit"},
+				},
+			},
+		}
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -179,6 +190,7 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
+		Lifecycle:       lifecycle,
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
 			Limits:   apiPodResourceLimitsList,
@@ -258,6 +270,17 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		containers = append(containers, neuronContainer)
 	}
 
+	var lifecycle *kcore.Lifecycle = nil
+	if api.API.Kind == userconfig.RealtimeAPIKind {
+		lifecycle = &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
+					Command: []string{"/usr/sbin/nginx", "-s", "quit"},
+				},
+			},
+		}
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -267,6 +290,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
+		Lifecycle:       lifecycle,
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
 		},
@@ -311,6 +335,17 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	var lifecycle *kcore.Lifecycle = nil
+	if api.API.Kind == userconfig.RealtimeAPIKind {
+		lifecycle = &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
+					Command: []string{"/usr/sbin/nginx", "-s", "quit"},
+				},
+			},
+		}
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -320,6 +355,7 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		VolumeMounts:    DefaultVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
+		Lifecycle:       lifecycle,
 		Resources: kcore.ResourceRequirements{
 			Requests: resourceList,
 			Limits:   resourceLimitsList,
