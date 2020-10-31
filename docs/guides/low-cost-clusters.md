@@ -12,4 +12,4 @@ Here are some tips for keeping costs down when running small clusters:
 
 * If you need to have your cluster scale down to 0 API instances (the Cortex operator instance cannot be terminated), you must have `min_instances` set to 0 for your cluster, and no APIs can be running. Use `cortex get` to list your APIs, and `cortex delete <api_name>` to delete each one. After ~10 minutes, your cluster should scale down to 0 API instances.
 
-* By default, Cortex performs rolling updates on APIs, which means that during an update, additional instances may be required. If downtime during an update is acceptable, you can disable rolling updates. See [here](stuck-updating.md#disabling-rolling-updates) for instructions.
+* By default, Cortex performs rolling updates on APIs, which means that during an update, additional instances may be required. If downtime during an update is acceptable, you can disable rolling updates. See [here](../troubleshooting/stuck-updating.md#disabling-rolling-updates) for instructions.
