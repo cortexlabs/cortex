@@ -60,6 +60,7 @@
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 * [TF session in predict()](troubleshooting/tf-session-in-predict.md)
 * [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
+* [Cluster down failures](troubleshooting/cluster-down.md)
 
 ## Guides
 
