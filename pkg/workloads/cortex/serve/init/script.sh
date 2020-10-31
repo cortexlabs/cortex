@@ -89,7 +89,7 @@ s6_start_process() {
     echo "#!/usr/bin/with-contenv bash" > $dest_script
     echo $cmd >> $dest_script
     chmod +x $dest_script
-} 
+}
 
 s6_stop_script() {
     dest_dir=$1
@@ -108,7 +108,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
         dest_dir="/etc/services.d/uvicorn-$i"
         mkdir $dest_dir
-        
+
         # run script
         s6_start_process $dest_dir "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$i.sock"
         # finish script
