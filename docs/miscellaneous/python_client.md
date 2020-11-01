@@ -1,26 +1,24 @@
 # Python client
 
 * [cortex](#cortex)
-  * [client](#cortex.client)
-  * [local\_client](#cortex.local_client)
-  * [cluster\_client](#cortex.cluster_client)
-  * [env\_list](#cortex.env_list)
-  * [env\_delete](#cortex.env_delete)
-* [cortex.client.Client](#cortex.client.Client)
-  * [deploy](#cortex.client.Client.deploy)
-  * [get\_api](#cortex.client.Client.get_api)
-  * [list\_apis](#cortex.client.Client.list_apis)
-  * [get\_job](#cortex.client.Client.get_job)
-  * [refresh](#cortex.client.Client.refresh)
-  * [delete\_api](#cortex.client.Client.delete_api)
-  * [stop\_job](#cortex.client.Client.stop_job)
-  * [stream\_api\_logs](#cortex.client.Client.stream_api_logs)
-  * [stream\_job\_logs](#cortex.client.Client.stream_job_logs)
+  * [client](#client)
+  * [local\_client](#local_client)
+  * [cluster\_client](#cluster_client)
+  * [env\_list](#env_list)
+  * [env\_delete](#env_delete)
+* [cortex.client.Client](#cortex-client-client)
+  * [deploy](#deploy)
+  * [get\_api](#get_api)
+  * [list\_apis](#list_apis)
+  * [get\_job](#get_job)
+  * [refresh](#refresh)
+  * [delete\_api](#delete_api)
+  * [stop\_job](#stop_job)
+  * [stream\_api\_logs](#stream_api_logs)
+  * [stream\_job\_logs](#stream_job_logs)
 
-<a name="cortex"></a>
 # cortex
 
-<a name="cortex.client"></a>
 ## client
 
 ```python
@@ -30,24 +28,35 @@ client(env: str)
 Initialize a client based on the specified environment.
 
 To deploy and manage APIs locally:
+
+```
 import cortex
 c = cortex.client("local")
 c.deploy("./cortex.yaml")
+```
 
 To deploy and manage APIs on a new cluster:
+
 1. Spin up a cluster using the CLI command `cortex cluster up`.
-An environment named "aws" will be created once the cluster is ready.
+    An environment named "aws" will be created once the cluster is ready.
 2. Initialize your client:
-import cortex
-c = cortex.client("aws")
-c.deploy("./cortex.yaml")
+
+    ```
+    import cortex
+    c = cortex.client("aws")
+    c.deploy("./cortex.yaml")
+    ```
 
 To deploy and manage APIs on an existing cluster:
+
 1. Use the command `cortex cluster info` to get the Operator Endpoint.
 2. Configure a client to your cluster:
-import cortex
-c = cortex.cluster_client("aws", operator_endpoint, aws_access_key_id, aws_secret_access_key)
-c.deploy("./cortex.yaml")
+
+    ```
+    import cortex
+    c = cortex.cluster_client("aws", operator_endpoint, aws_access_key_id, aws_secret_access_key)
+    c.deploy("./cortex.yaml")
+    ```
 
 **Arguments**:
 
@@ -58,7 +67,6 @@ c.deploy("./cortex.yaml")
 
   Cortex client that can be used to deploy and manage APIs in the specified environment.
 
-<a name="cortex.local_client"></a>
 ## local\_client
 
 ```python
@@ -81,7 +89,6 @@ from S3 and authenticate to ECR, and will be set in your Predictor.
 
   Cortex client that can be used to deploy and manage APIs locally.
 
-<a name="cortex.cluster_client"></a>
 ## cluster\_client
 
 ```python
@@ -102,7 +109,6 @@ Create a new environment to connect to an existing Cortex Cluster, and initializ
 
   Cortex client that can be used to deploy and manage APIs on a Cortex Cluster.
 
-<a name="cortex.env_list"></a>
 ## env\_list
 
 ```python
@@ -111,7 +117,6 @@ env_list() -> list
 
 List all environments configured on this machine.
 
-<a name="cortex.env_delete"></a>
 ## env\_delete
 
 ```python
@@ -124,10 +129,8 @@ Delete an environment configured on this machine.
 
 - `name` - Name of the environment to delete.
 
-<a name="cortex.client.Client"></a>
 # cortex.client.Client
 
-<a name="cortex.client.Client.deploy"></a>
 ## deploy
 
 ```python
@@ -147,7 +150,6 @@ Deploy or update APIs specified in the config_file.
 
   Deployment status, API specification, and endpoint for each API.
 
-<a name="cortex.client.Client.get_api"></a>
 ## get\_api
 
 ```python
@@ -165,7 +167,6 @@ Get information about an API.
 
   Information about the API, including the API specification, endpoint, status, and metrics (if applicable).
 
-<a name="cortex.client.Client.list_apis"></a>
 ## list\_apis
 
 ```python
@@ -178,7 +179,6 @@ List all APIs in the environment.
 
   List of APIs, including information such as the API specification, endpoint, status, and metrics (if applicable).
 
-<a name="cortex.client.Client.get_job"></a>
 ## get\_job
 
 ```python
@@ -197,7 +197,6 @@ Get information about a submitted job.
 
   Information about the job, including the job status, worker status, and job progress.
 
-<a name="cortex.client.Client.refresh"></a>
 ## refresh
 
 ```python
@@ -211,7 +210,6 @@ Restart all of the replicas for a Realtime API without downtime.
 - `api_name` - Name of the API to refresh.
 - `force` - Override an already in-progress API update.
 
-<a name="cortex.client.Client.delete_api"></a>
 ## delete\_api
 
 ```python
@@ -225,7 +223,6 @@ Delete an API.
 - `api_name` - Name of the API to delete.
 - `keep_cache` - Whether to retain the cached data for this API.
 
-<a name="cortex.client.Client.stop_job"></a>
 ## stop\_job
 
 ```python
@@ -239,7 +236,6 @@ Stop a running job.
 - `api_name` - Name of the Batch API.
 - `job_id` - ID of the Job to stop.
 
-<a name="cortex.client.Client.stream_api_logs"></a>
 ## stream\_api\_logs
 
 ```python
@@ -252,7 +248,6 @@ Stream the logs of an API.
 
 - `api_name` - Name of the API.
 
-<a name="cortex.client.Client.stream_job_logs"></a>
 ## stream\_job\_logs
 
 ```python
