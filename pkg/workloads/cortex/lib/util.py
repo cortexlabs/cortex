@@ -233,6 +233,7 @@ def is_float_or_int_list(var):
             return False
     return True
 
+
 def render_jinja_template(jinja_template_file: str, context: dict) -> str:
     template_path = pathlib.Path(jinja_template_file)
 

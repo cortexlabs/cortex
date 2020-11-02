@@ -59,7 +59,7 @@ http {
     upstream uvicorn {
         # load balancing policy
         least_conn;
-        
+
         {% for i in range(CORTEX_PROCESSES_PER_REPLICA | int) %}
         server unix:/run/uvicorn/proc-{{ i }}.sock;
         {% endfor %}
