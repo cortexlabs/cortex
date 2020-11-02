@@ -109,9 +109,9 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
         dest_dir="/etc/services.d/uvicorn-$((i-1))"
         mkdir $dest_dir
 
-        # run script
+        # add run script
         s6_start_process $dest_dir "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
-        # finish script
+        # add finish script
         s6_stop_script $dest_dir
     done
 
@@ -119,9 +119,9 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     dest_dir="/etc/services.d/nginx"
     mkdir $dest_dir
 
-    # run script
+    # add run script
     s6_start_process $dest_dir "exec nginx -c /run/nginx.conf"
-    # finish script
+    # add finish script
     s6_stop_script $dest_dir
 
     # prepare api readiness checker
@@ -135,9 +135,9 @@ else
     dest_dir="/etc/services.d/batch"
     mkdir $dest_dir
 
-    # run script
-    s6_start_process $dest_dir "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python src/cortex/serve/start/batch.py"
-    # finish script
+    # add run script
+    s6_start_process $dest_dir "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+    # add finish script
     s6_stop_script $dest_dir
 fi
 
