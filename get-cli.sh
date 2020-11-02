@@ -17,6 +17,7 @@
 set -e
 
 CORTEX_VERSION_BRANCH_STABLE=master
+CORTEX_INSTALL_PATH="${CORTEX_INSTALL_PATH:-/usr/local/bin/cortex}"
 
 case "$OSTYPE" in
   darwin*)  parsed_os="darwin" ;;
@@ -25,7 +26,7 @@ case "$OSTYPE" in
 esac
 
 function main() {
-  echo -e "\ndownloading cli (/usr/local/bin/cortex) ...\n"
+  echo -e "\ndownloading cli (${CORTEX_INSTALL_PATH}) ...\n"
 
   cortex_sh_tmp_dir="$HOME/.cortex-sh-tmp"
   rm -rf $cortex_sh_tmp_dir && mkdir -p $cortex_sh_tmp_dir
@@ -42,10 +43,10 @@ function main() {
   chmod +x $cortex_sh_tmp_dir/cortex
 
   if [ $(id -u) = 0 ]; then
-    mv -f $cortex_sh_tmp_dir/cortex /usr/local/bin/cortex
+    mv -f $cortex_sh_tmp_dir/cortex $CORTEX_INSTALL_PATH
   else
     ask_sudo
-    sudo mv -f $cortex_sh_tmp_dir/cortex /usr/local/bin/cortex
+    sudo mv -f $cortex_sh_tmp_dir/cortex $CORTEX_INSTALL_PATH
   fi
 
   rm -rf $cortex_sh_tmp_dir
