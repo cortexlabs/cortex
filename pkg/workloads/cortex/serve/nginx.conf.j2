@@ -24,7 +24,7 @@ daemon off;
 worker_rlimit_nofile 65535;
 worker_processes 1;
 
-thread_pool pool threads={{ CORTEX_PROCESSES_PER_REPLICA }};
+thread_pool pool threads={{ CORTEX_PROCESSES_PER_REPLICA | int }};
 
 events {
     # max_clients = (worker_processes * worker_connections ) / (X * 2) for reverse proxy
@@ -60,13 +60,13 @@ http {
         # load balancing policy
         least_conn;
         
-        {% for i in range(1, CORTEX_PROCESSES_PER_REPLICA | int) %}
+        {% for i in range(CORTEX_PROCESSES_PER_REPLICA | int) %}
         server unix:/run/uvicorn/proc-{{ i }}.sock;
         {% endfor %}
     }
 
     server {
-        listen {{ CORTEX_SERVING_PORT }};
+        listen {{ CORTEX_SERVING_PORT | int }};
         underscores_in_headers on;
 
         location / {
@@ -74,7 +74,7 @@ http {
         }
 
         location ~ ^/(predict|)(|/)$ {
-            limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY }};
+            limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY | int }};
 
             add_header Access-Control-Allow-Origin "*";
             add_header Access-Control-Allow-Headers "*";
