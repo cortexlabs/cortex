@@ -14,6 +14,7 @@ RUN apt-get update -qq && apt-get install -y -q \
         unzip \
         zlib1g-dev \
         locales \
+        nginx \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 RUN locale-gen en_US.UTF-8

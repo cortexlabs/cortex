@@ -108,17 +108,6 @@ async def uncaught_exception_handler(request, e):
     return response
 
 
-def pretty_print_POST(req):
-    print(
-        "{}\n{}\r\n{}\r\n\r\n{}".format(
-            "-----------START-----------",
-            str(req.method) + " " + str(req.url),
-            "\r\n".join("{}: {}".format(k, v) for k, v in req.headers.items()),
-            req.body,
-        )
-    )
-
-
 @app.middleware("http")
 async def register_request(request: Request, call_next):
     request.state.start_time = time.time()
@@ -152,8 +141,6 @@ async def register_request(request: Request, call_next):
 
 @app.middleware("http")
 async def parse_payload(request: Request, call_next):
-    # pretty_print_POST(request)
-
     if not is_prediction_request(request):
         return await call_next(request)
 

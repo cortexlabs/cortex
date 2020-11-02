@@ -8,7 +8,6 @@
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
-    processes_per_replica: 4
   monitoring:
     model_type: classification
   compute:
