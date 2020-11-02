@@ -33,7 +33,7 @@ pip3 install -e .
 pydoc-markdown -m cortex -m cortex.client --render-toc > $ROOT/docs/miscellaneous/python_client.md
 
 # title
-sed -i "s/# Table of Contents/# Python client/g" $ROOT/docs/miscellaneous/python_client.md
+sed -i "s/# Table of Contents/# Python client\n\n_WARNING: you are on the master branch, please refer to the docs on the branch that matches your \`cortex version\`_/g" $ROOT/docs/miscellaneous/python_client.md
 
 # delete links
 sed -i "/<a name=/d" $ROOT/docs/miscellaneous/python_client.md
