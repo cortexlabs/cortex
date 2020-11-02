@@ -19,6 +19,9 @@ set -e
 CORTEX_VERSION_BRANCH_STABLE=master
 CORTEX_INSTALL_PATH="${CORTEX_INSTALL_PATH:-/usr/local/bin/cortex}"
 
+# replace ~ with the home directory path
+CORTEX_INSTALL_PATH="${CORTEX_INSTALL_PATH/#\~/$HOME}"
+
 case "$OSTYPE" in
   darwin*)  parsed_os="darwin" ;;
   linux*)   parsed_os="linux" ;;
