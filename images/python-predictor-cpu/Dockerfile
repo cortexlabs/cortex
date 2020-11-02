@@ -1,5 +1,8 @@
 FROM ubuntu:18.04
 
+ADD https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer /tmp/
+RUN chmod +x /tmp/s6-overlay-amd64-installer && /tmp/s6-overlay-amd64-installer /
+
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
         pkg-config \
@@ -85,13 +88,10 @@ RUN test "${SLIM}" = "true" || ( \
             xgboost==1.2.0 \
     )
 
-ADD https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer /tmp/
-RUN chmod +x /tmp/s6-overlay-amd64-installer && /tmp/s6-overlay-amd64-installer /
-
 COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/serve /src/cortex/serve
 
-RUN mv /src/cortex/serve/init/script.sh /etc/cont-init.d/script.sh
+RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
 
 ENTRYPOINT ["/init"]

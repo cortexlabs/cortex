@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# env CORTEX_SO_MAX_CONN
-# env CORTEX_PROCESSES_PER_REPLICA
-
 # good articles to read
 # https://hub.packtpub.com/fine-tune-nginx-configufine-tune-nginx-configurationfine-tune-nginx-configurationratio/
 # https://www.nginx.com/blog/tuning-nginx/
@@ -27,7 +24,7 @@ daemon off;
 worker_rlimit_nofile 65535;
 worker_processes 1;
 
-thread_pool pool threads=4;
+thread_pool pool threads={{ CORTEX_PROCESSES_PER_REPLICA }};
 
 events {
     # max_clients = (worker_processes * worker_connections ) / (X * 2) for reverse proxy
@@ -62,15 +59,14 @@ http {
     upstream uvicorn {
         # load balancing policy
         least_conn;
-
-        server unix:/run/uvicorn/proc-1.sock;
-        server unix:/run/uvicorn/proc-2.sock;
-        server unix:/run/uvicorn/proc-3.sock;
-        server unix:/run/uvicorn/proc-4.sock;
+        
+        {% for i in range(1, CORTEX_PROCESSES_PER_REPLICA | int) %}
+        server unix:/run/uvicorn/proc-{{ i }}.sock;
+        {% endfor %}
     }
 
     server {
-        listen 8888;
+        listen {{ CORTEX_SERVING_PORT }};
         underscores_in_headers on;
 
         location / {
@@ -78,7 +74,7 @@ http {
         }
 
         location ~ ^/(predict|)(|/)$ {
-            limit_conn inflights 10;
+            limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY }};
 
             add_header Access-Control-Allow-Origin "*";
             add_header Access-Control-Allow-Headers "*";

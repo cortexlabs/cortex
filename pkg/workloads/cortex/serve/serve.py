@@ -152,7 +152,7 @@ async def register_request(request: Request, call_next):
 
 @app.middleware("http")
 async def parse_payload(request: Request, call_next):
-    pretty_print_POST(request)
+    # pretty_print_POST(request)
 
     if not is_prediction_request(request):
         return await call_next(request)

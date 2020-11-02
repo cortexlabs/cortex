@@ -48,7 +48,7 @@ fi
 
 if [ "$CORTEX_PROVIDER" != "local" ]; then
     if [ "$CORTEX_KIND" == "RealtimeAPI" ]; then
-        sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
+        sysctl -w net.core.somaxconn="65535" >/dev/null
         sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
         sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
     fi
@@ -120,7 +120,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     mkdir $dest_dir
 
     # run script
-    s6_start_process $dest_dir "exec nginx -c /src/cortex/serve/nginx.conf"
+    s6_start_process $dest_dir "exec nginx -c /run/nginx.conf"
     # finish script
     s6_stop_script $dest_dir
 
@@ -140,6 +140,8 @@ else
     # finish script
     s6_stop_script $dest_dir
 fi
+
+/opt/conda/envs/env/bin/python -c 'from cortex.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
 
 # run the python initialization script
 /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py
