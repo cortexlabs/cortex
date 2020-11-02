@@ -23,6 +23,9 @@ import (
 	"strings"
 )
 
+// string
+
+// Set functionality adapted from github.com/scylladb/go-set
 type Set map[string]struct{}
 
 var _keyExists = struct{}{}
@@ -263,7 +266,7 @@ func Union(sets ...Set) Set {
 	return u
 }
 
-// Difference returns a new set which contains items which are in the first
+// Difference returns a new set which contains items which are in in the first
 // set but not in the others.
 func Difference(set1 Set, sets ...Set) Set {
 	s := set1.Copy()
