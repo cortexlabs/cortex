@@ -38,7 +38,6 @@ const (
 	_titleBatchAPI    = "batch api"
 	_titleJobCount    = "running jobs"
 	_titleLatestJobID = "latest job id"
-	_timeFormat       = "02 Jan 2006 15:04:05 MST"
 )
 
 func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Table {

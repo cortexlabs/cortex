@@ -237,21 +237,26 @@ func describeModelInput(status *status.Status, predictor *userconfig.Predictor, 
 		return "the models' metadata schema will be available when the api is live\n"
 	}
 
-	apiModelSummary, apiTFLiveReloadingSummary, err := getAPISummary(apiEndpoint, predictor)
-	if err != nil {
-		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
-	}
-
-	if apiModelSummary != nil {
-		t, err := parseAPIModelSummary(apiModelSummary)
+	cachingEnabled := predictor.Models != nil && predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil
+	if predictor.Type == userconfig.TensorFlowPredictorType && !cachingEnabled {
+		apiTFLiveReloadingSummary, err := getAPITFLiveReloadingSummary(apiEndpoint)
 		if err != nil {
 			return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
 		}
+		t, err := parseAPITFLiveReloadingSummary(apiTFLiveReloadingSummary)
+		if err != nil {
+			return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+		}
 		return t
 	}
-	t, err := parseAPITFLiveReloadingSummary(apiTFLiveReloadingSummary)
+
+	apiModelSummary, err := getAPIModelSummary(apiEndpoint)
 	if err != nil {
-		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
+	}
+	t, err := parseAPIModelSummary(apiModelSummary)
+	if err != nil {
+		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
 	}
 	return t
 }
@@ -292,44 +297,52 @@ func makeRequest(request *http.Request) (http.Header, []byte, error) {
 	return response.Header, bodyBytes, nil
 }
 
-func getAPISummary(apiEndpoint string, predictor *userconfig.Predictor) (*schema.APIModelSummary, *schema.APITFLiveReloadingSummary, error) {
+func getAPIModelSummary(apiEndpoint string) (*schema.APIModelSummary, error) {
 	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to request api summary")
+		return nil, errors.Wrap(err, "unable to request api summary")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	_, response, err := makeRequest(req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var apiModelSummary schema.APIModelSummary
-	var apiTFLiveReloadingSummary schema.APITFLiveReloadingSummary
-
-	cachingEnabled := predictor.Models != nil && predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil
-	if predictor.Type == userconfig.TensorFlowPredictorType && !cachingEnabled {
-		err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "unable to parse api summary response")
-		}
-		return nil, &apiTFLiveReloadingSummary, nil
-	}
-
 	err = json.DecodeWithNumber(response, &apiModelSummary)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to parse api summary response")
+		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
-	return &apiModelSummary, nil, nil
+	return &apiModelSummary, nil
+}
+
+func getAPITFLiveReloadingSummary(apiEndpoint string) (*schema.APITFLiveReloadingSummary, error) {
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to request api summary")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	_, response, err := makeRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiTFLiveReloadingSummary schema.APITFLiveReloadingSummary
+	err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse api summary response")
+	}
+	return &apiTFLiveReloadingSummary, nil
 }
 
 func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 	numRows := 0
 	tags := make(map[string][]int64)
-	for modelName := range summary.ModelMetadata {
-		numRows += len(summary.ModelMetadata[modelName].Versions)
+	for modelName, modelMetadata := range summary.ModelMetadata {
+		numRows += len(modelMetadata.Versions)
 		highestVersion := int64(0)
 		latestTimestamp := int64(0)
-		for i, version := range summary.ModelMetadata[modelName].Versions {
+		for i, version := range modelMetadata.Versions {
 			v, err := strconv.ParseInt(version, 10, 64)
 			if err != nil {
 				return "", err
@@ -337,7 +350,7 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 			if v > highestVersion {
 				highestVersion = v
 			}
-			timestamp := summary.ModelMetadata[modelName].Timestamps[i]
+			timestamp := modelMetadata.Timestamps[i]
 			if timestamp > latestTimestamp {
 				latestTimestamp = timestamp
 			}
@@ -345,14 +358,13 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 		tags[modelName] = []int64{highestVersion, latestTimestamp}
 	}
 
-	rows := make([][]interface{}, numRows)
-	rowNum := 0
-	for modelName := range summary.ModelMetadata {
+	rows := make([][]interface{}, 0, numRows)
+	for modelName, modelMetadata := range summary.ModelMetadata {
 		highestVersion := strconv.FormatInt(tags[modelName][0], 10)
 		latestTimestamp := tags[modelName][1]
 
-		for idx, version := range summary.ModelMetadata[modelName].Versions {
-			timestamp := summary.ModelMetadata[modelName].Timestamps[idx]
+		for idx, version := range modelMetadata.Versions {
+			timestamp := modelMetadata.Timestamps[idx]
 
 			applicableTags := "-"
 			if highestVersion == version && latestTimestamp == timestamp {
@@ -365,20 +377,16 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 
 			date := time.Unix(timestamp, 0)
 
-			rows[rowNum] = []interface{}{
+			rows = append(rows, []interface{}{
 				modelName,
-				summary.ModelMetadata[modelName].Versions[idx],
+				modelMetadata.Versions[idx],
 				applicableTags,
-				date.Format("02 Jan 06 15:04:05 MST"),
-			}
-			rowNum++
+				date.Format(_timeFormat),
+			})
 		}
 	}
 
-	usesCortexDefaultModelName := false
-	if _, ok := summary.ModelMetadata[consts.SingleModelName]; ok {
-		usesCortexDefaultModelName = true
-	}
+	_, usesCortexDefaultModelName := summary.ModelMetadata[consts.SingleModelName]
 
 	t := table.Table{
 		Headers: []table.Header{
@@ -412,8 +420,8 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 
 	numRows := 0
 	models := make(map[string]schema.GenericModelMetadata, 0)
-	for modelID := range summary.ModelMetadata {
-		timestamp := summary.ModelMetadata[modelID].Timestamp
+	for modelID, modelMetadata := range summary.ModelMetadata {
+		timestamp := modelMetadata.Timestamp
 		modelName, modelVersion, err := getModelFromModelID(modelID)
 		if err != nil {
 			return "", err
@@ -431,28 +439,23 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 		}
 		if _, ok := highestVersions[modelName]; !ok {
 			highestVersions[modelName] = modelVersion
-		} else {
-			if modelVersion > highestVersions[modelName] {
-				highestVersions[modelName] = modelVersion
-			}
+		} else if modelVersion > highestVersions[modelName] {
+			highestVersions[modelName] = modelVersion
 		}
 		if _, ok := latestTimestamps[modelName]; !ok {
 			latestTimestamps[modelName] = timestamp
-		} else {
-			if timestamp > latestTimestamps[modelName] {
-				latestTimestamps[modelName] = timestamp
-			}
+		} else if timestamp > latestTimestamps[modelName] {
+			latestTimestamps[modelName] = timestamp
 		}
-		numRows += len(summary.ModelMetadata[modelID].InputSignatures)
+		numRows += len(modelMetadata.InputSignatures)
 	}
 
-	rows := make([][]interface{}, numRows)
-	rowNum := 0
-	for modelName := range models {
+	rows := make([][]interface{}, 0, numRows)
+	for modelName, model := range models {
 		highestVersion := highestVersions[modelName]
 		latestTimestamp := latestTimestamps[modelName]
 
-		for _, modelVersion := range models[modelName].Versions {
+		for _, modelVersion := range model.Versions {
 			modelID := fmt.Sprintf("%s-%s", modelName, modelVersion)
 
 			inputSignatures := summary.ModelMetadata[modelID].InputSignatures
@@ -486,24 +489,20 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 				} else {
 					shapeRowEntry = "(" + strings.Join(shapeStr, ", ") + ")"
 				}
-				rows[rowNum] = []interface{}{
+				rows = append(rows, []interface{}{
 					modelName,
 					modelVersion,
 					inputName,
 					inputSignature.Type,
 					shapeRowEntry,
 					applicableTags,
-					date.Format("02 Jan 06 15:04:05 MST"),
-				}
-				rowNum++
+					date.Format(_timeFormat),
+				})
 			}
 		}
 	}
 
-	usesCortexDefaultModelName := false
-	if _, ok := summary.ModelMetadata[consts.SingleModelName]; ok {
-		usesCortexDefaultModelName = true
-	}
+	_, usesCortexDefaultModelName := summary.ModelMetadata[consts.SingleModelName]
 
 	t := table.Table{
 		Headers: []table.Header{
