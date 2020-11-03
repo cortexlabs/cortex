@@ -336,6 +336,3 @@ def start_fn():
     app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])
 
     return app
-
-
-app = start()
