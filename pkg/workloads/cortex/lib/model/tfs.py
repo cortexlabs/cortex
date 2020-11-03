@@ -521,7 +521,9 @@ class TensorFlowServingAPI:
 
         return versions, model_disk_path
 
-    def _extract_signatures(self, signature_def, signature_key, model_name: str, model_version: str):
+    def _extract_signatures(
+        self, signature_def, signature_key, model_name: str, model_version: str
+    ):
         logger().info(
             "signature defs found in model '{}' for version '{}': {}".format(
                 model_name, model_version, signature_def
