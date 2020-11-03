@@ -178,7 +178,7 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
-		Lifecycle:       nginxGracefulStopper(api),
+		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
 			Limits:   apiPodResourceLimitsList,
@@ -267,7 +267,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
-		Lifecycle:       nginxGracefulStopper(api),
+		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
 		},
@@ -321,7 +321,7 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		VolumeMounts:    DefaultVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
-		Lifecycle:       nginxGracefulStopper(api),
+		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: resourceList,
 			Limits:   resourceLimitsList,
@@ -701,7 +701,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			FailureThreshold:    2,
 			Handler:             probeHandler,
 		},
-		Lifecycle: waitAPIContainerToStop(api),
+		Lifecycle: waitAPIContainerToStop(api.Kind),
 		Resources: resources,
 		Ports:     ports,
 	}
@@ -729,7 +729,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		},
 		VolumeMounts:   volumeMounts,
 		ReadinessProbe: socketExistsProbe(_neuronRTDSocket),
-		Lifecycle:      waitAPIContainerToStop(api),
+		Lifecycle:      waitAPIContainerToStop(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
@@ -804,8 +804,8 @@ func socketExistsProbe(socketName string) *kcore.Probe {
 	}
 }
 
-func nginxGracefulStopper(api *spec.API) *kcore.Lifecycle {
-	if api.API.Kind == userconfig.RealtimeAPIKind {
+func nginxGracefulStopper(apiKind userconfig.Kind) *kcore.Lifecycle {
+	if apiKind == userconfig.RealtimeAPIKind {
 		return &kcore.Lifecycle{
 			PreStop: &kcore.Handler{
 				Exec: &kcore.ExecAction{
@@ -819,8 +819,8 @@ func nginxGracefulStopper(api *spec.API) *kcore.Lifecycle {
 	return nil
 }
 
-func waitAPIContainerToStop(api *spec.API) *kcore.Lifecycle {
-	if api.API.Kind == userconfig.RealtimeAPIKind {
+func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
+	if apiKind == userconfig.RealtimeAPIKind {
 		return &kcore.Lifecycle{
 			PreStop: &kcore.Handler{
 				Exec: &kcore.ExecAction{
