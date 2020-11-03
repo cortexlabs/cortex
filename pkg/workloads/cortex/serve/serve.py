@@ -26,7 +26,6 @@ from typing import Any
 
 from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response, PlainTextResponse, JSONResponse
 from starlette.background import BackgroundTasks
