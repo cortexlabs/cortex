@@ -356,15 +356,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		})
 	}
 
-	if container == APIContainerName || container == _tfServingContainerName {
-		envVars = append(envVars,
-			kcore.EnvVar{
-				Name:  "CORTEX_SERVING_PORT",
-				Value: DefaultPortStr,
-			},
-		)
-	}
-
 	if container == APIContainerName {
 		envVars = append(envVars,
 			kcore.EnvVar{
@@ -713,12 +704,6 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		Name:            _neuronRTDContainerName,
 		Image:           config.Cluster.ImageNeuronRTD,
 		ImagePullPolicy: kcore.PullAlways,
-		Env: []kcore.EnvVar{
-			{
-				Name:  "CORTEX_SERVING_PORT",
-				Value: DefaultPortStr,
-			},
-		},
 		SecurityContext: &kcore.SecurityContext{
 			Capabilities: &kcore.Capabilities{
 				Add: []kcore.Capability{
@@ -824,7 +809,7 @@ func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
 		return &kcore.Lifecycle{
 			PreStop: &kcore.Handler{
 				Exec: &kcore.ExecAction{
-					Command: []string{"/bin/sh", "-c", "while curl localhost:$CORTEX_SERVING_PORT/nginx_status; do sleep 1; done"},
+					Command: []string{"/bin/sh", "-c", fmt.Sprintf("while curl localhost:%s/nginx_status; do sleep 1; done", DefaultPortStr)},
 				},
 			},
 		}
