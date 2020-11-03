@@ -129,6 +129,9 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     mkdir $dest_dir
     cp /src/cortex/serve/poll/readiness.sh $dest_dir/run
     chmod +x $dest_dir/run
+    
+    # generate nginx conf
+    /opt/conda/envs/env/bin/python -c 'from cortex.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
 
 # prepare batch otherwise
 else
@@ -140,8 +143,6 @@ else
     # add finish script
     s6_stop_script $dest_dir
 fi
-
-/opt/conda/envs/env/bin/python -c 'from cortex.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
 
 # run the python initialization script
 /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py
