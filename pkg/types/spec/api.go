@@ -111,73 +111,54 @@ func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projec
 	}
 }
 
-func NumLocalModels(models []CuratedModelResource) int {
-	numLocalModels := 0
-	if len(models) > 0 {
-		for _, model := range models {
-			if model.S3Path {
-				continue
-			}
-			if len(model.Versions) > 0 {
-				numLocalModels += len(model.Versions)
-			} else {
-				numLocalModels++
-			}
+func TotalLocalModelVersions(models []CuratedModelResource) int {
+	totalLocalModelVersions := 0
+	for _, model := range models {
+		if model.S3Path {
+			continue
+		}
+		if len(model.Versions) > 0 {
+			totalLocalModelVersions += len(model.Versions)
+		} else {
+			totalLocalModelVersions++
 		}
 	}
-
-	return numLocalModels
+	return totalLocalModelVersions
 }
 
-func NumModels(models []CuratedModelResource) int {
-	numModels := 0
-	if len(models) > 0 {
-		for _, model := range models {
-			if len(model.Versions) > 0 {
-				numModels += len(model.Versions)
-			} else {
-				numModels++
-			}
+func TotalModelVersions(models []CuratedModelResource) int {
+	totalModelVersions := 0
+	for _, model := range models {
+		if len(model.Versions) > 0 {
+			totalModelVersions += len(model.Versions)
+		} else {
+			totalModelVersions++
 		}
 	}
-
-	return numModels
+	return totalModelVersions
 }
 
-func (api *API) NumLocalModels() int {
-	numLocalModels := 0
-	if api != nil {
-		numLocalModels = NumLocalModels(api.CuratedModelResources)
-	}
-	return numLocalModels
+func (api *API) TotalLocalModelVersions() int {
+	return TotalLocalModelVersions(api.CuratedModelResources)
 }
 
-func (api *API) NumModels() int {
-	numModels := 0
-	if api != nil {
-		numModels = NumModels(api.CuratedModelResources)
-	}
-	return numModels
+func (api *API) TotalModelVersions() int {
+	return TotalModelVersions(api.CuratedModelResources)
 }
 
 // Keep track of models in the model cache used by this API (local only)
 func (api *API) ModelIDs() []string {
 	models := []string{}
-	if api != nil && len(api.LocalModelCaches) > 0 {
-		for _, localModelCache := range api.LocalModelCaches {
-			models = append(models, localModelCache.ID)
-		}
+	for _, localModelCache := range api.LocalModelCaches {
+		models = append(models, localModelCache.ID)
 	}
-
 	return models
 }
 
 func (api *API) ModelNames() []string {
 	names := []string{}
-	if api != nil && len(api.CuratedModelResources) > 0 {
-		for _, model := range api.CuratedModelResources {
-			names = append(names, model.Name)
-		}
+	for _, model := range api.CuratedModelResources {
+		names = append(names, model.Name)
 	}
 
 	return names

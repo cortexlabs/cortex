@@ -743,8 +743,10 @@ func validatePredictor(
 	if predictor.Models != nil && predictor.ModelPath != nil {
 		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
 	}
-	if err := validateMultiModelsFields(api); err != nil {
-		return err
+	if predictor.Models != nil {
+		if err := validateMultiModelsFields(api); err != nil {
+			return err
+		}
 	}
 
 	switch predictor.Type {
@@ -801,10 +803,6 @@ func validatePredictor(
 func validateMultiModelsFields(api *userconfig.API) error {
 	predictor := api.Predictor
 
-	if predictor.Models == nil {
-		return nil
-	}
-
 	if len(predictor.Models.Paths) == 0 && predictor.Models.Dir == nil {
 		return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 	}
@@ -830,7 +828,7 @@ func validateMultiModelsFields(api *userconfig.API) error {
 		}
 
 		if predictor.ProcessesPerReplica > 1 {
-			return ErrorInvalidNumberOfProcessesWhenCaching(predictor.ProcessesPerReplica)
+			return ErrorModelCachingNotSupportedWhenMultiprocessingEnabled(predictor.ProcessesPerReplica)
 		}
 	}
 
@@ -898,14 +896,14 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
-			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			modelResources, err = generateModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
 			if err != nil {
 				return modelWrapError(err)
 			}
 		}
 	}
 	var err error
-	*models, err = modelResourceToCurated(modelResources, predictor.Type, projectFiles)
+	*models, err = modelResourceToCurated(modelResources, projectFiles.ProjectDir())
 	if err != nil {
 		return modelWrapError(err)
 	}
@@ -913,7 +911,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 	if hasMultiModels {
 		for _, model := range *models {
 			if model.Name == consts.SingleModelName {
-				return modelWrapError(ErrorIllegalModelName(model.Name))
+				return modelWrapError(ErrorReservedModelName(model.Name))
 			}
 		}
 	}
@@ -948,7 +946,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return errors.Wrap(err, modelName)
 		}
 
-		versions, err := getPythonVersionsFromS3Paths(modelResource.ModelPath, awsClientForBucket)
+		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
 		if err != nil {
 			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
@@ -973,7 +971,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			return ErrorLocalModelPathNotSupportedByAWSProvider()
 		}
 
-		versions, err := getPythonVersionsFromLocalPaths(modelResource.ModelPath)
+		versions, err := getPythonVersionsFromLocalPath(modelResource.ModelPath)
 		if err != nil {
 			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
@@ -1055,7 +1053,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
-			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			modelResources, err = generateModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
 			if err != nil {
 				return modelWrapError(err)
 			}
@@ -1067,7 +1065,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		}
 	}
 	var err error
-	*models, err = modelResourceToCurated(modelResources, predictor.Type, projectFiles)
+	*models, err = modelResourceToCurated(modelResources, projectFiles.ProjectDir())
 	if err != nil {
 		return err
 	}
@@ -1075,7 +1073,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 	if hasMultiModels {
 		for _, model := range *models {
 			if model.Name == consts.SingleModelName {
-				return modelWrapError(ErrorIllegalModelName(model.Name))
+				return modelWrapError(ErrorReservedModelName(model.Name))
 			}
 		}
 	}
@@ -1232,14 +1230,14 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
-			modelResources, err = retrieveModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			modelResources, err = generateModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
 			if err != nil {
 				return modelWrapError(err)
 			}
 		}
 	}
 	var err error
-	*models, err = modelResourceToCurated(modelResources, predictor.Type, projectFiles)
+	*models, err = modelResourceToCurated(modelResources, projectFiles.ProjectDir())
 	if err != nil {
 		return err
 	}
@@ -1247,7 +1245,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 	if hasMultiModels {
 		for _, model := range *models {
 			if model.Name == consts.SingleModelName {
-				return modelWrapError(ErrorIllegalModelName(model.Name))
+				return modelWrapError(ErrorReservedModelName(model.Name))
 			}
 		}
 	}

@@ -103,7 +103,7 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 	}
 
 	if model.Name == consts.SingleModelName {
-		switch numVersions := len(model.Versions); numVersions {
+		switch len(model.Versions) {
 		case 0:
 			fmt.Println("￮ caching model ...")
 		case 1:
@@ -113,7 +113,7 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 		}
 
 	} else {
-		switch numVersions := len(model.Versions); numVersions {
+		switch len(model.Versions) {
 		case 0:
 			fmt.Println(fmt.Sprintf("￮ caching model %s ...", model.Name))
 		case 1:

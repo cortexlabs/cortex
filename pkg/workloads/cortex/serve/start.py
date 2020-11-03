@@ -130,7 +130,7 @@ def main():
         os.makedirs("/run/cron", exist_ok=True)
         os.makedirs("/tmp/cron", exist_ok=True)
 
-    # start side-reloading when model caching not enabled > 1
+    # start live-reloading when model caching not enabled > 1
     cron = None
     if (
         not caching_enabled

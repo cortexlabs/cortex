@@ -60,8 +60,8 @@ const (
 	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
 	_tfServingHost                                 = "localhost"
 	_tfServingEmptyModelConfig                     = "/etc/tfs/model_config_server.conf"
-	_tfServingMaxReloadTimes                       = "0"
-	_tfServingLoadTimeMicros                       = "30000000" // 30 seconds
+	_tfServingMaxNumLoadRetries                    = "0"        // maximum retries to load a model that didn't get loaded the first time
+	_tfServingLoadTimeMicros                       = "30000000" // 30 seconds (how much time a model can take to load into memory)
 	_tfServingBatchConfig                          = "/etc/tfs/batch_config.conf"
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
@@ -509,16 +509,12 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 						Value: _tfBaseServingPortStr,
 					},
 					kcore.EnvVar{
-						Name:  "CORTEX_MODEL_DIR",
-						Value: path.Join(_emptyDirMountPath, "model"),
-					},
-					kcore.EnvVar{
 						Name:  "TF_EMPTY_MODEL_CONFIG",
 						Value: _tfServingEmptyModelConfig,
 					},
 					kcore.EnvVar{
-						Name:  "TF_MAX_NUM_LOAD_TIMES",
-						Value: _tfServingMaxReloadTimes,
+						Name:  "TF_MAX_NUM_LOAD_RETRIES",
+						Value: _tfServingMaxNumLoadRetries,
 					},
 					kcore.EnvVar{
 						Name:  "TF_LOAD_RETRY_INTERVAL_MICROS",
@@ -627,7 +623,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		cmdArgs = []string{
 			"--port=" + _tfBaseServingPortStr,
 			"--model_config_file=" + _tfServingEmptyModelConfig,
-			"--max_num_load_retries=" + _tfServingMaxReloadTimes,
+			"--max_num_load_retries=" + _tfServingMaxNumLoadRetries,
 			"--load_retry_interval_micros=" + _tfServingLoadTimeMicros,
 			fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+10),
 		}

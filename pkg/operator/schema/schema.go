@@ -84,7 +84,7 @@ type APITFLiveReloadingSummary struct {
 type TFModelIDMetadata struct {
 	DiskPath        string                    `json:"disk_path"`
 	SignatureKey    string                    `json:"signature_key"`
-	InputSignatures map[string]InputSignature `json:"input_signature"`
+	InputSignatures map[string]InputSignature `json:"input_signatures"`
 	Timestamp       int64                     `json:"timestamp"`
 	SignatureDef    map[string]interface{}    `json:"signature_def"`
 }

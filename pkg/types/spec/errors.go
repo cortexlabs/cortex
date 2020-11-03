@@ -48,10 +48,8 @@ const (
 	ErrInvalidSurgeOrUnavailable   = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
 
-	ErrInvalidNumberOfProcessesWhenCaching = "spec.invalid_number_of_processes_when_caching"
+	ErrModelCachingNotSupportedWhenMultiprocessingEnabled = "spec.model_caching_not_supported_when_multiprocessing_enabled"
 
-	ErrInvalidPath               = "spec.invalid_path"
-	ErrInvalidDirPath            = "spec.invalid_dir_path"
 	ErrFileNotFound              = "spec.file_not_found"
 	ErrDirIsEmpty                = "spec.dir_is_empty"
 	ErrMustBeRelativeProjectPath = "spec.must_be_relative_project_path"
@@ -68,7 +66,7 @@ const (
 
 	ErrMissingModel        = "spec.missing_model"
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
-	ErrIllegalModelName    = "spec.illegal_model_name"
+	ErrReservedModelName   = "spec.reserved_model_name"
 
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
@@ -219,26 +217,12 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
-func ErrorInvalidNumberOfProcessesWhenCaching(desiredProcesses int32) error {
+func ErrorModelCachingNotSupportedWhenMultiprocessingEnabled(desiredProcesses int32) error {
 	const maxNumProcesses int32 = 1
 	return errors.WithStack(&errors.Error{
-		Kind: ErrInvalidNumberOfProcessesWhenCaching,
+		Kind: ErrModelCachingNotSupportedWhenMultiprocessingEnabled,
 		Message: fmt.Sprintf("when dynamic model caching is enabled (%s < provided models), the max value %s can take is %d, while currently it's set to %d",
 			userconfig.ModelsCacheSizeKey, userconfig.ProcessesPerReplicaKey, maxNumProcesses, desiredProcesses),
-	})
-}
-
-func ErrorInvalidPath(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidPath,
-		Message: fmt.Sprintf("%s: is not a valid path", path),
-	})
-}
-
-func ErrorInvalidDirPath(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidDirPath,
-		Message: fmt.Sprintf("%s: invalid directory path", path),
 	})
 }
 
@@ -491,10 +475,10 @@ func ErrorDuplicateModelNames(duplicateModel string) error {
 	})
 }
 
-func ErrorIllegalModelName(illegalModel string) error {
+func ErrorReservedModelName(reservedModel string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrIllegalModelName,
-		Message: fmt.Sprintf("%s: use a different model name", illegalModel),
+		Kind:    ErrReservedModelName,
+		Message: fmt.Sprintf("%s: is a reserved name; please specify a different model name", reservedModel),
 	})
 }
 

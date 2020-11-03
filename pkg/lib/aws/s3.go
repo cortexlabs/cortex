@@ -130,39 +130,41 @@ func IsValidS3aPath(s3aPath string) bool {
 // List all S3 objects that are "depth" levels deeper than the given "s3Path".
 // Setting depth to 1 effectively translates to listing the objects one level deeper than the given prefix (aka listing the directory contents).
 //
+// Also lists all S3 objects at all levels having the same specified prefix.
+//
 // 1st returned value is the list of paths found at level <depth>.
 // 2nd returned value is the list of paths found at all levels.
 func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirObjects bool, maxResults *int64) ([]string, []string, error) {
-	paths := []string{}
+	paths := strset.New()
 
 	_, key, err := SplitS3Path(s3Path)
 	if err != nil {
-		return []string{}, []string{}, err
+		return nil, nil, err
 	}
 
 	allS3Objects, err := c.ListS3PathDir(s3Path, includeDirObjects, maxResults)
 	if err != nil {
-		return []string{}, []string{}, err
+		return nil, nil, err
 	}
 	allPaths := ConvertS3ObjectsToKeys(allS3Objects...)
 
-	pathKeys := slices.RemoveEmpties(strings.Split(key, "/"))
+	keySplit := slices.RemoveEmpties(strings.Split(key, "/"))
 	for _, path := range allPaths {
 		objectKeys := slices.RemoveEmpties(strings.Split(path, "/"))
-		if len(objectKeys)-len(pathKeys) >= depth {
-			computedPath := strings.Join(objectKeys[:len(pathKeys)+depth], "/")
+		if len(objectKeys)-len(keySplit) >= depth {
+			computedPath := strings.Join(objectKeys[:len(keySplit)+depth], "/")
 			if strings.HasPrefix(computedPath, key) {
-				paths = append(paths, computedPath)
+				paths.Add(computedPath)
 			}
 		}
 	}
 
-	return slices.UniqueStrings(paths), allPaths, nil
+	return paths.Slice(), allPaths, nil
 }
 
-func ConvertS3ObjectsToKeys(s3Object ...*s3.Object) []string {
-	paths := []string{}
-	for _, object := range s3Object {
+func ConvertS3ObjectsToKeys(s3Objects ...*s3.Object) []string {
+	paths := make([]string, 0, len(s3Objects))
+	for _, object := range s3Objects {
 		paths = append(paths, *object.Key)
 	}
 	return paths

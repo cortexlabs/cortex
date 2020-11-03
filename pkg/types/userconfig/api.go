@@ -127,12 +127,9 @@ func (api *API) Identify() string {
 
 func (api *API) ModelNames() []string {
 	names := []string{}
-	if api != nil && len(api.Predictor.Models.Paths) > 0 {
-		for _, model := range api.Predictor.Models.Paths {
-			names = append(names, model.Name)
-		}
+	for _, model := range api.Predictor.Models.Paths {
+		names = append(names, model.Name)
 	}
-
 	return names
 }
 

@@ -73,7 +73,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 
 	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID, "")
 
-	if newAPISpec.NumLocalModels() > 0 {
+	if newAPISpec != nil && newAPISpec.TotalLocalModelVersions() > 0 {
 		if err := CacheLocalModels(newAPISpec, true); err != nil {
 			return nil, "", err
 		}

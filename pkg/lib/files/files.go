@@ -256,6 +256,18 @@ func UserRelToAbsPath(relativePath string) string {
 	return RelToAbsPath(relativePath, cwd)
 }
 
+// Gets absolute path of "path" based on "basedir".
+func AbsPath(path, basedir string) (string, error) {
+	if strings.HasPrefix(path, "~/") {
+		absPath, err := EscapeTilde(path)
+		if err != nil {
+			return "", err
+		}
+		return absPath, nil
+	}
+	return RelToAbsPath(path, basedir), nil
+}
+
 func PathRelativeToCWD(absPath string) string {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -630,7 +642,6 @@ func ErrorOnProjectSizeLimit(maxProjectSizeBytes int64) IgnoreFn {
 }
 
 // Retrieves the common path given a list of paths.
-// Expects absolute paths - that is, paths starting with the "/" symbol.
 func CommonPath(paths ...string) string {
 
 	// Handle special cases.

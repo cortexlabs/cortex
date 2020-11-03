@@ -401,10 +401,10 @@ class TensorFlowServingAPI:
 
         signature_def = self.models[model_id]["signature_def"]
         signature_key = self.models[model_id]["signature_key"]
-        input_signature = self.models[model_id]["input_signature"]
+        input_signatures = self.models[model_id]["input_signatures"]
 
         # validate model input
-        for input_name, _ in input_signature.items():
+        for input_name, _ in input_signatures.items():
             if input_name not in model_input:
                 raise UserException(
                     "missing key '{}' for model '{}' of version '{}'".format(
@@ -497,14 +497,14 @@ class TensorFlowServingAPI:
         signature_def = sigmap["signatureDef"]
 
         # extract signature key and input signature
-        signature_key, input_signature = self._extract_signature(
+        signature_key, input_signatures = self._extract_signatures(
             signature_def, signature_key, model_name, model_version
         )
 
         model_id = f"{model_name}-{model_version}"
         self.models[model_id]["signature_def"] = signature_def
         self.models[model_id]["signature_key"] = signature_key
-        self.models[model_id]["input_signature"] = input_signature
+        self.models[model_id]["input_signatures"] = input_signatures
 
     def _get_model_names(self) -> List[str]:
         return list(set([model_id.rsplit("-", maxsplit=1)[0] for model_id in self.models]))
@@ -521,7 +521,7 @@ class TensorFlowServingAPI:
 
         return versions, model_disk_path
 
-    def _extract_signature(self, signature_def, signature_key, model_name: str, model_version: str):
+    def _extract_signatures(self, signature_def, signature_key, model_name: str, model_version: str):
         logger().info(
             "signature defs found in model '{}' for version '{}': {}".format(
                 model_name, model_version, signature_def
@@ -581,7 +581,7 @@ class TensorFlowServingAPI:
                 )
             )
 
-        parsed_signature = {}
+        parsed_signatures = {}
         for input_name, input_metadata in signature_def_val["inputs"].items():
             if input_metadata["tensorShape"] == {}:
                 # a scalar with rank 0 and empty shape
@@ -604,11 +604,11 @@ class TensorFlowServingAPI:
                     model_name,
                 )
 
-            parsed_signature[input_name] = {
+            parsed_signatures[input_name] = {
                 "shape": shape if type(shape) == list else [shape],
                 "type": DTYPE_TO_TF_TYPE[input_metadata["dtype"]].name,
             }
-        return signature_key, parsed_signature
+        return signature_key, parsed_signatures
 
     def _create_prediction_request(
         self,

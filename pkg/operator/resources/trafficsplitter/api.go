@@ -37,8 +37,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		return nil, "", err
 	}
 
-	var models []spec.CuratedModelResource
-	api := spec.GetAPISpec(apiConfig, models, "", "", config.Cluster.ClusterName)
+	api := spec.GetAPISpec(apiConfig, nil, "", "", config.Cluster.ClusterName)
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
