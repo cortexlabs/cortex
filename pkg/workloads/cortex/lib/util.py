@@ -23,8 +23,6 @@ from inspect import Parameter
 from copy import deepcopy
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader
-
 
 def has_method(object, method: str):
     return callable(getattr(object, method, None))
@@ -235,6 +233,8 @@ def is_float_or_int_list(var):
 
 
 def render_jinja_template(jinja_template_file: str, context: dict) -> str:
+    from jinja2 import Environment, FileSystemLoader
+    
     template_path = pathlib.Path(jinja_template_file)
 
     env = Environment(loader=FileSystemLoader(str(template_path.parent)))

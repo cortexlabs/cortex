@@ -34,7 +34,7 @@ events {
     # The multi_accept flag enables an NGINX worker to accept as many connections as possible when it
     # gets the notification of a new connection. The purpose of this flag is to accept all connections
     # in the listen queue at once. If the directive is disabled, a worker process will accept connections one by one.
-    # multi_accept on;
+    multi_accept off;
 
     # An efficient method of processing connections available on Linux 2.6+. The method is similar to the FreeBSD kqueue.
     use epoll;
@@ -68,6 +68,12 @@ http {
     server {
         listen {{ CORTEX_SERVING_PORT | int }};
         underscores_in_headers on;
+
+        location /nginx_status {
+            stub_status on;
+            allow 127.0.0.1;
+            deny all;
+        }
 
         location / {
             deny all;

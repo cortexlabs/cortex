@@ -356,6 +356,15 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		})
 	}
 
+	if container == APIContainerName || container == _tfServingContainerName {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "CORTEX_SERVING_PORT",
+				Value: DefaultPortStr,
+			},
+		)
+	}
+
 	if container == APIContainerName {
 		envVars = append(envVars,
 			kcore.EnvVar{
@@ -692,6 +701,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			FailureThreshold:    2,
 			Handler:             probeHandler,
 		},
+		Lifecycle: waitAPIContainerToStop(api),
 		Resources: resources,
 		Ports:     ports,
 	}
@@ -703,6 +713,12 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		Name:            _neuronRTDContainerName,
 		Image:           config.Cluster.ImageNeuronRTD,
 		ImagePullPolicy: kcore.PullAlways,
+		Env: []kcore.EnvVar{
+			{
+				Name:  "CORTEX_SERVING_PORT",
+				Value: DefaultPortStr,
+			},
+		},
 		SecurityContext: &kcore.SecurityContext{
 			Capabilities: &kcore.Capabilities{
 				Add: []kcore.Capability{
@@ -713,6 +729,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		},
 		VolumeMounts:   volumeMounts,
 		ReadinessProbe: socketExistsProbe(_neuronRTDSocket),
+		Lifecycle:      waitAPIContainerToStop(api),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
@@ -795,6 +812,19 @@ func nginxGracefulStopper(api *spec.API) *kcore.Lifecycle {
 					// the sleep is required to wait for any k8s-related race conditions
 					// as described in https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
 					Command: []string{"/bin/sh", "-c", "sleep 5; /usr/sbin/nginx -s quit; while pgrep -x nginx; do sleep 1; done"},
+				},
+			},
+		}
+	}
+	return nil
+}
+
+func waitAPIContainerToStop(api *spec.API) *kcore.Lifecycle {
+	if api.API.Kind == userconfig.RealtimeAPIKind {
+		return &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
+					Command: []string{"/bin/sh", "-c", "while curl localhost:$CORTEX_SERVING_PORT/nginx_status; do sleep 1; done"},
 				},
 			},
 		}
