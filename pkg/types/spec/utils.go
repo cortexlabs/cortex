@@ -225,10 +225,7 @@ func getPythonVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Clien
 			if errors.GetKind(err) == ErrDirIsEmpty {
 				continue
 			}
-			if errors.GetKind(err) == errors.ErrNotCortexError {
-				return nil, err
-			}
-			return nil, ErrorInvalidPythonModelPath(modelPath, allModelSubPaths)
+			return nil, errors.Append(err, "\n\n"+ErrorInvalidPythonModelPath(modelPath, allModelSubPaths).Error())
 		}
 		versions = append(versions, version)
 	}
@@ -291,10 +288,7 @@ func getPythonVersionsFromLocalPath(modelPath string) ([]int64, error) {
 			if errors.GetKind(err) == ErrDirIsEmpty {
 				continue
 			}
-			if errors.GetKind(err) == errors.ErrNotCortexError {
-				return nil, err
-			}
-			return nil, ErrorInvalidPythonModelPath(modelPath, modelSubPaths)
+			return nil, errors.Append(err, "\n\n"+ErrorInvalidPythonModelPath(modelPath, modelSubPaths).Error())
 		}
 		versions = append(versions, version)
 	}
@@ -372,10 +366,7 @@ func getTFServingVersionsFromS3Path(modelPath string, isNeuronExport bool, awsCl
 			if errors.GetKind(err) == ErrDirIsEmpty {
 				continue
 			}
-			if errors.GetKind(err) == errors.ErrNotCortexError {
-				return nil, err
-			}
-			return nil, ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths)
+			return nil, errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths).Error())
 		}
 		versions = append(versions, version)
 	}
@@ -493,10 +484,7 @@ func getTFServingVersionsFromLocalPath(modelPath string) ([]int64, error) {
 			if errors.GetKind(err) == ErrDirIsEmpty {
 				continue
 			}
-			if errors.GetKind(err) == errors.ErrNotCortexError {
-				return nil, err
-			}
-			return nil, ErrorInvalidTensorFlowModelPath(modelPath, false, modelSubPaths)
+			return nil, errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelPath, false, modelSubPaths).Error())
 		}
 
 		versions = append(versions, version)
@@ -591,10 +579,7 @@ func getONNXVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Client)
 			if errors.GetKind(err) == ErrDirIsEmpty {
 				continue
 			}
-			if errors.GetKind(err) == errors.ErrNotCortexError {
-				return nil, err
-			}
-			return nil, ErrorInvalidONNXModelPath(modelPath, allModelSubPaths)
+			return nil, errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelPath, allModelSubPaths).Error())
 		}
 
 		versions = append(versions, version)
@@ -681,10 +666,7 @@ func getONNXVersionsFromLocalPath(modelPath string) ([]int64, error) {
 			if errors.GetKind(err) == ErrDirIsEmpty {
 				continue
 			}
-			if errors.GetKind(err) == errors.ErrNotCortexError {
-				return nil, err
-			}
-			return nil, ErrorInvalidONNXModelPath(modelPath, modelSubPaths)
+			return nil, errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelPath, modelSubPaths).Error())
 		}
 
 		versions = append(versions, version)

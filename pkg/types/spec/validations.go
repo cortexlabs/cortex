@@ -948,7 +948,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 
 		versions, err := getPythonVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
 		if err != nil {
-			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+			if errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
 			}
 
@@ -959,10 +959,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			modelSubPaths := aws.ConvertS3ObjectsToKeys(modelSubS3Objects...)
 
 			if err = validatePythonS3ModelDir(modelResource.ModelPath, awsClientForBucket); err != nil {
-				if errors.GetKind(err) == errors.ErrNotCortexError {
-					return errors.Wrap(err, modelName)
-				}
-				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, modelSubPaths), modelName)
+				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidPythonModelPath(modelResource.ModelPath, modelSubPaths).Error()), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -973,7 +970,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 
 		versions, err := getPythonVersionsFromLocalPath(modelResource.ModelPath)
 		if err != nil {
-			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+			if errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
 			}
 
@@ -983,10 +980,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 			}
 
 			if err = validatePythonLocalModelDir(modelResource.ModelPath); err != nil {
-				if errors.GetKind(err) == errors.ErrNotCortexError {
-					return errors.Wrap(err, modelName)
-				}
-				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, modelSubPaths), modelName)
+				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidPythonModelPath(modelResource.ModelPath, modelSubPaths).Error()), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1118,7 +1112,7 @@ func validateTensorFlowModel(
 		isNeuronExport := api.Compute.Inf > 0
 		versions, err := getTFServingVersionsFromS3Path(modelResource.ModelPath, isNeuronExport, awsClientForBucket)
 		if err != nil {
-			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+			if errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
 			}
 
@@ -1129,10 +1123,7 @@ func validateTensorFlowModel(
 			modelSubPaths := aws.ConvertS3ObjectsToKeys(modelSubS3Objects...)
 
 			if err = validateTFServingS3ModelDir(modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
-				if errors.GetKind(err) == errors.ErrNotCortexError {
-					return errors.Wrap(err, modelName)
-				}
-				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelSubPaths), modelName)
+				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelSubPaths).Error()), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1143,7 +1134,7 @@ func validateTensorFlowModel(
 
 		versions, err := getTFServingVersionsFromLocalPath(modelResource.ModelPath)
 		if err != nil {
-			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+			if errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
 			}
 
@@ -1153,10 +1144,7 @@ func validateTensorFlowModel(
 			}
 
 			if err = validateTFServingLocalModelDir(modelResource.ModelPath); err != nil {
-				if errors.GetKind(err) == errors.ErrNotCortexError {
-					return errors.Wrap(err, modelName)
-				}
-				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelSubPaths), modelName)
+				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelSubPaths).Error()), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1288,7 +1276,7 @@ func validateONNXModel(
 
 		versions, err := getONNXVersionsFromS3Path(modelResource.ModelPath, awsClientForBucket)
 		if err != nil {
-			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+			if errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
 			}
 
@@ -1299,10 +1287,7 @@ func validateONNXModel(
 			modelSubPaths := aws.ConvertS3ObjectsToKeys(modelSubS3Objects...)
 
 			if err := validateONNXS3ModelDir(modelResource.ModelPath, awsClientForBucket); err != nil {
-				if errors.GetKind(err) == errors.ErrNotCortexError {
-					return errors.Wrap(err, modelName)
-				}
-				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths), modelName)
+				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths).Error()), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1313,7 +1298,7 @@ func validateONNXModel(
 
 		versions, err := getONNXVersionsFromLocalPath(modelResource.ModelPath)
 		if err != nil {
-			if errors.GetKind(err) == errors.ErrNotCortexError || errors.GetKind(err) == ErrModelPathNotDirectory {
+			if errors.GetKind(err) == ErrModelPathNotDirectory {
 				return errors.Wrap(err, modelName)
 			}
 
@@ -1323,10 +1308,7 @@ func validateONNXModel(
 			}
 
 			if err := validateONNXLocalModelDir(modelResource.ModelPath); err != nil {
-				if errors.GetKind(err) == errors.ErrNotCortexError {
-					return errors.Wrap(err, modelName)
-				}
-				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths), modelName)
+				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths).Error()), modelName)
 			}
 		}
 		modelResource.Versions = versions
