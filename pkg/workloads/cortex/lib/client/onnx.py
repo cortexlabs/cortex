@@ -91,14 +91,14 @@ class ONNXClient:
         self._models.set_callback("load", self._load_model)
 
     def _validate_model_args(
-        self, model_name: Optional[str] = None, model_version: str = "highest"
+        self, model_name: Optional[str] = None, model_version: str = "latest"
     ) -> Tuple[str, str]:
         """
         Validate the model name and model version.
 
         Args:
             model_name: Name of the model.
-            model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+            model_version: Model version to use. Can also be "latest" for picking the highest version.
 
         Returns:
             The processed model_name, model_version tuple if they had to go through modification.
@@ -107,9 +107,9 @@ class ONNXClient:
             UserRuntimeException if the validation fails.
         """
 
-        if model_version not in ["highest", "latest"] and not model_version.isnumeric():
+        if model_version != "latest" and not model_version.isnumeric():
             raise UserRuntimeException(
-                "model_version must be either a parse-able numeric value or 'highest' or 'latest'"
+                "model_version must be either a parse-able numeric value or 'latest'"
             )
 
         # when predictor:model_path or predictor:models:paths is specified
@@ -144,7 +144,7 @@ class ONNXClient:
         return model_name, model_version
 
     def predict(
-        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "highest"
+        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "latest"
     ) -> Any:
         """
         Validate input, convert it to a dictionary of input_name to numpy.ndarray, and make a prediction.
@@ -152,7 +152,7 @@ class ONNXClient:
         Args:
             model_input: Input to the model.
             model_name: Model to use when multiple models are deployed in a single API.
-            model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+            model_version: Model version to use. Can also be "latest" for picking the highest version.
 
         Returns:
             The prediction returned from the model.
@@ -186,14 +186,14 @@ class ONNXClient:
                 f"failed inference with model {model_name} of version {model_version}", str(e)
             )
 
-    def get_model(self, model_name: Optional[str] = None, model_version: str = "highest") -> dict:
+    def get_model(self, model_name: Optional[str] = None, model_version: str = "latest") -> dict:
         """
         Validate input and then return the model loaded into a dictionary.
         The counting of tag calls is recorded with this method (just like with the predict method).
 
         Args:
             model_name: Model to use when multiple models are deployed in a single API.
-            model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+            model_version: Model version to use. Can also be "latest" for picking the highest version.
 
         Returns:
             The model as returned by _load_model method.
@@ -219,7 +219,7 @@ class ONNXClient:
 
         Args:
             model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are named on disk.
-            model_version: Version of the model, as it's found on disk. Can also infer the version number from "latest" and "highest" tags.
+            model_version: Version of the model, as it's found on disk. Can also infer the version number from the "latest" version tag.
 
         Exceptions:
             RuntimeError: if another thread tried to load the model at the very same time.
@@ -231,15 +231,13 @@ class ONNXClient:
 
         model = None
         tag = ""
-        tags = []
-        if model_version in ["latest", "highest"]:
+        if model_version == "latest":
             tag = model_version
-            tags = ["latest", "highest"]
 
         if not self._caching_enabled:
             # determine model version
-            if tag != "":
-                model_version = self._get_model_version_from_disk(model_name, tag)
+            if tag == "latest":
+                model_version = self._get_latest_model_version_from_disk(model_name)
             model_id = model_name + "-" + model_version
 
             # grab shared access to versioned model
@@ -284,7 +282,7 @@ class ONNXClient:
                                     model_name,
                                     model_version,
                                     current_upstream_ts,
-                                    tags,
+                                    [tag],
                                 )
                             except Exception as e:
                                 raise UserRuntimeException(
@@ -296,14 +294,14 @@ class ONNXClient:
         if not self._multiple_processes and self._caching_enabled:
             # determine model version
             try:
-                if tag != "":
-                    model_version = self._get_model_version_from_tree(
-                        model_name, tag, self._models_tree.model_info(model_name)
+                if tag == "latest":
+                    model_version = self._get_latest_model_version_from_tree(
+                        model_name, self._models_tree.model_info(model_name)
                     )
             except ValueError:
                 # if model_name hasn't been found
                 raise UserRuntimeException(
-                    f"'{model_name}' model of tag {model_version} wasn't found in the list of available models"
+                    f"'{model_name}' model of tag {tag} wasn't found in the list of available models"
                 )
 
             # grab shared access to model tree
@@ -390,7 +388,7 @@ class ONNXClient:
                             model_name,
                             model_version,
                             current_upstream_ts,
-                            tags,
+                            [tag],
                         )
                     except Exception:
                         raise WithBreak
@@ -426,15 +424,11 @@ class ONNXClient:
 
         return model
 
-    def _get_model_version_from_disk(self, model_name: str, tag: str) -> str:
+    def _get_latest_model_version_from_disk(self, model_name: str) -> str:
         """
-        Get the version for a specific model name based on the version tag - either "latest" or "highest".
+        Get the highest version of a specific model name.
         Must only be used when caching disabled and processes_per_replica > 0.
         """
-
-        if tag not in ["latest", "highest"]:
-            raise ValueError("invalid tag; must be either 'latest' or 'highest'")
-
         versions, timestamps = find_ondisk_model_info(self._lock_dir, model_name)
         if len(versions) == 0:
             raise UserRuntimeException(
@@ -442,28 +436,15 @@ class ONNXClient:
                     model_name
                 )
             )
+        return str(max(map(lambda x: int(x), versions)))
 
-        if tag == "latest":
-            index = timestamps.index(max(timestamps))
-            return versions[index]
-        else:
-            return str(max(map(lambda x: int(x), versions)))
-
-    def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
+    def _get_latest_model_version_from_tree(self, model_name: str, model_info: dict) -> str:
         """
-        Get the version for a specific model name based on the version tag - either "latest" or "highest".
+        Get the highest version of a specific model name.
         Must only be used when processes_per_replica = 1 and caching is enabled.
         """
-
-        if tag not in ["latest", "highest"]:
-            raise ValueError("invalid tag; must be either 'latest' or 'highest'")
-
         versions, timestamps = model_info["versions"], model_info["timestamps"]
-        if tag == "latest":
-            index = timestamps.index(max(timestamps))
-            return versions[index]
-        else:
-            return str(max(map(lambda x: int(x), versions)))
+        return str(max(map(lambda x: int(x), versions)))
 
     def _is_model_caching_enabled(self) -> bool:
         """

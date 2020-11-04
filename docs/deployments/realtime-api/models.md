@@ -59,20 +59,20 @@ The `load_model` method has been tested to work with the following frameworks:
 To retrieve a model, use the `get_model` method of `python_client`.
 
 ```python
-def get_model(model_name: Optional[str] = None, model_version: str = "highest") -> Any:
+def get_model(model_name: Optional[str] = None, model_version: str = "latest") -> Any:
     """
     Retrieve model for inference.
 
     Args:
         model_name: Model to use when multiple models are deployed in a single API.
-        model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+        model_version: Model version to use. Can also be "latest" for picking the highest version.
 
     Returns:
         The model as loaded by load_model method.
     """
 ```
 
-When the `predictor.model_path` field is used, you can retrieve the model by running `python_client.get_model()`, because there's only one `model_name` in and because `model_version` is already set to `highest`, which means it will be picking up the model with the highest version number (if applicable).
+When the `predictor.model_path` field is used, you can retrieve the model by running `python_client.get_model()`, because there's only one `model_name` in and because `model_version` is already set to `latest`, which means it will be picking up the model with the highest version number (if applicable).
 
 When the `predictor.models.paths` field is used, the `model_name` is the name of the model that it has been given in the API spec config.
 
@@ -81,21 +81,21 @@ When the `predictor.models.paths` field is used, the `model_name` is the name of
 For the TensorFlow predictor, to run a prediction, you need to call the `tensorflow_client.predict` method of the `tensorflow_client` client that's passed to the predictor's constructor.
 
 ```python
-def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "highest") -> dict:
+def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "latest") -> dict:
     """
     Run prediction.
 
     Args:
         model_input: Input to the model.
         model_name: Model to use when multiple models are deployed in a single API.
-        model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+        model_version: Model version to use. Can also be "latest" for picking the highest version.
 
     Returns:
         dict: Prediction.
     """
 ```
 
-When the `predictor.model_path` field is used, you can retrieve the model by running `tensorflow_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `highest`, which means it will be picking up the model with the highest version number (if applicable).
+When the `predictor.model_path` field is used, you can retrieve the model by running `tensorflow_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `latest`, which means it will be picking up the model with the highest version number (if applicable).
 
 When the `predictor.models.paths` field is used, the `model_name` is the name of the model that is has been given in the API spec config.
 
@@ -104,21 +104,21 @@ When the `predictor.models.paths` field is used, the `model_name` is the name of
 For the ONNX predictor, to run a prediction, you need to call the `onnx_client.predict` method of the `onnx_client` client that's passed to the predictor's constructor.
 
 ```python
-def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "highest") -> Any:
+def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "latest") -> Any:
     """
     Run prediction.
 
     Args:
         model_input: Input to the model.
         model_name: Model to use when multiple models are deployed in a single API.
-        model_version: Model version to use. Can also be "highest" for picking the highest version or "latest" for picking the most recent version.
+        model_version: Model version to use. Can also be "latest" for picking the highest version.
 
     Returns:
         The prediction returned from the model.
     """
 ```
 
-When the `predictor.model_path` field is used, you can retrieve the model by running `onnx_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `highest`, which means it will be picking up the model with the highest version number (if applicable).
+When the `predictor.model_path` field is used, you can retrieve the model by running `onnx_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `latest`, which means it will be picking up the model with the highest version number (if applicable).
 
 When the `predictor.models.paths` field is used, the `model_name` is the name of the model that it has been given in the API spec config.
 

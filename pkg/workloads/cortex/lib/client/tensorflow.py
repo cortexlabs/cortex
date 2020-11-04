@@ -79,7 +79,7 @@ class TensorFlowClient:
         self._client = TensorFlowServingAPI(tf_serving_url)
 
     def predict(
-        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "highest"
+        self, model_input: Any, model_name: Optional[str] = None, model_version: str = "latest"
     ) -> dict:
         """
         Validate model_input, convert it to a Prediction Proto, and make a request to TensorFlow Serving.
@@ -87,21 +87,15 @@ class TensorFlowClient:
         Args:
             model_input: Input to the model.
             model_name: Model to use when multiple models are deployed in a single API.
-            model_version: A numerical value indicating the model's version or "latest" or "highest". "latest" not supported when processes_per_replica > 0, caching disabled and TensorFlowPredictor is used.
+            model_version: A numerical value indicating the model's version or "latest".
 
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.
         """
 
-        if model_version not in ["highest", "latest"] and not model_version.isnumeric():
+        if model_version != "latest" and not model_version.isnumeric():
             raise UserRuntimeException(
-                "model_version must be either a parse-able numeric value or 'highest' or 'latest'"
-            )
-
-        if not self._caching_enabled and model_version == "latest":
-            raise UserRuntimeException(
-                "model_version must be either a parse-able numberic value or 'highest'",
-                "cannot be 'latest' when processes_per_replica > 0, caching is disabled and TensorFlowPredictor is used",
+                "model_version must be either a parse-able numeric value or 'latest'"
             )
 
         # when predictor:model_path or predictor:models:paths is specified
@@ -136,7 +130,7 @@ class TensorFlowClient:
         Args:
             model_input: Input to the model.
             model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are named on disk.
-            model_version: Version of the model, as it's found on disk. Can also infer the version number from "latest" and "highest" tags.
+            model_version: Version of the model, as it's found on disk. Can also infer the version number from the "latest" version tag.
 
         Returns:
             The prediction.
@@ -144,21 +138,17 @@ class TensorFlowClient:
 
         model = None
         tag = ""
-        tags = []
-        if model_version in ["latest", "highest"]:
+        if model_version == "latest":
             tag = model_version
-            tags = ["latest", "highest"]
 
         if not self._caching_enabled:
 
             # determine model version
-            if tag == "highest":
+            if tag == "latest":
                 versions = self._client.poll_available_models(model_name)
                 if len(versions) == 0:
                     raise UserException(
-                        "model '{}' accessed with tag '{}' couldn't be found".format(
-                            model_name, tag
-                        )
+                        f"model '{model_name}' accessed with tag {tag} couldn't be found"
                     )
                 model_version = str(max(map(lambda x: int(x), versions)))
             model_id = model_name + "-" + model_version
@@ -169,14 +159,14 @@ class TensorFlowClient:
 
             # determine model version
             try:
-                if tag != "":
-                    model_version = self._get_model_version_from_tree(
-                        model_name, tag, self._models_tree.model_info(model_name)
+                if tag == "latest":
+                    model_version = self._get_latest_model_version_from_tree(
+                        model_name, self._models_tree.model_info(model_name)
                     )
             except ValueError:
                 # if model_name hasn't been found
                 raise UserRuntimeException(
-                    f"'{model_name}' model of tag {model_version} wasn't found in the list of available models"
+                    f"'{model_name}' model of tag {tag} wasn't found in the list of available models"
                 )
 
             models_stats = []
@@ -306,7 +296,7 @@ class TensorFlowClient:
                             model_name,
                             model_version,
                             current_upstream_ts,
-                            tags,
+                            [tag],
                             kwargs={
                                 "model_name": model_name,
                                 "model_version": model_version,
@@ -382,21 +372,13 @@ class TensorFlowClient:
 
         return signature_key
 
-    def _get_model_version_from_tree(self, model_name: str, tag: str, model_info: dict) -> str:
+    def _get_latest_model_version_from_tree(self, model_name: str, model_info: dict) -> str:
         """
-        Get the version for a specific model name based on the version tag - either "latest" or "highest".
+        Get the highest version for a specific model name.
         Must only be used when processes_per_replica = 1 and caching is enabled.
         """
-
-        if tag not in ["latest", "highest"]:
-            raise ValueError("invalid tag; must be either 'latest' or 'highest'")
-
         versions, timestamps = model_info["versions"], model_info["timestamps"]
-        if tag == "latest":
-            index = timestamps.index(max(timestamps))
-            return versions[index]
-        else:
-            return str(max(map(lambda x: int(x), versions)))
+        return str(max(map(lambda x: int(x), versions)))
 
     def _is_model_caching_enabled(self) -> bool:
         """
