@@ -349,6 +349,19 @@ class ONNXClient:
                             status in ["on-disk", "in-memory"] and upstream_ts < current_upstream_ts
                         )
                     ):
+                        if status == "not-available":
+                            logger().info(
+                                f"model {model_name} of version {model_version} not found locally; proceeding..."
+                            )
+                        elif status == "on-disk":
+                            logger().info(
+                                f"found newer model {model_name} of vesion {model_version} on the S3 upstream than the one on the disk"
+                            )
+                        else:
+                            logger().info(
+                                f"found newer model {model_name} of vesion {model_version} on the S3 upstream than the one loaded into memory"
+                            )
+                        
                         # remove model from disk and memory
                         if status in ["on-disk", "in-memory"]:
                             if status == "on-disk":

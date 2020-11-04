@@ -30,7 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func CacheLocalModels(apiSpec *spec.API, onlyLocalModels bool) error {
+func CacheLocalModels(apiSpec *spec.API) error {
 	var err error
 	var wasAlreadyCached bool
 	var localModelCache *spec.LocalModelCache
@@ -38,7 +38,7 @@ func CacheLocalModels(apiSpec *spec.API, onlyLocalModels bool) error {
 
 	modelsThatWereCachedAlready := 0
 	for i, model := range apiSpec.CuratedModelResources {
-		if onlyLocalModels && model.S3Path {
+		if model.S3Path {
 			continue
 		}
 
@@ -64,7 +64,7 @@ func CacheLocalModels(apiSpec *spec.API, onlyLocalModels bool) error {
 	}
 	apiSpec.LocalModelCaches = localModelCaches
 
-	if len(localModelCaches) > modelsThatWereCachedAlready && len(localModelCaches) > 0 {
+	if len(localModelCaches) > modelsThatWereCachedAlready {
 		fmt.Println("") // Newline to group all of the model information
 	}
 

@@ -256,8 +256,8 @@ func UserRelToAbsPath(relativePath string) string {
 	return RelToAbsPath(relativePath, cwd)
 }
 
-// Gets absolute path of "path" based on "basedir".
-func AbsPath(path, basedir string) (string, error) {
+// Gets absolute path of "path" based on "basedir" with the tilde expanded.
+func AbsPathWithTildeExpansion(path, basedir string) (string, error) {
 	if strings.HasPrefix(path, "~/") {
 		absPath, err := EscapeTilde(path)
 		if err != nil {
@@ -641,8 +641,8 @@ func ErrorOnProjectSizeLimit(maxProjectSizeBytes int64) IgnoreFn {
 	}
 }
 
-// Retrieves the common path given a list of paths.
-func CommonPath(paths ...string) string {
+// Retrieves the longest common path given a list of paths.
+func LongestCommonPath(paths ...string) string {
 
 	// Handle special cases.
 	switch len(paths) {
@@ -696,7 +696,7 @@ func CommonPath(paths ...string) string {
 		commonPath = s.EnsureSuffix(commonPath, "/")
 	}
 	if commonPath == "" && allStartWithSlash {
-		commonPath = s.EnsurePrefix(commonPath, "/")
+		return "/"
 	}
 
 	return commonPath
@@ -753,7 +753,7 @@ func FileTree(paths []string, cwd string, dirsOrder DirsOrder) string {
 		dirPaths = DirPaths(paths, true)
 	}
 
-	commonPrefix := CommonPath(dirPaths...)
+	commonPrefix := LongestCommonPath(dirPaths...)
 	paths, _ = s.TrimPrefixIfPresentInAll(paths, commonPrefix)
 
 	var header string

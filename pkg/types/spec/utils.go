@@ -98,7 +98,7 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectDi
 	for _, model := range modelResources {
 		isS3Path := strings.HasPrefix(model.ModelPath, "s3://")
 		if !isS3Path {
-			model.ModelPath, err = files.AbsPath(model.ModelPath, projectDir)
+			model.ModelPath, err = files.AbsPathWithTildeExpansion(model.ModelPath, projectDir)
 			if err != nil {
 				return nil, err
 			}
@@ -119,11 +119,11 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectDi
 	return models, nil
 }
 
-// Generates the model objects found in the S3/local path directory.
+// List the model objects found in the S3/local path directory.
 //
 // The model name is determined from the objects' names found in the path directory.
 // Path can either be an S3 path or a local system path - in the latter case, the returned paths will be in absolute form.
-func generateModelsResourcesFromPath(path string, projectFiles ProjectFiles, awsClient *aws.Client) ([]userconfig.ModelResource, error) {
+func listModelResourcesFromPath(path string, projectFiles ProjectFiles, awsClient *aws.Client) ([]userconfig.ModelResource, error) {
 	models := []userconfig.ModelResource{}
 
 	if aws.IsValidS3Path(path) {
@@ -132,32 +132,35 @@ func generateModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 			return nil, err
 		}
 
-		if isDir, err := awsClientForBucket.IsS3PathDir(path); err != nil {
+		isDir, err := awsClientForBucket.IsS3PathDir(path)
+		if err != nil {
 			return nil, err
-		} else if isDir {
-			modelPaths, _, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, false, pointer.Int64(20000))
-			if err != nil {
-				return nil, err
-			}
-			var bucket string
-			bucket, _, err = aws.SplitS3Path(path)
-			if err != nil {
-				return nil, err
-			}
+		}
 
-			for _, modelPath := range modelPaths {
-				models = append(models, userconfig.ModelResource{
-					Name:      filepath.Base(modelPath),
-					ModelPath: aws.S3Path(bucket, modelPath),
-				})
-			}
-		} else {
+		if !isDir {
 			return nil, ErrorS3DirNotFound(path)
+		}
+
+		modelPaths, _, err := awsClientForBucket.GetNLevelsDeepFromS3Path(path, 1, false, pointer.Int64(20000))
+		if err != nil {
+			return nil, err
+		}
+		var bucket string
+		bucket, _, err = aws.SplitS3Path(path)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, modelPath := range modelPaths {
+			models = append(models, userconfig.ModelResource{
+				Name:      filepath.Base(modelPath),
+				ModelPath: aws.S3Path(bucket, modelPath),
+			})
 		}
 
 	} else {
 		var err error
-		path, err = files.AbsPath(path, projectFiles.ProjectDir())
+		path, err = files.AbsPathWithTildeExpansion(path, projectFiles.ProjectDir())
 		if err != nil {
 			return nil, err
 		}
@@ -191,10 +194,12 @@ func generateModelsResourcesFromPath(path string, projectFiles ProjectFiles, aws
 //			- *
 // 		...
 func getPythonVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Client) ([]int64, error) {
-	if isDir, err := awsClientForBucket.IsS3PathDir(modelPath); err == nil && !isDir {
-		return nil, ErrorModelPathNotDirectory(modelPath)
-	} else if err != nil {
+	isDir, err := awsClientForBucket.IsS3PathDir(modelPath)
+	if err != nil {
 		return nil, err
+	}
+	if !isDir {
+		return nil, ErrorModelPathNotDirectory(modelPath)
 	}
 
 	modelSubPaths, allModelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelPath, 1, false, pointer.Int64(1000))
@@ -212,7 +217,7 @@ func getPythonVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Clien
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return nil, ErrorInvalidPythonModelPath(modelPath, true, true, false, allModelSubPaths)
+			return nil, ErrorInvalidPythonModelPath(modelPath, allModelSubPaths)
 		}
 
 		modelVersionPath := aws.JoinS3Path(modelPath, versionStr)
@@ -223,7 +228,7 @@ func getPythonVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Clien
 			if errors.GetKind(err) == errors.ErrNotCortexError {
 				return nil, err
 			}
-			return nil, ErrorInvalidPythonModelPath(modelPath, true, true, false, allModelSubPaths)
+			return nil, ErrorInvalidPythonModelPath(modelPath, allModelSubPaths)
 		}
 		versions = append(versions, version)
 	}
@@ -232,9 +237,11 @@ func getPythonVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Clien
 }
 
 func validatePythonS3ModelDir(modelPath string, awsClientForBucket *aws.Client) error {
-	if isDir, err := awsClientForBucket.IsS3PathDir(modelPath); err != nil {
+	isDir, err := awsClientForBucket.IsS3PathDir(modelPath)
+	if err != nil {
 		return err
-	} else if !isDir {
+	}
+	if !isDir {
 		return ErrorModelPathNotDirectory(modelPath)
 	}
 
@@ -276,7 +283,7 @@ func getPythonVersionsFromLocalPath(modelPath string) ([]int64, error) {
 		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return nil, ErrorInvalidPythonModelPath(modelPath, false, true, false, modelSubPaths)
+			return nil, ErrorInvalidPythonModelPath(modelPath, modelSubPaths)
 		}
 
 		modelVersionPath := filepath.Join(modelPath, versionStr)
@@ -287,7 +294,7 @@ func getPythonVersionsFromLocalPath(modelPath string) ([]int64, error) {
 			if errors.GetKind(err) == errors.ErrNotCortexError {
 				return nil, err
 			}
-			return nil, ErrorInvalidPythonModelPath(modelPath, false, true, false, modelSubPaths)
+			return nil, ErrorInvalidPythonModelPath(modelPath, modelSubPaths)
 		}
 		versions = append(versions, version)
 	}
@@ -334,10 +341,12 @@ func validatePythonLocalModelDir(modelPath string) error {
 // 		...
 //
 func getTFServingVersionsFromS3Path(modelPath string, isNeuronExport bool, awsClientForBucket *aws.Client) ([]int64, error) {
-	if isDir, err := awsClientForBucket.IsS3PathDir(modelPath); err == nil && !isDir {
-		return nil, ErrorModelPathNotDirectory(modelPath)
-	} else if err != nil {
+	isDir, err := awsClientForBucket.IsS3PathDir(modelPath)
+	if err != nil {
 		return nil, err
+	}
+	if !isDir {
+		return nil, ErrorModelPathNotDirectory(modelPath)
 	}
 
 	modelSubPaths, allModelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelPath, 1, false, pointer.Int64(1000))
@@ -355,7 +364,7 @@ func getTFServingVersionsFromS3Path(modelPath string, isNeuronExport bool, awsCl
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return nil, ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, true, true, false, allModelSubPaths)
+			return nil, ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths)
 		}
 
 		modelVersionPath := aws.JoinS3Path(modelPath, versionStr)
@@ -366,7 +375,7 @@ func getTFServingVersionsFromS3Path(modelPath string, isNeuronExport bool, awsCl
 			if errors.GetKind(err) == errors.ErrNotCortexError {
 				return nil, err
 			}
-			return nil, ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, true, true, false, allModelSubPaths)
+			return nil, ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths)
 		}
 		versions = append(versions, version)
 	}
@@ -375,9 +384,11 @@ func getTFServingVersionsFromS3Path(modelPath string, isNeuronExport bool, awsCl
 }
 
 func validateTFServingS3ModelDir(modelPath string, isNeuronExport bool, awsClientForBucket *aws.Client) error {
-	if isDir, err := awsClientForBucket.IsS3PathDir(modelPath); err != nil {
+	isDir, err := awsClientForBucket.IsS3PathDir(modelPath)
+	if err != nil {
 		return err
-	} else if !isDir {
+	}
+	if !isDir {
 		return ErrorModelPathNotDirectory(modelPath)
 	}
 
@@ -392,11 +403,11 @@ func validateTFServingS3ModelDir(modelPath string, isNeuronExport bool, awsClien
 
 	if isNeuronExport {
 		if !isValidNeuronTensorFlowS3Directory(modelPath, awsClientForBucket) {
-			return ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, true, true, false, allModelSubPaths)
+			return ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths)
 		}
 	} else {
 		if !isValidTensorFlowS3Directory(modelPath, awsClientForBucket) {
-			return ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, true, true, false, allModelSubPaths)
+			return ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths)
 		}
 	}
 
@@ -474,7 +485,7 @@ func getTFServingVersionsFromLocalPath(modelPath string) ([]int64, error) {
 		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return nil, ErrorInvalidTensorFlowModelPath(modelPath, false, false, true, false, modelSubPaths)
+			return nil, ErrorInvalidTensorFlowModelPath(modelPath, false, modelSubPaths)
 		}
 
 		modelVersionPath := filepath.Join(modelPath, versionStr)
@@ -485,7 +496,7 @@ func getTFServingVersionsFromLocalPath(modelPath string) ([]int64, error) {
 			if errors.GetKind(err) == errors.ErrNotCortexError {
 				return nil, err
 			}
-			return nil, ErrorInvalidTensorFlowModelPath(modelPath, false, false, true, false, modelSubPaths)
+			return nil, ErrorInvalidTensorFlowModelPath(modelPath, false, modelSubPaths)
 		}
 
 		versions = append(versions, version)
@@ -508,7 +519,7 @@ func validateTFServingLocalModelDir(modelPath string) error {
 	}
 
 	if yes, err := isValidTensorFlowLocalDirectory(modelPath); !yes || err != nil {
-		return ErrorInvalidTensorFlowModelPath(modelPath, false, false, false, true, versionObjects)
+		return ErrorInvalidTensorFlowModelPath(modelPath, false, versionObjects)
 	}
 
 	return nil
@@ -549,10 +560,12 @@ func isValidTensorFlowLocalDirectory(path string) (bool, error) {
 //			- <model-name>.onnx
 // 		...
 func getONNXVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Client) ([]int64, error) {
-	if isDir, err := awsClientForBucket.IsS3PathDir(modelPath); err == nil && !isDir {
-		return nil, ErrorModelPathNotDirectory(modelPath)
-	} else if err != nil {
+	isDir, err := awsClientForBucket.IsS3PathDir(modelPath)
+	if err != nil {
 		return nil, err
+	}
+	if !isDir {
+		return nil, ErrorModelPathNotDirectory(modelPath)
 	}
 
 	modelSubPaths, allModelSubPaths, err := awsClientForBucket.GetNLevelsDeepFromS3Path(modelPath, 1, false, pointer.Int64(1000))
@@ -570,7 +583,7 @@ func getONNXVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Client)
 		versionStr := keyParts[len(keyParts)-1]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return nil, ErrorInvalidONNXModelPath(modelPath, true, true, false, allModelSubPaths)
+			return nil, ErrorInvalidONNXModelPath(modelPath, allModelSubPaths)
 		}
 
 		modelVersionPath := aws.JoinS3Path(modelPath, versionStr)
@@ -581,7 +594,7 @@ func getONNXVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Client)
 			if errors.GetKind(err) == errors.ErrNotCortexError {
 				return nil, err
 			}
-			return nil, ErrorInvalidONNXModelPath(modelPath, true, true, false, allModelSubPaths)
+			return nil, ErrorInvalidONNXModelPath(modelPath, allModelSubPaths)
 		}
 
 		versions = append(versions, version)
@@ -591,9 +604,11 @@ func getONNXVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Client)
 }
 
 func validateONNXS3ModelDir(modelPath string, awsClientForBucket *aws.Client) error {
-	if isDir, err := awsClientForBucket.IsS3PathDir(modelPath); err != nil {
+	isDir, err := awsClientForBucket.IsS3PathDir(modelPath)
+	if err != nil {
 		return err
-	} else if !isDir {
+	}
+	if !isDir {
 		return ErrorModelPathNotDirectory(modelPath)
 	}
 
@@ -614,18 +629,18 @@ func validateONNXS3ModelDir(modelPath string, awsClientForBucket *aws.Client) er
 	numONNXFiles := 0
 	for _, modelSubPath := range modelSubPaths {
 		if !strings.HasSuffix(modelSubPath, ".onnx") {
-			return ErrorInvalidONNXModelPath(modelPath, true, false, true, allModelSubPaths)
+			return ErrorInvalidONNXModelPath(modelPath, allModelSubPaths)
 		}
 		if isFile, err := awsClientForBucket.IsS3PathFile(aws.S3Path(bucket, modelSubPath)); err != nil {
 			return errors.Wrap(err, modelPath)
 		} else if !isFile {
-			return ErrorInvalidONNXModelPath(modelPath, true, false, true, allModelSubPaths)
+			return ErrorInvalidONNXModelPath(modelPath, allModelSubPaths)
 		}
 		numONNXFiles++
 	}
 
 	if numONNXFiles > 1 {
-		return ErrorInvalidONNXModelPath(modelPath, true, false, true, allModelSubPaths)
+		return ErrorInvalidONNXModelPath(modelPath, allModelSubPaths)
 	}
 
 	return nil
@@ -658,7 +673,7 @@ func getONNXVersionsFromLocalPath(modelPath string) ([]int64, error) {
 		versionStr := pathParts[basePathLength]
 		version, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			return nil, ErrorInvalidONNXModelPath(modelPath, false, true, false, modelSubPaths)
+			return nil, ErrorInvalidONNXModelPath(modelPath, modelSubPaths)
 		}
 
 		modelVersionPath := filepath.Join(modelPath, versionStr)
@@ -669,7 +684,7 @@ func getONNXVersionsFromLocalPath(modelPath string) ([]int64, error) {
 			if errors.GetKind(err) == errors.ErrNotCortexError {
 				return nil, err
 			}
-			return nil, ErrorInvalidONNXModelPath(modelPath, false, true, false, modelSubPaths)
+			return nil, ErrorInvalidONNXModelPath(modelPath, modelSubPaths)
 		}
 
 		versions = append(versions, version)
@@ -694,13 +709,13 @@ func validateONNXLocalModelDir(modelPath string) error {
 	numONNXFiles := 0
 	for _, versionObject := range versionObjects {
 		if !strings.HasSuffix(versionObject, ".onnx") || !files.IsFile(versionObject) {
-			return ErrorInvalidONNXModelPath(modelPath, false, false, true, versionObjects)
+			return ErrorInvalidONNXModelPath(modelPath, versionObjects)
 		}
 		numONNXFiles++
 	}
 
 	if numONNXFiles > 1 {
-		return ErrorInvalidONNXModelPath(modelPath, false, false, true, versionObjects)
+		return ErrorInvalidONNXModelPath(modelPath, versionObjects)
 	}
 
 	return nil

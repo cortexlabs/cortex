@@ -127,10 +127,8 @@ func IsValidS3aPath(s3aPath string) bool {
 	return true
 }
 
-// List all S3 objects that are "depth" levels deeper than the given "s3Path".
-// Setting depth to 1 effectively translates to listing the objects one level deeper than the given prefix (aka listing the directory contents).
-//
-// Also lists all S3 objects at all levels having the same specified prefix.
+// List all S3 objects that are "depth" levels or deeper than the given "s3Path".
+// Setting depth to 1 effectively translates to listing the objects one level or deeper than the given prefix (aka listing the directory contents).
 //
 // 1st returned value is the list of paths found at level <depth>.
 // 2nd returned value is the list of paths found at all levels.
@@ -150,12 +148,10 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 
 	keySplit := slices.RemoveEmpties(strings.Split(key, "/"))
 	for _, path := range allPaths {
-		objectKeys := slices.RemoveEmpties(strings.Split(path, "/"))
-		if len(objectKeys)-len(keySplit) >= depth {
-			computedPath := strings.Join(objectKeys[:len(keySplit)+depth], "/")
-			if strings.HasPrefix(computedPath, key) {
-				paths.Add(computedPath)
-			}
+		pathSplit := slices.RemoveEmpties(strings.Split(path, "/"))
+		if len(pathSplit)-len(keySplit) >= depth {
+			computedPath := strings.Join(pathSplit[:len(keySplit)+depth], "/")
+			paths.Add(computedPath)
 		}
 	}
 

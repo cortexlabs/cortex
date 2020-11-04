@@ -379,7 +379,7 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 
 			rows = append(rows, []interface{}{
 				modelName,
-				modelMetadata.Versions[idx],
+				version,
 				applicableTags,
 				date.Format(_timeFormat),
 			})

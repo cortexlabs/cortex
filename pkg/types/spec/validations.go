@@ -896,7 +896,7 @@ func validatePythonPredictor(predictor *userconfig.Predictor, models *[]CuratedM
 			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
-			modelResources, err = generateModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			modelResources, err = listModelResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
 			if err != nil {
 				return modelWrapError(err)
 			}
@@ -962,7 +962,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths), modelName)
+				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -986,7 +986,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths), modelName)
+				return errors.Wrap(ErrorInvalidPythonModelPath(modelResource.ModelPath, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1053,7 +1053,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
-			modelResources, err = generateModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			modelResources, err = listModelResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
 			if err != nil {
 				return modelWrapError(err)
 			}
@@ -1132,7 +1132,7 @@ func validateTensorFlowModel(
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelResource.S3Path, true, true, modelSubPaths), modelName)
+				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1156,7 +1156,7 @@ func validateTensorFlowModel(
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelResource.S3Path, true, true, modelSubPaths), modelName)
+				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1230,7 +1230,7 @@ func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedMod
 			*(predictor.Models.Dir) = s.EnsureSuffix(*(predictor.Models.Dir), "/")
 
 			var err error
-			modelResources, err = generateModelsResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
+			modelResources, err = listModelResourcesFromPath(*predictor.Models.Dir, projectFiles, awsClient)
 			if err != nil {
 				return modelWrapError(err)
 			}
@@ -1302,7 +1302,7 @@ func validateONNXModel(
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths), modelName)
+				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1326,7 +1326,7 @@ func validateONNXModel(
 				if errors.GetKind(err) == errors.ErrNotCortexError {
 					return errors.Wrap(err, modelName)
 				}
-				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelResource.S3Path, true, true, modelSubPaths), modelName)
+				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions

@@ -282,45 +282,35 @@ func ErrorModelPathNotDirectory(modelPath string) error {
 	})
 }
 
-var _pythonVersionedExpectedStructMessage = `
+var _pythonModelTemplates = `
   %s
   ├── 1523423423/ (Version prefix)
   |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
   └── 2434389194/ (Version prefix)
 	  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
-`
 
-var _pythonExpectedStructMessage = `
+or like
+
   %s
   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
 `
 
-func ErrorInvalidPythonModelPath(modelPath string, s3Path bool, includeVersionMessage bool, includeNonVersionMessage bool, modelSubPaths []string) error {
+func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error {
 	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonPredictorType.CasedString())
+	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.PythonPredictorType)
 
-	if includeVersionMessage || includeNonVersionMessage {
-		message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with the following structure:\n", userconfig.PythonPredictorType)
-	}
-	if includeVersionMessage {
-		message += fmt.Sprintf(_pythonVersionedExpectedStructMessage, modelPath)
-	}
-	if includeVersionMessage && includeNonVersionMessage {
-		message += "\n" + "  or like" + "\n"
-	}
-	if includeNonVersionMessage {
-		message += fmt.Sprintf(_pythonExpectedStructMessage, modelPath)
-	}
-	if includeVersionMessage || includeNonVersionMessage {
-		if len(modelSubPaths) > 0 {
-			if s3Path {
-				message += "\n" + "  but its current structure is (limited to 1000 files)" + "\n\n"
-			} else {
-				message += "\n" + "  but its current structure is" + "\n\n"
-			}
-			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+	message += fmt.Sprintf(_pythonModelTemplates, modelPath, modelPath)
+
+	if len(modelSubPaths) > 0 {
+		message += "\n" + "  but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		if len(modelSubPaths) > 50 {
+			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
+			message += "\n  ..."
 		} else {
-			message += "\n" + "  but its current directory is empty"
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
 		}
+	} else {
+		message += "\n" + "  but its current directory is empty"
 	}
 
 	return errors.WithStack(&errors.Error{
@@ -344,68 +334,55 @@ var _tfVersionedExpectedStructMessage = `
           ├── variables.index
           ├── variables.data-00000-of-00003
           ├── variables.data-00001-of-00003
-          └── variables.data-00002-of-...
-`
-var _tfExpectedStructMessage = `
+		  └── variables.data-00002-of-...
+
+or like
+
   %s
   ├── saved_model.pb
   └── variables/
-      ├── variables.index
-      ├── variables.data-00000-of-00003
-      ├── variables.data-00001-of-00003
-      └── variables.data-00002-of-...
+	  ├── variables.index
+	  ├── variables.data-00000-of-00003
+	  ├── variables.data-00001-of-00003
+	  └── variables.data-00002-of-...
 `
 var _neuronTfVersionedExpectedStructMessage = `
   %s
   ├── 1523423423/ (Version prefix, usually a timestamp)
   |   └── saved_model.pb
   └── 2434389194/ (Version prefix, usually a timestamp)
-      └── saved_model.pb
-`
-var _neuronTfExpectedStructMessage = `
+	  └── saved_model.pb
+	  
+or like
+
   %s
   └── saved_model.pb
 `
 
-func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, s3Path bool, includeVersionMessage bool, includeNonVersionMessage bool, modelSubPaths []string) error {
+func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelSubPaths []string) error {
 	predictorType := userconfig.TensorFlowPredictorType.CasedString()
 	if neuronExport {
 		predictorType = "Neuron " + predictorType
 	}
-
 	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, predictorType)
-	if includeVersionMessage || includeNonVersionMessage {
-		message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with the following structure:\n", predictorType)
-	}
-	if includeVersionMessage {
-		if neuronExport {
-			message += fmt.Sprintf(_neuronTfVersionedExpectedStructMessage, modelPath)
-		} else {
-			message += fmt.Sprintf(_tfVersionedExpectedStructMessage, modelPath)
-		}
-	}
-	if includeVersionMessage && includeNonVersionMessage {
-		message += "\n" + "  or like" + "\n"
-	}
-	if includeNonVersionMessage {
-		if neuronExport {
-			message += fmt.Sprintf(_neuronTfExpectedStructMessage, modelPath)
-		} else {
-			message += fmt.Sprintf(_tfExpectedStructMessage, modelPath)
-		}
+	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.TensorFlowPredictorType)
+
+	if !neuronExport {
+		message += fmt.Sprintf(_tfVersionedExpectedStructMessage, modelPath, modelPath)
+	} else {
+		message += fmt.Sprintf(_neuronTfVersionedExpectedStructMessage, modelPath, modelPath)
 	}
 
-	if includeVersionMessage || includeNonVersionMessage {
-		if len(modelSubPaths) > 0 {
-			if s3Path {
-				message += "\n" + "  but its current structure is (limited to 1000 files)" + "\n\n"
-			} else {
-				message += "\n" + "  but its current structure is" + "\n\n"
-			}
-			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+	if len(modelSubPaths) > 0 {
+		message += "\n" + "  but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		if len(modelSubPaths) > 50 {
+			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
+			message += "\n  ..."
 		} else {
-			message += "\n" + "  but its current directory is empty"
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
 		}
+	} else {
+		message += "\n" + "  but its current directory is empty"
 	}
 
 	return errors.WithStack(&errors.Error{
@@ -419,40 +396,30 @@ var _onnxVersionedExpectedStructMessage = `
   ├── 1523423423/ (Version prefix)
   |   └── <model-name>.onnx // ONNX-exported file
   └── 2434389194/ (Version prefix)
-      └── <model-name>.onnx // ONNX-exported file
-`
+	  └── <model-name>.onnx // ONNX-exported file
+	  
+or like
 
-var _onnxExpectedStructMessage = `
   %s
   └── <model-name>.onnx // ONNX-exported file
 `
 
-func ErrorInvalidONNXModelPath(modelPath string, s3Path bool, includeVersionMessage bool, includeNonVersionMessage bool, modelSubPaths []string) error {
-	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, userconfig.ONNXPredictorType.CasedString())
-	if includeVersionMessage || includeNonVersionMessage {
-		message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with the following structure:\n", userconfig.ONNXPredictorType)
-	}
-	if includeVersionMessage {
-		message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, modelPath)
-	}
-	if includeVersionMessage && includeNonVersionMessage {
-		message += "\n" + "  or like" + "\n"
-	}
-	if includeNonVersionMessage {
-		message += fmt.Sprintf(_onnxExpectedStructMessage, modelPath)
-	}
+func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
+	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.ONNXPredictorType.CasedString())
+	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.PythonPredictorType)
 
-	if includeVersionMessage || includeNonVersionMessage {
-		if len(modelSubPaths) > 0 {
-			if s3Path {
-				message += "\n" + "  but its current structure is (limited to 1000 files)" + "\n\n"
-			} else {
-				message += "\n" + "  but its current structure is" + "\n\n"
-			}
-			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, modelPath, modelPath)
+
+	if len(modelSubPaths) > 0 {
+		message += "\n" + "  but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		if len(modelSubPaths) > 50 {
+			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
+			message += "\n  ..."
 		} else {
-			message += "\n" + "  but its current directory is empty"
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
 		}
+	} else {
+		message += "\n" + "  but its current directory is empty"
 	}
 
 	return errors.WithStack(&errors.Error{
