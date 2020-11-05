@@ -29,9 +29,13 @@ import (
 func StopJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
-	jobID := vars["jobID"]
+	jobID, err := getRequiredQueryParam("jobID", r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
 
-	err := batchapi.StopJob(spec.JobKey{APIName: apiName, ID: jobID})
+	err = batchapi.StopJob(spec.JobKey{APIName: apiName, ID: jobID})
 	if err != nil {
 		respondError(w, r, err)
 		return

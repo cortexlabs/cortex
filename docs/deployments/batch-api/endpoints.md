@@ -33,7 +33,7 @@ Submitting data in the request can be useful in the following scenarios:
 * you want to avoid using S3 as an intermediate storage layer
 
 ```yaml
-POST <batch_api_endpoint>/:
+POST <batch_api_endpoint>:
 {
     "workers": <int>,         # the number of workers to allocate for this job (required)
     "item_list": {
@@ -74,7 +74,7 @@ This submission pattern can be useful in the following scenarios:
 If a single S3 file contains a lot of samples/rows, try the next submission strategy.
 
 ```yaml
-POST <batch_api_endpoint>/:
+POST <batch_api_endpoint>:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
     "file_path_lister": {
@@ -113,7 +113,7 @@ This submission pattern is useful in the following scenarios:
 * one or more S3 files contains a large number of samples and must be broken down into batches
 
 ```yaml
-POST <batch_api_endpoint>/:
+POST <batch_api_endpoint>:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
     "delimited_files": {
@@ -146,7 +146,7 @@ You can get the status of a job by making a GET request to `<batch_api_endpoint>
 See [Job Status Codes](statuses.md) for a list of the possible job statuses and what they mean.
 
 ```yaml
-GET <batch_api_endpoint>/<job_id>:
+GET <batch_api_endpoint>?jobID=<jobID>:
 
 RESPONSE:
 {
@@ -188,7 +188,7 @@ Stop a job in progress. You can also use the Cortex CLI command
 You stop a running job by making a DELETE request to `<batch_api_endpoint>/<job_id>` (note that you can also delete a job with the Cortex CLI command `cortex delete <api_name> <job_id>`).
 
 ```yaml
-DELETE <batch_api_endpoint>/<job_id>:
+DELETE <batch_api_endpoint>?jobID=<jobID>:
 
 RESPONSE:
 {"message":"stopped job <job_id>"}

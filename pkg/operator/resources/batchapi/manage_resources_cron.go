@@ -90,11 +90,17 @@ func ManageJobResources() error {
 
 		jobState, err := getJobState(jobKey)
 		if err != nil {
+			writeToJobLogStream(jobKey, err.Error(), "terminating job and cleaning up job resources")
+			err := errors.FirstError(
+				deleteInProgressFile(jobKey),
+				deleteJobRuntimeResources(jobKey),
+			)
 			if err != nil {
 				telemetry.Error(err)
 				errors.PrintError(err)
 				continue
 			}
+			continue
 		}
 
 		if !jobState.Status.IsInProgress() {
@@ -132,10 +138,12 @@ func ManageJobResources() error {
 			continue
 		}
 
-		err = checkIfJobCompleted(jobKey, *queueURL, k8sJob)
-		if err != nil {
-			telemetry.Error(err)
-			errors.PrintError(err)
+		if jobState.Status == status.JobRunning {
+			err = checkIfJobCompleted(jobKey, *queueURL, k8sJob)
+			if err != nil {
+				telemetry.Error(err)
+				errors.PrintError(err)
+			}
 		}
 	}
 

@@ -18,6 +18,7 @@ package spec
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -86,6 +87,7 @@ const (
 	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
 	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
 	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
+	ErrUnexpectedDockerSecretData           = "spec.unexpected_docker_secret_data"
 )
 
 var _modelCurrentStructure = `
@@ -572,5 +574,24 @@ func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrTrafficSplitterAPIsNotUnique,
 		Message: fmt.Sprintf("%s not unique: %s", s.PluralS("api", len(names)), s.StrsSentence(names, "")),
+	})
+}
+
+var _pwRegex = regexp.MustCompile(`"password":"[^"]+"`)
+var _authRegex = regexp.MustCompile(`"auth":"[^"]+"`)
+
+func ErrorUnexpectedDockerSecretData(reason string, secretData map[string][]byte) error {
+	secretDataStrMap := map[string]string{}
+
+	for key, value := range secretData {
+		valueStr := string(value)
+		valueStr = _pwRegex.ReplaceAllString(valueStr, `"password":"<omitted>"`)
+		valueStr = _authRegex.ReplaceAllString(valueStr, `"auth":"<omitted>"`)
+		secretDataStrMap[key] = valueStr
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnexpectedDockerSecretData,
+		Message: fmt.Sprintf("docker registry secret named \"%s\" was found, but contains unexpected data (%s); got: %s", _dockerPullSecretName, reason, s.UserStr(secretDataStrMap)),
 	})
 }

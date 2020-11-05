@@ -2,7 +2,15 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## Installing a specific version of the CLI
+## Install the CLI
+
+```bash
+pip install cortex
+```
+
+## Install the CLI without Python Client
+
+### Mac/Linux OS
 
 ```bash
 # Replace `INSERT_CORTEX_VERSION` with the complete CLI version (e.g. 0.18.1):
@@ -11,6 +19,10 @@ $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/vINSER
 # For example to download CLI version 0.18.1 (Note the 'v'):
 $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.18.1/get-cli.sh)"
 ```
+
+### Windows
+
+To install the Cortex CLI on a Windows machine, follow [this guide](../guides/windows-cli.md).
 
 ## Command overview
 
@@ -131,6 +143,8 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
+  -n, --name string         aws name of the cluster
+  -r, --region string       aws region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
   -e, --env string          environment to update (default "aws")
@@ -158,21 +172,6 @@ Flags:
   -h, --help                        help for configure
 ```
 
-### cluster export
-
-```text
-download the code and configuration for all APIs deployed in a cluster
-
-Usage:
-  cortex cluster export [flags]
-
-Flags:
-  -c, --config string       path to a cluster configuration file
-      --aws-key string      aws access key id
-      --aws-secret string   aws secret access key
-  -h, --help                help for export
-```
-
 ### cluster down
 
 ```text
@@ -183,10 +182,29 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
+  -n, --name string         aws name of the cluster
+  -r, --region string       aws region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
   -y, --yes                 skip prompts
   -h, --help                help for down
+```
+
+### cluster export
+
+```text
+download the code and configuration for all APIs deployed in a cluster
+
+Usage:
+  cortex cluster export [flags]
+
+Flags:
+  -c, --config string       path to a cluster configuration file
+  -n, --name string         aws name of the cluster
+  -r, --region string       aws region of the cluster
+      --aws-key string      aws access key id
+      --aws-secret string   aws secret access key
+  -h, --help                help for export
 ```
 
 ### env configure

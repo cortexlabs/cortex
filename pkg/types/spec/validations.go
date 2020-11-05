@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -30,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -41,10 +43,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/yaml"
+	dockertypes "github.com/docker/docker/api/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 var AutoscalingTickInterval = 10 * time.Second
+
+const _dockerPullSecretName = "registry-credentials"
 
 func apiValidation(
 	provider types.ProviderType,
@@ -685,12 +690,14 @@ func ValidateAPI(
 	projectFiles ProjectFiles,
 	providerType types.ProviderType,
 	awsClient *aws.Client,
+	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
+
 	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validatePredictor(api, models, projectFiles, providerType, awsClient); err != nil {
+	if err := validatePredictor(api, models, projectFiles, providerType, awsClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.PredictorKey)
 	}
 
@@ -737,6 +744,7 @@ func validatePredictor(
 	projectFiles ProjectFiles,
 	providerType types.ProviderType,
 	awsClient *aws.Client,
+	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
 	predictor := api.Predictor
 
@@ -758,7 +766,7 @@ func validatePredictor(
 		if err := validateTensorFlowPredictor(api, models, providerType, projectFiles, awsClient); err != nil {
 			return err
 		}
-		if err := validateDockerImagePath(predictor.TensorFlowServingImage, providerType, awsClient); err != nil {
+		if err := validateDockerImagePath(predictor.TensorFlowServingImage, providerType, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
 	case userconfig.ONNXPredictorType:
@@ -777,7 +785,7 @@ func validatePredictor(
 		}
 	}
 
-	if err := validateDockerImagePath(predictor.Image, providerType, awsClient); err != nil {
+	if err := validateDockerImagePath(predictor.Image, providerType, awsClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.ImageKey)
 	}
 
@@ -1390,7 +1398,12 @@ func validateUpdateStrategy(updateStrategy *userconfig.UpdateStrategy) error {
 	return nil
 }
 
-func validateDockerImagePath(image string, providerType types.ProviderType, awsClient *aws.Client) error {
+func validateDockerImagePath(
+	image string,
+	providerType types.ProviderType,
+	awsClient *aws.Client,
+	k8sClient *k8s.Client, // will be nil for local provider)
+) error {
 	if consts.DefaultImagePathsSet.Has(image) {
 		return nil
 	}
@@ -1405,12 +1418,13 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 
 	if providerType == types.LocalProviderType {
 		// short circuit if the image is already available locally
-		if err := docker.CheckLocalImageAccessible(dockerClient, image); err == nil {
+		if err := docker.CheckImageExistsLocally(dockerClient, image); err == nil {
 			return nil
 		}
 	}
 
-	dockerAuth := docker.NoAuth
+	dockerAuthStr := docker.NoAuth
+
 	if regex.IsValidECRURL(image) {
 		if awsClient.IsAnonymous {
 			return errors.Wrap(ErrorCannotAccessECRWithAnonymousAWSCreds(), image)
@@ -1431,7 +1445,7 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 			return ErrorRegistryAccountIDMismatch(registryID, operatorID)
 		}
 
-		dockerAuth, err = docker.AWSAuthConfig(awsClient)
+		dockerAuthStr, err = docker.AWSAuthConfig(awsClient)
 		if err != nil {
 			if _, ok := errors.CauseOrSelf(err).(awserr.Error); ok {
 				// because the operator's IAM user != instances's IAM role (which is created by eksctl and
@@ -1443,11 +1457,78 @@ func validateDockerImagePath(image string, providerType types.ProviderType, awsC
 
 			return err
 		}
+	} else if k8sClient != nil {
+		dockerAuthStr, err = getDockerAuthStrFromK8s(dockerClient, k8sClient)
+		if err != nil {
+			return err
+		}
 	}
 
-	if err := docker.CheckImageAccessible(dockerClient, image, dockerAuth); err != nil {
+	if err := docker.CheckImageAccessible(dockerClient, image, dockerAuthStr, providerType); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func getDockerAuthStrFromK8s(dockerClient *docker.Client, k8sClient *k8s.Client) (string, error) {
+	secretData, err := k8sClient.GetSecretData(_dockerPullSecretName)
+	if err != nil {
+		return "", err
+	}
+
+	// check if the user provided the registry auth secret
+	if secretData == nil {
+		return docker.NoAuth, nil
+	}
+
+	authData, ok := secretData[".dockerconfigjson"]
+	if !ok {
+		return "", ErrorUnexpectedDockerSecretData("should contain \".dockerconfigjson\" key", secretData)
+	}
+
+	var authSecret struct {
+		Auths map[string]struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		} `json:"auths"`
+	}
+
+	err = libjson.Unmarshal(authData, &authSecret)
+	if err != nil {
+		return "", ErrorUnexpectedDockerSecretData(errors.Message(err), secretData)
+	}
+	if len(authSecret.Auths) != 1 {
+		return "", ErrorUnexpectedDockerSecretData("should contain a single set of credentials", secretData)
+	}
+
+	var dockerAuth dockertypes.AuthConfig
+	for registryAddress, creds := range authSecret.Auths {
+		dockerAuth = dockertypes.AuthConfig{
+			Username:      creds.Username,
+			Password:      creds.Password,
+			ServerAddress: registryAddress,
+		}
+	}
+	if dockerAuth.Username == "" {
+		return "", ErrorUnexpectedDockerSecretData("missing username", secretData)
+	}
+	if dockerAuth.Password == "" {
+		return "", ErrorUnexpectedDockerSecretData("missing password", secretData)
+	}
+	if dockerAuth.ServerAddress == "" {
+		return "", ErrorUnexpectedDockerSecretData("missing registry address", secretData)
+	}
+
+	_, err = dockerClient.RegistryLogin(context.Background(), dockerAuth)
+	if err != nil {
+		return "", err
+	}
+
+	dockerAuthStr, err := docker.EncodeAuthConfig(dockerAuth)
+	if err != nil {
+		return "", err
+	}
+
+	return dockerAuthStr, nil
 }

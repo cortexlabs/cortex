@@ -17,7 +17,7 @@ limitations under the License.
 package errors
 
 import (
-	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -25,12 +25,12 @@ import (
 )
 
 func PrintError(err error, strs ...string) {
-	fmt.Println(ErrorStr(err, strs...))
+	os.Stderr.WriteString(ErrorStr(err, strs...) + "\n")
 	// PrintStacktrace(err)
 }
 
 func PrintErrorForUser(err error, strs ...string) {
-	print.BoldFirstLine(ErrorStr(err, strs...))
+	print.StderrBoldFirstLine(ErrorStr(err, strs...))
 	// PrintStacktrace(err)
 }
 

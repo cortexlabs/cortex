@@ -18,6 +18,7 @@ package print
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -37,6 +38,21 @@ func BoldFirstLine(msg string) {
 
 	if len(msgParts) > 1 {
 		fmt.Println(strings.Join(msgParts[1:], "\n"))
+	}
+}
+
+func StderrBoldFirstLine(msg string) {
+	msgParts := strings.Split(msg, "\n")
+
+	if len(msgParts[0]) > _maxBoldLength {
+		os.Stderr.WriteString(msg + "\n")
+		return
+	}
+
+	os.Stderr.WriteString(console.Bold(msgParts[0]) + "\n")
+
+	if len(msgParts) > 1 {
+		os.Stderr.WriteString(strings.Join(msgParts[1:], "\n") + "\n")
 	}
 }
 

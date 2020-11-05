@@ -66,7 +66,7 @@ model_neuron.save(compiled_model)
 
 The versions of `tensorflow-neuron` and `torch-neuron` that are used by Cortex are found in the [Realtime API pre-installed packages list](realtime-api/predictors.md#inferentia-equipped-apis) and [Batch API pre-installed packages list](batch-api/predictors.md#inferentia-equipped-apis). When installing these packages with `pip` to compile models of your own, use the extra index URL `--extra-index-url=https://pip.repos.neuron.amazonaws.com`.
 
-See AWS's [TensorFlow](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-compile-infer.md#step-3-compile-on-compilation-instance) and [PyTorch](https://github.com/aws/aws-neuron-sdk/blob/master/docs/pytorch-neuron/tutorial-compile-infer.md#step-3-compile-on-compilation-instance) guides on how to compile models for Inferentia. Here are 2 examples implemented with Cortex:
+A list of model compilation examples for Inferentia can be found on the [`aws/aws-neuron-sdk`](https://github.com/aws/aws-neuron-sdk) repo for [TensorFlow](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/) and for [PyTorch](https://github.com/aws/aws-neuron-sdk/blob/master/docs/pytorch-neuron/README.md). Here are 2 examples implemented with Cortex:
 
 <!-- CORTEX_VERSION_MINOR x2 -->
 1. [ResNet50 in TensorFlow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/image-classifier-resnet50)

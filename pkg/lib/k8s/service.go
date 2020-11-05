@@ -100,10 +100,10 @@ func (c *Client) ApplyService(service *kcore.Service) (*kcore.Service, error) {
 
 func (c *Client) GetService(name string) (*kcore.Service, error) {
 	service, err := c.serviceClient.Get(context.Background(), name, kmeta.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return nil, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.WithStack(err)
 	}
 	service.TypeMeta = _serviceTypeMeta
@@ -112,10 +112,10 @@ func (c *Client) GetService(name string) (*kcore.Service, error) {
 
 func (c *Client) DeleteService(name string) (bool, error) {
 	err := c.serviceClient.Delete(context.Background(), name, _deleteOpts)
-	if kerrors.IsNotFound(err) {
-		return false, nil
-	}
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil

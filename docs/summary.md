@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Build machine learning APIs](../README.md)
+* [Deploy machine learning models to production](../README.md)
 * [Install](cluster-management/install.md)
 * [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)
@@ -72,6 +72,8 @@
 * [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
 * [Set up kubectl](guides/kubectl-setup.md)
+* [Private docker registry](guides/private-docker.md)
+* [Install CLI on Windows](guides/windows-cli.md)
 
 ## Contributing
 

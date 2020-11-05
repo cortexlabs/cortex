@@ -585,6 +585,72 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 	var err error
 	shouldPrintTrailingNewLine := false
 
+	// Validate any skipped fields first, so that any errors are returned before prompting
+	if promptValidation.SkipNonEmptyFields {
+		for _, promptItemValidation := range promptValidation.PromptItemValidations {
+			v := reflect.ValueOf(dest).Elem().FieldByName(promptItemValidation.StructField)
+			if !v.IsZero() {
+				if promptItemValidation.StringValidation != nil && promptItemValidation.Parser == nil {
+					if _, err := ValidateString(v.Interface().(string), promptItemValidation.StringValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.StringPtrValidation != nil && promptItemValidation.Parser == nil {
+					if _, err := ValidateStringPtrProvided(v.Interface().(*string), promptItemValidation.StringPtrValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.BoolValidation != nil {
+					if _, err := ValidateBool(v.Interface().(bool), promptItemValidation.BoolValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.BoolPtrValidation != nil {
+					if _, err := ValidateBoolPtrProvided(v.Interface().(*bool), promptItemValidation.BoolPtrValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.IntValidation != nil {
+					if _, err := ValidateInt(v.Interface().(int), promptItemValidation.IntValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.IntPtrValidation != nil {
+					if _, err := ValidateIntPtrProvided(v.Interface().(*int), promptItemValidation.IntPtrValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.Int32Validation != nil {
+					if _, err := ValidateInt32(v.Interface().(int32), promptItemValidation.Int32Validation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.Int32PtrValidation != nil {
+					if _, err := ValidateInt32PtrProvided(v.Interface().(*int32), promptItemValidation.Int32PtrValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.Int64Validation != nil {
+					if _, err := ValidateInt64(v.Interface().(int64), promptItemValidation.Int64Validation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.Int64PtrValidation != nil {
+					if _, err := ValidateInt64PtrProvided(v.Interface().(*int64), promptItemValidation.Int64PtrValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.Float32Validation != nil {
+					if _, err := ValidateFloat32(v.Interface().(float32), promptItemValidation.Float32Validation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.Float32PtrValidation != nil {
+					if _, err := ValidateFloat32PtrProvided(v.Interface().(*float32), promptItemValidation.Float32PtrValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.Float64Validation != nil {
+					if _, err := ValidateFloat64(v.Interface().(float64), promptItemValidation.Float64Validation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				} else if promptItemValidation.Float64PtrValidation != nil {
+					if _, err := ValidateFloat64PtrProvided(v.Interface().(*float64), promptItemValidation.Float64PtrValidation); err != nil {
+						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
+					}
+				}
+			}
+		}
+	}
+
 	for _, promptItemValidation := range promptValidation.PromptItemValidations {
 		if promptValidation.SkipNonEmptyFields {
 			v := reflect.ValueOf(dest).Elem().FieldByName(promptItemValidation.StructField)
@@ -1082,6 +1148,15 @@ func inferKey(structType reflect.Type, typeStructField string, typeKey string) s
 	if typeKey != "" {
 		return typeKey
 	}
+	field, _ := structType.Elem().FieldByName(typeStructField)
+	tag, ok := getTagFieldName(field)
+	if ok {
+		return tag
+	}
+	return typeStructField
+}
+
+func inferPromptFieldName(structType reflect.Type, typeStructField string) string {
 	field, _ := structType.Elem().FieldByName(typeStructField)
 	tag, ok := getTagFieldName(field)
 	if ok {

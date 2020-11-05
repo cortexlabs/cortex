@@ -59,7 +59,7 @@ func deployInit() {
 	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_deployCmd.Flags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
 	_deployCmd.Flags().BoolVarP(&_flagDeployDisallowPrompt, "yes", "y", false, "skip prompts")
-	_deployCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
+	_deployCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
 }
 
 var _deployCmd = &cobra.Command{
@@ -106,23 +106,31 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
+			local.OutputType = _flagOutput // Set output type for the Local package
 			deployResults, err = local.Deploy(env, configPath, projectFiles, _flagDeployDisallowPrompt)
 			if err != nil {
 				exit.Error(err)
 			}
 		}
 
-		if _flagOutput == flags.JSONOutputType {
+		switch _flagOutput {
+		case flags.JSONOutputType:
 			bytes, err := libjson.Marshal(deployResults)
 			if err != nil {
 				exit.Error(err)
 			}
 			fmt.Println(string(bytes))
 			return
+		case flags.MixedOutputType:
+			err := mixedPrint(deployResults)
+			if err != nil {
+				exit.Error(err)
+			}
+			return
+		case flags.PrettyOutputType:
+			message := deployMessage(deployResults, env.Name)
+			print.BoldFirstBlock(message)
 		}
-
-		message := deployMessage(deployResults, env.Name)
-		print.BoldFirstBlock(message)
 	},
 }
 

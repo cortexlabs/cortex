@@ -6,10 +6,12 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+pip install cortex
 ```
 
 You must have [Docker](https://docs.docker.com/install) installed to run Cortex locally or to create a cluster on AWS.
+
+See [here](../miscellaneous/cli.md#install-cortex-cli-without-python-client) to install Cortex CLI without the Python Client.
 
 ## Deploy an example
 
@@ -20,7 +22,11 @@ git clone -b master https://github.com/cortexlabs/cortex.git
 
 # navigate to the Pytorch text generator example
 cd cortex/examples/pytorch/text-generator
+```
 
+### Using the CLI
+
+```bash
 # deploy the model as a realtime api
 cortex deploy
 
@@ -33,13 +39,34 @@ cortex logs text-generator
 # get the api's endpoint
 cortex get text-generator
 
-# classify a sample
+# generate text
 curl <API endpoint> \
   -X POST -H "Content-Type: application/json" \
-  -d '{"text": "machine learning is"}' \
+  -d '{"text": "machine learning is"}'
 
 # delete the api
 cortex delete text-generator
+```
+
+### In Python
+
+```python
+import cortex
+import requests
+
+local_client = cortex.client("local")
+
+# deploy the model as a realtime api and wait for it to become active
+deployments = local_client.deploy("./cortex.yaml", wait=True)
+
+# get the api's endpoint
+url = deployments[0]["api"]["endpoint"]
+
+# generate text
+print(requests.post(url, json={"text": "machine learning is"}).text)
+
+# delete the api
+local_client.delete_api("text-generator")
 ```
 
 ## Running at scale on AWS

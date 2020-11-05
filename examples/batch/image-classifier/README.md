@@ -1,6 +1,6 @@
 # Deploy models as Batch APIs
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)_
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.21.*, run `git checkout -b 0.21` or switch to the `0.21` branch on GitHub)_
 
 This example shows how to deploy a batch image classification api that accepts a list of image urls as input, downloads the images, classifies them, and writes the results to S3.
 
@@ -234,7 +234,7 @@ endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
 You can make a GET request to your `<BATCH_API_ENDPOINT>/JOB_ID` to get the status of your job.
 
 ```bash
-$ curl https://abcdefg.execute-api.us-west-2.amazonaws.com/69d6faf82e4660d3
+$ curl https://abcdefg.execute-api.us-west-2.amazonaws.com?jobID=69d6faf82e4660d3
 
 {
     "job_status":{
@@ -545,7 +545,7 @@ You can stop a running job by sending a DELETE request to `<BATCH_API_ENDPOINT>/
 
 ```bash
 $ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
-$ curl -X DELETE $BATCH_API_ENDPOINT/69d96a01ea55da8c
+$ curl -X DELETE $BATCH_API_ENDPOINT?jobID=69d96a01ea55da8c
 
 stopped job 69d96a01ea55da8c
 ```
