@@ -95,6 +95,6 @@ By default, the CLI ships with a single environment named `local`. This is the d
 
 Some cortex commands (i.e. `cortex cluster` commands) only apply to cluster environments. Unless otherwise specified by the `-e`/`--env` flag, `cortex cluster` commands create/update an environment named `aws`. For example `cortex cluster up` will configure the `aws` environment to connect to your new cluster. You may interact with this cluster by appending `--env aws` to your `cortex` commands.
 
-If you accidentally delete or overwrite one of your cluster environments, running `cortex cluster info --env ENV_NAME` will automatically update the specified environment to interact with the cluster.
+If you accidentally delete or overwrite one of your cluster environments, running `cortex cluster info --configure-env ENV_NAME` will automatically update the specified environment to interact with the cluster.
 
 You can list your environments with `cortex env list`, change the default environment with `cortex env default`, delete an environment with `cortex env delete`, and create/update an environment with `cortex env configure`.
