@@ -18,10 +18,37 @@ set -e
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-cat $ROOT/dev/cli_md_template.md
+out_file=$ROOT/docs/miscellaneous/cli.md
+rm -f $out_file
+
+echo '# CLI commands' >> $out_file
+echo '' >> $out_file
+echo '_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_' >> $out_file
+echo '' >> $out_file
+echo '## Install the CLI' >> $out_file
+echo '' >> $out_file
+echo '```bash' >> $out_file
+echo 'pip install cortex' >> $out_file
+echo '```' >> $out_file
+echo '' >> $out_file
+echo '## Install the CLI without Python Client' >> $out_file
+echo '' >> $out_file
+echo '### Mac/Linux OS' >> $out_file
+echo '' >> $out_file
+echo '```bash' >> $out_file
+echo '# Replace `INSERT_CORTEX_VERSION` with the complete CLI version (e.g. 0.18.1):' >> $out_file
+echo '$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/vINSERT_CORTEX_VERSION/get-cli.sh)"' >> $out_file
+echo '' >> $out_file
+echo '# For example to download CLI version 0.18.1 (Note the "v"):' >> $out_file
+echo '$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.18.1/get-cli.sh)"' >> $out_file
+echo '```' >> $out_file
+echo '' >> $out_file
+echo '### Windows' >> $out_file
+echo '' >> $out_file
+echo 'To install the Cortex CLI on a Windows machine, follow [this guide](../guides/windows-cli.md).' >> $out_file
+echo '' >> $out_file
 
 make --no-print-directory -C $ROOT cli
-echo
 
 # Clear default environments
 cli_config_backup_path=$HOME/.cortex/cli-bak-$RANDOM.yaml
@@ -47,17 +74,18 @@ commands=(
   "completion"
 )
 
-echo "## Command overview"
-echo
+echo '## Command overview' >> $out_file
 
 for cmd in "${commands[@]}"; do
-  echo "### ${cmd}"
-  echo
-  echo -n '```text'
-  $ROOT/bin/cortex help ${cmd}
-  echo '```'
-  echo
+  echo '' >> $out_file
+  echo "### ${cmd}" >> $out_file
+  echo '' >> $out_file
+  echo -n '```text' >> $out_file
+  $ROOT/bin/cortex help ${cmd} >> $out_file
+  echo '```' >> $out_file
 done
 
 # Bring back CLI config
 mv -f $cli_config_backup_path $HOME/.cortex/cli.yaml
+
+echo "updated $out_file"
