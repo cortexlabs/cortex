@@ -970,12 +970,12 @@ func updateCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCredentia
 	envWasUpdated := false
 	if prevEnv == nil {
 		shouldWriteEnv = true
-		// fmt.Println()
+		fmt.Println()
 	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || !awsCreds.ContainsCreds(*prevEnv.AWSAccessKeyID, *prevEnv.AWSSecretAccessKey) {
 		envWasUpdated = true
 		if disallowPrompt {
 			shouldWriteEnv = true
-			// fmt.Println()
+			fmt.Println()
 		} else {
 			shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("\nfound an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster?", envName), "", "")
 		}
@@ -988,9 +988,9 @@ func updateCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCredentia
 		}
 
 		if envWasUpdated {
-			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+			fmt.Printf(console.Bold("the environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
 		} else {
-			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+			fmt.Printf(console.Bold("an environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
 		}
 	}
 
