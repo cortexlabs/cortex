@@ -948,23 +948,6 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	t.MustPrint(&table.Opts{Sort: pointer.Bool(false)})
 }
 
-// Will return error if load balancer can't be found
-func getOperatorLoadBalancer(clusterName string, awsClient *aws.Client) (*elbv2.LoadBalancer, error) {
-	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
-		clusterconfig.ClusterNameTag: clusterName,
-		"cortex.dev/load-balancer":   "operator",
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to locate operator load balancer")
-	}
-
-	if loadBalancer == nil {
-		return nil, ErrorNoOperatorLoadBalancer()
-	}
-
-	return loadBalancer, nil
-}
-
 func updateCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
 	prevEnv, err := readEnv(envName)
 	if err != nil {
@@ -1171,4 +1154,21 @@ func createOrReplaceAPIGateway(awsClient *aws.Client, clusterName string, tags m
 
 	fmt.Println(" ✓")
 	return nil
+}
+
+// Will return error if load balancer can't be found
+func getOperatorLoadBalancer(clusterName string, awsClient *aws.Client) (*elbv2.LoadBalancer, error) {
+	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
+		clusterconfig.ClusterNameTag: clusterName,
+		"cortex.dev/load-balancer":   "operator",
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to locate operator load balancer")
+	}
+
+	if loadBalancer == nil {
+		return nil, ErrorNoOperatorLoadBalancer()
+	}
+
+	return loadBalancer, nil
 }
