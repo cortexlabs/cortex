@@ -16,6 +16,10 @@ from collections import deque
 
 
 class WithBreak(Exception):
+    """
+    Gracefully exit with clauses.
+    """
+
     pass
 
 

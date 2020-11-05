@@ -72,9 +72,7 @@ class GenericPlaceholder(
         return super(cls, GenericPlaceholder).__new__(cls, "<generic>", value, 0)
 
     def __eq__(self, other) -> bool:
-        if isinstance(other, GenericPlaceholder):
-            return self.placeholder == other.placeholder
-        return False
+        return isinstance(other, GenericPlaceholder)
 
     def __hash__(self):
         return hash((self.placeholder, self.value))
@@ -92,7 +90,8 @@ class GenericPlaceholder(
 
 class PlaceholderGroup:
     """
-    Order-based addition of placeholder types (Groups, Generics or Templates).
+    Order-based addition of placeholder types.
+    Can use AnyPlaceholder, GenericPlaceholder, SinglePlaceholder.
 
     Accessible properties: parts, type, priority.
     """
@@ -237,13 +236,6 @@ def json_model_template_representation(model_template) -> dict:
         return str(model_template)
 
 
-def _dir_models_pattern(predictor_type: PredictorType) -> dict:
-    """
-    To be used when predictor:models:dir in cortex.yaml is used.
-    """
-    return {SinglePlaceholder: ModelTemplate[predictor_type]}
-
-
 def _single_model_pattern(predictor_type: PredictorType) -> dict:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
@@ -252,55 +244,55 @@ def _single_model_pattern(predictor_type: PredictorType) -> dict:
 
 
 def validate_models_dir_paths(
-    s3_paths: List[str], predictor_type: PredictorType, commonprefix: str
+    paths: List[str], predictor_type: PredictorType, common_prefix: str
 ) -> Tuple[List[str], List[List[int]]]:
     """
+    Validates the models paths based on the given predictor type.
     To be used when predictor:models:dir in cortex.yaml is used.
 
     Args:
-        s3_paths: A list of all paths for a given S3/local prefix. Must be the top directory of multiple models.
-        predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
-        commonprefix: The commonprefix of the directory which holds all models.
+        paths: A list of all paths for a given S3/local prefix. Must be underneath the common prefix.
+        predictor_type: The predictor type.
+        common_prefix: The common prefix of the directory which holds all models. AKA predictor:models:dir.
 
     Returns:
         List with the prefix of each model that's valid.
         List with the OneOfAllPlaceholder IDs validated for each valid model.
     """
-    if len(s3_paths) == 0:
+    if len(paths) == 0:
         raise CortexException(
-            f"{predictor_type} predictor at '{commonprefix}'", "model top path can't be empty"
+            f"{predictor_type} predictor at '{common_prefix}'", "model top path can't be empty"
         )
 
-    pattern = _dir_models_pattern(predictor_type)
+    rel_paths = [os.path.relpath(top_path, common_prefix) for top_path in paths]
+    rel_paths = [path for path in rel_paths if not path.startswith("../")]
 
-    paths = [os.path.relpath(s3_top_path, commonprefix) for s3_top_path in s3_paths]
-    paths = [path for path in paths if not path.startswith("../")]
-
-    model_names = [util.get_leftmost_part_of_path(path) for path in paths]
+    model_names = [util.get_leftmost_part_of_path(path) for path in rel_paths]
     model_names = list(set(model_names))
 
     valid_model_prefixes = []
     ooa_valid_key_ids = []
-    for idx, model_name in enumerate(model_names):
+    for model_name in model_names:
         try:
-            ooa_valid_key_ids.append(validate_model_paths(paths, predictor_type, model_name))
-            valid_model_prefixes.append(os.path.join(commonprefix, model_name))
+            ooa_valid_key_ids.append(validate_model_paths(rel_paths, predictor_type, model_name))
+            valid_model_prefixes.append(os.path.join(common_prefix, model_name))
         except CortexException as e:
+            logger().debug(f"failed validating model {model_name}: {str(e)}")
             continue
 
     return valid_model_prefixes, ooa_valid_key_ids
 
 
 def validate_model_paths(
-    s3_paths: List[str], predictor_type: PredictorType, commonprefix: str
+    paths: List[str], predictor_type: PredictorType, common_prefix: str
 ) -> List[int]:
     """
     To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
 
     Args:
-        s3_top_paths: A list of all paths for a given S3/local prefix. Must be the top directory of a model.
+        paths: A list of all paths for a given S3/local prefix. Must be the top directory of a model.
         predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
-        commonprefix: The commonprefix of the directory which holds all models.
+        common_prefix: The common prefix of the directory which holds all models.
 
     Returns:
         List of all OneOfAllPlaceholder IDs that had been validated.
@@ -308,16 +300,16 @@ def validate_model_paths(
     Exception:
         CortexException if the paths don't match the model's template.
     """
-    if len(s3_paths) == 0:
+    if len(paths) == 0:
         raise CortexException(
-            f"{predictor_type} predictor at '{commonprefix}'", "model path can't be empty"
+            f"{predictor_type} predictor at '{common_prefix}'", "model path can't be empty"
         )
 
-    def _validate_model_paths(pattern: Any, s3_paths: List[str], commonprefix: str) -> None:
-        paths = [os.path.relpath(s3_path, commonprefix) for s3_path in s3_paths]
-        paths = [path for path in paths if not path.startswith("../")]
+    def _validate_model_paths(pattern: Any, paths: List[str], common_prefix: str) -> None:
+        rel_paths = [os.path.relpath(path, common_prefix) for path in paths]
+        rel_paths = [path for path in rel_paths if not path.startswith("../")]
 
-        objects = [util.get_leftmost_part_of_path(path) for path in paths]
+        objects = [util.get_leftmost_part_of_path(path) for path in rel_paths]
         objects = list(set(objects))
         visited_objects = len(objects) * [False]
 
@@ -327,7 +319,7 @@ def validate_model_paths(
             if len(objects) == 1 and objects[0] == ".":
                 return ooa_valid_key_ids
             raise CortexException(
-                f"{predictor_type} predictor at '{commonprefix}'",
+                f"{predictor_type} predictor at '{common_prefix}'",
                 "template doesn't specify a substructure for the given path",
             )
         if not isinstance(pattern, dict):
@@ -337,13 +329,11 @@ def validate_model_paths(
         keys.sort(key=operator.attrgetter("priority"))
 
         try:
-            if (
-                any(isinstance(x, OneOfAllPlaceholder) for x in keys)
-                and not all(isinstance(x, OneOfAllPlaceholder) for x in keys)
-                and len(set(keys)) > 1
+            if any(isinstance(x, OneOfAllPlaceholder) for x in keys) and not all(
+                isinstance(x, OneOfAllPlaceholder) for x in keys
             ):
                 raise CortexException(
-                    f"{predictor_type} predictor at '{commonprefix}'",
+                    f"{predictor_type} predictor at '{common_prefix}'",
                     f"{OneOfAllPlaceholder()} is a mutual-exclusive key with all other keys",
                 )
             elif all(isinstance(x, OneOfAllPlaceholder) for x in keys):
@@ -357,13 +347,13 @@ def validate_model_paths(
                     _validate_any_placeholder(keys, key_id, objects, visited_objects)
                 elif key == SinglePlaceholder:
                     _validate_single_placeholder(keys, key_id, objects, visited_objects)
-                elif key == GenericPlaceholder(""):
+                elif isinstance(key, GenericPlaceholder):
                     _validate_generic_placeholder(keys, key_id, objects, visited_objects, key)
                 elif isinstance(key, PlaceholderGroup):
                     _validate_group_placeholder(keys, key_id, objects, visited_objects)
                 elif isinstance(key, OneOfAllPlaceholder):
                     try:
-                        _validate_model_paths(pattern[key], s3_paths, commonprefix)
+                        _validate_model_paths(pattern[key], paths, common_prefix)
                         ooa_valid_key_ids.append(key.ID)
                     except CortexException:
                         num_validation_failures += 1
@@ -371,7 +361,7 @@ def validate_model_paths(
                     raise CortexException("found a non-placeholder object in model template")
 
         except CortexException as e:
-            raise CortexException(f"{predictor_type} predictor at '{commonprefix}'", str(e))
+            raise CortexException(f"{predictor_type} predictor at '{common_prefix}'", str(e))
 
         if (
             all(isinstance(x, OneOfAllPlaceholder) for x in keys)
@@ -386,10 +376,8 @@ def validate_model_paths(
         unvisited_paths = []
         for idx, visited in enumerate(visited_objects):
             if visited is False:
-                untraced_common_prefix = os.path.join(commonprefix, objects[idx])
-                untraced_paths = [
-                    os.path.relpath(path, untraced_common_prefix) for path in s3_paths
-                ]
+                untraced_common_prefix = os.path.join(common_prefix, objects[idx])
+                untraced_paths = [os.path.relpath(path, untraced_common_prefix) for path in paths]
                 untraced_paths = [
                     os.path.join(objects[idx], path)
                     for path in untraced_paths
@@ -398,7 +386,7 @@ def validate_model_paths(
                 unvisited_paths += untraced_paths
         if len(unvisited_paths) > 0:
             raise CortexException(
-                f"{predictor_type} predictor model at '{commonprefix}'",
+                f"{predictor_type} predictor model at '{common_prefix}'",
                 "unexpected path(s) for " + str(unvisited_paths),
             )
 
@@ -407,18 +395,18 @@ def validate_model_paths(
             obj = objects[obj_id]
             key = keys[key_id]
 
-            new_commonprefix = os.path.join(commonprefix, obj)
+            new_common_prefix = os.path.join(common_prefix, obj)
             sub_pattern = pattern[key]
 
             if key != AnyPlaceholder:
                 aggregated_ooa_valid_key_ids += _validate_model_paths(
-                    sub_pattern, s3_paths, new_commonprefix
+                    sub_pattern, paths, new_common_prefix
                 )
 
         return aggregated_ooa_valid_key_ids
 
     pattern = _single_model_pattern(predictor_type)
-    return _validate_model_paths(pattern, s3_paths, commonprefix)
+    return _validate_model_paths(pattern, paths, common_prefix)
 
 
 def _validate_integer_placeholder(
@@ -427,7 +415,7 @@ def _validate_integer_placeholder(
     appearances = 0
     for idx, obj in enumerate(objects):
         if obj.isnumeric() and visited[idx] is False:
-            visited[idx] = key_id
+            visited[idx] = True
             appearances += 1
 
     if appearances > 1 and len(placeholders) > 1:
@@ -469,7 +457,7 @@ def _validate_generic_placeholder(
             if visited[idx] is False:
                 visited[idx] = key_id
             found = True
-            break
+            return
 
     if not found:
         raise CortexException(f"{generical.type} placeholder for {generical} wasn't found")
@@ -487,7 +475,7 @@ def _validate_group_placeholder(
     - ... AnyPlaceholder, GenericPlaceholder, AnyPlaceholder, ...
     - ... SinglePlaceholder, GenericPlaceholder, SinglePlaceholder, ...
 
-    AnyPlaceholder and GenericPlaceholder cannot be mixed together in one group.
+    AnyPlaceholder and SinglePlaceholder cannot be mixed together in one group.
     """
 
     placeholder_group = placeholders[key_id]
@@ -503,25 +491,20 @@ def _validate_group_placeholder(
                 f'{placeholder_group} must have a combination of the following placeholder types: {AnyPlaceholder}, {SinglePlaceholder}, {GenericPlaceholder("").placeholder}'
             )
 
-    if util.is_subset([AnyPlaceholder, SinglePlaceholder], placeholder_group):
+    if {AnyPlaceholder, SinglePlaceholder}.issubset(set(placeholder_group)):
         raise CortexException(
             f"{placeholder_group} cannot have a mix of the following placeholder types: {AnyPlaceholder} and {SinglePlaceholder}"
         )
 
     group_len = len(placeholder_group)
-    found_same_kind_together = False
     for idx in range(group_len):
         if idx + 1 < group_len:
             a = placeholder_group[idx]
             b = placeholder_group[idx + 1]
             if a == b:
-                found_same_kind_together = True
-                break
-
-    if found_same_kind_together:
-        raise CortexException(
-            f'{placeholder_group} cannot accept the same type to be specified consecutively ({AnyPlaceholder}, {SinglePlaceholder} or {GenericPlaceholder("").placeholder})'
-        )
+                raise CortexException(
+                    f'{placeholder_group} cannot accept the same type to be specified consecutively ({AnyPlaceholder}, {SinglePlaceholder} or {GenericPlaceholder("").placeholder})'
+                )
 
     pattern = ""
     for placeholder in placeholder_group:

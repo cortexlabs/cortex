@@ -44,7 +44,6 @@ from cortex.lib.model import (
     TFSAPIServingThreadUpdater,
     ModelsGC,
     ModelTreeUpdater,
-    ModelPreloader,
 )
 
 # structures
@@ -87,7 +86,7 @@ class Predictor:
         self.api_spec = api_spec
 
         self.crons = []
-        if not _are_models_specified(None, self.api_spec):
+        if not _are_models_specified(self.api_spec):
             return
 
         self.model_dir = model_dir
@@ -137,14 +136,9 @@ class Predictor:
         signature_message = None
         client = None
 
-        if _are_models_specified(None, self.api_spec):
+        if _are_models_specified(self.api_spec):
             if self.type == PythonPredictorType:
                 client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
-                if not self.caching_enabled:
-                    cron = FileBasedModelsGC(
-                        interval=10, models=self.models, download_dir=self.model_dir
-                    )
-                    cron.start()
 
             if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
                 tf_serving_address = tf_serving_host + ":" + tf_serving_port
@@ -167,7 +161,7 @@ class Predictor:
     def initialize_impl(
         self,
         project_dir: str,
-        client: Union[Union[PythonClient, TensorFlowClient, ONNXClient]],
+        client: Union[PythonClient, TensorFlowClient, ONNXClient],
         job_spec: Optional[dict] = None,
     ):
         """
@@ -191,7 +185,7 @@ class Predictor:
         # initialize predictor class
         try:
             if self.type == PythonPredictorType:
-                if _are_models_specified(None, self.api_spec):
+                if _are_models_specified(self.api_spec):
                     args["python_client"] = client
                     initialized_impl = class_impl(**args)
                     client.set_load_method(initialized_impl.load_model)
@@ -209,7 +203,7 @@ class Predictor:
             refresh_logger()
 
         # initialize the crons if models have been specified and if the API kind is RealtimeAPI
-        if _are_models_specified(None, self.api_spec) and self.api_spec["kind"] == "RealtimeAPI":
+        if _are_models_specified(self.api_spec) and self.api_spec["kind"] == "RealtimeAPI":
             if not self.multiple_processes and self.caching_enabled:
                 self.crons += [
                     ModelTreeUpdater(
@@ -224,13 +218,6 @@ class Predictor:
                         models=self.models,
                         tree=self.models_tree,
                     ),
-                    # to be un-commented once this is tested
-                    # ModelPreloader(
-                    #     interval=10,
-                    #     caching=self.caching_enabled,
-                    #     models=self.models,
-                    #     tree=self.models_tree,
-                    # ),
                 ]
 
             if not self.caching_enabled and self.type in [PythonPredictorType, ONNXPredictorType]:
@@ -275,6 +262,8 @@ class Predictor:
             if predictor_class is None:
                 raise UserException(f"{target_class_name} class is not defined")
             _validate_impl(predictor_class, validations, self.api_spec)
+            if self.type == PythonPredictorType:
+                _validate_python_predictor_with_models(predictor_class, self.api_spec)
         except CortexException as e:
             e.wrap("error in " + self.path)
             raise
@@ -318,12 +307,11 @@ class Predictor:
             cron.join()
 
 
-def _are_models_specified(impl: Any, api_spec: dict) -> bool:
+def _are_models_specified(api_spec: dict) -> bool:
     """
     Checks if models have been specified in the API spec (cortex.yaml).
 
     Args:
-        impl: Dummy argument for the predictor validation.
         api_spec: API configuration.
     """
     if api_spec["predictor"]["model_path"] is not None:
@@ -342,8 +330,7 @@ PYTHON_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "config"],
-            "optional_args": ["job_spec"],
-            "condition_args": {"python_client": _are_models_specified},
+            "optional_args": ["job_spec", "python_client"],
         },
         {
             "name": "predict",
@@ -358,13 +345,10 @@ PYTHON_CLASS_VALIDATION = {
             "required_args": ["self"],
             "optional_args": ["response", "payload", "query_params", "headers"],
         },
-    ],
-    "conditional": [
         {
             "name": "load_model",
             "required_args": ["self", "model_path"],
-            "condition": _are_models_specified,
-        }
+        },
     ],
 }
 
@@ -422,10 +406,6 @@ def _validate_impl(impl, impl_req, api_spec):
     for required_func_signature in impl_req.get("required", []):
         _validate_required_fn_args(impl, required_func_signature, api_spec)
 
-    for required_func_signature in impl_req.get("conditional", []):
-        if required_func_signature["condition"](impl, api_spec):
-            _validate_required_fn_args(impl, required_func_signature, api_spec)
-
 
 def _validate_optional_fn_args(impl, func_signature, api_spec):
     if getattr(impl, func_signature["name"], None):
@@ -450,11 +430,6 @@ def _validate_required_fn_args(impl, func_signature, api_spec):
 
     required_args = func_signature.get("required_args", [])
     optional_args = func_signature.get("optional_args", [])
-
-    if func_signature.get("condition_args"):
-        for arg_name in func_signature["condition_args"]:
-            if func_signature["condition_args"][arg_name](impl, api_spec):
-                required_args.append(arg_name)
 
     argspec = inspect.getfullargspec(fn)
     fn_str = f'{func_signature["name"]}({", ".join(argspec.args)})'
@@ -492,6 +467,29 @@ def _validate_required_fn_args(impl, func_signature, api_spec):
             )
 
         seen_args.append(arg_name)
+
+
+def _validate_python_predictor_with_models(impl, api_spec):
+    target_class_name = impl.__name__
+
+    if _are_models_specified(api_spec):
+        constructor = getattr(impl, "__init__")
+        constructor_arg_spec = inspect.getfullargspec(constructor)
+        if "python_client" not in constructor_arg_spec.args:
+            raise UserException(
+                f"class {target_class_name}",
+                f'invalid signature for method "__init__"',
+                f'"python_client" is a required argument, but was not provided',
+                f'when the python predictor type is used and models are specified in the api spec, adding the "python_client" argument is required',
+            )
+
+        if getattr(impl, "load_method", None) is None:
+            raise UserException(
+                f"class {target_class_name}",
+                f'invalid signature for method "__init__"',
+                f'"python_client" is a required argument, but was not provided',
+                f'when the python predictor type is used and models are specified in the api spec, adding the "load_method" method is required',
+            )
 
 
 def model_downloader(

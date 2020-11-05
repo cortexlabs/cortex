@@ -336,51 +336,33 @@ func getAPITFLiveReloadingSummary(apiEndpoint string) (*schema.APITFLiveReloadin
 }
 
 func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
-	numRows := 0
-	tags := make(map[string][]int64)
+	rows := make([][]interface{}, 0)
+
 	for modelName, modelMetadata := range summary.ModelMetadata {
-		numRows += len(modelMetadata.Versions)
-		highestVersion := int64(0)
-		latestTimestamp := int64(0)
-		for i, version := range modelMetadata.Versions {
+		latestVersion := int64(0)
+		for _, version := range modelMetadata.Versions {
 			v, err := strconv.ParseInt(version, 10, 64)
 			if err != nil {
 				return "", err
 			}
-			if v > highestVersion {
-				highestVersion = v
-			}
-			timestamp := modelMetadata.Timestamps[i]
-			if timestamp > latestTimestamp {
-				latestTimestamp = timestamp
+			if v > latestVersion {
+				latestVersion = v
 			}
 		}
-		tags[modelName] = []int64{highestVersion, latestTimestamp}
-	}
-
-	rows := make([][]interface{}, 0, numRows)
-	for modelName, modelMetadata := range summary.ModelMetadata {
-		highestVersion := strconv.FormatInt(tags[modelName][0], 10)
-		latestTimestamp := tags[modelName][1]
+		latestStrVersion := strconv.FormatInt(latestVersion, 10)
 
 		for idx, version := range modelMetadata.Versions {
-			timestamp := modelMetadata.Timestamps[idx]
-
-			applicableTags := "-"
-			if highestVersion == version && latestTimestamp == timestamp {
-				applicableTags = "latest/highest"
-			} else if highestVersion == version {
-				applicableTags = "highest"
-			} else if latestTimestamp == timestamp {
-				applicableTags = "latest"
+			var latestTag string
+			if latestStrVersion == version {
+				latestTag = " (latest)"
 			}
 
+			timestamp := modelMetadata.Timestamps[idx]
 			date := time.Unix(timestamp, 0)
 
 			rows = append(rows, []interface{}{
 				modelName,
-				version,
-				applicableTags,
+				version + latestTag,
 				date.Format(_timeFormat),
 			})
 		}
@@ -397,11 +379,7 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 			},
 			{
 				Title:    "model version",
-				MaxWidth: 16,
-			},
-			{
-				Title:    "version tags",
-				MaxWidth: 14,
+				MaxWidth: 25,
 			},
 			{
 				Title:    "edit time",
@@ -415,8 +393,7 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 }
 
 func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (string, error) {
-	highestVersions := make(map[string]int64)
-	latestTimestamps := make(map[string]int64)
+	latestVersions := make(map[string]int64)
 
 	numRows := 0
 	models := make(map[string]schema.GenericModelMetadata, 0)
@@ -437,23 +414,17 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 			model.Timestamps = append(model.Timestamps, timestamp)
 			models[modelName] = model
 		}
-		if _, ok := highestVersions[modelName]; !ok {
-			highestVersions[modelName] = modelVersion
-		} else if modelVersion > highestVersions[modelName] {
-			highestVersions[modelName] = modelVersion
-		}
-		if _, ok := latestTimestamps[modelName]; !ok {
-			latestTimestamps[modelName] = timestamp
-		} else if timestamp > latestTimestamps[modelName] {
-			latestTimestamps[modelName] = timestamp
+		if _, ok := latestVersions[modelName]; !ok {
+			latestVersions[modelName] = modelVersion
+		} else if modelVersion > latestVersions[modelName] {
+			latestVersions[modelName] = modelVersion
 		}
 		numRows += len(modelMetadata.InputSignatures)
 	}
 
 	rows := make([][]interface{}, 0, numRows)
 	for modelName, model := range models {
-		highestVersion := highestVersions[modelName]
-		latestTimestamp := latestTimestamps[modelName]
+		latestVersion := latestVersions[modelName]
 
 		for _, modelVersion := range model.Versions {
 			modelID := fmt.Sprintf("%s-%s", modelName, modelVersion)
@@ -465,13 +436,9 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 				return "", err
 			}
 
-			applicableTags := "-"
-			if highestVersion == versionInt && latestTimestamp == timestamp {
-				applicableTags = "latest/highest"
-			} else if highestVersion == versionInt {
-				applicableTags = "highest"
-			} else if latestTimestamp == timestamp {
-				applicableTags = "latest"
+			var applicableTags string
+			if versionInt == latestVersion {
+				applicableTags = " (latest)"
 			}
 
 			date := time.Unix(timestamp, 0)
@@ -491,11 +458,10 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 				}
 				rows = append(rows, []interface{}{
 					modelName,
-					modelVersion,
+					modelVersion + applicableTags,
 					inputName,
 					inputSignature.Type,
 					shapeRowEntry,
-					applicableTags,
 					date.Format(_timeFormat),
 				})
 			}
@@ -526,10 +492,6 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 			{
 				Title:    "shape",
 				MaxWidth: 20,
-			},
-			{
-				Title:    "version tags",
-				MaxWidth: 14,
 			},
 			{
 				Title:    "edit time",

@@ -169,14 +169,11 @@ class ONNXClient:
         Run the inference on model model_name of version model_version.
         """
 
-        try:
-            model = self._get_model(model_name, model_version)
-            if model is None:
-                raise UserRuntimeException(
-                    f"model {model_name} of version {model_version} wasn't found"
-                )
-        except Exception as e:
-            raise
+        model = self._get_model(model_name, model_version)
+        if model is None:
+            raise UserRuntimeException(
+                f"model {model_name} of version {model_version} wasn't found"
+            )
 
         try:
             input_dict = convert_to_onnx_input(model_input, model["signatures"], model_name)
@@ -202,14 +199,11 @@ class ONNXClient:
             UserRuntimeException if the validation fails.
         """
         model_name, model_version = self._validate_model_args(model_name, model_version)
-        try:
-            model = self._get_model(model_name, model_version)
-            if model is None:
-                raise UserRuntimeException(
-                    f"model {model_name} of version {model_version} wasn't found"
-                )
-        except Exception as e:
-            raise
+        model = self._get_model(model_name, model_version)
+        if model is None:
+            raise UserRuntimeException(
+                f"model {model_name} of version {model_version} wasn't found"
+            )
         return model
 
     def _get_model(self, model_name: str, model_version: str) -> Any:
@@ -246,7 +240,7 @@ class ONNXClient:
 
                 # check model status
                 file_status = f.read()
-                if file_status == "" or file_status == "not available":
+                if file_status == "" or file_status == "not-available":
                     raise WithBreak
 
                 current_upstream_ts = int(file_status.split(" ")[1])
@@ -254,9 +248,9 @@ class ONNXClient:
 
                 # grab shared access to models holder and retrieve model
                 with LockedModel(self._models, "r", model_name, model_version):
-                    status, upstream_ts = self._models.has_model(model_name, model_version)
+                    status, local_ts = self._models.has_model(model_name, model_version)
                     if status == "not-available" or (
-                        status == "in-memory" and upstream_ts < current_upstream_ts
+                        status == "in-memory" and local_ts < current_upstream_ts
                     ):
                         update_model = True
                         raise WithBreak
@@ -267,7 +261,7 @@ class ONNXClient:
                     with LockedModel(self._models, "w", model_name, model_version):
                         status, _ = self._models.has_model(model_name, model_version)
                         if status == "not-available" or (
-                            status == "in-memory" and upstream_ts < current_upstream_ts
+                            status == "in-memory" and local_ts < current_upstream_ts
                         ):
                             if status == "not-available":
                                 logger().info(
@@ -324,10 +318,10 @@ class ONNXClient:
             # grab shared access to models holder and retrieve model
             update_model = False
             with LockedModel(self._models, "r", model_name, model_version):
-                status, upstream_ts = self._models.has_model(model_name, model_version)
+                status, local_ts = self._models.has_model(model_name, model_version)
                 if status in ["not-available", "on-disk"] or (
                     status != "not-available"
-                    and upstream_ts < current_upstream_ts
+                    and local_ts < current_upstream_ts
                     and not (status == "in-memory" and model_name in self._spec_local_model_names)
                 ):
                     update_model = True
@@ -340,18 +334,16 @@ class ONNXClient:
                 with LockedModel(self._models, "w", model_name, model_version):
 
                     # check model status
-                    status, upstream_ts = self._models.has_model(model_name, model_version)
+                    status, local_ts = self._models.has_model(model_name, model_version)
 
                     # refresh disk model
                     if model_name not in self._spec_local_model_names and (
                         status == "not-available"
-                        or (
-                            status in ["on-disk", "in-memory"] and upstream_ts < current_upstream_ts
-                        )
+                        or (status in ["on-disk", "in-memory"] and local_ts < current_upstream_ts)
                     ):
                         if status == "not-available":
                             logger().info(
-                                f"model {model_name} of version {model_version} not found locally; proceeding..."
+                                f"model {model_name} of version {model_version} not found locally; continuing with the download..."
                             )
                         elif status == "on-disk":
                             logger().info(
@@ -361,7 +353,7 @@ class ONNXClient:
                             logger().info(
                                 f"found newer model {model_name} of vesion {model_version} on the S3 upstream than the one loaded into memory"
                             )
-                        
+
                         # remove model from disk and memory
                         if status in ["on-disk", "in-memory"]:
                             if status == "on-disk":
@@ -403,8 +395,11 @@ class ONNXClient:
                             current_upstream_ts,
                             [tag],
                         )
-                    except Exception:
-                        raise WithBreak
+                    except Exception as e:
+                        raise UserRuntimeException(
+                            f"failed (re-)loading model {model_name} of version {model_version} (thread {td.get_ident()})",
+                            str(e),
+                        )
 
                     # retrieve model
                     model, _ = self._models.get_model(model_name, model_version, tag)

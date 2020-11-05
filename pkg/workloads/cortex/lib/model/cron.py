@@ -32,6 +32,7 @@ from cortex.lib.concurrency import LockedFile, get_locked_files
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import CortexException, WithBreak
 from cortex.lib.type import (
+    predictor_type_from_api_spec,
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
@@ -126,8 +127,8 @@ def find_all_s3_models(
     Args:
         is_dir_used: Whether predictor:models:dir is used or not.
         models_dir: The value of predictor:models:dir in case it's present. Ignored when not required.
-        predictor_type: PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
-        s3_paths: The S3 model paths as they are specified in predictor:models:paths:model_path/predictor:model_path when predictor:models:paths/predictor:model_path is used. Ignored when not required.
+        predictor_type: The predictor type.
+        s3_paths: The S3 model paths as they are specified in predictor:model_path/predictor:models:dir/predictor:models:paths is used. Ignored when not required.
         s3_model_names: The S3 model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:model_path is used. Ignored when not required.
 
     Returns: The tuple with the following elements:
@@ -201,7 +202,7 @@ def find_all_s3_models(
         model_versions = list(set(model_versions))
         versions[model_name] = model_versions
 
-    # curate timestamps for each versioned model
+    # pick up the max timestamp for each versioned model
     aux_timestamps = []
     for model_path, model_name, bucket_sub_paths, sub_path_timestamps in zip(
         model_paths, model_names, sub_paths, timestamps
@@ -276,8 +277,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         self._local_model_names = self._spec_models.get_local_model_names()
         self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
-            if not self._spec_models.is_local(model_name):
-                self._s3_paths.append(self._spec_models[model_name]["model_path"])
+            self._s3_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -290,15 +290,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
             self._is_dir_used = False
             self._models_dir = None
 
-        if self._api_spec["predictor"]["type"] == "python":
-            self._predictor_type = PythonPredictorType
-        if self._api_spec["predictor"]["type"] == "tensorflow":
-            if self._api_spec["compute"]["inf"] > 0:
-                self._predictor_type = TensorFlowNeuronPredictorType
-            else:
-                self._predictor_type = TensorFlowPredictorType
-        if self._api_spec["predictor"]["type"] == "onnx":
-            self._predictor_type = ONNXPredictorType
+        self._predictor_type = predictor_type_from_api_spec(self._api_spec)
 
         try:
             os.mkdir(self._lock_dir)
@@ -316,12 +308,10 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         self._make_local_models_available()
 
-        self._local_ran_once = False
         while not self._event_stopper.is_set():
             self._update_models_tree()
-            if not self._local_ran_once:
+            if not self._ran_once.is_set():
                 self._ran_once.set()
-                self._local_ran_once = True
             time.sleep(self._interval)
         self._stopped.set()
 
@@ -347,24 +337,24 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
     def ran_once(self) -> bool:
         """
-        Tells whether the TFS loader loop has run at least once.
+        Tells whether the FileBasedModelsTreeUpdater loop has run at least once.
         """
 
         return self._ran_once.is_set()
 
     def _make_local_models_available(self) -> None:
         """
-        Make local models (provided through predictor:model_path or models:paths) available on disk.
+        Make local models (provided through predictor:model_path, models:paths or models:dir) available on disk.
         """
 
         timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
 
-        if len(self._local_model_names) > 0:
+        if len(self._local_model_names) == 1:
             message = "local model "
         elif len(self._local_model_names) > 1:
             message = "local models "
         else:
-            return None
+            return
 
         for idx, local_model_name in enumerate(self._local_model_names):
             versions = self._spec_models[local_model_name]["versions"]
@@ -384,6 +374,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 message += f"(version {versions[0]})"
             elif len(versions) > 1:
                 message += f"(versions {','.join(versions)})"
+
             if idx + 1 < len(self._local_model_names):
                 message += ", "
             else:
@@ -416,7 +407,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-            for idx, (model_name, bucket_name, bucket_subpaths) in enumerate(
+            for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
                 zip(model_names, bucket_names, sub_paths)
             ):
                 futures += [
@@ -427,7 +418,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                         model_paths[idx],
                         versions[model_name],
                         timestamps[idx],
-                        bucket_subpaths,
+                        bucket_sub_paths,
                         bucket_name,
                     )
                 ]
@@ -445,7 +436,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 )
                 with LockedFile(resource, "w+") as f:
                     shutil.rmtree(ondisk_model_version_path)
-                    f.write("not available")
+                    f.write("not-available")
             shutil.rmtree(os.path.join(self._download_dir, model_name))
 
         logger().debug(f"{self.__class__.__name__} cron heartbeat")
@@ -494,7 +485,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 # update if the timestamp is newer
                 with LockedFile(resource, "r", reader_lock=True) as f:
                     file_status = f.read()
-                    if file_status == "" or file_status == "not available":
+                    if file_status == "" or file_status == "not-available":
                         raise WithBreak
                     current_model_ts = int(file_status.split(" ")[1])
                     if current_model_ts < int(model_ts.timestamp()):
@@ -517,6 +508,9 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 except CortexException:
                     passed_validation = False
                     shutil.rmtree(temp_dest)
+                    logger().debug(
+                        f"failed validating model {model_name} of version {version} found at {S3.construct_s3_path(bucket_name, s3_src)} path"
+                    )
 
                 # move the model to its destination directory
                 if passed_validation:
@@ -547,7 +541,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     ondisk_model_version_path = os.path.join(ondisk_model_path, ondisk_version)
                     with LockedFile(resource, "w+") as f:
                         shutil.rmtree(ondisk_model_version_path)
-                        f.write("not available")
+                        f.write("not-available")
 
             # remove the model directory if there are no models left
             if len(glob.glob(ondisk_model_path + "*/**")) == 0:
@@ -586,7 +580,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 # update if the timestamp is newer
                 with LockedFile(resource, "r", reader_lock=True) as f:
                     file_status = f.read()
-                    if file_status == "" or file_status == "not available":
+                    if file_status == "" or file_status == "not-available":
                         raise WithBreak()
                     current_model_ts = int(file_status.split(" ")[1])
                     if current_model_ts < model_ts:
@@ -610,6 +604,9 @@ class FileBasedModelsTreeUpdater(mp.Process):
             except CortexException:
                 passed_validation = False
                 shutil.rmtree(temp_dest)
+                logger().debug(
+                    f"failed validating model {model_name} of version {version} found at {S3.construct_s3_path(bucket_name, model_path)} path"
+                )
 
             # move the model to its destination directory
             if passed_validation:
@@ -623,6 +620,13 @@ class FileBasedModelsTreeUpdater(mp.Process):
 class FileBasedModelsGC(AbstractLoopingThread):
     """
     GC for models that no longer exist on disk. To be used with FileBasedModelsTreeUpdater.
+
+    There has to be a FileBasedModelsGC cron for each API process.
+
+    This needs to run on the API process because the FileBasedModelsTreeUpdater process cannot
+    unload the models from the API process' memory by itself. API process has to rely on this cron to do this periodically.
+
+    This is for the case when the FileBasedModelsTreeUpdater process has removed models from disk and there are still models loaded into the API process' memory.
     """
 
     def __init__(
@@ -651,16 +655,17 @@ class FileBasedModelsGC(AbstractLoopingThread):
         logger().debug(f"{self.__class__.__name__} cron heartbeat")
 
         for in_memory_id in in_memory_model_ids:
-            if in_memory_id not in on_disk_model_ids:
-                with LockedModel(self._models, "w", model_id=in_memory_id):
-                    if self._models.has_model_id(in_memory_id)[0] == "in-memory":
-                        model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
-                        logger().info(
-                            f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3 (thread {td.get_ident()})"
-                        )
-                        self._models.remove_model_by_id(
-                            in_memory_id, mem=True, disk=False, del_reference=True
-                        )
+            if in_memory_id in on_disk_model_ids:
+                continue
+            with LockedModel(self._models, "w", model_id=in_memory_id):
+                if self._models.has_model_id(in_memory_id)[0] == "in-memory":
+                    model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
+                    logger().info(
+                        f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3 (thread {td.get_ident()})"
+                    )
+                    self._models.remove_model_by_id(
+                        in_memory_id, mem=True, disk=False, del_reference=True
+                    )
 
 
 def find_ondisk_models_with_lock(
@@ -721,7 +726,7 @@ def find_ondisk_models_with_lock(
     return models
 
 
-def find_ondisk_model_ids_with_lock(lock_dir: str) -> Dict[str, List[str]]:
+def find_ondisk_model_ids_with_lock(lock_dir: str) -> List[str]:
     """
     Returns all available model IDs from the disk.
     To be used in conjunction with FileBasedModelsTreeUpdater/FileBasedModelsGC.
@@ -837,8 +842,7 @@ class TFSModelLoader(mp.Process):
         self._local_model_names = self._spec_models.get_local_model_names()
         self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
-            if not self._spec_models.is_local(model_name):
-                self._s3_paths.append(self._spec_models[model_name]["model_path"])
+            self._s3_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -865,12 +869,13 @@ class TFSModelLoader(mp.Process):
         self._event_stopper = mp.Event()
         self._stopped = mp.Event()
 
+        # keeps an old record of the model timestamps
+        self._old_ts_state = {}
+
     def run(self):
         """
         mp.Process-specific method.
         """
-
-        self._old_ts_state = {}
 
         if self._tfs_address:
             self._client = TensorFlowServingAPI(self._tfs_address)
@@ -884,12 +889,10 @@ class TFSModelLoader(mp.Process):
 
         self._load_local_models()
 
-        self._local_ran_once = False
         while not self._event_stopper.is_set():
             self._update_models()
-            if not self._local_ran_once:
+            if not self._ran_once.is_set():
                 self._ran_once.set()
-                self._local_ran_once = True
             logger().debug(f"{self.__class__.__name__} cron heartbeat")
             time.sleep(self._interval)
         self._stopped.set()
@@ -949,15 +952,18 @@ class TFSModelLoader(mp.Process):
             for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
                 zip(model_names, bucket_names, sub_paths)
             ):
-                self._refresh_model(
-                    idx,
-                    model_name,
-                    model_paths[idx],
-                    versions[model_name],
-                    timestamps[idx],
-                    bucket_sub_paths,
-                    bucket_name,
-                )
+                futures += [
+                    executor.submit(
+                        self._refresh_model,
+                        idx,
+                        model_name,
+                        model_paths[idx],
+                        versions[model_name],
+                        timestamps[idx],
+                        bucket_sub_paths,
+                        bucket_name,
+                    )
+                ]
             [future.result() for future in futures]
 
         # remove models that no longer appear in model_names
@@ -973,8 +979,7 @@ class TFSModelLoader(mp.Process):
             self._client.remove_models([model_name], [model_versions])
 
         # check tfs connection
-        tfs_unresponsive = not self._client.is_tfs_accessible()
-        if tfs_unresponsive:
+        if self._client.is_tfs_accessible():
             self._reset_when_tfs_unresponsive()
             return
 
@@ -998,7 +1003,7 @@ class TFSModelLoader(mp.Process):
                 except gprc.RpcError as error:
                     if error.code() == grpc.StatusCode.UNAVAILABLE:
                         logger().warning(
-                            "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                            "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
                                 model_name, model_version, str(e)
                             )
                         )
@@ -1010,13 +1015,13 @@ class TFSModelLoader(mp.Process):
         for model_name, model_versions in ondisk_models.items():
             if model_name in self._local_model_names:
                 continue
-            ts = self._update_tfs_model(
-                model_name, model_versions, timestamps, model_names, versions
-            )
-            if isinstance(ts, dict):
-                current_ts_state = {**current_ts_state, **ts}
-            else:
+            try:
+                ts = self._update_tfs_model(
+                    model_name, model_versions, timestamps, model_names, versions
+                )
+            except grpc.RpcError:
                 return
+            current_ts_state = {**current_ts_state, **ts}
 
         # save model timestamp states
         for model_id, ts in current_ts_state.items():
@@ -1100,6 +1105,9 @@ class TFSModelLoader(mp.Process):
                 except CortexException:
                     passed_validation = False
                     shutil.rmtree(temp_dest)
+                    logger().debug(
+                        f"failed validating model {model_name} of version {version} found at {S3.construct_s3_path(bucket_name, model_path)} path"
+                    )
 
                 # move the model to its destination directory
                 if passed_validation:
@@ -1178,6 +1186,9 @@ class TFSModelLoader(mp.Process):
             except CortexException:
                 passed_validation = False
                 shutil.rmtree(temp_dest)
+                logger().debug(
+                    f"failed validating model {model_name} of version {version} found at {S3.construct_s3_path(bucket_name, model_path)} path"
+                )
 
             # move the model to its destination directory
             if passed_validation:
@@ -1192,7 +1203,13 @@ class TFSModelLoader(mp.Process):
         _s3_timestamps: List[List[datetime.datetime]],
         _s3_model_names: List[str],
         _s3_versions: Dict[str, List[str]],
-    ) -> Optional[int]:
+    ) -> Optional[dict]:
+        """
+        Compares the existing models from TFS with those present on disk.
+        Does the loading/unloading/reloading of models.
+
+        From the _s3_timestamps, _s3_model_names, _s3_versions params, only the fields of the respective model name are used.
+        """
 
         # to prevent overwriting mistakes
         s3_timestamps = copy.deepcopy(_s3_timestamps)
@@ -1204,19 +1221,19 @@ class TFSModelLoader(mp.Process):
         # get the right order of model versions with respect to the model ts order
         model_timestamps = s3_timestamps[s3_model_names.index(model_name)]
         filtered_model_versions = []
-        for idx, model_ts in enumerate(model_timestamps):
-            if len(s3_versions[model_name]) == 0:
-                filtered_model_versions.append("1")
-                continue
-            if s3_versions[model_name][idx] in model_versions:
-                filtered_model_versions.append(s3_versions[model_name][idx])
+        if len(s3_versions[model_name]) == 0:
+            filtered_model_versions = ["1"] * len(model_timestamps)
+        else:
+            for idx in len(model_timestamps):
+                if s3_versions[model_name][idx] in model_versions:
+                    filtered_model_versions.append(s3_versions[model_name][idx])
 
         for model_version, model_ts in zip(filtered_model_versions, model_timestamps):
             model_ts = int(model_ts.timestamp())
 
             # remove outdated model
             model_id = f"{model_name}-{model_version}"
-            model_reloaded = False
+            is_model_outdated = False
             first_time_load = False
             if model_id in self._old_ts_state and self._old_ts_state[model_id] < model_ts:
                 try:
@@ -1224,17 +1241,17 @@ class TFSModelLoader(mp.Process):
                 except gprc.RpcError as error:
                     if error.code() == grpc.StatusCode.UNAVAILABLE:
                         logger().warning(
-                            "TFS server unresponsive after trying to unload model '{}' of version '{}': ".format(
+                            "TFS server unresponsive after trying to unload model '{}' of version '{}': {}".format(
                                 model_name, model_version, str(e)
                             )
                         )
                     logger().warning("TFS server is unresponsive")
-                    return None
-                model_reloaded = True
+                    raise
+                is_model_outdated = True
             elif model_id not in self._old_ts_state:
                 first_time_load = True
 
-            if not model_reloaded and not first_time_load:
+            if not is_model_outdated and not first_time_load:
                 continue
 
             # load model
@@ -1258,24 +1275,23 @@ class TFSModelLoader(mp.Process):
                 except grpc.RpcError as error:
                     if error.code() == grpc.StatusCode.UNAVAILABLE:
                         logger().warning(
-                            "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                            "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
                                 model_name, model_version, str(e)
                             )
                         )
                     self._reset_when_tfs_unresponsive()
-                    return None
+                    raise
 
-                model_reloaded = False
+                is_model_outdated = False
                 first_time_load = False
 
             # save timestamp of loaded model
-            if model_reloaded:
-                current_ts_state[model_id] = model_ts
+            current_ts_state[model_id] = model_ts
+            if is_model_outdated:
                 logger().info(
                     "model '{}' of version '{}' has been reloaded".format(model_name, model_version)
                 )
             elif first_time_load:
-                current_ts_state[model_id] = model_ts
                 logger().info(
                     "model '{}' of version '{}' has been loaded".format(model_name, model_version)
                 )
@@ -1305,7 +1321,7 @@ class TFSModelLoader(mp.Process):
                     except grpc.RpcError as error:
                         if error.code() == grpc.StatusCode.UNAVAILABLE:
                             logger().warning(
-                                "TFS server unresponsive after trying to load model '{}' of version '{}': ".format(
+                                "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
                                     model_name, model_version, str(e)
                                 )
                             )
@@ -1332,41 +1348,43 @@ class TFSModelLoader(mp.Process):
             self._client = TensorFlowServingAPIClones(self._tfs_addresses)
 
         resource = os.path.join(self._lock_dir, "models_tfs.json")
-        with LockedFile(resource, "w") as f:
+        with open(resource, "w") as f:
             json.dump(self._client.models, f, indent=2)
 
 
 class TFSAPIServingThreadUpdater(AbstractLoopingThread):
+    """
+    When live reloading and the TensorFlow predictor are used, the serving container
+    needs to have a way of accessing the models' metadata which is generated using the TFSModelLoader cron.
+
+    This cron runs on each serving process and periodically reads the exported metadata from the TFSModelLoader cron.
+    This is then fed into each serving process.
+    """
+
     def __init__(
         self,
         interval: int,
         client: TensorFlowServingAPI,
         lock_dir: str = "/run/cron",
     ):
-        AbstractLoopingThread.__init__(self, interval, self._runnable)
+        AbstractLoopingThread.__init__(self, interval, self._run_tfs)
 
         self._client = client
         self._lock_dir = lock_dir
 
-    def _runnable(self) -> None:
+    def _run_tfs(self) -> None:
         resource_models = os.path.join(self._lock_dir, "models_tfs.json")
 
         try:
             with open(resource_models, "r") as f:
-                try:
-                    models = json.load(f)
-                except json.JSONDecodeError:
-                    return
+                models = json.load(f)
         except Exception:
             return
 
         resource_ts = os.path.join(self._lock_dir, "model_timestamps.json")
         try:
             with open(resource_ts, "r") as f:
-                try:
-                    timestamps = json.load(f)
-                except json.JSONDecodeError:
-                    return
+                timestamps = json.load(f)
         except Exception:
             return
 
@@ -1480,7 +1498,7 @@ class ModelsGC(AbstractLoopingThread):
             if not acquired:
                 raise WithBreak
 
-            _, rmed_mem_ids, rmed_disk_ids = self._models.garbage_collect(
+            _, memory_evicted_model_ids, disk_evicted_model_ids = self._models.garbage_collect(
                 exclude_disk_model_ids=self._local_model_ids
             )
 
@@ -1489,16 +1507,16 @@ class ModelsGC(AbstractLoopingThread):
         if not acquired:
             self._models.set_global_preference_policy("w")
             with LockedGlobalModelsGC(self._models, "w"):
-                _, rmed_mem_ids, rmed_disk_ids = self._models.garbage_collect(
+                _, memory_evicted_model_ids, disk_evicted_model_ids = self._models.garbage_collect(
                     exclude_disk_model_ids=self._local_model_ids
                 )
             self._models.set_global_preference_policy("r")
 
-        rmed_mem_models = ids_to_models(rmed_mem_ids)
-        rmed_disk_models = ids_to_models(rmed_disk_ids)
+        memory_evicted_models = ids_to_models(memory_evicted_model_ids)
+        disk_evicted_models = ids_to_models(disk_evicted_model_ids)
 
-        self._log_removed_models(rmed_mem_models, memory=True)
-        self._log_removed_models(rmed_disk_models, disk=True)
+        self._log_removed_models(memory_evicted_models, memory=True)
+        self._log_removed_models(disk_evicted_models, disk=True)
 
         self._remove_stale_models()
 
@@ -1533,10 +1551,14 @@ class ModelsGC(AbstractLoopingThread):
             with LockedModel(self._models, "w", model_name, model_version):
                 status, ts = self._models.has_model(model_name, model_version)
                 if status == "in-memory":
-                    logger().info(f"unloading stale model {model_name} of version {model_version}")
+                    logger().info(
+                        f"unloading stale model {model_name} of version {model_version} using the garbage collector"
+                    )
                     self._models.unload_model(model_name, model_version)
                 if status in ["in-memory", "on-disk"]:
-                    logger().info(f"removing stale model {model_name} of version {model_version}")
+                    logger().info(
+                        f"removing stale model {model_name} of version {model_version} using the garbage collector"
+                    )
                     self._models.remove_model(model_name, model_version)
 
     def _log_removed_models(
@@ -1564,9 +1586,9 @@ class ModelsGC(AbstractLoopingThread):
                 message += ", "
             else:
                 if memory:
-                    message += " removed from the memory cache"
+                    message += " removed from the memory cache using the garbage collector"
                 if disk:
-                    message += " removed from the disk cache"
+                    message += " removed from the disk cache using the garbage collector"
 
         logger().info(message)
 
@@ -1595,8 +1617,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
         self._spec_models = CuratedModelResources(self._api_spec["curated_model_resources"])
         self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
-            if not self._spec_models.is_local(model_name):
-                self._s3_paths.append(self._spec_models[model_name]["model_path"])
+            self._s3_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -1609,15 +1630,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
             self._is_dir_used = False
             self._models_dir = None
 
-        if self._api_spec["predictor"]["type"] == "python":
-            self._predictor_type = PythonPredictorType
-        if self._api_spec["predictor"]["type"] == "tensorflow":
-            if self._api_spec["compute"]["inf"] > 0:
-                self._predictor_type = TensorFlowNeuronPredictorType
-            else:
-                self._predictor_type = TensorFlowPredictorType
-        if self._api_spec["predictor"]["type"] == "onnx":
-            self._predictor_type = ONNXPredictorType
+        self._predictor_type = predictor_type_from_api_spec(self._api_spec)
 
         self._make_local_models_available()
 
@@ -1634,6 +1647,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 )
                 ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
                 ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
+                # removable is set to false to prevent the local models from being removed
                 self._tree.update_model(
                     bucket="",
                     model_name=model_name,
@@ -1641,7 +1655,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
                     model_path=ondisk_model_version_path,
                     sub_paths=ondisk_paths,
                     timestamp=timestamp_utc,
-                    tree_removable=False,
+                    removable=False,
                 )
 
             for model_version in model["versions"]:
@@ -1650,6 +1664,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 )
                 ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
                 ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
+                # removable is set to false to prevent the local models from being removed
                 self._tree.update_model(
                     bucket="",
                     model_name=model_name,
@@ -1657,7 +1672,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
                     model_path=ondisk_model_version_path,
                     sub_paths=ondisk_paths,
                     timestamp=timestamp_utc,
-                    tree_removable=False,
+                    removable=False,
                 )
 
     def _update_models_tree(self) -> None:
@@ -1687,90 +1702,3 @@ class ModelTreeUpdater(AbstractLoopingThread):
         )
 
         logger().debug(f"{self.__class__.__name__} cron heartbeat")
-
-
-class ModelPreloader(AbstractLoopingThread):
-    """
-    Model preloader for models that had only been called using either tag ("latest" or "highest") for at least a certain number of times.
-    """
-
-    def __init__(self, interval: int, caching: bool, models: ModelsHolder, tree: ModelsTree):
-        """
-        Args:
-            interval: How often to update the models tree. Measured in seconds.
-            caching: Whether caching is enabled or not. Can only set caching to True.
-            models: The object holding all models in memory / on disk.
-            tree: Model tree representation of the available models on the S3 upstream.
-        """
-        AbstractLoopingThread.__init__(self, interval, self._preload_models)
-
-        if not caching:
-            raise NotImplementedError(
-                "the model preloader hasn't been implement for when the caching is disabled"
-            )
-
-        if tree is not None and caching is False:
-            raise ValueError("tree must be None when caching is disabled")
-
-        self._cache_enabled = caching
-        self._models = models
-
-        if caching:
-            self._tree = tree
-
-    def _preload_models(self) -> None:
-        # preload new models that have only been called using the "latest" tag
-        latest_model_names, ts = self._models.get_model_names_by_tag_count("latest", 10)
-        for model_name, model_ts in zip(latest_model_names, ts):
-            if self._cache_enabled:
-                self._preload_model_when_caching("timestamps", model_name, model_ts)
-            else:
-                self._preload_model_when_not_caching("timestamps", model_name, model_ts)
-
-        # preload new models that have only been called using the "highest" tag
-        highest_model_names, ts = self._models.get_model_names_by_tag_count("highest", 10)
-        for model_name, model_ts in zip(latest_model_names, ts):
-            if self._cache_enabled:
-                self._preload_model_when_caching("versions", model_name, model_ts)
-            else:
-                self._preload_model_when_not_caching("timestamps", model_name, model_ts)
-
-    def _preload_model_when_caching(self, dict_key: str, model_name: str, model_ts: int) -> None:
-
-        # get the latest model info according to the model name and dict key selector
-        model_info = self._tree.model_info(model_name)
-        idx = model_info[dict_key].index(max(model_info[dict_key]))
-        model_version = model_info["versions"][idx]
-        model_path = model_info["model_paths"][idx]
-
-        # verify if the latest model has to be preloaded or not (maybe it already got loaded)
-        update_model = False
-        with LockedModel(self._models, "r", model_name, model_version):
-            status, current_ts = self._models.has_model(model_name, model_version)
-            if current_ts >= model_ts:
-                raise WithBreak
-            update_model = True
-
-        if not update_model:
-            return
-
-        # preload the model
-        with LockedModel(self._models, "w", model_name, model_version):
-            status, current_ts = self._models.has_model(model_name, model_version)
-            if current_ts >= model_ts:
-                raise WithBreak
-
-            if status == "in-memory":
-                self._models.remove_model(model_name, model_version)
-                self._models.download_model(
-                    model_info["bucket"], model_name, model_version, model_path
-                )
-
-            self._models.load_model(model_name, model_version, model_ts, ["latest", "highest"])
-
-    def _preload_model_when_not_caching(
-        self, dict_key: str, model_name: str, model_ts: int
-    ) -> None:
-
-        # TODO implement "latest"/"highest" model preloader when caching is disabled
-        pass

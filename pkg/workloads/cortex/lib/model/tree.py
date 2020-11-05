@@ -48,7 +48,6 @@ class ModelsTree:
 
         if not model_id in self._locks:
             lock = ReadWriteLock()
-            lock_id = id(lock)
             self._create_lock.acquire()
             if model_id not in self._locks:
                 self._locks[model_id] = lock
@@ -140,17 +139,16 @@ class ModelsTree:
                     updated_model_ids.add(model_id)
 
         old_model_ids = set(self.models.keys()) - current_model_ids
-        aux_old_model_ids = old_model_ids
 
         for old_model_id in old_model_ids:
             model_name, model_version = old_model_id.rsplit("-", maxsplit=1)
+            if old_model_id not in self._removable:
+                continue
             with LockedModelsTree(self, "w", model_name, model_version):
-                if old_model_id in self._removable:
-                    del self.models[old_model_id]
-                    self._removable = self._removable - set([old_model_id])
-                    old_model_ids = old_model_ids - set([old_model_id])
+                del self.models[old_model_id]
+                self._removable = self._removable - set([old_model_id])
 
-        return aux_old_model_ids, updated_model_ids
+        return old_model_ids, updated_model_ids
 
     def update_model(
         self,
@@ -160,7 +158,7 @@ class ModelsTree:
         model_path: str,
         sub_paths: List[str],
         timestamp: datetime.datetime,
-        tree_removable: bool,
+        removable: bool,
     ) -> None:
         """
         Updates the model tree with the given model.
@@ -174,32 +172,32 @@ class ModelsTree:
             model_path: The model path to the versioned model.
             sub_paths: A list of filepaths for each file of the model.
             timestamp: When was the model path updated the last time.
-            tree_removable: If update_models method is allowed to remove the model.
+            removable: If update_models method is allowed to remove the model.
 
         Returns:
             True if the model wasn't in the tree or if the timestamp is newer. False otherwise.
         """
 
         model_id = f"{model_name}-{model_version}"
-        changed = False
+        has_changed = False
         if model_id not in self.models:
-            changed = True
+            has_changed = True
         elif self.models[model_id]["timestamp"] < timestamp:
-            changed = True
+            has_changed = True
 
-        if changed or model_id in self.models:
+        if has_changed or model_id in self.models:
             self.models[model_id] = {
                 "bucket": bucket,
                 "path": model_path,
                 "sub_paths": sub_paths,
                 "timestamp": timestamp,
             }
-            if tree_removable:
+            if removable:
                 self._removable.add(model_id)
             else:
                 self._removable = self._removable - set([model_id])
 
-        return changed
+        return has_changed
 
     def model_info(self, model_name: str) -> dict:
         """
@@ -231,6 +229,7 @@ class ModelsTree:
             "timestamps": [],
         }
 
+        # to ensure atomicity
         models = self.models.copy()
         for model_id in models:
             _model_name, model_version = model_id.rsplit("-", maxsplit=1)
@@ -253,6 +252,8 @@ class ModelsTree:
             List of all model names.
         """
         model_names = set()
+
+        # to ensure atomicity
         models = self.models.copy()
         for model_id in models:
             model_name = model_id.rsplit("-", maxsplit=1)[0]
@@ -284,6 +285,7 @@ class ModelsTree:
         """
 
         models_info = {}
+        # to ensure atomicity
         models = self.models.copy()
 
         # extract model names

@@ -40,11 +40,6 @@ def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
         rm_file(zip_path)
 
 
-def touch_file(filename: str):
-    if not os.path.exists(filename):
-        open(filename, "w").close()
-
-
 def mkdir_p(dir_path):
     pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
 
@@ -97,10 +92,16 @@ def get_leftmost_part_of_path(path: str) -> str:
     Then this function will return
     /models/
     """
+    has_leading_slash = False
+    if path.startswith("/"):
+        path = path[1:]
+        has_leading_slash = True
+
     basename = ""
     while path:
         path, basename = os.path.split(path)
-    return basename
+
+    return "/" * has_leading_slash + basename
 
 
 def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
@@ -116,11 +117,20 @@ def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
     models/tensorflow/iris/1569001258/saved_model.pb
     """
     new_paths = []
-    for path in paths:
-        matches = [p.find(path) for p in paths]
-        matches = [match for match in matches if match != -1]
-        if len(matches) == 1:
-            new_paths.append(path)
+
+    split_paths = [list(filter(lambda x: x != "", path.split("/"))) for path in paths]
+    create_set_from_list = lambda l: set([(idx, split) for idx, split in enumerate(l)])
+    split_set_paths = [create_set_from_list(split_path) for split_path in split_paths]
+
+    for id_a, a in enumerate(split_set_paths):
+        matches = 0
+        for id_b, b in enumerate(split_set_paths):
+            if id_a == id_b:
+                continue
+            if a.issubset(b):
+                matches += 1
+        if matches == 0:
+            new_paths.append(paths[id_a])
 
     return new_paths
 
@@ -273,13 +283,3 @@ def is_float_or_int_list(var):
         if not is_float_or_int(item):
             return False
     return True
-
-
-def is_subset(subset, superset):
-    """
-    Checks if subset is a sub set of superset.
-    """
-    sub = set(subset)
-    sup = set(superset)
-
-    return len(sub.intersection(sup)) == len(sub)

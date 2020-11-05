@@ -40,6 +40,10 @@ class S3(object):
         self.s3 = boto3.client("s3", **client_config)
 
     @staticmethod
+    def construct_s3_path(bucket_name: str, prefix: str) -> str:
+        return f"s3://{bucket_name}/{prefix}"
+
+    @staticmethod
     def deconstruct_s3_path(s3_path) -> Tuple[str, str]:
         path = util.trim_prefix(s3_path, "s3://")
         bucket = path.split("/")[0]
@@ -143,18 +147,14 @@ class S3(object):
         paths = []
         timestamps = []
 
-        keys = []
-        tss = []
+        timestamp_map = {}
         for key, ts in self._get_matching_s3_keys_generator(prefix, suffix):
-            keys.append(key)
-            tss.append(ts)
+            timestamp_map[key] = ts
 
-        for key, ts in zip(keys, tss):
-            matches = [p.find(key) for p in keys]
-            matches = [match for match in matches if match != -1]
-            if len(matches) == 1:
-                paths.append(key)
-                timestamps.append(ts)
+        filtered_keys = util.remove_non_empty_directory_paths(timestamp_map.keys())
+        for key in filtered_keys:
+            paths.append(key)
+            timestamps.append(timestamp_map[key])
 
         return paths, timestamps
 

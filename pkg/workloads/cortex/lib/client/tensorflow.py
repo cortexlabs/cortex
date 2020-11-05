@@ -15,6 +15,7 @@
 import os
 import copy
 import grpc
+import threading as td
 from typing import Any, Dict, Optional, List
 
 from cortex.lib.exceptions import UserRuntimeException, CortexException, UserException, WithBreak
@@ -145,7 +146,7 @@ class TensorFlowClient:
 
             # determine model version
             if tag == "latest":
-                versions = self._client.poll_available_models(model_name)
+                versions = self._client.poll_available_model_versions(model_name)
                 if len(versions) == 0:
                     raise UserException(
                         f"model '{model_name}' accessed with tag {tag} couldn't be found"
@@ -205,9 +206,9 @@ class TensorFlowClient:
             tfs_was_unresponsive = False
             with LockedModel(self._models, "r", model_name, model_version):
                 logger().info(f"checking the {model_name} {model_version} status")
-                status, upstream_ts = self._models.has_model(model_name, model_version)
+                status, local_ts = self._models.has_model(model_name, model_version)
                 if status in ["not-available", "on-disk"] or (
-                    status != "not-available" and upstream_ts < current_upstream_ts
+                    status != "not-available" and local_ts < current_upstream_ts
                 ):
                     logger().info(
                         f"model {model_name} of version {model_version} is not loaded (with status {status} or older ts)"
@@ -224,14 +225,14 @@ class TensorFlowClient:
                     prediction = self._client.predict(model_input, model_name, model_version)
                 except grpc.RpcError as e:
                     # effectively when it got restarted
-                    if len(self._client.poll_available_models(model_name)) > 0:
+                    if len(self._client.poll_available_model_versions(model_name)) > 0:
                         raise
                     tfs_was_unresponsive = True
 
             # remove model from disk and memory references if TFS gets unresponsive
             if tfs_was_unresponsive:
                 with LockedModel(self._models, "w", model_name, model_version):
-                    available_versions = self._client.poll_available_models(model_name)
+                    available_versions = self._client.poll_available_model_versions(model_name)
                     status, _ = self._models.has_model(model_name, model_version)
                     if not (status == "in-memory" and model_version not in available_versions):
                         raise WithBreak
@@ -247,11 +248,11 @@ class TensorFlowClient:
                 with LockedModel(self._models, "w", model_name, model_version):
 
                     # check model status
-                    status, upstream_ts = self._models.has_model(model_name, model_version)
+                    status, local_ts = self._models.has_model(model_name, model_version)
 
                     # refresh disk model
                     if status == "not-available" or (
-                        status in ["on-disk", "in-memory"] and upstream_ts < current_upstream_ts
+                        status in ["on-disk", "in-memory"] and local_ts < current_upstream_ts
                     ):
                         # unload model from TFS
                         if status == "in-memory":
@@ -303,22 +304,17 @@ class TensorFlowClient:
                                 "signature_key": self._determine_model_signature_key(model_name),
                             },
                         )
-                    except Exception:
-                        raise WithBreak
+                    except Exception as e:
+                        raise UserRuntimeException(
+                            f"failed (re-)loading model {model_name} of version {model_version} (thread {td.get_ident()})",
+                            str(e),
+                        )
 
                     # run prediction
                     self._models.get_model(model_name, model_version, tag)
                     prediction = self._client.predict(model_input, model_name, model_version)
 
-            if prediction:
-                return prediction
-            if tag == "":
-                raise UserException(
-                    f"could not run prediction on model '{model_name}' of version '{model_version}' because the model couldn't be loaded or isn't available"
-                )
-            raise UserException(
-                f"could not run prediction on model '{model_name}' accessed with '{tag}' tag because the model couldn't be loaded or isn't available"
-            )
+            return prediction
 
     def _load_model(
         self, model_path: str, model_name: str, model_version: str, signature_key: Optional[str]
@@ -344,6 +340,7 @@ class TensorFlowClient:
         Remove models from TFS.
         Must only be used when caching enabled.
         """
+        logger().info(f"unloading models with model IDs {model_ids} from TFS")
 
         models = {}
         for model_id in model_ids:
@@ -366,11 +363,8 @@ class TensorFlowClient:
         Determine what's the signature key for a given model from API spec.
         """
         if self._models_dir:
-            signature_key = self._api_spec["predictor"]["models"]["signature_key"]
-        else:
-            signature_key = self._spec_models[model_name]["signature_key"]
-
-        return signature_key
+            return self._api_spec["predictor"]["models"]["signature_key"]
+        return self._spec_models[model_name]["signature_key"]
 
     def _get_latest_model_version_from_tree(self, model_name: str, model_info: dict) -> str:
         """

@@ -408,7 +408,9 @@ func (models *MultiModels) UserStr() string {
 	} else if len(models.Paths) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
 		for _, model := range models.Paths {
-			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
+			modelUserStr := s.Indent(model.UserStr(), "    ")
+			modelUserStr = modelUserStr[:2] + "-" + modelUserStr[3:]
+			sb.WriteString(modelUserStr)
 		}
 	}
 	if models.SignatureKey != nil {
@@ -425,10 +427,10 @@ func (models *MultiModels) UserStr() string {
 
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelPathKey, model.ModelPath))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsNameKey, model.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, model.ModelPath))
 	if model.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *model.SignatureKey))
 	}
 	return sb.String()
 }

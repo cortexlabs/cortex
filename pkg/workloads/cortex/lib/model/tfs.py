@@ -109,7 +109,9 @@ class TensorFlowServingAPI:
             raise NameError("tensorflow_serving_api and tensorflow packages not installed")
 
         self.address = address
-        self.models = {}
+        self.models = (
+            {}
+        )  # maps the model ID to the model metadata (signature def, signature key and so on)
 
         self.channel = grpc.insecure_channel(self.address)
         self._service = model_service_pb2_grpc.ModelServiceStub(self.channel)
@@ -127,9 +129,7 @@ class TensorFlowServingAPI:
         except grpc.RpcError as error:
             if error.code() in [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED]:
                 return False
-            return True
-        else:
-            return True
+        return True
 
     def add_single_model(
         self,
@@ -236,8 +236,8 @@ class TensorFlowServingAPI:
         if not (response and response.status.error_code == 0):
             if response:
                 raise CortexException(
-                    "couldn't load user-requested models - failed with error code {}: {}".format(
-                        response.status.error_code, response.status.error_message
+                    "couldn't load user-requested models {} - failed with error code {}: {}".format(
+                        model_names, response.status.error_code, response.status.error_message
                     )
                 )
             else:
@@ -246,7 +246,7 @@ class TensorFlowServingAPI:
         # get models metadata
         for model_name, versions, signature_key in zip(model_names, model_versions, signature_keys):
             for model_version in versions:
-                self._set_model_signatures(model_name, model_version, signature_key)
+                self._load_model_signatures(model_name, model_version, signature_key)
 
     def remove_models(
         self,
@@ -294,62 +294,14 @@ class TensorFlowServingAPI:
         if not (response and response.status.error_code == 0):
             if response:
                 raise CortexException(
-                    "couldn't unload user-requested models - failed with error code {}: {}".format(
-                        response.status.error_code, response.status.error_message
+                    "couldn't unload user-requested models {} - failed with error code {}: {}".format(
+                        model_names, response.status.error_code, response.status.error_message
                     )
                 )
             else:
                 raise CortexException("couldn't unload user-requested models")
 
-    def refresh(self, timeout: Optional[float] = None) -> None:
-        """
-        Reloads existing models if they have changed on disk.
-
-        Note: doesn't appear to be reloading models that have changed on disk. Probably the best way is to
-        remove_single_model and then call add_single_model to reload a versioned model.
-
-        Raises:
-            grpc.RpcError in case something bad happens while communicating.
-                StatusCode.DEADLINE_EXCEEDED when timeout is encountered. StatusCode.UNAVAILABLE when the service is unreachable.
-            cortex.lib.exceptions.CortexException if a non-0 response code is returned (i.e. model couldn't be reloaded).
-        """
-
-        request = model_management_pb2.ReloadConfigRequest()
-        model_server_config = model_server_config_pb2.ModelServerConfig()
-        config_list = model_server_config_pb2.ModelConfigList()
-
-        remaining_model_names = self._get_model_names()
-        for model_name in remaining_model_names:
-            versions, model_disk_path = self._get_model_info(model_name)
-            versions = [int(version) for version in versions]
-            model_config = config_list.config.add()
-            model_config.name = model_name
-            model_config.base_path = model_disk_path
-            model_config.model_version_policy.CopyFrom(
-                ServableVersionPolicy(specific=Specific(versions=versions))
-            )
-            model_config.model_platform = "tensorflow"
-
-        model_server_config.model_config_list.CopyFrom(config_list)
-        request.config.CopyFrom(model_server_config)
-
-        response = self._service.HandleReloadConfigRequest(request, timeout)
-
-        if not (response and response.status.error_code == 0):
-            if response:
-                raise CortexException(
-                    "couldn't reload user-requested models - failed with error code {}: {}".format(
-                        response.status.error_code, response.status.error_message
-                    )
-                )
-            else:
-                raise CortexException("couldn't reload user-requested models")
-
-        # should theoretically call _set_model_signatures for each model,
-        # but since they don't appear to get reloaded, this would be pointless
-        # to be kept in the back of the mind
-
-    def poll_available_models(self, model_name: str) -> List[str]:
+    def poll_available_model_versions(self, model_name: str) -> List[str]:
         """
         Gets the available model versions from TFS.
 
@@ -450,11 +402,11 @@ class TensorFlowServingAPI:
             return True
         return False
 
-    def _set_model_signatures(
+    def _load_model_signatures(
         self, model_name: str, model_version: str, signature_key: Optional[str] = None
     ) -> None:
         """
-        Call it only when the model has already been loaded into memory.
+        Queries the signature defs from TFS.
 
         Args:
             model_name: Name of the model.
@@ -685,7 +637,7 @@ class TensorFlowServingAPIClones:
         """
         Tests whether all TFS servers are accessible or not.
         """
-        return False not in [client.is_tfs_accessible() for client in self._clients]
+        return all([client.is_tfs_accessible() for client in self._clients])
 
     def add_single_model(
         self,
@@ -773,22 +725,7 @@ class TensorFlowServingAPIClones:
         for client in self._clients:
             client.remove_models(model_names, model_versions, timeout)
 
-    def refresh(self, timeout: Optional[float] = None) -> None:
-        """
-        Reloads existing models if they have changed on disk. Applicable to all TFS servers.
-
-        Note: doesn't appear to be reloading models that have changed on disk. Probably the best way is to
-        remove_single_model and then call add_single_model to reload a versioned model.
-
-        Raises:
-            grpc.RpcError in case something bad happens while communicating.
-                StatusCode.DEADLINE_EXCEEDED when timeout is encountered. StatusCode.UNAVAILABLE when the service is unreachable.
-            cortex.lib.exceptions.CortexException if a non-0 response code is returned (i.e. model couldn't be reloaded).
-        """
-        for client in self._clients:
-            client.refresh(timeout)
-
-    def poll_available_models(self, model_name: str) -> List[str]:
+    def poll_available_model_versions(self, model_name: str) -> List[str]:
         """
         Gets the available model versions from TFS.
         Since all TFS servers are assumed to have the same models in memory, it makes sense to just poll one.
@@ -800,10 +737,7 @@ class TensorFlowServingAPIClones:
             List of the available versions for the given model from TFS.
         """
 
-        # iterate through all clients to make sure they are all online
-        for client in self._clients:
-            versions = client.poll_available_models(model_name)
-        return versions
+        return self._clients[0].poll_available_model_versions(model_name)
 
     def get_registered_model_ids(self) -> List[str]:
         """

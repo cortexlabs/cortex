@@ -125,56 +125,46 @@ def main():
     caching_enabled = is_model_caching_enabled(api_spec)
     model_dir = os.getenv("CORTEX_MODEL_DIR")
 
-    # create cron dirs if they don't exist
+    # start live-reloading when model caching not enabled > 1
+    cron = None
     if not caching_enabled:
+        # create cron dirs if they don't exist
         os.makedirs("/run/cron", exist_ok=True)
         os.makedirs("/tmp/cron", exist_ok=True)
 
-    # start live-reloading when model caching not enabled > 1
-    cron = None
-    if (
-        not caching_enabled
-        and predictor_type
-        not in [
-            TensorFlowPredictorType,
-            TensorFlowNeuronPredictorType,
-        ]
-        and are_models_specified(api_spec)
-    ):
-        cron = FileBasedModelsTreeUpdater(
-            interval=10,
-            api_spec=api_spec,
-            download_dir=model_dir,
-        )
-        cron.start()
-    elif not caching_enabled and predictor_type == TensorFlowPredictorType:
-        tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
-        tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
-        cron = TFSModelLoader(
-            interval=10,
-            api_spec=api_spec,
-            address=f"{tf_serving_host}:{tf_serving_port}",
-            tfs_model_dir=model_dir,
-            download_dir=model_dir,
-        )
-        cron.start()
-    elif not caching_enabled and predictor_type == TensorFlowNeuronPredictorType:
-        cron = prepare_tfs_servers_api(api_spec, model_dir)
-        cron.start()
-
-    # wait until the cron finishes its first pass
-    if cron:
-        while not cron.ran_once():
-            time.sleep(0.25)
-
-        # disable live reloading for the TF predictor when Inferentia is used and when multiple processes are used
-        if (
-            not caching_enabled
-            and predictor_type == TensorFlowNeuronPredictorType
-            and has_multiple_tf_servers
-            and num_processes
+        # prepare crons
+        if predictor_type in [PythonPredictorType, ONNXPredictorType] and are_models_specified(
+            api_spec
         ):
-            cron.stop()
+            cron = FileBasedModelsTreeUpdater(
+                interval=10,
+                api_spec=api_spec,
+                download_dir=model_dir,
+            )
+            cron.start()
+        elif predictor_type == TensorFlowPredictorType:
+            tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
+            tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
+            cron = TFSModelLoader(
+                interval=10,
+                api_spec=api_spec,
+                address=f"{tf_serving_host}:{tf_serving_port}",
+                tfs_model_dir=model_dir,
+                download_dir=model_dir,
+            )
+            cron.start()
+        elif predictor_type == TensorFlowNeuronPredictorType:
+            cron = prepare_tfs_servers_api(api_spec, model_dir)
+            cron.start()
+
+        # wait until the cron finishes its first pass
+        if cron:
+            while not cron.ran_once():
+                time.sleep(0.25)
+
+            # disable live reloading for the TF predictor when Inferentia is used and when multiple processes are used
+            if predictor_type == TensorFlowNeuronPredictorType and has_multiple_tf_servers:
+                cron.stop()
 
     if api_spec["kind"] == "RealtimeAPI":
         # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py

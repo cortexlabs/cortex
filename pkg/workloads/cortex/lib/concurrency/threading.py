@@ -20,7 +20,7 @@ class ReadWriteLock:
     """
     Locking object allowing for write once, read many operations.
 
-    The lock cannot be acquired multiple times in a single thread without paired release calls.
+    The lock must not be acquired multiple times in a single thread without paired release calls.
 
     Can set different priority policies: "r" for read-preferring RW lock allowing for maximum concurrency
     or can be set to "w" for write-preferring RW lock to prevent from starving the writer.
@@ -37,6 +37,7 @@ class ReadWriteLock:
         self._write_preferred.set()
         self._read_allowed = td.Condition(td.RLock())
         self._readers = []
+        # a single writer is supported despite the fact that this is a list.
         self._writers = []
 
     def acquire(self, mode: str, timeout: Optional[float] = None) -> bool:

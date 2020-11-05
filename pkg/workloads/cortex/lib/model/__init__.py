@@ -32,5 +32,4 @@ from cortex.lib.model.cron import (
     find_ondisk_models,
     ModelsGC,
     ModelTreeUpdater,
-    ModelPreloader,
 )

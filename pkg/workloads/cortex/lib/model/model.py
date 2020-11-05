@@ -74,11 +74,13 @@ class ModelsHolder:
         self._load_callback = on_load_callback
         self._remove_callback = on_remove_callback
 
-        self._models = {}
-        self._timestamps = {}
-        self._locks = {}
+        self._models = {}  # maps the model ID to the model that's placed in memory
+        self._timestamps = {}  # maps the model ID to the last access time of the model
+        self._locks = {}  # maps the model ID to the underlying lock for each model
 
-        self._create_lock = td.RLock()
+        self._create_lock = (
+            td.RLock()
+        )  # to ensure atomicity when 2 threads are trying to create locks for the same model ID that doesn't exist in self._locks
         self._global_lock = ReadWriteLock()
 
     def set_callback(self, ctype: str, callback: Callable) -> None:
@@ -96,8 +98,6 @@ class ModelsHolder:
         if ctype == "remove":
             self._remove_callback = callback
 
-    #################
-
     def global_acquire(self, mode: str, timeout: Optional[float] = None) -> None:
         """
         Acquire shared/exclusive (R/W) access over all models.
@@ -108,7 +108,7 @@ class ModelsHolder:
             mode: "r" for read lock, "w" for write lock.
             timeout: How many seconds to wait to acquire the lock.
         """
-        self._global_lock.acquire(mode)
+        self._global_lock.acquire(mode, timeout)
 
     def global_release(self, mode: str) -> None:
         """
@@ -141,7 +141,6 @@ class ModelsHolder:
 
         if not model_id in self._locks:
             lock = ReadWriteLock()
-            lock_id = id(lock)
             self._create_lock.acquire()
             if model_id not in self._locks:
                 self._locks[model_id] = lock
@@ -166,8 +165,6 @@ class ModelsHolder:
         Wrapper of cortex.lib.concurrency.ReadWriteLock.set_preference_policy.
         """
         return self._global_lock.set_preference_policy(prefer)
-
-    #################
 
     def get_model_names_by_tag_count(self, tag: str, count: int) -> Tuple[List[str], List[int]]:
         """
@@ -398,26 +395,16 @@ class ModelsHolder:
             return None
 
         if mem:
+            # remove model from memory (but keeps it on disk)
             self._models[model_id]["model"] = None
 
         if disk:
             disk_path = self._models[model_id]["disk_path"]
             shutil.rmtree(disk_path)
-            # TODO check if this portion of code can be removed
-            # the suspicion is that by deleting a top directory, then this might interfere with the downloading
-            # procedure of another model with the same name
-            # model_top_dir = os.path.dirname(disk_path)
-            # if os.path.isdir(model_top_dir) and len(os.listdir(model_top_dir)) == 0:
-            #     try:
-            #         shutil.rmtree(model_top_dir)
-            #     except FileNotFoundError:
-            #         pass
 
         if disk or del_reference:
             del self._models[model_id]
             del self._timestamps[model_id]
-
-    #################
 
     def garbage_collect(
         self, exclude_disk_model_ids: List[str] = [], dry_run: bool = False
@@ -426,9 +413,11 @@ class ModelsHolder:
         Removes stale in-memory and on-disk models based on LRU policy.
         Also calls the "remove" callback before removing the models from this object. The callback must not raise any exceptions.
 
+        Must be called with a write lock unless dry_run is set to true.
+
         Args:
-            exclude_disk_model_ids: Supposedly stale model IDs to exclude from removing from disk. Necessary for locally-provided models.
-            dry_run: Just test if there are any models to remove. Can apply shared lock (R) instead.
+            exclude_disk_model_ids: Model IDs to exclude from removing from disk. Necessary for locally-provided models.
+            dry_run: Just test if there are any models to remove. If set to true, this method can then be called with a read lock.
 
         Returns:
             A 3-element tuple. First element tells whether models had to be collected. The 2nd and 3rd elements contain the model IDs that were removed from memory and disk respectively.
@@ -437,16 +426,12 @@ class ModelsHolder:
         if self._mem_cache_size <= 0 or self._disk_cache_size <= 0:
             return collected
 
-        # TODO retrieve model IDs that go over the specified threshold,
-        # BUT for models only present on disk (probably another parameter is required to specify that)
-        # it's not mission critical
         stale_mem_model_ids = self._lru_model_ids(self._mem_cache_size, filter_in_mem=True)
         stale_disk_model_ids = self._lru_model_ids(
             self._disk_cache_size - len(exclude_disk_model_ids), filter_in_mem=False
         )
 
         if self._remove_callback and not dry_run:
-            logger().info(f"collecting models {stale_mem_model_ids} from TFS")
             self._remove_callback(stale_mem_model_ids)
 
         # don't delete excluded model IDs from disk
@@ -456,8 +441,12 @@ class ModelsHolder:
         ]
 
         if not dry_run:
-            logger().info(f"collecting models {stale_mem_model_ids} from memory")
-            logger().info(f"collecting models {stale_disk_model_ids} from disk")
+            logger().info(
+                f"unloading models {stale_mem_model_ids} from memory using the garbage collector"
+            )
+            logger().info(
+                f"unloading models {stale_disk_model_ids} from disk using the garbage collector"
+            )
             for model_id in stale_mem_model_ids:
                 self.remove_model_by_id(model_id, mem=True, disk=False)
             for model_id in stale_disk_model_ids:
@@ -476,11 +465,11 @@ class ModelsHolder:
 
     def _lru_model_ids(self, threshold: int, filter_in_mem: bool) -> List[str]:
         """
-        Looking at the LRU, this method gets the model IDs which find themselves at higher indexes than the threshold.
+        Sort model ids by last access and get the model ids with ranks below the specified threshold.
 
         Args:
             threshold: The memory cache size or the disk cache size.
-            filter_in_mem: In the counting process, set whether to only look at models loaded in memory or not. True for only looking at models loaded in memory.
+            filter_in_mem: In the counting process, set whether to only look at models loaded in memory or not. True for only looking at models loaded in memory and on disk.
 
         Returns:
             A list of stale model IDs.
@@ -492,14 +481,13 @@ class ModelsHolder:
         }
         model_ids = []
         for counter, model_id in enumerate(timestamps):
+            # skip models if they are not loaded in memory but on disk
             if filter_in_mem and self._models[model_id]["model"] is None:
                 continue
-            if counter + 1 > threshold:
+            if counter >= threshold:
                 model_ids.append(model_id)
 
         return model_ids
-
-    #################
 
 
 def ids_to_models(model_ids: List[str]) -> Dict[str, List[str]]:
@@ -520,7 +508,7 @@ def ids_to_models(model_ids: List[str]) -> Dict[str, List[str]]:
 
 class LockedGlobalModelsGC:
     """
-    Applies global exclusive lock (W) on the models holder.
+    Applies global exclusive lock (R/W) on the models holder.
 
     For running the GC for all loaded models (or present on disk).
     This is the locking implementation for the stop-the-world GC.

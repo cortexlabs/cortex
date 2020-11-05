@@ -167,6 +167,7 @@ class LockedFile:
         return self._fd
 
     def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        # sometimes the `__del__` isn't run right away when the context manager exits
         self.__del__()
 
         if exc_value is not None and exc_type is not WithBreak:
@@ -176,6 +177,7 @@ class LockedFile:
     def __del__(self):
         if hasattr(self, "_fd"):
             self._fd.close()
+
         if hasattr(self, "_lock"):
             self._lock.release()
 

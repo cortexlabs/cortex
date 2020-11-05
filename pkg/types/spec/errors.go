@@ -352,7 +352,7 @@ var _neuronTfVersionedExpectedStructMessage = `
   |   └── saved_model.pb
   └── 2434389194/ (Version prefix, usually a timestamp)
 	  └── saved_model.pb
-	  
+
 or like
 
   %s
@@ -397,7 +397,7 @@ var _onnxVersionedExpectedStructMessage = `
   |   └── <model-name>.onnx // ONNX-exported file
   └── 2434389194/ (Version prefix)
 	  └── <model-name>.onnx // ONNX-exported file
-	  
+
 or like
 
   %s

@@ -49,13 +49,12 @@ class PythonClient:
         Args:
             api_spec: API configuration.
 
-            load_model_fn: Function to load model into memory.
             models: Holding all models into memory.
             model_dir: Where the models are saved on disk.
 
             models_tree: A tree of the available models from upstream.
             lock_dir: Where the resource locks are found. Only when processes_per_replica > 0 and caching disabled.
-            load_model_fn: Model loader function.
+            load_model_fn: Function to load model into memory.
         """
 
         self._api_spec = api_spec
@@ -179,7 +178,7 @@ class PythonClient:
 
                 # check model status
                 file_status = f.read()
-                if file_status == "" or file_status == "not available":
+                if file_status == "" or file_status == "not-available":
                     raise WithBreak
 
                 current_upstream_ts = int(file_status.split(" ")[1])
@@ -187,9 +186,9 @@ class PythonClient:
 
                 # grab shared access to models holder and retrieve model
                 with LockedModel(self._models, "r", model_name, model_version):
-                    status, upstream_ts = self._models.has_model(model_name, model_version)
+                    status, local_ts = self._models.has_model(model_name, model_version)
                     if status == "not-available" or (
-                        status == "in-memory" and upstream_ts < current_upstream_ts
+                        status == "in-memory" and local_ts < current_upstream_ts
                     ):
                         update_model = True
                         raise WithBreak
@@ -200,7 +199,7 @@ class PythonClient:
                     with LockedModel(self._models, "w", model_name, model_version):
                         status, _ = self._models.has_model(model_name, model_version)
                         if status == "not-available" or (
-                            status == "in-memory" and upstream_ts < current_upstream_ts
+                            status == "in-memory" and local_ts < current_upstream_ts
                         ):
                             if status == "not-available":
                                 logger().info(
@@ -257,10 +256,10 @@ class PythonClient:
             # grab shared access to models holder and retrieve model
             update_model = False
             with LockedModel(self._models, "r", model_name, model_version):
-                status, upstream_ts = self._models.has_model(model_name, model_version)
+                status, local_ts = self._models.has_model(model_name, model_version)
                 if status in ["not-available", "on-disk"] or (
                     status != "not-available"
-                    and upstream_ts < current_upstream_ts
+                    and local_ts < current_upstream_ts
                     and not (status == "in-memory" and model_name in self._spec_local_model_names)
                 ):
                     update_model = True
@@ -273,18 +272,16 @@ class PythonClient:
                 with LockedModel(self._models, "w", model_name, model_version):
 
                     # check model status
-                    status, upstream_ts = self._models.has_model(model_name, model_version)
+                    status, local_ts = self._models.has_model(model_name, model_version)
 
                     # refresh disk model
                     if model_name not in self._spec_local_model_names and (
                         status == "not-available"
-                        or (
-                            status in ["on-disk", "in-memory"] and upstream_ts < current_upstream_ts
-                        )
+                        or (status in ["on-disk", "in-memory"] and local_ts < current_upstream_ts)
                     ):
                         if status == "not-available":
                             logger().info(
-                                f"model {model_name} of version {model_version} not found locally; proceeding..."
+                                f"model {model_name} of version {model_version} not found locally; continuing with the download..."
                             )
                         elif status == "on-disk":
                             logger().info(
@@ -336,8 +333,11 @@ class PythonClient:
                             current_upstream_ts,
                             [tag],
                         )
-                    except Exception:
-                        raise WithBreak
+                    except Exception as e:
+                        raise UserRuntimeException(
+                            f"failed (re-)loading model {model_name} of version {model_version} (thread {td.get_ident()})",
+                            str(e),
+                        )
 
                     # retrieve model
                     model, _ = self._models.get_model(model_name, model_version, tag)
