@@ -327,7 +327,11 @@ var _upCmd = &cobra.Command{
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
 		}
 
-		fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv)
+		if envExists {
+			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv)
+		} else {
+			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv)
+		}
 	},
 }
 
