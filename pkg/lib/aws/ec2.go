@@ -18,6 +18,7 @@ package aws
 
 import (
 	"math"
+	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,6 +28,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
+
+var _armInstanceRegex = regexp.MustCompile(`^\w+[0-9]+\w*g\w*\.\w+$`)
+
+// instanceType must be a valid instance type that exists in AWS, e.g. g4dn.xlarge
+func IsARMInstance(instanceType string) bool {
+	return _armInstanceRegex.MatchString(instanceType)
+}
 
 func (c *Client) SpotInstancePrice(region string, instanceType string) (float64, error) {
 	result, err := c.EC2().DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{

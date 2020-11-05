@@ -38,6 +38,7 @@ const (
 	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
 	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
 	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
+	ErrARMInstancesNotSupported               = "clusterconfig.arm_instances_not_supported"
 	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
 	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
 	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
@@ -130,6 +131,13 @@ func ErrorInstanceTypeNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeNotSupported,
 		Message: fmt.Sprintf("instance type %s is not supported", instanceType),
+	})
+}
+
+func ErrorARMInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrARMInstancesNotSupported,
+		Message: fmt.Sprintf("ARM-based instances (including %s) are not supported", instanceType),
 	})
 }
 
