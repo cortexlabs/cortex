@@ -570,7 +570,6 @@ function print_endpoints() {
     api_gateway_endpoint=$(get_api_gateway_endpoint)
   fi
 
-  echo -e "\033[1mendpoints:\033[0m"
   echo "operator:          $operator_endpoint"  # before modifying this, search for this prefix
   echo "api load balancer: $api_load_balancer_endpoint"
   if [ "$CORTEX_API_GATEWAY" == "public" ]; then
