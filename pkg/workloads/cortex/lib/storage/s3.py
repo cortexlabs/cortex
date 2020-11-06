@@ -151,7 +151,7 @@ class S3(object):
         for key, ts in self._get_matching_s3_keys_generator(prefix, suffix):
             timestamp_map[key] = ts
 
-        filtered_keys = util.remove_non_empty_directory_paths(timestamp_map.keys())
+        filtered_keys = util.remove_non_empty_directory_paths(list(timestamp_map.keys()))
         for key in filtered_keys:
             paths.append(key)
             timestamps.append(timestamp_map[key])

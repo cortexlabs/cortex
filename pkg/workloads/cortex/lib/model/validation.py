@@ -415,7 +415,7 @@ def _validate_integer_placeholder(
     appearances = 0
     for idx, obj in enumerate(objects):
         if obj.isnumeric() and visited[idx] is False:
-            visited[idx] = True
+            visited[idx] = key_id
             appearances += 1
 
     if appearances > 1 and len(placeholders) > 1:

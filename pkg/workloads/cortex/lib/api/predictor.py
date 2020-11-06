@@ -483,12 +483,11 @@ def _validate_python_predictor_with_models(impl, api_spec):
                 f'when the python predictor type is used and models are specified in the api spec, adding the "python_client" argument is required',
             )
 
-        if getattr(impl, "load_method", None) is None:
+        if getattr(impl, "load_model", None) is None:
             raise UserException(
                 f"class {target_class_name}",
-                f'invalid signature for method "__init__"',
-                f'"python_client" is a required argument, but was not provided',
-                f'when the python predictor type is used and models are specified in the api spec, adding the "load_method" method is required',
+                f'required method "load_model" is not defined',
+                f'when the python predictor type is used and models are specified in the api spec, adding the "load_model" method is required',
             )
 
 
