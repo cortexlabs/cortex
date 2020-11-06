@@ -21,6 +21,7 @@ import pathlib
 import inspect
 from inspect import Parameter
 from copy import deepcopy
+from typing import Any
 
 
 def has_method(object, method: str):
@@ -229,3 +230,17 @@ def is_float_or_int_list(var):
         if not is_float_or_int(item):
             return False
     return True
+
+
+def render_jinja_template(jinja_template_file: str, context: dict) -> str:
+    from jinja2 import Environment, FileSystemLoader
+
+    template_path = pathlib.Path(jinja_template_file)
+
+    env = Environment(loader=FileSystemLoader(str(template_path.parent)))
+    env.trim_blocks = True
+    env.lstrip_blocks = True
+    env.rstrip_blocks = True
+
+    template = env.get_template(str(template_path.name))
+    return template.render(**context)
