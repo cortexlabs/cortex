@@ -40,12 +40,8 @@ rm -rf /mnt/workspace/proc-*-ready.txt
 # allow for the liveness check to pass until the API is running
 echo "9999999999" > /mnt/workspace/api_liveness.txt
 
-# export environment variables
-if [ -f "/mnt/project/.env" ]; then
-    set -a
-    source /mnt/project/.env
-    set +a
-fi
+# to export user-specified environment files
+source_env_file_cmd="if [ -f \"/mnt/project/.env\" ]; then set -a; source /mnt/project/.env; set +a; fi"
 
 if [ "$CORTEX_PROVIDER" != "local" ]; then
     if [ "$CORTEX_KIND" == "RealtimeAPI" ]; then
@@ -57,6 +53,8 @@ fi
 
 # execute script if present in project's directory
 if [ -f "/mnt/project/dependencies.sh" ]; then
+    eval $source_env_file_cmd
+    env
     exec bash -e /mnt/project/dependencies.sh
 fi
 
@@ -106,7 +104,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     # prepare uvicorn workers
     mkdir /run/uvicorn
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
-        create_s6_service "$uvicorn-$((i-1))" "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
+        create_s6_service "uvicorn-$((i-1))" "$source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
     done
 
     create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
@@ -122,7 +120,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
 
 # prepare batch otherwise
 else
-    create_s6_service "batch" "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+    create_s6_service "batch" "$source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 fi
 
 # run the python initialization script
