@@ -26,7 +26,6 @@ from typing import Any
 
 from fastapi import Body, FastAPI
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response, PlainTextResponse, JSONResponse
 from starlette.background import BackgroundTasks
@@ -52,14 +51,6 @@ loop.set_default_executor(request_thread_pool)
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 local_cache = {
     "api": None,
     "provider": None,
@@ -78,7 +69,7 @@ def update_api_liveness():
 
 @app.on_event("startup")
 def startup():
-    open("/mnt/workspace/api_readiness.txt", "a").close()
+    open(f"/mnt/workspace/proc-{os.getpid()}-ready.txt", "a").close()
     update_api_liveness()
 
 
@@ -86,6 +77,11 @@ def startup():
 def shutdown():
     try:
         os.remove("/mnt/workspace/api_readiness.txt")
+    except:
+        pass
+
+    try:
+        os.remove(f"/mnt/workspace/proc-{os.getpid()}-ready.txt")
     except:
         pass
 

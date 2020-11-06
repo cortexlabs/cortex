@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import uvicorn
-import yaml
 import os
 import time
 import json
@@ -93,9 +91,6 @@ def is_model_caching_enabled(api_spec: dir) -> bool:
 
 
 def main():
-    with open("/src/cortex/serve/log_config.yaml", "r") as f:
-        log_config = yaml.load(f, yaml.FullLoader)
-
     # wait until neuron-rtd sidecar is ready
     uses_inferentia = os.getenv("CORTEX_ACTIVE_NEURON")
     if uses_inferentia:
@@ -162,31 +157,12 @@ def main():
             while not cron.ran_once():
                 time.sleep(0.25)
 
+            # disable live reloading when the BatchAPI kind is used
             # disable live reloading for the TF predictor when Inferentia is used and when multiple processes are used
-            if predictor_type == TensorFlowNeuronPredictorType and has_multiple_tf_servers:
+            if api_spec["kind"] != "RealtimeAPI" or (
+                predictor_type == TensorFlowNeuronPredictorType and has_multiple_tf_servers
+            ):
                 cron.stop()
-
-    if api_spec["kind"] == "RealtimeAPI":
-        # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
-        uvicorn.run(
-            "cortex.serve.wsgi:app",
-            host="0.0.0.0",
-            port=int(os.environ["CORTEX_SERVING_PORT"]),
-            workers=int(os.environ["CORTEX_PROCESSES_PER_REPLICA"]),
-            limit_concurrency=int(
-                os.environ["CORTEX_MAX_PROCESS_CONCURRENCY"]
-            ),  # this is a per process limit
-            backlog=int(os.environ["CORTEX_SO_MAX_CONN"]),
-            log_config=log_config,
-            log_level="info",
-        )
-    else:
-        if cron:
-            cron.stop()
-
-        from cortex.serve import batch
-
-        batch.start()
 
 
 if __name__ == "__main__":

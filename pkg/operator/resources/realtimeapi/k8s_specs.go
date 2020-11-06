@@ -27,6 +27,8 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
+var _terminationGracePeriodSeconds int64 = 60 // seconds
+
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
@@ -74,7 +76,8 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
 			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy: "Always",
+				RestartPolicy:                 "Always",
+				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
@@ -123,7 +126,8 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
 			},
 			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy: "Always",
+				RestartPolicy:                 "Always",
+				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
@@ -175,7 +179,8 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers: containers,
+				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
+				Containers:                    containers,
 				NodeSelector: map[string]string{
 					"workload": "true",
 				},

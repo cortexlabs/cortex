@@ -398,9 +398,11 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 				{
 					StructField: "MaxReplicaConcurrency",
 					Int64Validation: &cr.Int64Validation{
-						Default:           consts.DefaultMaxReplicaConcurrency,
-						GreaterThan:       pointer.Int64(0),
-						LessThanOrEqualTo: pointer.Int64(math.MaxUint16),
+						Default:     consts.DefaultMaxReplicaConcurrency,
+						GreaterThan: pointer.Int64(0),
+						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
+						// it has been observed that the number is just slightly lower, so it has been offset by 2678
+						LessThanOrEqualTo: pointer.Int64(30000),
 					},
 				},
 				{
