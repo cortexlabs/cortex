@@ -13,7 +13,8 @@ RUN yum install -y \
     aws-neuron-runtime-1.0.9592.0 \
     procps-ng-3.3.10-26.amzn2.x86_64 \
     gzip \
-    tar
+    tar \
+    curl
 
 ENV PATH="/opt/aws/neuron/bin:${PATH}"
 
