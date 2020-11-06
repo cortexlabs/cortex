@@ -54,8 +54,11 @@ fi
 # execute script if present in project's directory
 if [ -f "/mnt/project/dependencies.sh" ]; then
     eval $source_env_file_cmd
-    env
-    exec bash -e /mnt/project/dependencies.sh
+    bash -e /mnt/project/dependencies.sh
+    status=$?
+    if [ $status -ne 0 ]; then
+        exit $status
+    fi
 fi
 
 # install from conda-packages.txt
