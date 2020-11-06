@@ -79,7 +79,7 @@ http {
             deny all;
         }
 
-        location ~ ^/(predict|)(|/)$ {
+        location ~ ^/(predict/?|)$ {
             limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY | int }};
 
             add_header Access-Control-Allow-Origin "*";
