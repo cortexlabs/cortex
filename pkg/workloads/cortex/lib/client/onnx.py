@@ -355,15 +355,15 @@ class ONNXClient:
                             )
 
                         # remove model from disk and memory
-                        if status in ["on-disk", "in-memory"]:
-                            if status == "on-disk":
-                                logger().info(
-                                    f"removing model from disk for model {model_name} of version {model_version}"
-                                )
-                            else:
-                                logger().info(
-                                    f"removing model from disk and memory for model {model_name} of version {model_version}"
-                                )
+                        if status == "on-disk":
+                            logger().info(
+                                f"removing model from disk for model {model_name} of version {model_version}"
+                            )
+                            self._models.remove_model(model_name, model_version)
+                        if status == "in-memory":
+                            logger().info(
+                                f"removing model from disk and memory for model {model_name} of version {model_version}"
+                            )
                             self._models.remove_model(model_name, model_version)
 
                         # download model

@@ -150,7 +150,7 @@ class Predictor:
                     self.models_tree,
                 )
                 if not self.caching_enabled:
-                    cron = TFSAPIServingThreadUpdater(interval=2.5, client=client._client)
+                    cron = TFSAPIServingThreadUpdater(interval=5.0, client=client._client)
                     cron.start()
 
             if self.type == ONNXPredictorType:
