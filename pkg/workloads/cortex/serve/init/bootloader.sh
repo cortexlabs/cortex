@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/with-contenv bash
 
 # Copyright 2020 Cortex Labs, Inc.
 #
@@ -35,25 +35,17 @@ cd /mnt/project
 
 # if the container restarted, ensure that it is not perceived as ready
 rm -rf /mnt/workspace/api_readiness.txt
+rm -rf /mnt/workspace/proc-*-ready.txt
 
 # allow for the liveness check to pass until the API is running
 echo "9999999999" > /mnt/workspace/api_liveness.txt
 
-# export environment variables
-if [ -f "/mnt/project/.env" ]; then
-    set -a
-    source /mnt/project/.env
-    set +a
-fi
-
-export PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH
-
-# ensure predictor print() statements are always flushed
-export PYTHONUNBUFFERED=TRUE
+# to export user-specified environment files
+source_env_file_cmd="if [ -f \"/mnt/project/.env\" ]; then set -a; source /mnt/project/.env; set +a; fi"
 
 if [ "$CORTEX_PROVIDER" != "local" ]; then
     if [ "$CORTEX_KIND" == "RealtimeAPI" ]; then
-        sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
+        sysctl -w net.core.somaxconn="65535" >/dev/null
         sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
         sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
     fi
@@ -61,7 +53,12 @@ fi
 
 # execute script if present in project's directory
 if [ -f "/mnt/project/dependencies.sh" ]; then
+    eval $source_env_file_cmd
     bash -e /mnt/project/dependencies.sh
+    status=$?
+    if [ $status -ne 0 ]; then
+        exit $status
+    fi
 fi
 
 # install from conda-packages.txt
@@ -86,4 +83,48 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-/opt/conda/envs/env/bin/python /src/cortex/serve/start.py
+create_s6_service() {
+    service_name=$1
+    cmd=$2
+
+    dest_dir="/etc/services.d/$service_name"
+    mkdir $dest_dir
+
+    dest_script="$dest_dir/run"
+    echo "#!/usr/bin/with-contenv bash" > $dest_script
+    echo $cmd >> $dest_script
+    chmod +x $dest_script
+
+    dest_script="$dest_dir/finish"
+    echo "#!/usr/bin/execlineb -S0" > $dest_script
+    echo "s6-svscanctl -t /var/run/s6/services" >> $dest_script
+    chmod +x $dest_script
+}
+
+# prepare webserver
+if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
+
+    # prepare uvicorn workers
+    mkdir /run/uvicorn
+    for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
+        create_s6_service "uvicorn-$((i-1))" "$source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
+    done
+
+    create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
+
+    # prepare api readiness checker
+    dest_dir="/etc/services.d/api_readiness"
+    mkdir $dest_dir
+    cp /src/cortex/serve/poll/readiness.sh $dest_dir/run
+    chmod +x $dest_dir/run
+
+    # generate nginx conf
+    /opt/conda/envs/env/bin/python -c 'from cortex.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
+
+# prepare batch otherwise
+else
+    create_s6_service "batch" "$source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+fi
+
+# run the python initialization script
+/opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py

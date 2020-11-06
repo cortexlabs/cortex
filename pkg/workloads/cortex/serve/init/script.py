@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import uvicorn
-import yaml
 import os
 import json
 
@@ -48,9 +46,6 @@ def load_tensorflow_serving_models():
 
 
 def main():
-    with open("/src/cortex/serve/log_config.yaml", "r") as f:
-        log_config = yaml.load(f, yaml.FullLoader)
-
     # wait until neuron-rtd sidecar is ready
     uses_inferentia = os.getenv("CORTEX_ACTIVE_NEURON")
     if uses_inferentia:
@@ -80,25 +75,6 @@ def main():
     # load tensorflow models into TFS
     if raw_api_spec["predictor"]["type"] == "tensorflow":
         load_tensorflow_serving_models()
-
-    if raw_api_spec["kind"] == "RealtimeAPI":
-        # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
-        uvicorn.run(
-            "cortex.serve.wsgi:app",
-            host="0.0.0.0",
-            port=int(os.environ["CORTEX_SERVING_PORT"]),
-            workers=int(os.environ["CORTEX_PROCESSES_PER_REPLICA"]),
-            limit_concurrency=int(
-                os.environ["CORTEX_MAX_PROCESS_CONCURRENCY"]
-            ),  # this is a per process limit
-            backlog=int(os.environ["CORTEX_SO_MAX_CONN"]),
-            log_config=log_config,
-            log_level="info",
-        )
-    else:
-        from cortex.serve import batch
-
-        batch.start()
 
 
 if __name__ == "__main__":
