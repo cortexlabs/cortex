@@ -27,8 +27,8 @@ worker_processes 1;
 thread_pool pool threads={{ CORTEX_PROCESSES_PER_REPLICA | int }};
 
 events {
-    # max_clients = (worker_processes * worker_connections ) / (X * 2) for reverse proxy
-    # max clients is also limited by the number of socket connections available on the system (~64k)
+    # max num requests = (worker_processes * worker_connections ) / 2 for reverse proxy
+    # max num requests is also limited by the number of socket connections available on the system (~64k)
     worker_connections 65535;
 
     # The multi_accept flag enables an NGINX worker to accept as many connections as possible when it
@@ -54,7 +54,7 @@ http {
     aio threads=pool;
 
     # how much time an inference can take
-    proxy_read_timeout 900s;
+    proxy_read_timeout 3600s;
 
     upstream uvicorn {
         # load balancing policy

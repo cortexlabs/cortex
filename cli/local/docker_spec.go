@@ -91,8 +91,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_PROJECT_DIR="+_projectDir,
 		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
 		"CORTEX_THREADS_PER_PROCESS="+s.Int32(api.Predictor.ThreadsPerProcess),
-		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess),
-		// add 1 because it was required to achieve the target concurrency for 1 process, 1 thread
+		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+1024), // allow a queue of 1024
 		"AWS_REGION="+awsClient.Region,
 	)
 

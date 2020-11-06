@@ -80,6 +80,11 @@ def shutdown():
         pass
 
     try:
+        os.remove(f"/mnt/workspace/proc-{os.getpid()}-ready.txt")
+    except:
+        pass
+
+    try:
         os.remove("/mnt/workspace/api_liveness.txt")
     except:
         pass

@@ -20,4 +20,5 @@ while true; do
         touch /mnt/workspace/api_readiness.txt
         break
     fi
+    sleep 1
 done

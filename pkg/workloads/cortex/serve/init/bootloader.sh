@@ -35,6 +35,7 @@ cd /mnt/project
 
 # if the container restarted, ensure that it is not perceived as ready
 rm -rf /mnt/workspace/api_readiness.txt
+rm -rf /mnt/workspace/proc-*-ready.txt
 
 # allow for the liveness check to pass until the API is running
 echo "9999999999" > /mnt/workspace/api_liveness.txt
@@ -81,18 +82,17 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
-s6_start_process() {
-    dest_dir=$1
+create_s6_service() {
+    service_name=$1
     cmd=$2
+
+    dest_dir="/etc/services.d/$service_name"
+    mkdir $dest_dir
 
     dest_script="$dest_dir/run"
     echo "#!/usr/bin/with-contenv bash" > $dest_script
     echo $cmd >> $dest_script
     chmod +x $dest_script
-}
-
-s6_stop_script() {
-    dest_dir=$1
 
     dest_script="$dest_dir/finish"
     echo "#!/usr/bin/execlineb -S0" > $dest_script
@@ -106,23 +106,10 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     # prepare uvicorn workers
     mkdir /run/uvicorn
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
-        dest_dir="/etc/services.d/uvicorn-$((i-1))"
-        mkdir $dest_dir
-
-        # add run script
-        s6_start_process $dest_dir "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
-        # add finish script
-        s6_stop_script $dest_dir
+        create_s6_service "$uvicorn-$((i-1))" "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
     done
 
-    # prepare nginx
-    dest_dir="/etc/services.d/nginx"
-    mkdir $dest_dir
-
-    # add run script
-    s6_start_process $dest_dir "exec nginx -c /run/nginx.conf"
-    # add finish script
-    s6_stop_script $dest_dir
+    create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
 
     # prepare api readiness checker
     dest_dir="/etc/services.d/api_readiness"
@@ -135,13 +122,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
 
 # prepare batch otherwise
 else
-    dest_dir="/etc/services.d/batch"
-    mkdir $dest_dir
-
-    # add run script
-    s6_start_process $dest_dir "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
-    # add finish script
-    s6_stop_script $dest_dir
+    create_s6_service "batch" "exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 fi
 
 # run the python initialization script
