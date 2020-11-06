@@ -73,6 +73,7 @@
 * [Single node deployment](guides/single-node-deployment.md)
 * [Set up kubectl](guides/kubectl-setup.md)
 * [Private docker registry](guides/private-docker.md)
+* [Set up REST API Gateway](guides/rest-api-gateway.md)
 * [Install CLI on Windows](guides/windows-cli.md)
 
 ## Contributing
