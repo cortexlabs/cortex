@@ -60,6 +60,7 @@
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 * [TF session in predict()](troubleshooting/tf-session-in-predict.md)
 * [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
+* [Cluster down failures](troubleshooting/cluster-down.md)
 
 ## Guides
 
@@ -72,6 +73,7 @@
 * [Single node deployment](guides/single-node-deployment.md)
 * [Set up kubectl](guides/kubectl-setup.md)
 * [Private docker registry](guides/private-docker.md)
+* [Set up REST API Gateway](guides/rest-api-gateway.md)
 * [Install CLI on Windows](guides/windows-cli.md)
 
 ## Contributing
