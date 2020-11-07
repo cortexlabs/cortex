@@ -35,6 +35,7 @@ cd /mnt/project
 
 # if the container restarted, ensure that it is not perceived as ready
 rm -rf /mnt/workspace/api_readiness.txt
+rm -rf /mnt/workspace/init_script_run.txt
 rm -rf /mnt/workspace/proc-*-ready.txt
 
 # allow for the liveness check to pass until the API is running
@@ -126,5 +127,5 @@ else
     create_s6_service "batch" "$source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 fi
 
-# run the python initialization script
-/opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py
+# create the python initialization service
+create_s6_service "py_init" "/opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"

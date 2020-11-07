@@ -164,6 +164,9 @@ def main():
             ):
                 cron.stop()
 
+    # to syncronize with the other serving processes
+    open("/mnt/workspace/init_script_run.txt", "a").close()
+
 
 if __name__ == "__main__":
     main()
