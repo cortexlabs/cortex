@@ -10,6 +10,9 @@ RUN apt-get update -qq && apt-get install -y -q \
     aws-neuron-runtime=1.1.1402.0 && \
     apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
+RUN wget -P /tmp/ https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer && \
+    chmod +x /tmp/s6-overlay-amd64-installer && /tmp/s6-overlay-amd64-installer / && rm /tmp/s6-overlay-amd64-installer
+
 ENV PATH=/opt/aws/neuron/bin/:$PATH
 
 RUN apt-get update -qq && apt-get install -y -q \
@@ -21,6 +24,7 @@ RUN apt-get update -qq && apt-get install -y -q \
     unzip \
     zlib1g-dev \
     locales \
+    nginx=1.14.* \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 RUN locale-gen en_US.UTF-8
@@ -100,4 +104,6 @@ COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/serve /src/cortex/serve
 
-ENTRYPOINT ["/src/cortex/serve/run.sh"]
+RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
+
+ENTRYPOINT ["/init"]
