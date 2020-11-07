@@ -9,7 +9,13 @@ RUN apt-get update -qq && apt-get install -y -q \
         unzip \
         zlib1g-dev \
         locales \
+        nginx=1.14.* \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
+
+RUN cd /tmp/ && \
+    curl -L --output s6-overlay-amd64-installer "https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer" && \
+    cd - && \
+    chmod +x /tmp/s6-overlay-amd64-installer && /tmp/s6-overlay-amd64-installer / && rm /tmp/s6-overlay-amd64-installer
 
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
@@ -68,8 +74,10 @@ RUN test "${SLIM}" = "true" || ( \
             tensorflow-hub==0.9.0 \
     )
 
-COPY pkg/workloads/cortex/consts.py /src/cortex/
+COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/serve /src/cortex/serve
 
-ENTRYPOINT ["/src/cortex/serve/run.sh"]
+RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
+
+ENTRYPOINT ["/init"]
