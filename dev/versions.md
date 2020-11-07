@@ -172,6 +172,18 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
     * be careful not to update any of the versions for Inferentia that are not latest in `images/python-predictor-inf/Dockerfile`
 1. Rerun all examples and check their logs
 
+## S6-overlay supervisor
+
+1. Locate the `s6-overlay` installation in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile` and `images/onnx-predictor-*/Dockerfile`
+1. Update the version in each serving image with the newer one in https://github.com/just-containers/s6-overlay.
+
+## Nginx
+
+1. Run a base image of ubuntu that matches the version tag used for the serving images. The running command is `docker run -it --rm <base-image>`
+1. Run `apt update && apt-cache policy nginx`. Notice the latest minor version of nginx (e.g. `1.14`)
+1. Locate the `nginx` package in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile` and `images/onnx-predictor-*/Dockerfile`
+1. Update the version for all `nginx` appearances using the minor version from step 2 and add an asterisk at the end to denote any version (e.g. `1.14.*`)
+
 ## Istio
 
 1. Find the latest [release](https://istio.io/latest/news/releases) and check the release notes (here are the [latest IstioOperator Options](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/))

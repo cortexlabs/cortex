@@ -20,7 +20,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"math"
 	"path"
 	"strings"
 
@@ -179,6 +178,7 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
+		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
 			Limits:   apiPodResourceLimitsList,
@@ -267,6 +267,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
+		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
 		},
@@ -320,6 +321,7 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		VolumeMounts:    DefaultVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
+		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: resourceList,
 			Limits:   resourceLimitsList,
@@ -408,15 +410,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				kcore.EnvVar{
 					Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
 					Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-				},
-				kcore.EnvVar{
-					Name: "CORTEX_MAX_PROCESS_CONCURRENCY",
-					// add 1 because it was required to achieve the target concurrency for 1 process, 1 thread
-					Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Predictor.ProcessesPerReplica)))),
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_SO_MAX_CONN",
-					Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
 				},
 			)
 		}
@@ -699,6 +692,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			FailureThreshold:    2,
 			Handler:             probeHandler,
 		},
+		Lifecycle: waitAPIContainerToStop(api.Kind),
 		Resources: resources,
 		Ports:     ports,
 	}
@@ -720,6 +714,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 		},
 		VolumeMounts:   volumeMounts,
 		ReadinessProbe: socketExistsProbe(_neuronRTDSocket),
+		Lifecycle:      waitAPIContainerToStop(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
@@ -792,6 +787,34 @@ func socketExistsProbe(socketName string) *kcore.Probe {
 			},
 		},
 	}
+}
+
+func nginxGracefulStopper(apiKind userconfig.Kind) *kcore.Lifecycle {
+	if apiKind == userconfig.RealtimeAPIKind {
+		return &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
+					// the sleep is required to wait for any k8s-related race conditions
+					// as described in https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
+					Command: []string{"/bin/sh", "-c", "sleep 5; /usr/sbin/nginx -s quit; while pgrep -x nginx; do sleep 1; done"},
+				},
+			},
+		}
+	}
+	return nil
+}
+
+func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
+	if apiKind == userconfig.RealtimeAPIKind {
+		return &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
+					Command: []string{"/bin/sh", "-c", fmt.Sprintf("while curl localhost:%s/nginx_status; do sleep 1; done", DefaultPortStr)},
+				},
+			},
+		}
+	}
+	return nil
 }
 
 var BaseEnvVars = []kcore.EnvFromSource{
