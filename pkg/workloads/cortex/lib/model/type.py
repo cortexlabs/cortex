@@ -36,7 +36,10 @@ class CuratedModelResources:
         self._models = curated_model_resources
 
         for res in self._models:
-            res["versions"] = [str(version) for version in res["versions"]]
+            if not res["versions"]:
+                res["versions"] = []
+            else:
+                res["versions"] = [str(version) for version in res["versions"]]
 
     def is_local(self, name: str) -> Optional[bool]:
         """
