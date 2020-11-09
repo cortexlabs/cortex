@@ -32,8 +32,6 @@ from cortex.lib.type import (
     PredictorType,
 )
 
-from cortex.lib.model import ModelsHolder
-
 
 class TemplatePlaceholder(collections.namedtuple("TemplatePlaceholder", "placeholder priority")):
     """

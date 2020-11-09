@@ -85,6 +85,13 @@ if [ -f "/mnt/project/requirements.txt" ]; then
 fi
 
 create_s6_service() {
+    # good pages to read about s6-overlay
+    # https://wiki.gentoo.org/wiki/S6#Process_supervision
+    # https://skarnet.org/software/s6/s6-svscanctl.html
+    # http://skarnet.org/software/s6/s6-svc.html
+    # http://skarnet.org/software/s6/servicedir.html
+    # http://www.troubleshooters.com/linux/execline.htm
+
     service_name=$1
     cmd=$2
 
@@ -98,7 +105,8 @@ create_s6_service() {
 
     dest_script="$dest_dir/finish"
     echo "#!/usr/bin/execlineb -S0" > $dest_script
-    echo "s6-svscanctl -t /var/run/s6/services" >> $dest_script
+    echo "ifelse { s6-test \${1} -ne 0 } { s6-svscanctl -t /var/run/s6/services }" >> $dest_script
+    echo "s6-svc -O /var/run/s6/services/$service_name" >> $dest_script
     chmod +x $dest_script
 }
 
