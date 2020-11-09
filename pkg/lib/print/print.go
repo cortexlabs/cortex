@@ -45,14 +45,14 @@ func StderrBoldFirstLine(msg string) {
 	msgParts := strings.Split(msg, "\n")
 
 	if len(msgParts[0]) > _maxBoldLength {
-		os.Stderr.WriteString(msg + "\n")
+		StderrPrintln(msg)
 		return
 	}
 
-	os.Stderr.WriteString(console.Bold(msgParts[0]) + "\n")
+	StderrPrintln(console.Bold(msgParts[0]))
 
 	if len(msgParts) > 1 {
-		os.Stderr.WriteString(strings.Join(msgParts[1:], "\n") + "\n")
+		StderrPrintln(strings.Join(msgParts[1:], "\n"))
 	}
 }
 
@@ -71,7 +71,26 @@ func BoldFirstBlock(msg string) {
 	}
 }
 
+func StderrBoldFirstBlock(msg string) {
+	msgParts := strings.Split(msg, "\n\n")
+
+	if len(msgParts[0]) > _maxBoldLength {
+		StderrPrintln(msg)
+		return
+	}
+
+	StderrPrintln(console.Bold(msgParts[0]))
+
+	if len(msgParts) > 1 {
+		StderrPrintln("\n" + strings.Join(msgParts[1:], "\n\n"))
+	}
+}
+
 func Dot() error {
 	fmt.Print(".")
 	return nil
+}
+
+func StderrPrintln(str string) {
+	os.Stderr.WriteString(str + "\n")
 }

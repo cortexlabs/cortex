@@ -1020,7 +1020,10 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	}
 
 	refreshedClusterConfig := &clusterconfig.Config{}
-	readCachedClusterConfigFile(refreshedClusterConfig, cachedClusterConfigPath)
+	err = readCachedClusterConfigFile(refreshedClusterConfig, cachedClusterConfigPath)
+	if err != nil {
+		exit.Error(err)
+	}
 	return *refreshedClusterConfig
 }
 
