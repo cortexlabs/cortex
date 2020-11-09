@@ -66,7 +66,7 @@ cat << EOF
 
 #### MANUAL EDITS REQUIRED ####
 
-- Copy the docstring for \`client(env: str)\` in pkg/workloads/cortex/client/__init__.py in to the generated docs and unindent
+- Copy the docstring for \`client(env: str)\` in pkg/workloads/cortex/client/__init__.py into the generated docs and unindent
 
 Then check the diff
 EOF
