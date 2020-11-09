@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/mitchellh/go-homedir"
 )
@@ -45,7 +46,13 @@ func init() {
 		exit.Error(err)
 	}
 
-	_localDir = filepath.Join(homeDir, ".cortex")
+	_localDir = os.Getenv("CORTEX_CLI_CONFIG_DIR")
+	if _localDir != "" {
+		_localDir = files.UserRelToAbsPath(_localDir)
+	} else {
+		_localDir = filepath.Join(homeDir, ".cortex")
+	}
+
 	err = os.MkdirAll(_localDir, os.ModePerm)
 	if err != nil {
 		err := errors.Wrap(err, "unable to write to home directory", _localDir)
