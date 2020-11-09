@@ -33,11 +33,11 @@ func Error(err error, wrapStrs ...string) {
 		err = errors.Wrap(err, str)
 	}
 
-	if !errors.IsNoTelemetry(err) {
+	if err != nil && !errors.IsNoTelemetry(err) {
 		telemetry.Error(err)
 	}
 
-	if !errors.IsNoPrint(err) {
+	if err != nil && !errors.IsNoPrint(err) {
 		errors.PrintErrorForUser(err)
 	}
 
@@ -51,7 +51,7 @@ func Panic(err error, wrapStrs ...string) {
 		err = errors.Wrap(err, str)
 	}
 
-	if !errors.IsNoTelemetry(err) {
+	if err != nil && !errors.IsNoTelemetry(err) {
 		telemetry.Error(err)
 	}
 
