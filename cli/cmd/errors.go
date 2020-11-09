@@ -43,6 +43,7 @@ func errStrFailedToConnect(u url.URL) string {
 const (
 	ErrInvalidProvider                      = "cli.invalid_provider"
 	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
+	ErrLocalEnvironmentCantUseAWSProvider   = "cli.local_environment_cant_use_aws_provider"
 	ErrCommandNotSupportedForKind           = "cli.command_not_supported_for_kind"
 	ErrEnvironmentNotFound                  = "cli.environment_not_found"
 	ErrOperatorEndpointInLocalEnvironment   = "cli.operator_endpoint_in_local_environment"
@@ -87,6 +88,13 @@ func ErrorNotSupportedInLocalEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotSupportedInLocalEnvironment,
 		Message: "this command is not supported in local environment",
+	})
+}
+
+func ErrorLocalEnvironmentCantUseAWSProvider() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrLocalEnvironmentCantUseAWSProvider,
+		Message: "the environment named \"local\" cannot be configured to point to a cortex cluster in aws",
 	})
 }
 
