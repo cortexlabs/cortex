@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -50,7 +51,9 @@ import (
 )
 
 var (
-	_flagClusterEnv                string
+	_flagClusterUpEnv              string
+	_flagClusterInfoEnv            string
+	_flagClusterConfigureEnv       string
 	_flagClusterConfig             string
 	_flagClusterName               string
 	_flagClusterRegion             string
@@ -63,13 +66,12 @@ var (
 )
 
 func clusterInit() {
-	defaultEnv := getDefaultEnv(_clusterCommandType)
-
 	_upCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_upCmd)
 	addAWSCredentialsFlags(_upCmd)
 	addClusterAWSCredentialsFlags(_upCmd)
-	_upCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to create")
+	defaultEnv := getDefaultEnv(_clusterCommandType)
+	_upCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
 	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_upCmd)
 
@@ -78,7 +80,7 @@ func clusterInit() {
 	addClusterNameFlag(_infoCmd)
 	addClusterRegionFlag(_infoCmd)
 	addAWSCredentialsFlags(_infoCmd)
-	_infoCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to update")
+	_infoCmd.Flags().StringVarP(&_flagClusterInfoEnv, "configure-env", "e", "", "name of environment to configure")
 	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
 	_infoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_infoCmd)
@@ -87,7 +89,7 @@ func clusterInit() {
 	addClusterConfigFlag(_configureCmd)
 	addAWSCredentialsFlags(_configureCmd)
 	addClusterAWSCredentialsFlags(_configureCmd)
-	_configureCmd.Flags().StringVarP(&_flagClusterEnv, "env", "e", defaultEnv, "environment to update")
+	_configureCmd.Flags().StringVarP(&_flagClusterConfigureEnv, "configure-env", "e", "", "name of environment to configure")
 	_configureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_configureCmd)
 
@@ -142,8 +144,20 @@ var _upCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up")
 
-		if _flagClusterEnv == "local" {
-			exit.Error(ErrorNotSupportedInLocalEnvironment())
+		if _flagClusterUpEnv == "local" {
+			exit.Error(ErrorLocalEnvironmentCantUseAWSProvider())
+		}
+
+		envExists, err := isEnvConfigured(_flagClusterUpEnv)
+		if err != nil {
+			exit.Error(err)
+		}
+		if envExists {
+			if _flagClusterDisallowPrompt {
+				fmt.Printf("found an existing environment named \"%s\", which will be overwritten to connect to this cluster once it's created\n\n", _flagClusterUpEnv)
+			} else {
+				prompt.YesOrExit(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster once it's created?", _flagClusterUpEnv), "", "you can specify a different environment name to be configured to connect to this cluster by specifying the --configure-env flag (e.g. `cortex cluster up --configure-env prod`); or you can list your environments with `cortex env list` and delete an environment with `cortex env delete ENV_NAME`")
+			}
 		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
@@ -178,7 +192,7 @@ var _upCmd = &cobra.Command{
 
 		cacheAWSCredentials(awsCreds, *accessConfig)
 
-		clusterConfig, err := getInstallClusterConfig(awsCreds, *accessConfig, _flagClusterEnv, _flagClusterDisallowPrompt)
+		clusterConfig, err := getInstallClusterConfig(awsCreds, *accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -215,7 +229,7 @@ var _upCmd = &cobra.Command{
 			}
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, nil, nil)
 		if err != nil {
 			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
@@ -295,19 +309,13 @@ var _upCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
-			clusterconfig.ClusterNameTag: clusterConfig.ClusterName,
-			"cortex.dev/load-balancer":   "operator",
-		})
+		loadBalancer, err := getOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
 		if err != nil {
-			exit.Error(errors.Append(err, fmt.Sprintf("\n\nunable to locate operator load balancer; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
-		}
-		if loadBalancer == nil {
-			exit.Error(errors.Append(ErrorNoOperatorLoadBalancer(), fmt.Sprintf("; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
 		}
 
 		newEnvironment := cliconfig.Environment{
-			Name:               _flagClusterEnv,
+			Name:               _flagClusterUpEnv,
 			Provider:           types.AWSProviderType,
 			OperatorEndpoint:   pointer.String("https://" + *loadBalancer.DNSName),
 			AWSAccessKeyID:     pointer.String(awsCreds.ClusterAWSAccessKeyID),
@@ -316,10 +324,14 @@ var _upCmd = &cobra.Command{
 
 		err = addEnvToCLIConfig(newEnvironment)
 		if err != nil {
-			exit.Error(errors.Append(err, fmt.Sprintf("unable to configure cli environment; you can attempt to resolve this issue and configure your CLI environment by running `cortex cluster info --env %s`", _flagClusterEnv)))
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
 		}
 
-		fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured for this cluster; append `--env %s` to cortex commands to connect to it (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterEnv, _flagClusterEnv, _flagClusterEnv, _flagClusterEnv)
+		if envExists {
+			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv)
+		} else {
+			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv)
+		}
 	},
 }
 
@@ -330,8 +342,8 @@ var _configureCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.configure")
 
-		if _flagClusterEnv == "local" {
-			exit.Error(ErrorNotSupportedInLocalEnvironment())
+		if _flagClusterConfigureEnv == "local" {
+			exit.Error(ErrorLocalEnvironmentCantUseAWSProvider())
 		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
@@ -379,7 +391,7 @@ var _configureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -388,6 +400,18 @@ var _configureCmd = &cobra.Command{
 			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", *clusterConfig.Region)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterConfigure(out + helpStr))
+		}
+
+		if _flagClusterConfigureEnv != "" {
+			loadBalancer, err := getOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
+			if err != nil {
+				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
+			}
+			operatorEndpoint := "https://" + *loadBalancer.DNSName
+			err = updateCLIEnv(_flagClusterConfigureEnv, operatorEndpoint, awsCreds, _flagClusterDisallowPrompt)
+			if err != nil {
+				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
+			}
 		}
 	},
 }
@@ -398,8 +422,9 @@ var _infoCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info")
-		if _flagClusterEnv == "local" {
-			exit.Error(ErrorNotSupportedInLocalEnvironment())
+
+		if _flagClusterInfoEnv == "local" {
+			exit.Error(ErrorLocalEnvironmentCantUseAWSProvider())
 		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
@@ -483,10 +508,7 @@ var _downCmd = &cobra.Command{
 		}
 
 		// updating CLI env is best-effort, so ignore errors
-		loadBalancer, _ := awsClient.FindLoadBalancer(map[string]string{
-			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
-			"cortex.dev/load-balancer":   "operator",
-		})
+		loadBalancer, _ := getOperatorLoadBalancer(*accessConfig.ClusterName, awsClient)
 
 		if _flagClusterDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", *accessConfig.ClusterName, *accessConfig.Region)
@@ -536,7 +558,7 @@ var _downCmd = &cobra.Command{
 		}
 
 		fmt.Println("￮ spinning down the cluster ...")
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, _flagClusterEnv, nil, nil)
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -609,15 +631,9 @@ var _exportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
-			clusterconfig.ClusterNameTag: *accessConfig.ClusterName,
-			"cortex.dev/load-balancer":   "operator",
-		})
+		loadBalancer, err := getOperatorLoadBalancer(*accessConfig.ClusterName, awsClient)
 		if err != nil {
 			exit.Error(err)
-		}
-		if loadBalancer == nil {
-			exit.Error(ErrorNoOperatorLoadBalancer())
 		}
 
 		operatorConfig := cluster.OperatorConfig{
@@ -741,7 +757,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, disallowPrompt)
 
-	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, _flagClusterEnv, nil, nil)
+	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -764,8 +780,10 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 		exit.Error(err)
 	}
 
-	if err := updateInfoEnvironment(operatorEndpoint, awsCreds, disallowPrompt); err != nil {
-		exit.Error(err)
+	if _flagClusterInfoEnv != "" {
+		if err := updateCLIEnv(_flagClusterInfoEnv, operatorEndpoint, awsCreds, disallowPrompt); err != nil {
+			exit.Error(err)
+		}
 	}
 }
 
@@ -794,7 +812,6 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:          isTelemetryEnabled(),
-		EnvName:            _flagClusterEnv,
 		ClientID:           clientID(),
 		OperatorEndpoint:   operatorEndpoint,
 		AWSAccessKeyID:     awsCreds.AWSAccessKeyID,
@@ -935,14 +952,14 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	t.MustPrint(&table.Opts{Sort: pointer.Bool(false)})
 }
 
-func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
-	prevEnv, err := readEnv(_flagClusterEnv)
+func updateCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
+	prevEnv, err := readEnv(envName)
 	if err != nil {
 		return err
 	}
 
 	newEnvironment := cliconfig.Environment{
-		Name:               _flagClusterEnv,
+		Name:               envName,
 		Provider:           types.AWSProviderType,
 		OperatorEndpoint:   pointer.String(operatorEndpoint),
 		AWSAccessKeyID:     pointer.String(awsCreds.AWSAccessKeyID),
@@ -950,15 +967,17 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 	}
 
 	shouldWriteEnv := false
+	envWasUpdated := false
 	if prevEnv == nil {
 		shouldWriteEnv = true
 		fmt.Println()
 	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || !awsCreds.ContainsCreds(*prevEnv.AWSAccessKeyID, *prevEnv.AWSSecretAccessKey) {
+		envWasUpdated = true
 		if disallowPrompt {
-			fmt.Print(fmt.Sprintf("\nfound an existing environment named \"%s\"; overwriting it to connect to this cluster\n", _flagClusterEnv))
 			shouldWriteEnv = true
+			fmt.Println()
 		} else {
-			shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("\nfound an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster?", _flagClusterEnv), "", "")
+			shouldWriteEnv = prompt.YesOrNo(fmt.Sprintf("\nfound an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster?", envName), "", "")
 		}
 	}
 
@@ -968,7 +987,11 @@ func updateInfoEnvironment(operatorEndpoint string, awsCreds AWSCredentials, dis
 			return err
 		}
 
-		fmt.Printf(console.Bold("configured %s environment\n"), _flagClusterEnv)
+		if envWasUpdated {
+			fmt.Printf(console.Bold("the environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+		} else {
+			fmt.Printf(console.Bold("an environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+		}
 	}
 
 	return nil
@@ -986,7 +1009,7 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 		},
 	}
 
-	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsCreds, _flagClusterEnv, nil, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsCreds, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -1011,7 +1034,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	}
 
 	fmt.Print("syncing cluster configuration ...\n\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, _flagClusterEnv, nil, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -1138,4 +1161,21 @@ func createOrReplaceAPIGateway(awsClient *aws.Client, clusterName string, tags m
 
 	fmt.Println(" ✓")
 	return nil
+}
+
+// Will return error if load balancer can't be found
+func getOperatorLoadBalancer(clusterName string, awsClient *aws.Client) (*elbv2.LoadBalancer, error) {
+	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
+		clusterconfig.ClusterNameTag: clusterName,
+		"cortex.dev/load-balancer":   "operator",
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to locate operator load balancer")
+	}
+
+	if loadBalancer == nil {
+		return nil, ErrorNoOperatorLoadBalancer()
+	}
+
+	return loadBalancer, nil
 }

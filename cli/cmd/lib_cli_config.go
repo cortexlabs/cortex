@@ -33,7 +33,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -538,11 +537,11 @@ func setDefaultEnv(envName string) error {
 		return err
 	}
 
-	configuredEnvNames, err := listConfiguredEnvNames()
+	envExists, err := isEnvConfigured(envName)
 	if err != nil {
 		return err
 	}
-	if !slices.HasString(configuredEnvNames, envName) {
+	if !envExists {
 		return cliconfig.ErrorEnvironmentNotConfigured(envName)
 	}
 
@@ -828,10 +827,25 @@ func listConfiguredEnvNames() ([]string, error) {
 	return envNames, nil
 }
 
+func isEnvConfigured(envName string) (bool, error) {
+	envList, err := listConfiguredEnvs()
+	if err != nil {
+		return false, err
+	}
+
+	for _, env := range envList {
+		if env.Name == envName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to configure cli environment")
 	}
 
 	replaced := false
@@ -848,7 +862,7 @@ func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
 	}
 
 	if err := writeCLIConfig(cliConfig); err != nil {
-		return err
+		return errors.Wrap(err, "unable to configure cli environment")
 	}
 
 	return nil
