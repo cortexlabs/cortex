@@ -479,7 +479,7 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 			},
 			{
 				Title:    "model version",
-				MaxWidth: 16,
+				MaxWidth: 25,
 			},
 			{
 				Title:    "model input",

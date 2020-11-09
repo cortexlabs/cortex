@@ -890,8 +890,8 @@ class TFSModelLoader(mp.Process):
         self._load_local_models()
 
         while not self._event_stopper.is_set():
-            self._update_models()
-            if not self._ran_once.is_set():
+            success = self._update_models()
+            if success and not self._ran_once.is_set():
                 self._ran_once.set()
             logger().debug(f"{self.__class__.__name__} cron heartbeat")
             time.sleep(self._interval)
@@ -924,10 +924,10 @@ class TFSModelLoader(mp.Process):
 
         return self._ran_once.is_set()
 
-    def _update_models(self) -> None:
+    def _update_models(self) -> bool:
         # don't update when the models:dir is a local path
         if self._is_dir_used and not self._models_dir.startswith("s3://"):
-            return
+            return True
 
         # get updated/validated paths/versions of the S3 models
         (
@@ -979,9 +979,9 @@ class TFSModelLoader(mp.Process):
             self._client.remove_models([model_name], [model_versions])
 
         # check tfs connection
-        if self._client.is_tfs_accessible():
+        if not self._client.is_tfs_accessible():
             self._reset_when_tfs_unresponsive()
-            return
+            return False
 
         # remove versioned models from TFS that no longer exist on disk
         tfs_model_ids = self._client.get_registered_model_ids()
@@ -1008,7 +1008,7 @@ class TFSModelLoader(mp.Process):
                             )
                         )
                     self._reset_when_tfs_unresponsive()
-                    return
+                    return False
 
         # # update TFS models
         current_ts_state = {}
@@ -1020,7 +1020,7 @@ class TFSModelLoader(mp.Process):
                     model_name, model_versions, timestamps, model_names, versions
                 )
             except grpc.RpcError:
-                return
+                return False
             current_ts_state = {**current_ts_state, **ts}
 
         # save model timestamp states
@@ -1046,6 +1046,8 @@ class TFSModelLoader(mp.Process):
         resource = os.path.join(self._lock_dir, "models_tfs.json")
         with open(resource, "w") as f:
             json.dump(self._client.models, f, indent=2)
+
+        return True
 
     def _refresh_model(
         self,
@@ -1224,7 +1226,7 @@ class TFSModelLoader(mp.Process):
         if len(s3_versions[model_name]) == 0:
             filtered_model_versions = ["1"] * len(model_timestamps)
         else:
-            for idx in len(model_timestamps):
+            for idx in range(len(model_timestamps)):
                 if s3_versions[model_name][idx] in model_versions:
                     filtered_model_versions.append(s3_versions[model_name][idx])
 
