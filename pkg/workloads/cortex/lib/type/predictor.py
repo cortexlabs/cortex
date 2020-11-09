@@ -22,6 +22,7 @@ import dill
 from cortex.lib.log import refresh_logger, cx_logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex.lib.type.model import Model, get_model_signature_map
+from cortex.lib.storage.concurrency import FileLock
 from cortex import consts
 from cortex.lib import util
 
@@ -134,7 +135,8 @@ class Predictor:
         target_class_name, validations = self.get_target_and_validations()
 
         try:
-            impl = self._load_module("cortex_predictor", os.path.join(project_dir, self.path))
+            with FileLock("/run/init_stagger.lock"):
+                impl = self._load_module("cortex_predictor", os.path.join(project_dir, self.path))
         except CortexException as e:
             e.wrap("error in " + self.path)
             raise

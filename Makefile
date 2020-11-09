@@ -51,14 +51,14 @@ cluster-up:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex cluster up --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster up --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME"
 	@$(MAKE) kubectl
 
 cluster-up-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex cluster up --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster up --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME"
 	@$(MAKE) kubectl
 
 cluster-down:
@@ -76,19 +76,19 @@ cluster-down-y:
 cluster-info:
 	@$(MAKE) manager-local
 	@$(MAKE) cli
-	@./bin/cortex cluster info --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster info --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME"
 
 cluster-configure:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex cluster configure --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster configure --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME"
 
 cluster-configure-y:
 	@$(MAKE) registry-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex cluster configure --config=./dev/config/cluster.yaml --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster configure --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME"
 
 # stop the in-cluster operator
 operator-stop:
@@ -147,7 +147,7 @@ aws-clear-bucket:
 tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
-	@python3 -m pip install black
+	@python3 -m pip install black 'pydoc-markdown>=3.0.0,<4.0.0'
 	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; elif [[ "$$OSTYPE" == "linux"* ]]; then sudo apt-get install -y parallel; else echo "your operating system is not supported"; fi
 
 format:
