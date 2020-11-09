@@ -120,16 +120,22 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 			fmt.Println(string(bytes))
-			return
 		case flags.MixedOutputType:
 			err := mixedPrint(deployResults)
 			if err != nil {
 				exit.Error(err)
 			}
-			return
 		case flags.PrettyOutputType:
 			message := deployMessage(deployResults, env.Name)
-			print.BoldFirstBlock(message)
+			if didAnyResultsError(deployResults) {
+				print.StderrBoldFirstBlock(message)
+			} else {
+				print.BoldFirstBlock(message)
+			}
+		}
+
+		if didAnyResultsError(deployResults) {
+			exit.Error(nil)
 		}
 	},
 }
@@ -295,6 +301,15 @@ func didAllResultsError(results []schema.DeployResult) bool {
 		}
 	}
 	return true
+}
+
+func didAnyResultsError(results []schema.DeployResult) bool {
+	for _, result := range results {
+		if result.Error != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func getAPICommandsMessage(results []schema.DeployResult, envName string) string {

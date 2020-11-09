@@ -40,8 +40,6 @@ import (
 	"github.com/cortexlabs/yaml"
 )
 
-var _cachedCLIConfig *cliconfig.CLIConfig
-
 var _cliConfigValidation = &cr.StructValidation{
 	TreatNullAsEmpty: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
@@ -928,10 +926,6 @@ func getEnvNamesByOperatorEndpoint(operatorEndpoint string) ([]string, bool, err
 }
 
 func readCLIConfig() (cliconfig.CLIConfig, error) {
-	if _cachedCLIConfig != nil {
-		return *_cachedCLIConfig, nil
-	}
-
 	if !files.IsFile(_cliConfigPath) {
 		cliConfig := cliconfig.CLIConfig{
 			DefaultEnvironment: types.LocalProviderType.String(),
@@ -952,7 +946,6 @@ func readCLIConfig() (cliconfig.CLIConfig, error) {
 			return cliconfig.CLIConfig{}, errors.Wrap(err, "unable to save CLI configuration file")
 		}
 
-		_cachedCLIConfig = &cliConfig
 		return cliConfig, nil
 	}
 
@@ -970,7 +963,6 @@ func readCLIConfig() (cliconfig.CLIConfig, error) {
 		return cliconfig.CLIConfig{}, errors.Wrap(err, _cliConfigPath)
 	}
 
-	_cachedCLIConfig = &cliConfig
 	return cliConfig, nil
 }
 
@@ -987,6 +979,5 @@ func writeCLIConfig(cliConfig cliconfig.CLIConfig) error {
 		return err
 	}
 
-	_cachedCLIConfig = &cliConfig
 	return nil
 }
