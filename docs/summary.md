@@ -48,6 +48,7 @@
 ## Miscellaneous
 
 * [CLI commands](miscellaneous/cli.md)
+* [Python client](miscellaneous/python_client.md)
 * [Environments](miscellaneous/environments.md)
 * [Architecture diagram](miscellaneous/architecture.md)
 * [Security](miscellaneous/security.md)
@@ -67,6 +68,8 @@
 * [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
+* [Running in production](guides/production.md)
+* [Low-cost clusters](guides/low-cost-clusters.md)
 * [Set up a custom domain](guides/custom-domain.md)
 * [Set up VPC peering](guides/vpc-peering.md)
 * [SSH into worker instance](guides/ssh-instance.md)
