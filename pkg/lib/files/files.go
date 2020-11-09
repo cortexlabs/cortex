@@ -243,7 +243,8 @@ func RelToAbsPath(relativePath string, baseDir string) string {
 	if !IsAbsOrTildePrefixed(relativePath) {
 		relativePath = filepath.Join(baseDir, relativePath)
 	}
-	return filepath.Clean(relativePath)
+	cleanPath, _ := Clean(relativePath)
+	return cleanPath
 }
 
 func UserRelToAbsPath(relativePath string) string {
