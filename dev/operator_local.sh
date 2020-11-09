@@ -28,7 +28,7 @@ eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yam
 export CLUSTER_AWS_ACCESS_KEY_ID="${CLUSTER_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
 export CLUSTER_AWS_SECRET_ACCESS_KEY="${CLUSTER_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
 
-python3 $ROOT/dev/update_cli_config.py "$HOME/.cortex/cli.yaml" "aws" "http://localhost:8888" "$CLUSTER_AWS_ACCESS_KEY_ID" "$CLUSTER_AWS_SECRET_ACCESS_KEY"
+python3 $ROOT/dev/update_cli_config.py "$HOME/.cortex/cli.yaml" "$CORTEX_CLUSTER_NAME" "http://localhost:8888" "$CLUSTER_AWS_ACCESS_KEY_ID" "$CLUSTER_AWS_SECRET_ACCESS_KEY"
 
 cp -r $ROOT/dev/config/cluster.yaml ~/.cortex/cluster-dev.yaml
 

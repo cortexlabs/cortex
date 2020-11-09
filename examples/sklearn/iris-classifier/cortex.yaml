@@ -12,4 +12,4 @@
     model_type: classification
   compute:
     cpu: 0.2
-    mem: 100M
+    mem: 200M
