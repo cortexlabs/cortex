@@ -19,10 +19,14 @@ package spec
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -156,6 +160,15 @@ func Key(apiName string, apiID string, clusterName string) string {
 	)
 }
 
+func KeysPrefix(apiName string, clusterName string) string {
+	return filepath.Join(
+		clusterName,
+		"apis",
+		apiName,
+		"api",
+	)
+}
+
 func (api API) RawAPIKey(clusterName string) string {
 	return filepath.Join(
 		clusterName,
@@ -182,4 +195,14 @@ func ProjectKey(projectID string, clusterName string) string {
 		"projects",
 		projectID+".zip",
 	)
+}
+
+func TimeFromAPIID(apiID string) (time.Time, error) {
+	timeIDStr := strings.Split(apiID, "-")[0]
+	timeID, err := strconv.ParseInt(timeIDStr, 16, 64)
+	if err != nil {
+		return time.Time{}, errors.Wrap(err, fmt.Sprintf("unable to parse API timestamp (%s)", timeIDStr))
+	}
+	timestamp := math.MaxInt64 - timeID
+	return time.Unix(0, timestamp), nil
 }

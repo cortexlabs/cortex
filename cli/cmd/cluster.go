@@ -569,9 +569,9 @@ var _downCmd = &cobra.Command{
 }
 
 var _exportCmd = &cobra.Command{
-	Use:   "export",
+	Use:   "export [API_NAME] [API_ID]",
 	Short: "download the code and configuration for all APIs deployed in a cluster",
-	Args:  cobra.NoArgs,
+	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export")
 
@@ -633,14 +633,26 @@ var _exportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		apisResponse, err := cluster.GetAPIs(operatorConfig)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		if len(apisResponse) == 0 {
-			fmt.Println(fmt.Sprintf("no apis found in cluster named %s in %s", *accessConfig.ClusterName, *accessConfig.Region))
-			exit.Ok()
+		var apisResponse []schema.APIResponse
+		if len(args) == 0 {
+			apisResponse, err = cluster.GetAPIs(operatorConfig)
+			if err != nil {
+				exit.Error(err)
+			}
+			if len(apisResponse) == 0 {
+				fmt.Println(fmt.Sprintf("no apis found in your cluster named %s in %s", *accessConfig.ClusterName, *accessConfig.Region))
+				exit.Ok()
+			}
+		} else if len(args) == 1 {
+			apisResponse, err = cluster.GetAPI(operatorConfig, args[0])
+			if err != nil {
+				exit.Error(err)
+			}
+		} else if len(args) == 2 {
+			apisResponse, err = cluster.GetAPIByID(operatorConfig, args[0], args[1])
+			if err != nil {
+				exit.Error(err)
+			}
 		}
 
 		exportPath := fmt.Sprintf("export-%s-%s", *accessConfig.Region, *accessConfig.ClusterName)
@@ -651,7 +663,7 @@ var _exportCmd = &cobra.Command{
 		}
 
 		for _, apiResponse := range apisResponse {
-			baseDir := filepath.Join(exportPath, apiResponse.Spec.Name)
+			baseDir := filepath.Join(exportPath, apiResponse.Spec.Name, apiResponse.Spec.ID)
 
 			fmt.Println(fmt.Sprintf("exporting %s to %s", apiResponse.Spec.Name, baseDir))
 

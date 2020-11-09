@@ -55,6 +55,7 @@ type APIResponse struct {
 	Endpoint     string             `json:"endpoint"`
 	DashboardURL *string            `json:"dashboard_url,omitempty"`
 	JobStatuses  []status.JobStatus `json:"job_statuses,omitempty"`
+	PastDeploys  []PastDeploy       `json:"past_deploys,omitempty"`
 }
 
 type JobResponse struct {
@@ -86,4 +87,9 @@ type InputSignatures map[string]InputSignature
 type APISummary struct {
 	Message         string                     `json:"message"`
 	ModelSignatures map[string]InputSignatures `json:"model_signatures"`
+}
+
+type PastDeploy struct {
+	APIID       string `json:"api_id"`
+	LastUpdated int64  `json:"last_updated"`
 }

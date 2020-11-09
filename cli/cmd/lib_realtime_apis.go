@@ -74,6 +74,12 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Endpoint)
 	}
 
+	out += "\n" + apiHistoryTable(realtimeAPI.PastDeploys)
+
+	if !_flagVerbose {
+		return out, nil
+	}
+
 	out += titleStr("configuration") + strings.TrimSpace(realtimeAPI.Spec.UserStr(env.Provider))
 
 	return out, nil

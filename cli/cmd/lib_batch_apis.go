@@ -134,7 +134,14 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 
 	out += "\n" + console.Bold("endpoint: ") + batchAPI.Endpoint
 
+	out += "\n" + apiHistoryTable(batchAPI.PastDeploys)
+
+	if !_flagVerbose {
+		return out
+	}
+
 	out += "\n" + titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
+
 	return out
 }
 

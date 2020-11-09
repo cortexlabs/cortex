@@ -21,9 +21,11 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -67,6 +69,7 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 	return &operator.DeployedResource{
 		Resource: userconfig.Resource{
 			Name: virtualService.Labels["apiName"],
+			ID:   virtualService.Labels["apiID"],
 			Kind: userconfig.KindFromString(virtualService.Labels["apiKind"]),
 		},
 		VirtualService: virtualService,
@@ -313,22 +316,77 @@ func GetAPIs() ([]schema.APIResponse, error) {
 	return response, nil
 }
 
+func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
+	// check if the API is currenlty running, so that additional information can be returned
+	deployedResource, err := GetDeployedResourceByName(apiName)
+	if err == nil && deployedResource.ID == apiID {
+		return GetAPI(apiName)
+	}
+
+	// search for the API spec for the old ID
+	spec, err := operator.DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		if aws.IsGenericNotFoundErr(err) {
+			return nil, ErrorAPIIDNotFound(apiName, apiID)
+		}
+		return nil, err
+	}
+	// TODO what about endpoint?
+	return []schema.APIResponse{
+		{
+			Spec: *spec,
+		},
+	}, nil
+}
+
 func GetAPI(apiName string) ([]schema.APIResponse, error) {
 	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
 		return nil, err
 	}
 
+	var apiResponse []schema.APIResponse
+
 	switch deployedResource.Kind {
 	case userconfig.RealtimeAPIKind:
-		return realtimeapi.GetAPIByName(deployedResource)
+		apiResponse, err = realtimeapi.GetAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
 	case userconfig.BatchAPIKind:
-		return batchapi.GetAPIByName(deployedResource)
+		apiResponse, err = batchapi.GetAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
 	case userconfig.TrafficSplitterKind:
-		return trafficsplitter.GetAPIByName(deployedResource)
+		apiResponse, err = trafficsplitter.GetAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
+
+	// Get API history
+	if len(apiResponse) > 0 {
+		apiIDs, err := config.AWS.ListS3DirOneLevel(config.Cluster.Bucket, spec.KeysPrefix(deployedResource.Name, config.Cluster.ClusterName), pointer.Int64(10))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, apiID := range apiIDs {
+			lastUpdated, err := spec.TimeFromAPIID(apiID)
+			if err != nil {
+				return nil, err
+			}
+			apiResponse[0].PastDeploys = append(apiResponse[0].PastDeploys, schema.PastDeploy{
+				APIID:       apiID,
+				LastUpdated: lastUpdated.Unix(),
+			})
+		}
+	}
+
+	return apiResponse, nil
 }
 
 //checkIfUsedByTrafficSplitter checks if api is used by a deployed TrafficSplitter

@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
@@ -28,10 +29,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -63,6 +66,7 @@ func getInit() {
 	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every 2 seconds")
 	_getCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
+	addVerboseFlag(_getCmd)
 }
 
 var _getCmd = &cobra.Command{
@@ -496,6 +500,23 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	apiRes := apisRes[0]
 
 	return realtimeAPITable(apiRes, env)
+}
+
+func apiHistoryTable(pastDeploys []schema.PastDeploy) string {
+	t := table.Table{
+		Headers: []table.Header{
+			{Title: "last deployed"},
+			{Title: "api id"},
+		},
+	}
+
+	t.Rows = make([][]interface{}, len(pastDeploys))
+	for i, pastDeploy := range pastDeploys {
+		lastUpdated := time.Unix(pastDeploy.LastUpdated, 0)
+		t.Rows[i] = []interface{}{libtime.SinceStr(&lastUpdated), pastDeploy.APIID}
+	}
+
+	return t.MustFormat(&table.Opts{Sort: pointer.Bool(false)})
 }
 
 func titleStr(title string) string {
