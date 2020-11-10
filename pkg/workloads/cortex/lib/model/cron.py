@@ -464,12 +464,12 @@ class FileBasedModelsTreeUpdater(mp.Process):
             ondisk_model_version_path = os.path.join(ondisk_model_path, version)
             if os.path.exists(ondisk_model_version_path):
                 local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = util.remove_non_empty_directory_paths(local_paths)
                 local_paths = [
                     os.path.relpath(local_path, ondisk_model_version_path)
                     for local_path in local_paths
                 ]
                 local_paths = [path for path in local_paths if not path.startswith("../")]
-                local_paths = util.remove_non_empty_directory_paths(local_paths)
 
                 s3_model_version_path = os.path.join(model_path, version)
                 s3_paths = [
@@ -559,12 +559,12 @@ class FileBasedModelsTreeUpdater(mp.Process):
             ondisk_model_version_path = os.path.join(ondisk_model_path, "1")
             if os.path.exists(ondisk_model_version_path):
                 local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = util.remove_non_empty_directory_paths(local_paths)
                 local_paths = [
                     os.path.relpath(local_path, ondisk_model_version_path)
                     for local_path in local_paths
                 ]
                 local_paths = [path for path in local_paths if not path.startswith("../")]
-                local_paths = util.remove_non_empty_directory_paths(local_paths)
 
                 s3_model_version_path = model_path
                 s3_paths = [
@@ -1069,12 +1069,12 @@ class TFSModelLoader(mp.Process):
             ondisk_model_version_path = os.path.join(ondisk_model_path, version)
             if os.path.exists(ondisk_model_version_path):
                 local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = util.remove_non_empty_directory_paths(local_paths)
                 local_paths = [
                     os.path.relpath(local_path, ondisk_model_version_path)
                     for local_path in local_paths
                 ]
                 local_paths = [path for path in local_paths if not path.startswith("../")]
-                local_paths = util.remove_non_empty_directory_paths(local_paths)
 
                 s3_model_version_path = os.path.join(model_path, version)
                 s3_paths = [
@@ -1148,12 +1148,12 @@ class TFSModelLoader(mp.Process):
             ondisk_model_version_path = os.path.join(ondisk_model_path, "1")
             if os.path.exists(ondisk_model_version_path):
                 local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = util.remove_non_empty_directory_paths(local_paths)
                 local_paths = [
                     os.path.relpath(local_path, ondisk_model_version_path)
                     for local_path in local_paths
                 ]
                 local_paths = [path for path in local_paths if not path.startswith("../")]
-                local_paths = util.remove_non_empty_directory_paths(local_paths)
 
                 s3_model_version_path = model_path
                 s3_paths = [
@@ -1163,6 +1163,7 @@ class TFSModelLoader(mp.Process):
                 s3_paths = util.remove_non_empty_directory_paths(s3_paths)
 
                 # update if the paths don't match
+                print(f"heeere, for {model_name} of version 1", local_paths, s3_paths)
                 if set(local_paths) != set(s3_paths):
                     update_model = True
 
