@@ -366,7 +366,10 @@ func getTFServingVersionsFromS3Path(modelPath string, isNeuronExport bool, awsCl
 			if errors.GetKind(err) == ErrDirIsEmpty {
 				continue
 			}
-			return nil, errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths).Error())
+			if errors.GetKind(err) != ErrInvalidTensorFlowModelPath {
+				return nil, errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths).Error())
+			}
+			return nil, ErrorInvalidTensorFlowModelPath(modelPath, isNeuronExport, allModelSubPaths)
 		}
 		versions = append(versions, version)
 	}
@@ -579,7 +582,10 @@ func getONNXVersionsFromS3Path(modelPath string, awsClientForBucket *aws.Client)
 			if errors.GetKind(err) == ErrDirIsEmpty {
 				continue
 			}
-			return nil, errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelPath, allModelSubPaths).Error())
+			if errors.GetKind(err) != ErrInvalidONNXModelPath {
+				return nil, errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelPath, allModelSubPaths).Error())
+			}
+			return nil, ErrorInvalidONNXModelPath(modelPath, allModelSubPaths)
 		}
 
 		versions = append(versions, version)

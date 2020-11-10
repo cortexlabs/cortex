@@ -304,7 +304,7 @@ func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error
 	message += fmt.Sprintf(_pythonModelTemplates, modelPath, modelPath)
 
 	if len(modelSubPaths) > 0 {
-		message += "\n" + "  but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
 		if len(modelSubPaths) > 50 {
 			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
 			message += "\n  ..."
@@ -312,7 +312,7 @@ func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error
 			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
 		}
 	} else {
-		message += "\n" + "  but its current directory is empty"
+		message += "\n" + "but its current directory is empty"
 	}
 
 	return errors.WithStack(&errors.Error{
@@ -376,7 +376,7 @@ func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelS
 	}
 
 	if len(modelSubPaths) > 0 {
-		message += "\n" + "  but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
 		if len(modelSubPaths) > 50 {
 			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
 			message += "\n  ..."
@@ -384,7 +384,7 @@ func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelS
 			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
 		}
 	} else {
-		message += "\n" + "  but its current directory is empty"
+		message += "\n" + "but its current directory is empty"
 	}
 
 	return errors.WithStack(&errors.Error{
@@ -413,7 +413,7 @@ func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
 	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, modelPath, modelPath)
 
 	if len(modelSubPaths) > 0 {
-		message += "\n" + "  but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
 		if len(modelSubPaths) > 50 {
 			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
 			message += "\n  ..."
@@ -421,7 +421,7 @@ func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
 			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
 		}
 	} else {
-		message += "\n" + "  but its current directory is empty"
+		message += "\n" + "but its current directory is empty"
 	}
 
 	return errors.WithStack(&errors.Error{

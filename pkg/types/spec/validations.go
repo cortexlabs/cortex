@@ -1133,7 +1133,10 @@ func validateTensorFlowModel(
 			modelSubPaths := aws.ConvertS3ObjectsToKeys(modelSubS3Objects...)
 
 			if err = validateTFServingS3ModelDir(modelResource.ModelPath, isNeuronExport, awsClientForBucket); err != nil {
-				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelSubPaths).Error()), modelName)
+				if errors.GetKind(err) != ErrInvalidTensorFlowModelPath {
+					return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelSubPaths).Error()), modelName)
+				}
+				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, isNeuronExport, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1154,7 +1157,10 @@ func validateTensorFlowModel(
 			}
 
 			if err = validateTFServingLocalModelDir(modelResource.ModelPath); err != nil {
-				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelSubPaths).Error()), modelName)
+				if errors.GetKind(err) != ErrInvalidTensorFlowModelPath {
+					return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelSubPaths).Error()), modelName)
+				}
+				return errors.Wrap(ErrorInvalidTensorFlowModelPath(modelResource.ModelPath, false, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1297,7 +1303,10 @@ func validateONNXModel(
 			modelSubPaths := aws.ConvertS3ObjectsToKeys(modelSubS3Objects...)
 
 			if err := validateONNXS3ModelDir(modelResource.ModelPath, awsClientForBucket); err != nil {
-				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths).Error()), modelName)
+				if errors.GetKind(err) != ErrInvalidONNXModelPath {
+					return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths).Error()), modelName)
+				}
+				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
@@ -1318,7 +1327,10 @@ func validateONNXModel(
 			}
 
 			if err := validateONNXLocalModelDir(modelResource.ModelPath); err != nil {
-				return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths).Error()), modelName)
+				if errors.GetKind(err) != ErrInvalidONNXModelPath {
+					return errors.Wrap(errors.Append(err, "\n\n"+ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths).Error()), modelName)
+				}
+				return errors.Wrap(ErrorInvalidONNXModelPath(modelResource.ModelPath, modelSubPaths), modelName)
 			}
 		}
 		modelResource.Versions = versions
