@@ -33,15 +33,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/yaml"
 )
-
-var _cachedCLIConfig *cliconfig.CLIConfig
 
 var _cliConfigValidation = &cr.StructValidation{
 	TreatNullAsEmpty: true,
@@ -540,11 +537,11 @@ func setDefaultEnv(envName string) error {
 		return err
 	}
 
-	configuredEnvNames, err := listConfiguredEnvNames()
+	envExists, err := isEnvConfigured(envName)
 	if err != nil {
 		return err
 	}
-	if !slices.HasString(configuredEnvNames, envName) {
+	if !envExists {
 		return cliconfig.ErrorEnvironmentNotConfigured(envName)
 	}
 
@@ -830,10 +827,25 @@ func listConfiguredEnvNames() ([]string, error) {
 	return envNames, nil
 }
 
+func isEnvConfigured(envName string) (bool, error) {
+	envList, err := listConfiguredEnvs()
+	if err != nil {
+		return false, err
+	}
+
+	for _, env := range envList {
+		if env.Name == envName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to configure cli environment")
 	}
 
 	replaced := false
@@ -850,7 +862,7 @@ func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
 	}
 
 	if err := writeCLIConfig(cliConfig); err != nil {
-		return err
+		return errors.Wrap(err, "unable to configure cli environment")
 	}
 
 	return nil
@@ -914,10 +926,6 @@ func getEnvNamesByOperatorEndpoint(operatorEndpoint string) ([]string, bool, err
 }
 
 func readCLIConfig() (cliconfig.CLIConfig, error) {
-	if _cachedCLIConfig != nil {
-		return *_cachedCLIConfig, nil
-	}
-
 	if !files.IsFile(_cliConfigPath) {
 		cliConfig := cliconfig.CLIConfig{
 			DefaultEnvironment: types.LocalProviderType.String(),
@@ -938,7 +946,6 @@ func readCLIConfig() (cliconfig.CLIConfig, error) {
 			return cliconfig.CLIConfig{}, errors.Wrap(err, "unable to save CLI configuration file")
 		}
 
-		_cachedCLIConfig = &cliConfig
 		return cliConfig, nil
 	}
 
@@ -956,7 +963,6 @@ func readCLIConfig() (cliconfig.CLIConfig, error) {
 		return cliconfig.CLIConfig{}, errors.Wrap(err, _cliConfigPath)
 	}
 
-	_cachedCLIConfig = &cliConfig
 	return cliConfig, nil
 }
 
@@ -973,6 +979,5 @@ func writeCLIConfig(cliConfig cliconfig.CLIConfig) error {
 		return err
 	}
 
-	_cachedCLIConfig = &cliConfig
 	return nil
 }

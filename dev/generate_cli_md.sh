@@ -18,14 +18,17 @@ set -e
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-cat $ROOT/dev/cli_md_template.md
+out_file=$ROOT/docs/miscellaneous/cli.md
+rm -f $out_file
 
+echo "building cli..."
 make --no-print-directory -C $ROOT cli
-echo
 
 # Clear default environments
 cli_config_backup_path=$HOME/.cortex/cli-bak-$RANDOM.yaml
 mv $HOME/.cortex/cli.yaml $cli_config_backup_path
+
+cat $ROOT/dev/cli_md_template.md >> $out_file
 
 commands=(
   "deploy"
@@ -47,17 +50,18 @@ commands=(
   "completion"
 )
 
-echo "## Command overview"
-echo
+echo "running help commands..."
 
 for cmd in "${commands[@]}"; do
-  echo "### ${cmd}"
-  echo
-  echo -n '```text'
-  $ROOT/bin/cortex help ${cmd}
-  echo '```'
-  echo
+  echo '' >> $out_file
+  echo "### ${cmd}" >> $out_file
+  echo '' >> $out_file
+  echo -n '```text' >> $out_file
+  $ROOT/bin/cortex help ${cmd} >> $out_file
+  echo '```' >> $out_file
 done
 
 # Bring back CLI config
 mv -f $cli_config_backup_path $HOME/.cortex/cli.yaml
+
+echo "updated $out_file"

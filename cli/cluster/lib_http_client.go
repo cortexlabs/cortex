@@ -200,9 +200,6 @@ func makeOperatorRequest(operatorConfig OperatorConfig, request *http.Request) (
 
 	response, err := client.Do(request)
 	if err != nil {
-		if operatorConfig.EnvName == "" {
-			return nil, errors.Wrap(err, "failed to connect to operator", operatorConfig.OperatorEndpoint)
-		}
 		return nil, ErrorFailedToConnectOperator(err, operatorConfig.EnvName, operatorConfig.OperatorEndpoint)
 	}
 	defer response.Body.Close()

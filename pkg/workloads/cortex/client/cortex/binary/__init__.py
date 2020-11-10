@@ -77,6 +77,7 @@ def run_cli(
                 result = "~"
                 output = output[:-1]
             if result_found:
+                output = output[:-1]
                 if c == "\n":
                     result_found = False
                     result = result[len(MIXED_CORTEX_MARKER) : -len(MIXED_CORTEX_MARKER)]
@@ -95,6 +96,9 @@ def run_cli(
         if mixed_output:
             return result
         return output
+
+    if result != "":
+        raise CortexBinaryException(result + "\n" + process.stderr.read())
 
     raise CortexBinaryException(process.stderr.read())
 

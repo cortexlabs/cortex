@@ -49,6 +49,7 @@
 ## Miscellaneous
 
 * [CLI commands](miscellaneous/cli.md)
+* [Python client](miscellaneous/python-client.md)
 * [Environments](miscellaneous/environments.md)
 * [Architecture diagram](miscellaneous/architecture.md)
 * [Security](miscellaneous/security.md)
@@ -61,18 +62,22 @@
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 * [TF session in predict()](troubleshooting/tf-session-in-predict.md)
 * [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
+* [Cluster down failures](troubleshooting/cluster-down.md)
 
 ## Guides
 
 * [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
+* [Running in production](guides/production.md)
+* [Low-cost clusters](guides/low-cost-clusters.md)
 * [Set up a custom domain](guides/custom-domain.md)
 * [Set up VPC peering](guides/vpc-peering.md)
 * [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
 * [Set up kubectl](guides/kubectl-setup.md)
 * [Private docker registry](guides/private-docker.md)
+* [Set up REST API Gateway](guides/rest-api-gateway.md)
 * [Install CLI on Windows](guides/windows-cli.md)
 
 ## Contributing

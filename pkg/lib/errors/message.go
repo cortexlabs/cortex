@@ -17,7 +17,6 @@ limitations under the License.
 package errors
 
 import (
-	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -25,7 +24,7 @@ import (
 )
 
 func PrintError(err error, strs ...string) {
-	os.Stderr.WriteString(ErrorStr(err, strs...) + "\n")
+	print.StderrPrintln(ErrorStr(err, strs...))
 	// PrintStacktrace(err)
 }
 

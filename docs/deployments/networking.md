@@ -8,6 +8,8 @@ APIs are deployed with a public API Gateway by default (the API Gateway forwards
 
 By default, the API load balancer is public. You can configure your API load balancer to be private by setting `api_load_balancer_scheme: internal` in your [cluster configuration](../cluster-management/config.md) file (before creating your cluster). This will force external traffic to go through your API Gateway endpoint, or if you disabled API Gateway for your API, it will make your API only accessible through VPC Peering. Note that if API Gateway is used, endpoints will be public regardless of `api_load_balancer_scheme`. See below for common configurations.
 
+The API Gateway that Cortex creates in AWS is the "HTTP" type. If you need to use AWS's "REST" API Gateway, see [here](../guides/rest-api-gateway.md).
+
 ## Common API networking configurations
 
 ### Public https endpoint (with API Gateway)
