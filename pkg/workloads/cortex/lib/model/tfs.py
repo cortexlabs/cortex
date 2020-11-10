@@ -225,13 +225,16 @@ class TensorFlowServingAPI:
         while max_retries >= 0:
             max_retries -= 1
             try:
+                # to prevent HandleReloadConfigRequest from
+                # throwing an exception (TFS has some race-condition bug)
+                time.sleep(0.125)
                 response = self._service.HandleReloadConfigRequest(request, timeout)
                 break
             except grpc.RpcError as err:
-                if err.code() == grpc.StatusCode.UNKNOWN:
-                    time.sleep(0.125)
-                else:
-                    raise
+                # to prevent HandleReloadConfigRequest from
+                # throwing another exception on the next run
+                time.sleep(0.125)
+                raise
 
         if not (response and response.status.error_code == 0):
             if response:

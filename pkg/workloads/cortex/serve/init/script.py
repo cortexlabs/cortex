@@ -164,9 +164,12 @@ def main():
             ):
                 cron.stop()
 
+            # don't exit the script if the cron is running
+            while cron.is_alive():
+                time.sleep(0.25)
+
     # to syncronize with the other serving processes
     open("/mnt/workspace/init_script_run.txt", "a").close()
-
 
 if __name__ == "__main__":
     main()

@@ -24,7 +24,7 @@ class CuratedModelResources:
         An example of curated_model_resources object:
         [
             {
-                'model_path': 's3://cortex-0/models/tensorflow/transformer/',
+                'model_path': 's3://cortex-examples/models/tensorflow/transformer/',
                 'name': 'modelB',
                 's3_path': True,
                 'signature_key': None,
