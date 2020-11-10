@@ -25,6 +25,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
@@ -100,13 +101,18 @@ func makeRequestLoop(url string, jsonBytes []byte) {
 		response, _, err := makeRequest(url, jsonBytes)
 
 		if err != nil {
-			fmt.Print(err.Error())
+			fmt.Print("\n" + debug.Sppg(err))
 			continue
 		}
 
 		if response.StatusCode != 200 {
-			fmt.Print(response.StatusCode)
-			fmt.Print(" ")
+			bodyBytes, err := ioutil.ReadAll(response.Body)
+			response.Body.Close()
+			if err == nil {
+				fmt.Printf("\nstatus code: %d; body: %s\n", response.StatusCode, string(bodyBytes))
+			} else {
+				fmt.Printf("\nstatus code: %d; error reading body: %s\n", response.StatusCode, string(err.Error()))
+			}
 			continue
 		}
 
