@@ -195,20 +195,26 @@ ModelTemplate = {
     },
     TensorFlowNeuronPredictorType: {
         OneOfAllPlaceholder(ModelVersion.PROVIDED): {
-            IntegerPlaceholder: GenericPlaceholder("saved_model.pb"),
+            IntegerPlaceholder: {
+                GenericPlaceholder("saved_model.pb"): None,
+                AnyPlaceholder: None,
+            }
         },
         OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {
             GenericPlaceholder("saved_model.pb"): None,
+            AnyPlaceholder: None,
         },
     },
     ONNXPredictorType: {
         OneOfAllPlaceholder(ModelVersion.PROVIDED): {
             IntegerPlaceholder: {
                 PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+                AnyPlaceholder: None,
             },
         },
         OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {
             PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
+            AnyPlaceholder: None,
         },
     },
 }
