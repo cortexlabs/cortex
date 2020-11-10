@@ -19,6 +19,7 @@ package clusterconfig
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"regexp"
@@ -586,7 +587,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		cc.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(cc.InstanceVolumeSize*50, 3000))
 	}
 
-	if err := awsClient.VerifyInstanceQuota(primaryInstanceType); err != nil {
+	if err := awsClient.VerifyInstanceQuota(primaryInstanceType, cc.MaxPossibleOnDemandInstances(), cc.MaxPossibleSpotInstances()); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
 			return errors.Wrap(err, InstanceTypeKey)
@@ -1079,6 +1080,54 @@ func DefaultAccessConfig() (*AccessConfig, error) {
 		return nil, errors.FirstError(errs...)
 	}
 	return accessConfig, nil
+}
+
+func (cc *Config) MaxPossibleOnDemandInstances() int64 {
+	if cc.MaxInstances == nil {
+		return 0 // unexpected
+	}
+
+	if cc.Spot == nil || *cc.Spot == false || cc.SpotConfig == nil || cc.SpotConfig.OnDemandBackup == nil || *cc.SpotConfig.OnDemandBackup == true {
+		return *cc.MaxInstances
+	}
+
+	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
+
+	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(*cc.MaxInstances-onDemandBaseCap)))
+}
+
+func (cc *Config) MaxPossibleSpotInstances() int64 {
+	if cc.MaxInstances == nil {
+		return 0 // unexpected
+	}
+
+	if cc.Spot == nil || *cc.Spot == false {
+		return 0
+	}
+
+	if cc.SpotConfig == nil {
+		return *cc.MaxInstances
+	}
+
+	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
+
+	return *cc.MaxInstances - onDemandBaseCap - int64(math.Floor(float64(onDemandPctAboveBaseCap)/100*float64(*cc.MaxInstances-onDemandBaseCap)))
+}
+
+func (cc *Config) SpotConfigOnDemandValues() (int64, int64) {
+	// default OnDemandBaseCapacity is 0
+	var onDemandBaseCapacity int64 = 0
+	if cc.SpotConfig.OnDemandBaseCapacity != nil {
+		onDemandBaseCapacity = *cc.SpotConfig.OnDemandBaseCapacity
+	}
+
+	// default OnDemandPercentageAboveBaseCapacity is 0
+	var onDemandPercentageAboveBaseCapacity int64 = 0
+	if cc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
+		onDemandPercentageAboveBaseCapacity = *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity
+	}
+
+	return onDemandBaseCapacity, onDemandPercentageAboveBaseCapacity
 }
 
 func (cc *InternalConfig) UserTable() table.KeyValuePairs {

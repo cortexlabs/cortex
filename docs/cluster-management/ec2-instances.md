@@ -6,7 +6,7 @@ There are a variety of instance types to choose from when creating a Cortex clus
 
 This is not a comprehensive guide so please refer to the [AWS's documentation](https://aws.amazon.com/ec2/instance-types/) for more information.
 
-Note: you may have limited (or no) access to certain instance types. To check your limits, click [here](https://console.aws.amazon.com/ec2/v2/home?#Limits:), set your region in the upper right, and type "on-demand" in the search box. You can request a limit by selecting an instance family and clicking "Request limit increase" in the upper right. Note that the limits are vCPU-based no matter the instance type (e.g. to run 4 `g4dn.xlarge` instances, you will need a 16 vCPU limit for G instances).
+Note: There is an instance limit associated with your AWS account for each instance family in each region, for on-demand and for spot instances. You can check your current limit and request an increase [here](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) (set the region in the upper right corner to your desired region, type "on-demand" or "spot" in the search bar, and click on the quota that matches your instance type). Note that the quota values indicate the number of vCPUs available, not the number of instances; different instances have a different numbers of vCPUs, which can be seen [here](https://aws.amazon.com/ec2/instance-types/).
 
 | Instance Type                                           | CPU    | Memory    | GPU Memory               | Starting price per hour* | Notes                             |
 | :---                                                    | :---   | :---      | :---                     | :---                     | :---                              |
