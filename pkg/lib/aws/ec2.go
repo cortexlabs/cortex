@@ -29,6 +29,12 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
+// aws instance types take this form: (\w+)([0-9]+)(\w*).(\w+)
+// the first group is the instance series, e.g. "m", "t", "g", "inf", ...
+// the second group is a version number for that series, e.g. 3, 4, ...
+// the third group is optional, and is a set of single-character "flags"
+//   "g" represents ARM (graviton), "a" for AMD, "n" for fast networking, "d" for fast storage, etc.
+// the fourth and final group (after the dot) is the instance size, e.g. "large"
 var _armInstanceRegex = regexp.MustCompile(`^\w+[0-9]+\w*g\w*\.\w+$`)
 
 // instanceType must be a valid instance type that exists in AWS, e.g. g4dn.xlarge
