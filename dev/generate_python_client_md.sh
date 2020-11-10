@@ -30,35 +30,35 @@ cd $ROOT/pkg/workloads/cortex/client
 
 pip3 install -e .
 
-pydoc-markdown -m cortex -m cortex.client --render-toc > $ROOT/docs/miscellaneous/python_client.md
+pydoc-markdown -m cortex -m cortex.client --render-toc > $ROOT/docs/miscellaneous/python-client.md
 
 # title
-sed -i "s/# Table of Contents/# Python client\n\n_WARNING: you are on the master branch, please refer to the docs on the branch that matches your \`cortex version\`_/g" $ROOT/docs/miscellaneous/python_client.md
+sed -i "s/# Table of Contents/# Python client\n\n_WARNING: you are on the master branch, please refer to the docs on the branch that matches your \`cortex version\`_/g" $ROOT/docs/miscellaneous/python-client.md
 
 # delete links
-sed -i "/<a name=/d" $ROOT/docs/miscellaneous/python_client.md
+sed -i "/<a name=/d" $ROOT/docs/miscellaneous/python-client.md
 
 # delete unnecessary section headers
-sed -i "/_](#cortex\.client\.Client\.__init__)/d" $ROOT/docs/miscellaneous/python_client.md
-sed -i "/\* \[Client](#cortex\.client\.Client)/d" $ROOT/docs/miscellaneous/python_client.md
+sed -i "/_](#cortex\.client\.Client\.__init__)/d" $ROOT/docs/miscellaneous/python-client.md
+sed -i "/\* \[Client](#cortex\.client\.Client)/d" $ROOT/docs/miscellaneous/python-client.md
 # fix section link/header
-sed -i "s/\* \[cortex\.client](#cortex\.client)/\* [cortex\.client\.Client](#cortex-client-client)/g" $ROOT/docs/miscellaneous/python_client.md
-sed -i "s/# cortex\.client/# cortex\.client\.Client/g" $ROOT/docs/miscellaneous/python_client.md
+sed -i "s/\* \[cortex\.client](#cortex\.client)/\* [cortex\.client\.Client](#cortex-client-client)/g" $ROOT/docs/miscellaneous/python-client.md
+sed -i "s/# cortex\.client/# cortex\.client\.Client/g" $ROOT/docs/miscellaneous/python-client.md
 # delete unnecessary section body
-sed -i "/# cortex.client.Client/,/## deploy/{//!d}" $ROOT/docs/miscellaneous/python_client.md
-sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $ROOT/docs/miscellaneous/python_client.md
+sed -i "/# cortex.client.Client/,/## deploy/{//!d}" $ROOT/docs/miscellaneous/python-client.md
+sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $ROOT/docs/miscellaneous/python-client.md
 
 # fix table of contents links
-sed -i "s/](#cortex\./](#/g" $ROOT/docs/miscellaneous/python_client.md
-sed -i "s/](#client\.Client\./](#/g" $ROOT/docs/miscellaneous/python_client.md
+sed -i "s/](#cortex\./](#/g" $ROOT/docs/miscellaneous/python-client.md
+sed -i "s/](#client\.Client\./](#/g" $ROOT/docs/miscellaneous/python-client.md
 
 # indentdation
-sed -i "s/    \* /  \* /g" $ROOT/docs/miscellaneous/python_client.md
-sed -i "s/#### /## /g" $ROOT/docs/miscellaneous/python_client.md
+sed -i "s/    \* /  \* /g" $ROOT/docs/miscellaneous/python-client.md
+sed -i "s/#### /## /g" $ROOT/docs/miscellaneous/python-client.md
 
 # whitespace
-sed -i 's/[[:space:]]*$//' $ROOT/docs/miscellaneous/python_client.md
-truncate -s -1 $ROOT/docs/miscellaneous/python_client.md
+sed -i 's/[[:space:]]*$//' $ROOT/docs/miscellaneous/python-client.md
+truncate -s -1 $ROOT/docs/miscellaneous/python-client.md
 
 pip3 uninstall -y cortex
 
