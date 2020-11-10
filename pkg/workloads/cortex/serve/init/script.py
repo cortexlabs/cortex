@@ -158,9 +158,11 @@ def main():
                 time.sleep(0.25)
 
             # disable live reloading when the BatchAPI kind is used
-            # disable live reloading for the TF predictor when Inferentia is used and when multiple processes are used
+            # disable live reloading for the TF predictor when Inferentia is used and when multiple processes are used (num procs > 1)
             if api_spec["kind"] != "RealtimeAPI" or (
-                predictor_type == TensorFlowNeuronPredictorType and has_multiple_tf_servers
+                predictor_type == TensorFlowNeuronPredictorType
+                and has_multiple_tf_servers
+                and num_processes > 1
             ):
                 cron.stop()
 
