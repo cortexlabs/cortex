@@ -6,4 +6,4 @@ Thank you for your interest in contributing to Cortex!
 
 - **Add an example:** we're always excited to see cool models deployed with Cortex. Please check out our [examples](examples) and feel free to add a one by submitting a pull request.
 
-- **Implement a feature:** if you'd like to contribute significant code to the project, please reach out to us so we can work together on the design and make sure we're on the same page before you get started.
+- **Implement a feature:** here are [instructions for setting up a development environment](docs/contributing/development.md). If you'd like to contribute significant code to the project, please reach out to us so we can work together on the design and make sure we're on the same page before you get started.
