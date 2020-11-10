@@ -94,14 +94,10 @@ func isModelNameIn(models []userconfig.ModelResource, modelName string) bool {
 
 func modelResourceToCurated(modelResources []userconfig.ModelResource, projectDir string) ([]CuratedModelResource, error) {
 	models := []CuratedModelResource{}
-	var err error
 	for _, model := range modelResources {
 		isS3Path := strings.HasPrefix(model.ModelPath, "s3://")
 		if !isS3Path {
-			model.ModelPath, err = files.AbsPathWithTildeExpansion(model.ModelPath, projectDir)
-			if err != nil {
-				return nil, err
-			}
+			model.ModelPath = files.RelToAbsPath(model.ModelPath, projectDir)
 		}
 
 		model.ModelPath = s.EnsureSuffix(model.ModelPath, "/")
@@ -159,18 +155,13 @@ func listModelResourcesFromPath(path string, projectFiles ProjectFiles, awsClien
 		}
 
 	} else {
-		var err error
-		path, err = files.AbsPathWithTildeExpansion(path, projectFiles.ProjectDir())
-		if err != nil {
-			return nil, err
-		}
+		path = files.RelToAbsPath(path, projectFiles.ProjectDir())
 
 		if err := files.CheckDir(path); err != nil {
 			return nil, err
 		}
 
-		var modelObjects []string
-		modelObjects, err = files.ListDir(path, true)
+		modelObjects, err := files.ListDir(path, true)
 		if err != nil {
 			return nil, err
 		}

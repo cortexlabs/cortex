@@ -14,7 +14,7 @@ The following template is based on the [live-reloading/python/mpg-estimator](htt
 
 #### `cortex.yaml`
 
-Even though it looks as if there's only a single model served, there are actually 4 different versions served from `s3://cortex-0/models/python/mpg-estimator`, thus fitting the bill.
+Even though it looks as if there's only a single model served, there are actually 4 different versions served from `s3://cortex-examples/sklearn/mpg-estimator/linreg/`, thus fitting the bill.
 
 ```yaml
 - name: mpg-estimator
@@ -22,7 +22,7 @@ Even though it looks as if there's only a single model served, there are actuall
   predictor:
     type: python
     path: predictor.py
-    model_path: s3://cortex-0/models/python/mpg-estimator/
+    model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
 ```
 
 #### `predictor.py`

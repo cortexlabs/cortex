@@ -120,6 +120,7 @@ class PythonPredictor:
             The loaded model from disk. The returned object is what the
             self.client.get_model method will return.
         """
+        pass
 ```
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.

@@ -8,4 +8,4 @@ The live-reloading is a feature that reloads models at run-time from (a) specifi
 
 ---
 
-*1: The live-reloading feature for the TensorFlow predictor is disabled when Inferentia resources (`compute.inf`) are added to the API.*
+*1: The live-reloading feature for the TensorFlow predictor is disabled when Inferentia resources (`compute.inf`) are added to the API and `processes_per_replica` > 1.*

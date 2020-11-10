@@ -257,18 +257,6 @@ func UserRelToAbsPath(relativePath string) string {
 	return RelToAbsPath(relativePath, cwd)
 }
 
-// Gets absolute path of "path" based on "basedir" with the tilde expanded.
-func AbsPathWithTildeExpansion(path, basedir string) (string, error) {
-	if strings.HasPrefix(path, "~/") {
-		absPath, err := EscapeTilde(path)
-		if err != nil {
-			return "", err
-		}
-		return absPath, nil
-	}
-	return RelToAbsPath(path, basedir), nil
-}
-
 func PathRelativeToCWD(absPath string) string {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -765,10 +753,10 @@ func FileTree(paths []string, cwd string, dirsOrder DirsOrder) string {
 		header = ""
 	} else if didTrimCwd && commonPrefix != "" {
 		header = "./" + commonPrefix
-		header = s.EnsureSingleOccurrenceSuffix(header, "/") + "\n"
+		header = s.EnsureSingleOccurrenceCharSuffix(header, "/") + "\n"
 	} else if !didTrimCwd && commonPrefix != "" {
 		header = commonPrefix + "/"
-		header = s.EnsureSingleOccurrenceSuffix(header, "/") + "\n"
+		header = s.EnsureSingleOccurrenceCharSuffix(header, "/") + "\n"
 	}
 
 	tree := treeprint.New()
