@@ -73,8 +73,10 @@ class PythonClient:
         else:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
-            self._spec_local_model_names = self._spec_models.get_local_model_names()
-            self._local_model_ts = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
+
+        # for when local models are used
+        self._spec_local_model_names = self._spec_models.get_local_model_names()
+        self._local_model_ts = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
 
         self._multiple_processes = self._api_spec["predictor"]["processes_per_replica"] > 1
         self._caching_enabled = self._is_model_caching_enabled()
