@@ -1163,7 +1163,6 @@ class TFSModelLoader(mp.Process):
                 s3_paths = util.remove_non_empty_directory_paths(s3_paths)
 
                 # update if the paths don't match
-                print(f"heeere, for {model_name} of version 1", local_paths, s3_paths)
                 if set(local_paths) != set(s3_paths):
                     update_model = True
 
