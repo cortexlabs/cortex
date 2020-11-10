@@ -1091,19 +1091,9 @@ func (cc *Config) MaxPossibleOnDemandInstances() int64 {
 		return *cc.MaxInstances
 	}
 
-	var count int64
+	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
 
-	// default OnDemandBaseCapacity is 0
-	if cc.SpotConfig.OnDemandBaseCapacity != nil {
-		count += *cc.SpotConfig.OnDemandBaseCapacity
-	}
-
-	// default OnDemandPercentageAboveBaseCapacity is 0
-	if cc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
-		count += int64(math.Ceil(float64(*cc.SpotConfig.OnDemandPercentageAboveBaseCapacity) / 100 * float64(*cc.MaxInstances-count)))
-	}
-
-	return libmath.MinInt64(count, *cc.MaxInstances) // take min just to be safe
+	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(*cc.MaxInstances-onDemandBaseCap)))
 }
 
 func (cc *Config) MaxPossibleSpotInstances() int64 {
@@ -1115,23 +1105,29 @@ func (cc *Config) MaxPossibleSpotInstances() int64 {
 		return 0
 	}
 
-	count := *cc.MaxInstances
-
 	if cc.SpotConfig == nil {
-		return count
+		return *cc.MaxInstances
 	}
 
+	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
+
+	return *cc.MaxInstances - onDemandBaseCap - int64(math.Floor(float64(onDemandPctAboveBaseCap)/100*float64(*cc.MaxInstances-onDemandBaseCap)))
+}
+
+func (cc *Config) SpotConfigOnDemandValues() (int64, int64) {
 	// default OnDemandBaseCapacity is 0
+	var onDemandBaseCapacity int64 = 0
 	if cc.SpotConfig.OnDemandBaseCapacity != nil {
-		count -= *cc.SpotConfig.OnDemandBaseCapacity
+		onDemandBaseCapacity = *cc.SpotConfig.OnDemandBaseCapacity
 	}
 
 	// default OnDemandPercentageAboveBaseCapacity is 0
+	var onDemandPercentageAboveBaseCapacity int64 = 0
 	if cc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
-		count -= int64(math.Floor(float64(*cc.SpotConfig.OnDemandPercentageAboveBaseCapacity) / 100 * float64(count)))
+		onDemandPercentageAboveBaseCapacity = *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity
 	}
 
-	return libmath.MaxInt64(count, 0) // take max just to be safe
+	return onDemandBaseCapacity, onDemandPercentageAboveBaseCapacity
 }
 
 func (cc *InternalConfig) UserTable() table.KeyValuePairs {
