@@ -298,7 +298,7 @@ the expected directory structure is
 
 Basically, when specifying the `predictor.models.dir` field, its value is expected to point to an S3 directory holding multiple models, each one either containing a model or versioned models.
 
-## Model Caching
+## Model caching
 
 Model caching is a mechanism that builds on top of the [live model reloading](#live-model-reloading) mechanism.
 
