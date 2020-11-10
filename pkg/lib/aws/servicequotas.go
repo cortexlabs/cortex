@@ -27,20 +27,20 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-var _instancePrefixRegex = regexp.MustCompile(`[a-zA-Z]+`)
-var _standardInstancePrefixes = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
-var _knownInstancePrefixes = strset.Union(_standardInstancePrefixes, strset.New("p", "g", "inf", "x", "f"))
+var _instanceCategoryRegex = regexp.MustCompile(`[a-zA-Z]+`)
+var _standardInstanceCategories = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
+var _knownInstanceCategories = strset.Union(_standardInstanceCategories, strset.New("p", "g", "inf", "x", "f"))
 
 func (c *Client) VerifyInstanceQuota(instanceType string) error {
-	instancePrefix := _instancePrefixRegex.FindString(instanceType)
+	instanceCategory := _instanceCategoryRegex.FindString(instanceType)
 
 	// Allow the instance if we don't recognize the type
-	if !_knownInstancePrefixes.Has(instancePrefix) {
+	if !_knownInstanceCategories.Has(instanceCategory) {
 		return nil
 	}
 
-	if _standardInstancePrefixes.Has(instancePrefix) {
-		instancePrefix = "standard"
+	if _standardInstanceCategories.Has(instanceCategory) {
+		instanceCategory = "standard"
 	}
 
 	var cpuLimit *int
@@ -62,7 +62,7 @@ func (c *Client) VerifyInstanceQuota(instanceType string) error {
 					continue
 				}
 
-				if strings.ToLower(*metricClass) == instancePrefix+"/ondemand" {
+				if strings.ToLower(*metricClass) == instanceCategory+"/ondemand" {
 					cpuLimit = pointer.Int(int(*quota.Value)) // quota is specified in number of vCPU permitted per family
 					return false
 				}
