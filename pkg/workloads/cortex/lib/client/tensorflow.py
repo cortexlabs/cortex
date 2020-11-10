@@ -208,10 +208,10 @@ class TensorFlowClient:
                 logger().info(f"checking the {model_name} {model_version} status")
                 status, local_ts = self._models.has_model(model_name, model_version)
                 if status in ["not-available", "on-disk"] or (
-                    status != "not-available" and local_ts < current_upstream_ts
+                    status != "not-available" and local_ts != current_upstream_ts
                 ):
                     logger().info(
-                        f"model {model_name} of version {model_version} is not loaded (with status {status} or older ts)"
+                        f"model {model_name} of version {model_version} is not loaded (with status {status} or different timestamp)"
                     )
                     update_model = True
                     raise WithBreak
@@ -252,7 +252,7 @@ class TensorFlowClient:
 
                     # refresh disk model
                     if status == "not-available" or (
-                        status in ["on-disk", "in-memory"] and local_ts < current_upstream_ts
+                        status in ["on-disk", "in-memory"] and local_ts != current_upstream_ts
                     ):
                         # unload model from TFS
                         if status == "in-memory":

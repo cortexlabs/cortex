@@ -1238,7 +1238,7 @@ class TFSModelLoader(mp.Process):
             model_id = f"{model_name}-{model_version}"
             is_model_outdated = False
             first_time_load = False
-            if model_id in self._old_ts_state and self._old_ts_state[model_id] < model_ts:
+            if model_id in self._old_ts_state and self._old_ts_state[model_id] != model_ts:
                 try:
                     self._client.remove_single_model(model_name, model_version)
                 except gprc.RpcError as error:

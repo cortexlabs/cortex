@@ -252,7 +252,7 @@ class ONNXClient:
                 with LockedModel(self._models, "r", model_name, model_version):
                     status, local_ts = self._models.has_model(model_name, model_version)
                     if status == "not-available" or (
-                        status == "in-memory" and local_ts < current_upstream_ts
+                        status == "in-memory" and local_ts != current_upstream_ts
                     ):
                         update_model = True
                         raise WithBreak
@@ -263,7 +263,7 @@ class ONNXClient:
                     with LockedModel(self._models, "w", model_name, model_version):
                         status, _ = self._models.has_model(model_name, model_version)
                         if status == "not-available" or (
-                            status == "in-memory" and local_ts < current_upstream_ts
+                            status == "in-memory" and local_ts != current_upstream_ts
                         ):
                             if status == "not-available":
                                 logger().info(
@@ -323,7 +323,7 @@ class ONNXClient:
                 status, local_ts = self._models.has_model(model_name, model_version)
                 if status in ["not-available", "on-disk"] or (
                     status != "not-available"
-                    and local_ts < current_upstream_ts
+                    and local_ts != current_upstream_ts
                     and not (status == "in-memory" and model_name in self._spec_local_model_names)
                 ):
                     update_model = True
@@ -341,7 +341,7 @@ class ONNXClient:
                     # refresh disk model
                     if model_name not in self._spec_local_model_names and (
                         status == "not-available"
-                        or (status in ["on-disk", "in-memory"] and local_ts < current_upstream_ts)
+                        or (status in ["on-disk", "in-memory"] and local_ts != current_upstream_ts)
                     ):
                         if status == "not-available":
                             logger().info(
