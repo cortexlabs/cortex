@@ -209,12 +209,10 @@ ModelTemplate = {
         OneOfAllPlaceholder(ModelVersion.PROVIDED): {
             IntegerPlaceholder: {
                 PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
-                AnyPlaceholder: None,
             },
         },
         OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {
             PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
-            AnyPlaceholder: None,
         },
     },
 }

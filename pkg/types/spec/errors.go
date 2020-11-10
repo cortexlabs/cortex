@@ -336,24 +336,24 @@ var _tfVersionedExpectedStructMessage = `
           ├── variables.index
           ├── variables.data-00000-of-00003
           ├── variables.data-00001-of-00003
-		  └── variables.data-00002-of-...
+          └── variables.data-00002-of-...
 
 or like
 
   %s
   ├── saved_model.pb
   └── variables/
-	  ├── variables.index
-	  ├── variables.data-00000-of-00003
-	  ├── variables.data-00001-of-00003
-	  └── variables.data-00002-of-...
+      ├── variables.index
+      ├── variables.data-00000-of-00003
+      ├── variables.data-00001-of-00003
+      └── variables.data-00002-of-...
 `
 var _neuronTfVersionedExpectedStructMessage = `
   %s
   ├── 1523423423/ (Version prefix, usually a timestamp)
   |   └── saved_model.pb
   └── 2434389194/ (Version prefix, usually a timestamp)
-	  └── saved_model.pb
+      └── saved_model.pb
 
 or like
 
@@ -398,7 +398,7 @@ var _onnxVersionedExpectedStructMessage = `
   ├── 1523423423/ (Version prefix)
   |   └── <model-name>.onnx // ONNX-exported file
   └── 2434389194/ (Version prefix)
-	  └── <model-name>.onnx // ONNX-exported file
+      └── <model-name>.onnx // ONNX-exported file
 
 or like
 
