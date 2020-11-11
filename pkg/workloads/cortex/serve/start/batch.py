@@ -20,6 +20,7 @@ import time
 import json
 import threading
 import math
+import pathlib
 
 import boto3
 import botocore
@@ -208,6 +209,9 @@ def sqs_loop():
 
 
 def start():
+    while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
+        time.sleep(0.2)
+
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     provider = os.environ["CORTEX_PROVIDER"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
