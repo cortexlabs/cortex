@@ -181,7 +181,7 @@ var _oldCLIConfigValidation = &cr.StructValidation{
 }
 
 // this checks for the old CLI configuration schema and updates it to the new one
-// can be removed for 0.19 or 0.20 release
+// can be removed for 0.23 or 0.24 release
 func convertOldCLIConfig() (cliconfig.CLIConfig, bool) {
 	cliConfig := cliconfig.CLIConfig{}
 	errs := cr.ParseYAMLFile(&cliConfig, _oldCLIConfigValidation, _cliConfigPath)
