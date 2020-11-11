@@ -44,6 +44,7 @@ cd cortex/examples/pytorch/text-generator
 ```
 
 ### In Python
+
 ```python
 import cortex
 import requests
@@ -64,6 +65,7 @@ local_client.delete_api("text-generator")
 ```
 
 ### Using the CLI
+
 ```bash
 # deploy the model as a realtime api
 cortex deploy
