@@ -88,7 +88,11 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 	destModelDir := filepath.Join(_modelCacheDir, localModelCache.ID)
 
 	if files.IsDir(destModelDir) {
-		localModelCache.HostPath = destModelDir
+		if len(model.Versions) == 0 {
+			localModelCache.HostPath = filepath.Join(destModelDir, "1")
+		} else {
+			localModelCache.HostPath = destModelDir
+		}
 		return &localModelCache, true, nil
 	}
 
