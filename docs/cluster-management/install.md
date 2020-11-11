@@ -4,7 +4,6 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Install the CLI
 
-<!-- CORTEX_VERSION_MINOR -->
 ```bash
 pip install cortex
 ```
