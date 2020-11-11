@@ -200,7 +200,7 @@ def get_model(model_name, model_version):
         model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
             When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
             When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
-        model_version (optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
+        model_version (string, optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
     Returns:
         The model as loaded by the load_model() method.
@@ -259,7 +259,7 @@ def predict(model_input, model_name, model_version) -> dict:
         model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
             When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
             When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
-        model_version (optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
+        model_version (string, optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
     Returns:
         dict: TensorFlow Serving response converted to a dictionary.
@@ -313,7 +313,7 @@ def predict(model_input: Any, model_name: Optional[str] = None, model_version: s
         model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
             When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
             When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
-        model_version (optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
+        model_version (string, optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
     Returns:
         The prediction returned from the model.
