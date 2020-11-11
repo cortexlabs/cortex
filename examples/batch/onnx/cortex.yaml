@@ -5,6 +5,6 @@
   predictor:
     type: onnx
     path: predictor.py
-    model_path: s3://cortex-examples/image-classifier/alexnet_batch.onnx
+    model_path: s3://cortex-examples/image-classifier/alexnet_batch/
   compute:
     cpu: 1
