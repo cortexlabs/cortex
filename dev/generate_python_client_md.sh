@@ -70,5 +70,3 @@ cat << EOF
 
 Then check the diff
 EOF
-
-# TODO automate? test on mac?
