@@ -2,106 +2,306 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-The Cortex API config supports specifying models for all types of predictors.
+## Model directory format
 
-Models loaded using the `predictor.model_path` or `predictor.models` fields benefit from having the live reloading functionality enabled. Specifying the `cache_size` and `disk_cache_size` fields when using the `predictor.models` field enables the model caching mechanism.
+Whenever a model path is specified in an API configuration file, it should be a path to an S3 prefix (or a local directory if deploying locally) which contains your exported model. Directories may include a single model, or multiple folders each with a single model (note that a "single model" need not be a single file; there can be multiple files for a single model). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
 
-The following is a table showing when live reloading / model caching is possible.
+Each predictor type expects a different model format:
 
-| Predictor Type | Processes / API replica   | Live Reloading                   | Model Caching |
-|----------------|---------------------------|----------------------------------|---------------|
-| Python         | processes_per_replica = 1 | yes                              | yes           |
-|                | processes_per_replica > 1 | yes                              | no            |
-| TensorFlow     | processes_per_replica = 1 | yes                              | yes           |
-|                | processes_per_replica > 1 | yes (no when inferentia is used) | no            |
-| ONNX           | processes_per_replica = 1 | yes                              | yes           |
-|                | processes_per_replica > 1 | yes                              | no            |
+### Python
+
+For the Python predictor, any model structure is accepted. Here is an example:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── model.pkl
+  └── data.txt
+```
+
+or for a versioned model:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── 1523423423/  (version number, usually a timestamp)
+  |   ├── model.pkl
+  |   └── data.txt
+  └── 2434389194/  (version number, usually a timestamp)
+      ├── model.pkl
+      └── data.txt
+```
+
+### TensorFlow
+
+For the TensorFlow predictor, the model path must be a SavedModel export:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── saved_model.pb
+  └── variables/
+      ├── variables.index
+      ├── variables.data-00000-of-00003
+      ├── variables.data-00001-of-00003
+      └── variables.data-00002-of-...
+```
+
+or for a versioned model:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── 1523423423/  (version number, usually a timestamp)
+  |   ├── saved_model.pb
+  |   └── variables/
+  |       ├── variables.index
+  |       ├── variables.data-00000-of-00003
+  |       ├── variables.data-00001-of-00003
+  |       └── variables.data-00002-of-...
+  └── 2434389194/  (version number, usually a timestamp)
+      ├── saved_model.pb
+      └── variables/
+          ├── variables.index
+          ├── variables.data-00000-of-00003
+          ├── variables.data-00001-of-00003
+          └── variables.data-00002-of-...
+```
+
+#### Inferentia
+
+When Inferentia models are used, the directory structure is slightly different:
+
+```text
+  s3://my-bucket/models/text-generator/
+  └── saved_model.pb
+```
+
+or for a versioned model:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── 1523423423/  (version number, usually a timestamp)
+  |   └── saved_model.pb
+  └── 2434389194/  (version number, usually a timestamp)
+      └── saved_model.pb
+```
+
+### ONNX
+
+For the ONNX predictor, the model path must contain a single `*.onnx` file:
+
+```text
+  s3://my-bucket/models/text-generator/
+  └── model.onnx
+```
+
+or for a versioned model:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── 1523423423/  (version number, usually a timestamp)
+  |   └── model.onnx
+  └── 2434389194/  (version number, usually a timestamp)
+      └── model.onnx
+```
+
+## Single model
+
+The most common pattern is to serve a single model per API. The path to the model is specified in the `model_path` field in the `predictor` configuration. For example:
+
+```yaml
+# cortex.yaml
+
+- name: iris-classifier
+  kind: RealtimeAPI
+  predictor:
+    # ...
+    model_path: s3://my-bucket/models/text-generator/
+```
+
+Note: for the Python predictor type, it is not necessary to specify the path to your model in `model_path`, since you can download and load it in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
+
+## Multiple models
+
+It is possible to serve multiple models from a single API. The paths to the models are specified in the api configuration, either via the `models.paths` or `models.dir` field in the `predictor` configuration. For example:
+
+```yaml
+# cortex.yaml
+
+- name: iris-classifier
+  kind: RealtimeAPI
+  predictor:
+    # ...
+    models:
+      paths:
+        - name: iris-classifier
+          path: s3://my-bucket/models/text-generator/
+        # ...
+```
+
+or:
+
+```yaml
+# cortex.yaml
+
+- name: iris-classifier
+  kind: RealtimeAPI
+  predictor:
+    # ...
+    models:
+      dir: s3://my-bucket/models/
+```
+
+Note: for the Python predictor type, it is not necessary to specify the paths to your models in `models`, since you can download and load them in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of live reloading or multi model caching (see below).
+
+When using the `models.paths` field, each path must be a valid model directory (see above for valid model directory structures).
+
+When using the `models.dir` field, the directory provided may contain multiple subdirectories, each of which is a valid model directory. For example:
+
+```text
+  s3://my-bucket/models/
+  ├── text-generator
+  |   └── * (model files)
+  └── sentiment-analyzer
+      ├── 24753823/
+      |   └── * (model files)
+      └── 26234288/
+          └── * (model files)
+```
+
+In this case, there are two models in the directory, one of which is named "text-generator", and the other is named "sentiment-analyzer".
+
+<!-- CORTEX_VERSION_MINOR -->
+Additional examples can be seen in the [multi model guide](../../guides/multi-model.md) and in [examples/model-caching](https://github.com/cortexlabs/cortex/tree/master/examples/model-caching) (remove the `cache_size` and `disk_cache_size` configurations in `cortex.yaml` to disable [multi model caching](#multi-model-caching)).
 
 ## Live model reloading
 
-Live reloading is a mechanism present on all predictor types that periodically checks the S3 model paths provided through `predictor.model_path` or `predictor.models` fields for updated models. This happens on each API replica and it's totally transparent to the user.
+Live model reloading is a mechanism that periodically checks for updated models in the model path(s) provided in `predictor.model_path` or `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type (as long as model paths are specified via `model_path` or `models` in the `predictor` configuration).
 
-The following is a list of events that trigger the API replica to update its models:
-* When a new model is added to the S3 upstream.
-* When a model is removed from the S3 upstream.
-* When a model changes its directory structure on the S3 upstream.
-* When a model gets an updated file on the S3 upstream.
+The following is a list of events that will trigger the API to update its model(s):
 
-### Usage
+* A new model is added to the model directory.
+* A model is removed from the model directory.
+* A model changes its directory structure.
+* A file in the model directory is updated in-place.
 
-#### Python
+<!-- CORTEX_VERSION_MINOR -->
+Examples can be seen in [examples/live-reloading](https://github.com/cortexlabs/cortex/tree/master/examples/live-reloading).
 
-For the Python predictor, specifying a model is optional to the user. But if it's decided to have a model specified using the API spec config, then retrieving the model for inference is done with the `python_client` client that's passed to the predictor's constructor. This also implies the implementation of a `load_model` method for the `PythonPredictor` class.
+Usage varies based on the predictor type:
 
-To loader model that needs to be implemented has this prototype.
+### Python
+
+To use live model reloading with the Python predictor, the model path(s) must be specified in the API's `predictor` configuration (via the `model_path` or `models` field). When models are specified in this manner, your `PythonPredictor` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `python_client` that's passed to the predictor's constructor:
+
+```python
+def get_model(model_name, model_version):
+    """
+    Retrieve a model for inference.
+
+    Args:
+        model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
+            When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
+            When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
+        model_version (optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
+
+    Returns:
+        The model as loaded by the load_model() method.
+    """
+```
+
+For example:
 
 ```python
 class PythonPredictor:
     def __init__(self, config, python_client):
         self.client = python_client
-        # ...
 
-    def load_model(self, model_path: str):
-        # load model from given model_path disk path
-        return model
+    def load_model(self, model_path):
+        # model_path is a path to your model's directory on disk
+        return load_from_disk(model_path)
 
+    def predict(self, payload):
+      model = self.client.get_model()  # when multiple models are being served,
+      return model.predict(payload)
+```
+
+When multiple models are being served in an API, `python_client.get_model()` can accept a model name:
+
+```python
+class PythonPredictor:
     # ...
+
+    def predict(self, payload, query_params):
+      model = self.client.get_model(query_params["model"])
+      return model.predict(payload)
 ```
 
-The `load_model` method has been tested to work with the following frameworks:
-* ONNX (CPU + GPU)
-* PyTorch (CPU + GPU)
-* Sklearn/MLFlow (CPU)
-* Numpy (CPU)
-* Pandas (CPU)
-* Caffe (not tested, but should work on the CPU + GPU)
-
-To retrieve a model, use the `get_model` method of `python_client`.
+`python_client.get_model()` can also accept a model version if a version other than the highest version number is desired:
 
 ```python
-def get_model(model_name: Optional[str] = None, model_version: str = "latest") -> Any:
-    """
-    Retrieve model for inference.
+class PythonPredictor:
+    # ...
 
-    Args:
-        model_name: Model to use when multiple models are deployed in a single API.
-        model_version: Model version to use. Can also be "latest" for picking the highest version.
-
-    Returns:
-        The model as loaded by load_model method.
-    """
+    def predict(self, payload, query_params):
+      model = self.client.get_model(query_params["model"], query_params["version"])
+      return model.predict(payload)
 ```
 
-When the `predictor.model_path` field is used, you can retrieve the model by running `python_client.get_model()`, because there's only one `model_name` in and because `model_version` is already set to `latest`, which means it will be picking up the model with the highest version number (if applicable).
+### TensorFlow
 
-When the `predictor.models.paths` field is used, the `model_name` is the name of the model that it has been given in the API spec config.
-
-#### TensorFlow
-
-For the TensorFlow predictor, to run a prediction, you need to call the `tensorflow_client.predict` method of the `tensorflow_client` client that's passed to the predictor's constructor.
+When using the TensorFlow predictor, inference is performed by using the `predict()` method of the `tensorflow_client` that's passed to the predictor's constructor:
 
 ```python
-def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "latest") -> dict:
+def predict(model_input, model_name, model_version) -> dict:
     """
     Run prediction.
 
     Args:
         model_input: Input to the model.
-        model_name: Model to use when multiple models are deployed in a single API.
-        model_version: Model version to use. Can also be "latest" for picking the highest version.
+        model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
+            When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
+            When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
+        model_version (optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
     Returns:
-        dict: Prediction.
+        dict: TensorFlow Serving response converted to a dictionary.
     """
 ```
 
-When the `predictor.model_path` field is used, you can retrieve the model by running `tensorflow_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `latest`, which means it will be picking up the model with the highest version number (if applicable).
+For example:
 
-When the `predictor.models.paths` field is used, the `model_name` is the name of the model that is has been given in the API spec config.
+```python
+class TensorFlowPredictor:
+    def __init__(self, tensorflow_client, config):
+        self.client = tensorflow_client
 
-#### ONNX
+    def predict(self, payload):
+      return self.client.predict(payload)
+```
 
-For the ONNX predictor, to run a prediction, you need to call the `onnx_client.predict` method of the `onnx_client` client that's passed to the predictor's constructor.
+When multiple models are being served in an API, `tensorflow_client.predict()` can accept a model name:
+
+```python
+class TensorFlowPredictor:
+    # ...
+
+    def predict(self, payload, query_params):
+      return self.client.predict(payload, query_params["model"])
+```
+
+`tensorflow_client.predict()` can also accept a model version if a version other than the highest version number is desired:
+
+```python
+class TensorFlowPredictor:
+    # ...
+
+    def predict(self, payload, query_params):
+      return self.client.predict(payload, query_params["model"], query_params["version"])
+```
+
+Note: when using Inferentia models with the TensorFlow predictor, live model reloading is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
+
+### ONNX
+
+When using the ONNX predictor, inference is performed by using the `predict()` method of the `onnx_client` that's passed to the predictor's constructor:
 
 ```python
 def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "latest") -> Any:
@@ -110,19 +310,48 @@ def predict(model_input: Any, model_name: Optional[str] = None, model_version: s
 
     Args:
         model_input: Input to the model.
-        model_name: Model to use when multiple models are deployed in a single API.
-        model_version: Model version to use. Can also be "latest" for picking the highest version.
+        model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
+            When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
+            When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
+        model_version (optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
     Returns:
         The prediction returned from the model.
     """
 ```
 
-When the `predictor.model_path` field is used, you can retrieve the model by running `onnx_client.predict()`, because there's only one `model_name` in and because `model_version` is already set to `latest`, which means it will be picking up the model with the highest version number (if applicable).
+For example:
 
-When the `predictor.models.paths` field is used, the `model_name` is the name of the model that it has been given in the API spec config.
+```python
+class ONNXPredictor:
+    def __init__(self, onnx_client, config):
+        self.client = onnx_client
 
-You can also retrieve the model by calling the `onnx_client.get_model` method - same arguments as for the `predict` method. This can be useful for retrieving the model's input/output signatures. Here's how the retrieved metadata can look like:
+    def predict(self, payload):
+      return self.client.predict(payload)
+```
+
+When multiple models are being served in an API, `onnx_client.predict()` can accept a model name:
+
+```python
+class ONNXPredictor:
+    # ...
+
+    def predict(self, payload, query_params):
+      return self.client.predict(payload, query_params["model"])
+```
+
+`onnx_client.predict()` can also accept a model version if a version other than the highest version number is desired:
+
+```python
+class ONNXPredictor:
+    # ...
+
+    def predict(self, payload, query_params):
+      return self.client.predict(payload, query_params["model"], query_params["version"])
+```
+
+You can also retrieve information about the model by calling the `onnx_client`'s `get_model()` method (it supports model name and model version arguments, like its `predict()` method). This can be useful for retrieving the model's input/output signatures. For example, `self.client.get_model()` might look like this:
 
 ```python
 {
@@ -138,185 +367,24 @@ You can also retrieve the model by calling the `onnx_client.get_model` method - 
 }
 ```
 
-### Individual models
+## Multi model caching
 
-When specifying a model like in
+Multi model caching allows each API replica to serve more models than would all fit into it's memory. It achieves this by keeping only a specified number of models in memory (and disk) at a time. When the in-memory model limit has been reached, the least recently accessed model is evicted from the cache.
 
-```yaml
-- name: example-api-name
-  kind: RealtimeAPI
-  predictor:
-    ...
-    model_path: s3://my-bucket/models/model-A/
-```
+This feature can be useful when you have hundreds or thousands of models, when some models are frequently accessed while a larger portion of them are rarely used, or when running on smaller instances to control costs.
 
-or in
+The model cache is a two-layer cache, configured by the following parameters in the `predictor.models` configuration:
 
-```yaml
-- name: example-api-name
-  kind: RealtimeAPI
-  predictor:
-    ...
-    models:
-      paths:
-        - name: model-A
-          model_path: s3://my-bucket/models/model-A/
-```
+* `cache_size` sets the number of models to keep in memory
+* `disk_cache_size` sets the number of models to keep on disk (must be greater than or equal to `cache_size`)
 
-the directory structure that each model must take depends on the predictor type that's in use.
+Both of these fields must be specified, in addition to either the `dir` or `paths` field (which specifies the model paths, see above for documentation). Multi model caching is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
 
-#### Python
-
-For the Python predictor, any structure to the model (or to the versioned model) is accepted.
-
-Example of accepted directory structure:
-
-```text
-  models/model-A/
-  ├── MLmodel
-  ├── conda.yaml
-  └── model.pkl
-```
-
-or for a versioned model:
-
-```text
-  models/model-A/
-  ├── 1523423423/ (Version prefix, a timestamp)
-  |   ├── MLmodel
-  |   ├── conda.yaml
-  |   └── model.pkl
-  └── 2434389194/ (Version prefix, a timestamp)
-      ├── MLmodel
-      ├── conda.yaml
-      └── model.pkl
-```
-
-#### TensorFlow
-
-For the TensorFlow predictor, every model (or each versioned model) must be a SavedModel export.
-
-Example of accepted directory structure:
-
-```text
-  models/model-A/
-  ├── saved_model.pb
-  └── variables/
-      ├── variables.index
-      ├── variables.data-00000-of-00003
-      ├── variables.data-00001-of-00003
-      └── variables.data-00002-of-...
-```
-
-or for a versioned model:
-
-```text
-  models/model-A/
-  ├── 1523423423/ (Version prefix, a timestamp)
-  |   ├── saved_model.pb
-  |   └── variables/
-  |       ├── variables.index
-  |       ├── variables.data-00000-of-00003
-  |       ├── variables.data-00001-of-00003
-  |       └── variables.data-00002-of-...
-  └── 2434389194/ (Version prefix, a timestamp)
-      ├── saved_model.pb
-      └── variables/
-          ├── variables.index
-          ├── variables.data-00000-of-00003
-          ├── variables.data-00001-of-00003
-          └── variables.data-00002-of-...
-```
-
-##### Note for Inferentia
-
-When Inferentia-exported models are used, the accepted directory structure is slightly different.
-
-Accepted directory structure:
-
-```text
-  models/model-A/
-  └── saved_model.pb
-```
-
-or for a versioned model:
-
-```text
-  models/model-A/
-  ├── 1523423423/ (Version prefix, a timestamp)
-  |   └── saved_model.pb
-  └── 2434389194/ (Version prefix, a timestamp)
-      └── saved_model.pb
-```
-
-#### ONNX
-
-For the ONNX predictor, every model (or each versioned model) must contain a single `*.onnx` file.
-
-Example of accepted directory structure:
-
-```text
-  models/model-A/
-  └── model.onnx
-```
-
-or for a versioned model:
-
-```text
-  models/model-A/
-  ├── 1523423423/ (Version prefix, a timestamp)
-  |   └── model.onnx
-  └── 2434389194/ (Version prefix, a timestamp)
-      └── model.onnx
-```
-
-### Models from dir
-
-When specifying a model like in
-
-```yaml
-- name: example-api-name
-  kind: RealtimeAPI
-  predictor:
-    ...
-    models:
-      dir: s3://my-bucket/models/
-```
-
-the expected directory structure is
-
-```text
-  models/model-A/
-  ├── model-A/
-  |   └── * (predictor specific model files)
-  └── model-B/
-      ├── 24753823/
-      |   └── * (predictor specific model files)
-      └── 26234288/
-          └── * (predictor specific model files)
-```
-
-Basically, when specifying the `predictor.models.dir` field, its value is expected to point to an S3 directory holding multiple models, each one either containing a model or versioned models.
-
-## Model caching
-
-Model caching is a mechanism that builds on top of the [live model reloading](#live-model-reloading) mechanism.
-
-Model caching is a mechanism that allows the API replica to access a vast number of models that wouldn't normally fit on an instance by only keeping a few in the memory at all times. This enables the user to specify thousands of models in the API spec while only running inferences on a couple of them.
-
-This is useful when some models are frequently accessed whilst a larger portion of them are rarely used. It also helps manage costs by running the API on smaller-sized instances.
-
-### Enabling model caching
-
-Model caching is only available when the `predictor.models` field is specified. To enable model caching, values to `predictor.models.cache_size` and `predictor.models.disk_cache_size` fields have to be provided:
-
-* `cache_size` represents the number of models to keep in memory.
-* `disk_cache_size` represents the number of models to keep on disk. Must be equal or greater than `cache_size`.
-
-With this modification in, nothing else has to be changed to the predictor's implementation. It's a drop-in functionality.
+<!-- CORTEX_VERSION_MINOR -->
+See [examples/model-caching](https://github.com/cortexlabs/cortex/tree/master/examples/model-caching) for examples.
 
 ### Caveats
 
-In the background, Cortex runs a special kind of garbage collector periodically (every 10 seconds) that looks in the memory/on-disk and checks if the number of models exceeds the threshold `cache_size`/`disk_cache_size` - if so, the least recently used models are evicted.
+Cortex periodically runs a background script (every 10 seconds) that counts the number of models in memory and on disk, and evicts the least recently used models if the count exceeds `cache_size` / `disk_cache_size`.
 
-The limitation in this is that if lots of models are loaded in that 10 second timeframe (and the one after that and so on), then the steady state number of models in memory/on-disk can end up being higher than the specified threshold in the API spec config. This can potentially lead to OOM if too many are loaded. This is especially true when full scans across the whole number of models are continuously conducted.
+The benefit of this approach is that there are no added steps on the critical path of the inference. The limitation with this approach in this is that if many new models are requested between exectutions of the script, then until the script runs again, there may be more models in memory and/or on disk than the configured `cache_size` or `disk_cache_size` limits. This has to potential to lead to out-of-memory errors.

@@ -61,10 +61,10 @@ class PythonPredictor:
             config (required): Dictionary passed from API configuration (if
                 specified). This may contain information on where to download
                 the model and/or metadata.
-            python_client (optional): Python client which is used to
-                retrieve models for prediction. This should be saved for use in predict().
-                Required when `predictor.model_path` or `predictor.models`
-                field is specified in the api configuration yaml.
+            python_client (optional): Python client which is used to retrieve
+                models for prediction. This should be saved for use in predict().
+                Required when `predictor.model_path` or `predictor.models` is
+                specified in the api configuration.
         """
         self.client = python_client # optional
 
@@ -107,21 +107,26 @@ class PythonPredictor:
     def load_model(self, model_path):
         """(Optional) Called by Cortex to load a model when necessary.
 
-        Required method when `predictor.model_path` or `predictor.models`
-        field is specified in the api configuration yaml.
+        This method is required when `predictor.model_path` or `predictor.models`
+        field is specified in the api configuration.
 
         Warning: this method must not make any modification to the model's
-        contents on the disk.
+        contents on disk.
 
         Args:
-            model_path: The disk path to the model (as it's found on the API replica).
+            model_path: The path to the model on disk.
 
         Returns:
-            The loaded model from disk. The returned object is what the
-            self.client.get_model method will return.
+            The loaded model from disk. The returned object is what
+            self.client.get_model() will return.
         """
         pass
 ```
+
+<!-- CORTEX_VERSION_MINOR -->
+When explicit model paths are specified in the Python predictor's API configuration, Cortex provides a `python_client` to your Predictor's constructor. `python_client` is an instance of [PythonClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/python.py) that is used to load model(s) (it calls the `load_model()` method of your predictor, which must be defined when using explicit model paths). It should be saved as an instance variable in your Predictor, and your `predict()` function should call `python_client.get_model()` to load your model for inference. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
+
+When multiple models are defined using the Predictor's `models` field, the `python_client.get_model()` method expects an argument `model_name` which must hold the name of the model that you want to load (for example: `self.client.get_model("text-generator")`). There is also an optional second argument to specify the model version. See [models](models.md) and the [multi model guide](../../guides/multi-model.md#python-predictor) for more information.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
@@ -320,7 +325,7 @@ class TensorFlowPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`). See the [multi model guide](../../guides/multi-model.md#tensorflow-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`). There is also an optional third argument to specify the model version. See [models](models.md) and the [multi model guide](../../guides/multi-model.md#tensorflow-predictor) for more information.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 
@@ -432,7 +437,7 @@ class ONNXPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). See the [multi model guide](../../guides/multi-model.md#onnx-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). There is also an optional third argument to specify the model version. See [models](models.md) and the [multi model guide](../../guides/multi-model.md#onnx-predictor) for more information.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor.
 

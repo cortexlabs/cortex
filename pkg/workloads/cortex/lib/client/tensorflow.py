@@ -87,8 +87,10 @@ class TensorFlowClient:
 
         Args:
             model_input: Input to the model.
-            model_name: Model to use when multiple models are deployed in a single API.
-            model_version: A numerical value indicating the model's version or "latest".
+            model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
+                When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
+                When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
+            model_version (optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
         Returns:
             dict: TensorFlow Serving response converted to a dictionary.

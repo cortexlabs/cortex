@@ -14,7 +14,7 @@ The following template is based on the [live-reloading/python/mpg-estimator](htt
 
 #### `cortex.yaml`
 
-Even though it looks as if there's only a single model served, there are actually 4 different versions served from `s3://cortex-examples/sklearn/mpg-estimator/linreg/`, thus fitting the bill.
+Even though it looks as if there's only a single model served, there are actually 4 different versions saved in `s3://cortex-examples/sklearn/mpg-estimator/linreg/`.
 
 ```yaml
 - name: mpg-estimator
@@ -74,7 +74,6 @@ $ curl "${api_endpoint}?version=2" -X POST -H "Content-Type: application/json" -
 
 {"prediction": 26.929889872154185, "model": {"version": "2"}}
 ```
-
 
 ### Without specifying models in API config
 

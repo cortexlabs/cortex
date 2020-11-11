@@ -89,14 +89,16 @@ class PythonClient:
 
     def get_model(self, model_name: Optional[str] = None, model_version: str = "latest") -> Any:
         """
-        Retrieve model for inference.
+        Retrieve a model for inference.
 
         Args:
-            model_name: Model to use when multiple models are deployed in a single API.
-            model_version: Model version to use. Can also be "latest" for picking the highest version.
+            model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
+                When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
+                When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
+            model_version (optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
         Returns:
-            The model as loaded by load_model method.
+            The model as loaded by the load_model() method.
         """
 
         if model_version != "latest" and not model_version.isnumeric():
