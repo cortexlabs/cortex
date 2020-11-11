@@ -43,6 +43,8 @@ const (
 	_defaultPortStr            = "8888"
 	_tfServingPortStr          = "9000"
 	_tfServingEmptyModelConfig = "/etc/tfs/model_config_server.conf"
+	_tfServingMaxReloadTimes   = "0"
+	_tfServingLoadTimeMicros   = "30000000" // 30 seconds
 	_tfServingBatchConfig      = "/etc/tfs/batch_config.conf"
 	_projectDir                = "/mnt/project"
 	_cacheDir                  = "/mnt/cache"
@@ -85,8 +87,6 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_SERVING_PORT="+_defaultPortStr,
 		"CORTEX_PROVIDER="+"local",
 		"CORTEX_CACHE_DIR="+_cacheDir,
-		"CORTEX_MODEL_DIR="+_modelDir,
-		"CORTEX_MODELS="+strings.Join(api.ModelNames(), ","),
 		"CORTEX_API_SPEC="+filepath.Join("/mnt/workspace", filepath.Base(api.Key)),
 		"CORTEX_PROJECT_DIR="+_projectDir,
 		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
@@ -94,6 +94,10 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+1024), // allow a queue of 1024
 		"AWS_REGION="+awsClient.Region,
 	)
+
+	if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
+		envs = append(envs, "CORTEX_MODEL_DIR="+_modelDir)
+	}
 
 	cortexPythonPath := _projectDir
 	if api.Predictor.PythonPath != nil {
@@ -139,23 +143,33 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 		}
 	}
 
+	mounts := []mount.Mount{
+		{
+			Type:   mount.TypeBind,
+			Source: api.LocalProjectDir,
+			Target: _projectDir,
+		},
+		{
+			Type:   mount.TypeBind,
+			Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
+			Target: _workspaceDir,
+		},
+	}
+
+	for _, modelCache := range api.LocalModelCaches {
+		mounts = append(mounts, mount.Mount{
+			Type:   mount.TypeBind,
+			Source: modelCache.HostPath,
+			Target: filepath.Join(_modelDir, modelCache.TargetPath),
+		})
+	}
+
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
 			_defaultPortStr + "/tcp": []nat.PortBinding{portBinding},
 		},
 		Resources: resources,
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: api.LocalProjectDir,
-				Target: _projectDir,
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: filepath.Join(_localWorkspaceDir, filepath.Dir(api.Key)),
-				Target: _workspaceDir,
-			},
-		},
+		Mounts:    mounts,
 	}
 
 	containerConfig := &container.Config{
@@ -316,6 +330,11 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		}
 	}
 
+	modelVolume := api.Name
+	if err := DeleteVolume(modelVolume); err != nil {
+		return errors.Wrap(err, api.Identify())
+	}
+
 	mounts := []mount.Mount{}
 	for _, modelCache := range api.LocalModelCaches {
 		mounts = append(mounts, mount.Mount{
@@ -324,6 +343,11 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 			Target: filepath.Join(_modelDir, modelCache.TargetPath),
 		})
 	}
+	mounts = append(mounts, mount.Mount{
+		Type:   mount.TypeVolume,
+		Source: modelVolume,
+		Target: _modelDir,
+	})
 
 	serveHostConfig := &container.HostConfig{
 		Resources: serveResources,
@@ -334,6 +358,9 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 	cmdArgs := []string{
 		"--port=" + _tfServingPortStr,
 		"--model_config_file=" + _tfServingEmptyModelConfig,
+		"--max_num_load_retries=" + _tfServingMaxReloadTimes,
+		"--load_retry_interval_micros=" + _tfServingLoadTimeMicros,
+		fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+10),
 	}
 	if api.Predictor.ServerSideBatching != nil {
 		envVars = append(envVars,
@@ -523,6 +550,28 @@ func DeleteContainers(apiName string) error {
 	}
 	if err != nil {
 		return errors.Wrap(err, "api", apiName)
+	}
+	return nil
+}
+
+func ContainersHaveAPINameVolume(containers []dockertypes.Container) bool {
+	for _, container := range containers {
+		apiName := container.Labels["apiName"]
+		for _, mounted := range container.Mounts {
+			if mounted.Type == mount.TypeVolume && mounted.Name == apiName {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func DeleteVolume(volumeName string) error {
+	if _, err := docker.MustDockerClient().VolumeInspect(context.Background(), volumeName); err == nil {
+		if err := docker.MustDockerClient().VolumeRemove(context.Background(), volumeName, false); err != nil {
+			return err
+		}
 	}
 	return nil
 }

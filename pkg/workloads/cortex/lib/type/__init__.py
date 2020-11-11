@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex.lib.type.api import API, get_spec
-from cortex.lib.type.predictor import Predictor
-from cortex.lib.type.monitoring import Monitoring
-from cortex.lib.type.model import (
-    Model,
-    get_model_signature_map,
-    get_model_names,
+from cortex.lib.type.type import (
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+    ONNXPredictorType,
+    PredictorType,
+    predictor_type_from_string,
+    predictor_type_from_api_spec,
 )

@@ -69,10 +69,14 @@ func Delete(apiName string, keepCache, deleteForce bool) (schema.DeleteResponse,
 	if keepCache {
 		err = DeleteAPI(apiName)
 	} else {
-		err = errors.FirstError(
-			DeleteAPI(apiName),
-			DeleteCachedModels(apiName, apiSpec.LocalModelIDs()),
-		)
+		if apiSpec != nil {
+			err = errors.FirstError(
+				DeleteAPI(apiName),
+				deleteCachedModels(apiName, apiSpec.ModelIDs()),
+			)
+		} else {
+			err = DeleteAPI(apiName)
+		}
 	}
 	if err != nil {
 		return schema.DeleteResponse{}, err

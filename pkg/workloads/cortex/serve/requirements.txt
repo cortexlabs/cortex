@@ -1,4 +1,5 @@
 boto3==1.14.53
+grpcio==1.32.0
 datadog==0.39.0
 dill==0.3.2
 fastapi==0.61.1

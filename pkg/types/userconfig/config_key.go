@@ -36,15 +36,21 @@ const (
 	PathKey                   = "path"
 	ModelPathKey              = "model_path"
 	ServerSideBatchingKey     = "server_side_batching"
-	ProcessesPerReplicaKey    = "processes_per_replica"
-	ThreadsPerProcessKey      = "threads_per_process"
 	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
 	TensorFlowServingImageKey = "tensorflow_serving_image"
+	ProcessesPerReplicaKey    = "processes_per_replica"
+	ThreadsPerProcessKey      = "threads_per_process"
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
 	SignatureKeyKey           = "signature_key"
+
+	// MultiModels
+	ModelsPathsKey         = "paths"
+	ModelsDirKey           = "dir"
+	ModelsCacheSizeKey     = "cache_size"
+	ModelsDiskCacheSizeKey = "disk_cache_size"
 
 	// ServerSideBatching
 	MaxBatchSizeKey  = "max_batch_size"

@@ -19,6 +19,8 @@ import pickle
 import json
 import msgpack
 import time
+import datetime
+from typing import Dict, List, Tuple
 
 from cortex.lib import util
 from cortex.lib.exceptions import CortexException
@@ -38,11 +40,26 @@ class S3(object):
         self.s3 = boto3.client("s3", **client_config)
 
     @staticmethod
-    def deconstruct_s3_path(s3_path):
+    def construct_s3_path(bucket_name: str, prefix: str) -> str:
+        return f"s3://{bucket_name}/{prefix}"
+
+    @staticmethod
+    def deconstruct_s3_path(s3_path) -> Tuple[str, str]:
         path = util.trim_prefix(s3_path, "s3://")
         bucket = path.split("/")[0]
         key = os.path.join(*path.split("/")[1:])
         return (bucket, key)
+
+    @staticmethod
+    def is_valid_s3_path(path: str) -> bool:
+        if not path.startswith("s3://"):
+            return False
+        parts = path[5:].split("/")
+        if len(parts) < 2:
+            return False
+        if parts[0] == "" or parts[1] == "":
+            return False
+        return True
 
     def blob_path(self, key):
         return os.path.join("s3://", self.bucket, key)
@@ -87,7 +104,7 @@ class S3(object):
 
     def _get_matching_s3_keys_generator(self, prefix="", suffix=""):
         for obj in self._get_matching_s3_objects_generator(prefix, suffix):
-            yield obj["Key"]
+            yield obj["Key"], obj["LastModified"]
 
     def put_object(self, body, key):
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=body)
@@ -126,8 +143,20 @@ class S3(object):
 
         return byte_array.strip()
 
-    def search(self, prefix="", suffix=""):
-        return list(self._get_matching_s3_keys_generator(prefix, suffix))
+    def search(self, prefix="", suffix="") -> Tuple[List[str], List[datetime.datetime]]:
+        paths = []
+        timestamps = []
+
+        timestamp_map = {}
+        for key, ts in self._get_matching_s3_keys_generator(prefix, suffix):
+            timestamp_map[key] = ts
+
+        filtered_keys = util.remove_non_empty_directory_paths(list(timestamp_map.keys()))
+        for key in filtered_keys:
+            paths.append(key)
+            timestamps.append(timestamp_map[key])
+
+        return paths, timestamps
 
     def put_str(self, str_val, key):
         self.put_object(str_val, key)
@@ -185,7 +214,7 @@ class S3(object):
     def download_dir_contents(self, prefix, local_dir):
         util.mkdir_p(local_dir)
         prefix = util.ensure_suffix(prefix, "/")
-        for key in self._get_matching_s3_keys_generator(prefix):
+        for key, _ in self._get_matching_s3_keys_generator(prefix):
             if key.endswith("/"):
                 continue
             rel_path = util.trim_prefix(key, prefix)

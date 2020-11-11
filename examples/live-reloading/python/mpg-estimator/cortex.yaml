@@ -1,0 +1,8 @@
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.20.*, run `git checkout -b 0.20` or switch to the `0.20` branch on GitHub)
+
+- name: mpg-estimator
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/

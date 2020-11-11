@@ -47,7 +47,8 @@ type Predictor struct {
 	Type                   PredictorType          `json:"type" yaml:"type"`
 	Path                   string                 `json:"path" yaml:"path"`
 	ModelPath              *string                `json:"model_path" yaml:"model_path"`
-	Models                 []*ModelResource       `json:"models" yaml:"models"`
+	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
+	Models                 *MultiModels           `json:"models" yaml:"models"`
 	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
@@ -56,7 +57,14 @@ type Predictor struct {
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
-	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
+}
+
+type MultiModels struct {
+	Paths         []*ModelResource `json:"paths" yaml:"paths"`
+	Dir           *string          `json:"dir" yaml:"dir"`
+	CacheSize     *int32           `json:"cache_size" yaml:"cache_size"`
+	DiskCacheSize *int32           `json:"disk_cache_size" yaml:"disk_cache_size"`
+	SignatureKey  *string          `json:"signature_key" yaml:"signature_key"`
 }
 
 type TrafficSplit struct {
@@ -119,12 +127,9 @@ func (api *API) Identify() string {
 
 func (api *API) ModelNames() []string {
 	names := []string{}
-	if api != nil && len(api.Predictor.Models) > 0 {
-		for _, model := range api.Predictor.Models {
-			names = append(names, model.Name)
-		}
+	for _, model := range api.Predictor.Models.Paths {
+		names = append(names, model.Name)
 	}
-
 	return names
 }
 
@@ -359,11 +364,9 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.ModelPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
 	}
-	if predictor.ModelPath == nil && len(predictor.Models) > 0 {
+	if predictor.ModelPath == nil && predictor.Models != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
-		for _, model := range predictor.Models {
-			sb.WriteString(fmt.Sprintf(s.Indent(model.UserStr(), "  ")))
-		}
+		sb.WriteString(s.Indent(predictor.Models.UserStr(), "  "))
 	}
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
@@ -397,20 +400,45 @@ func (predictor *Predictor) UserStr() string {
 	return sb.String()
 }
 
-func (batch *ServerSideBatching) UserStr() string {
+func (models *MultiModels) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxBatchSizeKey, s.Int32(batch.MaxBatchSize)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", BatchIntervalKey, batch.BatchInterval))
+
+	if models.Dir != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
+	} else if len(models.Paths) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
+		for _, model := range models.Paths {
+			modelUserStr := s.Indent(model.UserStr(), "    ")
+			modelUserStr = modelUserStr[:2] + "-" + modelUserStr[3:]
+			sb.WriteString(modelUserStr)
+		}
+	}
+	if models.SignatureKey != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.SignatureKey))
+	}
+	if models.CacheSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsCacheSizeKey, s.Int32(*models.CacheSize)))
+	}
+	if models.DiskCacheSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDiskCacheSizeKey, s.Int32(*models.DiskCacheSize)))
+	}
 	return sb.String()
 }
 
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("- %s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), ModelPathKey, model.ModelPath))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsNameKey, model.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, model.ModelPath))
 	if model.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf(s.Indent("%s: %s\n", "  "), SignatureKeyKey, *model.SignatureKey))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *model.SignatureKey))
 	}
+	return sb.String()
+}
+
+func (batch *ServerSideBatching) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxBatchSizeKey, s.Int32(batch.MaxBatchSize)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", BatchIntervalKey, batch.BatchInterval))
 	return sb.String()
 }
 

@@ -59,6 +59,8 @@ const (
 	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
 	_tfServingHost                                 = "localhost"
 	_tfServingEmptyModelConfig                     = "/etc/tfs/model_config_server.conf"
+	_tfServingMaxNumLoadRetries                    = "0"        // maximum retries to load a model that didn't get loaded the first time
+	_tfServingLoadTimeMicros                       = "30000000" // 30 seconds (how much time a model can take to load into memory)
 	_tfServingBatchConfig                          = "/etc/tfs/batch_config.conf"
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
 	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
@@ -81,13 +83,13 @@ type downloadContainerConfig struct {
 }
 
 type downloadContainerArg struct {
-	From                 string `json:"from"`
-	To                   string `json:"to"`
-	Unzip                bool   `json:"unzip"`
-	ItemName             string `json:"item_name"`               // name of the item being downloaded, just for logging (if "" nothing will be logged)
-	TFModelVersionRename string `json:"tf_model_version_rename"` // e.g. passing in /mnt/model/1 will rename /mnt/model/* to /mnt/model/1 only if there is one item in /mnt/model/
-	HideFromLog          bool   `json:"hide_from_log"`           // if true, don't log where the file is being downloaded from
-	HideUnzippingLog     bool   `json:"hide_unzipping_log"`      // if true, don't log when unzipping
+	From             string `json:"from"`
+	To               string `json:"to"`
+	ToFile           bool   `json:"to_file"` // whether "To" path reflects the path to a file or just the directory in which "From" object is copied to
+	Unzip            bool   `json:"unzip"`
+	ItemName         string `json:"item_name"`          // name of the item being downloaded, just for logging (if "" nothing will be logged)
+	HideFromLog      bool   `json:"hide_from_log"`      // if true, don't log where the file is being downloaded from
+	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
 func InitContainer(api *spec.API) kcore.Container {
@@ -414,6 +416,15 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			)
 		}
 
+		if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_MODEL_DIR",
+					Value: path.Join(_emptyDirMountPath, "model"),
+				},
+			)
+		}
+
 		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
 		if api.Predictor.PythonPath != nil {
 			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath)
@@ -423,29 +434,8 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			Value: cortexPythonPath,
 		})
 
-		if api.Predictor.Type == userconfig.ONNXPredictorType {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_DIR",
-					Value: path.Join(_emptyDirMountPath, "model"),
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_MODELS",
-					Value: strings.Join(api.ModelNames(), ","),
-				},
-			)
-		}
-
 		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
 			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_DIR",
-					Value: path.Join(_emptyDirMountPath, "model"),
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_MODELS",
-					Value: strings.Join(api.ModelNames(), ","),
-				},
 				kcore.EnvVar{
 					Name:  "CORTEX_TF_BASE_SERVING_PORT",
 					Value: _tfBaseServingPortStr,
@@ -512,12 +502,20 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 						Value: _tfBaseServingPortStr,
 					},
 					kcore.EnvVar{
-						Name:  "CORTEX_MODEL_DIR",
-						Value: path.Join(_emptyDirMountPath, "model"),
-					},
-					kcore.EnvVar{
 						Name:  "TF_EMPTY_MODEL_CONFIG",
 						Value: _tfServingEmptyModelConfig,
+					},
+					kcore.EnvVar{
+						Name:  "TF_MAX_NUM_LOAD_RETRIES",
+						Value: _tfServingMaxNumLoadRetries,
+					},
+					kcore.EnvVar{
+						Name:  "TF_LOAD_RETRY_INTERVAL_MICROS",
+						Value: _tfServingLoadTimeMicros,
+					},
+					kcore.EnvVar{
+						Name:  "TF_GRPC_MAX_CONCURRENT_STREAMS",
+						Value: fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ThreadsPerProcess+10),
 					},
 				)
 			}
@@ -552,23 +550,6 @@ func tfDownloadArgs(api *spec.API) string {
 				HideUnzippingLog: true,
 			},
 		},
-	}
-
-	rootModelPath := path.Join(_emptyDirMountPath, "model")
-	for _, model := range api.Predictor.Models {
-		var itemName string
-		if model.Name == consts.SingleModelName {
-			itemName = "the model"
-		} else {
-			itemName = fmt.Sprintf("model %s", model.Name)
-		}
-		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:                 model.ModelPath,
-			To:                   path.Join(rootModelPath, model.Name),
-			Unzip:                strings.HasSuffix(model.ModelPath, ".zip"),
-			ItemName:             itemName,
-			TFModelVersionRename: path.Join(rootModelPath, model.Name, "1"),
-		})
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
@@ -609,21 +590,6 @@ func onnxDownloadArgs(api *spec.API) string {
 		},
 	}
 
-	rootModelPath := path.Join(_emptyDirMountPath, "model")
-	for _, model := range api.Predictor.Models {
-		var itemName string
-		if model.Name == consts.SingleModelName {
-			itemName = "the model"
-		} else {
-			itemName = fmt.Sprintf("model %s", model.Name)
-		}
-		downloadConfig.DownloadArgs = append(downloadConfig.DownloadArgs, downloadContainerArg{
-			From:     model.ModelPath,
-			To:       path.Join(rootModelPath, model.Name),
-			ItemName: itemName,
-		})
-	}
-
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
@@ -650,6 +616,9 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		cmdArgs = []string{
 			"--port=" + _tfBaseServingPortStr,
 			"--model_config_file=" + _tfServingEmptyModelConfig,
+			"--max_num_load_retries=" + _tfServingMaxNumLoadRetries,
+			"--load_retry_interval_micros=" + _tfServingLoadTimeMicros,
+			fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+10),
 		}
 		if api.Predictor.ServerSideBatching != nil {
 			cmdArgs = append(cmdArgs,

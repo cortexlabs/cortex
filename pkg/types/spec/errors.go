@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -30,31 +31,44 @@ import (
 )
 
 const (
-	ErrMalformedConfig                      = "spec.malformed_config"
-	ErrNoAPIs                               = "spec.no_apis"
-	ErrDuplicateName                        = "spec.duplicate_name"
-	ErrDuplicateEndpointInOneDeploy         = "spec.duplicate_endpoint_in_one_deploy"
-	ErrDuplicateEndpoint                    = "spec.duplicate_endpoint"
-	ErrConflictingFields                    = "spec.conflicting_fields"
-	ErrSpecifyAllOrNone                     = "spec.specify_all_or_none"
-	ErrOneOfPrerequisitesNotDefined         = "spec.one_of_prerequisites_not_defined"
-	ErrConfigGreaterThanOtherConfig         = "spec.config_greater_than_other_config"
-	ErrMinReplicasGreaterThanMax            = "spec.min_replicas_greater_than_max"
-	ErrInitReplicasGreaterThanMax           = "spec.init_replicas_greater_than_max"
-	ErrInitReplicasLessThanMin              = "spec.init_replicas_less_than_min"
-	ErrInvalidSurgeOrUnavailable            = "spec.invalid_surge_or_unavailable"
-	ErrSurgeAndUnavailableBothZero          = "spec.surge_and_unavailable_both_zero"
-	ErrFileNotFound                         = "spec.file_not_found"
-	ErrDirIsEmpty                           = "spec.dir_is_empty"
-	ErrMustBeRelativeProjectPath            = "spec.must_be_relative_project_path"
-	ErrPythonPathNotFound                   = "spec.python_path_not_found"
-	ErrS3FileNotFound                       = "spec.s3_file_not_found"
-	ErrInvalidTensorFlowDir                 = "spec.invalid_tensorflow_dir"
-	ErrInvalidNeuronTensorFlowDir           = "operator.invalid_neuron_tensorflow_dir"
-	ErrInvalidTensorFlowModelPath           = "spec.invalid_tensorflow_model_path"
-	ErrMissingModel                         = "spec.missing_model"
-	ErrInvalidONNXModelPath                 = "spec.invalid_onnx_model_path"
-	ErrDuplicateModelNames                  = "spec.duplicate_model_names"
+	ErrMalformedConfig              = "spec.malformed_config"
+	ErrNoAPIs                       = "spec.no_apis"
+	ErrDuplicateName                = "spec.duplicate_name"
+	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
+	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
+	ErrConflictingFields            = "spec.conflicting_fields"
+	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
+	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
+	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
+	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
+
+	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
+	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"
+	ErrInitReplicasLessThanMin    = "spec.init_replicas_less_than_min"
+
+	ErrInvalidSurgeOrUnavailable   = "spec.invalid_surge_or_unavailable"
+	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
+
+	ErrModelCachingNotSupportedWhenMultiprocessingEnabled = "spec.model_caching_not_supported_when_multiprocessing_enabled"
+
+	ErrFileNotFound              = "spec.file_not_found"
+	ErrDirIsEmpty                = "spec.dir_is_empty"
+	ErrMustBeRelativeProjectPath = "spec.must_be_relative_project_path"
+	ErrPythonPathNotFound        = "spec.python_path_not_found"
+
+	ErrS3FileNotFound = "spec.s3_file_not_found"
+	ErrS3DirNotFound  = "spec.s3_dir_not_found"
+	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
+
+	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
+	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
+	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
+	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
+
+	ErrMissingModel        = "spec.missing_model"
+	ErrDuplicateModelNames = "spec.duplicate_model_names"
+	ErrReservedModelName   = "spec.reserved_model_name"
+
 	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
@@ -75,6 +89,11 @@ const (
 	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
 	ErrUnexpectedDockerSecretData           = "spec.unexpected_docker_secret_data"
 )
+
+var _modelCurrentStructure = `
+  but its current structure is
+
+%s`
 
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
@@ -125,6 +144,13 @@ func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
 		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+	})
+}
+
+func ErrorSpecifyOneOrTheOther(fieldKeyA, fieldKeyB string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyOneOrTheOther,
+		Message: fmt.Sprintf("please specify either the %s field or %s field (cannot be both empty at the same time)", fieldKeyA, fieldKeyB),
 	})
 }
 
@@ -193,6 +219,15 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
+func ErrorModelCachingNotSupportedWhenMultiprocessingEnabled(desiredProcesses int32) error {
+	const maxNumProcesses int32 = 1
+	return errors.WithStack(&errors.Error{
+		Kind: ErrModelCachingNotSupportedWhenMultiprocessingEnabled,
+		Message: fmt.Sprintf("when dynamic model caching is enabled (%s < provided models), the max value %s can take is %d, while currently it's set to %d",
+			userconfig.ModelsCacheSizeKey, userconfig.ProcessesPerReplicaKey, maxNumProcesses, desiredProcesses),
+	})
+}
+
 func ErrorFileNotFound(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFileNotFound,
@@ -224,45 +259,174 @@ func ErrorPythonPathNotFound(pythonPath string) error {
 func ErrorS3FileNotFound(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3FileNotFound,
-		Message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+		Message: fmt.Sprintf("%s: file not found or insufficient permissions", path),
 	})
 }
 
-var _tfExpectedStructMessage = `For TensorFlow models, the path must contain a directory with the following structure:
-  1523423423/ (Version prefix, usually a timestamp)
+func ErrorS3DirNotFound(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrS3DirNotFound,
+		Message: fmt.Sprintf("%s: dir not found or insufficient permissions", path),
+	})
+}
+
+func ErrorS3DirIsEmpty(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrS3DirIsEmpty,
+		Message: fmt.Sprintf("%s: S3 directory is empty", path),
+	})
+}
+
+func ErrorModelPathNotDirectory(modelPath string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrModelPathNotDirectory,
+		Message: fmt.Sprintf("%s: model path must be a directory", modelPath),
+	})
+}
+
+var _pythonModelTemplates = `
+  %s
+  ├── 1523423423/ (Version prefix)
+  |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+  └── 2434389194/ (Version prefix)
+	  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+
+or like
+
+  %s
+  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
+`
+
+func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error {
+	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonPredictorType.CasedString())
+	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.PythonPredictorType)
+
+	message += fmt.Sprintf(_pythonModelTemplates, modelPath, modelPath)
+
+	if len(modelSubPaths) > 0 {
+		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		if len(modelSubPaths) > 50 {
+			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
+			message += "\n  ..."
+		} else {
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+		}
+	} else {
+		message += "\n" + "but its current directory is empty"
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidPythonModelPath,
+		Message: message,
+	})
+}
+
+var _tfVersionedExpectedStructMessage = `
+  %s
+  ├── 1523423423/ (Version prefix, usually a timestamp)
+  |   ├── saved_model.pb
+  |   └── variables/
+  |       ├── variables.index
+  |       ├── variables.data-00000-of-00003
+  |       ├── variables.data-00001-of-00003
+  |       └── variables.data-00002-of-...
+  └── 2434389194/ (Version prefix, usually a timestamp)
+      ├── saved_model.pb
+      └── variables/
+          ├── variables.index
+          ├── variables.data-00000-of-00003
+          ├── variables.data-00001-of-00003
+          └── variables.data-00002-of-...
+
+or like
+
+  %s
   ├── saved_model.pb
   └── variables/
       ├── variables.index
       ├── variables.data-00000-of-00003
       ├── variables.data-00001-of-00003
-      └── variables.data-00002-of-...`
+      └── variables.data-00002-of-...
+`
+var _neuronTfVersionedExpectedStructMessage = `
+  %s
+  ├── 1523423423/ (Version prefix, usually a timestamp)
+  |   └── saved_model.pb
+  └── 2434389194/ (Version prefix, usually a timestamp)
+      └── saved_model.pb
 
-func ErrorInvalidTensorFlowDir(path string) error {
-	message := "invalid TensorFlow export directory.\n"
-	message += _tfExpectedStructMessage
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidTensorFlowDir,
-		Message: message,
-	})
-}
+or like
 
-var _neuronTfExpectedStructMessage = `For Neuron TensorFlow models, the path must contain a directory with the following structure:
-1523423423/ (Version prefix, usually a timestamp)
-└── saved_model.pb`
+  %s
+  └── saved_model.pb
+`
 
-func ErrorInvalidNeuronTensorFlowDir(path string) error {
-	message := "invalid Neuron TensorFlow export directory.\n"
-	message += _neuronTfExpectedStructMessage
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNeuronTensorFlowDir,
-		Message: message,
-	})
-}
+func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelSubPaths []string) error {
+	predictorType := userconfig.TensorFlowPredictorType.CasedString()
+	if neuronExport {
+		predictorType = "Neuron " + predictorType
+	}
+	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, predictorType)
+	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.TensorFlowPredictorType)
 
-func ErrorInvalidTensorFlowModelPath() error {
+	if !neuronExport {
+		message += fmt.Sprintf(_tfVersionedExpectedStructMessage, modelPath, modelPath)
+	} else {
+		message += fmt.Sprintf(_neuronTfVersionedExpectedStructMessage, modelPath, modelPath)
+	}
+
+	if len(modelSubPaths) > 0 {
+		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		if len(modelSubPaths) > 50 {
+			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
+			message += "\n  ..."
+		} else {
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+		}
+	} else {
+		message += "\n" + "but its current directory is empty"
+	}
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowModelPath,
-		Message: "TensorFlow model path must be a directory or a zip file ending in `.zip`",
+		Message: message,
+	})
+}
+
+var _onnxVersionedExpectedStructMessage = `
+  %s
+  ├── 1523423423/ (Version prefix)
+  |   └── <model-name>.onnx // ONNX-exported file
+  └── 2434389194/ (Version prefix)
+      └── <model-name>.onnx // ONNX-exported file
+
+or like
+
+  %s
+  └── <model-name>.onnx // ONNX-exported file
+`
+
+func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
+	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.ONNXPredictorType.CasedString())
+	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.PythonPredictorType)
+
+	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, modelPath, modelPath)
+
+	if len(modelSubPaths) > 0 {
+		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
+		if len(modelSubPaths) > 50 {
+			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
+			message += "\n  ..."
+		} else {
+			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
+		}
+	} else {
+		message += "\n" + "but its current directory is empty"
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidONNXModelPath,
+		Message: message,
 	})
 }
 
@@ -273,17 +437,17 @@ func ErrorMissingModel(predictorType userconfig.PredictorType) error {
 	})
 }
 
-func ErrorInvalidONNXModelPath() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXModelPath,
-		Message: "onnx model path must be an onnx exported file ending in `.onnx`",
-	})
-}
-
 func ErrorDuplicateModelNames(duplicateModel string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateModelNames,
 		Message: fmt.Sprintf("cannot have multiple models with the same name (%s)", duplicateModel),
+	})
+}
+
+func ErrorReservedModelName(reservedModel string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrReservedModelName,
+		Message: fmt.Sprintf("%s: is a reserved name; please specify a different model name", reservedModel),
 	})
 }
 

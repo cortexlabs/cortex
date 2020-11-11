@@ -19,7 +19,7 @@ import json
 
 from cortex.lib import util
 from cortex.lib.storage import S3
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 
 
 def start(args):
@@ -33,28 +33,27 @@ def start(args):
 
         if item_name != "":
             if download_arg.get("hide_from_log", False):
-                cx_logger().info("downloading {}".format(item_name))
+                logger().info("downloading {}".format(item_name))
             else:
-                cx_logger().info("downloading {} from {}".format(item_name, from_path))
-        s3_client.download(prefix, to_path)
+                logger().info("downloading {} from {}".format(item_name, from_path))
+
+        if download_arg.get("to_file", False):
+            s3_client.download_file(prefix, to_path)
+        else:
+            s3_client.download(prefix, to_path)
 
         if download_arg.get("unzip", False):
             if item_name != "" and not download_arg.get("hide_unzipping_log", False):
-                cx_logger().info("unzipping {}".format(item_name))
-            util.extract_zip(
-                os.path.join(to_path, os.path.basename(from_path)), delete_zip_file=True
-            )
-
-        if download_arg.get("tf_model_version_rename", "") != "":
-            dest = util.trim_suffix(download_arg["tf_model_version_rename"], "/")
-            dir_path = os.path.dirname(dest)
-            entries = os.listdir(dir_path)
-            if len(entries) == 1:
-                src = os.path.join(dir_path, entries[0])
-                os.rename(src, dest)
+                logger().info("unzipping {}".format(item_name))
+            if download_arg.get("to_file", False):
+                util.extract_zip(to_path, delete_zip_file=True)
+            else:
+                util.extract_zip(
+                    os.path.join(to_path, os.path.basename(from_path)), delete_zip_file=True
+                )
 
     if download_config.get("last_log", "") != "":
-        cx_logger().info(download_config["last_log"])
+        logger().info(download_config["last_log"])
 
 
 def main():

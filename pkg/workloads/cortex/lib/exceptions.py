@@ -15,6 +15,14 @@
 from collections import deque
 
 
+class WithBreak(Exception):
+    """
+    Gracefully exit with clauses.
+    """
+
+    pass
+
+
 class CortexException(Exception):
     def __init__(self, *messages):
         super().__init__(": ".join(messages))

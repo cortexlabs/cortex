@@ -12,22 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-class Model:
-    def __init__(self, name, model_path, base_path, signature_key=None):
-        self.name = name
-        self.model_path = model_path
-        self.base_path = base_path
-        self.signature_key = signature_key
-
-
-def get_model_signature_map(models):
-    signature_keys = {}
-    for model in models:
-        signature_keys[model.name] = model.signature_key
-
-    return signature_keys
-
-
-def get_model_names(models):
-    return [model.name for model in models]
+from cortex.lib.api.predictor import Predictor
+from cortex.lib.api.monitoring import Monitoring
+from cortex.lib.api.api import API, get_api, get_spec

@@ -37,6 +37,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/msgpack"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -124,6 +125,45 @@ func IsValidS3aPath(s3aPath string) bool {
 		return false
 	}
 	return true
+}
+
+// List all S3 objects that are "depth" levels or deeper than the given "s3Path".
+// Setting depth to 1 effectively translates to listing the objects one level or deeper than the given prefix (aka listing the directory contents).
+//
+// 1st returned value is the list of paths found at level <depth>.
+// 2nd returned value is the list of paths found at all levels.
+func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirObjects bool, maxResults *int64) ([]string, []string, error) {
+	paths := strset.New()
+
+	_, key, err := SplitS3Path(s3Path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	allS3Objects, err := c.ListS3PathDir(s3Path, includeDirObjects, maxResults)
+	if err != nil {
+		return nil, nil, err
+	}
+	allPaths := ConvertS3ObjectsToKeys(allS3Objects...)
+
+	keySplit := slices.RemoveEmpties(strings.Split(key, "/"))
+	for _, path := range allPaths {
+		pathSplit := slices.RemoveEmpties(strings.Split(path, "/"))
+		if len(pathSplit)-len(keySplit) >= depth {
+			computedPath := strings.Join(pathSplit[:len(keySplit)+depth], "/")
+			paths.Add(computedPath)
+		}
+	}
+
+	return paths.Slice(), allPaths, nil
+}
+
+func ConvertS3ObjectsToKeys(s3Objects ...*s3.Object) []string {
+	paths := make([]string, 0, len(s3Objects))
+	for _, object := range s3Objects {
+		paths = append(paths, *object.Key)
+	}
+	return paths
 }
 
 func GetBucketRegionFromS3Path(s3Path string) (string, error) {

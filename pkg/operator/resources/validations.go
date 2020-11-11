@@ -77,7 +77,7 @@ func (projectFiles ProjectFiles) ProjectDir() string {
 	return "./"
 }
 
-func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
+func ValidateClusterAPIs(apis []userconfig.API, models *[]spec.CuratedModelResource, projectFiles spec.ProjectFiles) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
@@ -102,7 +102,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	for i := range apis {
 		api := &apis[i]
 		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind {
-			if err := spec.ValidateAPI(api, projectFiles, types.AWSProviderType, config.AWS, config.K8s); err != nil {
+			if err := spec.ValidateAPI(api, models, projectFiles, types.AWSProviderType, config.AWS, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateK8s(api, virtualServices, maxMem); err != nil {

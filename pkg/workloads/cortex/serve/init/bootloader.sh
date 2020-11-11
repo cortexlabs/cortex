@@ -35,6 +35,7 @@ cd /mnt/project
 
 # if the container restarted, ensure that it is not perceived as ready
 rm -rf /mnt/workspace/api_readiness.txt
+rm -rf /mnt/workspace/init_script_run.txt
 rm -rf /mnt/workspace/proc-*-ready.txt
 
 # allow for the liveness check to pass until the API is running
@@ -84,6 +85,13 @@ if [ -f "/mnt/project/requirements.txt" ]; then
 fi
 
 create_s6_service() {
+    # good pages to read about s6-overlay
+    # https://wiki.gentoo.org/wiki/S6#Process_supervision
+    # https://skarnet.org/software/s6/s6-svscanctl.html
+    # http://skarnet.org/software/s6/s6-svc.html
+    # http://skarnet.org/software/s6/servicedir.html
+    # http://www.troubleshooters.com/linux/execline.htm
+
     service_name=$1
     cmd=$2
 
@@ -97,7 +105,8 @@ create_s6_service() {
 
     dest_script="$dest_dir/finish"
     echo "#!/usr/bin/execlineb -S0" > $dest_script
-    echo "s6-svscanctl -t /var/run/s6/services" >> $dest_script
+    echo "ifelse { s6-test \${1} -ne 0 } { s6-svscanctl -t /var/run/s6/services }" >> $dest_script
+    echo "s6-svc -O /var/run/s6/services/$service_name" >> $dest_script
     chmod +x $dest_script
 }
 
@@ -126,5 +135,5 @@ else
     create_s6_service "batch" "$source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 fi
 
-# run the python initialization script
-/opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py
+# create the python initialization service
+create_s6_service "py_init" "/opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"

@@ -20,15 +20,17 @@ import time
 import json
 import threading
 import math
+import pathlib
 
 import boto3
 import botocore
 
 from cortex import consts
 from cortex.lib import util
-from cortex.lib.type import API, get_spec
-from cortex.lib.log import cx_logger
-from cortex.lib.storage import S3, LocalStorage, FileLock
+from cortex.lib.api import API, get_spec, get_api
+from cortex.lib.log import cx_logger as logger
+from cortex.lib.concurrency import LockedFile
+from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
 
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
@@ -127,7 +129,7 @@ def handle_on_complete(message):
             if should_run_on_job_complete:
                 # double check that the queue is still empty (except for the job_complete message)
                 if not_visible_count <= 1:
-                    cx_logger().info("executing on_job_complete")
+                    logger().info("executing on_job_complete")
                     predictor_impl.on_job_complete()
                     sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
                     return True
@@ -164,7 +166,7 @@ def sqs_loop():
 
         if response.get("Messages") is None or len(response["Messages"]) == 0:
             if no_messages_found_in_previous_iteration:
-                cx_logger().info("no batches left in queue, exiting...")
+                logger().info("no batches left in queue, exiting...")
                 return
             else:
                 no_messages_found_in_previous_iteration = True
@@ -179,14 +181,14 @@ def sqs_loop():
         if "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]:
             handled_on_complete = handle_on_complete(message)
             if handled_on_complete:
-                cx_logger().info("no batches left in queue, job has been completed")
+                logger().info("no batches left in queue, job has been completed")
                 return
             else:
                 # sometimes on_job_complete message will be released if there are other messages still to be processed
                 continue
 
         try:
-            cx_logger().info(f"processing batch {message['MessageId']}")
+            logger().info(f"processing batch {message['MessageId']}")
 
             start_time = time.time()
 
@@ -201,12 +203,15 @@ def sqs_loop():
             api_spec.post_metrics(
                 [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
-            cx_logger().exception("failed to process batch")
+            logger().exception("failed to process batch")
         finally:
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
 
 def start():
+    while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
+        time.sleep(0.2)
+
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     provider = os.environ["CORTEX_PROVIDER"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
@@ -217,45 +222,42 @@ def start():
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
-    storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
+    bucket = os.getenv("CORTEX_BUCKET")
+    region = os.getenv("AWS_REGION")
 
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
-        with FileLock("/run/used_ports.json.lock"):
-            with open("/run/used_ports.json", "r+") as f:
-                used_ports = json.load(f)
-                for port in used_ports.keys():
-                    if not used_ports[port]:
-                        tf_serving_port = port
-                        used_ports[port] = True
-                        break
-                f.seek(0)
-                json.dump(used_ports, f)
-                f.truncate()
+        with LockedFile("/run/used_ports.json", "r+") as f:
+            used_ports = json.load(f)
+            for port in used_ports.keys():
+                if not used_ports[port]:
+                    tf_serving_port = port
+                    used_ports[port] = True
+                    break
+            f.seek(0)
+            json.dump(used_ports, f)
+            f.truncate()
 
-    raw_api_spec = get_spec(provider, storage, cache_dir, api_spec_path)
+    api = get_api(provider, api_spec_path, model_dir, cache_dir, bucket, region)
+    storage, api_spec = get_spec(provider, api_spec_path, cache_dir, bucket, region)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
-
-    api = API(
-        provider=provider, storage=storage, model_dir=model_dir, cache_dir=cache_dir, **raw_api_spec
-    )
 
     client = api.predictor.initialize_client(
         tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
     )
-    cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-    predictor_impl = api.predictor.initialize_impl(project_dir, client, raw_api_spec, job_spec)
+    logger().info("loading the predictor from {}".format(api.predictor.path))
+    predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
 
     local_cache["api_spec"] = api
     local_cache["provider"] = provider
     local_cache["job_spec"] = job_spec
     local_cache["predictor_impl"] = predictor_impl
     local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
-    local_cache["sqs_client"] = boto3.client("sqs", region_name=os.environ["AWS_REGION"])
+    local_cache["sqs_client"] = boto3.client("sqs", region_name=region)
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
 
-    cx_logger().info("polling for batches...")
+    logger().info("polling for batches...")
     sqs_loop()
 
 

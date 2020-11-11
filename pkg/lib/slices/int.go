@@ -16,6 +16,10 @@ limitations under the License.
 
 package slices
 
+import (
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+)
+
 func HasInt(list []int, query int) bool {
 	for _, elem := range list {
 		if elem == query {
@@ -41,4 +45,12 @@ func AreNGreaterThanZero(minCount int, val int, vals ...int) bool {
 		}
 	}
 	return false
+}
+
+func IntToString(vals []int) []string {
+	stringSlice := []string{}
+	for _, elem := range vals {
+		stringSlice = append(stringSlice, s.Int(elem))
+	}
+	return stringSlice
 }
