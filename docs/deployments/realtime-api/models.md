@@ -219,7 +219,7 @@ class PythonPredictor:
         return load_from_disk(model_path)
 
     def predict(self, payload):
-      model = self.client.get_model()  # when multiple models are being served,
+      model = self.client.get_model()
       return model.predict(payload)
 ```
 
