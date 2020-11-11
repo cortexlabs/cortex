@@ -1,7 +1,5 @@
 # Running in production
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 **Tips for batch and realtime APIs:**
 
 * Consider using [spot instances](../cluster-management/spot-instances.md) to reduce cost.

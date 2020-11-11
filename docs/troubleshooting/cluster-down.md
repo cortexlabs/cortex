@@ -1,7 +1,5 @@
 # Cluster down failures
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 On rare occasions, `cortex cluster down` may not be able to spin down your Cortex cluster. When this happens, follow these steps:
 
 1. If you've manually created any AWS networking resources that are pointed to the cluster or its VPC (e.g. API Gateway VPC links, custom domains, etc), delete them from the AWS console.

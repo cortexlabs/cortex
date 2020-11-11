@@ -1,7 +1,5 @@
 # Realtime API Overview
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can deploy a Realtime API on Cortex to serve your model via an HTTP endpoint for on-demand inferences.
 
 ## When should I use a Realtime API

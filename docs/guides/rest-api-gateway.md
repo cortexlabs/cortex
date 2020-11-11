@@ -1,7 +1,5 @@
 # Set up REST API Gateway
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 When `api_gateway: public` is set in your API's `networking` configuration (which is the default setting), Cortex will create an "HTTP" API Gateway in AWS for your API (see the [networking docs](../deployments/networking.md) for more information).
 
 However, there may be situations where you need to use AWS's "REST" API Gateway, e.g. to enforce IAM-based auth. Until [#1197](https://github.com/cortexlabs/cortex/issues/1197) is resolved, a REST API Gateway can be used by following these steps.

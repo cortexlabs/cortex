@@ -1,7 +1,5 @@
 # Low-cost clusters
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Here are some tips for keeping costs down when running small clusters:
 
 * Consider using [spot instances](../cluster-management/spot-instances.md).

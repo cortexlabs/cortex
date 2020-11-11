@@ -1,7 +1,5 @@
 # Update
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Updating your cluster configuration
 
 See [cluster configuration](config.md) to learn how you can customize your cluster.

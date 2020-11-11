@@ -1,7 +1,5 @@
 # Set up a custom domain
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager (ACM).
 
 There are two methods for achieving this, and which method to use depends on whether you're using API Gateway or not (without API Gateway, requests are sent directly to the API load balancer instead). API Gateway is enabled by default.

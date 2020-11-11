@@ -1,6 +1,6 @@
 # Deploy models as Batch APIs
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.21.*, run `git checkout -b 0.21` or switch to the `0.21` branch on GitHub)_
+_this is an example for cortex release 0.22 and may not deploy correctly on other releases of cortex_
 
 This example shows how to deploy a batch image classification api that accepts a list of image urls as input, downloads the images, classifies them, and writes the results to S3.
 
