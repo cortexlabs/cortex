@@ -24,3 +24,4 @@ For classification models, `monitoring` should be configured with `model_type: c
   monitoring:
     model_type: classification
 ```
+

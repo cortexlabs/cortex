@@ -1,12 +1,12 @@
 # Set up REST API Gateway
 
-When `api_gateway: public` is set in your API's `networking` configuration (which is the default setting), Cortex will create an "HTTP" API Gateway in AWS for your API (see the [networking docs](../deployments/networking.md) for more information).
+When `api_gateway: public` is set in your API's `networking` configuration \(which is the default setting\), Cortex will create an "HTTP" API Gateway in AWS for your API \(see the [networking docs](../advanced/networking.md) for more information\).
 
-However, there may be situations where you need to use AWS's "REST" API Gateway, e.g. to enforce IAM-based auth. Until [#1197](https://github.com/cortexlabs/cortex/issues/1197) is resolved, a REST API Gateway can be used by following these steps.
+However, there may be situations where you need to use AWS's "REST" API Gateway, e.g. to enforce IAM-based auth. Until [\#1197](https://github.com/cortexlabs/cortex/issues/1197) is resolved, a REST API Gateway can be used by following these steps.
 
-If your API load balancer is internet-facing (which is the default, or you explicitly set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster), use the [first section](#if-your-api-load-balancer-is-internet-facing) of this guide.
+If your API load balancer is internet-facing \(which is the default, or you explicitly set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster\), use the [first section](rest-api-gateway.md#if-your-api-load-balancer-is-internet-facing) of this guide.
 
-If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), use the [second section](#if-your-api-load-balancer-is-internal) of this guide.
+If your API load balancer is internal \(i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster\), use the [second section](rest-api-gateway.md#if-your-api-load-balancer-is-internal) of this guide.
 
 ## If your API load balancer is internet-facing
 
@@ -25,13 +25,13 @@ Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home),
 
 ### Step 3
 
-Select "REST" and "New API", name your API (e.g. "cortex"), select either "Regional" or "Edge optimized" (depending on your preference), and click "Create API"
+Select "REST" and "New API", name your API \(e.g. "cortex"\), select either "Regional" or "Edge optimized" \(depending on your preference\), and click "Create API"
 
 ![step 2](https://user-images.githubusercontent.com/808475/78293434-66d43880-74dd-11ea-92d6-692158171a3f.png)
 
 ### Step 4
 
-Select "Actions" > "Create Resource"
+Select "Actions" &gt; "Create Resource"
 
 ![step 3](https://user-images.githubusercontent.com/808475/80154502-8b6b7f80-8574-11ea-9c78-7d9f277bf55b.png)
 
@@ -43,7 +43,7 @@ Select "Configure as proxy resource" and "Enable API Gateway CORS", and click "C
 
 ### Step 6
 
-Select "HTTP Proxy" and set "Endpoint URL" to "http://<BASE_API_ENDPOINT>/{proxy}". You can get your base API endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/{proxy}`.
+Select "HTTP Proxy" and set "Endpoint URL" to "http:///{proxy}". You can get your base API endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/{proxy}`.
 
 Leave "Content Handling" set to "Passthrough" and Click "Save".
 
@@ -51,13 +51,13 @@ Leave "Content Handling" set to "Passthrough" and Click "Save".
 
 ### Step 7
 
-Select "Actions" > "Deploy API"
+Select "Actions" &gt; "Deploy API"
 
 ![step 6](https://user-images.githubusercontent.com/808475/80154802-2c5a3a80-8575-11ea-9ab3-de89885fd658.png)
 
 ### Step 8
 
-Create a new stage (e.g. "dev") and click "Deploy"
+Create a new stage \(e.g. "dev"\) and click "Deploy"
 
 ![step 7](https://user-images.githubusercontent.com/808475/80154859-4431be80-8575-11ea-9305-50384b1f9847.png)
 
@@ -112,13 +112,13 @@ Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home),
 
 ### Step 4
 
-Select "VPC link for REST APIs", name your VPC link (e.g. "cortex"), select the API load balancer (identified in Step 1), and click "Create"
+Select "VPC link for REST APIs", name your VPC link \(e.g. "cortex"\), select the API load balancer \(identified in Step 1\), and click "Create"
 
 ![step 3](https://user-images.githubusercontent.com/808475/80143027-03c84580-8561-11ea-92de-9ed0a5dfa593.png)
 
 ### Step 5
 
-Wait for the VPC link to be created (it will take a few minutes)
+Wait for the VPC link to be created \(it will take a few minutes\)
 
 ![step 4](https://user-images.githubusercontent.com/808475/80144088-bbaa2280-8562-11ea-901b-8520eb253df7.png)
 
@@ -130,13 +130,13 @@ Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home),
 
 ### Step 7
 
-Select "REST" and "New API", name your API (e.g. "cortex"), select either "Regional" or "Edge optimized" (depending on your preference), and click "Create API"
+Select "REST" and "New API", name your API \(e.g. "cortex"\), select either "Regional" or "Edge optimized" \(depending on your preference\), and click "Create API"
 
 ![step 6](https://user-images.githubusercontent.com/808475/78293434-66d43880-74dd-11ea-92d6-692158171a3f.png)
 
 ### Step 8
 
-Select "Actions" > "Create Resource"
+Select "Actions" &gt; "Create Resource"
 
 ![step 7](https://user-images.githubusercontent.com/808475/80141938-3cffb600-855f-11ea-9c1c-132ca4503b7a.png)
 
@@ -148,19 +148,19 @@ Select "Configure as proxy resource" and "Enable API Gateway CORS", and click "C
 
 ### Step 10
 
-Select "VPC Link", select "Use Proxy Integration", choose your newly-created VPC Link, and set "Endpoint URL" to "http://<BASE_API_ENDPOINT>/{proxy}". You can get your base API endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/{proxy}`. Click "Save"
+Select "VPC Link", select "Use Proxy Integration", choose your newly-created VPC Link, and set "Endpoint URL" to "http:///{proxy}". You can get your base API endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/{proxy}`. Click "Save"
 
 ![step 9](https://user-images.githubusercontent.com/808475/80147407-4f322200-8568-11ea-8ef5-df5164c1375f.png)
 
 ### Step 11
 
-Select "Actions" > "Deploy API"
+Select "Actions" &gt; "Deploy API"
 
 ![step 10](https://user-images.githubusercontent.com/808475/80147555-86083800-8568-11ea-86af-1b1e38c9d322.png)
 
 ### Step 12
 
-Create a new stage (e.g. "dev") and click "Deploy"
+Create a new stage \(e.g. "dev"\) and click "Deploy"
 
 ![step 11](https://user-images.githubusercontent.com/808475/80147631-a7692400-8568-11ea-8a09-13dbd50b17b9.png)
 
@@ -191,3 +191,4 @@ Delete the API Gateway and VPC Link before spinning down your Cortex cluster:
 ![delete api](https://user-images.githubusercontent.com/808475/80149163-05970680-856b-11ea-9f82-61f4061a3321.png)
 
 ![delete vpc link](https://user-images.githubusercontent.com/808475/80149204-1ba4c700-856b-11ea-83f7-9741c78b6b95.png)
+

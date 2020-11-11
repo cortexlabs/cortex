@@ -16,15 +16,15 @@ Navigate to the [EC2 dashboard](https://console.aws.amazon.com/ec2/home) in your
 
 ### Step 2
 
-Choose a Linux based AMI instance. We recommend using "Ubuntu Server 18.04 LTS". If you plan to serve models on a GPU, we recommend using "Deep Learning AMI (Ubuntu 18.04)" because it comes with Docker Engine and NVIDIA pre-installed.
+Choose a Linux based AMI instance. We recommend using "Ubuntu Server 18.04 LTS". If you plan to serve models on a GPU, we recommend using "Deep Learning AMI \(Ubuntu 18.04\)" because it comes with Docker Engine and NVIDIA pre-installed.
 
 ![step 2](https://user-images.githubusercontent.com/4365343/81064199-41a16400-8ea7-11ea-8d69-ae4ead6bf0be.png)
 
 ### Step 3
 
-Choose your desired instance type (it should have enough CPU and Memory to run your model). Typically it is a good idea have at least 1 GB of memory to spare for your operating system and any other processes that you might want to run on the instance. To run most Cortex examples, an m5.large instance is sufficient.
+Choose your desired instance type \(it should have enough CPU and Memory to run your model\). Typically it is a good idea have at least 1 GB of memory to spare for your operating system and any other processes that you might want to run on the instance. To run most Cortex examples, an m5.large instance is sufficient.
 
-Selecting an appropriate GPU instance depends on the kind of GPU card you want. Different GPU instance families have different GPU cards (i.e. g4 family uses NVIDIA T4 while the p2 family uses NVIDIA K80). For typical GPU use cases, g4dn.xlarge is one of the cheaper instances that should be able to serve most large models, including deep learning models such as GPT-2.
+Selecting an appropriate GPU instance depends on the kind of GPU card you want. Different GPU instance families have different GPU cards \(i.e. g4 family uses NVIDIA T4 while the p2 family uses NVIDIA K80\). For typical GPU use cases, g4dn.xlarge is one of the cheaper instances that should be able to serve most large models, including deep learning models such as GPT-2.
 
 Once you've chosen your instance click "Next: Configure instance details".
 
@@ -48,7 +48,7 @@ Adding tags is optional. You can add tags to your instance to improve searchabil
 
 ### Step 7
 
-Configure your security group to allow inbound traffic to the `local_port` number you specified in your `cortex.yaml` (the default is 8888 if not specified). Exposing this port allows you to make requests to your API but it also exposes it to the world so be careful. Then click "Next: Review and Launch".
+Configure your security group to allow inbound traffic to the `local_port` number you specified in your `cortex.yaml` \(the default is 8888 if not specified\). Exposing this port allows you to make requests to your API but it also exposes it to the world so be careful. Then click "Next: Review and Launch".
 
 ![step 7](https://user-images.githubusercontent.com/4365343/81065102-e2445380-8ea8-11ea-96e0-65676a0bafa8.png)
 
@@ -105,7 +105,6 @@ If you have installed Docker correctly, you should be able to run docker command
 
 Install the Cortex CLI.
 
-<!-- CORTEX_VERSION_MINOR -->
 ```bash
 $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.22/get-cli.sh)"
 ```
@@ -114,7 +113,6 @@ $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/0.22/g
 
 You can now use Cortex to deploy your model:
 
-<!-- CORTEX_VERSION_MINOR -->
 ```bash
 $ git clone -b 0.22 https://github.com/cortexlabs/cortex.git
 
@@ -135,3 +133,4 @@ $ curl <instance public DNS>:<Port> \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "machine learning is"}'
 ```
+

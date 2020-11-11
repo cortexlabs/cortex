@@ -2,11 +2,11 @@
 
 ## Remote development
 
-Unless your internet connection is very fast or you will only be working on the CLI, it is recommended to run your development environment on a cloud instance, e.g. an AWS EC2 instance or GCP VM (due to frequent docker registry pushing). There are a variety of ways to develop on a remote VM, feel free to reach out on our [gitter](https://gitter.im/cortexlabs/cortex) and we can point you in the right direction based on your operating system and editor preferences.
+Unless your internet connection is very fast or you will only be working on the CLI, it is recommended to run your development environment on a cloud instance, e.g. an AWS EC2 instance or GCP VM \(due to frequent docker registry pushing\). There are a variety of ways to develop on a remote VM, feel free to reach out on our [gitter](https://gitter.im/cortexlabs/cortex) and we can point you in the right direction based on your operating system and editor preferences.
 
 ## Prerequisites
 
-1. Go (>=1.14)
+1. Go \(&gt;=1.14\)
 2. Docker
 3. eksctl
 4. kubectl
@@ -56,9 +56,9 @@ chmod +x ./kubectl && \
 sudo mv ./kubectl /usr/local/bin/kubectl
 ```
 
-### aws-cli (v1)
+### aws-cli \(v1\)
 
-Follow [these instructions](https://github.com/aws/aws-cli#installation) to install aws-cli (v1).
+Follow [these instructions](https://github.com/aws/aws-cli#installation) to install aws-cli \(v1\).
 
 E.g. to install it globally, run:
 
@@ -93,7 +93,7 @@ Create a config directory in the repo's root directory:
 mkdir dev/config
 ```
 
-Next, create `dev/config/build.sh`. Add the following content to it (you may use a different region for `REGISTRY_REGION`):
+Next, create `dev/config/build.sh`. Add the following content to it \(you may use a different region for `REGISTRY_REGION`\):
 
 ```bash
 export CORTEX_VERSION="master"
@@ -118,7 +118,7 @@ aws s3 mb s3://cortex-cli-<your_name>  # if you'll be uploading your compiled CL
 
 ### Cluster
 
-Update `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL` (the), and `REGISTRY_REGION` accordingly:
+Update `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL` \(the\), and `REGISTRY_REGION` accordingly:
 
 ```bash
 export CORTEX_VERSION="master"
@@ -158,7 +158,7 @@ image_istio_pilot: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pil
 
 ### Building
 
-Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`):
+Add this to your bash profile \(e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`\):
 
 ```bash
 export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs"  # set the default image for APIs
@@ -218,7 +218,7 @@ If you're making changes in the operator and want faster iterations, you can run
 
 1. `make tools` to install the necessary dependencies to run the operator
 2. `make operator-stop` to stop the in-cluster operator
-3. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
+3. `make devstart` to run the off-cluster operator \(which rebuilds the CLI and restarts the Operator when files change\)
 
 If you want to switch back to the in-cluster operator:
 
@@ -236,3 +236,4 @@ If you want to switch back to the in-cluster operator:
 See `Makefile` for additional dev commands.
 
 Feel free to [chat with us](https://gitter.im/cortexlabs/cortex) if you have any questions.
+

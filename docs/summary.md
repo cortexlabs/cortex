@@ -1,15 +1,15 @@
 # Table of contents
 
 * [Deploy machine learning models to production](../README.md)
-* [Install](cluster-management/install.md)
-* [Tutorial](https://docs.cortex.dev/v/0.22/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
+* [Install](install.md)
+* [Tutorial](https://docs.cortex.dev/v/0.22/deployments/realtime-api/text-generator)
 * [GitHub](https://github.com/cortexlabs/cortex)
-* [Examples](https://github.com/cortexlabs/cortex/tree/0.22/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [Contact us](miscellaneous/contact-us.md)
+* [Examples](https://github.com/cortexlabs/cortex/tree/0.22/examples)
+* [Contact us](contact-us.md)
 
 ## Deployments
 
-* [Realtime API](deployments/realtime-api.md)
+* [Realtime API](deployments/realtime-api/README.md)
   * [Predictor implementation](deployments/realtime-api/predictors.md)
   * [API configuration](deployments/realtime-api/api-configuration.md)
   * [API deployment](deployments/realtime-api/deployment.md)
@@ -19,23 +19,23 @@
   * [Autoscaling](deployments/realtime-api/autoscaling.md)
   * [Prediction monitoring](deployments/realtime-api/prediction-monitoring.md)
   * [Traffic Splitter](deployments/realtime-api/traffic-splitter.md)
-  * [Realtime API tutorial](../examples/pytorch/text-generator/README.md)
-* [Batch API](deployments/batch-api.md)
+  * [Realtime API tutorial](deployments/realtime-api/text-generator.md)
+* [Batch API](deployments/batch-api/README.md)
   * [Predictor implementation](deployments/batch-api/predictors.md)
   * [API configuration](deployments/batch-api/api-configuration.md)
   * [API deployment](deployments/batch-api/deployment.md)
   * [Endpoints](deployments/batch-api/endpoints.md)
   * [Job statuses](deployments/batch-api/statuses.md)
-  * [Batch API tutorial](../examples/batch/image-classifier/README.md)
+  * [Batch API tutorial](deployments/batch-api/image-classifier.md)
 
 ## Advanced
 
-* [Compute](deployments/compute.md)
-* [Using GPUs](deployments/gpus.md)
-* [Using Inferentia](deployments/inferentia.md)
-* [Python packages](deployments/python-packages.md)
-* [System packages](deployments/system-packages.md)
-* [Networking](deployments/networking.md)
+* [Compute](advanced/compute.md)
+* [Using GPUs](advanced/gpus.md)
+* [Using Inferentia](advanced/inferentia.md)
+* [Python packages](advanced/python-packages.md)
+* [System packages](advanced/system-packages.md)
+* [Networking](advanced/networking.md)
 
 ## Cluster management
 
@@ -60,7 +60,7 @@
 * [API is stuck updating](troubleshooting/stuck-updating.md)
 * [404/503 API responses](troubleshooting/api-request-errors.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
-* [TF session in predict()](troubleshooting/tf-session-in-predict.md)
+* [TF session in predict\(\)](troubleshooting/tf-session-in-predict.md)
 * [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
 * [Cluster down failures](troubleshooting/cluster-down.md)
 
@@ -83,3 +83,4 @@
 ## Contributing
 
 * [Development](contributing/development.md)
+

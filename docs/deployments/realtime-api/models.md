@@ -2,7 +2,7 @@
 
 ## Model directory format
 
-Whenever a model path is specified in an API configuration file, it should be a path to an S3 prefix (or a local directory if deploying locally) which contains your exported model. Directories may include a single model, or multiple folders each with a single model (note that a "single model" need not be a single file; there can be multiple files for a single model). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
+Whenever a model path is specified in an API configuration file, it should be a path to an S3 prefix \(or a local directory if deploying locally\) which contains your exported model. Directories may include a single model, or multiple folders each with a single model \(note that a "single model" need not be a single file; there can be multiple files for a single model\). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
 
 Each predictor type expects a different model format:
 
@@ -114,7 +114,7 @@ The most common pattern is to serve a single model per API. The path to the mode
     model_path: s3://my-bucket/models/text-generator/
 ```
 
-Note: for the Python predictor type, it is not necessary to specify the path to your model in `model_path`, since you can download and load it in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
+Note: for the Python predictor type, it is not necessary to specify the path to your model in `model_path`, since you can download and load it in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](models.md#live-model-reloading).
 
 ## Multiple models
 
@@ -147,9 +147,9 @@ or:
       dir: s3://my-bucket/models/
 ```
 
-Note: for the Python predictor type, it is not necessary to specify the paths to your models in `models`, since you can download and load them in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of live reloading or multi model caching (see below).
+Note: for the Python predictor type, it is not necessary to specify the paths to your models in `models`, since you can download and load them in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of live reloading or multi model caching \(see below\).
 
-When using the `models.paths` field, each path must be a valid model directory (see above for valid model directory structures).
+When using the `models.paths` field, each path must be a valid model directory \(see above for valid model directory structures\).
 
 When using the `models.dir` field, the directory provided may contain multiple subdirectories, each of which is a valid model directory. For example:
 
@@ -166,28 +166,26 @@ When using the `models.dir` field, the directory provided may contain multiple s
 
 In this case, there are two models in the directory, one of which is named "text-generator", and the other is named "sentiment-analyzer".
 
-<!-- CORTEX_VERSION_MINOR -->
-Additional examples can be seen in the [multi model guide](../../guides/multi-model.md) and in [examples/model-caching](https://github.com/cortexlabs/cortex/tree/0.22/examples/model-caching) (remove the `cache_size` and `disk_cache_size` configurations in `cortex.yaml` to disable [multi model caching](#multi-model-caching)).
+Additional examples can be seen in the [multi model guide](../../guides/multi-model.md) and in [examples/model-caching](https://github.com/cortexlabs/cortex/tree/0.22/examples/model-caching) \(remove the `cache_size` and `disk_cache_size` configurations in `cortex.yaml` to disable [multi model caching](models.md#multi-model-caching)\).
 
 ## Live model reloading
 
-Live model reloading is a mechanism that periodically checks for updated models in the model path(s) provided in `predictor.model_path` or `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type (as long as model paths are specified via `model_path` or `models` in the `predictor` configuration).
+Live model reloading is a mechanism that periodically checks for updated models in the model path\(s\) provided in `predictor.model_path` or `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type \(as long as model paths are specified via `model_path` or `models` in the `predictor` configuration\).
 
-The following is a list of events that will trigger the API to update its model(s):
+The following is a list of events that will trigger the API to update its model\(s\):
 
 * A new model is added to the model directory.
 * A model is removed from the model directory.
 * A model changes its directory structure.
 * A file in the model directory is updated in-place.
 
-<!-- CORTEX_VERSION_MINOR -->
 Examples can be seen in [examples/live-reloading](https://github.com/cortexlabs/cortex/tree/0.22/examples/live-reloading).
 
 Usage varies based on the predictor type:
 
 ### Python
 
-To use live model reloading with the Python predictor, the model path(s) must be specified in the API's `predictor` configuration (via the `model_path` or `models` field). When models are specified in this manner, your `PythonPredictor` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `python_client` that's passed to the predictor's constructor:
+To use live model reloading with the Python predictor, the model path\(s\) must be specified in the API's `predictor` configuration \(via the `model_path` or `models` field\). When models are specified in this manner, your `PythonPredictor` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `python_client` that's passed to the predictor's constructor:
 
 ```python
 def get_model(model_name, model_version):
@@ -295,7 +293,7 @@ class TensorFlowPredictor:
       return self.client.predict(payload, query_params["model"], query_params["version"])
 ```
 
-Note: when using Inferentia models with the TensorFlow predictor, live model reloading is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
+Note: when using Inferentia models with the TensorFlow predictor, live model reloading is only supported if `predictor.processes_per_replica` is set to 1 \(the default value\).
 
 ### ONNX
 
@@ -349,7 +347,7 @@ class ONNXPredictor:
       return self.client.predict(payload, query_params["model"], query_params["version"])
 ```
 
-You can also retrieve information about the model by calling the `onnx_client`'s `get_model()` method (it supports model name and model version arguments, like its `predict()` method). This can be useful for retrieving the model's input/output signatures. For example, `self.client.get_model()` might look like this:
+You can also retrieve information about the model by calling the `onnx_client`'s `get_model()` method \(it supports model name and model version arguments, like its `predict()` method\). This can be useful for retrieving the model's input/output signatures. For example, `self.client.get_model()` might look like this:
 
 ```python
 {
@@ -367,22 +365,22 @@ You can also retrieve information about the model by calling the `onnx_client`'s
 
 ## Multi model caching
 
-Multi model caching allows each API replica to serve more models than would all fit into it's memory. It achieves this by keeping only a specified number of models in memory (and disk) at a time. When the in-memory model limit has been reached, the least recently accessed model is evicted from the cache.
+Multi model caching allows each API replica to serve more models than would all fit into it's memory. It achieves this by keeping only a specified number of models in memory \(and disk\) at a time. When the in-memory model limit has been reached, the least recently accessed model is evicted from the cache.
 
 This feature can be useful when you have hundreds or thousands of models, when some models are frequently accessed while a larger portion of them are rarely used, or when running on smaller instances to control costs.
 
 The model cache is a two-layer cache, configured by the following parameters in the `predictor.models` configuration:
 
 * `cache_size` sets the number of models to keep in memory
-* `disk_cache_size` sets the number of models to keep on disk (must be greater than or equal to `cache_size`)
+* `disk_cache_size` sets the number of models to keep on disk \(must be greater than or equal to `cache_size`\)
 
-Both of these fields must be specified, in addition to either the `dir` or `paths` field (which specifies the model paths, see above for documentation). Multi model caching is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
+Both of these fields must be specified, in addition to either the `dir` or `paths` field \(which specifies the model paths, see above for documentation\). Multi model caching is only supported if `predictor.processes_per_replica` is set to 1 \(the default value\).
 
-<!-- CORTEX_VERSION_MINOR -->
 See [examples/model-caching](https://github.com/cortexlabs/cortex/tree/0.22/examples/model-caching) for examples.
 
 ### Caveats
 
-Cortex periodically runs a background script (every 10 seconds) that counts the number of models in memory and on disk, and evicts the least recently used models if the count exceeds `cache_size` / `disk_cache_size`.
+Cortex periodically runs a background script \(every 10 seconds\) that counts the number of models in memory and on disk, and evicts the least recently used models if the count exceeds `cache_size` / `disk_cache_size`.
 
 The benefit of this approach is that there are no added steps on the critical path of the inference. The limitation with this approach in this is that if many new models are requested between exectutions of the script, then until the script runs again, there may be more models in memory and/or on disk than the configured `cache_size` or `disk_cache_size` limits. This has to potential to lead to out-of-memory errors.
+

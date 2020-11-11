@@ -1,8 +1,8 @@
 # Set up a custom domain
 
-You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager (ACM).
+You can use any custom domain \(that you own\) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager \(ACM\).
 
-There are two methods for achieving this, and which method to use depends on whether you're using API Gateway or not (without API Gateway, requests are sent directly to the API load balancer instead). API Gateway is enabled by default.
+There are two methods for achieving this, and which method to use depends on whether you're using API Gateway or not \(without API Gateway, requests are sent directly to the API load balancer instead\). API Gateway is enabled by default.
 
 The first set of steps are the same whether or not you're using API Gateway. If you aren't using API gateway, follow this guide before creating your Cortex cluster.
 
@@ -36,11 +36,11 @@ Take note of the values in the NS record.
 
 ### Step 5
 
-Navigate to your root DNS service provider (e.g. Google Domains, AWS Route 53, Go Daddy). Your root DNS service provider is typically the registrar where you purchased your domain (unless you have transferred DNS management elsewhere). The procedure for adding DNS records may vary based on your service provider.
+Navigate to your root DNS service provider \(e.g. Google Domains, AWS Route 53, Go Daddy\). Your root DNS service provider is typically the registrar where you purchased your domain \(unless you have transferred DNS management elsewhere\). The procedure for adding DNS records may vary based on your service provider.
 
-We are going to add an NS (name server) record that specifies that any traffic to your subdomain should use the name servers of your hosted zone in Route 53 for DNS resolution.
+We are going to add an NS \(name server\) record that specifies that any traffic to your subdomain should use the name servers of your hosted zone in Route 53 for DNS resolution.
 
-`cortexlabs.dev` is managed by Google Domains. The image below is a screenshot for adding a DNS record in Google Domains (your UI may differ based on your DNS service provider).
+`cortexlabs.dev` is managed by Google Domains. The image below is a screenshot for adding a DNS record in Google Domains \(your UI may differ based on your DNS service provider\).
 
 ![step 5](https://user-images.githubusercontent.com/4365343/82211959-bcbf3d00-98df-11ea-834d-692b3bcf9332.png)
 
@@ -70,7 +70,7 @@ Select "DNS validation" and then click "Next".
 
 ### Step 10
 
-Add tags for searchability (optional) then click "Review".
+Add tags for searchability \(optional\) then click "Review".
 
 ![step 10](https://user-images.githubusercontent.com/4365343/82206485-52ee6580-98d6-11ea-95a9-1d0ebafc178a.png)
 
@@ -98,15 +98,15 @@ Take note of the certificate's ARN. The certificate is ineligible for renewal be
 
 ![step 14](https://user-images.githubusercontent.com/4365343/82222684-9e613d80-98ef-11ea-98c0-5a20b457f062.png)
 
-If you are using API Gateway, continue to the next section to [configure API Gateway](#configure-api-gateway). Otherwise (i.e. clients connect directly to your API load balancer) skip to [configure the API load balancer](#configure-the-api-load-balancer).
+If you are using API Gateway, continue to the next section to [configure API Gateway](custom-domain.md#configure-api-gateway). Otherwise \(i.e. clients connect directly to your API load balancer\) skip to [configure the API load balancer](custom-domain.md#configure-the-api-load-balancer).
 
 ## Configure API Gateway
 
-_If you aren't using API Gateway (i.e. clients connect directly to your API load balancer), skip this section and [configure the API load balancer](#configure-the-api-load-balancer) instead._
+_If you aren't using API Gateway \(i.e. clients connect directly to your API load balancer\), skip this section and_ [_configure the API load balancer_](custom-domain.md#configure-the-api-load-balancer) _instead._
 
 ### Step 1
 
-Navigate to the [API Gateway console](https://us-west-2.console.aws.amazon.com/apigateway) (make sure that the region in top right matches your Cortex region). Click "Custom domain names" and then click "Create".
+Navigate to the [API Gateway console](https://us-west-2.console.aws.amazon.com/apigateway) \(make sure that the region in top right matches your Cortex region\). Click "Custom domain names" and then click "Create".
 
 ![step 1](https://user-images.githubusercontent.com/808475/84082403-a105fe80-a994-11ea-8015-0df9aeef07b1.png)
 
@@ -118,7 +118,7 @@ Type in the name of your domain and choose the Regional endpoint type, TLS 1.2, 
 
 ### Step 3
 
-This should take you back to the custom domains page, and you should see your new custom domain. Make sure your API is selected. Take note of the API Gateway domain name (we will use this later), and click "Configure API mappings".
+This should take you back to the custom domains page, and you should see your new custom domain. Make sure your API is selected. Take note of the API Gateway domain name \(we will use this later\), and click "Configure API mappings".
 
 ![step 3](https://user-images.githubusercontent.com/808475/84084960-62267780-a999-11ea-8a6b-4be9cfca2a9c.png)
 
@@ -136,15 +136,15 @@ Select your API Gateway, choose the "$default" stage, and lave "Path" blank. Cli
 
 ### Step 6
 
-Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API Gateway (the target name should match the "API Gateway domain name" show in step 3). Leave "Name" blank.
+Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API Gateway \(the target name should match the "API Gateway domain name" show in step 3\). Leave "Name" blank.
 
 ![step 6](https://user-images.githubusercontent.com/808475/84083366-54232780-a996-11ea-9bc6-2c9945a160d4.png)
 
-Proceed to [using your new endpoint](#using-your-new-endpoint).
+Proceed to [using your new endpoint](custom-domain.md#using-your-new-endpoint).
 
 ## Configure the API load balancer
 
-_If you are using API Gateway, this section does not apply; follow the instructions above to [configure API Gateway](#configure-api-gateway) instead._
+_If you are using API Gateway, this section does not apply; follow the instructions above to_ [_configure API Gateway_](custom-domain.md#configure-api-gateway) _instead._
 
 ### Step 1
 
@@ -174,7 +174,7 @@ Take note of the load balancer's name.
 
 ### Step 3
 
-Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API load balancer (leave "Name" blank).
+Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API load balancer \(leave "Name" blank\).
 
 ![step 3](https://user-images.githubusercontent.com/808475/84083422-6ac97e80-a996-11ea-9679-be37268a2133.png)
 
@@ -195,13 +195,13 @@ curl https://api.cortexlabs.dev/text-generator -X POST -H "Content-Type: applica
 
 ## Debugging connectivity issues
 
-You could run into connectivity issues if you make a request to your API without waiting long enough for your DNS records to propagate after creating them (it usually takes 5-10 mintues). If you are updating existing DNS records, it could take anywhere from a few minutes to 48 hours for the DNS cache to expire (until then, your previous DNS configuration will be used).
+You could run into connectivity issues if you make a request to your API without waiting long enough for your DNS records to propagate after creating them \(it usually takes 5-10 mintues\). If you are updating existing DNS records, it could take anywhere from a few minutes to 48 hours for the DNS cache to expire \(until then, your previous DNS configuration will be used\).
 
 To test connectivity, try the following steps:
 
-1. Deploy any api (e.g. examples/pytorch/iris-classifier).
-1. Make an HTTPS GET request to the your api e.g. `curl https://api.cortexlabs.dev/iris-classifier` or enter the url in your browser.
-1. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the HTTPS Get request from another device that hasn't made a request to that url in a while. A successful request looks like this:
+1. Deploy any api \(e.g. examples/pytorch/iris-classifier\).
+2. Make an HTTPS GET request to the your api e.g. `curl https://api.cortexlabs.dev/iris-classifier` or enter the url in your browser.
+3. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the HTTPS Get request from another device that hasn't made a request to that url in a while. A successful request looks like this:
 
 ```text
 {"message":"make a prediction by sending a post request to this endpoint with a json payload",...}
@@ -218,3 +218,4 @@ Delete the hosted zone for your subdomain in the [Route 53 console](https://cons
 Delete your certificate from the [ACM console](https://us-west-2.console.aws.amazon.com/acm/home):
 
 ![delete certificate](https://user-images.githubusercontent.com/4365343/82228835-a624e000-98f7-11ea-92e2-cb4fb0f591e2.png)
+

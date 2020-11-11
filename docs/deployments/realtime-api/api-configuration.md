@@ -1,8 +1,8 @@
 # API configuration
 
-Once your model is [exported](../../guides/exporting.md) and you've implemented a [Predictor](predictors.md), you can configure your API via a YAML file (typically named `cortex.yaml`).
+Once your model is [exported](../../guides/exporting.md) and you've implemented a [Predictor](predictors.md), you can configure your API via a YAML file \(typically named `cortex.yaml`\).
 
-Reference the section below which corresponds to your Predictor type: [Python](#python-predictor), [TensorFlow](#tensorflow-predictor), or [ONNX](#onnx-predictor).
+Reference the section below which corresponds to your Predictor type: [Python](api-configuration.md#python-predictor), [TensorFlow](api-configuration.md#tensorflow-predictor), or [ONNX](api-configuration.md#onnx-predictor).
 
 ## Python Predictor
 
@@ -57,7 +57,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../../advanced/compute.md), [networking](../../advanced/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../../advanced/system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -119,7 +119,7 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../../advanced/compute.md), [networking](../../advanced/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../../advanced/system-packages.md).
 
 ## ONNX Predictor
 
@@ -174,4 +174,5 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../../advanced/compute.md), [networking](../../advanced/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../../advanced/system-packages.md).
+

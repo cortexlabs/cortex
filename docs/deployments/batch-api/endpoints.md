@@ -1,12 +1,12 @@
-# Batch API endpoint
+# Endpoints
 
 Once your model is [exported](../../guides/exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](deployment.md), you can submit and manage jobs by making HTTP requests to your Batch API endpoint.
 
 A deployed Batch API endpoint supports the following:
 
 1. Submitting a batch job
-1. Getting the status of a job
-1. Stopping a job
+2. Getting the status of a job
+3. Stopping a job
 
 You can find the url for your Batch API using Cortex CLI command `cortex get <batch_api_name>`.
 
@@ -14,20 +14,20 @@ You can find the url for your Batch API using Cortex CLI command `cortex get <ba
 
 There are three options for providing the dataset for your job:
 
-1. [Data in the request](#data-in-the-request)
-1. [List S3 file paths](#s3-file-paths)
-1. [Newline delimited JSON file(s) in S3](#newline-delimited-json-files-in-s3)
+1. [Data in the request](endpoints.md#data-in-the-request)
+2. [List S3 file paths](endpoints.md#s3-file-paths)
+3. [Newline delimited JSON file\(s\) in S3](endpoints.md#newline-delimited-json-files-in-s3)
 
 ### Data in the request
 
-The input data for your job can be included directly in your job submission request by specifying an `item_list` in your json request payload. Each item can be any type (object, list, string, etc.) and is treated as a single sample. `item_list.batch_size` specifies how many items to include in a single batch.
+The input data for your job can be included directly in your job submission request by specifying an `item_list` in your json request payload. Each item can be any type \(object, list, string, etc.\) and is treated as a single sample. `item_list.batch_size` specifies how many items to include in a single batch.
 
-__Each batch must be smaller than 256 KiB, and the total request size must be less than 10 MiB.__ If you want to submit more data, explore the other job submission methods.
+**Each batch must be smaller than 256 KiB, and the total request size must be less than 10 MiB.** If you want to submit more data, explore the other job submission methods.
 
 Submitting data in the request can be useful in the following scenarios:
 
 * the request only has a few items
-* each item in the request is small (e.g. urls to images/videos)
+* each item in the request is small \(e.g. urls to images/videos\)
 * you want to avoid using S3 as an intermediate storage layer
 
 ```yaml
@@ -60,9 +60,9 @@ RESPONSE:
 
 ### S3 file paths
 
-If your input data is a list of files such as images/videos in an S3 directory, you can define `file_path_lister` in your submission request payload. You can use `file_path_lister.s3_paths` to specify a list of files or prefixes, and `file_path_lister.includes` and/or `file_path_lister.excludes` to remove unwanted files. The S3 file paths will be aggregated into batches of size `file_path_lister.batch_size`. To learn more about fine-grained S3 file filtering see [filtering files](#filtering-files).
+If your input data is a list of files such as images/videos in an S3 directory, you can define `file_path_lister` in your submission request payload. You can use `file_path_lister.s3_paths` to specify a list of files or prefixes, and `file_path_lister.includes` and/or `file_path_lister.excludes` to remove unwanted files. The S3 file paths will be aggregated into batches of size `file_path_lister.batch_size`. To learn more about fine-grained S3 file filtering see [filtering files](endpoints.md#filtering-files).
 
-__The total size of a batch must be less than 256 KiB.__
+**The total size of a batch must be less than 256 KiB.**
 
 This submission pattern can be useful in the following scenarios:
 
@@ -100,11 +100,11 @@ RESPONSE:
 
 ### Newline delimited JSON files in S3
 
-If your input dataset is a newline delimited json file in an S3 directory (or a list of them), you can define `delimited_files` in your request payload to break up the contents of the file into batches of size `delimited_files.batch_size`.
+If your input dataset is a newline delimited json file in an S3 directory \(or a list of them\), you can define `delimited_files` in your request payload to break up the contents of the file into batches of size `delimited_files.batch_size`.
 
-Upon receiving `delimited_files`, your Batch API will iterate through the `delimited_files.s3_paths` to generate the set of S3 files to process. You can use `delimited_files.includes` and `delimited_files.excludes` to filter out unwanted files. Each S3 file will be parsed as a newline delimited JSON file. Each line in the file should be a JSON object, which will be treated as a single sample. The S3 file will be broken down into batches of size `delimited_files.batch_size` and submitted to your workers. To learn more about fine-grained S3 file filtering see [filtering files](#filtering-files).
+Upon receiving `delimited_files`, your Batch API will iterate through the `delimited_files.s3_paths` to generate the set of S3 files to process. You can use `delimited_files.includes` and `delimited_files.excludes` to filter out unwanted files. Each S3 file will be parsed as a newline delimited JSON file. Each line in the file should be a JSON object, which will be treated as a single sample. The S3 file will be broken down into batches of size `delimited_files.batch_size` and submitted to your workers. To learn more about fine-grained S3 file filtering see [filtering files](endpoints.md#filtering-files).
 
-__The total size of a batch must be less than 256 KiB.__
+**The total size of a batch must be less than 256 KiB.**
 
 This submission pattern is useful in the following scenarios:
 
@@ -139,7 +139,7 @@ RESPONSE:
 
 ## Job status
 
-You can get the status of a job by making a GET request to `<batch_api_endpoint>/<job_id>` (note that you can also get a job's status with the Cortex CLI command `cortex get <api_name> <job_id>`).
+You can get the status of a job by making a GET request to `<batch_api_endpoint>/<job_id>` \(note that you can also get a job's status with the Cortex CLI command `cortex get <api_name> <job_id>`\).
 
 See [Job Status Codes](statuses.md) for a list of the possible job statuses and what they mean.
 
@@ -183,7 +183,7 @@ RESPONSE:
 
 Stop a job in progress. You can also use the Cortex CLI command
 
-You stop a running job by making a DELETE request to `<batch_api_endpoint>/<job_id>` (note that you can also delete a job with the Cortex CLI command `cortex delete <api_name> <job_id>`).
+You stop a running job by making a DELETE request to `<batch_api_endpoint>/<job_id>` \(note that you can also delete a job with the Cortex CLI command `cortex delete <api_name> <job_id>`\).
 
 ```yaml
 DELETE <batch_api_endpoint>?jobID=<jobID>:
@@ -198,7 +198,7 @@ RESPONSE:
 
 When submitting a job using `delimited_files` or `file_path_lister`, you can use `s3_paths` in conjunction with `includes` and `excludes` to precisely filter files.
 
-The Batch API will iterate through each S3 path in `s3_paths`. If the S3 path is a prefix, it iterates through each file in that prefix. For each file, if `includes` is non-empty, it will discard the S3 path if the S3 file doesn't match any of the glob patterns provided in `includes`. After passing the `includes` filter (if specified), if the `excludes` is non-empty, it will discard the S3 path if the S3 files matches any of the glob patterns provided in `excludes`.
+The Batch API will iterate through each S3 path in `s3_paths`. If the S3 path is a prefix, it iterates through each file in that prefix. For each file, if `includes` is non-empty, it will discard the S3 path if the S3 file doesn't match any of the glob patterns provided in `includes`. After passing the `includes` filter \(if specified\), if the `excludes` is non-empty, it will discard the S3 path if the S3 files matches any of the glob patterns provided in `excludes`.
 
 If you aren't sure which files will be processed in your request, specify the `dryRun=true` query parameter in the job submission request to see the target list.
 
@@ -287,3 +287,4 @@ Select all files except GIFs
 # s3://bucket/images/img_2.jpg
 # s3://bucket/images/img_3.jpg
 ```
+

@@ -4,13 +4,13 @@ Once your model is [exported](../../guides/exporting.md), you can implement one 
 
 Which Predictor you use depends on how your model is exported:
 
-* [TensorFlow Predictor](#tensorflow-predictor) if your model is exported as a TensorFlow `SavedModel`
-* [ONNX Predictor](#onnx-predictor) if your model is exported in the ONNX format
-* [Python Predictor](#python-predictor) for all other cases
+* [TensorFlow Predictor](predictors.md#tensorflow-predictor) if your model is exported as a TensorFlow `SavedModel`
+* [ONNX Predictor](predictors.md#onnx-predictor) if your model is exported in the ONNX format
+* [Python Predictor](predictors.md#python-predictor) for all other cases
 
 ## Project files
 
-Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in your Predictor implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`, and the api configuration file (e.g. `cortex.yaml`) are excluded.
+Cortex makes all files in the project directory \(i.e. the directory which contains `cortex.yaml`\) available for use in your Predictor implementation. Python bytecode files \(`*.pyc`, `*.pyo`, `*.pyd`\), files or folders that start with `.`, and the api configuration file \(e.g. `cortex.yaml`\) are excluded.
 
 The following files can also be added at the root of the project's directory:
 
@@ -94,7 +94,6 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 
 ### Examples
 
-<!-- CORTEX_VERSION_MINOR -->
 You can find an example of a BatchAPI using a PythonPredictor in [examples/batch/image-classifier](https://github.com/cortexlabs/cortex/tree/0.22/examples/batch/image-classifier).
 
 ### Pre-installed packages
@@ -165,10 +164,9 @@ torch-neuron==1.5.1.1.0.1721.0
 torchvision==0.6.1
 ```
 
-<!-- CORTEX_VERSION_MINOR x3 -->
-The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/python-predictor-inf/Dockerfile) (for Inferentia).
+The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/python-predictor-cpu/Dockerfile) \(for CPU\), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/python-predictor-gpu/Dockerfile) \(for GPU\), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/python-predictor-inf/Dockerfile) \(for Inferentia\).
 
-If your application requires additional dependencies, you can install additional [Python packages](../python-packages.md) and [system packages](../system-packages.md).
+If your application requires additional dependencies, you can install additional [Python packages](../../advanced/python-packages.md) and [system packages](../../advanced/system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -222,16 +220,14 @@ class TensorFlowPredictor:
         pass
 ```
 
-<!-- CORTEX_VERSION_MINOR -->
 Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/0.22/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`). See the [multi model guide](../../guides/multi-model.md#tensorflow-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference \(for example: `self.client.predict(payload, "text-generator")`\). See the [multi model guide](../../guides/multi-model.md#tensorflow-predictor) for more information.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
 
 ### Examples
 
-<!-- CORTEX_VERSION_MINOR -->
 You can find an example of a BatchAPI using a TensorFlowPredictor in [examples/batch/tensorflow](https://github.com/cortexlabs/cortex/tree/0.22/examples/batch/tensorflow).
 
 ### Pre-installed packages
@@ -252,10 +248,9 @@ tensorflow-serving-api==2.3.0
 tensorflow==2.3.0
 ```
 
-<!-- CORTEX_VERSION_MINOR -->
 The pre-installed system packages are listed in [images/tensorflow-predictor/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/tensorflow-predictor/Dockerfile).
 
-If your application requires additional dependencies, you can install additional [Python packages](../python-packages.md) and [system packages](../system-packages.md).
+If your application requires additional dependencies, you can install additional [Python packages](../../advanced/python-packages.md) and [system packages](../../advanced/system-packages.md).
 
 ## ONNX Predictor
 
@@ -309,16 +304,14 @@ class ONNXPredictor:
         pass
 ```
 
-<!-- CORTEX_VERSION_MINOR -->
 Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/0.22/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). See the [multi model guide](../../guides/multi-model.md#onnx-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference \(for example: `self.client.predict(model_input, "text-generator")`\). See the [multi model guide](../../guides/multi-model.md#onnx-predictor) for more information.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
 
 ### Examples
 
-<!-- CORTEX_VERSION_MINOR -->
 You can find an example of a BatchAPI using an ONNXPredictor in [examples/batch/onnx](https://github.com/cortexlabs/cortex/tree/0.22/examples/batch/onnx).
 
 ### Pre-installed packages
@@ -336,7 +329,7 @@ pyyaml==5.3.1
 requests==2.24.0
 ```
 
-<!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/onnx-predictor-cpu/Dockerfile) (for CPU) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/onnx-predictor-gpu/Dockerfile) (for GPU).
+The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/onnx-predictor-cpu/Dockerfile) \(for CPU\) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/0.22/images/onnx-predictor-gpu/Dockerfile) \(for GPU\).
 
-If your application requires additional dependencies, you can install additional [Python packages](../python-packages.md) and [system packages](../system-packages.md).
+If your application requires additional dependencies, you can install additional [Python packages](../../advanced/python-packages.md) and [system packages](../../advanced/system-packages.md).
+

@@ -1,6 +1,6 @@
 # View API metrics
 
-The `cortex get` and `cortex get API_NAME` commands display the request time (averaged over the past 2 weeks) and response code counts (summed over the past 2 weeks) for your API(s):
+The `cortex get` and `cortex get API_NAME` commands display the request time \(averaged over the past 2 weeks\) and response code counts \(summed over the past 2 weeks\) for your API\(s\):
 
 ```text
 $ cx get
@@ -21,32 +21,31 @@ Shows the number of 2XX, 4XX, and 5XX responses per minute.
 
 **median response time**
 
-Shows the median response time for requests, over 1-minute periods (measured in milliseconds).
+Shows the median response time for requests, over 1-minute periods \(measured in milliseconds\).
 
 **p99 response time**
 
-Shows the p99 response time for requests, over 1-minute periods (measured in milliseconds).
+Shows the p99 response time for requests, over 1-minute periods \(measured in milliseconds\).
 
 **total in-flight requests**
 
 Shows the total number of in-flight requests.
 
-The [note](#note-regarding-metric-intervals) below applies to this plot.
+The [note](metrics.md#note-regarding-metric-intervals) below applies to this plot.
 
 **avg in-flight requests per replica**
 
 Shows the average number of in-flight requests per replica.
 
-The [note](#note-regarding-metric-intervals) below applies to this plot.
+The [note](metrics.md#note-regarding-metric-intervals) below applies to this plot.
 
 **active replicas**
 
 Shows the number of active replicas.
 
-The [note](#note-regarding-metric-intervals) below applies to this plot.
+The [note](metrics.md#note-regarding-metric-intervals) below applies to this plot.
 
----
+## note regarding metric intervals
 
-#### note regarding metric intervals
+The referenced widget is aggregated over 10 second intervals because each replica reports its in-flight requests once per 10 seconds. This plot is only available for the last 3 hours \(because second-granular data is aggregated to minute-granular data after 3 hours\). To plot data older than 3 hours, instead change the period to 1 minute, and divide the y-axis by 6 to \(since the metrics are reported every 10 seconds\).\*
 
-The referenced widget is aggregated over 10 second intervals because each replica reports its in-flight requests once per 10 seconds. This plot is only available for the last 3 hours (because second-granular data is aggregated to minute-granular data after 3 hours). To plot data older than 3 hours, instead change the period to 1 minute, and divide the y-axis by 6 to (since the metrics are reported every 10 seconds).*

@@ -1,6 +1,6 @@
 # Environments
 
-The `cortex` CLI can be used to deploy models locally and/or to any number of clusters. Environments are used to select which cluster to use for a `cortex` command. An environment contains the information required to connect to a cluster (e.g. AWS credentials and Cortex operator URL).
+The `cortex` CLI can be used to deploy models locally and/or to any number of clusters. Environments are used to select which cluster to use for a `cortex` command. An environment contains the information required to connect to a cluster \(e.g. AWS credentials and Cortex operator URL\).
 
 ## Example: `aws` only
 
@@ -89,8 +89,9 @@ This will prompt for the necessary configuration. Note that the AWS credentials 
 
 ## Environments overview
 
-By default, the CLI ships with a single environment named `local`. This is the default environment for all Cortex commands (other than `cortex cluster` commands), which means that APIs will be deployed locally by default.
+By default, the CLI ships with a single environment named `local`. This is the default environment for all Cortex commands \(other than `cortex cluster` commands\), which means that APIs will be deployed locally by default.
 
 When you create a cluster with `cortex cluster up`, an environment named `aws` is automatically created to point to your new cluster. You can name the environment something else via the `--configure-env` flag, e.g. `cortex cluster up --configure-env prod`. You can also use the `--configure-env` flag with `cortex cluster info` and `cortex cluster configure` to create/update the specified environment. You may interact with your cluster by appending `--env aws` to your `cortex` commands, e.g. `cortex deploy --env aws`.
 
 You can list your environments with `cortex env list`, change the default environment with `cortex env default`, delete an environment with `cortex env delete`, and create/update an environment with `cortex env configure`.
+

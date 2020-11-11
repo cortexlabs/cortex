@@ -2,8 +2,6 @@
 
 Cortex is an open source platform for deploying, managing, and scaling machine learning in production.
 
-<br>
-
 ## Model serving infrastructure
 
 * Supports deploying TensorFlow, PyTorch, sklearn and other models as realtime or batch APIs
@@ -12,7 +10,7 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 * Runs inference on spot instances with on-demand backups
 * Manages traffic splitting for A/B testing
 
-#### Configure your cluster:
+### Configure your cluster:
 
 ```yaml
 # cluster.yaml
@@ -26,7 +24,7 @@ max_instances: 100
 spot: true
 ```
 
-#### Spin up your cluster on your AWS account:
+### Spin up your cluster on your AWS account:
 
 ```text
 $ cortex cluster up --config cluster.yaml
@@ -39,8 +37,6 @@ $ cortex cluster up --config cluster.yaml
 cortex is ready!
 ```
 
-<br>
-
 ## Reproducible model deployments
 
 * Implement request handling in Python
@@ -48,7 +44,7 @@ cortex is ready!
 * Package dependencies, code, and configuration for reproducible deployments
 * Test locally before deploying to your cluster
 
-#### Implement a predictor:
+### Implement a predictor:
 
 ```python
 # predictor.py
@@ -63,7 +59,7 @@ class PythonPredictor:
     return self.model(payload["text"])[0]
 ```
 
-#### Configure an API:
+### Configure an API:
 
 ```yaml
 # cortex.yaml
@@ -82,7 +78,7 @@ networking:
   api_gateway: public
 ```
 
-#### Deploy to production:
+### Deploy to production:
 
 ```text
 $ cortex deploy cortex.yaml
@@ -96,8 +92,6 @@ $ curl https://example.com/text-generator \
 "deploy machine learning models to production"
 ```
 
-<br>
-
 ## API management
 
 * Monitor API performance
@@ -105,7 +99,7 @@ $ curl https://example.com/text-generator \
 * Customize prediction tracking
 * Update APIs without downtime
 
-#### Manage your APIs:
+### Manage your APIs:
 
 ```text
 $ cortex get
@@ -121,8 +115,6 @@ batch api          running jobs   last update
 image-classifier   5              10h
 ```
 
-<br>
-
 ## Get started
 
 ```text
@@ -130,3 +122,4 @@ $ pip install cortex
 ```
 
 See the [installation guide](https://docs.cortex.dev/install) for next steps.
+

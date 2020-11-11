@@ -4,7 +4,7 @@ The Traffic Splitter feature allows you to split traffic between multiple Realti
 
 After [deploying Realtime APIs](deployment.md), you can deploy an Traffic Splitter to provide a single endpoint that can route a request randomly to one of the target Realtime APIs. Weights can be assigned to Realtime APIs to control the percentage of requests routed to each API.
 
-**Traffic Splitters are only supported on a Cortex cluster (in AWS).**
+**Traffic Splitters are only supported on a Cortex cluster \(in AWS\).**
 
 ## Traffic Splitter Configuration
 
@@ -74,6 +74,7 @@ Note that this will not delete the Realtime APIs targeted by the Traffic Splitte
 
 ## Additional resources
 
-* [Traffic Splitter Tutorial](../../../examples/traffic-splitter/README.md) provides a step-by-step walkthrough for deploying an Traffic Splitter
-* [Realtime API Tutorial](../../../examples/pytorch/text-generator/README.md) provides a step-by-step walkthrough of deploying a realtime API for text generation
+* [Traffic Splitter Tutorial](https://github.com/cortexlabs/cortex/tree/60a504f45dab881eaa4182436becf192051bb2d1/examples/traffic-splitter/README.md) provides a step-by-step walkthrough for deploying an Traffic Splitter
+* [Realtime API Tutorial](text-generator.md) provides a step-by-step walkthrough of deploying a realtime API for text generation
 * [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
+

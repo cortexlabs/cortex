@@ -1,4 +1,4 @@
-# Batch API deployment
+# API deployment
 
 Once your model is [exported](../../guides/exporting.md), you've implemented a [Predictor](predictors.md), and you've [configured your API](api-configuration.md), you're ready to deploy a Batch API.
 
@@ -17,8 +17,8 @@ APIs are declarative, so to update your API, you can modify your source code and
 After deploying a Batch API you can use `cortex get <api_name>` to display the Batch API endpoint, which you can use to make the following requests:
 
 1. Submit a batch job
-1. Get the status of a job
-1. Stop a job
+2. Get the status of a job
+3. Stop a job
 
 You can find documentation for the Batch API endpoint [here](endpoints.md).
 
@@ -54,7 +54,7 @@ Appending the `--watch` flag will re-run the `cortex get` command every 2 second
 
 ## Job commands
 
-Once a job has been submitted to your Batch API (see [here](endpoints.md#submit-a-job)), you can use the Job ID from job submission response to get the status, stream logs, and stop a running job using the CLI.
+Once a job has been submitted to your Batch API \(see [here](endpoints.md#submit-a-job)\), you can use the Job ID from job submission response to get the status, stream logs, and stop a running job using the CLI.
 
 ### `cortex get <api_name> <job_id>`
 
@@ -119,7 +119,7 @@ deleting my-api
 
 ## Additional resources
 
-<!-- CORTEX_VERSION_MINOR -->
-* [Tutorial](../../../examples/batch/image-classifier/README.md) provides a step-by-step walkthrough of deploying an image classification batch API
+* [Tutorial](image-classifier.md) provides a step-by-step walkthrough of deploying an image classification batch API
 * [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
 * [Examples](https://github.com/cortexlabs/cortex/tree/0.22/examples/batch) demonstrate how to deploy models from common ML libraries
+

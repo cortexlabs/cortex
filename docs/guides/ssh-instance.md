@@ -6,7 +6,7 @@ This can be done via the AWS web UI or via the terminal. The first 5 steps are i
 
 ## Step 1
 
-From the AWS EC2 dashboard, locate the instance you would like to connect to (it will start with something like `cortex-ng-cortex-worker`). Then in the "Security groups" section in the "Description", locate the group that is named something like `eksctl-cortex-cluster-ClusterSharedNodeSecurityGroup-***` and click on it.
+From the AWS EC2 dashboard, locate the instance you would like to connect to \(it will start with something like `cortex-ng-cortex-worker`\). Then in the "Security groups" section in the "Description", locate the group that is named something like `eksctl-cortex-cluster-ClusterSharedNodeSecurityGroup-***` and click on it.
 
 ![step 1](https://user-images.githubusercontent.com/26958764/80001314-e5ae0700-84c6-11ea-8f2e-349d4149a3a1.png)
 
@@ -30,7 +30,7 @@ Click "Add rule".
 
 ## Step 5
 
-Select "SSH" for "Type" and "Anywhere" for "Source", and click "Save rules" (if you would like to have narrower access, this [Stack Overflow](https://stackoverflow.com/a/56918352/7143662) answer describes how).
+Select "SSH" for "Type" and "Anywhere" for "Source", and click "Save rules" \(if you would like to have narrower access, this [Stack Overflow](https://stackoverflow.com/a/56918352/7143662) answer describes how\).
 
 ![step 5](https://user-images.githubusercontent.com/26958764/80001609-3b82af00-84c7-11ea-911c-4d115d24aef7.png)
 
@@ -44,7 +44,7 @@ Back on the AWS EC2 dashboard, select the worker instance again and click "Conne
 
 ### Step 7 - Web Console
 
-Select "EC2 Instance Connect (browser-based SSH connection)" and click "Connect".
+Select "EC2 Instance Connect \(browser-based SSH connection\)" and click "Connect".
 
 ![step 7](https://user-images.githubusercontent.com/26958764/80001831-813f7780-84c7-11ea-8200-52edc6efde94.png)
 
@@ -54,13 +54,13 @@ You should be SSH'd in!
 
 ![step 8](https://user-images.githubusercontent.com/26958764/80001894-9916fb80-84c7-11ea-8883-cc530293f17f.png)
 
-*Note: some browsers may not be compatible with the AWS EC2 Instance Connect window and may throw a timeout. It is therefore recommended to switch to Google Chrome if it doesn't work.*
+_Note: some browsers may not be compatible with the AWS EC2 Instance Connect window and may throw a timeout. It is therefore recommended to switch to Google Chrome if it doesn't work._
 
 ## Terminal
 
 ### Step 6 - Terminal
 
-Take note of the "Instance ID", "Availability Zone", and "Public DNS (IPv4)" for your worker instance.
+Take note of the "Instance ID", "Availability Zone", and "Public DNS \(IPv4\)" for your worker instance.
 
 ![step 6](https://user-images.githubusercontent.com/26958764/80010486-2875dc00-84d3-11ea-8edf-afb3cdda6c17.png)
 
@@ -84,3 +84,4 @@ aws ec2-instance-connect send-ssh-public-key \
 --ssh-public-key file://my_rsa_key.pub && \
 ssh -i my_rsa_key <Public DNS (IPv4)>
 ```
+
