@@ -575,7 +575,7 @@ Running `cortex delete` will stop all in progress jobs for the API and will dele
 ## Next steps
 
 <!-- CORTEX_VERSION_MINOR -->
-* Deploy another one of our [batch examples](https://github.com/cortexlabs/cortex/tree/master/examples/batch).
+* Deploy another one of our [batch examples](https://github.com/cortexlabs/cortex/tree/0.22/examples/batch).
 * See our [exporting guide](../../../docs/guides/exporting.md) for how to export your model to use in an API.
 * Try the [realtime API tutorial](../../pytorch/text-generator/README.md) to learn how to deploy realtime APIs in Cortex.
 * See [uninstall](../../../docs/cluster-management/uninstall.md) if you'd like to spin down your cluster.

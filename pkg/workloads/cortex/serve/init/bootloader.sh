@@ -16,8 +16,8 @@
 
 set -e
 
-# CORTEX_VERSION x1
-export EXPECTED_CORTEX_VERSION=master
+# CORTEX_VERSION
+export EXPECTED_CORTEX_VERSION=0.22.0
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     if [ "$CORTEX_PROVIDER" == "local" ]; then

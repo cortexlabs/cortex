@@ -1,13 +1,3 @@
-<!-- Delete on release branches -->
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
-
-<br>
-
-<!-- Delete on release branches -->
-<!-- CORTEX_VERSION_README_MINOR -->
-
-[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) • [support](https://gitter.im/cortexlabs/cortex)
-
 # Deploy machine learning models to production
 
 Cortex is an open source platform for deploying, managing, and scaling machine learning in production.

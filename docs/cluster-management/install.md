@@ -2,7 +2,6 @@
 
 ## Install the CLI
 
-<!-- CORTEX_VERSION_MINOR -->
 ```bash
 pip install cortex
 ```
@@ -16,7 +15,7 @@ See [here](../miscellaneous/cli.md#install-cortex-cli-without-python-client) to 
 <!-- CORTEX_VERSION_MINOR -->
 ```bash
 # clone the Cortex repository
-git clone -b master https://github.com/cortexlabs/cortex.git
+git clone -b 0.22 https://github.com/cortexlabs/cortex.git
 
 # navigate to the Pytorch text generator example
 cd cortex/examples/pytorch/text-generator
@@ -87,7 +86,7 @@ You can now run the same commands shown above to deploy the text generator to AW
 
 <!-- CORTEX_VERSION_MINOR -->
 * Try the [tutorial](../../examples/pytorch/text-generator/README.md) to learn more about how to use Cortex.
-* Deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
+* Deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.22/examples).
 * See our [exporting guide](../guides/exporting.md) for how to export your model to use in an API.
 * View documentation for [realtime APIs](../deployments/realtime-api.md) or [batch APIs](../deployments/batch-api.md).
 * See [uninstall](uninstall.md) if you'd like to spin down your cluster.
