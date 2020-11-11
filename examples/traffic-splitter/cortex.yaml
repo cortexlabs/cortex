@@ -5,7 +5,7 @@
   predictor:
     type: onnx
     path: onnx_predictor.py
-    model_path: s3://cortex-examples/onnx/iris-classifier/gbtree.onnx
+    model_path: s3://cortex-examples/onnx/iris-classifier/
   monitoring:
     model_type: classification
 
@@ -14,7 +14,7 @@
   predictor:
     type: tensorflow
     path: tensorflow_predictor.py
-    model_path: s3://cortex-examples/tensorflow/iris-classifier/nn
+    model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
   monitoring:
     model_type: classification
 

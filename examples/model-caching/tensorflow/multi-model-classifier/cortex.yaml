@@ -8,11 +8,11 @@
     models:
       paths:
         - name: inception
-          model_path: s3://cortex-examples/tensorflow/image-classifier/inception
+          model_path: s3://cortex-examples/tensorflow/image-classifier/inception/
         - name: iris
-          model_path: s3://cortex-examples/tensorflow/iris-classifier/nn
+          model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
         - name: resnet50
-          model_path: s3://cortex-examples/tensorflow/resnet50
+          model_path: s3://cortex-examples/tensorflow/resnet50/
       cache_size: 2
       disk_cache_size: 3
     config:

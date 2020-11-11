@@ -5,7 +5,7 @@
   predictor:
     type: tensorflow
     path: predictor.py
-    model_path: s3://cortex-examples/tensorflow/text-generator/gpt-2/124M
+    model_path: s3://cortex-examples/tensorflow/text-generator/gpt-2/124M/
   compute:
     cpu: 1
     gpu: 1
