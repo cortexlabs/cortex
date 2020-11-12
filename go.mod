@@ -3,6 +3,7 @@ module github.com/cortexlabs/cortex
 go 1.14
 
 require (
+	cloud.google.com/go v0.56.0
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
@@ -39,7 +40,11 @@ require (
 	github.com/ugorji/go/codec v1.1.7
 	github.com/xlab/treeprint v1.0.0
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
+	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79 // indirect
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6 // indirect
+	google.golang.org/api v0.23.0 // indirect
+	google.golang.org/genproto v0.0.0-20200331122359-1ee6d9798940
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect

@@ -14,18 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cliconfig
+package clusterconfig
 
-const (
-	EnvironmentsKey           = "environments"
-	DefaultEnvironmentKey     = "default_environment"
-	NameKey                   = "name"
-	ProviderKey               = "provider"
-	OperatorEndpointKey       = "operator_endpoint"
-	AWSAccessKeyIDKey         = "aws_access_key_id"
-	AWSSecretAccessKeyKey     = "aws_secret_access_key"
-	AWSRegionKey              = "aws_region"
-	GCPCredentialsFilePathKey = "gcp_credentials_file_path"
-	GCPProjectIDKey           = "gcp_project_id"
-	GCPRegionKey              = "gcp_region"
-)
+type GCPConfig struct {
+	Project      string `json:"project" yaml:"project"`
+	ClusterName  string `json:"cluster_name" yaml:"cluster_name"`
+	Zone         string `json:"zone" yaml:"zone"`
+	InstanceType string `json:"instance_type" yaml:"instance_type"`
+	MinInstances int    `json:"min_instances" yaml:"min_instances"`
+	MaxInstances int    `json:"max_instances" yaml:"max_instances"`
+}

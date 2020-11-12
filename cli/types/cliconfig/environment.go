@@ -26,12 +26,15 @@ import (
 )
 
 type Environment struct {
-	Name               string             `json:"name" yaml:"name"`
-	Provider           types.ProviderType `json:"provider" yaml:"provider"`
-	OperatorEndpoint   *string            `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
-	AWSAccessKeyID     *string            `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
-	AWSSecretAccessKey *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
-	AWSRegion          *string            `json:"aws_region,omitempty" yaml:"aws_region,omitempty"`
+	Name                   string             `json:"name" yaml:"name"`
+	Provider               types.ProviderType `json:"provider" yaml:"provider"`
+	OperatorEndpoint       *string            `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
+	AWSAccessKeyID         *string            `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
+	AWSSecretAccessKey     *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
+	AWSRegion              *string            `json:"aws_region,omitempty" yaml:"aws_region,omitempty"`
+	GCPCredentialsFilePath *string            `json:"gcp_credentials_file_path,omitempty" yaml:"credentials_file_path,omitempty"`
+	GCPProjectID           *string            `json:"gcp_project_id,omitempty" yaml:"gcp_project_id,omitempty"`
+	GCPRegion              *string            `json:"gcp_region,omitempty" yaml:"gcp_region,omitempty"`
 }
 
 func (env Environment) String(isDefault bool) string {
@@ -56,6 +59,15 @@ func (env Environment) String(isDefault bool) string {
 	}
 	if env.AWSRegion != nil {
 		items.Add("aws region", *env.AWSRegion)
+	}
+	if env.GCPCredentialsFilePath != nil {
+		items.Add("gcp credentials file", *env.GCPCredentialsFilePath)
+	}
+	if env.GCPCredentialsFilePath != nil {
+		items.Add("gcp project id", *env.GCPProjectID)
+	}
+	if env.GCPCredentialsFilePath != nil {
+		items.Add("gcp region", *env.GCPRegion)
 	}
 
 	return items.String(&table.KeyValuePairOpts{
@@ -97,6 +109,15 @@ func (env *Environment) Validate() error {
 		if env.OperatorEndpoint != nil {
 			return errors.Wrap(ErrorOperatorEndpointInLocalEnvironment(), env.Name)
 		}
+		if env.GCPCredentialsFilePath != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
+		if env.GCPProjectID != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
+		if env.GCPRegion != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
 	}
 
 	if env.Provider == types.AWSProviderType {
@@ -111,6 +132,39 @@ func (env *Environment) Validate() error {
 		}
 		if env.AWSRegion != nil {
 			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
+		if env.GCPCredentialsFilePath != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
+		if env.GCPProjectID != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
+		if env.GCPRegion != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
+	}
+
+	if env.Provider == types.GCPProviderType {
+		if env.OperatorEndpoint == nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, OperatorEndpointKey)
+		}
+		if env.AWSAccessKeyID == nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSAccessKeyIDKey)
+		}
+		if env.AWSSecretAccessKey == nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSSecretAccessKeyKey)
+		}
+		if env.AWSRegion != nil {
+			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+		}
+		if env.GCPCredentialsFilePath != nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, GCPCredentialsFilePathKey)
+		}
+		if env.GCPProjectID != nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, GCPProjectIDKey)
+		}
+		if env.GCPRegion != nil {
+			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, GCPRegionKey)
 		}
 	}
 

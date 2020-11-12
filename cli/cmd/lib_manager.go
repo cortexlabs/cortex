@@ -215,6 +215,83 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 	return output, exitCode, nil
 }
 
+func runManagerWithClusterConfigGCP(entrypoint string, gcpConfig *clusterconfig.GCPConfig, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
+	if err != nil {
+		return "", nil, errors.WithStack(err)
+	}
+
+	cachedClusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
+	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
+		return "", nil, err
+	}
+
+	containerClusterConfigPath := "/in/" + filepath.Base(cachedClusterConfigPath)
+	gcpCredsPath := "/in/gcp_creds.json"
+	copyToPaths = append(copyToPaths, dockerCopyToPath{
+		input: &archive.Input{
+			Files: []archive.FileInput{
+				{
+					Source: cachedClusterConfigPath,
+					Dest:   containerClusterConfigPath,
+				},
+			},
+		},
+		containerPath: "/",
+	}, dockerCopyToPath{
+		input: &archive.Input{
+			Files: []archive.FileInput{
+				{
+					Source: os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+					Dest:   gcpCredsPath,
+				},
+			},
+		},
+		containerPath: "/",
+	})
+
+	containerConfig := &container.Config{
+		Image:        clusterConfig.ImageManager,
+		Entrypoint:   []string{"/bin/bash", "-c"},
+		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Env: []string{
+			"CORTEX_PROVIDER=" + "gcp",
+			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
+			"CORTEX_GCP_PROJECT=" + gcpConfig.Project,
+			"CORTEX_GCP_CLUSTER_NAME=" + gcpConfig.ClusterName,
+			"CORTEX_GCP_ZONE=" + gcpConfig.Zone,
+			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
+			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
+			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
+			"CLUSTER_AWS_SECRET_ACCESS_KEY=" + awsCreds.ClusterAWSSecretAccessKey,
+			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
+			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
+			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
+			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"),
+			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
+			"CORTEX_IMAGE_PYTHON_PREDICTOR_CPU=" + consts.DefaultImagePythonPredictorCPU,
+			"CORTEX_IMAGE_PYTHON_PREDICTOR_GPU=" + consts.DefaultImagePythonPredictorGPU,
+			"CORTEX_IMAGE_PYTHON_PREDICTOR_INF=" + consts.DefaultImagePythonPredictorInf,
+			"CORTEX_IMAGE_TENSORFLOW_SERVING_CPU=" + consts.DefaultImageTensorFlowServingCPU,
+			"CORTEX_IMAGE_TENSORFLOW_SERVING_GPU=" + consts.DefaultImageTensorFlowServingGPU,
+			"CORTEX_IMAGE_TENSORFLOW_SERVING_INF=" + consts.DefaultImageTensorFlowServingInf,
+			"CORTEX_IMAGE_TENSORFLOW_PREDICTOR=" + consts.DefaultImageTensorFlowPredictor,
+			"CORTEX_IMAGE_ONNX_PREDICTOR_CPU=" + consts.DefaultImageONNXPredictorCPU,
+			"CORTEX_IMAGE_ONNX_PREDICTOR_GPU=" + consts.DefaultImageONNXPredictorGPU,
+		},
+	}
+
+	output, exitCode, err := runManager(containerConfig, false, copyToPaths, copyFromPaths)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return output, exitCode, nil
+}
+
 func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	containerConfig := &container.Config{
 		Image:        accessConfig.ImageManager,

@@ -42,6 +42,7 @@ var (
 )
 
 func Init() error {
+	fmt.Println("init")
 	var err error
 
 	Cluster = &clusterconfig.InternalConfig{
@@ -88,33 +89,33 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-		apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
-		if err != nil {
-			return err
-		} else if apiGateway == nil {
-			return ErrorNoAPIGateway()
-		}
-		Cluster.APIGateway = apiGateway
+	// if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
+	// 	apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
+	// 	if err != nil {
+	// 		return err
+	// 	} else if apiGateway == nil {
+	// 		return ErrorNoAPIGateway()
+	// 	}
+	// 	Cluster.APIGateway = apiGateway
 
-		if Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-			vpcLink, err := AWS.GetVPCLinkByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
-			if err != nil {
-				return err
-			} else if vpcLink == nil {
-				return ErrorNoVPCLink()
-			}
-			Cluster.VPCLink = vpcLink
+	// 	if Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+	// 		vpcLink, err := AWS.GetVPCLinkByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
+	// 		if err != nil {
+	// 			return err
+	// 		} else if vpcLink == nil {
+	// 			return ErrorNoVPCLink()
+	// 		}
+	// 		Cluster.VPCLink = vpcLink
 
-			integration, err := AWS.GetVPCLinkIntegration(*Cluster.APIGateway.ApiId, *Cluster.VPCLink.VpcLinkId)
-			if err != nil {
-				return err
-			} else if integration == nil {
-				return ErrorNoVPCLinkIntegration()
-			}
-			Cluster.VPCLinkIntegration = integration
-		}
-	}
+	// 		integration, err := AWS.GetVPCLinkIntegration(*Cluster.APIGateway.ApiId, *Cluster.VPCLink.VpcLinkId)
+	// 		if err != nil {
+	// 			return err
+	// 		} else if integration == nil {
+	// 			return ErrorNoVPCLinkIntegration()
+	// 		}
+	// 		Cluster.VPCLinkIntegration = integration
+	// 	}
+	// }
 
 	if K8s, err = k8s.New("default", Cluster.OperatorInCluster); err != nil {
 		return err

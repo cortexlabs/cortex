@@ -99,6 +99,8 @@ operator-stop:
 
 registry-all:
 	@./dev/registry.sh update all
+registry-all-gcp:
+	@./dev/registry-gcp.sh update all
 registry-all-local:
 	@./dev/registry.sh update all --skip-push
 registry-all-slim:
@@ -110,6 +112,8 @@ registry-all-local-slim:
 
 registry-dev:
 	@./dev/registry.sh update dev
+registry-dev-gcp:
+	@./dev/registry-gcp.sh update dev
 registry-dev-local:
 	@./dev/registry.sh update dev --skip-push
 registry-dev-slim:

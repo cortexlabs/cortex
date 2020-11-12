@@ -20,11 +20,11 @@ set -euo pipefail
 
 user_facing_images=(
   "python-predictor-cpu"
-  "python-predictor-gpu"
-  "python-predictor-inf"
+  # "python-predictor-gpu"
+  # "python-predictor-inf"
   "tensorflow-predictor"
   "onnx-predictor-cpu"
-  "onnx-predictor-gpu"
+  # "onnx-predictor-gpu"
 )
 
 user_facing_slim_images=(
@@ -46,11 +46,11 @@ non_dev_images=(
   "operator"
   "tensorflow-serving-cpu"
   "tensorflow-serving-gpu"
-  "tensorflow-serving-inf"
+  # "tensorflow-serving-inf"
   "cluster-autoscaler"
   "metrics-server"
-  "inferentia"
-  "neuron-rtd"
+  # "inferentia"
+  # "neuron-rtd"
   "nvidia"
   "fluentd"
   "statsd"
