@@ -200,7 +200,7 @@ The `load_model()` function that you implement in your `PythonPredictor` can ret
 
 Python data structures containing these types are also supported (e.g. lists and dicts).
 
-The `load_model()` function takes a single argument, with is a path (on disk) to the model to be loaded. It is called behind the scenes when you call the `python_client`'s `get_model()` method from your predictor's `predict()` method. Whatever `load_model()` returns will be the exact return value of `python_client.get_model()`. Here is the schema for `python_client.get_model()`:
+The `load_model()` function takes a single argument, which is a path (on disk) to the model to be loaded. Your `load_model()` function is called behind the scenes by Cortex when you call the `python_client`'s `get_model()` method. Cortex is responsible for downloading your model from S3 onto the local disk before calling `load_model()` with the local path. Whatever `load_model()` returns will be the exact return value of `python_client.get_model()`. Here is the schema for `python_client.get_model()`:
 
 ```python
 def get_model(model_name, model_version):
