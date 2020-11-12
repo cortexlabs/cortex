@@ -511,7 +511,7 @@ The `payload` parameter type will be a `bytes` object if a request with a `Conte
 ```bash
 $ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/octet-stream" \
-    -d @file.bin
+    --data-binary @file.bin
 ```
 
 The `payload` parameter type will be a `bytes` object if a request doesn't have the `Content-Type` set:
