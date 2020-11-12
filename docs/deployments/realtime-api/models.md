@@ -187,7 +187,20 @@ Usage varies based on the predictor type:
 
 ### Python
 
-To use live model reloading with the Python predictor, the model path(s) must be specified in the API's `predictor` configuration (via the `model_path` or `models` field). When models are specified in this manner, your `PythonPredictor` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `python_client` that's passed to the predictor's constructor:
+To use live model reloading with the Python predictor, the model path(s) must be specified in the API's `predictor` configuration (via the `model_path` or `models` field). When models are specified in this manner, your `PythonPredictor` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `python_client` that's passed into your predictor's constructor.
+
+The `load_model()` function that you implement in your `PythonPredictor` can return anything that you need to make a prediction. There is one caveat: whatever the return value is, it must be unloadable from memory via the `del` keyword. The following frameworks have been tested to work:
+
+* PyTorch (CPU & GPU)
+* ONNX (CPU & GPU)
+* Sklearn/MLFlow (CPU)
+* Numpy (CPU)
+* Pandas (CPU)
+* Caffe (not tested, but should work on CPU & GPU)
+
+Python data structures containing these types are also supported (e.g. lists and dicts).
+
+The `load_model()` function takes a single argument, with is a path (on disk) to the model to be loaded. It is called behind the scenes when you call the `python_client`'s `get_model()` method from your predictor's `predict()` method. Whatever `load_model()` returns will be the exact return value of `python_client.get_model()`. Here is the schema for `python_client.get_model()`:
 
 ```python
 def get_model(model_name, model_version):
@@ -201,11 +214,11 @@ def get_model(model_name, model_version):
         model_version (string, optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
     Returns:
-        The model as loaded by the load_model() method.
+        The value that's returned by your predictor's load_model() method.
     """
 ```
 
-For example:
+Here's an example:
 
 ```python
 class PythonPredictor:
@@ -232,7 +245,7 @@ class PythonPredictor:
       return model.predict(payload)
 ```
 
-`python_client.get_model()` can also accept a model version if a version other than the highest version number is desired:
+`python_client.get_model()` can also accept a model version if a version other than the highest is desired:
 
 ```python
 class PythonPredictor:
@@ -285,7 +298,7 @@ class TensorFlowPredictor:
       return self.client.predict(payload, query_params["model"])
 ```
 
-`tensorflow_client.predict()` can also accept a model version if a version other than the highest version number is desired:
+`tensorflow_client.predict()` can also accept a model version if a version other than the highest is desired:
 
 ```python
 class TensorFlowPredictor:
@@ -339,7 +352,7 @@ class ONNXPredictor:
       return self.client.predict(payload, query_params["model"])
 ```
 
-`onnx_client.predict()` can also accept a model version if a version other than the highest version number is desired:
+`onnx_client.predict()` can also accept a model version if a version other than the highest is desired:
 
 ```python
 class ONNXPredictor:
