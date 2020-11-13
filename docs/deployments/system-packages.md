@@ -75,9 +75,19 @@ RUN pip install --no-cache-dir pandas \
     && conda clean -a
 ```
 
-### Build and push to a container registry
+### Build your image
 
-Create a repository to store your image:
+```bash
+docker build . -t org/my-api:latest
+```
+
+### Push your image to a container registry
+
+_If you are only running Cortex locally, you can skip this section_
+
+You can push your built Docker image to a public registry of your choice (e.g. Docker Hub), or to a private registry on ECR or Docker Hub (for private Docker Hub, also follow [this guide](../guides/private-docker.md) to configure access in your cluster).
+
+For example, to use ECR, first create a repository to store your image:
 
 ```bash
 # We create a repository in ECR
@@ -93,7 +103,7 @@ aws ecr create-repository --repository-name=org/my-api --region=$AWS_REGION
 # take note of repository url
 ```
 
-Build the image based on your Dockerfile and push it to its repository in ECR:
+Build and tag your image, and push it to your ECR repository:
 
 ```bash
 docker build . -t org/my-api:latest -t <repository_url>:latest
@@ -111,7 +121,7 @@ Update your API configuration file to point to your image:
 - name: my-api
   ...
   predictor:
-    image: <repository_url>:latest
+    image: <your_image_path>:latest
   ...
 ```
 
