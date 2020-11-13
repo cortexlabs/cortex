@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.21.*, run `git checkout -b 0.21` or switch to the `0.21` branch on GitHub)
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)
 
 - name: multi-model-classifier
   kind: RealtimeAPI
@@ -6,12 +6,13 @@
     type: tensorflow
     path: predictor.py
     models:
-      - name: inception
-        model_path: s3://cortex-examples/tensorflow/image-classifier/inception
-      - name: iris
-        model_path: s3://cortex-examples/tensorflow/iris-classifier/nn
-      - name: resnet50
-        model_path: s3://cortex-examples/tensorflow/resnet50
+      paths:
+        - name: inception
+          model_path: s3://cortex-examples/tensorflow/image-classifier/inception/
+        - name: iris
+          model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
+        - name: resnet50
+          model_path: s3://cortex-examples/tensorflow/resnet50/
     config:
       models:
         iris:

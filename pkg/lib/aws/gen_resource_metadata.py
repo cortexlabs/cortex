@@ -18,13 +18,20 @@ from string import Template
 
 # https://docs.aws.amazon.com/general/latest/gr/eks.html
 # China regions don't seem to support these endpoints (yet?)
+# GovCloud is skipped
 REGIONS = [
-    "us-east-1",  # N. Virginia
     "us-east-2",  # Ohio
+    "us-east-1",  # N. Virginia
     "us-west-1",  # California
     "us-west-2",  # Oregon
+    "af-south-1",  # Cape town
+    "ap-east-1",  # Hong Kong
+    "ap-south-1",  # Mumbai
+    "ap-northeast-2",  # Seoul
+    "ap-southeast-1",  # Singapore
+    "ap-southeast-2",  # Sydney
+    "ap-northeast-1",  # Tokyo
     "ca-central-1",  # Montreal
-    "sa-east-1",  # Sao Paulo
     "eu-central-1",  # Frankfurt
     "eu-west-1",  # Ireland
     "eu-west-2",  # London
@@ -32,13 +39,7 @@ REGIONS = [
     "eu-west-3",  # Paris
     "eu-north-1",  # Stockholm
     "me-south-1",  # Bahrain
-    "af-south-1",  # Cape town
-    "ap-southeast-1",  # Singapore
-    "ap-northeast-1",  # Tokyo
-    "ap-southeast-2",  # Sydney
-    "ap-northeast-2",  # Seoul
-    "ap-south-1",  # Mumbai
-    "ap-east-1",  # Hong Kong
+    "sa-east-1",  # Sao Paulo
 ]
 
 OUTPUT_FILE_NAME = "resource_metadata.go"

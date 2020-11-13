@@ -18,147 +18,127 @@ package local
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/cortexlabs/cortex/cli/types/flags"
-	"github.com/cortexlabs/cortex/pkg/lib/archive"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/cron"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func CacheModels(apiSpec *spec.API, awsClient *aws.Client) ([]*spec.LocalModelCache, error) {
-	modelPaths := make([]string, len(apiSpec.Predictor.Models))
-	for i, modelResource := range apiSpec.Predictor.Models {
-		modelPaths[i] = modelResource.ModelPath
-	}
+func CacheLocalModels(apiSpec *spec.API) error {
+	var err error
+	var wasAlreadyCached bool
+	var localModelCache *spec.LocalModelCache
+	localModelCaches := make([]*spec.LocalModelCache, 0)
 
-	uncachedModelCount := 0
+	modelsThatWereCachedAlready := 0
+	for i, model := range apiSpec.CuratedModelResources {
+		if model.S3Path {
+			continue
+		}
 
-	localModelCaches := make([]*spec.LocalModelCache, len(modelPaths))
-	for i, modelPath := range modelPaths {
-		var err error
-		modelCacheID, err := modelCacheID(modelPath, awsClient)
+		localModelCache, wasAlreadyCached, err = cacheLocalModel(model)
 		if err != nil {
 			if apiSpec.Predictor.ModelPath != nil {
-				return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
+				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
+			} else if apiSpec.Predictor.Models != nil && apiSpec.Predictor.Models.Dir != nil {
+				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsDirKey, apiSpec.CuratedModelResources[i].Name, *apiSpec.Predictor.Models.Dir)
 			}
-			return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, apiSpec.Predictor.Models[i].Name, userconfig.ModelPathKey)
+			return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsPathsKey, apiSpec.CuratedModelResources[i].Name, userconfig.ModelPathKey)
 		}
-
-		localModelCache := spec.LocalModelCache{
-			ID:         modelCacheID,
-			HostPath:   filepath.Join(_modelCacheDir, modelCacheID),
-			TargetPath: apiSpec.Predictor.Models[i].Name,
+		if wasAlreadyCached {
+			modelsThatWereCachedAlready++
 		}
-
-		if !files.IsFile(filepath.Join(localModelCache.HostPath, "_SUCCESS")) {
-			err = cacheModel(modelPath, localModelCache, awsClient)
-			if err != nil {
-				if apiSpec.Predictor.ModelPath != nil {
-					return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
-				}
-				return nil, errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, apiSpec.Predictor.Models[i].Name, userconfig.ModelPathKey)
-			}
-			uncachedModelCount++
-		}
-
-		localModelCaches[i] = &localModelCache
-	}
-
-	if uncachedModelCount > 0 {
-		localPrintln("") // Newline to group all of the model information
-	}
-
-	return localModelCaches, nil
-}
-
-func modelCacheID(modelPath string, awsClient *aws.Client) (string, error) {
-	if strings.HasPrefix(modelPath, "s3://") {
-		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
-		if err != nil {
-			return "", err
-		}
-		bucket, prefix, err := aws.SplitS3Path(modelPath)
-		if err != nil {
-			return "", err
-		}
-		hash, err := awsClientForBucket.HashS3Dir(bucket, prefix, nil)
-		if err != nil {
-			return "", err
-		}
-		return hash, nil
-	}
-
-	hash, err := localModelHash(modelPath)
-	if err != nil {
-		return "", err
-	}
-	return hash, nil
-}
-
-func cacheModel(modelPath string, localModelCache spec.LocalModelCache, awsClient *aws.Client) error {
-	modelDir := localModelCache.HostPath
-
-	if files.IsFile(filepath.Join(modelDir, "_SUCCESS")) {
-		return nil
-	}
-
-	err := ResetModelCacheDir(modelDir)
-	if err != nil {
-		return err
-	}
-
-	if strings.HasPrefix(modelPath, "s3://") {
-		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
-		if err != nil {
-			return err
-		}
-
-		err = downloadModel(modelPath, modelDir, awsClientForBucket)
-		if err != nil {
-			return err
-		}
-	} else {
-		if strings.HasSuffix(modelPath, ".zip") {
-			err := unzipAndValidate(modelPath, modelPath, modelDir)
-			if err != nil {
-				return err
-			}
-		} else if strings.HasSuffix(modelPath, ".onnx") {
-			localPrintln(fmt.Sprintf("￮ caching model %s ...", modelPath))
-			err := files.CopyFileOverwrite(modelPath, filepath.Join(modelDir, filepath.Base(modelPath)))
-			if err != nil {
-				return err
-			}
+		if len(model.Versions) == 0 {
+			localModelCache.TargetPath = filepath.Join(apiSpec.CuratedModelResources[i].Name, "1")
 		} else {
-			localPrintln(fmt.Sprintf("￮ caching model %s ...", modelPath))
-			tfModelVersion := filepath.Base(modelPath)
-			err := files.CopyDirOverwrite(strings.TrimSuffix(modelPath, "/"), s.EnsureSuffix(filepath.Join(modelDir, tfModelVersion), "/"))
-			if err != nil {
-				return err
-			}
+			localModelCache.TargetPath = apiSpec.CuratedModelResources[i].Name
 		}
-	}
 
-	err = files.MakeEmptyFile(filepath.Join(modelDir, "_SUCCESS"))
-	if err != nil {
-		return err
+		localModelCaches = append(localModelCaches, localModelCache)
+	}
+	apiSpec.LocalModelCaches = localModelCaches
+
+	if len(localModelCaches) > modelsThatWereCachedAlready {
+		fmt.Println("") // Newline to group all of the model information
 	}
 
 	return nil
 }
 
-func DeleteCachedModels(apiName string, modelsToDelete []string) error {
+func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bool, error) {
+	localModelCache := spec.LocalModelCache{}
+	var err error
+
+	if model.S3Path {
+		return nil, false, nil
+	}
+
+	hash, err := localModelHash(model.ModelPath)
+	if err != nil {
+		return nil, false, err
+	}
+	localModelCache.ID = hash
+
+	destModelDir := filepath.Join(_modelCacheDir, localModelCache.ID)
+
+	if files.IsDir(destModelDir) {
+		if len(model.Versions) == 0 {
+			localModelCache.HostPath = filepath.Join(destModelDir, "1")
+		} else {
+			localModelCache.HostPath = destModelDir
+		}
+		return &localModelCache, true, nil
+	}
+
+	err = resetModelCacheDir(destModelDir)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(model.Versions) == 0 {
+		if _, err := files.CreateDirIfMissing(filepath.Join(destModelDir, "1")); err != nil {
+			return nil, false, err
+		}
+	}
+
+	if model.Name == consts.SingleModelName {
+		switch len(model.Versions) {
+		case 0:
+			fmt.Println("￮ caching model ...")
+		case 1:
+			fmt.Println(fmt.Sprintf("￮ caching model (version %d) ...", model.Versions[0]))
+		default:
+			fmt.Println(fmt.Sprintf("￮ caching model (versions %s) ...", s.UserStrsAnd(model.Versions)))
+		}
+
+	} else {
+		switch len(model.Versions) {
+		case 0:
+			fmt.Println(fmt.Sprintf("￮ caching model %s ...", model.Name))
+		case 1:
+			fmt.Println(fmt.Sprintf("￮ caching model %s (version %d) ...", model.Name, model.Versions[0]))
+		default:
+			fmt.Println(fmt.Sprintf("￮ caching model %s (versions %s) ...", model.Name, s.UserStrsAnd(model.Versions)))
+		}
+	}
+
+	if len(model.Versions) == 0 {
+		destModelDir = filepath.Join(destModelDir, "1")
+	}
+	if err := files.CopyDirOverwrite(strings.TrimSuffix(model.ModelPath, "/"), s.EnsureSuffix(destModelDir, "/")); err != nil {
+		return nil, false, err
+	}
+
+	localModelCache.HostPath = destModelDir
+	return &localModelCache, false, nil
+}
+
+func deleteCachedModels(apiName string, modelsToDelete []string) error {
 	var errList []error
 	modelsInUse := strset.New()
 	apiSpecList, err := ListAPISpecs()
@@ -178,13 +158,13 @@ func DeleteCachedModels(apiName string, modelsToDelete []string) error {
 		strset.FromSlice(modelsToDelete),
 		modelsInUse,
 	)
-	err = DeleteCachedModelsByID(toDeleteModels.Slice())
+	err = deleteCachedModelsByID(toDeleteModels.Slice())
 
 	errList = append(errList, err)
 	return errors.FirstError(errList...)
 }
 
-func DeleteCachedModelsByID(modelIDs []string) error {
+func deleteCachedModelsByID(modelIDs []string) error {
 	errList := []error{}
 	for _, modelID := range modelIDs {
 		err := files.DeleteDir(filepath.Join(_modelCacheDir, modelID))
@@ -194,86 +174,6 @@ func DeleteCachedModelsByID(modelIDs []string) error {
 	}
 
 	return errors.FirstError(errList...)
-}
-
-func downloadModel(modelPath string, modelDir string, awsClientForBucket *aws.Client) error {
-	localPrintf("￮ downloading model %s ", modelPath)
-	defer localPrint(" ✓\n")
-	if OutputType != flags.JSONOutputType {
-		dotCron := cron.Run(print.Dot, nil, 2*time.Second)
-		defer dotCron.Cancel()
-	}
-
-	bucket, prefix, err := aws.SplitS3Path(modelPath)
-	if err != nil {
-		return err
-	}
-
-	if strings.HasSuffix(modelPath, ".zip") || strings.HasSuffix(modelPath, ".onnx") {
-		localPath := filepath.Join(modelDir, filepath.Base(modelPath))
-		err := awsClientForBucket.DownloadFileFromS3(bucket, prefix, localPath)
-		if err != nil {
-			return err
-		}
-		if strings.HasSuffix(modelPath, ".zip") {
-			err := unzipAndValidate(modelPath, localPath, modelDir)
-			if err != nil {
-				return err
-			}
-			err = os.Remove(localPath)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		tfModelVersion := filepath.Base(prefix)
-		err := awsClientForBucket.DownloadDirFromS3(bucket, prefix, filepath.Join(modelDir, tfModelVersion), true, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func unzipAndValidate(originalModelPath string, zipFile string, destPath string) error {
-	localPrintln(fmt.Sprintf("￮ unzipping model %s ...", originalModelPath))
-	tmpDir := filepath.Join(filepath.Dir(destPath), filepath.Base(destPath)+"-tmp")
-	err := files.CreateDir(tmpDir)
-	if err != nil {
-		return err
-	}
-
-	_, err = archive.UnzipFileToDir(zipFile, tmpDir)
-	if err != nil {
-		return err
-	}
-
-	// returns a tensorflow directory with the version as the suffix of the path
-	tensorflowDir, err := spec.GetTFServingExportFromLocalPath(tmpDir)
-	if err != nil {
-		return err
-	}
-
-	isValid, err := spec.IsValidTensorFlowLocalDirectory(tensorflowDir)
-	if err != nil {
-		return err
-	} else if !isValid {
-		return ErrorInvalidTensorFlowZip()
-	}
-
-	destPathWithVersion := filepath.Join(destPath, filepath.Base(tensorflowDir))
-	err = os.Rename(strings.TrimSuffix(tensorflowDir, "/"), strings.TrimSuffix(destPathWithVersion, "/"))
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	err = files.DeleteDir(tmpDir)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func localModelHash(modelPath string) (string, error) {
@@ -297,7 +197,7 @@ func localModelHash(modelPath string) (string, error) {
 	return modelHash, nil
 }
 
-func ResetModelCacheDir(modelDir string) error {
+func resetModelCacheDir(modelDir string) error {
 	_, err := files.DeleteDirIfPresent(modelDir)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.21.*, run `git checkout -b 0.21` or switch to the `0.21` branch on GitHub)
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)
 
 import json
 import os
@@ -16,8 +16,8 @@ class ONNXPredictor:
     def __init__(self, onnx_client, config):
         self.client = onnx_client
         # Get the input shape from the ONNX runtime
-        (signature,) = onnx_client.input_signatures.values()
-        _, _, height, width = signature["images"]["shape"]
+        (signature,) = onnx_client.get_model()["input_signatures"].values()
+        _, _, height, width = signature["shape"]
         self.input_size = (width, height)
         self.config = config
         with open("labels.json") as buf:

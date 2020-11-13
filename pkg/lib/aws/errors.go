@@ -33,7 +33,7 @@ const (
 	ErrAuth                         = "aws.auth"
 	ErrBucketInaccessible           = "aws.bucket_inaccessible"
 	ErrBucketNotFound               = "aws.bucket_not_found"
-	ErrInstanceTypeLimitIsZero      = "aws.instance_type_limit_is_zero"
+	ErrInsufficientInstanceQuota    = "aws.insufficient_instance_quota"
 	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
 	ErrReadCredentials              = "aws.read_credentials"
 	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
@@ -128,10 +128,11 @@ func ErrorBucketNotFound(bucket string) error {
 	})
 }
 
-func ErrorInstanceTypeLimitIsZero(instanceType string, region string) error {
+func ErrorInsufficientInstanceQuota(instanceType string, lifecycle string, region string, requiredInstances int64, vCPUPerInstance int64, vCPUQuota int64, quotaCode string) error {
+	url := fmt.Sprintf("https://%s.console.aws.amazon.com/servicequotas/home?region=%s#!/services/ec2/quotas/%s", region, region, quotaCode)
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInstanceTypeLimitIsZero,
-		Message: fmt.Sprintf(`you don't have access to %s instances in %s; please request access in the appropriate region (https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances). If you submitted a request and it was recently approved, please allow ~30 minutes for AWS to reflect this change."`, instanceType, region),
+		Kind:    ErrInsufficientInstanceQuota,
+		Message: fmt.Sprintf("your cluster may require up to %d %s %s instances, but your AWS quota for %s %s instances in %s is only %d vCPU (there are %d vCPUs per %s instance); please reduce the maximum number of %s %s instances your cluster may use (e.g. by changing max_instances and/or spot_config if applicable), or request a quota increase to at least %d vCPU here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", requiredInstances, lifecycle, instanceType, lifecycle, instanceType, region, vCPUQuota, vCPUPerInstance, instanceType, lifecycle, instanceType, requiredInstances*vCPUPerInstance, url),
 	})
 }
 

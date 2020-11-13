@@ -22,12 +22,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -70,8 +70,8 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), realtimeAPI.Endpoint)
 
-	if realtimeAPI.Spec.Predictor.Type == userconfig.TensorFlowPredictorType || realtimeAPI.Spec.Predictor.Type == userconfig.ONNXPredictorType {
-		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Endpoint)
+	if !(realtimeAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && realtimeAPI.Spec.Predictor.ModelPath == nil && realtimeAPI.Spec.Predictor.Models == nil) {
+		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
 	}
 
 	out += "\n" + apiHistoryTable(realtimeAPI.PastDeploys)
@@ -238,67 +238,40 @@ func classificationMetricsStr(metrics *metrics.Metrics) string {
 	return out
 }
 
-func describeModelInput(status *status.Status, apiEndpoint string) string {
+func describeModelInput(status *status.Status, predictor *userconfig.Predictor, apiEndpoint string) string {
 	if status.Updated.Ready+status.Stale.Ready == 0 {
-		return "the model's input schema will be available when the api is live\n"
+		return "the models' metadata schema will be available when the api is live\n"
 	}
 
-	apiSummary, err := getAPISummary(apiEndpoint)
+	cachingEnabled := predictor.Models != nil && predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil
+	if predictor.Type == userconfig.TensorFlowPredictorType && !cachingEnabled {
+		apiTFLiveReloadingSummary, err := getAPITFLiveReloadingSummary(apiEndpoint)
+		if err != nil {
+			return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
+		}
+		t, err := parseAPITFLiveReloadingSummary(apiTFLiveReloadingSummary)
+		if err != nil {
+			return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+		}
+		return t
+	}
+
+	apiModelSummary, err := getAPIModelSummary(apiEndpoint)
 	if err != nil {
-		return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
 	}
-
-	numRows := 0
-	for _, inputSignatures := range apiSummary.ModelSignatures {
-		numRows += len(inputSignatures)
+	t, err := parseAPIModelSummary(apiModelSummary)
+	if err != nil {
+		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
 	}
+	return t
+}
 
-	usesDefaultModel := false
-	rows := make([][]interface{}, numRows)
-	rowNum := 0
-	for modelName, inputSignatures := range apiSummary.ModelSignatures {
-		for inputName, inputSignature := range inputSignatures {
-			shapeStr := make([]string, len(inputSignature.Shape))
-			for idx, dim := range inputSignature.Shape {
-				shapeStr[idx] = s.ObjFlatNoQuotes(dim)
-			}
-
-			shapeRowEntry := ""
-			if len(shapeStr) == 1 && shapeStr[0] == "scalar" {
-				shapeRowEntry = "scalar"
-			} else if len(shapeStr) == 1 && shapeStr[0] == "unknown" {
-				shapeRowEntry = "unknown"
-			} else {
-				shapeRowEntry = "(" + strings.Join(shapeStr, ", ") + ")"
-			}
-			rows[rowNum] = []interface{}{
-				modelName,
-				inputName,
-				inputSignature.Type,
-				shapeRowEntry,
-			}
-			rowNum++
-		}
-		if modelName == consts.SingleModelName {
-			usesDefaultModel = true
-		}
-	}
-
-	inputTitle := "input"
-	if usesDefaultModel {
-		inputTitle = "model input"
-	}
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "model name", MaxWidth: 32, Hidden: usesDefaultModel},
-			{Title: inputTitle, MaxWidth: 32},
-			{Title: "type", MaxWidth: 10},
-			{Title: "shape", MaxWidth: 20},
-		},
-		Rows: rows,
-	}
-
-	return t.MustFormat()
+func getModelFromModelID(modelID string) (modelName string, modelVersion int64, err error) {
+	splitIndex := strings.LastIndex(modelID, "-")
+	modelName = modelID[:splitIndex]
+	modelVersion, err = strconv.ParseInt(modelID[splitIndex+1:], 10, 64)
+	return
 }
 
 func makeRequest(request *http.Request) (http.Header, []byte, error) {
@@ -330,7 +303,7 @@ func makeRequest(request *http.Request) (http.Header, []byte, error) {
 	return response.Header, bodyBytes, nil
 }
 
-func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
+func getAPIModelSummary(apiEndpoint string) (*schema.APIModelSummary, error) {
 	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to request api summary")
@@ -341,17 +314,198 @@ func getAPISummary(apiEndpoint string) (*schema.APISummary, error) {
 		return nil, err
 	}
 
-	var apiSummary schema.APISummary
-	err = json.DecodeWithNumber(response, &apiSummary)
+	var apiModelSummary schema.APIModelSummary
+	err = json.DecodeWithNumber(response, &apiModelSummary)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
+	return &apiModelSummary, nil
+}
 
-	for _, inputSignatures := range apiSummary.ModelSignatures {
-		for _, inputSignature := range inputSignatures {
-			inputSignature.Shape = cast.JSONNumbers(inputSignature.Shape)
+func getAPITFLiveReloadingSummary(apiEndpoint string) (*schema.APITFLiveReloadingSummary, error) {
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to request api summary")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	_, response, err := makeRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiTFLiveReloadingSummary schema.APITFLiveReloadingSummary
+	err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse api summary response")
+	}
+	return &apiTFLiveReloadingSummary, nil
+}
+
+func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
+	rows := make([][]interface{}, 0)
+
+	for modelName, modelMetadata := range summary.ModelMetadata {
+		latestVersion := int64(0)
+		for _, version := range modelMetadata.Versions {
+			v, err := strconv.ParseInt(version, 10, 64)
+			if err != nil {
+				return "", err
+			}
+			if v > latestVersion {
+				latestVersion = v
+			}
+		}
+		latestStrVersion := strconv.FormatInt(latestVersion, 10)
+
+		for idx, version := range modelMetadata.Versions {
+			var latestTag string
+			if latestStrVersion == version {
+				latestTag = " (latest)"
+			}
+
+			timestamp := modelMetadata.Timestamps[idx]
+			date := time.Unix(timestamp, 0)
+
+			rows = append(rows, []interface{}{
+				modelName,
+				version + latestTag,
+				date.Format(_timeFormat),
+			})
 		}
 	}
 
-	return &apiSummary, nil
+	_, usesCortexDefaultModelName := summary.ModelMetadata[consts.SingleModelName]
+
+	t := table.Table{
+		Headers: []table.Header{
+			{
+				Title:    "model name",
+				MaxWidth: 32,
+				Hidden:   usesCortexDefaultModelName,
+			},
+			{
+				Title:    "model version",
+				MaxWidth: 25,
+			},
+			{
+				Title:    "edit time",
+				MaxWidth: 32,
+			},
+		},
+		Rows: rows,
+	}
+
+	return t.MustFormat(), nil
+}
+
+func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (string, error) {
+	latestVersions := make(map[string]int64)
+
+	numRows := 0
+	models := make(map[string]schema.GenericModelMetadata, 0)
+	for modelID, modelMetadata := range summary.ModelMetadata {
+		timestamp := modelMetadata.Timestamp
+		modelName, modelVersion, err := getModelFromModelID(modelID)
+		if err != nil {
+			return "", err
+		}
+		if _, ok := models[modelName]; !ok {
+			models[modelName] = schema.GenericModelMetadata{
+				Versions:   []string{strconv.FormatInt(modelVersion, 10)},
+				Timestamps: []int64{timestamp},
+			}
+		} else {
+			model := models[modelName]
+			model.Versions = append(model.Versions, strconv.FormatInt(modelVersion, 10))
+			model.Timestamps = append(model.Timestamps, timestamp)
+			models[modelName] = model
+		}
+		if _, ok := latestVersions[modelName]; !ok {
+			latestVersions[modelName] = modelVersion
+		} else if modelVersion > latestVersions[modelName] {
+			latestVersions[modelName] = modelVersion
+		}
+		numRows += len(modelMetadata.InputSignatures)
+	}
+
+	rows := make([][]interface{}, 0, numRows)
+	for modelName, model := range models {
+		latestVersion := latestVersions[modelName]
+
+		for _, modelVersion := range model.Versions {
+			modelID := fmt.Sprintf("%s-%s", modelName, modelVersion)
+
+			inputSignatures := summary.ModelMetadata[modelID].InputSignatures
+			timestamp := summary.ModelMetadata[modelID].Timestamp
+			versionInt, err := strconv.ParseInt(modelVersion, 10, 64)
+			if err != nil {
+				return "", err
+			}
+
+			var applicableTags string
+			if versionInt == latestVersion {
+				applicableTags = " (latest)"
+			}
+
+			date := time.Unix(timestamp, 0)
+
+			for inputName, inputSignature := range inputSignatures {
+				shapeStr := make([]string, len(inputSignature.Shape))
+				for idx, dim := range inputSignature.Shape {
+					shapeStr[idx] = s.ObjFlatNoQuotes(dim)
+				}
+				shapeRowEntry := ""
+				if len(shapeStr) == 1 && shapeStr[0] == "scalar" {
+					shapeRowEntry = "scalar"
+				} else if len(shapeStr) == 1 && shapeStr[0] == "unknown" {
+					shapeRowEntry = "unknown"
+				} else {
+					shapeRowEntry = "(" + strings.Join(shapeStr, ", ") + ")"
+				}
+				rows = append(rows, []interface{}{
+					modelName,
+					modelVersion + applicableTags,
+					inputName,
+					inputSignature.Type,
+					shapeRowEntry,
+					date.Format(_timeFormat),
+				})
+			}
+		}
+	}
+
+	_, usesCortexDefaultModelName := summary.ModelMetadata[consts.SingleModelName]
+
+	t := table.Table{
+		Headers: []table.Header{
+			{
+				Title:    "model name",
+				MaxWidth: 32,
+				Hidden:   usesCortexDefaultModelName,
+			},
+			{
+				Title:    "model version",
+				MaxWidth: 25,
+			},
+			{
+				Title:    "model input",
+				MaxWidth: 32,
+			},
+			{
+				Title:    "type",
+				MaxWidth: 10,
+			},
+			{
+				Title:    "shape",
+				MaxWidth: 20,
+			},
+			{
+				Title:    "edit time",
+				MaxWidth: 32,
+			},
+		},
+		Rows: rows,
+	}
+
+	return t.MustFormat(), nil
 }

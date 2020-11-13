@@ -67,7 +67,8 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return nil, err
 	}
 
-	err = ValidateLocalAPIs(apiConfigs, projectFiles, awsClient)
+	models := []spec.CuratedModelResource{}
+	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 		return nil, err
@@ -81,7 +82,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
-		api, msg, err := UpdateAPI(&apiConfig, configPath, projectID, deployDisallowPrompt, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, models, configPath, projectID, deployDisallowPrompt, awsClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)

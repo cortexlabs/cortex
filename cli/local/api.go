@@ -35,7 +35,7 @@ import (
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*schema.APIResponse, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*schema.APIResponse, string, error) {
 	var incompatibleVersion string
 	encounteredVersionMismatch := false
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
@@ -71,15 +71,12 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 		return nil, "", err
 	}
 
-	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID, "")
+	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID, "")
 
-	// apiConfig.Predictor.ModelPath was already added to apiConfig.Predictor.Models for ease of use
-	if len(apiConfig.Predictor.Models) > 0 {
-		localModelCaches, err := CacheModels(newAPISpec, awsClient)
-		if err != nil {
+	if newAPISpec != nil && newAPISpec.TotalLocalModelVersions() > 0 {
+		if err := CacheLocalModels(newAPISpec); err != nil {
 			return nil, "", err
 		}
-		newAPISpec.LocalModelCaches = localModelCaches
 	}
 
 	newAPISpec.LocalProjectDir = files.Dir(configPath)
@@ -91,7 +88,7 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 	if prevAPISpec != nil || len(prevAPIContainers) != 0 {
 		err = errors.FirstError(
 			DeleteAPI(newAPISpec.Name),
-			DeleteCachedModels(newAPISpec.Name, prevAPISpec.SubtractLocalModelIDs(newAPISpec)),
+			deleteCachedModels(newAPISpec.Name, prevAPISpec.SubtractModelIDs(newAPISpec)),
 		)
 		if err != nil {
 			return nil, "", err
@@ -101,13 +98,13 @@ func UpdateAPI(apiConfig *userconfig.API, configPath string, projectID string, d
 	err = writeAPISpec(newAPISpec)
 	if err != nil {
 		DeleteAPI(newAPISpec.Name)
-		DeleteCachedModels(newAPISpec.Name, newAPISpec.LocalModelIDs())
+		deleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
 		return nil, "", err
 	}
 
 	if err := DeployContainers(newAPISpec, awsClient); err != nil {
 		DeleteAPI(newAPISpec.Name)
-		DeleteCachedModels(newAPISpec.Name, newAPISpec.LocalModelIDs())
+		deleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
 		return nil, "", err
 	}
 
@@ -162,7 +159,7 @@ func areAPIsEqual(a1, a2 *spec.API) bool {
 	if a1.SpecID != a2.SpecID {
 		return false
 	}
-	if !strset.FromSlice(a1.LocalModelIDs()).IsEqual(strset.FromSlice(a2.LocalModelIDs())) {
+	if !strset.FromSlice(a1.ModelIDs()).IsEqual(strset.FromSlice(a2.ModelIDs())) {
 		return false
 	}
 	return true
@@ -181,6 +178,13 @@ func DeleteAPI(apiName string) error {
 		}
 	} else {
 		errList = append(errList, err)
+	}
+
+	if ContainersHaveAPINameVolume(containers) {
+		err = DeleteVolume(apiName)
+		if err != nil {
+			errList = append(errList, err)
+		}
 	}
 
 	_, err = FindAPISpec(apiName)

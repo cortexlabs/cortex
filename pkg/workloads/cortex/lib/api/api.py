@@ -18,32 +18,35 @@ import time
 from pathlib import Path
 import json
 import threading
-
 import datadog
+from typing import Tuple, Union, Optional
 
-from cortex.lib.log import cx_logger
+from cortex.lib.log import cx_logger as logger
 from cortex.lib.exceptions import CortexException
-from cortex.lib.type.predictor import Predictor
-from cortex.lib.type.monitoring import Monitoring
-from cortex.lib.storage import S3
+from cortex.lib.storage import LocalStorage, S3
+
+from cortex.lib.api import Monitoring, Predictor
 
 
 class API:
-    def __init__(self, provider, storage, model_dir, cache_dir=".", **kwargs):
+    def __init__(self, provider, storage, api_spec, model_dir, cache_dir="."):
         self.provider = provider
-        self.id = kwargs["id"]
-        self.predictor_id = kwargs["predictor_id"]
-        self.deployment_id = kwargs["deployment_id"]
-        self.key = kwargs["key"]
-        self.metadata_root = kwargs["metadata_root"]
-        self.name = kwargs["name"]
-        self.predictor = Predictor(provider, model_dir, cache_dir, **kwargs["predictor"])
-        self.monitoring = None
-        if kwargs.get("monitoring") is not None:
-            self.monitoring = Monitoring(**kwargs["monitoring"])
-
-        self.cache_dir = cache_dir
         self.storage = storage
+        self.api_spec = api_spec
+        self.cache_dir = cache_dir
+
+        self.id = api_spec["id"]
+        self.predictor_id = api_spec["predictor_id"]
+        self.deployment_id = api_spec["deployment_id"]
+
+        self.key = api_spec["key"]
+        self.metadata_root = api_spec["metadata_root"]
+        self.name = api_spec["name"]
+        self.predictor = Predictor(provider, api_spec, model_dir)
+
+        self.monitoring = None
+        if self.api_spec.get("monitoring") is not None:
+            self.monitoring = Monitoring(**self.api_spec["monitoring"])
 
         if provider != "local":
             host_ip = os.environ["HOST_IP"]
@@ -55,7 +58,7 @@ class API:
 
     def get_cached_classes(self):
         prefix = os.path.join(self.metadata_root, "classes") + "/"
-        class_paths = self.storage.search(prefix=prefix)
+        class_paths, _ = self.storage.search(prefix=prefix)
         class_set = set()
         for class_path in class_paths:
             encoded_class_name = class_path.split("/")[-1]
@@ -114,7 +117,7 @@ class API:
                 else:
                     self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
         except:
-            cx_logger().warn("failure encountered while publishing metrics", exc_info=True)
+            logger().warn("failure encountered while publishing metrics", exc_info=True)
 
     def store_metrics_locally(self, status_code, total_time):
         status_code_series = int(status_code / 100)
@@ -173,9 +176,41 @@ class API:
             }
 
 
-def get_spec(provider, storage, cache_dir, spec_path):
+def get_api(
+    provider: str,
+    spec_path: str,
+    model_dir: str,
+    cache_dir: Optional[str],
+    bucket: Optional[str],
+    region: Optional[str],
+) -> API:
+    storage, raw_api_spec = get_spec(provider, spec_path, cache_dir, bucket, region)
+
+    api = API(
+        provider=provider,
+        storage=storage,
+        api_spec=raw_api_spec,
+        model_dir=model_dir,
+        cache_dir=cache_dir,
+    )
+
+    return api
+
+
+def get_spec(
+    provider: str,
+    spec_path: str,
+    cache_dir: Optional[str],
+    bucket: Optional[str],
+    region: Optional[str],
+) -> Tuple[Union[LocalStorage, S3], dict]:
     if provider == "local":
-        return read_json(spec_path)
+        storage = LocalStorage(cache_dir)
+    else:
+        storage = S3(bucket=bucket, region=region)
+
+    if provider == "local":
+        return storage, read_json(spec_path)
 
     local_spec_path = os.path.join(cache_dir, "api_spec.json")
 
@@ -183,9 +218,9 @@ def get_spec(provider, storage, cache_dir, spec_path):
         _, key = S3.deconstruct_s3_path(spec_path)
         storage.download_file(key, local_spec_path)
 
-    return read_json(local_spec_path)
+    return storage, read_json(local_spec_path)
 
 
-def read_json(json_path):
+def read_json(json_path: str):
     with open(json_path) as json_file:
         return json.load(json_file)

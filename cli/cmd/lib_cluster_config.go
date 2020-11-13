@@ -170,7 +170,7 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsCreds AWSCredentials, accessConfig clusterconfig.AccessConfig, envName string, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsCreds AWSCredentials, accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
@@ -213,7 +213,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials, accessConfig clusterconfig
 		return nil, err
 	}
 
-	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient, envName, disallowPrompt)
+	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient, disallowPrompt)
 
 	return clusterConfig, nil
 }
@@ -458,7 +458,7 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	return nil
 }
 
-func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, envName string, disallowPrompt bool) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, disallowPrompt bool) {
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24

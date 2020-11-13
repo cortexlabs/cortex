@@ -18,9 +18,13 @@ pip install cortex
 # Replace `INSERT_CORTEX_VERSION` with the complete CLI version (e.g. 0.18.1):
 $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/vINSERT_CORTEX_VERSION/get-cli.sh)"
 
-# For example to download CLI version 0.18.1 (Note the 'v'):
+# For example to download CLI version 0.18.1 (Note the "v"):
 $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.18.1/get-cli.sh)"
 ```
+
+By default, the Cortex CLI is installed at `/usr/local/bin/cortex`. To install the executable elsewhere, export the `CORTEX_INSTALL_PATH` environment variable to your desired location before running the command above.
+
+By default, the Cortex CLI creates a directory at `~/.cortex/` and uses it to store environment configuration. To use a different directory, export the `CORTEX_CLI_CONFIG_DIR` environment variable before running a `cortex` command.
 
 ### Windows
 
@@ -130,7 +134,7 @@ Flags:
       --aws-secret string           aws secret access key
       --cluster-aws-key string      aws access key id to be used by the cluster
       --cluster-aws-secret string   aws secret access key to be used by the cluster
-  -e, --env string                  environment to create (default "aws")
+  -e, --configure-env string        name of environment to configure (default "aws")
   -y, --yes                         skip prompts
   -h, --help                        help for up
 ```
@@ -144,15 +148,15 @@ Usage:
   cortex cluster info [flags]
 
 Flags:
-  -c, --config string       path to a cluster configuration file
-  -n, --name string         aws name of the cluster
-  -r, --region string       aws region of the cluster
-      --aws-key string      aws access key id
-      --aws-secret string   aws secret access key
-  -e, --env string          environment to update (default "aws")
-  -d, --debug               save the current cluster state to a file
-  -y, --yes                 skip prompts
-  -h, --help                help for info
+  -c, --config string          path to a cluster configuration file
+  -n, --name string            aws name of the cluster
+  -r, --region string          aws region of the cluster
+      --aws-key string         aws access key id
+      --aws-secret string      aws secret access key
+  -e, --configure-env string   name of environment to configure
+  -d, --debug                  save the current cluster state to a file
+  -y, --yes                    skip prompts
+  -h, --help                   help for info
 ```
 
 ### cluster configure
@@ -169,7 +173,7 @@ Flags:
       --aws-secret string           aws secret access key
       --cluster-aws-key string      aws access key id to be used by the cluster
       --cluster-aws-secret string   aws secret access key to be used by the cluster
-  -e, --env string                  environment to update (default "aws")
+  -e, --configure-env string        name of environment to configure
   -y, --yes                         skip prompts
   -h, --help                        help for configure
 ```

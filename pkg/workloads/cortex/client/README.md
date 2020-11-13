@@ -20,12 +20,11 @@ Cortex makes it simple to deploy machine learning models in production.
 * Autoscale to handle production traffic.
 * Reduce cost with spot instances.
 
-<!-- CORTEX_VERSION_MINOR -->
-[documentation](https://docs.cortex.dev) • [tutorial](https://docs.cortex.dev/deployments/realtime-api/text-generator) • [examples](https://github.com/cortexlabs/cortex/tree/0.21/examples) • [chat with us](https://gitter.im/cortexlabs/cortex)
+<!-- CORTEX_VERSION_README_MINOR -->
+[documentation](https://docs.cortex.dev) • [tutorial](https://docs.cortex.dev/deployments/realtime-api/text-generator) • [examples](https://github.com/cortexlabs/cortex/tree/0.22/examples) • [chat with us](https://gitter.im/cortexlabs/cortex)
 
 ## Install the CLI
 
-<!-- CORTEX_VERSION_MINOR -->
 ```bash
 pip install cortex
 ```
@@ -44,6 +43,7 @@ cd cortex/examples/pytorch/text-generator
 ```
 
 ### In Python
+
 ```python
 import cortex
 import requests
@@ -64,6 +64,7 @@ local_client.delete_api("text-generator")
 ```
 
 ### Using the CLI
+
 ```bash
 # deploy the model as a realtime api
 cortex deploy

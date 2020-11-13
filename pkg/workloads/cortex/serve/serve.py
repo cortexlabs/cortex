@@ -33,9 +33,10 @@ from starlette.background import BackgroundTasks
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from cortex.lib import util
-from cortex.lib.type import API, get_spec
-from cortex.lib.log import cx_logger
-from cortex.lib.storage import S3, LocalStorage, FileLock
+from cortex.lib.api import API, get_api
+from cortex.lib.log import cx_logger as logger
+from cortex.lib.concurrency import LockedFile
+from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
 
 API_SUMMARY_MESSAGE = (
@@ -210,7 +211,7 @@ def predict(request: Request):
                 tasks.add_task(api.upload_class, class_name=predicted_value)
                 local_cache["class_set"].add(predicted_value)
         except:
-            cx_logger().warn("unable to record prediction metric", exc_info=True)
+            logger().warn("unable to record prediction metric", exc_info=True)
 
     if util.has_method(predictor_impl, "post_predict"):
         kwargs = build_post_predict_kwargs(prediction, request)
@@ -255,8 +256,10 @@ def build_post_predict_kwargs(response, request: Request):
 def get_summary():
     response = {"message": API_SUMMARY_MESSAGE}
 
-    if hasattr(local_cache["client"], "input_signatures"):
-        response["model_signatures"] = local_cache["client"].input_signatures
+    if hasattr(local_cache["client"], "metadata"):
+        client = local_cache["client"]
+        predictor = local_cache["api"].predictor
+        response["model_metadata"] = client.metadata
 
     return response
 
@@ -270,48 +273,39 @@ def start():
 
 
 def start_fn():
-    cache_dir = os.environ["CORTEX_CACHE_DIR"]
     provider = os.environ["CORTEX_PROVIDER"]
-    spec_path = os.environ["CORTEX_API_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
+    spec_path = os.environ["CORTEX_API_SPEC"]
 
     model_dir = os.getenv("CORTEX_MODEL_DIR")
+    cache_dir = os.getenv("CORTEX_CACHE_DIR")
+    bucket = os.getenv("CORTEX_BUCKET")
+    region = os.getenv("AWS_REGION")
+
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
-    if provider == "local":
-        storage = LocalStorage(os.getenv("CORTEX_CACHE_DIR"))
-    else:
-        storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
-
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:
-        with FileLock("/run/used_ports.json.lock"):
-            with open("/run/used_ports.json", "r+") as f:
-                used_ports = json.load(f)
-                for port in used_ports.keys():
-                    if not used_ports[port]:
-                        tf_serving_port = port
-                        used_ports[port] = True
-                        break
-                f.seek(0)
-                json.dump(used_ports, f)
-                f.truncate()
+        with LockedFile("/run/used_ports.json", "r+") as f:
+            used_ports = json.load(f)
+            for port in used_ports.keys():
+                if not used_ports[port]:
+                    tf_serving_port = port
+                    used_ports[port] = True
+                    break
+            f.seek(0)
+            json.dump(used_ports, f)
+            f.truncate()
 
     try:
-        raw_api_spec = get_spec(provider, storage, cache_dir, spec_path)
-        api = API(
-            provider=provider,
-            storage=storage,
-            model_dir=model_dir,
-            cache_dir=cache_dir,
-            **raw_api_spec,
-        )
+        api = get_api(provider, spec_path, model_dir, cache_dir, bucket, region)
+
         client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
-        cx_logger().info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(project_dir, client, raw_api_spec, None)
+        logger().info("loading the predictor from {}".format(api.predictor.path))
+        predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
         local_cache["api"] = api
         local_cache["provider"] = provider
@@ -328,7 +322,7 @@ def start_fn():
             predict_route = "/predict"
         local_cache["predict_route"] = predict_route
     except:
-        cx_logger().exception("failed to start api")
+        logger().exception("failed to start api")
         sys.exit(1)
 
     if (
@@ -339,7 +333,7 @@ def start_fn():
         try:
             local_cache["class_set"] = api.get_cached_classes()
         except:
-            cx_logger().warn("an error occurred while attempting to load classes", exc_info=True)
+            logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
     app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])

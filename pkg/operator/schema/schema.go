@@ -77,16 +77,32 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+type APITFLiveReloadingSummary struct {
+	Message       string                       `json:"message"`
+	ModelMetadata map[string]TFModelIDMetadata `json:"model_metadata"`
+}
+
+type TFModelIDMetadata struct {
+	DiskPath        string                    `json:"disk_path"`
+	SignatureKey    string                    `json:"signature_key"`
+	InputSignatures map[string]InputSignature `json:"input_signatures"`
+	Timestamp       int64                     `json:"timestamp"`
+	SignatureDef    map[string]interface{}    `json:"signature_def"`
+}
+
 type InputSignature struct {
 	Shape []interface{} `json:"shape"`
 	Type  string        `json:"type"`
 }
 
-type InputSignatures map[string]InputSignature
+type APIModelSummary struct {
+	Message       string                          `json:"message"`
+	ModelMetadata map[string]GenericModelMetadata `json:"model_metadata"`
+}
 
-type APISummary struct {
-	Message         string                     `json:"message"`
-	ModelSignatures map[string]InputSignatures `json:"model_signatures"`
+type GenericModelMetadata struct {
+	Versions   []string `json:"versions"`
+	Timestamps []int64  `json:"timestamps"`
 }
 
 type PastDeploy struct {

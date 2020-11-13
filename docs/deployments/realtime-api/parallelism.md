@@ -48,5 +48,5 @@ When optimizing for maximum throughput, a good rule of thumb is to follow these 
 1. Run the load test again. If the inference fails with that batch size (e.g. due to running out of GPU or RAM memory), then reduce `max_batch_size` to a level that works (reduce `batch_interval` by the same factor).
 1. Use the load test to determine the peak throughput of the API replica. Multiply the observed throughput by the `batch_interval` to calculate the average batch size. If the average batch size coincides with `max_batch_size`, then it might mean that the throughput could still be further increased by increasing `max_batch_size`. If it's lower, then it means that `batch_interval` is triggering the inference before `max_batch_size` requests have been aggregated. If modifying both `max_batch_size` and `batch_interval` doesn't improve the throughput, then the service may be bottlenecked by something else (e.g. CPU, network IO, `processes_per_replica`, `threads_per_process`, etc).
 
-<!-- CORTEX_VERSION_MINOR x1 -->
+<!-- CORTEX_VERSION_MINOR -->
 An example of server-side batching for the TensorFlow Predictor that has been benchmarked is found in [ResNet50 in TensorFlow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/image-classifier-resnet50#throughput-test).

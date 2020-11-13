@@ -21,7 +21,7 @@ import pathlib
 import inspect
 from inspect import Parameter
 from copy import deepcopy
-from typing import Any
+from typing import List, Any
 
 
 def has_method(object, method: str):
@@ -80,6 +80,59 @@ def ensure_suffix(string, suffix):
     if string.endswith(suffix):
         return string
     return string + suffix
+
+
+def get_leftmost_part_of_path(path: str) -> str:
+    """
+    Gets the leftmost part of a path.
+
+    If a path looks like
+    /models/tensorflow/iris/15559399
+
+    Then this function will return
+    /models/
+    """
+    has_leading_slash = False
+    if path.startswith("/"):
+        path = path[1:]
+        has_leading_slash = True
+
+    basename = ""
+    while path:
+        path, basename = os.path.split(path)
+
+    return "/" * has_leading_slash + basename
+
+
+def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
+    """
+    Eliminates dir paths from the tree that are not empty.
+
+    If paths looks like:
+    models/tensorflow/
+    models/tensorflow/iris/1569001258
+    models/tensorflow/iris/1569001258/saved_model.pb
+
+    Then after calling this function, it will look like:
+    models/tensorflow/iris/1569001258/saved_model.pb
+    """
+    new_paths = []
+
+    split_paths = [list(filter(lambda x: x != "", path.split("/"))) for path in paths]
+    create_set_from_list = lambda l: set([(idx, split) for idx, split in enumerate(l)])
+    split_set_paths = [create_set_from_list(split_path) for split_path in split_paths]
+
+    for id_a, a in enumerate(split_set_paths):
+        matches = 0
+        for id_b, b in enumerate(split_set_paths):
+            if id_a == id_b:
+                continue
+            if a.issubset(b):
+                matches += 1
+        if matches == 0:
+            new_paths.append(paths[id_a])
+
+    return new_paths
 
 
 def merge_dicts_in_place_overwrite(*dicts):

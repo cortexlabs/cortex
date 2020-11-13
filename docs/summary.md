@@ -14,6 +14,7 @@
   * [API configuration](deployments/realtime-api/api-configuration.md)
   * [API deployment](deployments/realtime-api/deployment.md)
   * [API statuses](deployments/realtime-api/statuses.md)
+  * [Models](deployments/realtime-api/models.md)
   * [Parallelism](deployments/realtime-api/parallelism.md)
   * [Autoscaling](deployments/realtime-api/autoscaling.md)
   * [Prediction monitoring](deployments/realtime-api/prediction-monitoring.md)
@@ -48,7 +49,7 @@
 ## Miscellaneous
 
 * [CLI commands](miscellaneous/cli.md)
-* [Python client](miscellaneous/python_client.md)
+* [Python client](miscellaneous/python-client.md)
 * [Environments](miscellaneous/environments.md)
 * [Architecture diagram](miscellaneous/architecture.md)
 * [Security](miscellaneous/security.md)

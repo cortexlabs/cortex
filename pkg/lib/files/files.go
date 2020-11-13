@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -33,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/denormal/go-gitignore"
 	"github.com/mitchellh/go-homedir"
@@ -243,7 +245,8 @@ func RelToAbsPath(relativePath string, baseDir string) string {
 	if !IsAbsOrTildePrefixed(relativePath) {
 		relativePath = filepath.Join(baseDir, relativePath)
 	}
-	return filepath.Clean(relativePath)
+	cleanPath, _ := Clean(relativePath)
+	return cleanPath
 }
 
 func UserRelToAbsPath(relativePath string) string {
@@ -627,6 +630,67 @@ func ErrorOnProjectSizeLimit(maxProjectSizeBytes int64) IgnoreFn {
 	}
 }
 
+// Retrieves the longest common path given a list of paths.
+func LongestCommonPath(paths ...string) string {
+
+	// Handle special cases.
+	switch len(paths) {
+	case 0:
+		return ""
+	case 1:
+		return path.Clean(paths[0])
+	}
+
+	startsWithSlash := false
+	allStartWithSlash := true
+
+	var splitPaths [][]string
+	shortestPathLength := -1
+	for _, path := range paths {
+		if strings.HasPrefix(path, "/") {
+			startsWithSlash = true
+		} else {
+			allStartWithSlash = false
+		}
+
+		splitPath := slices.RemoveEmpties(strings.Split(path, "/"))
+		splitPaths = append(splitPaths, splitPath)
+
+		if len(splitPath) < shortestPathLength || shortestPathLength == -1 {
+			shortestPathLength = len(splitPath)
+		}
+	}
+
+	commonPath := ""
+	numPaths := len(splitPaths)
+
+	for level := 0; level < shortestPathLength; level++ {
+		element := splitPaths[0][level]
+		counter := 1
+		for _, splitPath := range splitPaths[1:] {
+			if splitPath[level] != element {
+				break
+			}
+			counter++
+		}
+
+		if counter != numPaths {
+			break
+		}
+
+		commonPath = filepath.Join(commonPath, element)
+	}
+	if commonPath != "" && startsWithSlash {
+		commonPath = s.EnsurePrefix(commonPath, "/")
+		commonPath = s.EnsureSuffix(commonPath, "/")
+	}
+	if commonPath == "" && allStartWithSlash {
+		return "/"
+	}
+
+	return commonPath
+}
+
 type DirsOrder string
 
 var DirsSorted DirsOrder = "sorted"
@@ -678,7 +742,7 @@ func FileTree(paths []string, cwd string, dirsOrder DirsOrder) string {
 		dirPaths = DirPaths(paths, true)
 	}
 
-	commonPrefix := s.LongestCommonPrefix(dirPaths...)
+	commonPrefix := LongestCommonPath(dirPaths...)
 	paths, _ = s.TrimPrefixIfPresentInAll(paths, commonPrefix)
 
 	var header string
@@ -688,9 +752,11 @@ func FileTree(paths []string, cwd string, dirsOrder DirsOrder) string {
 	} else if !didTrimCwd && commonPrefix == "" {
 		header = ""
 	} else if didTrimCwd && commonPrefix != "" {
-		header = "./" + commonPrefix + "\n"
+		header = "./" + commonPrefix
+		header = s.EnsureSingleOccurrenceCharSuffix(header, "/") + "\n"
 	} else if !didTrimCwd && commonPrefix != "" {
-		header = commonPrefix + "\n"
+		header = commonPrefix + "/"
+		header = s.EnsureSingleOccurrenceCharSuffix(header, "/") + "\n"
 	}
 
 	tree := treeprint.New()

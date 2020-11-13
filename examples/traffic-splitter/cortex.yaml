@@ -1,11 +1,11 @@
-# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.21.*, run `git checkout -b 0.21` or switch to the `0.21` branch on GitHub)
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)
 
 - name: iris-classifier-onnx
   kind: RealtimeAPI
   predictor:
     type: onnx
     path: onnx_predictor.py
-    model_path: s3://cortex-examples/onnx/iris-classifier/gbtree.onnx
+    model_path: s3://cortex-examples/onnx/iris-classifier/
   monitoring:
     model_type: classification
 
@@ -14,7 +14,7 @@
   predictor:
     type: tensorflow
     path: tensorflow_predictor.py
-    model_path: s3://cortex-examples/tensorflow/iris-classifier/nn
+    model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
   monitoring:
     model_type: classification
 

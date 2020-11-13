@@ -154,7 +154,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	return output, &info.State.ExitCode, nil
 }
 
-func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, envName string, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
@@ -186,7 +186,6 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENV_NAME=" + envName,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
@@ -216,7 +215,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 	return output, exitCode, nil
 }
 
-func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds AWSCredentials, envName string, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	containerConfig := &container.Config{
 		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
@@ -225,7 +224,6 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_ENV_NAME=" + envName,
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,

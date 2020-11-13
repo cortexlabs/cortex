@@ -106,7 +106,7 @@ func (projectFiles ProjectFiles) ProjectDir() string {
 	return projectFiles.projectRoot
 }
 
-func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func ValidateLocalAPIs(apis []userconfig.API, models *[]spec.CuratedModelResource, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
@@ -119,7 +119,7 @@ func ValidateLocalAPIs(apis []userconfig.API, projectFiles ProjectFiles, awsClie
 	for i := range apis {
 		api := &apis[i]
 
-		if err := spec.ValidateAPI(api, projectFiles, types.LocalProviderType, awsClient, nil); err != nil {
+		if err := spec.ValidateAPI(api, models, projectFiles, types.LocalProviderType, awsClient, nil); err != nil {
 			return errors.Wrap(err, api.Identify())
 		}
 

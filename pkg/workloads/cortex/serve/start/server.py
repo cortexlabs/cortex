@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import sys
+import pathlib
+import time
 
 import uvicorn
 import yaml
@@ -23,6 +25,9 @@ def main():
 
     with open("/src/cortex/serve/log_config.yaml", "r") as f:
         log_config = yaml.load(f, yaml.FullLoader)
+
+    while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
+        time.sleep(0.2)
 
     uvicorn.run(
         "cortex.serve.wsgi:app",

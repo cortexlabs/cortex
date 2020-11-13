@@ -91,6 +91,8 @@ function cluster_up() {
   if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -e "note: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/guides/vpc-peering"
   fi
+
+  print_endpoints
 }
 
 function cluster_configure() {
@@ -108,6 +110,8 @@ function cluster_configure() {
   validate_cortex
 
   echo -e "\ncortex is ready!"
+
+  print_endpoints
 }
 
 # creates the eks cluster and configures kubectl
@@ -418,7 +422,7 @@ function validate_cortex() {
   operator_pod_is_ready=""
   operator_pod_status=""
   operator_endpoint=""
-  api_endpoint=""
+  api_load_balancer_endpoint=""
   operator_load_balancer_state=""
   api_load_balancer_state=""
   operator_target_group_status=""
@@ -443,8 +447,8 @@ function validate_cortex() {
       if [ "$operator_endpoint" != "" ]; then
         echo "operator endpoint: $operator_endpoint"
       fi
-      if [ "$api_endpoint" != "" ]; then
-        echo "api endpoint: $api_endpoint"
+      if [ "$api_load_balancer_endpoint" != "" ]; then
+        echo "api load balancer endpoint: $api_load_balancer_endpoint"
       fi
       if [ "$operator_load_balancer_state" != "" ]; then
         echo "operator load balancer state: $operator_load_balancer_state"
@@ -510,13 +514,13 @@ function validate_cortex() {
       operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
-    if [ "$api_endpoint" == "" ]; then
+    if [ "$api_load_balancer_endpoint" == "" ]; then
       out=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      api_endpoint=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+      api_load_balancer_endpoint=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
     operator_load_balancer_state="$(python get_operator_load_balancer_state.py)"  # don't cache this result
@@ -555,6 +559,34 @@ function validate_cortex() {
   done
 
   echo " ✓"
+}
+
+function print_endpoints() {
+  echo ""
+
+  operator_endpoint=$(get_operator_endpoint)
+  api_load_balancer_endpoint=$(get_api_load_balancer_endpoint)
+  if [ "$CORTEX_API_GATEWAY" == "public" ]; then
+    api_gateway_endpoint=$(get_api_gateway_endpoint)
+  fi
+
+  echo "operator:          $operator_endpoint"  # before modifying this, search for this prefix
+  echo "api load balancer: $api_load_balancer_endpoint"
+  if [ "$CORTEX_API_GATEWAY" == "public" ]; then
+    echo "api gateway:       $api_gateway_endpoint"
+  fi
+}
+
+function get_operator_endpoint() {
+  kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+}
+
+function get_api_load_balancer_endpoint() {
+  kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+}
+
+function get_api_gateway_endpoint() {
+  python get_api_gateway_endpoint.py
 }
 
 function output_if_error() {

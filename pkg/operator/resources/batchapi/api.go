@@ -36,13 +36,13 @@ import (
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, projectID string) (*spec.API, string, error) {
 	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "", config.Cluster.ClusterName) // Deployment ID not needed for BatchAPI spec
+	api := spec.GetAPISpec(apiConfig, models, projectID, "", config.Cluster.ClusterName) // Deployment ID not needed for BatchAPI spec
 
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {

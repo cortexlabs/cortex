@@ -99,6 +99,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "**/.vscode/*" \
   ! -path "**/__pycache__/*" \
   ! -path "./docs/contributing/development.md" \
+  ! -path "./dev/config/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
@@ -118,6 +119,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./vendor/*" \
   ! -path "**/.vscode/*" \
   ! -path "**/__pycache__/*" \
+  ! -path "./dev/config/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
@@ -181,6 +183,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
+! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -197,6 +200,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
+! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -213,6 +217,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
+! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -229,6 +234,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
+! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \

@@ -1,4 +1,4 @@
-# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.21.*, run `git checkout -b 0.21` or switch to the `0.21` branch on GitHub)
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)
 
 - name: multi-model-classifier
   kind: RealtimeAPI
@@ -6,12 +6,13 @@
     type: onnx
     path: predictor.py
     models:
-      - name: resnet50
-        model_path: s3://cortex-examples/onnx/resnet50/resnet50-v2-7.onnx
-      - name: mobilenet
-        model_path: s3://cortex-examples/onnx/mobilenet/mobilenetv2-7.onnx
-      - name: shufflenet
-        model_path: s3://cortex-examples/onnx/shufflenet/shufflenet-v2-10.onnx
+      paths:
+        - name: resnet50
+          model_path: s3://cortex-examples/onnx/resnet50/
+        - name: mobilenet
+          model_path: s3://cortex-examples/onnx/mobilenet/
+        - name: shufflenet
+          model_path: s3://cortex-examples/onnx/shufflenet/
     config:
       image-classifier-classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
       image-resize: 224

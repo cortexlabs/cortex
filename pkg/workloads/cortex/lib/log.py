@@ -16,9 +16,9 @@ import logging
 import sys
 import time
 import http
+import datetime as dt
 
 from cortex.lib import stringify
-import datetime as dt
 
 
 class CortexFormatter(logging.Formatter):
@@ -84,7 +84,7 @@ def register_logger(name, show_pid=True):
 
     logger.propagate = False
     logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     return logger
 
 

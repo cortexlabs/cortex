@@ -94,7 +94,8 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		return nil, err
 	}
 
-	err = ValidateClusterAPIs(apiConfigs, projectFiles)
+	models := []spec.CuratedModelResource{}
+	err = ValidateClusterAPIs(apiConfigs, &models, projectFiles)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
 		return nil, err
@@ -116,7 +117,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	results := make([]schema.DeployResult, 0, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
-		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
+		api, msg, err := UpdateAPI(&apiConfig, models, projectID, force)
 
 		result := schema.DeployResult{
 			Message: msg,
@@ -133,7 +134,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	return results, nil
 }
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema.APIResponse, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, projectID string, force bool) (*schema.APIResponse, string, error) {
 	deployedResource, err := GetDeployedResourceByNameOrNil(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
@@ -147,9 +148,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 	var msg string
 	switch apiConfig.Kind {
 	case userconfig.RealtimeAPIKind:
-		api, msg, err = realtimeapi.UpdateAPI(apiConfig, projectID, force)
+		api, msg, err = realtimeapi.UpdateAPI(apiConfig, models, projectID, force)
 	case userconfig.BatchAPIKind:
-		api, msg, err = batchapi.UpdateAPI(apiConfig, projectID)
+		api, msg, err = batchapi.UpdateAPI(apiConfig, models, projectID)
 	case userconfig.TrafficSplitterKind:
 		api, msg, err = trafficsplitter.UpdateAPI(apiConfig, force)
 	default:
