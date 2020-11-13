@@ -98,7 +98,7 @@ class PythonClient:
             model_version (string, optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
         Returns:
-            The model as loaded by the load_model() method.
+            The value that's returned by your predictor's load_model() method.
         """
 
         if model_version != "latest" and not model_version.isnumeric():

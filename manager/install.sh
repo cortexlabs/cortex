@@ -32,6 +32,14 @@ function main() {
 }
 
 function cluster_up() {
+    if [ "$CORTEX_PROVIDER" == "aws" ]; then
+      cluster_up_aws
+    elif [ "$CORTEX_PROVIDER" == "gcp" ]; then
+      cluster_up_gcp
+    fi
+}
+
+function cluster_up_aws() {
   create_eks
 
   start_pre_download_images
@@ -83,16 +91,34 @@ function cluster_up() {
 
   restart_operator
 
-  validate_cortex
-
-  await_pre_download_images
-
   echo -e "\ncortex is ready!"
   if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -e "note: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/guides/vpc-peering"
   fi
 
   print_endpoints
+}
+
+function cluster_up_gcp() {
+  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
+  gcloud container clusters get-credentials $CORTEX_GCP_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE
+
+  echo "completed auth"
+
+  echo -n "￮ updating cluster configuration "
+  echo "setup_configmap"
+  setup_configmap
+  echo "setup_secrets"
+  setup_secrets
+  echo "✓"
+
+  echo -n "￮ configuring networking "
+  setup_istio
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
+  kubectl apply -f /workspace/apis.yaml >/dev/null
+  echo "✓"
+
+  restart_operator
 }
 
 function cluster_configure() {
