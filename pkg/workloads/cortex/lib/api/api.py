@@ -23,7 +23,7 @@ from typing import Tuple, Union, Optional
 
 from cortex.lib.log import cx_logger as logger
 from cortex.lib.exceptions import CortexException
-from cortex.lib.storage import LocalStorage, S3
+from cortex.lib.storage import LocalStorage, S3, GCS
 
 from cortex.lib.api import Monitoring, Predictor
 
@@ -180,11 +180,10 @@ def get_api(
     provider: str,
     spec_path: str,
     model_dir: str,
-    cache_dir: Optional[str],
-    bucket: Optional[str],
-    region: Optional[str],
+    cache_dir: str,
+    region: Optional[str] = None,
 ) -> API:
-    storage, raw_api_spec = get_spec(provider, spec_path, cache_dir, bucket, region)
+    storage, raw_api_spec = get_spec(provider, spec_path, cache_dir, region)
 
     api = API(
         provider=provider,
@@ -200,23 +199,40 @@ def get_api(
 def get_spec(
     provider: str,
     spec_path: str,
-    cache_dir: Optional[str],
-    bucket: Optional[str],
-    region: Optional[str],
-) -> Tuple[Union[LocalStorage, S3], dict]:
+    cache_dir: str,
+    region: Optional[str] = None,
+) -> Tuple[Union[LocalStorage, S3, GCS], dict]:
+    """
+    Args:
+        provider: "local", "s3" or "gcs".
+        spec_path: Path to API spec (i.e. "s3://cortex-dev-0/apis/iris-classifier/api/69b93378fa5c0218-jy1fjtyihu-9fcc10739e7fc8050cefa8ca27ece1ee/master-spec.json").
+        cache_dir: Local directory where the API spec gets saved to.
+        region: Region of the bucket. Only required for "S3" provider.
+    """
+
+    # TODO get rid of hardcoded provider
+    provider = "gcs"
+
     if provider == "local":
         storage = LocalStorage(cache_dir)
-    else:
+    elif provider == "s3":
+        bucket, key = S3.deconstruct_s3_path(spec_path)
         storage = S3(bucket=bucket, region=region)
+    elif provider == "gcs":
+        bucket, key = GCS.deconstruct_gcs_path(spec_path)
+        storage = GCS(bucket=bucket)
+    else:
+        raise ValueError('invalid "provider" argument')
 
     if provider == "local":
         return storage, read_json(spec_path)
 
     local_spec_path = os.path.join(cache_dir, "api_spec.json")
-
     if not os.path.isfile(local_spec_path):
-        _, key = S3.deconstruct_s3_path(spec_path)
-        storage.download_file(key, local_spec_path)
+        if provider == "s3":
+            storage.download_file(key, local_spec_path)
+        else:
+            storage.download_file(key, local_spec_path)
 
     return storage, read_json(local_spec_path)
 

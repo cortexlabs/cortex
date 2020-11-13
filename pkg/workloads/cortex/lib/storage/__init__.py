@@ -14,3 +14,4 @@
 
 from cortex.lib.storage.local import LocalStorage
 from cortex.lib.storage.s3 import S3
+from cortex.lib.storage.gcs import GCS
