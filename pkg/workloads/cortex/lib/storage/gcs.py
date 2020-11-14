@@ -57,6 +57,16 @@ class GCS:
 
         return paths, timestamps
 
+    def upload_file(self, local_path: str, key: str):
+        """
+        Upload file to bucket.
+        """
+        blob = self.gcs.get_blob(blob_name=key)
+        if not pathlib.Path(local_path).is_file():
+            raise CortexException(f'file "{key}" doesn\'t exist')
+
+        blob.upload_from_filename(local_path)
+
     def download_file(self, key: str, local_path: str):
         """
         Download file to the specified local path.
@@ -94,16 +104,6 @@ class GCS:
             relative_path = util.trim_prefix(blob.name, prefix)
             local_dest_path = os.path.join(local_dir, relative_path)
             self.download_file(blob.name, local_dest_path)
-
-    def upload_file(self, local_path: str, key: str):
-        """
-        Upload file to bucket.
-        """
-        blob = self.gcs.get_blob(blob_name=key)
-        if not pathlib.Path(local_path).is_file():
-            raise CortexException(f'file "{key}" doesn\'t exist')
-
-        blob.upload_from_filename(local_path)
 
     def download(self, prefix: str, local_dir: str):
         """
