@@ -121,7 +121,7 @@ Update your API configuration file to point to your image:
 - name: my-api
   ...
   predictor:
-    image: <your_image_path>:latest
+    image: <repository_url>:latest
   ...
 ```
 
