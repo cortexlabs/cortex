@@ -592,7 +592,7 @@ var _downCmd = &cobra.Command{
 
 var _exportCmd = &cobra.Command{
 	Use:   "export [API_NAME] [API_ID]",
-	Short: "download the code and configuration for all APIs deployed in a cluster",
+	Short: "download the code and configuration for APIs",
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export")

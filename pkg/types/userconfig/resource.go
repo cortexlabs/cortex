@@ -20,7 +20,6 @@ import "fmt"
 
 type Resource struct {
 	Name string `json:"name" yaml:"name"`
-	ID   string `json:"id" yaml:"id"`
 	Kind Kind   `json:"kind" yaml:"kind"`
 }
 

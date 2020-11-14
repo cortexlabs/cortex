@@ -69,7 +69,6 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 	return &operator.DeployedResource{
 		Resource: userconfig.Resource{
 			Name: virtualService.Labels["apiName"],
-			ID:   virtualService.Labels["apiID"],
 			Kind: userconfig.KindFromString(virtualService.Labels["apiKind"]),
 		},
 		VirtualService: virtualService,
@@ -320,7 +319,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 	// check if the API is currenlty running, so that additional information can be returned
 	deployedResource, err := GetDeployedResourceByName(apiName)
-	if err == nil && deployedResource.ID == apiID {
+	if err == nil && deployedResource.ID() == apiID {
 		return GetAPI(apiName)
 	}
 
@@ -332,7 +331,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 		}
 		return nil, err
 	}
-	// TODO what about endpoint?
+
 	return []schema.APIResponse{
 		{
 			Spec: *spec,

@@ -33,7 +33,6 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 	respond(w, response)
 }
 
-// TODO should the not be an array anymore?
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 
