@@ -14,15 +14,14 @@
 
 import os
 import pathlib
-from typing import Optional, Tuple
+import datetime
+from typing import Optional, List, Tuple
 
 from google.cloud import storage
 from google.cloud import exceptions as gexp
 
 from cortex.lib import util
 from cortex.lib.exceptions import CortexException
-
-# TODO add search method
 
 
 class GCS:
@@ -47,6 +46,16 @@ class GCS:
     def _is_gcs_dir(self, dir_path: str) -> bool:
         prefix = util.ensure_suffix(dir_path, "/")
         return len(list(self.gcs.list_blobs(max_results=2, prefix=prefix))) > 1
+
+    def search(self, prefix: str = "") -> Tuple[List[str], List[datetime.datetime]]:
+        paths = []
+        timestamps = []
+
+        for blob in self.gcs.list_blobs(prefix=prefix):
+            paths.append(blob.name)
+            timestamps.append(blob.updated)
+
+        return paths, timestamps
 
     def download_file(self, key: str, local_path: str):
         """
