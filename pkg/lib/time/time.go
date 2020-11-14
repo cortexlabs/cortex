@@ -73,11 +73,11 @@ func DifferenceStr(t1 *time.Time, t2 *time.Time) string {
 	if durationSecs < 60 {
 		return strconv.Itoa(durationSecs) + "s"
 	} else if durationSecs < 3600 {
-		return strconv.Itoa(durationSecs/60) + "m" + strconv.Itoa(durationSecs-durationSecs/60*60) + "s"
+		return strconv.Itoa(durationSecs/60) + "m"
 	} else if durationSecs < 48*3600 {
-		return strconv.Itoa(durationSecs/3600) + "h" + strconv.Itoa((durationSecs-durationSecs/3600*3600)/60) + "m"
+		return strconv.Itoa(durationSecs/3600) + "h"
 	} else {
-		return strconv.Itoa(durationSecs/(24*3600)) + "d" + strconv.Itoa((durationSecs-durationSecs/(24*3600)*(24*3600))/3600) + "h"
+		return strconv.Itoa(durationSecs/(24*3600)) + "d"
 	}
 }
 
