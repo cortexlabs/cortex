@@ -638,7 +638,7 @@ func (c *Client) ListS3PathDir(s3DirPath string, includeDirObjects bool, maxResu
 }
 
 // This behaves like you'd expect `ls` to behave on a local file system
-// "directory" names will be returned even if directory objects don't exist.
+// "directory" names will be returned even if S3 directory objects don't exist
 func (c *Client) ListS3DirOneLevel(bucket string, s3Dir string, maxResults *int64) ([]string, error) {
 	s3Dir = s.EnsureSuffix(s3Dir, "/")
 

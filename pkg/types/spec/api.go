@@ -198,13 +198,14 @@ func Key(apiName string, apiID string, clusterName string) string {
 	)
 }
 
+// The path to the directory which contains one subdirectory for each API ID (for its API spec)
 func KeysPrefix(apiName string, clusterName string) string {
 	return filepath.Join(
 		clusterName,
 		"apis",
 		apiName,
 		"api",
-	)
+	) + "/"
 }
 
 func (api API) RawAPIKey(clusterName string) string {
@@ -235,12 +236,13 @@ func ProjectKey(projectID string, clusterName string) string {
 	)
 }
 
+// Extract the timestamp from an API ID
 func TimeFromAPIID(apiID string) (time.Time, error) {
 	timeIDStr := strings.Split(apiID, "-")[0]
 	timeID, err := strconv.ParseInt(timeIDStr, 16, 64)
 	if err != nil {
 		return time.Time{}, errors.Wrap(err, fmt.Sprintf("unable to parse API timestamp (%s)", timeIDStr))
 	}
-	timestamp := math.MaxInt64 - timeID
-	return time.Unix(0, timestamp), nil
+	timeNanos := math.MaxInt64 - timeID
+	return time.Unix(0, timeNanos), nil
 }

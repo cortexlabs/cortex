@@ -58,7 +58,7 @@ Flags:
   -e, --env string      environment to use (default "local")
   -w, --watch           re-run the command every 2 seconds
   -o, --output string   output format: one of pretty|json (default "pretty")
-  -v, --verbose         show additional information (only applies to pretty output)
+  -v, --verbose         show additional information (only applies to pretty output format)
   -h, --help            help for get
 ```
 

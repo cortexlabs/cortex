@@ -205,7 +205,7 @@ func updateRootUsage() {
 }
 
 func addVerboseFlag(cmd *cobra.Command) {
-	cmd.Flags().BoolVarP(&_flagVerbose, "verbose", "v", false, "show additional information (only applies to pretty output)")
+	cmd.Flags().BoolVarP(&_flagVerbose, "verbose", "v", false, "show additional information (only applies to pretty output format)")
 }
 
 func wasEnvFlagProvided(cmd *cobra.Command) bool {

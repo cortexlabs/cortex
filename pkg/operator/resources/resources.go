@@ -316,29 +316,6 @@ func GetAPIs() ([]schema.APIResponse, error) {
 	return response, nil
 }
 
-func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
-	// check if the API is currenlty running, so that additional information can be returned
-	deployedResource, err := GetDeployedResourceByName(apiName)
-	if err == nil && deployedResource.ID() == apiID {
-		return GetAPI(apiName)
-	}
-
-	// search for the API spec for the old ID
-	spec, err := operator.DownloadAPISpec(apiName, apiID)
-	if err != nil {
-		if aws.IsGenericNotFoundErr(err) {
-			return nil, ErrorAPIIDNotFound(apiName, apiID)
-		}
-		return nil, err
-	}
-
-	return []schema.APIResponse{
-		{
-			Spec: *spec,
-		},
-	}, nil
-}
-
 func GetAPI(apiName string) ([]schema.APIResponse, error) {
 	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {
@@ -367,26 +344,60 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind) // unexpected
 	}
 
-	// Get API history
+	// Get past API deploy times
 	if len(apiResponse) > 0 {
-		apiIDs, err := config.AWS.ListS3DirOneLevel(config.Cluster.Bucket, spec.KeysPrefix(deployedResource.Name, config.Cluster.ClusterName), pointer.Int64(10))
+		apiResponse[0].PastDeploys, err = getPastAPIDeploys(deployedResource.Name)
 		if err != nil {
 			return nil, err
-		}
-
-		for _, apiID := range apiIDs {
-			lastUpdated, err := spec.TimeFromAPIID(apiID)
-			if err != nil {
-				return nil, err
-			}
-			apiResponse[0].PastDeploys = append(apiResponse[0].PastDeploys, schema.PastDeploy{
-				APIID:       apiID,
-				LastUpdated: lastUpdated.Unix(),
-			})
 		}
 	}
 
 	return apiResponse, nil
+}
+
+func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
+	// check if the API is currently running, so that additional information can be returned
+	deployedResource, err := GetDeployedResourceByName(apiName)
+	if err == nil && deployedResource != nil && deployedResource.ID() == apiID {
+		return GetAPI(apiName)
+	}
+
+	// search for the API spec with the old ID
+	spec, err := operator.DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		if aws.IsGenericNotFoundErr(err) {
+			return nil, ErrorAPIIDNotFound(apiName, apiID)
+		}
+		return nil, err
+	}
+
+	return []schema.APIResponse{
+		{
+			Spec: *spec,
+		},
+	}, nil
+}
+
+func getPastAPIDeploys(apiName string) ([]schema.PastDeploy, error) {
+	var pastDeploys []schema.PastDeploy
+
+	apiIDs, err := config.AWS.ListS3DirOneLevel(config.Cluster.Bucket, spec.KeysPrefix(apiName, config.Cluster.ClusterName), pointer.Int64(10))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, apiID := range apiIDs {
+		lastUpdated, err := spec.TimeFromAPIID(apiID)
+		if err != nil {
+			return nil, err
+		}
+		pastDeploys = append(pastDeploys, schema.PastDeploy{
+			APIID:       apiID,
+			LastUpdated: lastUpdated.Unix(),
+		})
+	}
+
+	return pastDeploys, nil
 }
 
 //checkIfUsedByTrafficSplitter checks if api is used by a deployed TrafficSplitter
