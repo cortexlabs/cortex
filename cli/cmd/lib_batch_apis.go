@@ -131,7 +131,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 		out += t.MustFormat()
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + batchAPI.Endpoint
+	out += "\n" + console.Bold("endpoint: ") + batchAPI.Endpoint + "\n"
 
 	out += "\n" + apiHistoryTable(batchAPI.PastDeploys)
 
@@ -139,7 +139,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 		return out
 	}
 
-	out += "\n" + titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
+	out += titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
 
 	return out
 }
