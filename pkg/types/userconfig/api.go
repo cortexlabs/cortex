@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -566,4 +567,140 @@ func ZeroCompute() Compute {
 		Mem: &k8s.Quantity{},
 		GPU: 0,
 	}
+}
+
+func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface{} {
+	event := map[string]interface{}{
+		"provider": provider,
+		"kind":     api.Kind,
+	}
+
+	if len(api.APIs) > 0 {
+		event["apis._is_defined"] = true
+		event["apis._len"] = len(api.APIs)
+	}
+
+	if api.Monitoring != nil {
+		event["monitoring._is_defined"] = true
+		event["monitoring.model_type"] = api.Monitoring.ModelType
+		if api.Monitoring.Key != nil {
+			event["monitoring.key._is_defined"] = true
+		}
+	}
+
+	if api.Networking != nil {
+		event["networking._is_defined"] = true
+		event["networking.api_gateway"] = api.Networking.APIGateway
+		if api.Networking.Endpoint != nil && urls.CanonicalizeEndpoint(api.Name) != *api.Networking.Endpoint {
+			event["networking.endpoint._is_custom"] = true
+		}
+		if api.Networking.LocalPort != nil {
+			event["networking.local_port._is_defined"] = true
+			event["networking.local_port"] = *api.Networking.LocalPort
+		}
+	}
+
+	if api.Compute != nil {
+		event["compute._is_defined"] = true
+		if api.Compute.CPU != nil {
+			event["compute.cpu._is_defined"] = true
+			event["compute.cpu"] = api.Compute.CPU.MilliValue()
+		}
+		if api.Compute.Mem != nil {
+			event["compute.mem._is_defined"] = true
+			event["compute.mem"] = api.Compute.Mem.Value()
+		}
+		event["compute.gpu"] = api.Compute.GPU
+		event["compute.inf"] = api.Compute.Inf
+	}
+
+	if api.Predictor != nil {
+		event["predictor._is_defined"] = true
+		event["predictor.type"] = api.Predictor.Type
+		event["predictor.processes_per_replica"] = api.Predictor.ProcessesPerReplica
+		event["predictor.threads_per_process"] = api.Predictor.ThreadsPerProcess
+
+		if api.Predictor.ModelPath != nil {
+			event["predictor.model_path._is_defined"] = true
+		}
+		if api.Predictor.SignatureKey != nil {
+			event["predictor.signature_key._is_defined"] = true
+		}
+		if api.Predictor.PythonPath != nil {
+			event["predictor.python_path._is_defined"] = true
+		}
+		if !strings.HasPrefix(api.Predictor.Image, "cortexlabs/") {
+			event["predictor.image._is_custom"] = true
+		}
+		if !strings.HasPrefix(api.Predictor.TensorFlowServingImage, "cortexlabs/") {
+			event["predictor.tensorflow_serving_image._is_custom"] = true
+		}
+		if len(api.Predictor.Config) > 0 {
+			event["predictor.config._is_defined"] = true
+			event["predictor.config._len"] = len(api.Predictor.Config)
+		}
+		if len(api.Predictor.Env) > 0 {
+			event["predictor.env._is_defined"] = true
+			event["predictor.env._len"] = len(api.Predictor.Env)
+		}
+
+		if api.Predictor.Models != nil {
+			event["predictor.models._is_defined"] = true
+			if len(api.Predictor.Models.Paths) > 0 {
+				event["predictor.models.paths._is_defined"] = true
+				event["predictor.models.paths._len"] = len(api.Predictor.Models.Paths)
+			}
+			if api.Predictor.Models.Dir != nil {
+				event["predictor.models.dir._is_defined"] = true
+			}
+			if api.Predictor.Models.CacheSize != nil {
+				event["predictor.models.cache_size._is_defined"] = true
+				event["predictor.models.cache_size"] = *api.Predictor.Models.CacheSize
+			}
+			if api.Predictor.Models.DiskCacheSize != nil {
+				event["predictor.models.disk_cache_size._is_defined"] = true
+				event["predictor.models.disk_cache_size"] = *api.Predictor.Models.DiskCacheSize
+			}
+			if api.Predictor.Models.SignatureKey != nil {
+				event["predictor.models.signature_key._is_defined"] = true
+			}
+		}
+
+		if api.Predictor.ServerSideBatching != nil {
+			event["predictor.server_side_batching._is_defined"] = true
+			event["predictor.server_side_batching.max_batch_size"] = api.Predictor.ServerSideBatching.MaxBatchSize
+			event["predictor.server_side_batching.batch_interval"] = api.Predictor.ServerSideBatching.BatchInterval.Seconds()
+		}
+	}
+
+	if api.UpdateStrategy != nil {
+		event["update_strategy._is_defined"] = true
+		event["update_strategy.max_surge"] = api.UpdateStrategy.MaxSurge
+		event["update_strategy.max_unavailable"] = api.UpdateStrategy.MaxUnavailable
+	}
+
+	if api.Autoscaling != nil {
+		event["autoscaling._is_defined"] = true
+		event["autoscaling.min_replicas"] = api.Autoscaling.MinReplicas
+		event["autoscaling.max_replicas"] = api.Autoscaling.MaxReplicas
+		event["autoscaling.init_replicas"] = api.Autoscaling.InitReplicas
+		if api.Autoscaling.TargetReplicaConcurrency != nil {
+			event["autoscaling.target_replica_concurrency._is_defined"] = true
+			event["autoscaling.target_replica_concurrency"] = *api.Autoscaling.TargetReplicaConcurrency
+		}
+		event["autoscaling.max_replica_concurrency"] = api.Autoscaling.MaxReplicaConcurrency
+		event["autoscaling.window"] = api.Autoscaling.Window.Seconds()
+		event["autoscaling.downscale_stabilization_period"] = api.Autoscaling.DownscaleStabilizationPeriod.Seconds()
+		event["autoscaling.upscale_stabilization_period"] = api.Autoscaling.UpscaleStabilizationPeriod.Seconds()
+		event["autoscaling.max_downscale_factor"] = api.Autoscaling.MaxDownscaleFactor
+		event["autoscaling.max_upscale_factor"] = api.Autoscaling.MaxUpscaleFactor
+		event["autoscaling.downscale_tolerance"] = api.Autoscaling.DownscaleTolerance
+		event["autoscaling.upscale_tolerance"] = api.Autoscaling.UpscaleTolerance
+	}
+
+	if api.FileName != "cortex.yaml" {
+		event["file_name._is_custom"] = true
+	}
+
+	return event
 }
