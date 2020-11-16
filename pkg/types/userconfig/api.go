@@ -591,8 +591,11 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 	if api.Networking != nil {
 		event["networking._is_defined"] = true
 		event["networking.api_gateway"] = api.Networking.APIGateway
-		if api.Networking.Endpoint != nil && urls.CanonicalizeEndpoint(api.Name) != *api.Networking.Endpoint {
-			event["networking.endpoint._is_custom"] = true
+		if api.Networking.Endpoint != nil {
+			event["networking.endpoint._is_defined"] = true
+			if urls.CanonicalizeEndpoint(api.Name) != *api.Networking.Endpoint {
+				event["networking.endpoint._is_custom"] = true
+			}
 		}
 		if api.Networking.LocalPort != nil {
 			event["networking.local_port._is_defined"] = true
@@ -705,7 +708,7 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["autoscaling.upscale_tolerance"] = api.Autoscaling.UpscaleTolerance
 	}
 
-	if api.FileName != "cortex.yaml" {
+	if api.FileName != "" && api.FileName != "cortex.yaml" {
 		event["file_name._is_custom"] = true
 	}
 
