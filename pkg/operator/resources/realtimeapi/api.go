@@ -75,7 +75,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 				return nil, "", errors.Wrap(err, "upload api spec")
 			}
 
-			if err := config.GCP.UploadBytesToGCP(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
+			if err := config.GCP.UploadBytesToGCS(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
 				return nil, "", errors.Wrap(err, "upload raw api spec")
 			}
 
@@ -133,7 +133,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 				return nil, "", errors.Wrap(err, "upload api spec")
 			}
 
-			if err := config.GCP.UploadBytesToGCP(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
+			if err := config.GCP.UploadBytesToGCS(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
 				return nil, "", errors.Wrap(err, "upload raw api spec")
 			}
 

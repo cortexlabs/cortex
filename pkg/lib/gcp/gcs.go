@@ -32,8 +32,20 @@ func GCSPath(bucket string, key string) string {
 	return "gs://" + filepath.Join(bucket, key)
 }
 
+func (c *Client) CreateBucket(bucket, projectID string) error {
+	gcsClient, err := c.GCS()
+	if err != nil {
+		return err
+	}
+	err = gcsClient.Bucket(bucket).Create(context.Background(), projectID, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Client) ReadJSONFromGCP(objPtr interface{}, bucket string, key string) error {
-	jsonBytes, err := c.ReadBytesFromGCP(bucket, key)
+	jsonBytes, err := c.ReadBytesFromGCS(bucket, key)
 	if err != nil {
 		return err
 	}
@@ -45,7 +57,7 @@ func (c *Client) UploadJSONToGCP(obj interface{}, bucket string, key string) err
 	if err != nil {
 		return err
 	}
-	return c.UploadBytesToGCP(jsonBytes, bucket, key)
+	return c.UploadBytesToGCS(jsonBytes, bucket, key)
 }
 
 func (c *Client) DeleteGCSFile(bucket string, key string) error {
@@ -96,7 +108,7 @@ func (c *Client) DeleteGCSPrefix(bucket string, gcsDir string, continueIfFailure
 	return nil
 }
 
-func (c *Client) UploadBytesToGCP(data []byte, bucket string, key string) error {
+func (c *Client) UploadBytesToGCS(data []byte, bucket string, key string) error {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return err
@@ -109,7 +121,7 @@ func (c *Client) UploadBytesToGCP(data []byte, bucket string, key string) error 
 	return nil
 }
 
-func (c *Client) ReadBytesFromGCP(bucket string, key string) ([]byte, error) {
+func (c *Client) ReadBytesFromGCS(bucket string, key string) ([]byte, error) {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return nil, err
