@@ -173,6 +173,9 @@ def main():
     while cron and cron.is_alive():
         time.sleep(0.25)
 
+    # exit if cron has exited with errors
+    if cron and isinstance(cron.exitcode, int) and cron.exitcode < 0:
+        sys.exit(-cron.exitcode)
 
 if __name__ == "__main__":
     main()
