@@ -604,7 +604,7 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["compute._is_defined"] = true
 		if api.Compute.CPU != nil {
 			event["compute.cpu._is_defined"] = true
-			event["compute.cpu"] = api.Compute.CPU.MilliValue()
+			event["compute.cpu"] = float64(api.Compute.CPU.MilliValue()) / 1000
 		}
 		if api.Compute.Mem != nil {
 			event["compute.mem._is_defined"] = true
