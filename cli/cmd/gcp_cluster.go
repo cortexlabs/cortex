@@ -41,7 +41,7 @@ type GCPCredentials struct {
 	ClientId     string `json:"client_id"`
 	PrivateKeyId string `json:"private_key_id"`
 	PrivateKey   string `json:"private_key"`
-	ProjectId    string `json:"project_id"`
+	ProjectId    string `json:"project_id"` // TODO validate that this project id matches GCP cluster config's Project field
 }
 
 // TODO: remove references to AWS here
@@ -105,7 +105,7 @@ func upGCP(gcpPath string, awsClusterConfigPath string) {
 		exit.Error(err)
 	}
 
-	bucketID := hash.String(gcpCredentials.ClientEmail + gcpConfig.Zone)[:10]
+	bucketID := hash.String(gcpConfig.Project + gcpConfig.Zone)[:10]
 
 	defaultBucket := gcpConfig.ClusterName + "-" + bucketID
 
@@ -220,7 +220,7 @@ func createGCPBucketIfNotFound(bucketName string, projectID string) error {
 	bucket := client.Bucket(bucketName)
 	_, err = bucket.Attrs(ctx)
 	if err == storage.ErrBucketNotExist {
-		fmt.Print("￮ creating a new gcs bucket: ", bucketName)
+		fmt.Print("￮ creating a new gcs bucket:", bucketName)
 		err = bucket.Create(ctx, projectID, nil)
 		if err != nil {
 			return err
@@ -228,6 +228,6 @@ func createGCPBucketIfNotFound(bucketName string, projectID string) error {
 		fmt.Println("  ✓")
 		return nil
 	}
-	fmt.Println("￮ using existing gcs bucket: ", bucketName+"  ✓")
+	fmt.Println("￮ using existing gcs bucket:", bucketName, "✓")
 	return nil
 }

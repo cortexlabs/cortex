@@ -55,8 +55,6 @@ type InternalGCPConfig struct {
 }
 
 func GetClusterProviderType(clusterPath string) (types.ProviderType, error) {
-	fmt.Println(clusterPath)
-
 	type provider struct {
 		Provider types.ProviderType `json:"provider" yaml:"provider"`
 	}

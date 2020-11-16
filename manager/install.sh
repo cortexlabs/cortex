@@ -100,7 +100,7 @@ function cluster_up_aws() {
 }
 
 function cluster_up_gcp() {
-  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS /dev/null 2>&1
+  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS > /dev/null 2>&1
   gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE > /dev/null 2>&1 # write both stderr and stdout to dev/null
 
   echo -n "￮ updating cluster configuration "
