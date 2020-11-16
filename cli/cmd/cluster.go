@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -59,10 +60,13 @@ var (
 	_flagClusterRegion             string
 	_flagClusterInfoDebug          bool
 	_flagClusterDisallowPrompt     bool
+	_flagClusterProject            string
+	_flagBackupAWSConfig           string // TODO: remove references to AWS here
 	_flagAWSAccessKeyID            string
 	_flagAWSSecretAccessKey        string
 	_flagClusterAWSAccessKeyID     string
 	_flagClusterAWSSecretAccessKey string
+	_flagCloudProvider             flags.CloudProviderType
 )
 
 func clusterInit() {
@@ -73,6 +77,7 @@ func clusterInit() {
 	defaultEnv := getDefaultEnv(_clusterCommandType)
 	_upCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
 	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_upCmd.Flags().StringVarP(&_flagBackupAWSConfig, "backup-aws", "", "", "backup aws")
 	_clusterCmd.AddCommand(_upCmd)
 
 	_infoCmd.Flags().SortFlags = false
@@ -99,6 +104,7 @@ func clusterInit() {
 	addClusterRegionFlag(_downCmd)
 	addAWSCredentialsFlags(_downCmd)
 	_downCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_downCmd.Flags().StringVarP(&_flagClusterProject, "project", "", "", "GCP project id")
 	_clusterCmd.AddCommand(_downCmd)
 
 	_exportCmd.Flags().SortFlags = false
@@ -120,6 +126,10 @@ func addClusterNameFlag(cmd *cobra.Command) {
 
 func addClusterRegionFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "r", "", "aws region of the cluster")
+}
+
+func addCloudProviderFlag(cmd *cobra.Command) {
+	cmd.Flags().VarP(&_flagCloudProvider, "provider", "", fmt.Sprintf("cloud provider: one of %s", strings.Join(flags.CloudProviderTypeStrings(), "|")))
 }
 
 func addAWSCredentialsFlags(cmd *cobra.Command) {
@@ -172,6 +182,15 @@ var _upCmd = &cobra.Command{
 			// Deprecation: specifying aws creds in cluster configuration is no longer supported
 			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
 				exit.Error(err)
+			}
+
+			// TODO add error to transition old users to add provider field
+			providerType, err := clusterconfig.GetClusterProviderType(_flagClusterConfig)
+			if err != nil {
+				exit.Error(err)
+			}
+			if providerType == types.GCPProviderType {
+				upGCP(_flagClusterConfig, _flagBackupAWSConfig)
 			}
 		}
 

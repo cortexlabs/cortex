@@ -24,14 +24,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"gopkg.in/yaml.v2"
 )
 
 const _clusterConfigPath = "/configs/cluster/cluster.yaml"
+const _clusterConfigBackupPath = "/configs/cluster-aws/cluster-aws.yaml"
 
 var (
 	Cluster         *clusterconfig.InternalConfig
@@ -39,10 +44,11 @@ var (
 	K8s             *k8s.Client
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
+	GCPCluster      *clusterconfig.InternalGCPConfig
+	Provider        types.ProviderType
 )
 
 func Init() error {
-	fmt.Println("init")
 	var err error
 
 	Cluster = &clusterconfig.InternalConfig{
@@ -55,23 +61,60 @@ func Init() error {
 		clusterConfigPath = _clusterConfigPath
 	}
 
-	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
+	Provider, err = clusterconfig.GetClusterProviderType(clusterConfigPath)
+	if err != nil {
+		return err
+	}
+
+	hashedAccountID := ""
+
+	awsClusterConfigPath := clusterConfigPath
+	if Provider == types.GCPProviderType {
+		gcpClusterconfigBytes, err := files.ReadFileBytes(clusterConfigPath)
+		if err != nil {
+			return err
+		}
+
+		gcpCluster := clusterconfig.GCPConfig{}
+
+		err = yaml.Unmarshal(gcpClusterconfigBytes, &gcpCluster)
+		if err != nil {
+			return err
+		}
+
+		id := hash.String(gcpCluster.ClusterName + gcpCluster.Zone + gcpCluster.Project)
+
+		GCPCluster = &clusterconfig.InternalGCPConfig{
+			GCPConfig:         gcpCluster,
+			ID:                id,
+			APIVersion:        consts.CortexVersion,
+			OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		}
+
+		awsClusterConfigPath = os.Getenv("CORTEX_AWS_CLUSTER_CONFIG_PATH")
+		if awsClusterConfigPath == "" {
+			awsClusterConfigPath = _clusterConfigBackupPath
+		}
+	}
+
+	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, awsClusterConfigPath)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
 
 	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
 
+	debug.Pp(os.Environ())
+
 	AWS, err = aws.NewFromEnv(*Cluster.Region)
 	if err != nil {
 		return err
 	}
 
-	_, hashedAccountID, err := AWS.CheckCredentials()
+	_, hashedAccountID, err = AWS.CheckCredentials()
 	if err != nil {
 		return err
 	}
-
 	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
 
 	err = telemetry.Init(telemetry.Config{
@@ -88,6 +131,9 @@ func Init() error {
 	if err != nil {
 		fmt.Println(errors.Message(err))
 	}
+
+	debug.Pp(Cluster)
+	debug.Pp(GCPCluster)
 
 	// if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 	// 	apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)

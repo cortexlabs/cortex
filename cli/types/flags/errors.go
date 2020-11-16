@@ -24,12 +24,20 @@ import (
 )
 
 const (
-	ErrInvalidOutputType = "flags.invalid_output_type"
+	ErrInvalidOutputType        = "flags.invalid_output_type"
+	ErrInvalidCloudProviderType = "flags.invalid_cloud_provider_type"
 )
 
 func ErrorInvalidOutputType(invalidOutputType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidOutputType,
 		Message: fmt.Sprintf("invalid value \"%s\" specified for -o/--output; valid values are %s", invalidOutputType, s.StrsAnd(OutputTypeStrings())),
+	})
+}
+
+func ErrorInvalidCloudProviderType(invalidCloudProviderType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidCloudProviderType,
+		Message: fmt.Sprintf("invalid value \"%s\" specified for -p/--provider; valid values are %s", invalidCloudProviderType, s.StrsAnd(CloudProviderTypeStrings())),
 	})
 }

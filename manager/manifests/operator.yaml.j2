@@ -54,7 +54,7 @@ spec:
       serviceAccountName: operator
       containers:
         - name: operator
-          image: $CORTEX_IMAGE_OPERATOR
+          image: {{ env['CORTEX_IMAGE_OPERATOR'] }}
           imagePullPolicy: Always
           resources:
             requests:
@@ -65,16 +65,27 @@ spec:
               memory: 1024Mi
           ports:
             - containerPort: 8888
-          envFrom:
+          envFrom: # TODO: remove references to AWS here (only have this if provider is aws)
             - secretRef:
                 name: aws-credentials
             - configMapRef:
                 name: env-vars
+          {% if env['CORTEX_PROVIDER'] == "gcp" %}
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
+          {%endif %}
           volumeMounts:
             - name: cluster-config
               mountPath: /configs/cluster
             - name: docker-client
               mountPath: /var/run/docker.sock
+            {% if env['CORTEX_PROVIDER'] == "gcp" %}
+            - name: gcp-credentials
+              mountPath: /var/secrets/google
+            - name: cluster-config-aws
+              mountPath: /configs/cluster-aws
+            {% endif %}
       volumes:
         - name: cluster-config
           configMap:
@@ -83,6 +94,14 @@ spec:
           hostPath:
             path: /var/run/docker.sock
             type: Socket
+        {% if env['CORTEX_PROVIDER'] == "gcp" %}
+        - name: gcp-credentials
+          secret:
+            secretName: gcp-credentials
+        - name: cluster-config-aws
+          configMap:
+            name: cluster-config-aws
+        {% endif %}
 
 ---
 apiVersion: v1

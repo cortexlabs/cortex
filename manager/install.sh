@@ -53,7 +53,7 @@ function cluster_up_aws() {
   setup_secrets
   echo "✓"
 
-  echo -n "￮ configuring networking "
+  echo -n "￮ configuring networking (this might take a few minutes) "
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
@@ -100,16 +100,40 @@ function cluster_up_aws() {
 }
 
 function cluster_up_gcp() {
-  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
-  gcloud container clusters get-credentials $CORTEX_GCP_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE
-
-  echo "completed auth"
+  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS /dev/null 2>&1
+  gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE > /dev/null 2>&1 # write both stderr and stdout to dev/null
 
   echo -n "￮ updating cluster configuration "
-  echo "setup_configmap"
-  setup_configmap
-  echo "setup_secrets"
-  setup_secrets
+
+  # setup_configmap
+  kubectl -n=default create configmap 'cluster-config' \
+    --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+
+  kubectl -n=default create configmap 'cluster-config-aws' \
+    --from-file='cluster-aws.yaml'=$CORTEX_AWS_CLUSTER_CONFIG_FILE \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+
+  # TODO: remove references to AWS here
+  kubectl -n=default create configmap 'env-vars' \
+    --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
+    --from-literal='CORTEX_REGION'=$CORTEX_REGION \
+    --from-literal='AWS_REGION'=$CORTEX_REGION \
+    --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
+    --from-literal='CORTEX_GCP_PROJECT'=$CORTEX_GCP_PROJECT \
+    --from-literal='CORTEX_GCP_ZONE'=$CORTEX_GCP_ZONE \
+    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
+    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
+    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
+    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+
+  # setup_secrets
+  kubectl create secret generic gcp-credentials --from-file=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
+  kubectl -n=default create secret generic 'aws-credentials' \
+    --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
+    --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
   echo "✓"
 
   echo -n "￮ configuring networking "
@@ -119,6 +143,8 @@ function cluster_up_gcp() {
   echo "✓"
 
   restart_operator
+
+  echo "TODO: wait for the operator load balancer to be ready"
 }
 
 function cluster_configure() {
@@ -258,7 +284,8 @@ function restart_operator() {
   kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
   printed_dot="false"
   until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; printed_dot="true"; sleep 2; done
-  envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/operator.yaml.j2 > /workspace/operator.yaml
+  kubectl apply -f /workspace/operator.yaml >/dev/null
   if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
 }
 

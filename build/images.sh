@@ -45,7 +45,7 @@ dev_images=(
 non_dev_images=(
   "operator"
   "tensorflow-serving-cpu"
-  "tensorflow-serving-gpu"
+  # "tensorflow-serving-gpu"
   # "tensorflow-serving-inf"
   "cluster-autoscaler"
   "metrics-server"
