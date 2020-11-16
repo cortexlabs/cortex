@@ -649,6 +649,13 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 			if len(api.Predictor.Models.Paths) > 0 {
 				event["predictor.models.paths._is_defined"] = true
 				event["predictor.models.paths._len"] = len(api.Predictor.Models.Paths)
+				var numSignatureKeysDefined int
+				for _, mmPath := range api.Predictor.Models.Paths {
+					if mmPath.SignatureKey != nil {
+						numSignatureKeysDefined++
+					}
+				}
+				event["predictor.models.paths._num_signature_keys_defined"] = numSignatureKeysDefined
 			}
 			if api.Predictor.Models.Dir != nil {
 				event["predictor.models.dir._is_defined"] = true
