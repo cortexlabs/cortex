@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -343,7 +344,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	envVars := []kcore.EnvVar{
 		{
 			Name:  "CORTEX_PROVIDER",
-			Value: types.AWSProviderType.String(),
+			Value: config.Provider.String(),
 		},
 		{
 			Name:  "CORTEX_KIND",
@@ -392,10 +393,16 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 
 		if api.Kind == userconfig.RealtimeAPIKind {
 			// Use api spec indexed by PredictorID for realtime apis to prevent rolling updates when SpecID changes without PredictorID changing
+			var bucketPath string
+			if config.Provider == types.AWSProviderType {
+				bucketPath = aws.S3Path(config.Cluster.Bucket, api.PredictorKey)
+			} else {
+				bucketPath = gcp.GCSPath(config.Cluster.Bucket, api.PredictorKey)
+			}
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_API_SPEC",
-					Value: aws.S3Path(config.Cluster.Bucket, api.PredictorKey),
+					Value: bucketPath,
 				},
 			)
 		} else {
@@ -538,11 +545,18 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 }
 
 func tfDownloadArgs(api *spec.API) string {
+	var bucketPath string
+	if config.Provider == types.AWSProviderType {
+		bucketPath = aws.S3Path(config.Cluster.Bucket, api.ProjectKey)
+	} else {
+		bucketPath = gcp.GCSPath(config.Cluster.Bucket, api.ProjectKey)
+	}
+
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
+				From:             bucketPath,
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -557,11 +571,18 @@ func tfDownloadArgs(api *spec.API) string {
 }
 
 func pythonDownloadArgs(api *spec.API) string {
+	var bucketPath string
+	if config.Provider == types.AWSProviderType {
+		bucketPath = aws.S3Path(config.Cluster.Bucket, api.ProjectKey)
+	} else {
+		bucketPath = gcp.GCSPath(config.Cluster.Bucket, api.ProjectKey)
+	}
+
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
+				From:             bucketPath,
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -576,11 +597,18 @@ func pythonDownloadArgs(api *spec.API) string {
 }
 
 func onnxDownloadArgs(api *spec.API) string {
+	var bucketPath string
+	if config.Provider == types.AWSProviderType {
+		bucketPath = aws.S3Path(config.Cluster.Bucket, api.ProjectKey)
+	} else {
+		bucketPath = gcp.GCSPath(config.Cluster.Bucket, api.ProjectKey)
+	}
+
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
+				From:             bucketPath,
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",

@@ -107,6 +107,11 @@ var _gcpCmd = &cobra.Command{
 						Name: "ng-cortex-operator",
 						Config: &containerpb.NodeConfig{
 							MachineType: "n1-standard-2",
+							OauthScopes: []string{
+								"https://www.googleapis.com/auth/compute",
+								"https://www.googleapis.com/auth/devstorage.read_only",
+							},
+							ServiceAccount: "admin-874@robert-295423.iam.gserviceaccount.com",
 						},
 						InitialNodeCount: 1,
 					},
@@ -124,6 +129,11 @@ var _gcpCmd = &cobra.Command{
 									Effect: containerpb.NodeTaint_NO_SCHEDULE,
 								},
 							},
+							OauthScopes: []string{
+								"https://www.googleapis.com/auth/compute",
+								"https://www.googleapis.com/auth/devstorage.read_only",
+							},
+							ServiceAccount: "admin-874@robert-295423.iam.gserviceaccount.com",
 							// Accelerators: []*containerpb.AcceleratorConfig{
 							// 	{
 							// 		AcceleratorCount: 1,

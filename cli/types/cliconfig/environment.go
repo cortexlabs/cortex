@@ -148,12 +148,12 @@ func (env *Environment) Validate() error {
 		if env.OperatorEndpoint == nil {
 			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, OperatorEndpointKey)
 		}
-		if env.AWSAccessKeyID == nil {
-			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSAccessKeyIDKey)
-		}
-		if env.AWSSecretAccessKey == nil {
-			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSSecretAccessKeyKey)
-		}
+		// if env.AWSAccessKeyID == nil {
+		// 	return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSAccessKeyIDKey)
+		// }
+		// if env.AWSSecretAccessKey == nil {
+		// 	return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSSecretAccessKeyKey)
+		// }
 		if env.AWSRegion != nil {
 			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
 		}

@@ -17,12 +17,16 @@ limitations under the License.
 package operator
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
 	ErrCortexInstallationBroken = "operator.cortex_installation_broken"
 	ErrLoadBalancerInitializing = "operator.load_balancer_initializing"
+	ErrUnknownProvider          = "operator.unknown_provider"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -36,5 +40,12 @@ func ErrorLoadBalancerInitializing() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrLoadBalancerInitializing,
 		Message: "load balancer is still initializing",
+	})
+}
+
+func ErrorUnknownProvider() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnknownProvider,
+		Message: fmt.Sprintf("unknown provider; can only use %s or %s provider", types.AWSProviderType, types.GCPProviderType),
 	})
 }

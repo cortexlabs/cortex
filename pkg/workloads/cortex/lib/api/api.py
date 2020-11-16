@@ -210,9 +210,6 @@ def get_spec(
         region: Region of the bucket. Only required for "S3" provider.
     """
 
-    # TODO get rid of hardcoded provider
-    provider = "gcs"
-
     if provider == "local":
         storage = LocalStorage(cache_dir)
     elif provider == "s3":
