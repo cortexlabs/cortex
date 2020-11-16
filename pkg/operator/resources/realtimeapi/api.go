@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -55,32 +56,52 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 	api := spec.GetAPISpec(apiConfig, models, projectID, deploymentID, config.Cluster.ClusterName)
 
 	if prevDeployment == nil {
-		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
-			return nil, "", errors.Wrap(err, "upload api spec")
-		}
+		if config.Provider == types.AWSProviderType {
+			if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+				return nil, "", errors.Wrap(err, "upload api spec")
+			}
 
-		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
-			return nil, "", errors.Wrap(err, "upload raw api spec")
-		}
+			if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
+				return nil, "", errors.Wrap(err, "upload raw api spec")
+			}
 
-		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
-			return nil, "", errors.Wrap(err, "upload predictor spec")
+			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
+			if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+				return nil, "", errors.Wrap(err, "upload predictor spec")
+			}
+		}
+		if config.Provider == types.GCPProviderType {
+			if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.Key); err != nil {
+				return nil, "", errors.Wrap(err, "upload api spec")
+			}
+
+			if err := config.GCP.UploadBytesToGCP(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
+				return nil, "", errors.Wrap(err, "upload raw api spec")
+			}
+
+			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
+			if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+				return nil, "", errors.Wrap(err, "upload predictor spec")
+			}
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			go deleteK8sResources(api.Name)
 			return nil, "", err
 		}
-		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-		if err != nil {
-			go deleteK8sResources(api.Name)
-			return nil, "", err
+
+		if config.Provider == types.AWSProviderType {
+			err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
+			if err != nil {
+				go deleteK8sResources(api.Name)
+				return nil, "", err
+			}
+			err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
+			if err != nil {
+				errors.PrintError(err)
+			}
 		}
-		err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
-		if err != nil {
-			errors.PrintError(err)
-		}
+
 		return api, fmt.Sprintf("creating %s", api.Resource.UserString()), nil
 	}
 
@@ -92,24 +113,43 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 		if isUpdating && !force {
 			return nil, "", ErrorAPIUpdating(api.Name)
 		}
-		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
-			return nil, "", errors.Wrap(err, "upload api spec")
-		}
 
-		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
-			return nil, "", errors.Wrap(err, "upload raw api spec")
-		}
+		if config.Provider == types.AWSProviderType {
+			if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+				return nil, "", errors.Wrap(err, "upload api spec")
+			}
 
-		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
-			return nil, "", errors.Wrap(err, "upload predictor spec")
+			if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
+				return nil, "", errors.Wrap(err, "upload raw api spec")
+			}
+
+			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
+			if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+				return nil, "", errors.Wrap(err, "upload predictor spec")
+			}
+		}
+		if config.Provider == types.GCPProviderType {
+			if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.Key); err != nil {
+				return nil, "", errors.Wrap(err, "upload api spec")
+			}
+
+			if err := config.GCP.UploadBytesToGCP(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
+				return nil, "", errors.Wrap(err, "upload raw api spec")
+			}
+
+			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
+			if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+				return nil, "", errors.Wrap(err, "upload predictor spec")
+			}
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
-			return nil, "", err
+		if config.Provider == types.AWSProviderType {
+			if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
+				return nil, "", err
+			}
 		}
 		return api, fmt.Sprintf("updating %s", api.Resource.UserString()), nil
 	}
@@ -154,13 +194,25 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 	api = spec.GetAPISpec(api.API, api.CuratedModelResources, api.ProjectID, deploymentID(), config.Cluster.ClusterName)
 
-	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
-		return "", errors.Wrap(err, "upload api spec")
-	}
+	if config.Provider == types.AWSProviderType {
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+			return "", errors.Wrap(err, "upload api spec")
+		}
 
-	// Reupload api spec to the same PredictorID but with the new DeploymentID
-	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
-		return "", errors.Wrap(err, "upload predictor spec")
+		// Reupload api spec to the same PredictorID but with the new DeploymentID
+		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+			return "", errors.Wrap(err, "upload predictor spec")
+		}
+	}
+	if config.Provider == types.GCPProviderType {
+		if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.Key); err != nil {
+			return "", errors.Wrap(err, "upload api spec")
+		}
+
+		// Reupload api spec to the same PredictorID but with the new DeploymentID
+		if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+			return "", errors.Wrap(err, "upload predictor spec")
+		}
 	}
 
 	if err := applyK8sDeployment(api, prevDeployment); err != nil {
@@ -186,31 +238,36 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				return nil
 			}
 			// best effort deletion
-			deleteS3Resources(apiName) // swallow errors because there could be weird error messages
+			if config.Provider == types.AWSProviderType {
+				deleteS3Resources(apiName) // swallow errors because there could be weird error messages
+			} else {
+				deleteGCSResources(apiName)
+			}
 			return nil
 		},
 		// delete API from API Gateway
 		func() error {
-			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
-			if err != nil {
-				return err
+			if config.Provider == types.AWSProviderType {
+				return operator.RemoveAPIFromAPIGatewayK8s(virtualService)
 			}
 			return nil
 		},
 		// delete api from cloudwatch dashboard
 		func() error {
-			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.RealtimeAPIKind.String())
-			if err != nil {
-				return errors.Wrap(err, "failed to get virtual services")
-			}
-			// extract all api names from statuses
-			allAPINames := make([]string, len(virtualServices))
-			for i, virtualService := range virtualServices {
-				allAPINames[i] = virtualService.Labels["apiName"]
-			}
-			err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
-			if err != nil {
-				return errors.Wrap(err, "failed to delete API from dashboard")
+			if config.Provider == types.AWSProviderType {
+				virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.RealtimeAPIKind.String())
+				if err != nil {
+					return errors.Wrap(err, "failed to get virtual services")
+				}
+				// extract all api names from statuses
+				allAPINames := make([]string, len(virtualServices))
+				for i, virtualService := range virtualServices {
+					allAPINames[i] = virtualService.Labels["apiName"]
+				}
+				err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
+				if err != nil {
+					return errors.Wrap(err, "failed to delete API from dashboard")
+				}
 			}
 			return nil
 		},
@@ -440,6 +497,11 @@ func deleteK8sResources(apiName string) error {
 func deleteS3Resources(apiName string) error {
 	prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+}
+
+func deleteGCSResources(apiName string) error {
+	prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
+	return config.GCP.DeleteGCSDir(config.Cluster.Bucket, prefix, true)
 }
 
 func IsAPIUpdating(apiName string) (bool, error) {

@@ -25,17 +25,22 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
 const _clusterConfigPath = "/configs/cluster/cluster.yaml"
 
 var (
-	Cluster         *clusterconfig.InternalConfig
-	AWS             *aws.Client
+	Cluster  *clusterconfig.InternalConfig
+	AWS      *aws.Client
+	GCP      *gcp.Client
+	Provider types.ProviderType
+
 	K8s             *k8s.Client
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
