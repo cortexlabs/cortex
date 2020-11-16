@@ -15,6 +15,7 @@
 import os
 import time
 import json
+import sys
 
 from cortex.lib.type import (
     predictor_type_from_api_spec,
@@ -154,7 +155,7 @@ def main():
 
         # wait until the cron finishes its first pass
         if cron:
-            while not cron.ran_once():
+            while cron.is_alive() and not cron.ran_once():
                 time.sleep(0.25)
 
             # disable live reloading when the BatchAPI kind is used
@@ -174,8 +175,12 @@ def main():
         time.sleep(0.25)
 
     # exit if cron has exited with errors
-    if cron and isinstance(cron.exitcode, int) and cron.exitcode < 0:
-        sys.exit(-cron.exitcode)
+    if cron and isinstance(cron.exitcode, int) and cron.exitcode != 0:
+        # if it was killed by a signal
+        if cron.exitcode < 0:
+            sys.exit(-cron.exitcode)
+        sys.exit(cron.exitcode)
+
 
 if __name__ == "__main__":
     main()
