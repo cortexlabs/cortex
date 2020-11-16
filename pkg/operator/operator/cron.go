@@ -135,10 +135,10 @@ func InstanceTelemetry() error {
 		"instance_count":              totalInstances,
 		"instances":                   instanceInfos,
 		"fixed_price":                 fixedPrice,
-		"total_price":                 totalInstancePrice + fixedPrice,
-		"total_price_if_on_demand":    totalInstancePriceIfOnDemand + fixedPrice,
 		"workload_price":              totalInstancePrice,
 		"workload_price_if_on_demand": totalInstancePriceIfOnDemand,
+		"total_price":                 totalInstancePrice + fixedPrice,
+		"total_price_if_on_demand":    totalInstancePriceIfOnDemand + fixedPrice,
 	}
 
 	telemetry.Event("operator.cron", properties, config.Cluster.TelemetryEvent())
