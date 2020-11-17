@@ -16,11 +16,54 @@ limitations under the License.
 
 package clusterconfig
 
+import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/consts"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/types"
+)
+
 type GCPConfig struct {
-	Project      string `json:"project" yaml:"project"`
-	ClusterName  string `json:"cluster_name" yaml:"cluster_name"`
-	Zone         string `json:"zone" yaml:"zone"`
-	InstanceType string `json:"instance_type" yaml:"instance_type"`
-	MinInstances int    `json:"min_instances" yaml:"min_instances"`
-	MaxInstances int    `json:"max_instances" yaml:"max_instances"`
+	Provider            types.ProviderType `json:"provider" yaml:"provider"`
+	Bucket              string             `json:"bucket" yaml:"bucket"`
+	Project             string             `json:"project" yaml:"project"`
+	ClusterName         string             `json:"cluster_name" yaml:"cluster_name"`
+	Zone                string             `json:"zone" yaml:"zone"`
+	InstanceType        string             `json:"instance_type" yaml:"instance_type"`
+	MinInstances        int                `json:"min_instances" yaml:"min_instances"`
+	MaxInstances        int                `json:"max_instances" yaml:"max_instances"`
+	Telemetry           bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator       string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager        string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader     string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor string             `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageMetricsServer  string             `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageFluentd        string             `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageIstioProxy     string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot     string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+}
+
+type InternalGCPConfig struct {
+	GCPConfig
+
+	// Populated by operator
+	ID                string `json:"id"`
+	APIVersion        string `json:"api_version"`
+	OperatorInCluster bool   `json:"operator_in_cluster"`
+}
+
+func GetClusterProviderType(clusterPath string) (types.ProviderType, error) {
+	type provider struct {
+		Provider types.ProviderType `json:"provider" yaml:"provider"`
+	}
+
+	providerHolder := provider{}
+	errs := cr.ParseYAMLFile(&providerHolder, ProviderValidation, clusterPath)
+	if errors.HasError(errs) {
+		return types.UnknownProviderType, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
+	}
+
+	return providerHolder.Provider, nil
 }

@@ -186,6 +186,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
+			"CORTEX_PROVIDER=" + "aws",
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
@@ -215,24 +216,37 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 	return output, exitCode, nil
 }
 
-func runManagerWithClusterConfigGCP(entrypoint string, gcpConfig *clusterconfig.GCPConfig, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+// TODO: remove references to AWS here
+func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clusterconfig.GCPConfig, awsClusterConfig *clusterconfig.Config, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
 	}
 
-	cachedClusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
-	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
+	clusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, clusterConfig.Zone)
+	if err := files.WriteFile(clusterConfigBytes, clusterConfigPath); err != nil {
 		return "", nil, err
 	}
 
-	containerClusterConfigPath := "/in/" + filepath.Base(cachedClusterConfigPath)
-	gcpCredsPath := "/in/gcp_creds.json"
+	containerClusterConfigPath := "/in/" + filepath.Base(clusterConfigPath)
+	gcpCredsPath := "/in/key.json"
+
+	awsClusterConfigPath := "/in/aws.yaml"
+	awsClusterConfigBytes, err := yaml.Marshal(awsClusterConfig)
+	if err != nil {
+		return "", nil, errors.WithStack(err)
+	}
+
+	awsCachedClusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *awsClusterConfig.Region)
+	if err := files.WriteFile(awsClusterConfigBytes, awsCachedClusterConfigPath); err != nil {
+		return "", nil, err
+	}
+
 	copyToPaths = append(copyToPaths, dockerCopyToPath{
 		input: &archive.Input{
 			Files: []archive.FileInput{
 				{
-					Source: cachedClusterConfigPath,
+					Source: clusterConfigPath,
 					Dest:   containerClusterConfigPath,
 				},
 			},
@@ -248,25 +262,30 @@ func runManagerWithClusterConfigGCP(entrypoint string, gcpConfig *clusterconfig.
 			},
 		},
 		containerPath: "/",
+	}, dockerCopyToPath{
+		input: &archive.Input{
+			Files: []archive.FileInput{
+				{
+					Source: awsCachedClusterConfigPath,
+					Dest:   awsClusterConfigPath,
+				},
+			},
+		},
+		containerPath: "/",
 	})
 
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
+		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && eval $(python /root/cluster_config_env.py %s) && %s", awsClusterConfigPath, containerClusterConfigPath, entrypoint)}, // TODO remove
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
 			"CORTEX_PROVIDER=" + "gcp",
 			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
-			"CORTEX_GCP_PROJECT=" + gcpConfig.Project,
-			"CORTEX_GCP_CLUSTER_NAME=" + gcpConfig.ClusterName,
-			"CORTEX_GCP_ZONE=" + gcpConfig.Zone,
-			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
-			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
-			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
-			"CLUSTER_AWS_SECRET_ACCESS_KEY=" + awsCreds.ClusterAWSSecretAccessKey,
+			"CORTEX_GCP_PROJECT=" + clusterConfig.Project,
+			"CORTEX_GCP_ZONE=" + clusterConfig.Zone,
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
@@ -281,6 +300,11 @@ func runManagerWithClusterConfigGCP(entrypoint string, gcpConfig *clusterconfig.
 			"CORTEX_IMAGE_TENSORFLOW_PREDICTOR=" + consts.DefaultImageTensorFlowPredictor,
 			"CORTEX_IMAGE_ONNX_PREDICTOR_CPU=" + consts.DefaultImageONNXPredictorCPU,
 			"CORTEX_IMAGE_ONNX_PREDICTOR_GPU=" + consts.DefaultImageONNXPredictorGPU,
+			"CORTEX_AWS_CLUSTER_CONFIG_FILE=" + awsClusterConfigPath, // TODO remove
+			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
+			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
+			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
+			"CLUSTER_AWS_SECRET_ACCESS_KEY=" + awsCreds.ClusterAWSSecretAccessKey,
 		},
 	}
 

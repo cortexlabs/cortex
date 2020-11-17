@@ -164,7 +164,6 @@ func Execute() {
 	_rootCmd.AddCommand(_deployCmd)
 	_rootCmd.AddCommand(_getCmd)
 	_rootCmd.AddCommand(_logsCmd)
-	_rootCmd.AddCommand(_gcpCmd)
 	_rootCmd.AddCommand(_refreshCmd)
 	_rootCmd.AddCommand(_predictCmd)
 	_rootCmd.AddCommand(_deleteCmd)

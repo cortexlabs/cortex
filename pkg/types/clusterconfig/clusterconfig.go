@@ -37,6 +37,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
@@ -55,6 +56,7 @@ var (
 )
 
 type Config struct {
+	Provider                   types.ProviderType `json:"provider" yaml:"provider"`
 	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
 	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
 	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
@@ -470,7 +472,24 @@ var Validation = &cr.StructValidation{
 				Default: true,
 			},
 		},
+		providerValidation,
 	),
+}
+
+var providerValidation = &cr.StructFieldValidation{
+	StructField: "Provider",
+	StringValidation: &cr.StringValidation{
+		Required:      true,
+		AllowedValues: []string{types.AWSProviderType.String(), types.GCPProviderType.String()},
+	},
+	Parser: func(str string) (interface{}, error) {
+		return types.ProviderTypeFromString(str), nil
+	},
+}
+
+var ProviderValidation = &cr.StructValidation{
+	AllowExtraFields:       true,
+	StructFieldValidations: []*cr.StructFieldValidation{providerValidation},
 }
 
 var AccessValidation = &cr.StructValidation{
