@@ -24,12 +24,12 @@ import (
 	"time"
 
 	container "cloud.google.com/go/container/apiv1"
-	"cloud.google.com/go/storage"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
@@ -107,14 +107,15 @@ func upGCP(gcpPath string, awsClusterConfigPath string) {
 
 	bucketID := hash.String(gcpConfig.Project + gcpConfig.Zone)[:10]
 
-	defaultBucket := gcpConfig.ClusterName + "-" + bucketID
+	if gcpConfig.Bucket == "" {
+		gcpConfig.Bucket = gcpConfig.ClusterName + "-" + bucketID
+	}
 
-	err = createGCPBucketIfNotFound(defaultBucket, gcpConfig.Project)
+	GCP := &gcp.Client{}
+	err = GCP.CreateBucket(gcpConfig.Bucket, gcpConfig.Project, true)
 	if err != nil {
 		exit.Error(err)
 	}
-
-	gcpConfig.Bucket = defaultBucket
 
 	fmt.Print("spinning up a cluster .")
 
@@ -208,26 +209,4 @@ func upGCP(gcpPath string, awsClusterConfigPath string) {
 		exit.Error(err)
 	}
 	exit.Ok()
-}
-
-func createGCPBucketIfNotFound(bucketName string, projectID string) error {
-	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	bucket := client.Bucket(bucketName)
-	_, err = bucket.Attrs(ctx)
-	if err == storage.ErrBucketNotExist {
-		fmt.Print("￮ creating a new gcs bucket:", bucketName)
-		err = bucket.Create(ctx, projectID, nil)
-		if err != nil {
-			return err
-		}
-		fmt.Println("  ✓")
-		return nil
-	}
-	fmt.Println("￮ using existing gcs bucket:", bucketName, "✓")
-	return nil
 }

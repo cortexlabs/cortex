@@ -98,6 +98,8 @@ func Init() error {
 		if awsClusterConfigPath == "" {
 			awsClusterConfigPath = _clusterConfigBackupPath
 		}
+
+		GCP = &gcp.Client{}
 	}
 
 	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, awsClusterConfigPath)

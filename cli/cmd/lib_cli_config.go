@@ -776,7 +776,7 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 		exit.Error(ErrorEnvironmentNotFound(envName))
 	}
 
-	if env.Provider != types.AWSProviderType {
+	if env.Provider != types.AWSProviderType && env.Provider != types.GCPProviderType {
 		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
 	}
 

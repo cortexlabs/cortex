@@ -90,7 +90,7 @@ var _deployCmd = &cobra.Command{
 		}
 
 		var deployResults []schema.DeployResult
-		if env.Provider == types.AWSProviderType {
+		if env.Provider == types.AWSProviderType || env.Provider == types.GCPProviderType {
 			deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
 			if err != nil {
 				exit.Error(err)

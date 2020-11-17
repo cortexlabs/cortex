@@ -25,6 +25,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
 
@@ -32,14 +33,18 @@ func GCSPath(bucket string, key string) string {
 	return "gs://" + filepath.Join(bucket, key)
 }
 
-func (c *Client) CreateBucket(bucket, projectID string) error {
+func (c *Client) CreateBucket(bucket, projectID string, ignoreErrorIfBucketExists bool) error {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return err
 	}
 	err = gcsClient.Bucket(bucket).Create(context.Background(), projectID, nil)
 	if err != nil {
-		return err
+		if e, ok := err.(*googleapi.Error); ok && e.Code == 409 && !ignoreErrorIfBucketExists {
+			return err
+		} else if !ok || (ok && e.Code != 409) {
+			return err
+		}
 	}
 	return nil
 }
