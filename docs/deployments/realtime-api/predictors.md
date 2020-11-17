@@ -492,58 +492,198 @@ If your application requires additional dependencies, you can install additional
 
 ## API requests
 
-The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request. The `payload` parameter is parsed according to the `Content-Type` header in the request:
+The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request. The `payload` parameter is parsed according to the `Content-Type` header in the request. Here are the parsing rules (see below for examples):
 
 1. For `Content-Type: application/json`, `payload` will be the parsed JSON body.
-1. For `Content-Type: multipart/form-data` / `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the value is a `string` for form data, or `starlette.datastructures.UploadFile` for file uploads, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)).
+1. For `Content-Type: multipart/form-data` / `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the values are strings for text data, or `starlette.datastructures.UploadFile` for file uploads; see [Starlette's documentation](https://www.starlette.io/requests/#request-files)).
 1. For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
 
-The `payload` parameter type will be a Python object (*lists*, *dicts*, *numbers*) if a request with a JSON payload is made:
+Here are some examples:
+
+### JSON data
+
+#### Python request
+
+```python
+import requests
+
+url = "https://***.amazonaws.com/my-api"
+requests.post(url, json={"key": "value"})
+```
+
+Or if you have a json string:
+
+```python
+import requests
+import json
+
+url = "https://***.amazonaws.com/my-api"
+jsonStr = json.dumps({"key": "value"})
+requests.post(url, data=jsonStr, headers={"Content-Type": "application/json"})
+```
+
+#### CURL request
 
 ```bash
-$ curl http://***.amazonaws.com/my-api \
+$ curl https://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/json" \
     -d '{"key": "value"}'
 ```
 
-The `payload` parameter type will be a `bytes` object if a request with a `Content-Type: application/octet-stream` is made:
+Or if you have a json file:
 
 ```bash
-$ curl http://***.amazonaws.com/my-api \
+$ curl https://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/json" \
+    -d @file.json
+```
+
+#### Reading the payload
+
+When sending a JSON payload, the `payload` parameter will be a Python object:
+
+```python
+class PythonPredictor:
+    def __init__(self, config):
+        pass
+
+    def predict(self, payload):
+        print(payload["key"])  # prints "value"
+```
+
+### Binary data
+
+#### Python request
+
+```python
+import requests
+import pickle
+
+url = "https://***.amazonaws.com/my-api"
+pklBytes = pickle.dumps({"key": "value"})
+requests.post(url, data=pklBytes, headers={"Content-Type": "application/octet-stream"})
+```
+
+#### CURL request
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/octet-stream" \
-    --data-binary @file.bin
+    --data-binary @object.pkl
 ```
 
-The `payload` parameter type will be a `bytes` object if a request doesn't have the `Content-Type` set:
+#### Reading the payload
 
-```bash
-$ curl http://***.amazonaws.com/my-api \
-    -X POST -H "Content-Type:" \
-    -d @sample.txt
+Since the `Content-Type: application/octet-stream` header is used, the `payload` parameter will be a `bytes` object:
+
+```python
+import pickle
+
+class PythonPredictor:
+    def __init__(self, config):
+        pass
+
+    def predict(self, payload):
+        obj = pickle.loads(payload)
+        print(obj["key"])  # prints "value"
 ```
 
-The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: multipart/form-data` is made:
+Here's an example if the binary data is an image:
 
-```bash
-$ curl http://***.amazonaws.com/my-api \
-    -X POST -H "Content-Type: multipart/form-data" \
-    -F "fieldName=@file.txt"
+```python
+from PIL import Image
+import io
+
+class PythonPredictor:
+    def __init__(self, config):
+        pass
+
+    def predict(self, payload, headers):
+        img = Image.open(io.BytesIO(payload))
+        print(img.size)
 ```
 
-The `payload` parameter type will be a `starlette.datastructures.FormData` object if a request with a `Content-Type: application/x-www-form-urlencoded` is made:
+### Form data (files)
 
-```bash
-$ curl http://***.amazonaws.com/my-api \
-    -X POST -H "Content-Type: application/x-www-form-urlencoded" \
-    -d @file.txt
+#### Python request
+
+```python
+import requests
+import pickle
+
+url = "https://***.amazonaws.com/my-api"
+files = {
+    "text": open("text.txt", "rb"),
+    "object": open("object.pkl", "rb"),
+    "image": open("image.png", "rb"),
+}
+
+requests.post(url, files=files)
 ```
 
-The `payload` parameter type will be a `starlette.datastructures.FormData` object if no headers are added to the request:
+#### CURL request
 
 ```bash
-$ curl http://***.amazonaws.com/my-api \
+$ curl https://***.amazonaws.com/my-api \
     -X POST \
-    -d @file.txt
+    -F "text=@text.txt" \
+    -F "object=@object.pkl" \
+    -F "image=@image.png"
+```
+
+#### Reading the payload
+
+When sending files via form data, the `payload` parameter will be `starlette.datastructures.FormData` (key-value pairs where the values are `starlette.datastructures.UploadFile`, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). Either `Content-Type: multipart/form-data` or `Content-Type: application/x-www-form-urlencoded` can be used (typically `Content-Type: multipart/form-data` is used for files, and is the default in the examples above).
+
+```python
+from PIL import Image
+import pickle
+
+class PythonPredictor:
+    def __init__(self, config):
+        pass
+
+    def predict(self, payload):
+        text = payload["text"].file.read()
+        print(text.decode("utf-8"))  # prints the contents of text.txt
+
+        obj = pickle.load(payload["object"].file)
+        print(obj["key"])  # prints "value" assuming `object.pkl` is a pickled dictionary {"key": "value"}
+
+        img = Image.open(payload["image"].file)
+        print(img.size)  # prints the dimensions of image.png
+```
+
+### Form data (text)
+
+#### Python request
+
+```python
+import requests
+
+url = "https://***.amazonaws.com/my-api"
+requests.post(url, data={"key": "value"})
+```
+
+#### CURL request
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
+    -X POST \
+    -d "key=value"
+```
+
+#### Reading the payload
+
+When sending text via form data, the `payload` parameter will be `starlette.datastructures.FormData` (key-value pairs where the values are strings, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). Either `Content-Type: multipart/form-data` or `Content-Type: application/x-www-form-urlencoded` can be used (typically `Content-Type: application/x-www-form-urlencoded` is used for text, and is the default in the examples above).
+
+```python
+class PythonPredictor:
+    def __init__(self, config):
+        pass
+
+    def predict(self, payload):
+        print(payload["key"])  # will print "value"
 ```
 
 ## API responses
