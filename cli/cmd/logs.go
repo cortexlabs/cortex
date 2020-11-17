@@ -52,7 +52,7 @@ var _logsCmd = &cobra.Command{
 		}
 
 		apiName := args[0]
-		if env.Provider == types.AWSProviderType {
+		if env.Provider == types.AWSProviderType || env.Provider == types.GCPProviderType {
 			if len(args) == 1 {
 				err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), apiName)
 				if err != nil {
