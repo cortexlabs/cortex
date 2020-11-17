@@ -44,7 +44,7 @@ func (c *Client) CreateBucket(bucket, projectID string) error {
 	return nil
 }
 
-func (c *Client) ReadJSONFromGCP(objPtr interface{}, bucket string, key string) error {
+func (c *Client) ReadJSONFromGCS(objPtr interface{}, bucket string, key string) error {
 	jsonBytes, err := c.ReadBytesFromGCS(bucket, key)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (c *Client) ReadJSONFromGCP(objPtr interface{}, bucket string, key string) 
 	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), GCSPath(bucket, key))
 }
 
-func (c *Client) UploadJSONToGCP(obj interface{}, bucket string, key string) error {
+func (c *Client) UploadJSONToGCS(obj interface{}, bucket string, key string) error {
 	jsonBytes, err := json.Marshal(obj)
 	if err != nil {
 		return err

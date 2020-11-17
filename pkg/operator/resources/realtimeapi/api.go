@@ -71,7 +71,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 			}
 		}
 		if config.Provider == types.GCPProviderType {
-			if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.Key); err != nil {
+			if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.Key); err != nil {
 				return nil, "", errors.Wrap(err, "upload api spec")
 			}
 
@@ -80,7 +80,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 			}
 
 			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-			if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+			if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 				return nil, "", errors.Wrap(err, "upload predictor spec")
 			}
 		}
@@ -129,7 +129,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 			}
 		}
 		if config.Provider == types.GCPProviderType {
-			if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.Key); err != nil {
+			if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.Key); err != nil {
 				return nil, "", errors.Wrap(err, "upload api spec")
 			}
 
@@ -138,7 +138,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 			}
 
 			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-			if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+			if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 				return nil, "", errors.Wrap(err, "upload predictor spec")
 			}
 		}
@@ -205,12 +205,12 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		}
 	}
 	if config.Provider == types.GCPProviderType {
-		if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.Key); err != nil {
 			return "", errors.Wrap(err, "upload api spec")
 		}
 
 		// Reupload api spec to the same PredictorID but with the new DeploymentID
-		if err := config.GCP.UploadJSONToGCP(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+		if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return "", errors.Wrap(err, "upload predictor spec")
 		}
 	}

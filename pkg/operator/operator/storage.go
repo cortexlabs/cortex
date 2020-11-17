@@ -32,7 +32,7 @@ func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 			return nil, err
 		}
 	} else if config.Provider == types.GCPProviderType {
-		if err := config.GCP.ReadJSONFromGCP(&api, config.Cluster.Bucket, bucketKey); err != nil {
+		if err := config.GCP.ReadJSONFromGCS(&api, config.Cluster.Bucket, bucketKey); err != nil {
 			return nil, err
 		}
 	} else {

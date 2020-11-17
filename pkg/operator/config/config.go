@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -39,10 +40,9 @@ const _clusterConfigPath = "/configs/cluster/cluster.yaml"
 const _clusterConfigBackupPath = "/configs/cluster-aws/cluster-aws.yaml"
 
 var (
-	Cluster  *clusterconfig.InternalConfig
-	AWS      *aws.Client
-	GCP      *gcp.Client
-	Provider types.ProviderType
+	Cluster *clusterconfig.InternalConfig
+	AWS     *aws.Client
+	GCP     *gcp.Client
 
 	K8s             *k8s.Client
 	K8sIstio        *k8s.Client
