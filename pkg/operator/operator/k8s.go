@@ -876,16 +876,20 @@ func APILoadBalancerURL() (string, error) {
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
 		return "", ErrorLoadBalancerInitializing()
 	}
-	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+	debug.Ppg(service)
+	if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
+		return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+	}
+	return "http://" + service.Status.LoadBalancer.Ingress[0].IP, nil
 }
 
 func APIEndpoint(api *spec.API) (string, error) {
 	var err error
 	baseAPIEndpoint := ""
 
-	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
+	if config.Provider == types.AWSProviderType && api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
 		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
-	} else {
+	} else if config.Provider == types.AWSProviderType || config.Provider == types.GCPProviderType {
 		baseAPIEndpoint, err = APILoadBalancerURL()
 		if err != nil {
 			return "", err
