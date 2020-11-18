@@ -21,9 +21,9 @@ export EXPECTED_CORTEX_VERSION=master
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     if [ "$CORTEX_PROVIDER" == "local" ]; then
-        echo "error: your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/cluster-management/update#upgrading-to-a-newer-version-of-cortex"
+        echo "error: your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/aws/update#upgrading-to-a-newer-version-of-cortex"
     else
-        echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update#upgrading-to-a-newer-version-of-cortex"
+        echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/aws/update#upgrading-to-a-newer-version-of-cortex"
     fi
     exit 1
 fi

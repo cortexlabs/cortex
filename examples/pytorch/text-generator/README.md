@@ -303,4 +303,4 @@ Running `cortex delete` will free up cluster resources and allow Cortex to scale
 * See our [exporting guide](../../../docs/guides/exporting.md) for how to export your model to use in an API.
 * Try the [batch API tutorial](../../batch/image-classifier/README.md) to learn how to deploy batch APIs in Cortex.
 * See our [traffic splitter example](../../traffic-splitter/README.md) for how to deploy multiple APIs and set up a traffic splitter.
-* See [uninstall](../../../docs/cluster-management/uninstall.md) if you'd like to spin down your cluster.
+* See [uninstall](../../../docs/aws/uninstall.md) if you'd like to spin down your cluster.

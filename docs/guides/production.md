@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 **Tips for batch and realtime APIs:**
 
-* Consider using [spot instances](../cluster-management/spot-instances.md) to reduce cost.
+* Consider using [spot instances](../aws/spot.md) to reduce cost.
 
 * If you're using multiple clusters and/or multiple developers are interacting with your cluster(s), see our documention on [environments](../miscellaneous/environments.md)
 
@@ -30,4 +30,4 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 * Consider setting a low value for `max_replica_concurrency`, since if there are many requests in the queue, it will take a long time until newly received requests are processed. See [autoscaling docs](../deployments/realtime-api/autoscaling.md) for more details.
 
-* Keep in mind that API Gateway has a 29 second timeout; if your requests take longer (due to a long inference time and/or long request queues), you will need to disable API Gateway for your API by setting `api_gateway: none` in the `networking` config in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and/or [Batch API configuration](../deployments/batch-api/api-configuration.md). Alternatively, you can disable API gateway for all APIs in your cluster by setting `api_gateway: none` in your [cluster configuration file](../cluster-management/config.md) before creating your cluster.
+* Keep in mind that API Gateway has a 29 second timeout; if your requests take longer (due to a long inference time and/or long request queues), you will need to disable API Gateway for your API by setting `api_gateway: none` in the `networking` config in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and/or [Batch API configuration](../deployments/batch-api/api-configuration.md). Alternatively, you can disable API gateway for all APIs in your cluster by setting `api_gateway: none` in your [cluster configuration file](../aws/config.md) before creating your cluster.
