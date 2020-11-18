@@ -76,6 +76,14 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+type GCPLogsResponse struct {
+	Query map[string]QueryParam `json:"query"`
+}
+
+type QueryParam struct {
+	Param string `json:"param"`
+}
+
 type APITFLiveReloadingSummary struct {
 	Message       string                       `json:"message"`
 	ModelMetadata map[string]TFModelIDMetadata `json:"model_metadata"`

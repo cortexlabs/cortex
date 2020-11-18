@@ -64,7 +64,7 @@ var _predictCmd = &cobra.Command{
 		jsonPath := args[1]
 
 		var apisRes []schema.APIResponse
-		if env.Provider == types.AWSProviderType {
+		if env.Provider == types.AWSProviderType || env.Provider == types.GCPProviderType {
 			apisRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 			if err != nil {
 				exit.Error(err)

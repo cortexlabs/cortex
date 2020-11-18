@@ -17,7 +17,7 @@ limitations under the License.
 package gcp
 
 type Client struct {
-	Region         string
+	Zone           string
 	ProjectID      string
 	ServiceAccount string
 	IsAnonymous    bool

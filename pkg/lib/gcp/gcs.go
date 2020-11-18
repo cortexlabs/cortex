@@ -49,6 +49,21 @@ func (c *Client) CreateBucket(bucket, projectID string, ignoreErrorIfBucketExist
 	return nil
 }
 
+func (c *Client) IsGCSFile(bucket string, key string) (bool, error) {
+	gcsClient, err := c.GCS()
+	if err != nil {
+		return false, err
+	}
+	_, err = gcsClient.Bucket(bucket).Object(key).Attrs(context.Background())
+	if err != nil && err == storage.ErrObjectNotExist {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (c *Client) ReadJSONFromGCS(objPtr interface{}, bucket string, key string) error {
 	jsonBytes, err := c.ReadBytesFromGCS(bucket, key)
 	if err != nil {

@@ -19,8 +19,10 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -49,13 +51,18 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	upgrader := websocket.Upgrader{}
-	socket, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		respondError(w, r, err)
-		return
+	if config.Provider == types.AWSProviderType {
+		upgrader := websocket.Upgrader{}
+		socket, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		defer socket.Close()
+		realtimeapi.ReadLogs(apiName, socket)
 	}
-	defer socket.Close()
-
-	realtimeapi.ReadLogs(apiName, socket)
+	if config.Provider == types.GCPProviderType {
+		query := gcpLogsQueryBuilder(apiName)
+		respond(w, query)
+	}
 }

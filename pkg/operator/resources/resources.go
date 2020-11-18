@@ -86,7 +86,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		ConfigFileName: configFileName,
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName, &config.Cluster.Config)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, &config.Cluster.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -98,13 +98,26 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		return nil, err
 	}
 
-	isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
-	if err != nil {
-		return nil, err
-	}
-	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+	if config.Provider == types.AWSProviderType {
+		isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
+		if err != nil {
 			return nil, err
+		}
+		if !isProjectUploaded {
+			if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if config.Provider == types.GCPProviderType {
+		isProjectUploaded, err := config.GCP.IsGCSFile(config.Cluster.Bucket, projectKey)
+		if err != nil {
+			return nil, err
+		}
+		if !isProjectUploaded {
+			if err = config.GCP.UploadBytesToGCS(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+				return nil, err
+			}
 		}
 	}
 

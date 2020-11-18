@@ -876,7 +876,6 @@ func APILoadBalancerURL() (string, error) {
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
 		return "", ErrorLoadBalancerInitializing()
 	}
-	debug.Ppg(service)
 	if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
 		return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
 	}
