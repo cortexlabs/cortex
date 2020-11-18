@@ -120,7 +120,7 @@ prediction = requests.post(endpoint, payload)
 
 ## Get started
 
-Prerequisite: [Docker](https://docs.docker.com/install).
+First, make sure [Docker](https://docs.docker.com/install) is running on your machine.
 
 ```bash
 pip install cortex
@@ -154,10 +154,4 @@ payload = {'text': 'hello world'}
 print(requests.post(endpoint, json=payload).text)
 ```
 
-
-
-
-
-
-
-See the [installation guide](https://docs.cortex.dev/install) to learn about running Cortex in production.
+See the [installation instructions](https://docs.cortex.dev/install) to learn about running Cortex in production.

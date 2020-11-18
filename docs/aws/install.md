@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Spin up Cortex on your AWS account
 
-Prerequisite: [Docker](https://docs.docker.com/install).
+First, make sure [Docker](https://docs.docker.com/install) is running on your machine.
 
 ```bash
 # install the CLI

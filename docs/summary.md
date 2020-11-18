@@ -16,7 +16,7 @@
 * [Custom domain](aws/custom-domain.md)
 * [Spot instances](aws/spot.md)
 * [SSH into instances](aws/ssh.md)
-* [REST API Gateway](guides/rest-api-gateway.md)
+* [REST API Gateway](aws/rest-api-gateway.md)
 * [Update](aws/update.md)
 * [Uninstall](aws/uninstall.md)
 
