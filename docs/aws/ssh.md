@@ -1,8 +1,8 @@
-# SSH into worker instance
+# SSH into instances
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-There are some cases when SSH-ing into an AWS Cortex instance may be necessary.
+There are some cases when SSH-ing into an EC2 instance may be necessary.
 
 This can be done via the AWS web UI or via the terminal. The first 5 steps are identical for both approaches.
 

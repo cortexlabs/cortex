@@ -4,12 +4,12 @@ _WARNING: you are on the master branch; please refer to examples on the branch c
 
 This example shows how to deploy a batch image classification api that accepts a list of image urls as input, downloads the images, classifies them, and writes the results to S3.
 
-**Batch APIs are only supported on a Cortex cluster (in AWS).** You can find cluster installation documentation [here](../../../docs/cluster-management/install.md#running-at-scale-on-aws).
+**Batch APIs are only supported on a Cortex cluster (in AWS).** You can find cluster installation documentation [here](../../../docs/aws/install.md#running-at-scale-on-aws).
 
 ## Pre-requisites
 
-* [Install Cortex CLI](../../../docs/cluster-management/install.md#install-the-cli)
-* [Create a Cortex Cluster](../../../docs/cluster-management/install.md#running-at-scale-on-aws)
+* [Install Cortex CLI](../../../docs/aws/install.md#install-the-cli)
+* [Create a Cortex Cluster](../../../docs/aws/install.md#running-at-scale-on-aws)
 * Create an S3 bucket/directory to store the results of the batch job
 * AWS CLI (optional)
 
@@ -578,4 +578,4 @@ Running `cortex delete` will stop all in progress jobs for the API and will dele
 * Deploy another one of our [batch examples](https://github.com/cortexlabs/cortex/tree/master/examples/batch).
 * See our [exporting guide](../../../docs/guides/exporting.md) for how to export your model to use in an API.
 * Try the [realtime API tutorial](../../pytorch/text-generator/README.md) to learn how to deploy realtime APIs in Cortex.
-* See [uninstall](../../../docs/cluster-management/uninstall.md) if you'd like to spin down your cluster.
+* See [uninstall](../../../docs/aws/uninstall.md) if you'd like to spin down your cluster.

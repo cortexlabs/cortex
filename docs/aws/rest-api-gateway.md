@@ -1,4 +1,4 @@
-# Set up REST API Gateway
+# REST API Gateway
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
@@ -16,7 +16,7 @@ If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: i
 
 Disable the default API Gateway:
 
-* If you haven't created your cluster yet, you can set `api_gateway: none` in your [cluster configuration file](../cluster-management/config.md) before creating your cluster.
+* If you haven't created your cluster yet, you can set `api_gateway: none` in your [cluster configuration file](../aws/config.md) before creating your cluster.
 * If you have already created your cluster, you can set `api_gateway: none` in the `networking` field of your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and/or [Batch API configuration](../deployments/batch-api/api-configuration.md), and then re-deploy your API.
 
 ### Step 2
@@ -95,7 +95,7 @@ Delete the API Gateway before spinning down your Cortex cluster:
 
 Disable the default API Gateway:
 
-* If you haven't created your cluster yet, you can set `api_gateway: none` in your [cluster configuration file](../cluster-management/config.md) before creating your cluster.
+* If you haven't created your cluster yet, you can set `api_gateway: none` in your [cluster configuration file](../aws/config.md) before creating your cluster.
 * If you have already created your cluster, you can set `api_gateway: none` in the `networking` field of your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and/or [Batch API configuration](../deployments/batch-api/api-configuration.md), and then re-deploy your API.
 
 ### Step 2
