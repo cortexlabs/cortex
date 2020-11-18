@@ -502,7 +502,9 @@ Here are some examples:
 
 ### JSON data
 
-#### Python request
+#### Making the request
+
+##### Python
 
 ```python
 import requests
@@ -522,7 +524,7 @@ jsonStr = json.dumps({"key": "value"})
 requests.post(url, data=jsonStr, headers={"Content-Type": "application/json"})
 ```
 
-#### CURL request
+##### CURL
 
 ```bash
 $ curl https://***.amazonaws.com/my-api \
@@ -553,7 +555,9 @@ class PythonPredictor:
 
 ### Binary data
 
-#### Python request
+#### Making the request
+
+##### Python
 
 ```python
 import requests
@@ -564,7 +568,7 @@ pklBytes = pickle.dumps({"key": "value"})
 requests.post(url, data=pklBytes, headers={"Content-Type": "application/octet-stream"})
 ```
 
-#### CURL request
+##### CURL
 
 ```bash
 $ curl https://***.amazonaws.com/my-api \
@@ -605,7 +609,9 @@ class PythonPredictor:
 
 ### Form data (files)
 
-#### Python request
+#### Making the request
+
+##### Python
 
 ```python
 import requests
@@ -621,7 +627,7 @@ files = {
 requests.post(url, files=files)
 ```
 
-#### CURL request
+##### CURL
 
 ```bash
 $ curl https://***.amazonaws.com/my-api \
@@ -656,7 +662,9 @@ class PythonPredictor:
 
 ### Form data (text)
 
-#### Python request
+#### Making the request
+
+##### Python
 
 ```python
 import requests
@@ -665,7 +673,7 @@ url = "https://***.amazonaws.com/my-api"
 requests.post(url, data={"key": "value"})
 ```
 
-#### CURL request
+##### CURL
 
 ```bash
 $ curl https://***.amazonaws.com/my-api \
