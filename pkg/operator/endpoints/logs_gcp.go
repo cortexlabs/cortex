@@ -25,8 +25,6 @@ func gcpLogsQueryBuilder(apiName string) schema.GCPLogsResponse {
 	gcpLogsResponse := schema.GCPLogsResponse{}
 	gcpLogsResponse.Query = make(map[string]schema.QueryParam)
 
-	gcpLogsResponse.Query["resource.type"] = schema.QueryParam{Param: "k8s_container"}
-	gcpLogsResponse.Query["resource.labels.namespace_name"] = schema.QueryParam{Param: "default"}
 	gcpLogsResponse.Query["resource.labels.project_id"] = schema.QueryParam{Param: config.GCPCluster.Project}
 	gcpLogsResponse.Query["resource.labels.location"] = schema.QueryParam{Param: config.GCPCluster.Zone}
 	gcpLogsResponse.Query["resource.labels.cluster_name"] = schema.QueryParam{Param: config.GCPCluster.ClusterName}
