@@ -136,14 +136,20 @@ Delete an environment configured on this machine.
 ## deploy
 
 ```python
- | deploy(config_file: str, force: bool = False, wait: bool = False) -> list
+ | deploy(config: Optional[List[dict]] = None, project_dir: Optional[str] = None, config_file: Optional[str] = None, force: bool = False, wait: bool = False) -> list
 ```
 
 Deploy or update APIs specified in the config_file.
 
 **Arguments**:
 
-- `config_file` - Local path to a yaml file defining Cortex APIs.
+- `config` - A list of dictionaries containing Cortex API definitions. Specify this field or the `config_file` field but not both.
+  Schema can be found here:
+  → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
+  → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
+  → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
+- `project_dir` - Directory to a Python project containing your predictor implementation. Required if `config` is specified.
+- `config_file` - Local path to a yaml file defining Cortex APIs. Specify this field or the `config` field but not both.
 - `force` - Override any in-progress api updates.
 - `wait` - Streams logs until the APIs are ready.
 

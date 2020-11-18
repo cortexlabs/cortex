@@ -18,9 +18,12 @@ import time
 import sys
 import subprocess
 import threading
+import yaml
+import uuid
 
 from typing import List, Dict, Optional, Tuple, Callable, Union
 from cortex.binary import run_cli, get_cli_path
+from cortex import util
 
 
 class Client:
@@ -33,7 +36,62 @@ class Client:
         """
         self.env = env
 
+    # CORTEX_VERSION_MINOR x3
     def deploy(
+        self,
+        config: Optional[dict] = None,
+        project_dir: Optional[str] = None,
+        config_file: Optional[str] = None,
+        force: bool = False,
+        wait: bool = False,
+    ) -> list:
+        """
+        Deploy or update APIs specified in the config_file.
+
+        Args:
+            config: A dictionary defining a single Cortex API. Specify this field or the `config_file` field but not both.
+            Schema can be found here:
+                → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
+                → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
+                → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
+            project_dir: Directory to a Python project containing your predictor implementation. Required if `config` is specified.
+            config_file: Local path to a yaml file defining Cortex APIs. Specify this field or the `config` field but not both.
+            force: Override any in-progress api updates.
+            wait: Streams logs until the APIs are ready.
+
+        Returns:
+            Deployment status, API specification, and endpoint for each API.
+        """
+
+        if config is not None and config_file is not None:
+            raise ValueError("both `config` and `config_file` parameters must not be specified.")
+
+        if config_file is not None:
+            return self._deploy(config_file, force, wait)
+
+        if config is not None:
+            if project_dir is None:
+                raise ValueError(
+                    "must specify `project_dir` to specify location to python project if `config` is used"
+                )
+
+            if type(config) is not dict:
+                raise ValueError("config field must be a dictionary defining a single Cortex API")
+
+            if not os.path.exists(project_dir):
+                raise ValueError(f"{project_dir} is not a valid directory")
+
+            cortex_yaml_path = os.path.join(project_dir, f".cortex-{uuid.uuid4()}.yaml")
+
+            with util.open_temporarily(cortex_yaml_path, "w") as f:
+                yaml.dump([config], f)  # write a list
+                return self._deploy(cortex_yaml_path, force, wait)
+
+        raise ValueError(
+            "can not deploy API(s) because API configuration was not specified; please specify either `config` or `config_field` but not both."
+        )
+
+    def _deploy(
         self,
         config_file: str,
         force: bool = False,
