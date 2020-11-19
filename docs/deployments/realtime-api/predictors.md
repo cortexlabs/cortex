@@ -504,6 +504,22 @@ Here are some examples:
 
 #### Making the request
 
+##### Curl
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"key": "value"}'
+```
+
+Or if you have a json file:
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/json" \
+    -d @file.json
+```
+
 ##### Python
 
 ```python
@@ -524,22 +540,6 @@ jsonStr = json.dumps({"key": "value"})
 requests.post(url, data=jsonStr, headers={"Content-Type": "application/json"})
 ```
 
-##### CURL
-
-```bash
-$ curl https://***.amazonaws.com/my-api \
-    -X POST -H "Content-Type: application/json" \
-    -d '{"key": "value"}'
-```
-
-Or if you have a json file:
-
-```bash
-$ curl https://***.amazonaws.com/my-api \
-    -X POST -H "Content-Type: application/json" \
-    -d @file.json
-```
-
 #### Reading the payload
 
 When sending a JSON payload, the `payload` parameter will be a Python object:
@@ -557,6 +557,14 @@ class PythonPredictor:
 
 #### Making the request
 
+##### Curl
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: application/octet-stream" \
+    --data-binary @object.pkl
+```
+
 ##### Python
 
 ```python
@@ -566,14 +574,6 @@ import pickle
 url = "https://***.amazonaws.com/my-api"
 pklBytes = pickle.dumps({"key": "value"})
 requests.post(url, data=pklBytes, headers={"Content-Type": "application/octet-stream"})
-```
-
-##### CURL
-
-```bash
-$ curl https://***.amazonaws.com/my-api \
-    -X POST -H "Content-Type: application/octet-stream" \
-    --data-binary @object.pkl
 ```
 
 #### Reading the payload
@@ -603,13 +603,23 @@ class PythonPredictor:
         pass
 
     def predict(self, payload, headers):
-        img = Image.open(io.BytesIO(payload))
+        img = Image.open(io.BytesIO(payload))  # read the payload bytes as an image
         print(img.size)
 ```
 
 ### Form data (files)
 
 #### Making the request
+
+##### Curl
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
+    -X POST \
+    -F "text=@text.txt" \
+    -F "object=@object.pkl" \
+    -F "image=@image.png"
+```
 
 ##### Python
 
@@ -625,16 +635,6 @@ files = {
 }
 
 requests.post(url, files=files)
-```
-
-##### CURL
-
-```bash
-$ curl https://***.amazonaws.com/my-api \
-    -X POST \
-    -F "text=@text.txt" \
-    -F "object=@object.pkl" \
-    -F "image=@image.png"
 ```
 
 #### Reading the payload
@@ -664,6 +664,14 @@ class PythonPredictor:
 
 #### Making the request
 
+##### Curl
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
+    -X POST \
+    -d "key=value"
+```
+
 ##### Python
 
 ```python
@@ -671,14 +679,6 @@ import requests
 
 url = "https://***.amazonaws.com/my-api"
 requests.post(url, data={"key": "value"})
-```
-
-##### CURL
-
-```bash
-$ curl https://***.amazonaws.com/my-api \
-    -X POST \
-    -d "key=value"
 ```
 
 #### Reading the payload
