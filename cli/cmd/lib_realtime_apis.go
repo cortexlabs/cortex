@@ -62,7 +62,7 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		}
 	}
 
-	if realtimeAPI.DashboardURL != nil {
+	if realtimeAPI.DashboardURL != nil && *realtimeAPI.DashboardURL != "" {
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
