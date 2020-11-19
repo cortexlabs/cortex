@@ -120,8 +120,6 @@ prediction = requests.post(endpoint, payload)
 
 ## Get started
 
-First, make sure [Docker](https://docs.docker.com/install) is running on your machine.
-
 ```bash
 pip install cortex
 ```
@@ -131,6 +129,7 @@ pip install cortex
 <!-- CORTEX_VERSION_MINOR -->
 ```python
 # define a predictor
+
 from transformers import pipeline
 
 class PythonPredictor:
@@ -140,13 +139,17 @@ class PythonPredictor:
   def predict(self, payload):
     return self.model(payload["text"])[0]
 
+
 # deploy to Cortex
+
 import cortex
 
 crtx = cortex.client('aws')
 deployments = crtx.deploy(PythonPredictor, wait=True)
 
+
 # get predictions
+
 import requests
 
 endpoint = deployments[0]['api']['endpoint']
