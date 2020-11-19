@@ -19,6 +19,7 @@ package operator
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -76,8 +77,6 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 }
 
 func UpdateMemoryCapacityConfigMap() (kresource.Quantity, error) {
-	awsAdvertisedMem := config.Cluster.InstanceMetadata.Memory
-
 	nodeMemCapacity, err := getMemoryCapacityFromNodes()
 	if err != nil {
 		return kresource.Quantity{}, err
@@ -88,7 +87,13 @@ func UpdateMemoryCapacityConfigMap() (kresource.Quantity, error) {
 		return kresource.Quantity{}, err
 	}
 
-	minMem := awsAdvertisedMem
+	minMem := *kresource.NewQuantity(0, kresource.DecimalSI)
+	if config.Provider == types.AWSProviderType {
+		awsAdvertisedMem := config.Cluster.InstanceMetadata.Memory
+		minMem = awsAdvertisedMem
+	}
+
+	// TODO check instance metadata for GCP as well
 
 	if nodeMemCapacity != nil && minMem.Cmp(*nodeMemCapacity) > 0 {
 		minMem = *nodeMemCapacity

@@ -53,7 +53,14 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, models, projectID, deploymentID, config.Cluster.ClusterName)
+	clusterName := ""
+	if config.Provider == types.AWSProviderType {
+		clusterName = config.Cluster.ClusterName
+	}
+	if config.Provider == types.GCPProviderType {
+		clusterName = config.GCPCluster.ClusterName
+	}
+	api := spec.GetAPISpec(apiConfig, models, projectID, deploymentID, clusterName)
 
 	if prevDeployment == nil {
 		if config.Provider == types.AWSProviderType {
@@ -71,16 +78,16 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 			}
 		}
 		if config.Provider == types.GCPProviderType {
-			if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.Key); err != nil {
+			if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.Key); err != nil {
 				return nil, "", errors.Wrap(err, "upload api spec")
 			}
 
-			if err := config.GCP.UploadBytesToGCS(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
+			if err := config.GCP.UploadBytesToGCS(api.RawYAMLBytes, config.GCPCluster.Bucket, api.RawAPIKey(config.GCPCluster.ClusterName)); err != nil {
 				return nil, "", errors.Wrap(err, "upload raw api spec")
 			}
 
 			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-			if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+			if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.PredictorKey); err != nil {
 				return nil, "", errors.Wrap(err, "upload predictor spec")
 			}
 		}
@@ -129,16 +136,16 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 			}
 		}
 		if config.Provider == types.GCPProviderType {
-			if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.Key); err != nil {
+			if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.Key); err != nil {
 				return nil, "", errors.Wrap(err, "upload api spec")
 			}
 
-			if err := config.GCP.UploadBytesToGCS(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
+			if err := config.GCP.UploadBytesToGCS(api.RawYAMLBytes, config.GCPCluster.Bucket, api.RawAPIKey(config.GCPCluster.ClusterName)); err != nil {
 				return nil, "", errors.Wrap(err, "upload raw api spec")
 			}
 
 			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-			if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+			if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.PredictorKey); err != nil {
 				return nil, "", errors.Wrap(err, "upload predictor spec")
 			}
 		}
@@ -192,7 +199,14 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, api.CuratedModelResources, api.ProjectID, deploymentID(), config.Cluster.ClusterName)
+	clusterName := ""
+	if config.Provider == types.AWSProviderType {
+		clusterName = config.Cluster.ClusterName
+	}
+	if config.Provider == types.GCPProviderType {
+		clusterName = config.GCPCluster.ClusterName
+	}
+	api = spec.GetAPISpec(api.API, api.CuratedModelResources, api.ProjectID, deploymentID(), clusterName)
 
 	if config.Provider == types.AWSProviderType {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
@@ -205,12 +219,12 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		}
 	}
 	if config.Provider == types.GCPProviderType {
-		if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.Key); err != nil {
 			return "", errors.Wrap(err, "upload api spec")
 		}
 
 		// Reupload api spec to the same PredictorID but with the new DeploymentID
-		if err := config.GCP.UploadJSONToGCS(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+		if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.PredictorKey); err != nil {
 			return "", errors.Wrap(err, "upload predictor spec")
 		}
 	}
@@ -349,7 +363,10 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	dashboardURL := DashboardURL()
+	var dashboardURL string
+	if config.Provider == types.AWSProviderType {
+		dashboardURL = DashboardURL()
+	}
 
 	return []schema.APIResponse{
 		{
@@ -424,9 +441,12 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 		}
 	}
 
-	if err := UpdateAutoscalerCron(newDeployment); err != nil {
-		return err
+	if config.Provider == types.AWSProviderType {
+		if err := UpdateAutoscalerCron(newDeployment); err != nil {
+			return err
+		}
 	}
+	// TODO implement autoscaler for GCP as well
 
 	return nil
 }
@@ -500,8 +520,8 @@ func deleteS3Resources(apiName string) error {
 }
 
 func deleteGCSResources(apiName string) error {
-	prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
-	return config.GCP.DeleteGCSDir(config.Cluster.Bucket, prefix, true)
+	prefix := filepath.Join(config.GCPCluster.ClusterName, "apis", apiName)
+	return config.GCP.DeleteGCSDir(config.GCPCluster.Bucket, prefix, true)
 }
 
 func IsAPIUpdating(apiName string) (bool, error) {

@@ -75,7 +75,6 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 
 func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) ([]schema.DeployResult, error) {
 	projectID := hash.Bytes(projectBytes)
-	projectKey := spec.ProjectKey(projectID, config.Cluster.ClusterName)
 	projectFileMap, err := archive.UnzipMemToMem(projectBytes)
 	if err != nil {
 		return nil, err
@@ -86,9 +85,18 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		ConfigFileName: configFileName,
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, &config.Cluster.Config)
-	if err != nil {
-		return nil, err
+	var apiConfigs []userconfig.API
+	if config.Provider == types.AWSProviderType {
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, &config.Cluster.Config, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if config.Provider == types.GCPProviderType {
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, nil, &config.GCPCluster.GCPConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	models := []spec.CuratedModelResource{}
@@ -99,6 +107,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	}
 
 	if config.Provider == types.AWSProviderType {
+		projectKey := spec.ProjectKey(projectID, config.Cluster.ClusterName)
 		isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
 		if err != nil {
 			return nil, err
@@ -110,12 +119,13 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		}
 	}
 	if config.Provider == types.GCPProviderType {
-		isProjectUploaded, err := config.GCP.IsGCSFile(config.Cluster.Bucket, projectKey)
+		projectKey := spec.ProjectKey(projectID, config.GCPCluster.ClusterName)
+		isProjectUploaded, err := config.GCP.IsGCSFile(config.GCPCluster.Bucket, projectKey)
 		if err != nil {
 			return nil, err
 		}
 		if !isProjectUploaded {
-			if err = config.GCP.UploadBytesToGCS(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+			if err = config.GCP.UploadBytesToGCS(projectBytes, config.GCPCluster.Bucket, projectKey); err != nil {
 				return nil, err
 			}
 		}
@@ -308,9 +318,12 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	batchAPIList, err := batchapi.GetAllAPIs(batchAPIVirtualServices, k8sJobs, batchAPIPods)
-	if err != nil {
-		return nil, err
+	var batchAPIList []schema.APIResponse
+	if config.Provider == types.AWSProviderType {
+		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sJobs, batchAPIPods)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	trafficSplitterList, err := trafficsplitter.GetAllAPIs(trafficSplitterVirtualServices)

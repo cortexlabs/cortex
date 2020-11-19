@@ -24,7 +24,13 @@ import (
 )
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
-	bucketKey := spec.Key(apiName, apiID, config.Cluster.ClusterName)
+	bucketKey := ""
+	if config.Provider == types.AWSProviderType {
+		bucketKey = spec.Key(apiName, apiID, config.Cluster.ClusterName)
+	}
+	if config.Provider == types.GCPProviderType {
+		bucketKey = spec.Key(apiName, apiID, config.GCPCluster.ClusterName)
+	}
 
 	var api spec.API
 	if config.Provider == types.AWSProviderType {
@@ -32,7 +38,7 @@ func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 			return nil, err
 		}
 	} else if config.Provider == types.GCPProviderType {
-		if err := config.GCP.ReadJSONFromGCS(&api, config.Cluster.Bucket, bucketKey); err != nil {
+		if err := config.GCP.ReadJSONFromGCS(&api, config.GCPCluster.Bucket, bucketKey); err != nil {
 			return nil, err
 		}
 	} else {

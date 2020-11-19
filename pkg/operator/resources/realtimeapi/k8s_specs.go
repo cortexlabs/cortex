@@ -185,7 +185,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 					"workload": "true",
 				},
 				Tolerations:        operator.Tolerations,
-				Volumes:            operator.DefaultVolumes,
+				Volumes:            operator.GetDefaultVolumes(),
 				ServiceAccountName: "default",
 			},
 		},

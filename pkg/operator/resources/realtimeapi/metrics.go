@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -65,29 +66,32 @@ func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
 
 func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 	// Get realtime metrics for the seconds elapsed in the latest minute
-	realTimeEnd := time.Now().Truncate(time.Second)
-	realTimeStart := realTimeEnd.Truncate(time.Minute)
+	if config.Provider == types.AWSProviderType {
+		realTimeEnd := time.Now().Truncate(time.Second)
+		realTimeStart := realTimeEnd.Truncate(time.Minute)
 
-	realTimeMetrics := metrics.Metrics{}
-	batchMetrics := metrics.Metrics{}
-	requestList := []func() error{}
+		realTimeMetrics := metrics.Metrics{}
+		batchMetrics := metrics.Metrics{}
+		requestList := []func() error{}
 
-	if realTimeStart.Before(realTimeEnd) {
-		requestList = append(requestList, getMetricsFunc(api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
+		if realTimeStart.Before(realTimeEnd) {
+			requestList = append(requestList, getMetricsFunc(api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
+		}
+
+		batchEnd := realTimeStart
+		batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
+		requestList = append(requestList, getMetricsFunc(api, 60*60, &batchStart, &batchEnd, &batchMetrics))
+
+		err := parallel.RunFirstErr(requestList[0], requestList[1:]...)
+		if err != nil {
+			return nil, err
+		}
+
+		mergedMetrics := realTimeMetrics.Merge(batchMetrics)
+		mergedMetrics.APIName = api.Name
+		return &mergedMetrics, nil
 	}
-
-	batchEnd := realTimeStart
-	batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
-	requestList = append(requestList, getMetricsFunc(api, 60*60, &batchStart, &batchEnd, &batchMetrics))
-
-	err := parallel.RunFirstErr(requestList[0], requestList[1:]...)
-	if err != nil {
-		return nil, err
-	}
-
-	mergedMetrics := realTimeMetrics.Merge(batchMetrics)
-	mergedMetrics.APIName = api.Name
-	return &mergedMetrics, nil
+	return &metrics.Metrics{}, nil
 }
 
 func getMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.Metrics) func() error {

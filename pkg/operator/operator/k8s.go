@@ -105,21 +105,29 @@ func InitContainer(api *spec.API) kcore.Container {
 		downloadArgs = pythonDownloadArgs(api)
 	}
 
+	imageDownloader := ""
+	if config.Provider == types.AWSProviderType {
+		imageDownloader = config.Cluster.ImageDownloader
+	}
+	if config.Provider == types.GCPProviderType {
+		imageDownloader = config.GCPCluster.ImageDownloader
+	}
+
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
-		Image:           config.Cluster.ImageDownloader,
+		Image:           imageDownloader,
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
-		EnvFrom:         BaseEnvVars,
-		VolumeMounts:    DefaultVolumeMounts,
+		EnvFrom:         getBaseEnvVars(),
+		VolumeMounts:    getDefaultVolumeMounts(),
 	}
 }
 
 func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	apiPodResourceList := kcore.ResourceList{}
 	apiPodResourceLimitsList := kcore.ResourceList{}
-	apiPodVolumeMounts := DefaultVolumeMounts
-	volumes := DefaultVolumes
+	apiPodVolumeMounts := getDefaultVolumeMounts()
+	volumes := GetDefaultVolumes()
 	containers := []kcore.Container{}
 
 	if api.Compute.Inf == 0 {
@@ -177,7 +185,7 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
-		EnvFrom:         BaseEnvVars,
+		EnvFrom:         getBaseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
@@ -201,8 +209,8 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
-	volumeMounts := DefaultVolumeMounts
-	volumes := DefaultVolumes
+	volumeMounts := getDefaultVolumeMounts()
+	volumes := GetDefaultVolumes()
 	containers := []kcore.Container{}
 
 	if api.Compute.Inf == 0 {
@@ -266,7 +274,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
-		EnvFrom:         BaseEnvVars,
+		EnvFrom:         getBaseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
@@ -320,8 +328,8 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
-		EnvFrom:         BaseEnvVars,
-		VolumeMounts:    DefaultVolumeMounts,
+		EnvFrom:         getBaseEnvVars(),
+		VolumeMounts:    getDefaultVolumeMounts(),
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
@@ -397,7 +405,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			if config.Provider == types.AWSProviderType {
 				bucketPath = aws.S3Path(config.Cluster.Bucket, api.PredictorKey)
 			} else {
-				bucketPath = gcp.GCSPath(config.Cluster.Bucket, api.PredictorKey)
+				bucketPath = gcp.GCSPath(config.GCPCluster.Bucket, api.PredictorKey)
 			}
 			envVars = append(envVars,
 				kcore.EnvVar{
@@ -549,7 +557,7 @@ func tfDownloadArgs(api *spec.API) string {
 	if config.Provider == types.AWSProviderType {
 		bucketPath = aws.S3Path(config.Cluster.Bucket, api.ProjectKey)
 	} else {
-		bucketPath = gcp.GCSPath(config.Cluster.Bucket, api.ProjectKey)
+		bucketPath = gcp.GCSPath(config.GCPCluster.Bucket, api.ProjectKey)
 	}
 
 	downloadConfig := downloadContainerConfig{
@@ -575,7 +583,7 @@ func pythonDownloadArgs(api *spec.API) string {
 	if config.Provider == types.AWSProviderType {
 		bucketPath = aws.S3Path(config.Cluster.Bucket, api.ProjectKey)
 	} else {
-		bucketPath = gcp.GCSPath(config.Cluster.Bucket, api.ProjectKey)
+		bucketPath = gcp.GCSPath(config.GCPCluster.Bucket, api.ProjectKey)
 	}
 
 	downloadConfig := downloadContainerConfig{
@@ -601,7 +609,7 @@ func onnxDownloadArgs(api *spec.API) string {
 	if config.Provider == types.AWSProviderType {
 		bucketPath = aws.S3Path(config.Cluster.Bucket, api.ProjectKey)
 	} else {
-		bucketPath = gcp.GCSPath(config.Cluster.Bucket, api.ProjectKey)
+		bucketPath = gcp.GCSPath(config.GCPCluster.Bucket, api.ProjectKey)
 	}
 
 	downloadConfig := downloadContainerConfig{
@@ -679,7 +687,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            cmdArgs,
 		Env:             getEnvVars(api, _tfServingContainerName),
-		EnvFrom:         BaseEnvVars,
+		EnvFrom:         getBaseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe: &kcore.Probe{
 			InitialDelaySeconds: 5,
@@ -726,13 +734,23 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 }
 
 func RequestMonitorContainer(api *spec.API) kcore.Container {
+	imageRequestMonitor := ""
+	clusterName := ""
+	if config.Provider == types.AWSProviderType {
+		imageRequestMonitor = config.Cluster.ImageRequestMonitor
+		clusterName = config.Cluster.ClusterName
+	}
+	if config.Provider == types.GCPProviderType {
+		imageRequestMonitor = config.GCPCluster.ImageRequestMonitor
+		clusterName = config.GCPCluster.ClusterName
+	}
 	return kcore.Container{
 		Name:            "request-monitor",
-		Image:           config.Cluster.ImageRequestMonitor,
+		Image:           imageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{api.Name, config.Cluster.ClusterName},
-		EnvFrom:         BaseEnvVars,
-		VolumeMounts:    DefaultVolumeMounts,
+		Args:            []string{api.Name, clusterName},
+		EnvFrom:         getBaseEnvVars(),
+		VolumeMounts:    getDefaultVolumeMounts(),
 		ReadinessProbe:  FileExistsProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
@@ -814,29 +832,71 @@ func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
 	return nil
 }
 
-var BaseEnvVars = []kcore.EnvFromSource{
-	{
+func getBaseEnvVars() []kcore.EnvFromSource {
+	var baseEnvVars []kcore.EnvFromSource
+	baseEnvVars = append(baseEnvVars, kcore.EnvFromSource{
 		ConfigMapRef: &kcore.ConfigMapEnvSource{
 			LocalObjectReference: kcore.LocalObjectReference{
 				Name: "env-vars",
 			},
 		},
-	},
-	{
-		SecretRef: &kcore.SecretEnvSource{
-			LocalObjectReference: kcore.LocalObjectReference{
-				Name: "aws-credentials",
+	})
+
+	if config.Provider == types.AWSProviderType {
+		baseEnvVars = append(baseEnvVars, kcore.EnvFromSource{
+			ConfigMapRef: &kcore.ConfigMapEnvSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: "aws-credentials",
+				},
 			},
-		},
-	},
+		})
+	}
+	if config.Provider == types.GCPProviderType {
+		baseEnvVars = append(baseEnvVars, kcore.EnvFromSource{
+			ConfigMapRef: &kcore.ConfigMapEnvSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: "gcp-vars",
+				},
+			},
+		})
+	}
+
+	return baseEnvVars
 }
 
-var DefaultVolumes = []kcore.Volume{
-	k8s.EmptyDirVolume(_emptyDirVolumeName),
+func GetDefaultVolumes() []kcore.Volume {
+	var defaultVolumes = []kcore.Volume{
+		k8s.EmptyDirVolume(_emptyDirVolumeName),
+	}
+
+	if config.Provider == types.GCPProviderType {
+		defaultVolumes = append(defaultVolumes, kcore.Volume{
+			Name: "gcp-credentials",
+			VolumeSource: kcore.VolumeSource{
+				Secret: &kcore.SecretVolumeSource{
+					SecretName: "gcp-credentials",
+				},
+			},
+		})
+	}
+
+	return defaultVolumes
 }
 
-var DefaultVolumeMounts = []kcore.VolumeMount{
-	k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+func getDefaultVolumeMounts() []kcore.VolumeMount {
+	var defaultVolumeMounts = []kcore.VolumeMount{
+		k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+	}
+
+	if config.Provider == types.GCPProviderType {
+		defaultVolumeMounts = append(defaultVolumeMounts, kcore.VolumeMount{
+			Name:      "gcp-credentials",
+			ReadOnly:  true,
+			MountPath: "/var/secrets/google",
+		})
+	}
+
+	return defaultVolumeMounts
 }
 
 var Tolerations = []kcore.Toleration{

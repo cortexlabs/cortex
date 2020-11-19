@@ -65,16 +65,17 @@ spec:
               memory: 1024Mi
           ports:
             - containerPort: 8888
-          envFrom: # TODO: remove references to AWS here (only have this if provider is aws)
-            - secretRef:
-                name: aws-credentials
+          envFrom:
             - configMapRef:
                 name: env-vars
-          {% if env['CORTEX_PROVIDER'] == "gcp" %}
-          env:
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /var/secrets/google/key.json
-          {%endif %}
+            {% if env['CORTEX_PROVIDER'] == "aws" %}
+            - secretRef:
+                name: aws-credentials
+            {%endif %}
+            {% if env['CORTEX_PROVIDER'] == "gcp" %}
+            - configMapRef:
+                name: gcp-vars
+            {%endif %}
           volumeMounts:
             - name: cluster-config
               mountPath: /configs/cluster
@@ -83,8 +84,6 @@ spec:
             {% if env['CORTEX_PROVIDER'] == "gcp" %}
             - name: gcp-credentials
               mountPath: /var/secrets/google
-            - name: cluster-config-aws
-              mountPath: /configs/cluster-aws
             {% endif %}
       volumes:
         - name: cluster-config
@@ -98,9 +97,6 @@ spec:
         - name: gcp-credentials
           secret:
             secretName: gcp-credentials
-        - name: cluster-config-aws
-          configMap:
-            name: cluster-config-aws
         {% endif %}
 
 ---

@@ -114,11 +114,9 @@ function cluster_up_gcp() {
     --from-file='cluster-aws.yaml'=$CORTEX_AWS_CLUSTER_CONFIG_FILE \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 
-  # TODO: remove references to AWS here
   kubectl -n=default create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
     --from-literal='CORTEX_REGION'=$CORTEX_REGION \
-    --from-literal='AWS_REGION'=$CORTEX_REGION \
     --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
     --from-literal='CORTEX_GCP_PROJECT'=$CORTEX_GCP_PROJECT \
     --from-literal='CORTEX_GCP_ZONE'=$CORTEX_GCP_ZONE \
@@ -128,14 +126,17 @@ function cluster_up_gcp() {
     --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 
-  # setup_secrets
-  kubectl create secret generic gcp-credentials --from-file=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
-  kubectl -n=default create secret generic 'aws-credentials' \
-    --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
-    --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
+  kubectl -n=default create configmap 'gcp-vars' \
+    --from-literal='GOOGLE_APPLICATION_CREDENTIALS'='/var/secrets/google/key.json' \
+    --from-literal='GCP_PROJECT'=$CORTEX_GCP_PROJECT \
+    --from-literal='GKE_CLUSTER_NAME'=$CORTEX_CLUSTER_NAME \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+
+  # setup_secrets
+  kubectl create secret generic 'gcp-credentials' --from-file=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
   echo "✓"
 
+  # configure networking
   echo -n "￮ configuring networking "
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml

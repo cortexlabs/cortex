@@ -54,7 +54,8 @@ const _dockerPullSecretName = "registry-credentials"
 func apiValidation(
 	provider types.ProviderType,
 	resource userconfig.Resource,
-	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
+	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
 ) *cr.StructValidation {
 
 	structFieldValidations := []*cr.StructFieldValidation{}
@@ -62,7 +63,7 @@ func apiValidation(
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind, clusterConfig),
+			networkingValidation(resource.Kind, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
 			monitoringValidation(),
 			autoscalingValidation(provider),
@@ -71,13 +72,13 @@ func apiValidation(
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind, clusterConfig),
+			networkingValidation(resource.Kind, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
 		)
 	case userconfig.TrafficSplitterKind:
 		structFieldValidations = append(resourceStructValidations,
 			multiAPIsValidation(),
-			networkingValidation(resource.Kind, clusterConfig),
+			networkingValidation(resource.Kind, awsClusterConfig, gcpClusterConfig),
 		)
 	}
 	return &cr.StructValidation{
@@ -266,11 +267,12 @@ func monitoringValidation() *cr.StructFieldValidation {
 
 func networkingValidation(
 	kind userconfig.Kind,
-	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
+	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructFieldValidation {
 
 	defaultAPIGatewayType := userconfig.PublicAPIGatewayType
-	if clusterConfig != nil && clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
+	if awsClusterConfig != nil && awsClusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
 		defaultAPIGatewayType = userconfig.NoneAPIGatewayType
 	}
 
@@ -613,7 +615,8 @@ func ExtractAPIConfigs(
 	configBytes []byte,
 	provider types.ProviderType,
 	configFileName string,
-	clusterConfig *clusterconfig.Config, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
+	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
 ) ([]userconfig.API, error) {
 
 	var err error
@@ -654,7 +657,7 @@ func ExtractAPIConfigs(
 			}
 		}
 
-		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct, clusterConfig))
+		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct, awsClusterConfig, gcpClusterConfig))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			kindString, _ := data[userconfig.KindKey].(string)
@@ -696,6 +699,15 @@ func ValidateAPI(
 	awsClient *aws.Client,
 	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
+
+	// disable validation for GCP provider
+	if providerType == types.GCPProviderType {
+		if api.Networking.Endpoint == nil {
+			api.Networking.Endpoint = pointer.String("/" + api.Name)
+		}
+		api.Autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(api.Predictor.ProcessesPerReplica * api.Predictor.ThreadsPerProcess))
+		return nil
+	}
 
 	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
