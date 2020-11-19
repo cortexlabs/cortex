@@ -78,7 +78,7 @@ with open("README.md") as f:
 
 setup(
     name="cortex",
-    version="0.22.0",  # CORTEX_VERSION
+    version="0.22.1",  # CORTEX_VERSION
     description="Model serving at scale",
     author="cortex.dev",
     author_email="dev@cortex.dev",
