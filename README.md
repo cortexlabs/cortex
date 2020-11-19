@@ -21,10 +21,10 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 * Runs inference on spot instances with on-demand backups.
 * Autoscales to handle production workloads.
 
-#### Configure your cluster
+#### Configure Cortex
 
 ```yaml
-# cortex.yaml
+# cluster.yaml
 
 region: us-east-1
 instance_type: g4dn.xlarge
@@ -33,10 +33,10 @@ min_instances: 10
 max_instances: 100
 ```
 
-#### Spin up your cluster on your AWS account
+#### Spin up Cortex on your AWS account
 
 ```text
-$ cortex cluster up --config cortex.yaml
+$ cortex cluster up --config cluster.yaml
 
 ￮ configuring autoscaling ✓
 ￮ configuring networking ✓

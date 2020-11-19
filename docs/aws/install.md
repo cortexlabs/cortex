@@ -2,22 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## Spin up Cortex on your AWS account
-
-First, make sure [Docker](https://docs.docker.com/install) is running on your machine.
-
-```bash
-# install the CLI
-pip install cortex
-
-# spin up Cortex on your AWS account
-cortex cluster up # || cortex cluster up --config cluster.yaml (see configuration options below)
-
-# set the default environment
-cortex env default aws
-```
-
-## Configure your cluster
+## Configure Cortex
 
 <!-- CORTEX_VERSION_MINOR x6 -->
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
@@ -96,6 +81,21 @@ image_fluentd: cortexlabs/fluentd:master
 image_statsd: cortexlabs/statsd:master
 image_istio_proxy: cortexlabs/istio-proxy:master
 image_istio_pilot: cortexlabs/istio-pilot:master
+```
+
+## Spin up Cortex on your AWS account
+
+First, make sure [Docker](https://docs.docker.com/install) is running on your machine.
+
+```bash
+# install the CLI
+pip install cortex
+
+# spin up Cortex on your AWS account
+cortex cluster up # || cortex cluster up --config cluster.yaml (see configuration options below)
+
+# set the default environment
+cortex env default aws
 ```
 
 ## Advanced
