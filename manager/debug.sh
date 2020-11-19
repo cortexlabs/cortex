@@ -39,7 +39,8 @@ for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments hpa
 done
 
 mkdir -p /cortex-debug/logs
-kubectl get pods --all-namespaces -o json | jq '.items[] | "kubectl logs -n \(.metadata.namespace) \(.metadata.name) --all-containers --timestamps --tail=10000 > /cortex-debug/logs/\(.metadata.namespace).\(.metadata.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
+kubectl get pods --all-namespaces -o json | jq '.items[] | . as $parent | $parent.spec.containers[]? | "kubectl logs -n \($parent.metadata.namespace) \($parent.metadata.name) \(.name) --timestamps --tail=10000 > /cortex-debug/logs/\($parent.metadata.namespace).\($parent.metadata.name).\(.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
+kubectl get pods --all-namespaces -o json | jq '.items[] | . as $parent | $parent.spec.initContainers[]? | "kubectl logs -n \($parent.metadata.namespace) \($parent.metadata.name) \(.name) --timestamps --tail=10000 > /cortex-debug/logs/\($parent.metadata.namespace).\($parent.metadata.name).init.\(.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
 
 kubectl top pods --all-namespaces --containers=true > "/cortex-debug/k8s/top_pods" 2>&1
 kubectl top nodes > "/cortex-debug/k8s/top_nodes" 2>&1
