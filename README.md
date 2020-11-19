@@ -21,6 +21,8 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 * Runs inference on spot instances with on-demand backups.
 * Autoscales to handle production workloads.
 
+<br>
+
 #### Configure your cluster
 
 ```yaml
@@ -53,6 +55,8 @@ cortex is ready!
 * Configure compute, autoscaling, and networking for each API.
 * Integrate with your data science platform or CI/CD system.
 * Test locally before deploying to your cluster.
+
+<br>
 
 #### Implement a predictor
 
@@ -96,6 +100,8 @@ config = {
 * Serve many models efficiently with multi model caching.
 * Configure traffic splitting for A/B testing.
 * Update APIs without downtime.
+
+<br>
 
 #### Deploy to your cluster
 
