@@ -87,6 +87,8 @@ config = {
 }
 ```
 
+<br>
+
 ## Scalable machine learning APIs
 
 * Scale to handle production workloads with request-based autoscaling.
@@ -124,37 +126,4 @@ prediction = requests.post(endpoint, payload)
 pip install cortex
 ```
 
-#### Deploy a model from Jupyter
-
-<!-- CORTEX_VERSION_MINOR -->
-```python
-# define a predictor
-
-from transformers import pipeline
-
-class PythonPredictor:
-  def __init__(self, config):
-    self.model = pipeline(task="text-generation")
-
-  def predict(self, payload):
-    return self.model(payload["text"])[0]
-
-
-# deploy to Cortex
-
-import cortex
-
-crtx = cortex.client('aws')
-deployments = crtx.deploy(PythonPredictor, wait=True)
-
-
-# get predictions
-
-import requests
-
-endpoint = deployments[0]['api']['endpoint']
-payload = {'text': 'hello world'}
-print(requests.post(endpoint, json=payload).text)
-```
-
-See the [installation instructions](https://docs.cortex.dev/install) to learn about running Cortex in production.
+See the [installation instructions](https://docs.cortex.dev/install) for next steps.
