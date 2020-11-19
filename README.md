@@ -24,6 +24,8 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 * Autoscales to handle production workloads.
 
+<br>
+
 #### Configure your cluster
 
 ```yaml
@@ -140,4 +142,4 @@ prediction = requests.post(endpoint, payload)
 pip install cortex
 ```
 
-See the [installation instructions](https://docs.cortex.dev/install) for next steps.
+See the [installation guide](https://docs.cortex.dev/install) for next steps.
