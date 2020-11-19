@@ -256,7 +256,7 @@ func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clustercon
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s && %s)", containerClusterConfigPath, entrypoint)},
+		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
