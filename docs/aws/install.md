@@ -100,12 +100,12 @@ image_istio_pilot: cortexlabs/istio-pilot:master
 
 ## Advanced
 
-* [Security](security.md).
-* [VPC peering](vpc-peering.md).
-* [Custom domain](custom-domain.md).
-* [REST API Gateway](rest-api-gateway.md).
-* [Spot instances](spot.md).
-* [SSH into instances](ssh.md).
+* [Security](security.md)
+* [VPC peering](vpc-peering.md)
+* [Custom domain](custom-domain.md)
+* [REST API Gateway](rest-api-gateway.md)
+* [Spot instances](spot.md)
+* [SSH into instances](ssh.md)
 
 ## Troubleshooting
 
