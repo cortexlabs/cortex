@@ -110,10 +110,6 @@ function cluster_up_gcp() {
     --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 
-  kubectl -n=default create configmap 'cluster-config-aws' \
-    --from-file='cluster-aws.yaml'=$CORTEX_AWS_CLUSTER_CONFIG_FILE \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-
   kubectl -n=default create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
     --from-literal='CORTEX_REGION'=$CORTEX_REGION \

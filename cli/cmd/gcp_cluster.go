@@ -24,8 +24,6 @@ import (
 	"time"
 
 	container "cloud.google.com/go/container/apiv1"
-	"github.com/cortexlabs/cortex/pkg/consts"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -45,11 +43,7 @@ type GCPCredentials struct {
 }
 
 // TODO: remove references to AWS here
-func upGCP(gcpPath string, awsClusterConfigPath string) {
-	if awsClusterConfigPath == "" {
-		exit.Error(errors.ErrorUnexpected("usage: cortex cluster up -c gcp.yaml --backup-aws aws-cluster.yaml"))
-	}
-
+func upGCP(gcpPath string) {
 	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" {
 		exit.Error(errors.ErrorUnexpected("need to specify $GOOGLE_APPLICATION_CREDENTIALS"))
 	}
@@ -76,28 +70,6 @@ func upGCP(gcpPath string, awsClusterConfigPath string) {
 	err = yaml.Unmarshal(gcpBytes, &gcpConfig)
 	if err != nil {
 		exit.Error(err)
-	}
-
-	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
-		exit.Error(errors.ErrorUnexpected("need to specify $AWS_ACCESS_KEY_ID"))
-	}
-
-	if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
-		exit.Error(errors.ErrorUnexpected("need to specify $AWS_SECRET_ACCESS_KEY"))
-	}
-
-	awsCreds := AWSCredentials{
-		AWSAccessKeyID:            os.Getenv("AWS_ACCESS_KEY_ID"),
-		AWSSecretAccessKey:        os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		ClusterAWSAccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
-		ClusterAWSSecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-	}
-
-	clusterConfig := &clusterconfig.Config{}
-
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, awsClusterConfigPath)
-	if errors.HasError(errs) {
-		exit.Error(errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)))
 	}
 
 	c, err := container.NewClusterManagerClient(ctx)
@@ -204,7 +176,7 @@ func upGCP(gcpPath string, awsClusterConfigPath string) {
 		fmt.Print(".")
 	}
 
-	_, _, err = runManagerWithClusterConfigGCP("/root/install.sh", &gcpConfig, clusterConfig, awsCreds, nil, nil)
+	_, _, err = runManagerWithClusterConfigGCP("/root/install.sh", &gcpConfig, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}

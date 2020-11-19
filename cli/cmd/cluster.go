@@ -61,7 +61,6 @@ var (
 	_flagClusterInfoDebug          bool
 	_flagClusterDisallowPrompt     bool
 	_flagClusterProject            string
-	_flagBackupAWSConfig           string // TODO: remove references to AWS here
 	_flagAWSAccessKeyID            string
 	_flagAWSSecretAccessKey        string
 	_flagClusterAWSAccessKeyID     string
@@ -77,7 +76,6 @@ func clusterInit() {
 	defaultEnv := getDefaultEnv(_clusterCommandType)
 	_upCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
 	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_upCmd.Flags().StringVarP(&_flagBackupAWSConfig, "backup-aws", "", "", "backup aws")
 	_clusterCmd.AddCommand(_upCmd)
 
 	_infoCmd.Flags().SortFlags = false
@@ -190,7 +188,7 @@ var _upCmd = &cobra.Command{
 				exit.Error(err)
 			}
 			if providerType == types.GCPProviderType {
-				upGCP(_flagClusterConfig, _flagBackupAWSConfig)
+				upGCP(_flagClusterConfig)
 			}
 		}
 

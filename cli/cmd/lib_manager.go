@@ -217,7 +217,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 }
 
 // TODO: remove references to AWS here
-func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clusterconfig.GCPConfig, awsClusterConfig *clusterconfig.Config, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clusterconfig.GCPConfig, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
@@ -230,17 +230,6 @@ func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clustercon
 
 	containerClusterConfigPath := "/in/" + filepath.Base(clusterConfigPath)
 	gcpCredsPath := "/in/key.json"
-
-	awsClusterConfigPath := "/in/aws.yaml"
-	awsClusterConfigBytes, err := yaml.Marshal(awsClusterConfig)
-	if err != nil {
-		return "", nil, errors.WithStack(err)
-	}
-
-	awsCachedClusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *awsClusterConfig.Region)
-	if err := files.WriteFile(awsClusterConfigBytes, awsCachedClusterConfigPath); err != nil {
-		return "", nil, err
-	}
 
 	copyToPaths = append(copyToPaths, dockerCopyToPath{
 		input: &archive.Input{
@@ -262,22 +251,12 @@ func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clustercon
 			},
 		},
 		containerPath: "/",
-	}, dockerCopyToPath{
-		input: &archive.Input{
-			Files: []archive.FileInput{
-				{
-					Source: awsCachedClusterConfigPath,
-					Dest:   awsClusterConfigPath,
-				},
-			},
-		},
-		containerPath: "/",
 	})
 
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && eval $(python /root/cluster_config_env.py %s) && %s", awsClusterConfigPath, containerClusterConfigPath, entrypoint)}, // TODO remove
+		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s && %s)", containerClusterConfigPath, entrypoint)},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -300,11 +279,6 @@ func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clustercon
 			"CORTEX_IMAGE_TENSORFLOW_PREDICTOR=" + consts.DefaultImageTensorFlowPredictor,
 			"CORTEX_IMAGE_ONNX_PREDICTOR_CPU=" + consts.DefaultImageONNXPredictorCPU,
 			"CORTEX_IMAGE_ONNX_PREDICTOR_GPU=" + consts.DefaultImageONNXPredictorGPU,
-			"CORTEX_AWS_CLUSTER_CONFIG_FILE=" + awsClusterConfigPath, // TODO remove
-			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
-			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
-			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
-			"CLUSTER_AWS_SECRET_ACCESS_KEY=" + awsCreds.ClusterAWSSecretAccessKey,
 		},
 	}
 
