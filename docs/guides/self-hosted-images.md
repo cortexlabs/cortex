@@ -2,25 +2,25 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Self-hosted Docker images can be useful for reducing the ingress costs, for accelerating the image pulls or for eliminating the dependency on Cortex's public container registry.
+Self-hosted Docker images can be useful for reducing the ingress costs, for accelerating image pulls, or for eliminating the dependency on Cortex's public container registry.
 
 In this guide, we'll use [ECR](https://aws.amazon.com/ecr/) as the destination container registry. When an ECR repository resides in the same region as your Cortex cluster, there are no costs incurred when pulling images.
 
-### Step 1
+## Step 1
 
 Make sure you have the [aws](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv1.html), [docker](https://docs.docker.com/get-docker/) and [skopeo](https://github.com/containers/skopeo/blob/master/install.md) utilities installed.
 
-### Step 2
+## Step 2
 
 Export the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables in your current shell, or run `aws configure`. These credentials must have access to push to ECR.
 
-### Step 3
+## Step 3
 
 Choose a region for your cluster and ECR repositories. In this guide, we'll assume the region is `us-west-2`.
 
 Also, take note of your AWS account ID. The account ID can be found in the _My Account_ section of your AWS console.
 
-### Step 4
+## Step 4
 
 You can use the script below to push the Cortex images to your ECR registry. Make sure to update the `ecr_region`, `aws_account_id`, and `cortex_version` variables at the top of the file. Copy-paste the contents into a new file (e.g. `ecr.sh`), and then run `chmod +x ecr.sh`, followed by `./ecr.sh`. It is recommended to run this from an EC2 instance in the same region as your ECR repository, since it will be much faster.
 
@@ -34,8 +34,9 @@ aws_account_id="620970939130"  # example account ID
 cortex_version="0.22.1"
 
 source_registry="quay.io/cortexlabs"
-destination_registry="${aws_account_id}.dkr.ecr.${ecr_region}.amazonaws.com/cortexlabs"
+destination_ecr_prefix="cortexlabs"
 
+destination_registry="${aws_account_id}.dkr.ecr.${ecr_region}.amazonaws.com/${destination_ecr_prefix}"
 aws ecr get-login-password --region $ecr_region | docker login --username AWS --password-stdin $destination_registry
 
 # images for the cluster
@@ -84,8 +85,9 @@ extra_tags_for_slim_python_predictor=(
 
 # create the image repositories
 for image in "${images[@]}"; do
-    aws ecr create-repository --repository-name=cortexlabs/$image --region=$ecr_region || true
+    aws ecr create-repository --repository-name=$destination_ecr_prefix/$image --region=$ecr_region || true
 done
+echo
 
 # pull the images from Docker Hub and push them to ECR
 for image in "${images[@]}"; do
@@ -107,7 +109,8 @@ echo
 echo "add the following images to your cortex cluster configuration file (e.g. cluster.yaml):"
 echo "-----------------------------------------------"
 for cluster_image in "${cluster_images[@]}"; do
-    echo "image_$cluster_image: $destination_registry/$cluster_image:$cortex_version"
+    cluster_image_underscores=${cluster_image//-/_}
+    echo "image_$cluster_image_underscores: $destination_registry/$cluster_image:$cortex_version"
 done
 echo -e "-----------------------------------------------\n"
 
@@ -127,9 +130,9 @@ echo "-----------------------------------------------"
 
 The first list of images that were printed (the cluster images) can be directly copy-pasted in your [cluster configuration file](../cluster-management/config.md) before spinning up your cluster.
 
-The second list of images that were printed (the API images) can be used in your [API configuration files](../deployments/realtime-api/api-configuration.md). The images are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the public images offered by Cortex are used for your predictors, so you will need to specify your ECR image paths for all of your APIs.
+The second list of images that were printed (the API images) can be used in your [API configuration files](../deployments/realtime-api/api-configuration.md). The image paths are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the public images offered by Cortex are used for your predictors, so you will need to specify your ECR image paths for all of your APIs.
 
-## Step 6
+## Step 5
 
 Spin up your Cortex cluster using your updated cluster configuration file (e.g. `cortex cluster up --config cluster.yaml`).
 
