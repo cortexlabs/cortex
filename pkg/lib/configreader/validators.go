@@ -152,7 +152,7 @@ func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
 }
 
 func ValidateImageVersion(image, cortexVersion string) (string, error) {
-	if !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
+	if !strings.HasPrefix(image, "quay.io/cortexlabs/") && !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
 		return image, nil
 	}
 
