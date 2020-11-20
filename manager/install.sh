@@ -105,6 +105,12 @@ function cluster_configure() {
   setup_secrets
   echo "✓"
 
+  # this is necessary since max_instances may have been updated
+  echo -n "￮ configuring autoscaling "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  echo "✓"
+
   restart_operator
 
   validate_cortex
