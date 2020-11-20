@@ -49,19 +49,19 @@ mkdir my-api && cd my-api && touch Dockerfile
 Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x12 -->
-* Python Predictor (CPU): `cortexlabs/python-predictor-cpu-slim:master`
+* Python Predictor (CPU): `quay.io/cortexlabs/python-predictor-cpu-slim:master`
 * Python Predictor (GPU): choose one of the following:
-  * `cortexlabs/python-predictor-gpu-slim:master-cuda10.0-cudnn7`
-  * `cortexlabs/python-predictor-gpu-slim:master-cuda10.1-cudnn7`
-  * `cortexlabs/python-predictor-gpu-slim:master-cuda10.1-cudnn8`
-  * `cortexlabs/python-predictor-gpu-slim:master-cuda10.2-cudnn7`
-  * `cortexlabs/python-predictor-gpu-slim:master-cuda10.2-cudnn8`
-  * `cortexlabs/python-predictor-gpu-slim:master-cuda11.0-cudnn8`
-  * `cortexlabs/python-predictor-gpu-slim:master-cuda11.1-cudnn8`
-* Python Predictor (Inferentia): `cortexlabs/python-predictor-inf-slim:master`
-* TensorFlow Predictor (CPU, GPU, Inferentia): `cortexlabs/tensorflow-predictor-slim:master`
-* ONNX Predictor (CPU): `cortexlabs/onnx-predictor-cpu-slim:master`
-* ONNX Predictor (GPU): `cortexlabs/onnx-predictor-gpu-slim:master`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:master-cuda10.0-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:master-cuda10.1-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:master-cuda10.1-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:master-cuda10.2-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:master-cuda10.2-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:master-cuda11.0-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:master-cuda11.1-cudnn8`
+* Python Predictor (Inferentia): `quay.io/cortexlabs/python-predictor-inf-slim:master`
+* TensorFlow Predictor (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-predictor-slim:master`
+* ONNX Predictor (CPU): `quay.io/cortexlabs/onnx-predictor-cpu-slim:master`
+* ONNX Predictor (GPU): `quay.io/cortexlabs/onnx-predictor-gpu-slim:master`
 
 Note: the images listed above use the `-slim` suffix; Cortex's default API images are not `-slim`, since they have additional dependencies installed to cover common use cases. If you are building your own Docker image, starting with a `-slim` Predictor image will result in a smaller image size.
 
@@ -71,7 +71,7 @@ The sample Dockerfile below inherits from Cortex's Python CPU serving image, and
 ```dockerfile
 # Dockerfile
 
-FROM cortexlabs/python-predictor-cpu-slim:master
+FROM quay.io/cortexlabs/python-predictor-cpu-slim:master
 
 RUN apt-get update \
     && apt-get install -y tree \
@@ -132,7 +132,7 @@ Update your API configuration file to point to your image:
   ...
 ```
 
-*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together to serve predictions: one runs your Predictor code (`cortexlabs/tensorflow-predictor`), and the other is TensorFlow serving to load the SavedModel (`cortexlabs/tensorflow-serving-gpu` or `cortexlabs/tensorflow-serving-cpu`). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images (`cortexlabs/tensorflow-serving-gpu` and `cortexlabs/tensorflow-serving-cpu`) are based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
+*Note: for [TensorFlow Predictors](#tensorflow-predictor), two containers run together to serve predictions: one runs your Predictor code (`quay.io/cortexlabs/tensorflow-predictor`), and the other is TensorFlow serving to load the SavedModel (`quay.io/cortexlabs/tensorflow-serving-gpu` or `quay.io/cortexlabs/tensorflow-serving-cpu`). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images (`quay.io/cortexlabs/tensorflow-serving-gpu` and `quay.io/cortexlabs/tensorflow-serving-cpu`) are based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
 
 Deploy your API as usual:
 

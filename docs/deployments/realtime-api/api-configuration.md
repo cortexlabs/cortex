@@ -27,7 +27,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string>  # docker image to use for the Predictor (default: cortexlabs/python-predictor-cpu or cortexlabs/python-predictor-gpu based on compute)
+    image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu or quay.io/cortexlabs/python-predictor-gpu based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
@@ -88,8 +88,8 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string>  # docker image to use for the Predictor (default: cortexlabs/tensorflow-predictor)
-    tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: cortexlabs/tensorflow-serving-gpu or cortexlabs/tensorflow-serving-cpu based on compute)
+    image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-predictor)
+    tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-gpu or quay.io/cortexlabs/tensorflow-serving-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)
@@ -145,7 +145,7 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string>  # docker image to use for the Predictor (default: cortexlabs/onnx-predictor-gpu or cortexlabs/onnx-predictor-cpu based on compute)
+    image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-gpu or quay.io/cortexlabs/onnx-predictor-cpu based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (aws only) (default: <api_name>)

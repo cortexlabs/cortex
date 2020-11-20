@@ -45,6 +45,9 @@ jobs:
   build-and-deploy:
     docker:
       - image: circleci/python:3.6
+        auth:
+          username: $QUAY_USERNAME
+          password: $QUAY_PASSWORD
     environment:
       NUM_BUILD_PROCS: "2"
     steps:
