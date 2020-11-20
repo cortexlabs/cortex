@@ -42,7 +42,7 @@ set -euo pipefail
 
 # user set variables
 ecr_region="us-west-2"
-aws_account_id="680870929100"
+aws_account_id="620970939130" # example account ID
 cortex_version="0.22.0"
 
 registry_name="cortexlabs"
