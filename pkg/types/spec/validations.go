@@ -268,7 +268,7 @@ func monitoringValidation() *cr.StructFieldValidation {
 func networkingValidation(
 	kind userconfig.Kind,
 	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
-	gcpClusterConfig *clusterconfig.GCPConfig,
+	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
 ) *cr.StructFieldValidation {
 
 	defaultAPIGatewayType := userconfig.PublicAPIGatewayType
@@ -700,16 +700,11 @@ func ValidateAPI(
 	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
 
-	// disable validation for GCP provider
-	if providerType == types.GCPProviderType {
-		if api.Networking.Endpoint == nil {
-			api.Networking.Endpoint = pointer.String("/" + api.Name)
-		}
-		api.Autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(api.Predictor.ProcessesPerReplica * api.Predictor.ThreadsPerProcess))
-		return nil
+	if providerType == types.GCPProviderType && api.Kind != userconfig.RealtimeAPIKind {
+		return ErrorKindIsNotSupportedByProvider(api.Kind, providerType)
 	}
 
-	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
+	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
@@ -728,6 +723,9 @@ func ValidateAPI(
 	}
 
 	if api.UpdateStrategy != nil { // should only be nil for local provider
+		if providerType == types.GCPProviderType {
+			return errors.Wrap(ErrorFieldNotSupportedByProvider(userconfig.UpdateStrategyKey, providerType))
+		}
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
 		}
@@ -741,7 +739,12 @@ func ValidateTrafficSplitter(
 	providerType types.ProviderType,
 	awsClient *aws.Client,
 ) error {
-	if providerType == types.AWSProviderType && api.Networking.Endpoint == nil {
+
+	if providerType != types.AWSProviderType {
+		return ErrorKindIsNotSupportedByProvider(userconfig.TrafficSplitterKind, providerType)
+	}
+
+	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 	if err := verifyTotalWeight(api.APIs); err != nil {
@@ -764,12 +767,22 @@ func validatePredictor(
 ) error {
 	predictor := api.Predictor
 
-	if predictor.Models != nil && predictor.ModelPath != nil {
-		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
+	if providerType == types.AWSProviderType {
+		if predictor.Models != nil && predictor.ModelPath != nil {
+			return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
+		}
+		if predictor.Models != nil {
+			if err := validateMultiModelsFields(api); err != nil {
+				return err
+			}
+		}
 	}
-	if predictor.Models != nil {
-		if err := validateMultiModelsFields(api); err != nil {
-			return err
+	if providerType == types.GCPProviderType {
+		if predictor.Models != nil {
+			return ErrorFieldNotSupportedByProvider(userconfig.ModelsKey, providerType)
+		}
+		if predictor.ModelPath != nil {
+			return ErrorFieldNotSupportedByProvider(userconfig.ModelPathKey, providerType)
 		}
 	}
 
@@ -1016,6 +1029,10 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
 
+	if providerType != types.AWSProviderType {
+		return ErrorPredictorIsNotSupportedByProvider(predictor.Type, providerType)
+	}
+
 	if predictor.ServerSideBatching != nil {
 		if api.Compute.Inf == 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
 			return ErrorInsufficientBatchConcurrencyLevel(predictor.ServerSideBatching.MaxBatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
@@ -1184,6 +1201,10 @@ func validateTensorFlowModel(
 }
 
 func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+	if providerType != types.AWSProviderType {
+		return ErrorPredictorIsNotSupportedByProvider(predictor.Type, providerType)
+	}
+
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
@@ -1399,8 +1420,12 @@ func validateAutoscaling(api *userconfig.API) error {
 func validateCompute(api *userconfig.API, providerType types.ProviderType) error {
 	compute := api.Compute
 
-	if compute.Inf > 0 && providerType == types.LocalProviderType {
-		return ErrorUnsupportedLocalComputeResource(userconfig.InfKey)
+	if compute.Inf > 0 && providerType != types.AWSProviderType {
+		return ErrorUnsupportedComputeResourceForProvider(userconfig.InfKey, providerType)
+	}
+
+	if compute.GPU > 0 && providerType == types.GCPProviderType {
+		return ErrorUnsupportedComputeResourceForProvider(userconfig.GPUKey, providerType)
 	}
 
 	if compute.Inf > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {

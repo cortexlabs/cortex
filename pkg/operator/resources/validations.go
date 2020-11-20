@@ -183,7 +183,6 @@ var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
 func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
-	// TODO do the validation for GCP as well
 	if config.Provider != types.AWSProviderType {
 		return nil
 	}
@@ -219,6 +218,7 @@ func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) 
 	if compute.Inf > maxInf {
 		return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
 	}
+
 	return nil
 }
 
