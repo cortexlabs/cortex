@@ -76,7 +76,7 @@
 * [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
 * [Set up kubectl](guides/kubectl-setup.md)
-* [Docker rate-limiting](guides/docker-rate-limiting.md)
+* [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
 * [Set up REST API Gateway](guides/rest-api-gateway.md)
 * [Install CLI on Windows](guides/windows-cli.md)
