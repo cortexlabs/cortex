@@ -139,7 +139,7 @@ echo "-----------------------------------------------"
 
 The first list of images that were printed (the cluster images) can be directly copy-pasted in your [cluster configuration file](../cluster-management/config.md) before spinning up your cluster.
 
-The API images can then be used in your [API configuration files](../deployments/realtime-api/api-configuration.md). The images are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the Docker Hub images are used for your predictors, so you will need to specify your ECR image paths for all of your APIs.
+The second list of images that were printed (the API images) can be used in your [API configuration files](../deployments/realtime-api/api-configuration.md). The images are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the Docker Hub images are used for your predictors, so you will need to specify your ECR image paths for all of your APIs.
 
 ## Step 6
 
@@ -147,4 +147,4 @@ Spin up your Cortex cluster using your updated cluster configuration file (e.g. 
 
 ## Cleanup
 
-You can delete your ECR images from the [AWS ECR dashboard](https://console.aws.amazon.com/ecr/repositories). Make sure all of your Cortex clusters have been deleted before deleting any ECR images.
+You can delete your ECR images from the [AWS ECR dashboard](https://console.aws.amazon.com/ecr/repositories) (set your region in the upper right corner). Make sure all of your Cortex clusters have been deleted before deleting any ECR images.
