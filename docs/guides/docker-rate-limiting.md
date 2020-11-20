@@ -2,7 +2,7 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Docker Hub's [annoucement](https://www.docker.com/increase-rate-limits) of rate-limiting the docker pulls for anonymous and authenticated users out has had a negative effect on the usability/reliability of using images served from this registry. Since spinning up a Cortex cluster for production use assumes the image pull operation to be done thousands of times, an alternative has to be found, to ensure that images can still be pulled any number of times.
+Docker Hub's [announcement](https://www.docker.com/increase-rate-limits) of rate-limiting the docker pulls for anonymous and authenticated users out has had a negative effect on the usability/reliability of using images served from this registry. Since spinning up a Cortex cluster for production use assumes the image pull operation to be done thousands of times, an alternative has to be found, to ensure that images can still be pulled any number of times.
 
 ## Paid subscription of Docker Hub
 
