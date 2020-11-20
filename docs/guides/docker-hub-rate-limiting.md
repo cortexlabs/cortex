@@ -9,13 +9,13 @@ If you are affected by Docker Hub's rate limiting, your may encounter issues suc
 - you encounter scaling issues for Realtime APIs
 - batch jobs are stuck in an in progress state for an unusually long period of time
 
-Follow these steps to dtermine if this issue is affecting your cluster:
+Follow these steps to determine if this issue is affecting your cluster:
 1. [Setup kubectl](./kubectl-setup.md)
 2. `kubectl get pods --all-namespaces`
-3. Check the pod status column for image pull failures such as `ErrImagePull`, `ImagePullBackoff`. If you don't see any, the rate limiting may not be affecting your currently.
+3. Check the pod status column for image pull failures such as `ErrImagePull`, `ImagePullBackoff`. If you don't see any, the rate limiting may not be affecting you currently.
 4. Get the pod id and namespace of a pod encountering image pull failures
 5. `kubectl describe pod <pod id> --namespace <pod namespace>`
-6. Under the events section if you see error events related to docker hub rate limiting, then your cluster may be affected by the rate limiting
+6. Under the events section, if you see error events related to docker hub rate limiting, then your cluster is likely affected by the rate limiting
 
 We are actively working on a long term resolution to this problem. In the meantime, there are two ways to avoid this issue:
 
