@@ -4,6 +4,21 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Docker Hub's [newly enforced rate-limiting policy](https://www.docker.com/increase-rate-limits) can negatively impact your cluster. This is much likelier to be an issue if you've set `subnet_visibility: private` in your cluster configuration file, since with private subnets, all requests from all nodes are routed through the NAT Gateway, and will therefore have the same IP address (docker imposes the rate limit per IP address). If you haven't specified `subnet_visibility` or have set `subnet_visibility: public`, this is less likely to be an issue for you, since each instance will have its own IP address.
 
+If you are affected by Docker Hub's rate limiting, your may encounter issues such as:
+
+* your APIs typically run as expected but new replicas (during scale up) or newly submitted batch jobs suddenly stop working for a period of time and then eventually they start working again
+* you encounter scaling issues for Realtime APIs
+* batch jobs are stuck in an in progress state for an unusually long period of time
+
+Follow these steps to determine if this issue is affecting your cluster:
+
+1. [Setup kubectl](./kubectl-setup.md)
+2. `kubectl get pods --all-namespaces`
+3. Check the pod status column for image pull failures such as `ErrImagePull`, `ImagePullBackoff`. If you don't see any, the rate limiting may not be affecting you currently.
+4. Get the pod id and namespace of a pod encountering image pull failures
+5. `kubectl describe pod <pod id> --namespace <pod namespace>`
+6. Under the events section, if you see error events related to docker hub rate limiting, then your cluster is likely affected by the rate limiting
+
 We are actively working on a long term resolution to this problem. In the meantime, there are two ways to avoid this issue:
 
 ## Paid Docker Hub subscription
