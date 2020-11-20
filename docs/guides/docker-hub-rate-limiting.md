@@ -2,8 +2,6 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-*Note: This guide is only relevant for Cortex version `0.22.1` and earlier. Starting in version `0.23.0`, we've migrated from Docker Hub to Quay (which allows for unlimited image pulls for unauthenticated users). If you upgrade to version >= `0.23.0`, you can disregard this guide.*
-
 Docker Hub's [newly enforced rate-limiting policy](https://www.docker.com/increase-rate-limits) can negatively impact your cluster. This is much likelier to be an issue if you've set `subnet_visibility: private` in your cluster configuration file, since with private subnets, all requests from all nodes are routed through the NAT Gateway, and will therefore have the same IP address (docker imposes the rate limit per IP address). If you haven't specified `subnet_visibility` or have set `subnet_visibility: public`, this is less likely to be an issue for you, since each instance will have its own IP address.
 
 If you are affected by Docker Hub's rate limiting, your may encounter issues such as:
@@ -58,7 +56,7 @@ image_istio_galley: quay.io/cortexlabs/istio-galley:<VERSION>
 image_istio_citadel: quay.io/cortexlabs/istio-citadel:<VERSION>
 ```
 
-For Cortex cluster version < `0.16.0`, please upgrade your cluster to the latest version. If you upgrade to version >= `0.23.0`, you can disregard this guide.
+For Cortex cluster version < `0.16.0`, please upgrade your cluster to the latest version.
 
 Once you've updated your cluster configuration file, you can spin up your cluster (e.g. `cortex cluster up --config cluster.yaml`).
 
