@@ -493,6 +493,12 @@ var _downCmd = &cobra.Command{
 			}
 		}
 
+		// how to get the provider type from the cluster config
+		// provider, err := clusterconfig.GetClusterProviderType(_flagClusterConfig)
+		// if err != nil {
+		// 	exit.Error(err)
+		// }
+
 		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
