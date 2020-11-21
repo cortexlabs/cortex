@@ -723,9 +723,6 @@ func ValidateAPI(
 	}
 
 	if api.UpdateStrategy != nil { // should only be nil for local provider
-		if providerType == types.GCPProviderType {
-			return errors.Wrap(ErrorFieldNotSupportedByProvider(userconfig.UpdateStrategyKey, providerType))
-		}
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
 		}
