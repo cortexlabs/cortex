@@ -42,7 +42,6 @@ type GCPCredentials struct {
 	ProjectId    string `json:"project_id"` // TODO validate that this project id matches GCP cluster config's Project field
 }
 
-// TODO: remove references to AWS here
 func upGCP(gcpPath string) {
 	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" {
 		exit.Error(errors.ErrorUnexpected("need to specify $GOOGLE_APPLICATION_CREDENTIALS"))
@@ -89,7 +88,7 @@ func upGCP(gcpPath string) {
 		exit.Error(err)
 	}
 
-	fmt.Print("spinning up a cluster .")
+	fmt.Print("￮ spinning up a cluster .")
 
 	parent := fmt.Sprintf("projects/%s/locations/%s", gcpConfig.Project, gcpConfig.Zone)
 	clusterName := gcpConfig.ClusterName
