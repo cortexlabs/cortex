@@ -58,13 +58,13 @@ if (( "$asg_on_demand_length" > "0" )); then
   asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
   aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg_on_demand_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-info-on-demand" 2>&1
   echo -n "."
-  aws autoscaling describe-scaling-activities --auto-scaling-group-name $asg_on_demand_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities-on-demand" 2>&1
+  aws autoscaling describe-scaling-activities --max-items 1000 --auto-scaling-group-name $asg_on_demand_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities-on-demand" 2>&1
   echo -n "."
 else
   # failsafe in case the asg could not be located
   aws autoscaling describe-auto-scaling-groups --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asgs" 2>&1
   echo -n "."
-  aws autoscaling describe-scaling-activities --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities" 2>&1
+  aws autoscaling describe-scaling-activities --max-items 1000 --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities" 2>&1
   echo -n "."
 fi
 
@@ -75,7 +75,7 @@ if (( "$asg_spot_length" > "0" )); then
   asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
   aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg_spot_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-info-spot" 2>&1
   echo -n "."
-  aws autoscaling describe-scaling-activities --auto-scaling-group-name $asg_spot_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities-spot" 2>&1
+  aws autoscaling describe-scaling-activities --max-items 1000 --auto-scaling-group-name $asg_spot_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities-spot" 2>&1
   echo -n "."
 fi
 echo -n "."
