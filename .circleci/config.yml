@@ -22,6 +22,12 @@ commands:
             rm -rf go*.tar.gz
             echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV
             echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
+  quay-login:
+    description: Log Docker agent into Quay.io
+    steps:
+      - run:
+          name: Login to Quay
+          command: docker login -u=$QUAY_USERNAME -p=$QUAY_PASSWORD quay.io
 
 jobs:
   test:
@@ -56,6 +62,7 @@ jobs:
       - run: make ci-build-images
       - run: make ci-build-cli
       - return-if-not-deployed-branch
+      - quay-login
       - run:
           command: make ci-push-images
           no_output_timeout: 20m

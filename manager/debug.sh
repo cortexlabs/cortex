@@ -39,18 +39,27 @@ for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments hpa
 done
 
 mkdir -p /cortex-debug/logs
-kubectl get pods --all-namespaces -o json | jq '.items[] | "kubectl logs -n \(.metadata.namespace) \(.metadata.name) --all-containers --timestamps --tail=10000 > /cortex-debug/logs/\(.metadata.namespace).\(.metadata.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
+kubectl get pods --all-namespaces -o json | jq '.items[] | . as $parent | $parent.spec.containers[]? | "kubectl logs -n \($parent.metadata.namespace) \($parent.metadata.name) \(.name) --timestamps --tail=10000 > /cortex-debug/logs/\($parent.metadata.namespace).\($parent.metadata.name).\(.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
+kubectl get pods --all-namespaces -o json | jq '.items[] | . as $parent | $parent.spec.initContainers[]? | "kubectl logs -n \($parent.metadata.namespace) \($parent.metadata.name) \(.name) --timestamps --tail=10000 > /cortex-debug/logs/\($parent.metadata.namespace).\($parent.metadata.name).init.\(.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
 
 kubectl top pods --all-namespaces --containers=true > "/cortex-debug/k8s/top_pods" 2>&1
 kubectl top nodes > "/cortex-debug/k8s/top_nodes" 2>&1
 
-mkdir -p /cortex-debug/aws
-aws --region=$CORTEX_REGION autoscaling describe-auto-scaling-groups > "/cortex-debug/aws/asgs" 2>&1
+mkdir -p /cortex-debug/aws/amis
+aws autoscaling describe-auto-scaling-groups --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asgs" 2>&1
 echo -n "."
-aws --region=$CORTEX_REGION autoscaling describe-scaling-activities > "/cortex-debug/aws/asg-activities" 2>&1
+aws autoscaling describe-scaling-activities --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities" 2>&1
+echo -n "."
+aws ec2 describe-instances --filters Name=tag:cortex.dev/cluster-name,Values=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --output json > "/cortex-debug/aws/instances" 2>&1
+echo -n "."
+aws ec2 describe-instance-status --include-all-instances --region=$CORTEX_REGION --output json > "/cortex-debug/aws/instance-statuses" 2>&1
+echo -n "."
+aws ec2 describe-instances --filters Name=tag:cortex.dev/cluster-name,Values=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --output json | jq "[.Reservations[].Instances[].ImageId] | unique | .[] | \"aws ec2 describe-images --image-ids \(.) --region=$CORTEX_REGION --output json > /cortex-debug/aws/amis/\(.) 2>&1\"" | xargs -n 1 bash -c
 echo -n "."
 python get_operator_load_balancer_state.py > "/cortex-debug/aws/operator_load_balancer_state" 2>&1
+echo -n "."
 python get_api_load_balancer_state.py > "/cortex-debug/aws/api_load_balancer_state" 2>&1
+echo -n "."
 python get_operator_target_group_status.py > "/cortex-debug/aws/operator_load_balancer_target_group_status" 2>&1
 echo -n "."
 

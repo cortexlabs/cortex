@@ -90,7 +90,13 @@ func run() {
 
 func makeRequestLoop(url string, jsonBytes []byte) {
 	var i int
+	isFirstIteration := true
 	for true {
+		if !isFirstIteration && _requestDelay != 0 {
+			time.Sleep(_requestDelay)
+		}
+		isFirstIteration = false
+
 		if _numRequestsPerThread > 0 {
 			if i >= _numRequestsPerThread {
 				return
@@ -98,55 +104,33 @@ func makeRequestLoop(url string, jsonBytes []byte) {
 			i++
 		}
 
-		response, _, err := makeRequest(url, jsonBytes)
-
+		request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBytes))
 		if err != nil {
 			fmt.Print("\n" + debug.Sppg(err))
 			continue
 		}
 
+		request.Header.Set("Content-Type", "application/json")
+		response, err := _client.Do(request)
+		if err != nil {
+			fmt.Print("\n" + debug.Sppg(err))
+			continue
+		}
+
+		body, bodyReadErr := ioutil.ReadAll(response.Body)
+		response.Body.Close()
+
 		if response.StatusCode != 200 {
-			bodyBytes, err := ioutil.ReadAll(response.Body)
-			response.Body.Close()
-			if err == nil {
-				fmt.Printf("\nstatus code: %d; body: %s\n", response.StatusCode, string(bodyBytes))
+			if bodyReadErr == nil {
+				fmt.Printf("\nstatus code: %d; body: %s\n", response.StatusCode, string(body))
 			} else {
-				fmt.Printf("\nstatus code: %d; error reading body: %s\n", response.StatusCode, string(err.Error()))
+				fmt.Printf("\nstatus code: %d; error reading body: %s\n", response.StatusCode, bodyReadErr.Error())
 			}
 			continue
 		}
 
 		fmt.Print(".")
-
-		if _requestDelay != 0 {
-			time.Sleep(_requestDelay)
-		}
 	}
-}
-
-func makeRequest(url string, jsonBytes []byte) (*http.Response, string, error) {
-	payload := bytes.NewBuffer(jsonBytes)
-
-	request, err := http.NewRequest("POST", url, payload)
-	if err != nil {
-		return nil, "", err
-	}
-
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := _client.Do(request)
-	if err != nil {
-		return nil, "", err
-	}
-
-	defer response.Body.Close()
-
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return response, string(bodyBytes), nil
 }
 
 func mustReadJSONBytes(jsonPath string) []byte {

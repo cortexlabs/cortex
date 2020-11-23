@@ -84,17 +84,17 @@ The docker images used by the Cortex cluster can also be overridden, although th
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 # docker image paths
-image_operator: cortexlabs/operator:master
-image_manager: cortexlabs/manager:master
-image_downloader: cortexlabs/downloader:master
-image_request_monitor: cortexlabs/request-monitor:master
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
-image_metrics_server: cortexlabs/metrics-server:master
-image_inferentia: cortexlabs/inferentia:master
-image_neuron_rtd: cortexlabs/neuron-rtd:master
-image_nvidia: cortexlabs/nvidia:master
-image_fluentd: cortexlabs/fluentd:master
-image_statsd: cortexlabs/statsd:master
-image_istio_proxy: cortexlabs/istio-proxy:master
-image_istio_pilot: cortexlabs/istio-pilot:master
+image_operator: quay.io/cortexlabs/operator:master
+image_manager: quay.io/cortexlabs/manager:master
+image_downloader: quay.io/cortexlabs/downloader:master
+image_request_monitor: quay.io/cortexlabs/request-monitor:master
+image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
+image_metrics_server: quay.io/cortexlabs/metrics-server:master
+image_inferentia: quay.io/cortexlabs/inferentia:master
+image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:master
+image_nvidia: quay.io/cortexlabs/nvidia:master
+image_fluentd: quay.io/cortexlabs/fluentd:master
+image_statsd: quay.io/cortexlabs/statsd:master
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 ```

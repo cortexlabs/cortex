@@ -31,14 +31,13 @@ kubectl create secret docker-registry registry-credentials \
   --docker-username=$DOCKER_USERNAME \
   --docker-password=$DOCKER_PASSWORD
 
-kubectl patch serviceaccount default \
-  --namespace default \
+kubectl patch serviceaccount default --namespace default \
   -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 ```
 
 ### Updating your credentials
 
-To remove your docker credentials from the cluster, run this command:
+First remove your old docker credentials from the cluster:
 
 ```bash
 kubectl delete secret --namespace default registry-credentials
@@ -53,7 +52,6 @@ To remove your docker credentials from the cluster, run the following commands:
 ```bash
 kubectl delete secret --namespace default registry-credentials
 
-kubectl patch serviceaccount default \
-  --namespace default \
+kubectl patch serviceaccount default --namespace default \
   -p "{\"imagePullSecrets\": []}"
 ```
