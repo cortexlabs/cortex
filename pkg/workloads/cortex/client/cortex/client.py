@@ -39,15 +39,16 @@ class Client:
         self.env = env
 
     # CORTEX_VERSION_MINOR x5
-    def deploy(
+    def deploy(  # TODO remove config_file
         self,
         config: dict,
-        cls=None,
+        cls=None,  # TODO rename to predictor
         pip_dependencies=[],
         conda_dependencies=[],
+        project_dir: Optional[str] = None,
         force: bool = False,
         wait: bool = False,
-    ):
+    ) -> list:
         """
         Deploy an API.
 
