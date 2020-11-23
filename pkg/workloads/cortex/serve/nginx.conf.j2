@@ -41,6 +41,9 @@ events {
 }
 
 http {
+    # don't enforce a max body size
+    client_max_body_size 0;
+
     # send headers in one piece, it is better than sending them one by one
     tcp_nopush on;
 
