@@ -708,9 +708,5 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["autoscaling.upscale_tolerance"] = api.Autoscaling.UpscaleTolerance
 	}
 
-	if api.FileName != "" && api.FileName != "cortex.yaml" {
-		event["file_name._is_custom"] = true
-	}
-
 	return event
 }
