@@ -297,7 +297,3 @@ def render_jinja_template(jinja_template_file: str, context: dict) -> str:
 
     template = env.get_template(str(template_path.name))
     return template.render(**context)
-
-
-def available_aws_credentials() -> bool:
-    return os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")

@@ -144,12 +144,7 @@ def find_all_s3_models(
     # validate models stored in S3 that were specified with predictor:models:dir field
     if is_dir_used:
         bucket_name, models_path = S3.deconstruct_s3_path(models_dir)
-
-        if util.available_aws_credentials():
-            s3_client = S3(bucket_name)
-        else:
-            s3_client = S3(bucket_name, anonymous=True)
-
+        s3_client = S3(bucket_name)
         sub_paths, timestamps = s3_client.search(models_path)
         model_paths, ooa_ids = validate_models_dir_paths(sub_paths, predictor_type, models_path)
         model_names = [os.path.basename(model_path) for model_path in model_paths]
@@ -176,10 +171,7 @@ def find_all_s3_models(
         for idx, path in enumerate(s3_paths):
             if S3.is_valid_s3_path(path):
                 bucket_name, model_path = S3.deconstruct_s3_path(path)
-                if util.available_aws_credentials():
-                    s3_client = S3(bucket_name)
-                else:
-                    s3_client = S3(bucket_name, anonymous=True)
+                s3_client = S3(bucket_name)
                 sb, model_path_ts = s3_client.search(model_path)
                 try:
                     ooa_ids.append(validate_model_paths(sb, predictor_type, model_path))
@@ -459,10 +451,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         sub_paths: List[str],
         bucket_name: str,
     ) -> None:
-        if util.available_aws_credentials():
-            s3_client = S3(bucket_name)
-        else:
-            s3_client = S3(bucket_name, anonymous=True)
+        s3_client = S3(bucket_name)
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):
@@ -1070,10 +1059,8 @@ class TFSModelLoader(mp.Process):
         sub_paths: List[str],
         bucket_name: str,
     ) -> None:
-        if util.available_aws_credentials():
-            s3_client = S3(bucket_name)
-        else:
-            s3_client = S3(bucket_name, anonymous=True)
+        s3_client = S3(bucket_name)
+
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):
 
