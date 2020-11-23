@@ -131,15 +131,17 @@ func InstanceTelemetry() error {
 	fixedPrice := clusterFixedPrice()
 
 	properties := map[string]interface{}{
-		"region":                   *config.Cluster.Region,
-		"instance_count":           totalInstances,
-		"instances":                instanceInfos,
-		"fixed_price":              fixedPrice,
-		"total_price":              totalInstancePrice + fixedPrice,
-		"total_price_if_on_demand": totalInstancePriceIfOnDemand + fixedPrice,
+		"region":                      *config.Cluster.Region,
+		"instance_count":              totalInstances,
+		"instances":                   instanceInfos,
+		"fixed_price":                 fixedPrice,
+		"workload_price":              totalInstancePrice,
+		"workload_price_if_on_demand": totalInstancePriceIfOnDemand,
+		"total_price":                 totalInstancePrice + fixedPrice,
+		"total_price_if_on_demand":    totalInstancePriceIfOnDemand + fixedPrice,
 	}
 
-	telemetry.Event("operator.cron", properties)
+	telemetry.Event("operator.cron", properties, config.Cluster.TelemetryEvent())
 
 	return nil
 }
