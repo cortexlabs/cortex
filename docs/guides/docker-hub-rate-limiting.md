@@ -128,10 +128,17 @@ kubectl patch serviceaccount operator --namespace default \
 kubectl patch serviceaccount fluentd --namespace default \
   -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 
+kubectl patch serviceaccount default --namespace kube-system \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+
 kubectl patch serviceaccount cluster-autoscaler --namespace kube-system \
   -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 
 kubectl patch serviceaccount metrics-server --namespace kube-system \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+
+# Only if you are using cortex version <= 0.20.0:
+kubectl patch serviceaccount istio-cni --namespace kube-system \
   -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 
 # Only if you are using Inferentia:
@@ -161,8 +168,11 @@ kubectl delete secret --namespace kube-system registry-credentials
 kubectl patch serviceaccount default --namespace default -p "{\"imagePullSecrets\": []}"
 kubectl patch serviceaccount operator --namespace default -p "{\"imagePullSecrets\": []}"
 kubectl patch serviceaccount fluentd --namespace default -p "{\"imagePullSecrets\": []}"
+kubectl patch serviceaccount default --namespace kube-system -p "{\"imagePullSecrets\": []}"
 kubectl patch serviceaccount cluster-autoscaler --namespace kube-system -p "{\"imagePullSecrets\": []}"
 kubectl patch serviceaccount metrics-server --namespace kube-system -p "{\"imagePullSecrets\": []}"
+# Only if you are using cortex version <= 0.20.0:
+kubectl patch serviceaccount istio-cni --namespace kube-system -p "{\"imagePullSecrets\": []}"
 # Only if you are using Inferentia:
 kubectl patch serviceaccount neuron-device-plugin --namespace kube-system -p "{\"imagePullSecrets\": []}"
 ```
