@@ -6,7 +6,8 @@ This project implements a multi-lingual translation API, supporting translations
 
 
 ```bash
-curl https://***.amazonaws.com/translator -X POST -H "Content-Type: application/json" -d {"source_language": "en", "destination_language": "phi", "text": "It is a mistake to think you can solve any major problems just with potatoes." }
+curl https://***.amazonaws.com/translator -X POST -H "Content-Type: application/json" -d 
+{"source_language": "en", "destination_language": "phi", "text": "It is a mistake to think you can solve any major problems just with potatoes." }
 
 {"generated_text": "Sayop an paghunahuna nga masulbad mo ang bisan ano nga dagkong mga problema nga may patatas lamang."}
 ```
@@ -19,7 +20,7 @@ Priorities of this project include:
 
 ## Models used
 
-This project uses pre-trained Opus MT neural machine translation models, trained by Jörg Tiedemann and the Language Technology Research Group at the University of Helsinki. The models are hosted for free by Hugging Face.
+This project uses pre-trained Opus MT neural machine translation models, trained by Jörg Tiedemann and the Language Technology Research Group at the University of Helsinki. The models are hosted for free by Hugging Face. For the full list of language-to-language models, you can view the model repository [here.](https://huggingface.co/Helsinki-NLP)
 
 ## How to deploy the API
 
@@ -53,7 +54,7 @@ cortex is ready!
 
 ```
 
-The config file referenced is in this repo. Cortex can cluster up without a config file, but for this deployment, we use it to specify that we need to disable API Gateway, as its timeout limits will interfere with our API.  
+Cortex can cluster up without a config file, but for this deployment, we use it to specify that we need to disable API Gateway, as its timeout limits will interfere with our API.  
 
 Once the cluster is spun up (roughly 20 minutes), we can deploy by running:
 
@@ -61,14 +62,14 @@ Once the cluster is spun up (roughly 20 minutes), we can deploy by running:
 cortex deploy
 ```
 
-I've configured my CLI to default to the AWS environment by running `cortex env default aws`)
+(I've configured my CLI to default to the AWS environment by running `cortex env default aws`)
 
 Now, we wait for the API to become live. You can track its status with `cortex get --watch`.
 
 Note that after the API goes live, we need to wait a few minutes for it to register all the models hosted in the S3 bucket. Because the bucket is so large, it takes Cortex a bit longer than usual. When it's done, running `cortex get translator` should return something like:
 
 ```
-$ cortex get translator
+cortex get translator
 
 using aws environment
 
@@ -116,8 +117,8 @@ The response should look something like this:
 {"generated_text": "Hasta luego y gracias por todos los peces."}
 ```
 
-The first time you request a specific language-to-language translation, the model will be downloaded from S3, which will take some time (roughly a minute). Every subsequent request will be much faster, as the API is defined as being able to hold 250 models on disk and 5 in memory. Models already loaded into memory will serve predictions fastest, while those on disk will take slightly longer as they need to be swapped out. Instances with more memory and disk space can naturally hold more models.
+The first time you request a specific language-to-language translation, the model will be downloaded from S3, which will take some time (roughly a minute). Every subsequent request will be much faster, as the API is defined as being able to hold 250 models on disk and 5 in memory. Models already loaded into memory will serve predictions fastest, while those on disk will take slightly longer as they need to be swapped into memory. Instances with more memory and disk space can naturally hold more models.
 
 If you know which models are most likely to be needed, you can "warm up" the API by calling them immediately after deploy, or you can even deploy a separate API that only contains those models, and route relevant traffic there to ensure minimal latency.
 
-Finally, note that both models are removed from both memory and disk according to which model was used last. You can read more about how caching works in the [Cortex docs.](https://docs.cortex.dev/)
+Finally, note that when space is full, models are removed from both memory and disk according to which model was used last. You can read more about how caching works in the [Cortex docs.](https://docs.cortex.dev/)
