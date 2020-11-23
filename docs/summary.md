@@ -55,6 +55,7 @@
 * [CLI commands](miscellaneous/cli.md)
 * [Python client](miscellaneous/python-client.md)
 * [Environments](miscellaneous/environments.md)
+* [Architecture diagram](miscellaneous/architecture.md)
 * [Telemetry](miscellaneous/telemetry.md)
 
 ## Troubleshooting

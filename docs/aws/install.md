@@ -4,9 +4,6 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Configure Cortex
 
-<!-- CORTEX_VERSION_MINOR x6 -->
-<!-- CORTEX_VERSION_BRANCH_STABLE -->
-
 ```yaml
 # cluster.yaml
 
@@ -66,21 +63,28 @@ ssl_certificate_arn:
 
 # primary CIDR block for the cluster's VPC
 vpc_cidr: 192.168.0.0/16
+```
 
+The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and in your [Batch API configuration](../deployments/batch-api/api-configuration.md).
+
+The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
+
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
+```yaml
 # docker images
-image_operator: cortexlabs/operator:master
-image_manager: cortexlabs/manager:master
-image_downloader: cortexlabs/downloader:master
-image_request_monitor: cortexlabs/request-monitor:master
-image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
-image_metrics_server: cortexlabs/metrics-server:master
-image_inferentia: cortexlabs/inferentia:master
-image_neuron_rtd: cortexlabs/neuron-rtd:master
-image_nvidia: cortexlabs/nvidia:master
-image_fluentd: cortexlabs/fluentd:master
-image_statsd: cortexlabs/statsd:master
-image_istio_proxy: cortexlabs/istio-proxy:master
-image_istio_pilot: cortexlabs/istio-pilot:master
+image_operator: quay.io/cortexlabs/operator:master
+image_manager: quay.io/cortexlabs/manager:master
+image_downloader: quay.io/cortexlabs/downloader:master
+image_request_monitor: quay.io/cortexlabs/request-monitor:master
+image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
+image_metrics_server: quay.io/cortexlabs/metrics-server:master
+image_inferentia: quay.io/cortexlabs/inferentia:master
+image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:master
+image_nvidia: quay.io/cortexlabs/nvidia:master
+image_fluentd: quay.io/cortexlabs/fluentd:master
+image_statsd: quay.io/cortexlabs/statsd:master
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 ```
 
 ## Spin up Cortex on your AWS account
