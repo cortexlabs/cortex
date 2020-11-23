@@ -53,6 +53,12 @@ func trafficSplitterTable(trafficSplitter schema.APIResponse, env cliconfig.Envi
 	out += "\n" + console.Bold("endpoint: ") + trafficSplitter.Endpoint
 	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), trafficSplitter.Endpoint)
 
+	out += "\n" + apiHistoryTable(trafficSplitter.APIVersions)
+
+	if !_flagVerbose {
+		return out, nil
+	}
+
 	out += titleStr("configuration") + strings.TrimSpace(trafficSplitter.Spec.UserStr(env.Provider))
 
 	return out, nil

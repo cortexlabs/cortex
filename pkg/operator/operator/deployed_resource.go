@@ -25,3 +25,7 @@ type DeployedResource struct {
 	userconfig.Resource
 	VirtualService *istioclientnetworking.VirtualService
 }
+
+func (deployedResourced *DeployedResource) ID() string {
+	return deployedResourced.VirtualService.Labels["apiID"]
+}

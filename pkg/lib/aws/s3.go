@@ -130,7 +130,7 @@ func IsValidS3aPath(s3aPath string) bool {
 // List all S3 objects that are "depth" levels or deeper than the given "s3Path".
 // Setting depth to 1 effectively translates to listing the objects one level or deeper than the given prefix (aka listing the directory contents).
 //
-// 1st returned value is the list of paths found at level <depth>.
+// 1st returned value is the list of paths found at level <depth> or deeper.
 // 2nd returned value is the list of paths found at all levels.
 func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirObjects bool, maxResults *int64) ([]string, []string, error) {
 	paths := strset.New()
@@ -635,6 +635,31 @@ func (c *Client) ListS3Dir(bucket string, s3Dir string, includeDirObjects bool, 
 func (c *Client) ListS3PathDir(s3DirPath string, includeDirObjects bool, maxResults *int64) ([]*s3.Object, error) {
 	s3Path := s.EnsureSuffix(s3DirPath, "/")
 	return c.ListS3PathPrefix(s3Path, includeDirObjects, maxResults)
+}
+
+// This behaves like you'd expect `ls` to behave on a local file system
+// "directory" names will be returned even if S3 directory objects don't exist
+func (c *Client) ListS3DirOneLevel(bucket string, s3Dir string, maxResults *int64) ([]string, error) {
+	s3Dir = s.EnsureSuffix(s3Dir, "/")
+
+	allNames := strset.New()
+
+	err := c.S3Iterator(bucket, s3Dir, true, nil, func(object *s3.Object) (bool, error) {
+		relativePath := strings.TrimPrefix(*object.Key, s3Dir)
+		oneLevelPath := strings.Split(relativePath, "/")[0]
+		allNames.Add(oneLevelPath)
+
+		if maxResults != nil && int64(len(allNames)) >= *maxResults {
+			return false, nil
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, S3Path(bucket, s3Dir))
+	}
+
+	return allNames.SliceSorted(), nil
 }
 
 func (c *Client) ListS3Prefix(bucket string, prefix string, includeDirObjects bool, maxResults *int64) ([]*s3.Object, error) {
