@@ -14,6 +14,8 @@
 
 from contextlib import contextmanager
 import os
+from pathlib import Path
+import shutil
 
 
 @contextmanager
@@ -25,3 +27,13 @@ def open_temporarily(path, mode):
     finally:
         file.close()
         os.remove(path)
+
+
+@contextmanager
+def open_tempdir(dir_path):
+    Path(dir_path).mkdir(parents=True)
+
+    try:
+        yield dir_path
+    finally:
+        shutil.rmtree(dir_path)

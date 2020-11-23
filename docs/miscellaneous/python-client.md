@@ -9,6 +9,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   * [env\_list](#env_list)
   * [env\_delete](#env_delete)
 * [cortex.client.Client](#cortex-client-client)
+  * [deploy\_project](#deploy_project)
   * [deploy](#deploy)
   * [get\_api](#get_api)
   * [list\_apis](#list_apis)
@@ -38,7 +39,7 @@ To deploy and manage APIs on a new cluster:
     ```python
     import cortex
     c = cortex.client("aws")
-    c.deploy("./cortex.yaml")
+    c.deploy_project("./cortex.yaml")
     ```
 
 To deploy and manage APIs on an existing cluster:
@@ -49,7 +50,7 @@ To deploy and manage APIs on an existing cluster:
     ```python
     import cortex
     c = cortex.cluster_client("aws", operator_endpoint, aws_access_key_id, aws_secret_access_key)
-    c.deploy("./cortex.yaml")
+    c.deploy_project("./cortex.yaml")
     ```
 
 To deploy and manage APIs locally:
@@ -57,7 +58,7 @@ To deploy and manage APIs locally:
 ```python
 import cortex
 c = cortex.client("local")
-c.deploy("./cortex.yaml")
+c.deploy_project("./cortex.yaml")
 ```
 
 **Arguments**:
@@ -133,23 +134,47 @@ Delete an environment configured on this machine.
 
 # cortex.client.Client
 
-## deploy
+## deploy\_project
 
 ```python
- | deploy(config: Optional[List[dict]] = None, project_dir: Optional[str] = None, config_file: Optional[str] = None, force: bool = False, wait: bool = False) -> list
+ | deploy_project(config: Optional[dict] = None, project_dir: Optional[str] = None, config_file: Optional[str] = None, force: bool = False, wait: bool = False) -> list
 ```
 
 Deploy or update APIs specified in the config_file.
 
 **Arguments**:
 
-- `config` - A list of dictionaries containing Cortex API definitions. Specify this field or the `config_file` field but not both.
+- `config` - A dictionary defining a single Cortex API. Specify this field or the `config_file` field but not both.
   Schema can be found here:
   → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
   → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
   → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
 - `project_dir` - Directory to a Python project containing your predictor implementation. Required if `config` is specified.
 - `config_file` - Local path to a yaml file defining Cortex APIs. Specify this field or the `config` field but not both.
+- `force` - Override any in-progress api updates.
+- `wait` - Streams logs until the APIs are ready.
+
+**Returns**:
+
+  Deployment status, API specification, and endpoint for each API.
+
+## deploy
+
+```python
+ | deploy(config: dict, cls=None, pip_dependencies=[], conda_dependencies=[], force: bool = False, wait: bool = False)
+```
+
+Deploy an API
+
+**Arguments**:
+
+- `config` - A dictionary defining a single Cortex API. Schema can be found here:
+  → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
+  → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
+  → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
+- `cls` - A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+  → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
+  → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
 - `force` - Override any in-progress api updates.
 - `wait` - Streams logs until the APIs are ready.
 

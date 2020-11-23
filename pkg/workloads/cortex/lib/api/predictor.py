@@ -254,6 +254,8 @@ class Predictor:
             refresh_logger()
 
         try:
+            if inspect.isclass(impl):  # for pickled classes
+                return impl
             classes = inspect.getmembers(impl, inspect.isclass)
             predictor_class = None
             for class_df in classes:
@@ -276,12 +278,8 @@ class Predictor:
     def _load_module(self, module_name, impl_path):
         if impl_path.endswith(".pickle"):
             try:
-                impl = imp.new_module(module_name)
-
                 with open(impl_path, "rb") as pickle_file:
-                    pickled_dict = dill.load(pickle_file)
-                    for key in pickled_dict:
-                        setattr(impl, key, pickled_dict[key])
+                    impl = dill.load(pickle_file)
             except Exception as e:
                 raise UserException("unable to load pickle", str(e)) from e
         else:

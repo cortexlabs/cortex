@@ -20,6 +20,8 @@ import subprocess
 import threading
 import yaml
 import uuid
+import dill
+from pathlib import Path
 
 from typing import List, Dict, Optional, Tuple, Callable, Union
 from cortex.binary import run_cli, get_cli_path
@@ -37,7 +39,7 @@ class Client:
         self.env = env
 
     # CORTEX_VERSION_MINOR x3
-    def deploy(
+    def deploy_project(
         self,
         config: Optional[dict] = None,
         project_dir: Optional[str] = None,
@@ -47,7 +49,6 @@ class Client:
     ) -> list:
         """
         Deploy or update APIs specified in the config_file.
-
         Args:
             config: A dictionary defining a single Cortex API. Specify this field or the `config_file` field but not both.
             Schema can be found here:
@@ -58,7 +59,6 @@ class Client:
             config_file: Local path to a yaml file defining Cortex APIs. Specify this field or the `config` field but not both.
             force: Override any in-progress api updates.
             wait: Streams logs until the APIs are ready.
-
         Returns:
             Deployment status, API specification, and endpoint for each API.
         """
@@ -90,6 +90,72 @@ class Client:
         raise ValueError(
             "can not deploy API(s) because API configuration was not specified; please specify either `config` or `config_field` but not both."
         )
+
+    # CORTEX_VERSION_MINOR x5
+    def deploy(
+        self,
+        config: dict,
+        cls=None,
+        pip_dependencies=[],
+        conda_dependencies=[],
+        force: bool = False,
+        wait: bool = False,
+    ):
+        """
+        Deploy an API
+
+        Args:
+            config: A dictionary defining a single Cortex API. Schema can be found here:
+                → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
+                → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
+                → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
+            cls: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+                → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
+                → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
+            force: Override any in-progress api updates.
+            wait: Streams logs until the APIs are ready.
+
+        Returns:
+            Deployment status, API specification, and endpoint for each API.
+        """
+        project_dir = Path.home() / ".cortex" / "deployments" / str(int(time.time() * 1000))
+        with util.open_tempdir(str(project_dir)):
+            if cls is None:
+                return self.deploy_project(config, project_dir, wait=wait, force=force)
+
+            # Change if PYTHONVERSION changes
+            expected_version = "3.6"
+            actual_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+            if actual_version < expected_version:
+                raise Exception("cortex is only supported for python versions >= 3.6")  # unexpected
+            if actual_version > expected_version:
+                is_python_set = False
+                for conda_dep in conda_dependencies:
+                    if "::python=" in conda_dep:
+                        is_python_set = True
+                        break
+
+                if not is_python_set:
+                    conda_dependencies = [
+                        f"conda-forge::python={sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+                    ] + conda_dependencies
+
+            if len(pip_dependencies) > 0:
+                with open(project_dir / "requirements.txt", "w") as requirements_file:
+                    requirements_file.write("\n".join(pip_dependencies))
+
+            if len(conda_dependencies) > 0:
+                with open(project_dir / "conda-packages.txt", "w") as conda_file:
+                    conda_file.write("\n".join(conda_dependencies))
+
+            if config.get("predictor") is None:
+                raise ValueError("`predictor` key must be defined")
+
+            with open(project_dir / "predictor.pickle", "wb") as pickle_file:
+                dill.dump(cls, pickle_file)
+                config["predictor"]["path"] = "predictor.pickle"
+
+            return self.deploy_project(config, project_dir, wait=wait, force=force)
 
     def _deploy(
         self,

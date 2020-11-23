@@ -94,7 +94,7 @@ setup(
             "cortex = cortex.binary:run",
         ],
     },
-    install_requires=(["importlib-resources; python_version < '3.7'", "pyyaml"]),
+    install_requires=(["importlib-resources; python_version < '3.7'", "pyyaml", "dill"]),
     python_requires=">=3.6",
     cmdclass={
         "install": InstallBinary,
