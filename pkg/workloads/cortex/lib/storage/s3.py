@@ -27,14 +27,16 @@ from cortex.lib.exceptions import CortexException
 
 
 class S3(object):
-    def __init__(self, bucket=None, region=None, client_config={}):
+    def __init__(self, bucket=None, region=None, client_config={}, anonymous=False):
         self.bucket = bucket
         self.region = region
 
         if client_config is None:
             client_config = {}
 
-        if region is not None:
+        if anonymous:
+            client_config["config"] = botocore.client.Config(signature_version=botocore.UNSIGNED)
+        elif region is not None:
             client_config["region_name"] = region
 
         self.s3 = boto3.client("s3", **client_config)
