@@ -133,7 +133,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 
 	out += "\n" + console.Bold("endpoint: ") + batchAPI.Endpoint + "\n"
 
-	out += "\n" + apiHistoryTable(batchAPI.PastDeploys)
+	out += "\n" + apiHistoryTable(batchAPI.APIVersions)
 
 	if !_flagVerbose {
 		return out

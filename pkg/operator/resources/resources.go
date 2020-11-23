@@ -346,7 +346,7 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 
 	// Get past API deploy times
 	if len(apiResponse) > 0 {
-		apiResponse[0].PastDeploys, err = getPastAPIDeploys(deployedResource.Name)
+		apiResponse[0].APIVersions, err = getPastAPIDeploys(deployedResource.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -378,8 +378,8 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 	}, nil
 }
 
-func getPastAPIDeploys(apiName string) ([]schema.PastDeploy, error) {
-	var pastDeploys []schema.PastDeploy
+func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
+	var apiVersions []schema.APIVersion
 
 	apiIDs, err := config.AWS.ListS3DirOneLevel(config.Cluster.Bucket, spec.KeysPrefix(apiName, config.Cluster.ClusterName), pointer.Int64(10))
 	if err != nil {
@@ -391,13 +391,13 @@ func getPastAPIDeploys(apiName string) ([]schema.PastDeploy, error) {
 		if err != nil {
 			return nil, err
 		}
-		pastDeploys = append(pastDeploys, schema.PastDeploy{
+		apiVersions = append(apiVersions, schema.APIVersion{
 			APIID:       apiID,
 			LastUpdated: lastUpdated.Unix(),
 		})
 	}
 
-	return pastDeploys, nil
+	return apiVersions, nil
 }
 
 //checkIfUsedByTrafficSplitter checks if api is used by a deployed TrafficSplitter

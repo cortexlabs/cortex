@@ -502,7 +502,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	return realtimeAPITable(apiRes, env)
 }
 
-func apiHistoryTable(pastDeploys []schema.PastDeploy) string {
+func apiHistoryTable(apiVersions []schema.APIVersion) string {
 	t := table.Table{
 		Headers: []table.Header{
 			{Title: "api id"},
@@ -510,10 +510,10 @@ func apiHistoryTable(pastDeploys []schema.PastDeploy) string {
 		},
 	}
 
-	t.Rows = make([][]interface{}, len(pastDeploys))
-	for i, pastDeploy := range pastDeploys {
-		lastUpdated := time.Unix(pastDeploy.LastUpdated, 0)
-		t.Rows[i] = []interface{}{pastDeploy.APIID, libtime.SinceStr(&lastUpdated)}
+	t.Rows = make([][]interface{}, len(apiVersions))
+	for i, apiVersion := range apiVersions {
+		lastUpdated := time.Unix(apiVersion.LastUpdated, 0)
+		t.Rows[i] = []interface{}{apiVersion.APIID, libtime.SinceStr(&lastUpdated)}
 	}
 
 	return t.MustFormat(&table.Opts{Sort: pointer.Bool(false)})
