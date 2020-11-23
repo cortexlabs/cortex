@@ -141,6 +141,8 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
+	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(types.AWSProviderType))
+
 	var api *spec.API
 	var msg string
 	switch apiConfig.Kind {
