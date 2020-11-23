@@ -1026,7 +1026,7 @@ func validatePythonModel(modelResource *CuratedModelResource, providerType types
 func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
 	predictor := api.Predictor
 
-	if providerType != types.AWSProviderType {
+	if providerType == types.GCPProviderType {
 		return ErrorPredictorIsNotSupportedByProvider(predictor.Type, providerType)
 	}
 
@@ -1198,7 +1198,7 @@ func validateTensorFlowModel(
 }
 
 func validateONNXPredictor(predictor *userconfig.Predictor, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
-	if providerType != types.AWSProviderType {
+	if providerType == types.GCPProviderType {
 		return ErrorPredictorIsNotSupportedByProvider(predictor.Type, providerType)
 	}
 
