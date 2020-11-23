@@ -56,7 +56,7 @@ import requests
 local_client = cortex.client("local")
 
 # deploy the model as a realtime api and wait for it to become active
-deployments = local_client.deploy("./cortex.yaml", wait=True)
+deployments = local_client.deploy_project(config_file="./cortex.yaml", wait=True)
 
 # get the api's endpoint
 url = deployments[0]["api"]["endpoint"]

@@ -33,7 +33,7 @@ def client(env: str):
         ```python
         import cortex
         c = cortex.client("aws")
-        c.deploy_project("./cortex.yaml")
+        c.deploy_project(config_file="./cortex.yaml")
         ```
 
     To deploy and manage APIs on an existing cluster:
@@ -44,7 +44,7 @@ def client(env: str):
         ```python
         import cortex
         c = cortex.cluster_client("aws", operator_endpoint, aws_access_key_id, aws_secret_access_key)
-        c.deploy_project("./cortex.yaml")
+        c.deploy_project(config_file="./cortex.yaml")
         ```
 
     To deploy and manage APIs locally:
@@ -52,7 +52,7 @@ def client(env: str):
     ```python
     import cortex
     c = cortex.client("local")
-    c.deploy_project("./cortex.yaml")
+    c.deploy_project(config_file="./cortex.yaml")
     ```
 
     Args:
