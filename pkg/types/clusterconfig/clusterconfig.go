@@ -354,91 +354,91 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "ImageOperator",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/operator:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/operator:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/manager:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageDownloader",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/downloader:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageRequestMonitor",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/request-monitor:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/request-monitor:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageClusterAutoscaler",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageMetricsServer",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/metrics-server:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/metrics-server:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageInferentia",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/inferentia:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/inferentia:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageNeuronRTD",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/neuron-rtd:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/neuron-rtd:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageNvidia",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/nvidia:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/nvidia:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageFluentd",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/fluentd:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/fluentd:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageStatsd",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/statsd:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/statsd:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioProxy",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-proxy:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-pilot:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -494,7 +494,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/manager:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
