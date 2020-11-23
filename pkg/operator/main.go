@@ -41,7 +41,7 @@ func main() {
 		exit.Error(err)
 	}
 
-	telemetry.Event("operator.init")
+	telemetry.Event("operator.init", config.Cluster.TelemetryEvent())
 
 	_, err := operator.UpdateMemoryCapacityConfigMap()
 	if err != nil {
