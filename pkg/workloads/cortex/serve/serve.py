@@ -38,6 +38,7 @@ from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import LockedFile
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
+from cortex.lib.concurrency import FileLock
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
@@ -304,8 +305,10 @@ def start_fn():
         client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
-        logger().info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(project_dir, client)
+
+        with FileLock("/run/init_stagger.lock"):
+            logger().info("loading the predictor from {}".format(api.predictor.path))
+            predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
         local_cache["api"] = api
         local_cache["provider"] = provider

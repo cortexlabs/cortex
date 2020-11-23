@@ -52,9 +52,6 @@ from cortex.lib.model import (
     ModelsTree,  # only when num workers = 1
 )
 
-# concurrency
-from cortex.lib.concurrency import FileLock
-
 # model validation
 from cortex.lib.model import validate_model_paths
 
@@ -245,8 +242,7 @@ class Predictor:
             validations = PYTHON_CLASS_VALIDATION
 
         try:
-            with FileLock("/run/init_stagger.lock"):
-                impl = self._load_module("cortex_predictor", os.path.join(project_dir, self.path))
+            impl = self._load_module("cortex_predictor", os.path.join(project_dir, self.path))
         except CortexException as e:
             e.wrap("error in " + self.path)
             raise
