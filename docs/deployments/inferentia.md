@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 To use [Inferentia ASICs](https://aws.amazon.com/machine-learning/inferentia/):
 
-1. You may need to [file an AWS support ticket](https://console.aws.amazon.com/support/cases#/create?issueType=service-limit-increase&limitType=ec2-instances) to increase the limit for your desired instance type.
+1. You may need to [request a limit increase](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for running Inferentia instances.
 1. Set the instance type to an AWS Inferentia instance (e.g. `inf1.xlarge`) when creating your Cortex cluster.
 1. Set the `inf` field in the `compute` configuration for your API. One unit of `inf` corresponds to one Inferentia ASIC with 4 NeuronCores *(not the same thing as `cpu`)* and 8GB of cache memory *(not the same thing as `mem`)*. Fractional requests are not allowed.
 

@@ -6,7 +6,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ```bash
 # spin down Cortex
-cortex down
+cortex cluster down
 
 # uninstall the CLI
 sudo rm /usr/local/bin/cortex

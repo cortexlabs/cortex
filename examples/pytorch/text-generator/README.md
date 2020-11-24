@@ -94,7 +94,7 @@ $ cortex get text-generator
 status   last update   avg request   2XX
 live     1m            -             -
 
-endpoint: http://localhost:8890
+endpoint: http://localhost:8889
 ...
 ```
 
@@ -109,7 +109,7 @@ $ cortex logs text-generator
 Once your API is live, use `curl` to test your API (it will take a few seconds to generate the text):
 
 ```bash
-$ curl http://localhost:8890 \
+$ curl http://localhost:8889 \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "machine learning is"}'
 

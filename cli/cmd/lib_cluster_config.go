@@ -70,7 +70,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
 	if errors.HasError(errs) {
-		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/config", consts.CortexVersionMinor))
+		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
 	}
 
 	return nil
@@ -85,7 +85,7 @@ func getNewClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/config", consts.CortexVersionMinor))
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
 		}
 	}
 
@@ -121,7 +121,7 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/config", consts.CortexVersionMinor))
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
 		}
 	}
 
@@ -206,7 +206,7 @@ func getInstallClusterConfig(awsCreds AWSCredentials, accessConfig clusterconfig
 
 	err = clusterConfig.Validate(awsClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/config", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
 		}
@@ -272,7 +272,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 
 	err = userClusterConfig.Validate(awsClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/config", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
 		}
@@ -556,7 +556,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.ClusterName, privateSubnetMsg)
 
 	if clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
-		fmt.Print("warning: you've disabled API Gateway cluster-wide, so APIs will not be able to create API Gateway endpoints (they will still be reachable via the API load balancer; see https://docs.cortex.dev/deployments/networking for more information)\n\n")
+		fmt.Print(fmt.Sprintf("warning: you've disabled API Gateway cluster-wide, so APIs will not be able to create API Gateway endpoints (they will still be reachable via the API load balancer; see https://docs.cortex.dev/v/%s/deployments/networking for more information)\n\n", consts.CortexVersionMinor))
 	}
 
 	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
@@ -565,14 +565,14 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/aws/spot-instances for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/aws/spot for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
-			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/aws/spot-instances for more information\n\n", consts.CortexVersionMinor)
+			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/aws/spot for more information\n\n", consts.CortexVersionMinor)
 		}
 	}
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/aws/config for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/aws/install for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)
 	}
 }
@@ -581,7 +581,7 @@ func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds 
 	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds, awsClient))
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/aws/config for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/aws/install for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
 	}
 }
