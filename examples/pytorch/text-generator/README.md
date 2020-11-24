@@ -70,6 +70,8 @@ import requests
 endpoint = cx.get_api("text-generator")["endpoint"]
 payload = {"text": "hello world"}
 print(requests.post(endpoint, payload).text)
+
+# cx.delete_api("text-generator")
 ```
 
 ## Manage your APIs using the CLI
@@ -135,8 +137,6 @@ import requests
 endpoint = cx.get_api("text-generator")["endpoint"]
 payload = {"text": "hello world"}
 print(requests.post(endpoint, payload).text)
-
-# cx.delete_api("text-generator")
 ```
 
 Monitor the status of your APIs using `cortex get` using your CLI:
