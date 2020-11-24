@@ -62,5 +62,5 @@ func defaultDockerImage(imageName string) string {
 		return fmt.Sprintf("%s/%s:latest", imageOverride, imageName)
 	}
 
-	return fmt.Sprintf("cortexlabs/%s:%s", imageName, CortexVersion)
+	return fmt.Sprintf("quay.io/cortexlabs/%s:%s", imageName, CortexVersion)
 }

@@ -4,147 +4,181 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Docker Hub's [newly enforced rate-limiting policy](https://www.docker.com/increase-rate-limits) can negatively impact your cluster. This is much likelier to be an issue if you've set `subnet_visibility: private` in your cluster configuration file, since with private subnets, all requests from all nodes are routed through the NAT Gateway, and will therefore have the same IP address (docker imposes the rate limit per IP address). If you haven't specified `subnet_visibility` or have set `subnet_visibility: public`, this is less likely to be an issue for you, since each instance will have its own IP address.
 
-We are actively working on a long term resolution to this problem. In the meantime, there are two ways to avoid this issue:
+If you are affected by Docker Hub's rate limiting, your may encounter issues such as:
+
+* your APIs typically run as expected but new replicas (during scale up) or newly submitted batch jobs suddenly stop working for a period of time and then eventually they start working again
+* you encounter scaling issues for Realtime APIs
+* batch jobs are stuck in an in progress state for an unusually long period of time
+
+Follow these steps to determine if this issue is affecting your cluster:
+
+1. [Setup kubectl](./kubectl-setup.md)
+2. `kubectl get pods --all-namespaces`
+3. Check the pod status column for image pull failures such as `ErrImagePull`, `ImagePullBackoff`. If you don't see any, the rate limiting may not be affecting you currently.
+4. Get the pod id and namespace of a pod encountering image pull failures
+5. `kubectl describe pod <pod id> --namespace <pod namespace>`
+6. Under the events section, if you see error events related to docker hub rate limiting, then your cluster is likely affected by the rate limiting
+
+There are three ways to avoid this issue:
+
+## Use Cortex images from quay.io
+
+In response to Docker Hub's new image pull policy, we have migrated our images to [quay.io](https://quay.io). This registry allows for unlimited image pulls for unauthenticated users.
+
+It is possible to configure Cortex to use the images from Quay instead of Docker Hub:
+
+### Update your cluster configuration file
+
+Add the following to your [cluster configuration file](../cluster-management/config.md) (e.g. `cluster.yaml`). In the image paths below, make sure to set `<VERSION>` to your cluster's version.
+
+```yaml
+# cluster.yaml
+
+image_manager: quay.io/cortexlabs/manager:<VERSION>
+image_operator: quay.io/cortexlabs/operator:<VERSION>
+image_downloader: quay.io/cortexlabs/downloader:<VERSION>
+image_request_monitor: quay.io/cortexlabs/request-monitor:<VERSION>
+image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:<VERSION>
+image_metrics_server: quay.io/cortexlabs/metrics-server:<VERSION>
+image_nvidia: quay.io/cortexlabs/nvidia:<VERSION>
+image_inferentia: quay.io/cortexlabs/inferentia:<VERSION>
+image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:<VERSION>
+image_fluentd: quay.io/cortexlabs/fluentd:<VERSION>
+image_statsd: quay.io/cortexlabs/statsd:<VERSION>
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:<VERSION>
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:<VERSION>
+```
+
+For cluster version <= `0.20.0`, also add the following two images:
+
+```yaml
+image_istio_galley: quay.io/cortexlabs/istio-galley:<VERSION>
+image_istio_citadel: quay.io/cortexlabs/istio-citadel:<VERSION>
+```
+
+For Cortex cluster version < `0.16.0`, please upgrade your cluster to the latest version.
+
+Once you've updated your cluster configuration file, you can spin up your cluster (e.g. `cortex cluster up --config cluster.yaml`).
+
+### Update your API configuration file(s)
+
+To configure your APIs to use the Quay images, you cna update your [API configuration files](../deployments/realtime-api/api-configuration.md). The image paths are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the Docker Hub images are used for your predictors, so you will need to specify the Quay image paths for all of your APIs.
+
+Here is a list of available images (make sure to set `<VERSION>` to your cluster's version):
+
+```text
+quay.io/cortexlabs/python-predictor-cpu:<VERSION>
+quay.io/cortexlabs/python-predictor-gpu:<VERSION>
+quay.io/cortexlabs/python-predictor-inf:<VERSION>
+quay.io/cortexlabs/tensorflow-serving-cpu:<VERSION>
+quay.io/cortexlabs/tensorflow-serving-gpu:<VERSION>
+quay.io/cortexlabs/tensorflow-serving-inf:<VERSION>
+quay.io/cortexlabs/tensorflow-predictor:<VERSION>
+quay.io/cortexlabs/onnx-predictor-cpu:<VERSION>
+quay.io/cortexlabs/onnx-predictor-gpu:<VERSION>
+quay.io/cortexlabs/python-predictor-cpu-slim:<VERSION>
+quay.io/cortexlabs/python-predictor-gpu-slim:<VERSION>-cuda10.0
+quay.io/cortexlabs/python-predictor-gpu-slim:<VERSION>-cuda10.1
+quay.io/cortexlabs/python-predictor-gpu-slim:<VERSION>-cuda10.2
+quay.io/cortexlabs/python-predictor-gpu-slim:<VERSION>-cuda11.0
+quay.io/cortexlabs/python-predictor-inf-slim:<VERSION>
+quay.io/cortexlabs/tensorflow-predictor-slim:<VERSION>
+quay.io/cortexlabs/onnx-predictor-cpu-slim:<VERSION>
+quay.io/cortexlabs/onnx-predictor-gpu-slim:<VERSION>
+```
 
 ## Paid Docker Hub subscription
 
-One option is to pay for the Docker Hub subscription to remove the limit on the number of image pulls. Docker Hub's updated pricing model allows unlimited pulls on a _Pro_ subscription for individuals as described [here](https://www.docker.com/pricing).
+Another option is to pay for the Docker Hub subscription to remove the limit on the number of image pulls. Docker Hub's updated pricing model allows unlimited pulls on a _Pro_ subscription for individuals as described [here](https://www.docker.com/pricing).
 
-By default, the Cortex cluster pulls the images as an anonymous user. Follow [this guide](private-docker.md) to configure your Cortex cluster to pull the images as an authenticated user.
+The advantage of this approach is that there's no need to do a `cortex cluster down`/`cortex cluster up` to authenticate with your Docker Hub account.
 
-## Push to AWS ECR (Elastic Container Registry)
-
-You can configure the Cortex cluster to use images from a different registry. A good choice is ECR on AWS. When an ECR repository resides in the same region as your Cortex cluster, there are no costs incurred when pulling images.
+By default, the Cortex cluster pulls the images as an anonymous user. To configure your Cortex cluster to pull the images as an authenticated user, follow these steps:
 
 ### Step 1
 
-Make sure you have the [aws](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv1.html) and [docker](https://docs.docker.com/get-docker/) CLIs installed.
+Install and configure kubectl ([instructions](kubectl-setup.md)).
 
 ### Step 2
 
-Export the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables in your current shell, or run `aws configure`. These credentials must have access to push to ECR.
-
-### Step 3
-
-Choose a region for your cluster and ECR repositories. In this guide, we'll assume the region is `us-west-2`.
-
-Also, take note of your AWS account ID. The account ID can be found in the _My Account_ section of your AWS console.
-
-### Step 4
-
-You can use the script below to push the images from Docker Hub to your ECR registry. Make sure to update the `ecr_region`, `aws_account_id`, and `cortex_version` variables at the top of the file. Copy-paste the contents into a new file (e.g. `ecr.sh`), and then run `chmod +x ecr.sh`, followed by `./ecr.sh`. It is recommended to run this from an EC2 instance in the same region as your ECR repository, since it will be much faster.
+Set the following environment variables, replacing the placeholders with your docker username and password:
 
 ```bash
-#!/bin/bash
-set -euo pipefail
-
-# user set variables
-ecr_region="us-west-2"
-aws_account_id="620970939130"  # example account ID
-cortex_version="0.22.1"
-
-source_registry="docker.io/cortexlabs"
-destination_registry="${aws_account_id}.dkr.ecr.${ecr_region}.amazonaws.com/cortexlabs"
-
-aws ecr get-login-password --region $ecr_region | docker login --username AWS --password-stdin $destination_registry
-
-# images for the cluster
-cluster_images=(
-  "manager"
-  "request-monitor"
-  "downloader"
-  "operator"
-  "cluster-autoscaler"
-  "metrics-server"
-  "inferentia"
-  "neuron-rtd"
-  "nvidia"
-  "fluentd"
-  "statsd"
-  "istio-proxy"
-  "istio-pilot"
-)
-
-# images for the APIs (you may delete any images that your APIs don't use)
-api_images=(
-  "python-predictor-cpu"
-  "python-predictor-gpu"
-  "python-predictor-inf"
-  "tensorflow-serving-cpu"
-  "tensorflow-serving-gpu"
-  "tensorflow-serving-inf"
-  "tensorflow-predictor"
-  "onnx-predictor-cpu"
-  "onnx-predictor-gpu"
-  "python-predictor-cpu-slim"
-  "python-predictor-gpu-slim"
-  "python-predictor-inf-slim"
-  "tensorflow-predictor-slim"
-  "onnx-predictor-cpu-slim"
-  "onnx-predictor-gpu-slim"
-)
-images=( "${cluster_images[@]}" "${api_images[@]}" )
-
-extra_tags_for_slim_python_predictor=(
-    "cuda10.0"
-    "cuda10.1"
-    "cuda10.2"
-    "cuda11.0"
-)
-
-# create the image repositories
-for image in "${images[@]}"; do
-    aws ecr create-repository --repository-name=cortexlabs/$image --region=$ecr_region || true
-done
-
-# pull the images from Docker Hub and push them to ECR
-for image in "${images[@]}"; do
-    if [ "$image" = "python-predictor-gpu-slim" ]; then
-        for extra_tag in "${extra_tags_for_slim_python_predictor[@]}"; do
-            docker image pull "$source_registry/$image:$cortex_version-$extra_tag"
-            docker image tag "$source_registry/$image:$cortex_version-$extra_tag" "$destination_registry/$image:$cortex_version-$extra_tag"
-            docker image push "$destination_registry/$image:$cortex_version-$extra_tag"
-            echo
-        done
-    else
-      docker image pull "$source_registry/$image:$cortex_version"
-      docker image tag "$source_registry/$image:$cortex_version" "$destination_registry/$image:$cortex_version"
-      docker image push "$destination_registry/$image:$cortex_version"
-      echo
-    fi
-done
-
-echo "###############################################"
-echo
-echo "add the following images to your cortex cluster configuration file (e.g. cluster.yaml):"
-echo "-----------------------------------------------"
-for cluster_image in "${cluster_images[@]}"; do
-    echo "image_$cluster_image: $destination_registry/$cluster_image:$cortex_version"
-done
-echo -e "-----------------------------------------------\n"
-
-echo "use the following images in your API configuration files (e.g. cortex.yaml):"
-echo "-----------------------------------------------"
-for api_image in "${api_images[@]}"; do
-    if [ "$api_image" = "python-predictor-gpu-slim" ]; then
-        for extra_tag in "${extra_tags_for_slim_python_predictor[@]}"; do
-            echo "$destination_registry/$api_image:$cortex_version-$extra_tag"
-        done
-    else
-      echo "$destination_registry/$api_image:$cortex_version"
-    fi
-done
-echo "-----------------------------------------------"
+DOCKER_USERNAME=***
+DOCKER_PASSWORD=***
 ```
 
-The first list of images that were printed (the cluster images) can be directly copy-pasted in your [cluster configuration file](../cluster-management/config.md) before spinning up your cluster.
+Run the following commands:
 
-The second list of images that were printed (the API images) can be used in your [API configuration files](../deployments/realtime-api/api-configuration.md). The images are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the Docker Hub images are used for your predictors, so you will need to specify your ECR image paths for all of your APIs.
+```bash
+kubectl create secret docker-registry registry-credentials \
+  --namespace default \
+  --docker-username=$DOCKER_USERNAME \
+  --docker-password=$DOCKER_PASSWORD
 
-## Step 6
+kubectl create secret docker-registry registry-credentials \
+  --namespace kube-system \
+  --docker-username=$DOCKER_USERNAME \
+  --docker-password=$DOCKER_PASSWORD
 
-Spin up your Cortex cluster using your updated cluster configuration file (e.g. `cortex cluster up --config cluster.yaml`).
+kubectl patch serviceaccount default --namespace default \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 
-## Cleanup
+kubectl patch serviceaccount operator --namespace default \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 
-You can delete your ECR images from the [AWS ECR dashboard](https://console.aws.amazon.com/ecr/repositories) (set your region in the upper right corner). Make sure all of your Cortex clusters have been deleted before deleting any ECR images.
+kubectl patch serviceaccount fluentd --namespace default \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+
+kubectl patch serviceaccount default --namespace kube-system \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+
+kubectl patch serviceaccount cluster-autoscaler --namespace kube-system \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+
+kubectl patch serviceaccount metrics-server --namespace kube-system \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+
+# Only if you are using cortex version <= 0.20.0:
+kubectl patch serviceaccount istio-cni --namespace kube-system \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+
+# Only if you are using Inferentia:
+kubectl patch serviceaccount neuron-device-plugin --namespace kube-system \
+  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+```
+
+### Updating your credentials
+
+First remove your old docker credentials from the cluster:
+
+```bash
+kubectl delete secret --namespace default registry-credentials
+kubectl delete secret --namespace kube-system registry-credentials
+```
+
+Then repeat step 2 above with your updated credentials.
+
+### Removing your credentials
+
+To remove your docker credentials from the cluster, run the following commands:
+
+```bash
+kubectl delete secret --namespace default registry-credentials
+kubectl delete secret --namespace kube-system registry-credentials
+
+kubectl patch serviceaccount default --namespace default -p "{\"imagePullSecrets\": []}"
+kubectl patch serviceaccount operator --namespace default -p "{\"imagePullSecrets\": []}"
+kubectl patch serviceaccount fluentd --namespace default -p "{\"imagePullSecrets\": []}"
+kubectl patch serviceaccount default --namespace kube-system -p "{\"imagePullSecrets\": []}"
+kubectl patch serviceaccount cluster-autoscaler --namespace kube-system -p "{\"imagePullSecrets\": []}"
+kubectl patch serviceaccount metrics-server --namespace kube-system -p "{\"imagePullSecrets\": []}"
+# Only if you are using cortex version <= 0.20.0:
+kubectl patch serviceaccount istio-cni --namespace kube-system -p "{\"imagePullSecrets\": []}"
+# Only if you are using Inferentia:
+kubectl patch serviceaccount neuron-device-plugin --namespace kube-system -p "{\"imagePullSecrets\": []}"
+```
+
+## Push to AWS ECR (Elastic Container Registry)
+
+You can also push the Cortex images to ECR on your AWS account, and pull from your ECR repository in your cluster. Follow [this guide](self-hosted-images.md) to do this.

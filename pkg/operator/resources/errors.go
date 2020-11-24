@@ -29,6 +29,7 @@ import (
 const (
 	ErrOperationIsOnlySupportedForKind  = "resources.operation_is_only_supported_for_kind"
 	ErrAPINotDeployed                   = "resources.api_not_deployed"
+	ErrAPIIDNotFound                    = "resources.api_id_not_found"
 	ErrCannotChangeTypeOfDeployedAPI    = "resources.cannot_change_kind_of_deployed_api"
 	ErrNoAvailableNodeComputeLimit      = "resources.no_available_node_compute_limit"
 	ErrJobIDRequired                    = "resources.job_id_required"
@@ -55,6 +56,13 @@ func ErrorAPINotDeployed(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotDeployed,
 		Message: fmt.Sprintf("%s is not deployed", apiName),
+	})
+}
+
+func ErrorAPIIDNotFound(apiName string, apiID string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPIIDNotFound,
+		Message: fmt.Sprintf("%s with id %s has never been deployed", apiName, apiID),
 	})
 }
 
