@@ -4,60 +4,43 @@ _WARNING: you are on the master branch; please refer to examples on the branch c
 
 This example shows how to deploy a realtime text generation API using a GPT-2 model from Hugging Face's transformers library.
 
-## Implement your Predictor
-
-Define a Predictor with an `__init__` function that loads and initializes the model, and a `predict` function that accepts a payload and returns text.
+## Deploy your API locally
 
 ```python
-import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
-
+# define your text generation API
 class PythonPredictor:
     def __init__(self, config):
+        # the `__init__` function that loads and initializes the model
+        import torch
+        from transformers import GPT2Tokenizer, GPT2LMHeadModel
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
 
     def predict(self, payload):
+        # the `predict` function accepts the payload and returns text
         input_length = len(payload["text"].split())
         tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
         prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
         return self.tokenizer.decode(prediction[0])
-```
 
-## Specify Python dependencies
-
-Create a list of dependencies for your Predictor. Cortex will automatically install them into your runtime once you deploy.
-
-```python
+# list of pip dependencies that will be automatically installed before initializing your Predictor implementation
 pip_dependencies = ["torch", "transformers==3.0.*"]
-```
 
-## Configure your API
-
-A `RealtimeAPI` provides a runtime for inference and makes your Predictor implementation available as a web service that can serve realtime predictions.
-
-```python
 api_spec = {
   'name': 'text-generator',
   'kind': 'RealtimeAPI'
 }
-```
 
-## Deploy your API locally
-
-`deploy` uses the Predictor implementation and API configuration to create a web API:
-
-```python
 import cortex
 
 cx = cortex.client("local")
-cx.deploy(api_spec, predictor=PythonPredictor)
-```
+
+# deploy your the Predictor implementation and API configuration to create a web API
+cx.deploy(api_spec, predictor=PythonPredictor, pip_dependencies=pip_dependencies, wait=True)
+
 
 ## Make a request to your local API
-
-```python
 import requests
 
 endpoint = cx.get("text-generator")["endpoint"]
@@ -65,7 +48,7 @@ payload = {"text": "hello world"}
 print(requests.post(endpoint, payload))
 ```
 
-## Manage your APIs
+## Manage your APIs using the CLI
 
 Monitor the status of your API using `cortex get`:
 
@@ -97,6 +80,7 @@ $ cortex logs text-generator
 
 ## Deploy your model to AWS
 
+<!-- TODO: talk about GPUs? -->
 Cortex can automatically provision infrastructure on your AWS account and deploy your models as production-ready web services:
 
 ```bash
@@ -106,8 +90,30 @@ $ cortex cluster up
 This creates a Cortex cluster in your AWS account, which will take approximately 15 minutes. After your cluster is created, you can deploy your model to your cluster by using the same code and configuration as before:
 
 ```python
+class PythonPredictor:
+    def __init__(self, config):
+        import torch
+        from transformers import GPT2Tokenizer, GPT2LMHeadModel
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+        self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
+
+    def predict(self, payload):
+        input_length = len(payload["text"].split())
+        tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
+        prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
+        return self.tokenizer.decode(prediction[0])
+
+# list of pip dependencies that will be automatically installed before initializing your Predictor implementation
+pip_dependencies = ["torch", "transformers==3.0.*"]
+
+api_spec = {
+  'name': 'text-generator',
+  'kind': 'RealtimeAPI'
+}
+
 cx = cortex.client("aws")
-cx.deploy(api_spec, predictor=PythonPredictor)
+cx.deploy(api_spec, predictor=PythonPredictor, pip_dependencies=pip_dependencies, wait=True)
 ```
 
 Monitor the status of your APIs using `cortex get`:
@@ -132,18 +138,17 @@ payload = {"text": "hello world"}
 print(requests.post(endpoint, payload))
 ```
 
-## Perform a rolling update
+## Updating an API
 
 When you make a change to your Predictor or your API configuration, you can update your api by re-running `cx.deploy()`.
 
 Let's modify the Predictor to set the length of the generated text based on a query parameter:
 
 ```python
-import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
-
 class PythonPredictor:
     def __init__(self, config):
+        import torch
+        from transformers import GPT2Tokenizer, GPT2LMHeadModel
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
@@ -154,13 +159,16 @@ class PythonPredictor:
         tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
         prediction = self.model.generate(tokens, max_length=input_length + output_length, do_sample=True)  # this line is updated
         return self.tokenizer.decode(prediction[0])
-```
 
-Perform a rolling update of your API.
+api_spec = {
+  'name': 'text-generator',
+  'kind': 'RealtimeAPI'
+}
 
-```python
+import cortex
+
 cx = cortex.client("aws")
-cx.deploy(api_spec, predictor=PythonPredictor)
+cx.deploy(api_spec, predictor=PythonPredictor, pip_dependencies = ["torch", "transformers==3.0.*"])
 ```
 
 You can track the status of your API using `cortex get`:
@@ -204,32 +212,14 @@ cx.deploy(api_spec, predictor=PythonPredictor)
 
 You can use `cortex get` to check the status of your API, and once it's live, prediction requests should be faster.
 
-## Disable rolling updates
-
-You can disable rolling updates to prevent spinning up extra instances in development environments by setting `max_surge` to 0 in the `update_strategy` configuration.
-
-```python
-
-config = {
-  'name': 'text-generator',
-  'kind': 'RealtimeAPI',
-  'compute': {
-    'gpu': 1
-  },
-  'update_strategy': {
-    'max_surge': 0
-  }
-}
-```
-
 ## Cleanup
 
 Run `delete` to delete each API:
 
-```python
-cortex.delete('text-generator', 'local')
+```bash
+$ cortex delete text-generator -e local
 
-cortex.delete('text-generator', 'aws')
+$ cortex delete text-generator -e aws
 ```
 
-Deleting APIs frees compute resources and allow Cortex to scale down to the minimum number of instances you specified during cluster creation. `cortex.delete()` will not spin down your cluster.
+Deleting APIs frees compute resources and allow Cortex to scale down to the minimum number of instances you specified during cluster creation. `cortex delete` will not spin down your cluster.
