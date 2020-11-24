@@ -69,7 +69,7 @@ api_spec={
   }
 }
 
-deployments = local_client.deploy_project(api_spec, project_dir=".", wait=True)
+deployments = local_client.deploy(api_spec, project_dir=".", wait=True)
 
 # get the api's endpoint
 url = deployments[0]["api"]["endpoint"]

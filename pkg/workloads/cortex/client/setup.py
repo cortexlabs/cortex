@@ -97,7 +97,7 @@ setup(
     install_requires=(
         [
             "importlib-resources; python_version < '3.7'",
-            "pyyaml>=5.3.1",
+            "pyyaml>=5.3.0",
             "dill==0.3.2",  # lines up with dill package version used in cortex serving code
         ]
     ),
