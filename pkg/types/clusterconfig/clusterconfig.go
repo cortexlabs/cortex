@@ -37,6 +37,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
@@ -353,91 +354,91 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "ImageOperator",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/operator:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/operator:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/manager:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageDownloader",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/downloader:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageRequestMonitor",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/request-monitor:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/request-monitor:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageClusterAutoscaler",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageMetricsServer",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/metrics-server:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/metrics-server:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageInferentia",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/inferentia:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/inferentia:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageNeuronRTD",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/neuron-rtd:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/neuron-rtd:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageNvidia",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/nvidia:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/nvidia:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageFluentd",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/fluentd:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/fluentd:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageStatsd",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/statsd:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/statsd:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioProxy",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-proxy:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
 		{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/istio-pilot:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -493,7 +494,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default:   "cortexlabs/manager:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -1199,4 +1200,132 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 
 func (cc *Config) UserStr() string {
 	return cc.UserTable().String()
+}
+
+func (cc *Config) TelemetryEvent() map[string]interface{} {
+	event := map[string]interface{}{
+		"provider": types.AWSProviderType,
+	}
+
+	if cc.InstanceType != nil {
+		event["instance_type._is_defined"] = true
+		event["instance_type"] = *cc.InstanceType
+	}
+	if cc.MinInstances != nil {
+		event["min_instances._is_defined"] = true
+		event["min_instances"] = *cc.MinInstances
+	}
+	if cc.MaxInstances != nil {
+		event["max_instances._is_defined"] = true
+		event["max_instances"] = *cc.MaxInstances
+	}
+	event["instance_volume_size"] = cc.InstanceVolumeSize
+	event["instance_volume_type"] = cc.InstanceVolumeType
+	if cc.InstanceVolumeIOPS != nil {
+		event["instance_volume_iops._is_defined"] = true
+		event["instance_volume_iops"] = *cc.InstanceVolumeIOPS
+	}
+	if len(cc.Tags) > 0 {
+		event["tags._is_defined"] = true
+		event["tags._len"] = len(cc.Tags)
+	}
+	if cc.ClusterName != "cortex" {
+		event["cluster_name._is_custom"] = true
+	}
+	if cc.Region != nil {
+		event["region._is_defined"] = true
+		event["region"] = *cc.Region
+	}
+	if len(cc.AvailabilityZones) > 0 {
+		event["availability_zones._is_defined"] = true
+		event["availability_zones._len"] = len(cc.AvailabilityZones)
+		event["availability_zones"] = cc.AvailabilityZones
+	}
+	if cc.SSLCertificateARN != nil {
+		event["ssl_certificate_arn._is_defined"] = true
+	}
+	if !strings.HasPrefix(cc.Bucket, cc.ClusterName+"-") {
+		event["bucket._is_custom"] = true
+	}
+	event["subnet_visibility"] = cc.SubnetVisibility
+	event["nat_gateway"] = cc.NATGateway
+	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
+	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
+	event["api_gateway"] = cc.APIGatewaySetting
+	if cc.VPCCIDR != nil {
+		event["vpc_cidr._is_defined"] = true
+	}
+	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
+		event["image_operator._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageManager, "cortexlabs/") {
+		event["image_manager._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageDownloader, "cortexlabs/") {
+		event["image_downloader._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageRequestMonitor, "cortexlabs/") {
+		event["image_request_monitor._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
+		event["image_cluster_autoscaler._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageMetricsServer, "cortexlabs/") {
+		event["image_metrics_server._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageInferentia, "cortexlabs/") {
+		event["image_inferentia._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageNeuronRTD, "cortexlabs/") {
+		event["image_neuron_rtd._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageNvidia, "cortexlabs/") {
+		event["image_nvidia._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageFluentd, "cortexlabs/") {
+		event["image_fluentd._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageStatsd, "cortexlabs/") {
+		event["image_statsd._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageIstioProxy, "cortexlabs/") {
+		event["image_istio_proxy._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageIstioPilot, "cortexlabs/") {
+		event["image_istio_pilot._is_custom"] = true
+	}
+	if cc.Spot != nil {
+		event["spot._is_defined"] = true
+		event["spot"] = *cc.Spot
+	}
+	if cc.SpotConfig != nil {
+		event["spot_config._is_defined"] = true
+		if len(cc.SpotConfig.InstanceDistribution) > 0 {
+			event["spot_config.instance_distribution._is_defined"] = true
+			event["spot_config.instance_distribution._len"] = len(cc.SpotConfig.InstanceDistribution)
+			event["spot_config.instance_distribution"] = cc.SpotConfig.InstanceDistribution
+		}
+		if cc.SpotConfig.OnDemandBaseCapacity != nil {
+			event["spot_config.on_demand_base_capacity._is_defined"] = true
+			event["spot_config.on_demand_base_capacity"] = *cc.SpotConfig.OnDemandBaseCapacity
+		}
+		if cc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
+			event["spot_config.on_demand_percentage_above_base_capacity._is_defined"] = true
+			event["spot_config.on_demand_percentage_above_base_capacity"] = *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity
+		}
+		if cc.SpotConfig.MaxPrice != nil {
+			event["spot_config.max_price._is_defined"] = true
+			event["spot_config.max_price"] = *cc.SpotConfig.MaxPrice
+		}
+		if cc.SpotConfig.InstancePools != nil {
+			event["spot_config.instance_pools._is_defined"] = true
+			event["spot_config.instance_pools"] = *cc.SpotConfig.InstancePools
+		}
+		if cc.SpotConfig.OnDemandBackup != nil {
+			event["spot_config.on_demand_backup._is_defined"] = true
+			event["spot_config.on_demand_backup"] = *cc.SpotConfig.OnDemandBackup
+		}
+	}
+
+	return event
 }

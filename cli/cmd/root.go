@@ -39,6 +39,7 @@ var (
 	_cmdStr string
 
 	_configFileExts = []string{"yaml", "yml"}
+	_flagVerbose    bool
 	_flagOutput     = flags.PrettyOutputType
 
 	_credentialsCacheDir string
@@ -201,6 +202,10 @@ func updateRootUsage() {
 
 		return nil
 	})
+}
+
+func addVerboseFlag(cmd *cobra.Command) {
+	cmd.Flags().BoolVarP(&_flagVerbose, "verbose", "v", false, "show additional information (only applies to pretty output format)")
 }
 
 func wasEnvFlagProvided(cmd *cobra.Command) bool {

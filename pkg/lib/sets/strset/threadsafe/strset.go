@@ -209,7 +209,7 @@ func (s *Set) Slice() []string {
 	return s.s.Slice()
 }
 
-// List returns a sorted slice of all items.
+// List returns a sorted slice of all items (a to z).
 func (s *Set) SliceSorted() []string {
 	s.RLock()
 	defer s.RUnlock()

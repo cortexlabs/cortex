@@ -90,7 +90,13 @@ func run() {
 
 func makeRequestLoop(url string, jsonBytes []byte) {
 	var i int
+	isFirstIteration := true
 	for true {
+		if !isFirstIteration && _requestDelay != 0 {
+			time.Sleep(_requestDelay)
+		}
+		isFirstIteration = false
+
 		if _numRequestsPerThread > 0 {
 			if i >= _numRequestsPerThread {
 				return
@@ -124,10 +130,6 @@ func makeRequestLoop(url string, jsonBytes []byte) {
 		}
 
 		fmt.Print(".")
-
-		if _requestDelay != 0 {
-			time.Sleep(_requestDelay)
-		}
 	}
 }
 

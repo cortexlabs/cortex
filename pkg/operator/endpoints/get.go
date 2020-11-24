@@ -44,3 +44,16 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 
 	respond(w, response)
 }
+
+func GetAPIByID(w http.ResponseWriter, r *http.Request) {
+	apiName := mux.Vars(r)["apiName"]
+	apiID := mux.Vars(r)["apiID"]
+
+	response, err := resources.GetAPIByID(apiName, apiID)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	respond(w, response)
+}

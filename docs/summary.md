@@ -75,6 +75,8 @@
 * [Low-cost clusters](guides/low-cost-clusters.md)
 * [Single node deployment](guides/single-node-deployment.md)
 * [Set up kubectl](guides/kubectl-setup.md)
+* [Self-hosted Docker images](guides/self-hosted-images.md)
+* [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
 * [Install CLI on Windows](guides/windows-cli.md)
 
