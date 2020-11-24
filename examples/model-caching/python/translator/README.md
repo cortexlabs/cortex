@@ -54,7 +54,7 @@ cortex is ready!
 
 ```
 
-Cortex can cluster up without a config file, but for this deployment, we use it to specify that we need to disable API Gateway, as its timeout limits will interfere with our API.  
+Cortex can cluster up without a config file, but for this deployment, we use it to specify that we need to disable API Gateway, as its timeout limits will interfere with our API.
 
 Once the cluster is spun up (roughly 20 minutes), we can deploy by running:
 
