@@ -765,6 +765,8 @@ func validateAWSCreds(env cliconfig.Environment) error {
 	return nil
 }
 
+// TODO make it work with GCP environments
+// we should probably only show GCP-deployed/AWS-deployed APIs when running `cortex get`
 func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 	clientID := clientID()
 	env, err := readEnv(envName)
@@ -791,15 +793,17 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 	}
 	operatorConfig.OperatorEndpoint = *env.OperatorEndpoint
 
-	if env.AWSAccessKeyID == nil {
-		exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSAccessKeyIDKey, env.Name))
-	}
-	operatorConfig.AWSAccessKeyID = *env.AWSAccessKeyID
+	if env.Provider == types.AWSProviderType {
+		if env.AWSAccessKeyID == nil {
+			exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSAccessKeyIDKey, env.Name))
+		}
+		operatorConfig.AWSAccessKeyID = *env.AWSAccessKeyID
 
-	if env.AWSSecretAccessKey == nil {
-		exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSSecretAccessKeyKey, env.Name))
+		if env.AWSSecretAccessKey == nil {
+			exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSSecretAccessKeyKey, env.Name))
+		}
+		operatorConfig.AWSSecretAccessKey = *env.AWSSecretAccessKey
 	}
-	operatorConfig.AWSSecretAccessKey = *env.AWSSecretAccessKey
 
 	return operatorConfig
 }
