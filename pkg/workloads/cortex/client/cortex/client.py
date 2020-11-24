@@ -21,6 +21,7 @@ import threading
 import yaml
 import uuid
 import dill
+import inspect
 from pathlib import Path
 
 from typing import List, Dict, Optional, Tuple, Callable, Union
@@ -60,8 +61,8 @@ class Client:
             predictor: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
                 → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
                 → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
-            pip_dependencies: A list of PyPI dependencies that will be installed before running your predictor class.
-            conda_dependencies: A list of Conda dependencies that will be installed before running your predictor class.
+            pip_dependencies: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
+            conda_dependencies: A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
             project_dir: Path to a python project.
             force: Override any in-progress api updates.
             wait: Streams logs until the APIs are ready.
@@ -115,6 +116,9 @@ class Client:
             if len(conda_dependencies) > 0:
                 with open(project_dir / "conda-packages.txt", "w") as conda_file:
                     conda_file.write("\n".join(conda_dependencies))
+
+            if not inspect.isclass(predictor):
+                raise ValueError("predictor parameter must be a class definition")
 
             with open(project_dir / "predictor.pickle", "wb") as pickle_file:
                 dill.dump(predictor, pickle_file)

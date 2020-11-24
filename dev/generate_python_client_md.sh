@@ -52,7 +52,7 @@ sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $ROOT/docs/miscella
 sed -i "s/](#cortex\./](#/g" $ROOT/docs/miscellaneous/python-client.md
 sed -i "s/](#client\.Client\./](#/g" $ROOT/docs/miscellaneous/python-client.md
 
-# indentdation
+# indentation
 sed -i "s/    \* /  \* /g" $ROOT/docs/miscellaneous/python-client.md
 sed -i "s/#### /## /g" $ROOT/docs/miscellaneous/python-client.md
 
