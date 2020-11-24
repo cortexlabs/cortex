@@ -28,7 +28,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -36,6 +38,8 @@ import (
 var _deploymentID = "local"
 
 func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*schema.APIResponse, string, error) {
+	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(types.LocalProviderType))
+
 	var incompatibleVersion string
 	encounteredVersionMismatch := false
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
@@ -52,9 +56,9 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 					fmt.Sprintf(
 						"api %s was deployed using CLI version %s but the current CLI version is %s; "+
 							"re-deploying %s with current CLI version %s might yield an unexpected outcome; any cached models won't be deleted\n\n"+
-							"it is recommended to download version %s of the CLI from https://docs.cortex.dev/v/%s/install, delete the API using version %s of the CLI and then re-deploy the API using the latest version of the CLI\n\n"+
+							"it is recommended to install version %s of the CLI (pip install cortex==%s), delete the API using version %s of the CLI, and then re-deploy the API using the latest version of the CLI\n\n"+
 							"do you still want to re-deploy?",
-						apiConfig.Name, incompatibleMinorVersion, consts.CortexVersionMinor, apiConfig.Name, consts.CortexVersionMinor, incompatibleMinorVersion, incompatibleMinorVersion, incompatibleMinorVersion),
+						apiConfig.Name, incompatibleMinorVersion, consts.CortexVersionMinor, apiConfig.Name, consts.CortexVersionMinor, incompatibleMinorVersion, incompatibleVersion, incompatibleMinorVersion),
 					"", "",
 				)
 			}

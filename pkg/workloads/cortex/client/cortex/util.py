@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,11 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+from contextlib import contextmanager
+import os
+from pathlib import Path
+import shutil
 
-CORTEX_VERSION=master
 
-if [ "$CORTEX_VERSION" != "$CORTEX_CLI_VERSION" ]; then
-  echo "error: your CLI version ($CORTEX_CLI_VERSION) doesn't match your Cortex manager image version ($CORTEX_VERSION); please update your CLI (pip install cortex==$CORTEX_VERSION), or update your Cortex manager image by modifying the value for \`image_manager\` in your cluster configuration file and running \`cortex cluster configure --config cluster.yaml\` (update other image paths in cluster.yaml as well if necessary)"
-  exit 1
-fi
+@contextmanager
+def open_temporarily(path, mode):
+    file = open(path, mode)
+
+    try:
+        yield file
+    finally:
+        file.close()
+        os.remove(path)
+
+
+@contextmanager
+def open_tempdir(dir_path):
+    Path(dir_path).mkdir(parents=True)
+
+    try:
+        yield dir_path
+    finally:
+        shutil.rmtree(dir_path)

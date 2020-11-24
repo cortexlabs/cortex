@@ -52,7 +52,7 @@ sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $ROOT/docs/miscella
 sed -i "s/](#cortex\./](#/g" $ROOT/docs/miscellaneous/python-client.md
 sed -i "s/](#client\.Client\./](#/g" $ROOT/docs/miscellaneous/python-client.md
 
-# indentdation
+# indentation
 sed -i "s/    \* /  \* /g" $ROOT/docs/miscellaneous/python-client.md
 sed -i "s/#### /## /g" $ROOT/docs/miscellaneous/python-client.md
 
@@ -60,13 +60,8 @@ sed -i "s/#### /## /g" $ROOT/docs/miscellaneous/python-client.md
 sed -i 's/[[:space:]]*$//' $ROOT/docs/miscellaneous/python-client.md
 truncate -s -1 $ROOT/docs/miscellaneous/python-client.md
 
+# Cortex version comment
+sed -i "s/^## deploy/## deploy\n\n<!-- CORTEX_VERSION_MINOR x5 -->/g" $ROOT/docs/miscellaneous/python-client.md
+
 pip3 uninstall -y cortex
-
-cat << EOF
-
-#### MANUAL EDITS REQUIRED ####
-
-- Copy the docstring for \`client(env: str)\` in pkg/workloads/cortex/client/__init__.py into the generated docs and unindent
-
-Then check the diff
-EOF
+rm -rf $ROOT/pkg/workloads/cortex/client/cortex.egg-info

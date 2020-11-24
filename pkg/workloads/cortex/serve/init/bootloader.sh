@@ -21,9 +21,9 @@ export EXPECTED_CORTEX_VERSION=master
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     if [ "$CORTEX_PROVIDER" == "local" ]; then
-        echo "error: your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/cluster-management/update#upgrading-to-a-newer-version-of-cortex"
+        echo "error: your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/update"
     else
-        echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/cluster-management/update#upgrading-to-a-newer-version-of-cortex"
+        echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/update"
     fi
     exit 1
 fi
@@ -116,7 +116,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     # prepare uvicorn workers
     mkdir /run/uvicorn
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
-        create_s6_service "uvicorn-$((i-1))" "$source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
+        create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
     done
 
     create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
@@ -132,8 +132,8 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
 
 # prepare batch otherwise
 else
-    create_s6_service "batch" "$source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+    create_s6_service "batch" "cd /mnt/project && $source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 fi
 
 # create the python initialization service
-create_s6_service "py_init" "$source_env_file_cmd && /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
+create_s6_service "py_init" "cd /mnt/project && $source_env_file_cmd && /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"

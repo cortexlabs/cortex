@@ -20,6 +20,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 CORTEX_VERSION=master
+REGISTRY_URL=quay.io
 
 image=$1
 dir="${ROOT}/images/${image/-slim}"
@@ -34,12 +35,12 @@ if [[ "$image" == *"-slim" ]]; then
 fi
 
 if [ "${image}" == "python-predictor-gpu-slim" ]; then
-  cuda=("10.0" "10.1" "10.2" "11.0")
-  cudnn=("7" "7" "7" "8")
+  cuda=("10.0" "10.1" "10.1" "10.2" "10.2" "11.0" "11.1")
+  cudnn=("7" "7" "8" "7" "8" "8" "8")
   for i in ${!cudnn[@]}; do
     build_args="${build_args} --build-arg CUDA_VERSION=${cuda[$i]} --build-arg CUDNN=${cudnn[$i]}"
-    docker build "$ROOT" -f $dir/Dockerfile $build_args -t cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}
+    docker build "$ROOT" -f $dir/Dockerfile $build_args -t $REGISTRY_URL/cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}-cudnn${cudnn[$i]}
   done
 else
-  docker build "$ROOT" -f $dir/Dockerfile $build_args -t cortexlabs/${image}:${CORTEX_VERSION}
+  docker build "$ROOT" -f $dir/Dockerfile $build_args -t $REGISTRY_URL/cortexlabs/${image}:${CORTEX_VERSION}
 fi

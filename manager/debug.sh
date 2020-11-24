@@ -27,7 +27,7 @@ if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTE
 fi
 
 eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
-out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/miscellaneous/security#running-cortex-cluster-commands-from-different-iam-users"; exit 1; fi
+out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/aws/security#running-cortex-cluster-commands-from-different-iam-users"; exit 1; fi
 
 echo -n "gathering cluster data"
 
@@ -39,18 +39,60 @@ for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments hpa
 done
 
 mkdir -p /cortex-debug/logs
-kubectl get pods --all-namespaces -o json | jq '.items[] | "kubectl logs -n \(.metadata.namespace) \(.metadata.name) --all-containers --timestamps --tail=10000 > /cortex-debug/logs/\(.metadata.namespace).\(.metadata.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
+kubectl get pods --all-namespaces -o json | jq '.items[] | . as $parent | $parent.spec.containers[]? | "kubectl logs -n \($parent.metadata.namespace) \($parent.metadata.name) \(.name) --timestamps --tail=10000 > /cortex-debug/logs/\($parent.metadata.namespace).\($parent.metadata.name).\(.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
+echo -n "."
+kubectl get pods --all-namespaces -o json | jq '.items[] | . as $parent | $parent.spec.initContainers[]? | "kubectl logs -n \($parent.metadata.namespace) \($parent.metadata.name) \(.name) --timestamps --tail=10000 > /cortex-debug/logs/\($parent.metadata.namespace).\($parent.metadata.name).init.\(.name) 2>&1 && echo -n ."' | xargs -n 1 bash -c
+echo -n "."
 
 kubectl top pods --all-namespaces --containers=true > "/cortex-debug/k8s/top_pods" 2>&1
-kubectl top nodes > "/cortex-debug/k8s/top_nodes" 2>&1
-
-mkdir -p /cortex-debug/aws
-aws --region=$CORTEX_REGION autoscaling describe-auto-scaling-groups > "/cortex-debug/aws/asgs" 2>&1
 echo -n "."
-aws --region=$CORTEX_REGION autoscaling describe-scaling-activities > "/cortex-debug/aws/asg-activities" 2>&1
+kubectl top nodes > "/cortex-debug/k8s/top_nodes" 2>&1
+echo -n "."
+
+mkdir -p /cortex-debug/aws/amis
+
+asg_on_demand_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-on-demand\`)]")
+echo -n "."
+asg_on_demand_name=""
+asg_on_demand_length=$(echo "$asg_on_demand_info" | jq -r 'length')
+if (( "$asg_on_demand_length" > "0" )); then
+  asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
+  aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg_on_demand_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-on-demand" 2>&1
+  echo -n "."
+  aws autoscaling describe-scaling-activities --max-items 1000 --auto-scaling-group-name $asg_on_demand_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities-on-demand" 2>&1
+  echo -n "."
+fi
+
+asg_spot_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
+echo -n "."
+asg_spot_name=""
+asg_spot_length=$(echo "$asg_spot_info" | jq -r 'length')
+if (( "$asg_spot_length" > "0" )); then
+  asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
+  aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg_spot_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-spot" 2>&1
+  echo -n "."
+  aws autoscaling describe-scaling-activities --max-items 1000 --auto-scaling-group-name $asg_spot_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities-spot" 2>&1
+  echo -n "."
+fi
+
+# failsafe in case the asg(s) could not be located
+if [ "$asg_on_demand_name" == "" ] && [ "$asg_spot_name" == "" ]; then
+  aws autoscaling describe-auto-scaling-groups --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asgs" 2>&1
+  echo -n "."
+  aws autoscaling describe-scaling-activities --max-items 1000 --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities" 2>&1
+  echo -n "."
+fi
+
+aws ec2 describe-instances --filters Name=tag:cortex.dev/cluster-name,Values=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --output json > "/cortex-debug/aws/instances" 2>&1
+echo -n "."
+aws ec2 describe-instance-status --include-all-instances --region=$CORTEX_REGION --output json > "/cortex-debug/aws/instance-statuses" 2>&1
+echo -n "."
+aws ec2 describe-instances --filters Name=tag:cortex.dev/cluster-name,Values=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --output json | jq "[.Reservations[].Instances[].ImageId] | unique | .[] | \"aws ec2 describe-images --image-ids \(.) --region=$CORTEX_REGION --output json > /cortex-debug/aws/amis/\(.) 2>&1\"" | xargs -n 1 bash -c
 echo -n "."
 python get_operator_load_balancer_state.py > "/cortex-debug/aws/operator_load_balancer_state" 2>&1
+echo -n "."
 python get_api_load_balancer_state.py > "/cortex-debug/aws/api_load_balancer_state" 2>&1
+echo -n "."
 python get_operator_target_group_status.py > "/cortex-debug/aws/operator_load_balancer_target_group_status" 2>&1
 echo -n "."
 

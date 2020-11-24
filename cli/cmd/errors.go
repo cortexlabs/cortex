@@ -250,7 +250,7 @@ func ErrorMissingAWSCredentials() error {
 func ErrorCredentialsInClusterConfig(cmd string, path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCredentialsInClusterConfig,
-		Message: fmt.Sprintf("specifying credentials in the cluster configuration is no longer supported, please specify aws credentials using flags (e.g. cortex cluster %s --config %s --aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>) or set environment variables; see https://docs.cortex.dev/v/%s/miscellaneous/security#iam-permissions for more information", cmd, path, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("specifying credentials in the cluster configuration is no longer supported, please specify aws credentials using flags (e.g. cortex cluster %s --config %s --aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>) or set environment variables; see https://docs.cortex.dev/v/%s/aws/security#iam-permissions for more information", cmd, path, consts.CortexVersionMinor),
 	})
 }
 

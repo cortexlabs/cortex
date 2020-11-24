@@ -60,7 +60,7 @@ For example, setting `target_replica_concurrency` to `processes_per_replica` * `
 
 ## Autoscaling Instances
 
-Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../../cluster-management/config.md) and modifiable via `cortex cluster configure`).
+Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../../aws/install.md) and modifiable via `cortex cluster configure`).
 
 ## Overprovisioning
 
@@ -73,3 +73,5 @@ For example, if you've determined that each replica in your API can handle 2 req
 Assuming that `window` and `upscale_stabilization_period` are set to their default values (1 minute), it could take up to 2 minutes of increased traffic before an extra replica is requested. As soon as the additional replica is requested, the replica request will be visible in the output of `cortex get`, but the replica won't yet be running. If an extra instance is required to schedule the newly requested replica, it could take a few minutes for AWS to provision the instance (depending on the instance type), plus a few minutes for the newly provisioned instance to download your api image and for the api to initialize (via its `__init__()` method).
 
 Keep these delays in mind when considering overprovisioning (see above) and when determining appropriate values for `window` and `upscale_stabilization_period`. If you want the autoscaler to react as quickly as possible, set `upscale_stabilization_period` and `window` to their minimum values (0s and 10s respectively).
+
+If it takes a long time to initialize your API replica (i.e. install dependencies and run your predictor's `__init__()` function), consider building your own API image to use instead of the default image. With this approach, you can pre-download/build/install any custom dependencies and bake them into the image. See [here](../system-packages.md#custom-docker-image) for documentation.

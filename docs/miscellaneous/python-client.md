@@ -29,37 +29,6 @@ client(env: str)
 
 Initialize a client based on the specified environment.
 
-To deploy and manage APIs on a new cluster:
-
-1. Spin up a cluster using the CLI command `cortex cluster up`.
-    An environment named "aws" will be created once the cluster is ready.
-2. Initialize your client:
-
-    ```python
-    import cortex
-    c = cortex.client("aws")
-    c.deploy("./cortex.yaml")
-    ```
-
-To deploy and manage APIs on an existing cluster:
-
-1. Use the command `cortex cluster info` to get the Operator Endpoint.
-2. Configure a client to your cluster:
-
-    ```python
-    import cortex
-    c = cortex.cluster_client("aws", operator_endpoint, aws_access_key_id, aws_secret_access_key)
-    c.deploy("./cortex.yaml")
-    ```
-
-To deploy and manage APIs locally:
-
-```python
-import cortex
-c = cortex.client("local")
-c.deploy("./cortex.yaml")
-```
-
 **Arguments**:
 
 - `env` - Name of the environment to use.
@@ -135,15 +104,26 @@ Delete an environment configured on this machine.
 
 ## deploy
 
+<!-- CORTEX_VERSION_MINOR x5 -->
+
 ```python
- | deploy(config_file: str, force: bool = False, wait: bool = False) -> list
+ | deploy(api_spec: dict, predictor=None, pip_dependencies=[], conda_dependencies=[], project_dir: Optional[str] = None, force: bool = False, wait: bool = False) -> list
 ```
 
-Deploy or update APIs specified in the config_file.
+Deploy an API.
 
 **Arguments**:
 
-- `config_file` - Local path to a yaml file defining Cortex APIs.
+- `api_spec` - A dictionary defining a single Cortex API. Schema can be found here:
+  → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
+  → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
+  → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
+- `predictor` - A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+  → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
+  → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
+- `pip_dependencies` - A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
+- `conda_dependencies` - A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
+- `project_dir` - Path to a python project.
 - `force` - Override any in-progress api updates.
 - `wait` - Streams logs until the APIs are ready.
 

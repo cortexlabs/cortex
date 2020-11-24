@@ -315,7 +315,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         sub_paths: List[str],
         bucket_name: str,
     ) -> None:
-        s3_client = S3(bucket_name, client_config={})
+        s3_client = S3(bucket_name)
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):
@@ -923,7 +923,7 @@ class TFSModelLoader(mp.Process):
         sub_paths: List[str],
         bucket_name: str,
     ) -> None:
-        s3_client = S3(bucket_name, client_config={})
+        s3_client = S3(bucket_name)
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):

@@ -55,6 +55,7 @@ type APIResponse struct {
 	Endpoint     string             `json:"endpoint"`
 	DashboardURL *string            `json:"dashboard_url,omitempty"`
 	JobStatuses  []status.JobStatus `json:"job_statuses,omitempty"`
+	APIVersions  []APIVersion       `json:"api_versions,omitempty"`
 }
 
 type JobResponse struct {
@@ -110,4 +111,9 @@ type APIModelSummary struct {
 type GenericModelMetadata struct {
 	Versions   []string `json:"versions"`
 	Timestamps []int64  `json:"timestamps"`
+}
+
+type APIVersion struct {
+	APIID       string `json:"api_id"`
+	LastUpdated int64  `json:"last_updated"`
 }
