@@ -28,9 +28,9 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 region: us-east-1
 instance_type: g4dn.xlarge
-spot: true
 min_instances: 10
 max_instances: 100
+spot: true
 ```
 
 #### Spin up Cortex on your AWS account
@@ -57,6 +57,8 @@ cortex is ready!
 #### Implement a predictor
 
 ```python
+# predictor.py
+
 from transformers import pipeline
 
 class PythonPredictor:
@@ -73,6 +75,10 @@ class PythonPredictor:
 api_spec = {
   "name": "text-generator",
   "kind": "RealtimeAPI",
+  "predictor": {
+    "type": "python",
+    "path": "predictor.py"
+  },
   "compute": {
     "gpu": 1,
     "mem": "8Gi",
@@ -102,8 +108,8 @@ api_spec = {
 ```python
 import cortex
 
-cx = cortex.client()
-cx.deploy(api_spec, predictor=PythonPredictor)
+cx = cortex.client("aws")
+cx.deploy(api_spec, project_dir=".")
 
 # creating https://example.com/text-generator
 ```
