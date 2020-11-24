@@ -1,11 +1,24 @@
 # Table of contents
 
 * [Deploy machine learning models to production](../README.md)
-* [Install](cluster-management/install.md)
+* [Install](aws/install.md)
 * [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [Contact us](miscellaneous/contact-us.md)
+* [Contact us](contact.md)
+
+## Running Cortex on AWS
+
+* [Credentials](aws/credentials.md)
+* [Security](aws/security.md)
+* [Spot instances](aws/spot.md)
+* [Networking](aws/networking.md)
+* [VPC peering](aws/vpc-peering.md)
+* [Custom domain](aws/custom-domain.md)
+* [SSH into instances](aws/ssh.md)
+* [REST API Gateway](aws/rest-api-gateway.md)
+* [Update](aws/update.md)
+* [Uninstall](aws/uninstall.md)
 
 ## Deployments
 
@@ -35,16 +48,6 @@
 * [Using Inferentia](deployments/inferentia.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
-* [Networking](deployments/networking.md)
-
-## Cluster management
-
-* [Cluster configuration](cluster-management/config.md)
-* [AWS credentials](cluster-management/aws-credentials.md)
-* [EC2 instances](cluster-management/ec2-instances.md)
-* [Spot instances](cluster-management/spot-instances.md)
-* [Update](cluster-management/update.md)
-* [Uninstall](cluster-management/uninstall.md)
 
 ## Miscellaneous
 
@@ -52,7 +55,6 @@
 * [Python client](miscellaneous/python-client.md)
 * [Environments](miscellaneous/environments.md)
 * [Architecture diagram](miscellaneous/architecture.md)
-* [Security](miscellaneous/security.md)
 * [Telemetry](miscellaneous/telemetry.md)
 
 ## Troubleshooting
@@ -62,7 +64,6 @@
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 * [TF session in predict()](troubleshooting/tf-session-in-predict.md)
 * [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
-* [Cluster down failures](troubleshooting/cluster-down.md)
 
 ## Guides
 
@@ -71,15 +72,11 @@
 * [View API metrics](guides/metrics.md)
 * [Running in production](guides/production.md)
 * [Low-cost clusters](guides/low-cost-clusters.md)
-* [Set up a custom domain](guides/custom-domain.md)
-* [Set up VPC peering](guides/vpc-peering.md)
-* [SSH into worker instance](guides/ssh-instance.md)
 * [Single node deployment](guides/single-node-deployment.md)
 * [Set up kubectl](guides/kubectl-setup.md)
 * [Self-hosted Docker images](guides/self-hosted-images.md)
 * [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
-* [Set up REST API Gateway](guides/rest-api-gateway.md)
 * [Install CLI on Windows](guides/windows-cli.md)
 
 ## Contributing

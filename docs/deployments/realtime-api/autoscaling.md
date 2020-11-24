@@ -60,7 +60,7 @@ For example, setting `target_replica_concurrency` to `processes_per_replica` * `
 
 ## Autoscaling Instances
 
-Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../../cluster-management/config.md) and modifiable via `cortex cluster configure`).
+Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../../aws/install.md) and modifiable via `cortex cluster configure`).
 
 ## Overprovisioning
 
