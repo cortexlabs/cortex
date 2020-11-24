@@ -128,7 +128,7 @@ function cluster_up_gcp() {
     --from-literal='GKE_CLUSTER_NAME'=$CORTEX_CLUSTER_NAME \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 
-  # setup_secrets
+  # setup secrets
   kubectl create secret generic 'gcp-credentials' --from-file=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
   echo "✓"
 

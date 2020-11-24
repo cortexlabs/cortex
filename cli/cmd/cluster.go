@@ -176,6 +176,11 @@ var _upCmd = &cobra.Command{
 			promptForEmail()
 		}
 
+		providerType, err := clusterconfig.GetClusterProviderType(_flagClusterConfig, _flagClusterDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		if _flagClusterConfig != "" {
 			// Deprecation: specifying aws creds in cluster configuration is no longer supported
 			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
@@ -183,10 +188,6 @@ var _upCmd = &cobra.Command{
 			}
 
 			// TODO add error to transition old users to add provider field
-			providerType, err := clusterconfig.GetClusterProviderType(_flagClusterConfig)
-			if err != nil {
-				exit.Error(err)
-			}
 			if providerType == types.GCPProviderType {
 				upGCP(_flagClusterConfig)
 			}
@@ -213,6 +214,8 @@ var _upCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+		clusterConfig.Provider = providerType
+		debug.Pp(clusterConfig)
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {

@@ -844,7 +844,7 @@ func getBaseEnvVars() []kcore.EnvFromSource {
 
 	if config.Provider == types.AWSProviderType {
 		baseEnvVars = append(baseEnvVars, kcore.EnvFromSource{
-			ConfigMapRef: &kcore.ConfigMapEnvSource{
+			SecretRef: &kcore.SecretEnvSource{
 				LocalObjectReference: kcore.LocalObjectReference{
 					Name: "aws-credentials",
 				},

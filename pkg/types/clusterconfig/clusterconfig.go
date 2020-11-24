@@ -129,6 +129,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "Provider",
 			StringValidation: &cr.StringValidation{
 				Validator: validateProviderType,
+				Default:   types.AWSProviderType.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return types.ProviderTypeFromString(str), nil
