@@ -1,7 +1,5 @@
 # Multi-model endpoints
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 <!-- CORTEX_VERSION_MINOR -->
 It is possible to serve multiple models in the same Cortex API using any type of Cortex Predictor. In this guide we'll show the general outline of a multi-model deployment. The section for each predictor type is based on a corresponding example that can be found in the [examples directory](https://github.com/cortexlabs/cortex/tree/master/examples) of the Cortex project.
 

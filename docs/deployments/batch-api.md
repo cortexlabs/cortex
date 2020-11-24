@@ -1,7 +1,5 @@
 # Batch API Overview
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can deploy your model as a Batch API to create a web service that can receive job requests and orchestrate offline batch inference on large datasets across multiple workers.
 
 ## When should I use a Batch API

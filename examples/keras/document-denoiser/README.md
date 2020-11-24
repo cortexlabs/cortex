@@ -1,6 +1,6 @@
 # Clean Dirty Documents w/ Autoencoders
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)_
+_this is an example for cortex release 0.23 and may not deploy correctly on other releases of cortex_
 
 This example model cleans text documents of anything that isn't text (aka noise): coffee stains, old wear artifacts, etc. You can inspect the notebook that has been used to train the model [here](trainer.ipynb).
 

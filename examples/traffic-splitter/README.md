@@ -1,6 +1,6 @@
 # Splitting traffic between APIs
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)_
+_this is an example for cortex release 0.23 and may not deploy correctly on other releases of cortex_
 
 This example shows how to split traffic between 2 different iris-classifiers deployed as Realtime APIs.
 
