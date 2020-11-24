@@ -5,7 +5,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 ## Update Cortex configuration
 
 ```bash
-cortex cluster configure
+cortex cluster configure  # or: cortex cluster configure --config cluster.yaml
 ```
 
 ## Upgrade to a newer version of Cortex

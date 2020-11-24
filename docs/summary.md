@@ -10,11 +10,11 @@
 ## Running Cortex on AWS
 
 * [Credentials](aws/credentials.md)
-* [Install](aws/install.md)
 * [Security](aws/security.md)
+* [Spot instances](aws/spot.md)
+* [Networking](aws/networking.md)
 * [VPC peering](aws/vpc-peering.md)
 * [Custom domain](aws/custom-domain.md)
-* [Spot instances](aws/spot.md)
 * [SSH into instances](aws/ssh.md)
 * [REST API Gateway](aws/rest-api-gateway.md)
 * [Update](aws/update.md)
@@ -48,7 +48,6 @@
 * [Using Inferentia](deployments/inferentia.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
-* [Networking](deployments/networking.md)
 
 ## Miscellaneous
 

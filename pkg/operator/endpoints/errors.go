@@ -19,6 +19,7 @@ package endpoints
 import (
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -42,7 +43,7 @@ const (
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIVersionMismatch,
-		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://docs.cortex.dev/aws/update, or update your CLI by following the instructions at https://docs.cortex.dev/install", clientVersion, operatorVersion),
+		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://docs.cortex.dev/v/%s/aws/update, or update your CLI by following the instructions at https://docs.cortex.dev/v/%s/aws/install", clientVersion, operatorVersion, consts.CortexVersionMinor, consts.CortexVersionMinor),
 	})
 }
 

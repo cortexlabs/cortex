@@ -4,21 +4,27 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Spin up Cortex on your AWS account
 
-First, make sure [Docker](https://docs.docker.com/install) is running on your machine.
+Make sure [Docker](https://docs.docker.com/install) is running on your machine.
+
+If you're using GPUs, subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) before creating your cluster.
 
 ```bash
 # install the CLI
 pip install cortex
 
 # spin up Cortex on your AWS account
-cortex cluster up # || cortex cluster up --config cluster.yaml (see configuration options below)
+cortex cluster up  # or: cortex cluster up --config cluster.yaml (see configuration options below)
 
 # set the default environment
 cortex env default aws
 ```
 
+<!-- CORTEX_VERSION_MINOR -->
+Try the [tutorial](../../examples/pytorch/text-generator/README.md) or deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
+
 ## Configure Cortex
 
+<!-- CORTEX_VERSION_MINOR -->
 ```yaml
 # cluster.yaml
 
@@ -28,25 +34,22 @@ cluster_name: cortex
 # AWS region
 region: us-east-1
 
-# S3 bucket for metadata storage, it should not be used for storing models
-bucket: # <cluster_name>-<RANDOM_ID>
-
 # list of availability zones for your region
-availability_zones: [us-east-1a, us-east-1b, us-east-1c]
+availability_zones:  # default: 3 random availability zones in your region, e.g. [us-east-1a, us-east-1b, us-east-1c]
 
 # instance type
 instance_type: m5.large
 
-# minimum number of instances (must be >= 0)
+# minimum number of instances
 min_instances: 1
 
-# maximum number of instances (must be >= 1)
+# maximum number of instances
 max_instances: 5
 
 # disk storage size per instance (GB)
 instance_volume_size: 50
 
-# instance volume type [gp2|io1|st1|sc1]
+# instance volume type [gp2 | io1 | st1 | sc1]
 instance_volume_type: gp2
 
 # instance volume iops (only applicable to io1)
@@ -58,35 +61,33 @@ subnet_visibility: public
 # NAT gateway (required when using private subnets) [none | single | highly_available (a NAT gateway per availability zone)]
 nat_gateway: none
 
-# API load balancer scheme [internet-facing|internal]
+# API load balancer scheme [internet-facing | internal]
 api_load_balancer_scheme: internet-facing
 
-# operator load balancer scheme [internet-facing|internal]
+# operator load balancer scheme [internet-facing | internal]
+# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/aws/vpc-peering)
 operator_load_balancer_scheme: internet-facing
 
-# API gateway [public|none]
+# API Gateway [public (API Gateway will be used by default, can be disabled per API) | none (API Gateway will be disabled for all APIs)]
 api_gateway: public
 
-# tags [<string>:<string>]
-tags: cortex.dev/cluster-name=<cluster_name>
+# additional tags to assign to AWS resources (all resources will automatically be tagged with cortex.dev/cluster-name: <cluster_name>)
+tags:  # <string>: <string> map of key/value pairs
 
 # enable spot instances
 spot: false
 
-# SSL certificate ARN
+# SSL certificate ARN (only necessary when using a custom domain without API Gateway)
 ssl_certificate_arn:
 
 # primary CIDR block for the cluster's VPC
 vpc_cidr: 192.168.0.0/16
 ```
 
-The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and in your [Batch API configuration](../deployments/batch-api/api-configuration.md).
-
 The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
-# docker images
 image_operator: quay.io/cortexlabs/operator:master
 image_manager: quay.io/cortexlabs/manager:master
 image_downloader: quay.io/cortexlabs/downloader:master
@@ -102,6 +103,7 @@ image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 ```
 
+The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and in your [Batch API configuration](../deployments/batch-api/api-configuration.md).
 
 ## Advanced
 
@@ -111,8 +113,3 @@ image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 * [REST API Gateway](rest-api-gateway.md)
 * [Spot instances](spot.md)
 * [SSH into instances](ssh.md)
-
-## Troubleshooting
-
-* See [EKS-optimized AMI with GPU support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) for GPU instance issues.
-* See [EC2 service quotas](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-resource-limits.html) for instance limit issues.

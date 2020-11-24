@@ -9,13 +9,17 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 cortex cluster down
 
 # uninstall the CLI
-sudo rm /usr/local/bin/cortex
+pip uninstall cortex
 rm -rf ~/.cortex
 ```
 
 If you modified your bash profile, you may wish to remove `source <(cortex completion bash)` from it (or remove `source <(cortex completion zsh)` for `zsh`).
 
 ## Delete metadata and log groups
+
+Since you may wish to have access to your data after spinning down your cluster, Cortex's bucket and log groups are not automatically deleted when running `cortex cluster down`.
+
+To delete them:
 
 ```bash
 # set AWS credentials

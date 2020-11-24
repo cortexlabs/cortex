@@ -4,12 +4,11 @@ _WARNING: you are on the master branch; please refer to examples on the branch c
 
 This example shows how to deploy a batch image classification api that accepts a list of image urls as input, downloads the images, classifies them, and writes the results to S3.
 
-**Batch APIs are only supported on a Cortex cluster (in AWS).** You can find cluster installation documentation [here](../../../docs/aws/install.md#running-at-scale-on-aws).
+**Batch APIs are only supported on a Cortex cluster (in AWS).** You can find cluster installation documentation [here](../../../docs/aws/install.md).
 
 ## Pre-requisites
 
-* [Install Cortex CLI](../../../docs/aws/install.md#install-the-cli)
-* [Create a Cortex Cluster](../../../docs/aws/install.md#running-at-scale-on-aws)
+* [Install](../../../docs/aws/install.md) Cortex and create a cluster
 * Create an S3 bucket/directory to store the results of the batch job
 * AWS CLI (optional)
 

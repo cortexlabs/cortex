@@ -6,7 +6,7 @@
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 
-[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.22/examples) • [community](https://gitter.im/cortexlabs/cortex)
+[install](https://docs.cortex.dev/aws/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.22/examples) • [community](https://gitter.im/cortexlabs/cortex)
 
 # Deploy machine learning models to production
 
@@ -61,28 +61,28 @@ from transformers import pipeline
 
 class PythonPredictor:
   def __init__(self, config):
-    self.model = pipeline(task='text-generation')
+    self.model = pipeline(task="text-generation")
 
   def predict(self, payload):
-    return self.model(payload['text'])[0]
+    return self.model(payload["text"])[0]
 ```
 
 #### Configure an API
 
 ```python
-config = {
-  'name': 'text-generator',
-  'kind': 'RealtimeAPI',
-  'compute': {
-    'gpu': 1,
-    'mem': '8Gi',
+api_spec = {
+  "name": "text-generator",
+  "kind": "RealtimeAPI",
+  "compute": {
+    "gpu": 1,
+    "mem": "8Gi",
   },
-  'autoscaling': {
-    'min_replicas': 1,
-    'max_replicas': 10
+  "autoscaling": {
+    "min_replicas": 1,
+    "max_replicas": 10
   },
-  'networking': {
-    'api_gateway': 'public'
+  "networking": {
+    "api_gateway": "public"
   }
 }
 ```
@@ -102,8 +102,8 @@ config = {
 ```python
 import cortex
 
-crtx = cortex.client()
-crtx.deploy(PythonPredictor, config)
+cx = cortex.client()
+cx.deploy(api_spec, predictor=PythonPredictor)
 
 # creating https://example.com/text-generator
 ```
@@ -113,8 +113,8 @@ crtx.deploy(PythonPredictor, config)
 ```python
 import requests
 
-endpoint = 'https://example.com/text-generator'
-payload = {'text': 'hello world'}
+endpoint = "https://example.com/text-generator"
+payload = {"text": "hello world"}
 prediction = requests.post(endpoint, payload)
 ```
 
@@ -126,4 +126,4 @@ prediction = requests.post(endpoint, payload)
 pip install cortex
 ```
 
-See the [installation guide](https://docs.cortex.dev/install) for next steps.
+See the [installation guide](https://docs.cortex.dev/aws/install) for next steps.

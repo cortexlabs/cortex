@@ -10,7 +10,7 @@ By default, instances are created in public subnets and are assigned public IP a
 
 ## Private APIs
 
-See [networking](../deployments/networking.md) for a discussion of API visibility.
+See [networking](networking.md) for a discussion of API visibility.
 
 ## Private operator
 
