@@ -2,15 +2,13 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-## Updating your cluster configuration
-
-See [cluster configuration](config.md) to learn how you can customize your cluster.
+## Update Cortex configuration
 
 ```bash
-cortex cluster configure
+cortex cluster configure  # or: cortex cluster configure --config cluster.yaml
 ```
 
-## Upgrading to a newer version of Cortex
+## Upgrade to a newer version of Cortex
 
 <!-- CORTEX_VERSION_MINOR -->
 
@@ -27,6 +25,8 @@ cortex version
 # spin up your cluster
 cortex cluster up
 ```
+
+## Upgrade without downtime
 
 In production environments, you can upgrade your cluster without downtime if you have a backend service or DNS in front of your Cortex cluster:
 

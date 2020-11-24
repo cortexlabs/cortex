@@ -1,6 +1,44 @@
-# Cluster down failures
+# Uninstall
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
+## Spin down Cortex
+
+```bash
+# spin down Cortex
+cortex cluster down
+
+# uninstall the CLI
+pip uninstall cortex
+rm -rf ~/.cortex
+```
+
+If you modified your bash profile, you may wish to remove `source <(cortex completion bash)` from it (or remove `source <(cortex completion zsh)` for `zsh`).
+
+## Delete metadata and log groups
+
+Since you may wish to have access to your data after spinning down your cluster, Cortex's bucket and log groups are not automatically deleted when running `cortex cluster down`.
+
+To delete them:
+
+```bash
+# set AWS credentials
+export AWS_ACCESS_KEY_ID=***
+export AWS_SECRET_ACCESS_KEY=***
+
+# identify the name of your cortex S3 bucket
+aws s3 ls
+
+# delete the S3 bucket
+aws s3 rb --force s3://<bucket>
+
+# delete the log group (replace <cluster_name> with the name of your cluster, default: cortex)
+aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
+```
+
+If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by following these [instructions](custom-domain.md#cleanup).
+
+## Troubleshooting
 
 On rare occasions, `cortex cluster down` may not be able to spin down your Cortex cluster. When this happens, follow these steps:
 

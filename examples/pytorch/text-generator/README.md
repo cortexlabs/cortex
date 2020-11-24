@@ -1,4 +1,4 @@
-# Deploy models as Realtime APIs
+# Deploy machine learning models to production
 
 _WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)_
 
@@ -52,7 +52,7 @@ transformers==3.0.*
 
 ## Configure your API
 
-Create a `cortex.yaml` file and add the configuration below. A `RealtimeAPI` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve real-time predictions:
+Create a `cortex.yaml` file and add the configuration below. A `RealtimeAPI` provides a runtime for inference and makes your `predictor.py` implementation available as a web service that can serve realtime predictions:
 
 ```yaml
 # cortex.yaml
@@ -94,7 +94,7 @@ $ cortex get text-generator
 status   last update   avg request   2XX
 live     1m            -             -
 
-endpoint: http://localhost:8888
+endpoint: http://localhost:8889
 ...
 ```
 
@@ -109,7 +109,7 @@ $ cortex logs text-generator
 Once your API is live, use `curl` to test your API (it will take a few seconds to generate the text):
 
 ```bash
-$ curl http://localhost:8888 \
+$ curl http://localhost:8889 \
     -X POST -H "Content-Type: application/json" \
     -d '{"text": "machine learning is"}'
 
@@ -295,12 +295,3 @@ deleting text-generator
 ```
 
 Running `cortex delete` will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster creation. It will not spin down your cluster.
-
-## Next steps
-
-<!-- CORTEX_VERSION_MINOR -->
-* Deploy another one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
-* See our [exporting guide](../../../docs/guides/exporting.md) for how to export your model to use in an API.
-* Try the [batch API tutorial](../../batch/image-classifier/README.md) to learn how to deploy batch APIs in Cortex.
-* See our [traffic splitter example](../../traffic-splitter/README.md) for how to deploy multiple APIs and set up a traffic splitter.
-* See [uninstall](../../../docs/cluster-management/uninstall.md) if you'd like to spin down your cluster.

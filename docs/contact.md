@@ -12,7 +12,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 ## Contributing
 
-Find instructions for how to set up your development environment in the [development guide](../contributing/development.md).
+Find instructions for how to set up your development environment in the [development guide](contributing/development.md).
 
 ## We're hiring
 
