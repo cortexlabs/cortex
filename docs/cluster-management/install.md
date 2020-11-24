@@ -56,7 +56,20 @@ import requests
 local_client = cortex.client("local")
 
 # deploy the model as a realtime api and wait for it to become active
-deployments = local_client.deploy("./cortex.yaml", wait=True)
+
+api_spec={
+  "name": "iris-classifier",
+  "kind": "RealtimeAPI",
+  "predictor": {
+    "type": "python",
+    "path": "predictor.py",
+    "config": {
+      "model": "s3://cortex-examples/pytorch/iris-classifier/weights.pth"
+    }
+  }
+}
+
+deployments = local_client.deploy(api_spec, project_dir=".", wait=True)
 
 # get the api's endpoint
 url = deployments[0]["api"]["endpoint"]
