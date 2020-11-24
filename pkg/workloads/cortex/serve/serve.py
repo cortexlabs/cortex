@@ -35,10 +35,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from cortex.lib import util
 from cortex.lib.api import API, get_api
 from cortex.lib.log import cx_logger as logger
-from cortex.lib.concurrency import LockedFile
+from cortex.lib.concurrency import FileLock, LockedFile
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
-from cortex.lib.concurrency import FileLock
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
