@@ -61,12 +61,3 @@ sed -i 's/[[:space:]]*$//' $ROOT/docs/miscellaneous/python-client.md
 truncate -s -1 $ROOT/docs/miscellaneous/python-client.md
 
 pip3 uninstall -y cortex
-
-cat << EOF
-
-#### MANUAL EDITS REQUIRED ####
-
-- Copy the docstring for \`client(env: str)\` in pkg/workloads/cortex/client/__init__.py into the generated docs and unindent
-
-Then check the diff
-EOF
