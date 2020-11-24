@@ -34,7 +34,7 @@ from cortex.lib.model import (
     LockedModel,
     ModelsTree,
     LockedModelsTree,
-    CuratedModelResources,
+    get_models_from_api_spec,
     find_ondisk_model_info,
     find_ondisk_models_with_lock,
 )
@@ -72,7 +72,7 @@ class ONNXClient:
         self._model_dir = model_dir
         self._lock_dir = lock_dir
 
-        self._spec_models = CuratedModelResources(api_spec["curated_model_resources"])
+        self._spec_models = get_models_from_api_spec(api_spec)
 
         if (
             self._api_spec["predictor"]["models"]

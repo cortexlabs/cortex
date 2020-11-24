@@ -14,8 +14,12 @@
 
 from cortex.lib.model.model import ModelsHolder, LockedGlobalModelsGC, LockedModel, ids_to_models
 from cortex.lib.model.tfs import TensorFlowServingAPI, TensorFlowServingAPIClones
-from cortex.lib.model.tree import ModelsTree, LockedModelsTree
-from cortex.lib.model.type import CuratedModelResources
+from cortex.lib.model.tree import (
+    ModelsTree,
+    LockedModelsTree,
+    find_all_s3_models,
+)
+from cortex.lib.model.type import get_models_from_api_spec, CuratedModelResources
 from cortex.lib.model.validation import (
     validate_models_dir_paths,
     validate_model_paths,

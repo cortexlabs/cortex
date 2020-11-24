@@ -25,7 +25,7 @@ from cortex.lib.model import (
     ModelsTree,
     LockedModel,
     LockedModelsTree,
-    CuratedModelResources,
+    get_models_from_api_spec,
 )
 from cortex.lib.log import cx_logger as logger
 from cortex import consts
@@ -59,7 +59,7 @@ class TensorFlowClient:
         self._models_tree = models_tree
         self._model_dir = model_dir
 
-        self._spec_models = CuratedModelResources(api_spec["curated_model_resources"])
+        self._spec_models = get_models_from_api_spec(api_spec)
 
         if (
             self._api_spec["predictor"]["models"]

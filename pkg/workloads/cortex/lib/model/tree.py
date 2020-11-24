@@ -13,15 +13,25 @@
 # limitations under the License.
 
 import os
+import itertools
 import time
 import datetime
 import shutil
 import threading as td
 from typing import List, Dict, Any, Tuple, Callable, AbstractSet
 
+from cortex.lib import util
+from cortex.lib.type import PredictorType
 from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import ReadWriteLock
 from cortex.lib.exceptions import WithBreak
+from cortex.lib.storage import S3
+
+from cortex.lib.model.validation import (
+    validate_models_dir_paths,
+    validate_model_paths,
+    ModelVersion,
+)
 
 
 class ModelsTree:
@@ -374,3 +384,137 @@ class LockedModelsTree:
         if exc_value is not None and exc_type is not WithBreak:
             return False
         return True
+
+
+def find_all_s3_models(
+    is_dir_used: bool,
+    models_dir: str,
+    predictor_type: PredictorType,
+    s3_paths: List[str],
+    s3_model_names: List[str],
+) -> Tuple[
+    List[str],
+    Dict[str, List[str]],
+    List[str],
+    List[List[str]],
+    List[List[datetime.datetime]],
+    List[str],
+]:
+    """
+    Get updated information on all models that are currently present on the S3 upstreams.
+    Information on the available models, versions, last edit times, the subpaths of each model, and so on.
+
+    Args:
+        is_dir_used: Whether predictor:models:dir is used or not.
+        models_dir: The value of predictor:models:dir in case it's present. Ignored when not required.
+        predictor_type: The predictor type.
+        s3_paths: The S3 model paths as they are specified in predictor:model_path/predictor:models:dir/predictor:models:paths is used. Ignored when not required.
+        s3_model_names: The S3 model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:model_path is used. Ignored when not required.
+
+    Returns: The tuple with the following elements:
+        model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
+        versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
+          For non-versioned model paths ModelVersion.NOT_PROVIDED, the list will be empty.
+        model_paths - a list with the prefix of each model.
+        sub_paths - a list of filepaths lists for each file of each model.
+        timestamps - a list of timestamps lists representing the last edit time of each versioned model.
+        bucket_names - a list of the bucket names of each model.
+    """
+
+    # validate models stored in S3 that were specified with predictor:models:dir field
+    if is_dir_used:
+        bucket_name, models_path = S3.deconstruct_s3_path(models_dir)
+        s3_client = S3(bucket_name, client_config={})
+        sub_paths, timestamps = s3_client.search(models_path)
+        model_paths, ooa_ids = validate_models_dir_paths(sub_paths, predictor_type, models_path)
+        model_names = [os.path.basename(model_path) for model_path in model_paths]
+
+        model_paths = [
+            model_path for model_path in model_paths if os.path.basename(model_path) in model_names
+        ]
+        model_paths = [
+            model_path + "/" * (not model_path.endswith("/")) for model_path in model_paths
+        ]
+
+        bucket_names = len(model_paths) * [bucket_name]
+        sub_paths = len(model_paths) * [sub_paths]
+        timestamps = len(model_paths) * [timestamps]
+
+    # validate models stored in S3 that were specified with predictor:models:paths field
+    if not is_dir_used:
+        sub_paths = []
+        ooa_ids = []
+        model_paths = []
+        model_names = []
+        timestamps = []
+        bucket_names = []
+        for idx, path in enumerate(s3_paths):
+            if S3.is_valid_s3_path(path):
+                bucket_name, model_path = S3.deconstruct_s3_path(path)
+                s3_client = S3(bucket_name, client_config={})
+                sb, model_path_ts = s3_client.search(model_path)
+                try:
+                    ooa_ids.append(validate_model_paths(sb, predictor_type, model_path))
+                except CortexException:
+                    continue
+                model_paths.append(model_path)
+                model_names.append(s3_model_names[idx])
+                bucket_names.append(bucket_name)
+                sub_paths += [sb]
+                timestamps += [model_path_ts]
+
+    # determine the detected versions for each model
+    # if the model was not versioned, then leave the version list empty
+    versions = {}
+    for model_path, model_name, model_ooa_ids, bucket_sub_paths in zip(
+        model_paths, model_names, ooa_ids, sub_paths
+    ):
+        if ModelVersion.PROVIDED not in model_ooa_ids:
+            versions[model_name] = []
+            continue
+
+        model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in bucket_sub_paths]
+        model_versions_paths = [path for path in model_sub_paths if not path.startswith("../")]
+        model_versions = [
+            util.get_leftmost_part_of_path(model_version_path)
+            for model_version_path in model_versions_paths
+        ]
+        model_versions = list(set(model_versions))
+        versions[model_name] = model_versions
+
+    # pick up the max timestamp for each versioned model
+    aux_timestamps = []
+    for model_path, model_name, bucket_sub_paths, sub_path_timestamps in zip(
+        model_paths, model_names, sub_paths, timestamps
+    ):
+        model_ts = []
+        if len(versions[model_name]) == 0:
+            masks = list(
+                map(
+                    lambda x: x.startswith(model_path + "/" * (model_path[-1] != "/")),
+                    bucket_sub_paths,
+                )
+            )
+            model_ts = [max(itertools.compress(sub_path_timestamps, masks))]
+
+        for version in versions[model_name]:
+            masks = list(
+                map(
+                    lambda x: x.startswith(os.path.join(model_path, version) + "/"),
+                    bucket_sub_paths,
+                )
+            )
+            model_ts.append(max(itertools.compress(sub_path_timestamps, masks)))
+
+        aux_timestamps.append(model_ts)
+
+    timestamps = aux_timestamps  # type: List[List[datetime.datetime]]
+
+    # model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
+    # versions - a dictionary with the keys representing the model names and the values being lists of versions that each model has.
+    #   For non-versioned model paths ModelVersion.NOT_PROVIDED, the list will be empty
+    # model_paths - a list with the prefix of each model
+    # sub_paths - a list of filepaths lists for each file of each model
+    # timestamps - a list of timestamps lists representing the last edit time of each versioned model
+
+    return model_names, versions, model_paths, sub_paths, timestamps, bucket_names

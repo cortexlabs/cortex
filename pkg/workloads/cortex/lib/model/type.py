@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from typing import List, Optional
+
+import cortex.consts
+from cortex.lib.model import find_all_s3_models
+from cortex.lib.type import predictor_type_from_api_spec
 
 
 class CuratedModelResources:
     def __init__(self, curated_model_resources: List[dict]):
         """
-        curated_model_resources must have the format enforced by the CLI's validation process of cortex.yaml.
-        curated_model_resources is an identical copy of pkg.type.spec.api.API.CuratedModelResources.
-
         An example of curated_model_resources object:
         [
             {
@@ -106,7 +108,7 @@ class CuratedModelResources:
 
     def get_s3_model_names(self) -> List[str]:
         """
-        Get S3-provided models as specified with predictor:model_path, predictor:models:paths or predictor:models:dir.
+        Get S3-provided models as specified with predictor:model_path or predictor:models:paths.
 
         Returns:
             A list of names of all models available from S3.
@@ -137,3 +139,64 @@ class CuratedModelResources:
             return True
         except KeyError:
             return False
+
+
+def get_models_from_api_spec(
+    api_spec: dict, model_dir: str = "/mnt/model"
+) -> CuratedModelResources:
+    """
+    Only effective for predictor:model_path, predictor:models:paths or for predictor:models:dir when the dir is a local path.
+    It does not apply for when predictor:models:dir is set to an S3 model path.
+    """
+
+    predictor = api_spec["predictor"]
+
+    if not predictor["model_path"] and not predictor["models"]:
+        return CuratedModelResources([])
+
+    predictor_type = predictor_type_from_api_spec(api_spec)
+    models = []
+    if predictor["model_path"]:
+        model = {
+            "name": cortex.consts.SINGLE_MODEL_NAME,
+            "model_path": predictor["model_path"],
+            "signature_key": predictor["signature_key"],
+        }
+        models.append(model)
+
+    if predictor["models"] and predictor["models"]["paths"]:
+        for model in predictor["models"]["paths"]:
+            models.append(
+                {
+                    "name": model["name"],
+                    "model_path": model["model_path"],
+                    "signature_key": model["signature_key"],
+                }
+            )
+
+    model_resources = []
+    for model in models:
+        model_resource = {}
+        model_resource["name"] = model["name"]
+        model_resource["s3_path"] = model["model_path"].startswith("s3://")
+
+        if not model["signature_key"] and predictor["models"]:
+            model_resource["signature_key"] = predictor["models"]["signature_key"]
+        else:
+            model_resource["signature_key"] = model["signature_key"]
+
+        if model_resource["s3_path"]:
+            model_resource["model_path"] = model["model_path"]
+            _, versions, _, _, _, _ = find_all_s3_models(
+                False, "", predictor_type, [model_resource["model_path"]], [model_resource["name"]]
+            )
+            if model_resource["name"] not in versions:
+                continue
+            model_resource["versions"] = versions[model_resource["name"]]
+        else:
+            model_resource["model_path"] = os.path.join(model_dir, model_resource["name"])
+            model_resource["versions"] = os.listdir(model_resource["model_path"])
+
+        model_resources.append(model_resource)
+
+    return CuratedModelResources(model_resources)
