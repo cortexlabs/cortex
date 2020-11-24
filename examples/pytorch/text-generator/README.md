@@ -129,7 +129,7 @@ api_spec = {
 # deploy your the Predictor implementation and API configuration to create a web API
 cx.deploy(api_spec, project_dir=".", wait=True)
 
-## Make a request to your local API
+## Make a request to your AWS API
 import requests
 
 endpoint = cx.get_api("text-generator")["endpoint"]
@@ -195,7 +195,7 @@ api_spec = {
 # deploy your the Predictor implementation and API configuration to create a web API
 cx.deploy(api_spec, project_dir=".", wait=True)
 
-# make a request to your API
+# make a request to your updated AWS API
 import requests
 
 endpoint = cx.get_api("text-generator")["endpoint"]
