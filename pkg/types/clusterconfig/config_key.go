@@ -17,6 +17,7 @@ limitations under the License.
 package clusterconfig
 
 const (
+	ProviderKey                            = "provider"
 	InstanceTypeKey                        = "instance_type"
 	MinInstancesKey                        = "min_instances"
 	MaxInstancesKey                        = "max_instances"
@@ -59,6 +60,7 @@ const (
 	ImageIstioPilotKey                     = "image_istio_pilot"
 
 	// User facing string
+	ProviderUserKey                            = "provider"
 	APIVersionUserKey                          = "cluster version"
 	ClusterNameUserKey                         = "cluster name"
 	RegionUserKey                              = "aws region"

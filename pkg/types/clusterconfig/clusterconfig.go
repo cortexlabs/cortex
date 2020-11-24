@@ -126,6 +126,15 @@ var UserValidation = &cr.StructValidation{
 	Required: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
+			StructField: "Provider",
+			StringValidation: &cr.StringValidation{
+				Validator: validateProviderType,
+			},
+			Parser: func(str string) (interface{}, error) {
+				return types.ProviderTypeFromString(str), nil
+			},
+		},
+		{
 			StructField: "InstanceType",
 			StringPtrValidation: &cr.StringPtrValidation{
 				Validator: validateInstanceType,
@@ -472,24 +481,67 @@ var Validation = &cr.StructValidation{
 				Default: true,
 			},
 		},
-		providerValidation,
 	),
 }
 
-var providerValidation = &cr.StructFieldValidation{
-	StructField: "Provider",
-	StringValidation: &cr.StringValidation{
-		Required:      true,
-		AllowedValues: []string{types.AWSProviderType.String(), types.GCPProviderType.String()},
-	},
-	Parser: func(str string) (interface{}, error) {
-		return types.ProviderTypeFromString(str), nil
+var ProviderValidation = &cr.StructValidation{
+	AllowExtraFields: true,
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Provider",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowedValues: []string{types.AWSProviderType.String(), types.GCPProviderType.String()},
+			},
+			Parser: func(str string) (interface{}, error) {
+				return types.ProviderTypeFromString(str), nil
+			},
+		},
 	},
 }
 
-var ProviderValidation = &cr.StructValidation{
-	AllowExtraFields:       true,
-	StructFieldValidations: []*cr.StructFieldValidation{providerValidation},
+func GetClusterProviderType(clusterPath string, disallowPrompt bool) (types.ProviderType, error) {
+	type provider struct {
+		Provider *types.ProviderType `json:"provider" yaml:"provider"`
+	}
+
+	errorMessage := fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
+
+	providerHolder := provider{}
+	if clusterPath != "" {
+		errs := cr.ParseYAMLFile(&providerHolder, ProviderValidation, clusterPath)
+		if errors.HasError(errs) {
+			return types.UnknownProviderType, errors.Append(errors.FirstError(errs...), errorMessage)
+		}
+	}
+
+	if providerHolder.Provider == nil {
+		err := cr.ReadPrompt(&providerHolder, &cr.PromptValidation{
+			PromptItemValidations: []*cr.PromptItemValidation{
+				{
+					StructField: "Provider",
+					PromptOpts: &prompt.Options{
+						Prompt: "provider",
+					},
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required:  true,
+						Validator: validateProviderType,
+					},
+					Parser: func(str string) (interface{}, error) {
+						return types.ProviderTypeFromString(str), nil
+					},
+				},
+			},
+		})
+		if err != nil {
+			return types.UnknownProviderType, errors.Append(err, errorMessage)
+		}
+	}
+
+	if providerHolder.Provider == nil && disallowPrompt == true {
+		return types.UnknownProviderType, errors.Append(ErrorUndefinedField(ProviderKey), errorMessage)
+	}
+
+	return *providerHolder.Provider, nil
 }
 
 var AccessValidation = &cr.StructValidation{
@@ -825,39 +877,6 @@ func applyPromptDefaults(defaults Config) *Config {
 	return defaultConfig
 }
 
-func RegionPrompt(clusterConfig *Config, disallowPrompt bool) error {
-	defaults := applyPromptDefaults(*clusterConfig)
-
-	if disallowPrompt {
-		if clusterConfig.Region == nil {
-			clusterConfig.Region = defaults.Region
-		}
-		return nil
-	}
-
-	regionPrompt := &cr.PromptValidation{
-		SkipNonNilFields: true,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "Region",
-				PromptOpts: &prompt.Options{
-					Prompt: RegionUserKey,
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: RegionValidator,
-					Default:   defaults.Region,
-				},
-			},
-		},
-	}
-	err := cr.ReadPrompt(clusterConfig, regionPrompt)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
@@ -883,7 +902,7 @@ func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
-					Prompt: "aws instance type",
+					Prompt: "instance type",
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					Required:  true,
@@ -1037,6 +1056,13 @@ func validateVPCCIDR(cidr string) (string, error) {
 	}
 
 	return cidr, nil
+}
+
+func validateProviderType(providerType string) (string, error) {
+	if providerType == types.AWSProviderType.String() || providerType == types.GCPProviderType.String() {
+		return providerType, nil
+	}
+	return "", ErrorInvalidProviderType(providerType)
 }
 
 func validateInstanceType(instanceType string) (string, error) {

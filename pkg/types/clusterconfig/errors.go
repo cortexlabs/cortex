@@ -24,9 +24,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
+	ErrUndefinedField                         = "clusterconfig.undefined_field"
+	ErrInvalidProviderType                    = "clusterconfig.invalid_provider_type"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
 	ErrMinInstancesGreaterThanMax             = "clusterconfig.min_instances_greater_than_max"
@@ -56,6 +59,20 @@ const (
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 )
+
+func ErrorUndefinedField(fieldKey string) error {
+	return &errors.Error{
+		Kind:    ErrUndefinedField,
+		Message: fmt.Sprintf("%s field is undefined", fieldKey),
+	}
+}
+
+func ErrorInvalidProviderType(provider string) error {
+	return &errors.Error{
+		Kind:    ErrInvalidProviderType,
+		Message: fmt.Sprintf("%s is not a valid provider type; can use %s or %s", provider, types.AWSProviderType.String(), types.GCPProviderType.String()),
+	}
+}
 
 func ErrorInvalidRegion(region string) error {
 	return errors.WithStack(&errors.Error{

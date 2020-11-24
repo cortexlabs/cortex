@@ -17,11 +17,6 @@ limitations under the License.
 package clusterconfig
 
 import (
-	"fmt"
-
-	"github.com/cortexlabs/cortex/pkg/consts"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
@@ -52,18 +47,4 @@ type InternalGCPConfig struct {
 	ID                string `json:"id"`
 	APIVersion        string `json:"api_version"`
 	OperatorInCluster bool   `json:"operator_in_cluster"`
-}
-
-func GetClusterProviderType(clusterPath string) (types.ProviderType, error) {
-	type provider struct {
-		Provider types.ProviderType `json:"provider" yaml:"provider"`
-	}
-
-	providerHolder := provider{}
-	errs := cr.ParseYAMLFile(&providerHolder, ProviderValidation, clusterPath)
-	if errors.HasError(errs) {
-		return types.UnknownProviderType, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor))
-	}
-
-	return providerHolder.Provider, nil
 }

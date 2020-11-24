@@ -59,7 +59,7 @@ func Init() error {
 		clusterConfigPath = _clusterConfigPath
 	}
 
-	Provider, err = clusterconfig.GetClusterProviderType(clusterConfigPath)
+	Provider, err = clusterconfig.GetClusterProviderType(clusterConfigPath, true)
 	if err != nil {
 		return err
 	}
