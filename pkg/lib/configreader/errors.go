@@ -420,6 +420,6 @@ func ErrorCortexResourceNotAllowed(resourceName string) error {
 func ErrorImageVersionMismatch(image, tag, cortexVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageVersionMismatch,
-		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image registry path from your configuration file (to use the default value), or update your CLI by following the instructions at https://docs.cortex.dev/aws/install", image, tag, cortexVersion),
+		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image registry path from your configuration file (to use the default value), or update your CLI (pip install cortex==%s)", image, tag, cortexVersion, cortexVersion),
 	})
 }

@@ -6,7 +6,7 @@
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
 
-[install](https://docs.cortex.dev/aws/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.22/examples) • [community](https://gitter.im/cortexlabs/cortex)
+[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.22/examples) • [community](https://gitter.im/cortexlabs/cortex)
 
 # Deploy machine learning models to production
 
@@ -126,4 +126,4 @@ prediction = requests.post(endpoint, payload)
 pip install cortex
 ```
 
-See the [installation guide](https://docs.cortex.dev/aws/install) for next steps.
+See the [installation guide](https://docs.cortex.dev/install) for next steps.
