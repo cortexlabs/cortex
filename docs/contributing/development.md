@@ -2,7 +2,7 @@
 
 ## Remote development
 
-Unless your internet connection is very fast or you will only be working on the CLI, it is recommended to run your development environment on a cloud instance, e.g. an AWS EC2 instance or GCP VM (due to frequent docker registry pushing). There are a variety of ways to develop on a remote VM, feel free to reach out on our [gitter](https://gitter.im/cortexlabs/cortex) and we can point you in the right direction based on your operating system and editor preferences.
+We recommend that you run your development environment on a cloud instance, e.g. an AWS EC2 instance or GCP VM (due to frequent docker registry pushing). There are a variety of ways to develop on a remote VM, feel free to reach out on [gitter](https://gitter.im/cortexlabs/cortex) and we can point you in the right direction based on your operating system and editor preferences.
 
 ## Prerequisites
 
