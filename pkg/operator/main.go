@@ -41,7 +41,7 @@ func main() {
 		exit.Error(err)
 	}
 
-	telemetry.Event("operator.init")
+	telemetry.Event("operator.init", config.Cluster.TelemetryEvent())
 
 	_, err := operator.UpdateMemoryCapacityConfigMap()
 	if err != nil {
@@ -87,6 +87,7 @@ func main() {
 	routerWithAuth.HandleFunc("/delete/{apiName}", endpoints.Delete).Methods("DELETE")
 	routerWithAuth.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
 	routerWithAuth.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
+	routerWithAuth.HandleFunc("/get/{apiName}/{apiID}", endpoints.GetAPIByID).Methods("GET")
 	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
 	log.Print("Running on port " + _operatorPortStr)

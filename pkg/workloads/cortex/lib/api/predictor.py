@@ -522,7 +522,7 @@ def model_downloader(
         f"downloading from bucket {bucket_name}/{model_path}, model {model_name} of version {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
     )
 
-    s3_client = S3(bucket_name, client_config={})
+    s3_client = S3(bucket_name)
 
     # validate upstream S3 model
     sub_paths, ts = s3_client.search(model_path)

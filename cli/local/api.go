@@ -28,7 +28,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -36,6 +38,8 @@ import (
 var _deploymentID = "local"
 
 func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*schema.APIResponse, string, error) {
+	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(types.LocalProviderType))
+
 	var incompatibleVersion string
 	encounteredVersionMismatch := false
 	prevAPISpec, err := FindAPISpec(apiConfig.Name)
