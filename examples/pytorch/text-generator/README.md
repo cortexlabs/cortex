@@ -4,41 +4,68 @@ _WARNING: you are on the master branch; please refer to examples on the branch c
 
 This example shows how to deploy a realtime text generation API using a GPT-2 model from Hugging Face's transformers library.
 
-## Deploy your API locally
+<br>
+
+## Implement your predictor
+
+1. Create a Python file named `predictor.py`.
+2. Define a Predictor class with a constructor that loads and initializes the model.
+3. Add a predict function that will accept a payload and return the generated text.
 
 ```python
-# define your text generation API
+# predictor.py
+
+import torch
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+
+
 class PythonPredictor:
     def __init__(self, config):
-        # the `__init__` function that loads and initializes the model
-        import torch
-        from transformers import GPT2Tokenizer, GPT2LMHeadModel
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"using device: {self.device}")
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
 
     def predict(self, payload):
-        # the `predict` function accepts the payload and returns text
         input_length = len(payload["text"].split())
         tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
         prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
         return self.tokenizer.decode(prediction[0])
+```
 
-# list of pip dependencies that will be automatically installed before initializing your Predictor implementation
-pip_dependencies = ["torch", "transformers==3.0.*"]
+Here are the complete [Predictor docs](../../../docs/deployments/realtime-api/predictors.md).
 
-api_spec = {
-  'name': 'text-generator',
-  'kind': 'RealtimeAPI'
-}
+<br>
 
+## Specify your Python dependencies
+
+Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
+
+```python
+# requirements.txt
+
+torch
+transformers==3.0.*
+```
+
+## Deploy your model locally
+
+```python
 import cortex
 
 cx = cortex.client("local")
 
-# deploy your the Predictor implementation and API configuration to create a web API
-cx.deploy(api_spec, predictor=PythonPredictor, pip_dependencies=pip_dependencies, wait=True)
+api_spec = {
+  "name": "text-generator",
+  "kind": "RealtimeAPI",
+  "predictor": {
+    "type": "python",
+    "path": "predictor.py"
+  }
+}
 
+# deploy your the Predictor implementation and API configuration to create a web API
+cx.deploy(api_spec, project_dir=".", wait=True)
 
 ## Make a request to your local API
 import requests
@@ -90,33 +117,31 @@ $ cortex cluster up
 This creates a Cortex cluster in your AWS account, which will take approximately 15 minutes. After your cluster is created, you can deploy your model to your cluster by using the same code and configuration as before:
 
 ```python
-class PythonPredictor:
-    def __init__(self, config):
-        import torch
-        from transformers import GPT2Tokenizer, GPT2LMHeadModel
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-        self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
-
-    def predict(self, payload):
-        input_length = len(payload["text"].split())
-        tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
-        prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
-        return self.tokenizer.decode(prediction[0])
-
-# list of pip dependencies that will be automatically installed before initializing your Predictor implementation
-pip_dependencies = ["torch", "transformers==3.0.*"]
-
-api_spec = {
-  'name': 'text-generator',
-  'kind': 'RealtimeAPI'
-}
+import cortex
 
 cx = cortex.client("aws")
-cx.deploy(api_spec, predictor=PythonPredictor, pip_dependencies=pip_dependencies, wait=True)
+
+api_spec = {
+  "name": "text-generator",
+  "kind": "RealtimeAPI",
+  "predictor": {
+    "type": "python",
+    "path": "predictor.py"
+  }
+}
+
+# deploy your the Predictor implementation and API configuration to create a web API
+cx.deploy(api_spec, project_dir=".", wait=True)
+
+## Make a request to your local API
+import requests
+
+endpoint = cx.get("text-generator")["endpoint"]
+payload = {"text": "hello world"}
+print(requests.post(endpoint, payload))
 ```
 
-Monitor the status of your APIs using `cortex get`:
+Monitor the status of your APIs using `cortex get` using your CLI:
 
 ```bash
 $ cortex get --watch
@@ -128,28 +153,23 @@ local   text-generator   live     1            1           17m           3.1285 
 
 The output above indicates that one replica of your API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and will spin down replicas if there is unused capacity.
 
-## Make a request to your AWS API
-
-```python
-import requests
-
-endpoint = cx.get("text-generator")["endpoint"]
-payload = {"text": "hello world"}
-print(requests.post(endpoint, payload))
-```
-
 ## Updating an API
 
 When you make a change to your Predictor or your API configuration, you can update your api by re-running `cx.deploy()`.
 
-Let's modify the Predictor to set the length of the generated text based on a query parameter:
+Let's modify `predictor.py` to set the length of the generated text based on a query parameter:
 
 ```python
+# predictor.py
+
+import torch
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+
+
 class PythonPredictor:
     def __init__(self, config):
-        import torch
-        from transformers import GPT2Tokenizer, GPT2LMHeadModel
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"using device: {self.device}")
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
 
@@ -159,16 +179,31 @@ class PythonPredictor:
         tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
         prediction = self.model.generate(tokens, max_length=input_length + output_length, do_sample=True)  # this line is updated
         return self.tokenizer.decode(prediction[0])
+```
 
-api_spec = {
-  'name': 'text-generator',
-  'kind': 'RealtimeAPI'
-}
-
+```python
 import cortex
 
 cx = cortex.client("aws")
-cx.deploy(api_spec, predictor=PythonPredictor, pip_dependencies = ["torch", "transformers==3.0.*"])
+
+api_spec = {
+  "name": "text-generator",
+  "kind": "RealtimeAPI",
+  "predictor": {
+    "type": "python",
+    "path": "predictor.py"
+  }
+}
+
+# deploy your the Predictor implementation and API configuration to create a web API
+cx.deploy(api_spec, project_dir=".", wait=True)
+
+## Make a request to your local API
+import requests
+
+endpoint = cx.get("text-generator")["endpoint"]
+payload = {"text": "hello world"}
+print(requests.post(endpoint, payload))
 ```
 
 You can track the status of your API using `cortex get`:
@@ -181,14 +216,6 @@ text-generator   updating   0            1       1           29s           -    
 ```
 
 As your new implementation is initializing, the old implementation will continue to be used to respond to prediction requests. Eventually the API's status will become "live" (with one up-to-date replica), and traffic will be routed to the updated version.
-
-```python
-import requests
-
-endpoint = cx.get("text-generator")["endpoint"]
-payload = {"text": "hello world"}
-print(requests.post(endpoint, payload))
-```
 
 ## Run on GPUs
 
