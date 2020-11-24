@@ -4,8 +4,6 @@ _WARNING: you are on the master branch; please refer to examples on the branch c
 
 This example shows how to deploy a realtime text generation API using a GPT-2 model from Hugging Face's transformers library.
 
-<br>
-
 ## Implement your predictor
 
 1. Create a Python file named `predictor.py`.
@@ -22,7 +20,6 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 class PythonPredictor:
     def __init__(self, config):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"using device: {self.device}")
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
 
@@ -32,10 +29,6 @@ class PythonPredictor:
         prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
         return self.tokenizer.decode(prediction[0])
 ```
-
-Here are the complete [Predictor docs](../../../docs/deployments/realtime-api/predictors.md).
-
-<br>
 
 ## Specify your Python dependencies
 
@@ -49,6 +42,8 @@ transformers==3.0.*
 ```
 
 ## Deploy your model locally
+
+You can create APIs from any Python runtime (e.g. the Python shell or a Jupyter Notebook):
 
 ```python
 import cortex
@@ -64,15 +59,17 @@ api_spec = {
   }
 }
 
-# deploy your the Predictor implementation and API configuration to create a web API
 cx.deploy(api_spec, project_dir=".", wait=True)
+```
 
-## Make a request to your local API
+## Consume your API
+
+```python
 import requests
 
-endpoint = cx.get("text-generator")["endpoint"]
+endpoint = cx.get_api("text-generator")["endpoint"]
 payload = {"text": "hello world"}
-print(requests.post(endpoint, payload))
+print(requests.post(endpoint, payload).text)
 ```
 
 ## Manage your APIs using the CLI
@@ -107,7 +104,6 @@ $ cortex logs text-generator
 
 ## Deploy your model to AWS
 
-<!-- TODO: talk about GPUs? -->
 Cortex can automatically provision infrastructure on your AWS account and deploy your models as production-ready web services:
 
 ```bash
@@ -136,9 +132,11 @@ cx.deploy(api_spec, project_dir=".", wait=True)
 ## Make a request to your local API
 import requests
 
-endpoint = cx.get("text-generator")["endpoint"]
+endpoint = cx.get_api("text-generator")["endpoint"]
 payload = {"text": "hello world"}
-print(requests.post(endpoint, payload))
+print(requests.post(endpoint, payload).text)
+
+# cx.delete_api("text-generator")
 ```
 
 Monitor the status of your APIs using `cortex get` using your CLI:
@@ -169,7 +167,6 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 class PythonPredictor:
     def __init__(self, config):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"using device: {self.device}")
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
 
@@ -198,12 +195,14 @@ api_spec = {
 # deploy your the Predictor implementation and API configuration to create a web API
 cx.deploy(api_spec, project_dir=".", wait=True)
 
-## Make a request to your local API
+# make a request to your API
 import requests
 
-endpoint = cx.get("text-generator")["endpoint"]
+endpoint = cx.get_api("text-generator")["endpoint"]
 payload = {"text": "hello world"}
-print(requests.post(endpoint, payload))
+print(requests.post(endpoint, payload).text)
+
+# cx.delete_api("text-generator")
 ```
 
 You can track the status of your API using `cortex get`:
@@ -225,28 +224,16 @@ If your cortex cluster is using GPU instances (configured during cluster creatio
 api_spec = {
   'name': 'text-generator',
   'kind': 'RealtimeAPI',
+  "predictor": {
+    "type": "python",
+    "path": "predictor.py"
+  },
   'compute': {
     'gpu': 1
   }
 }
-```
 
-Run `deploy` to update your API with this configuration:
-
-```python
-cx.deploy(api_spec, predictor=PythonPredictor)
+cx.deploy(api_spec, project_dir=".", wait=True)
 ```
 
 You can use `cortex get` to check the status of your API, and once it's live, prediction requests should be faster.
-
-## Cleanup
-
-Run `delete` to delete each API:
-
-```bash
-$ cortex delete text-generator -e local
-
-$ cortex delete text-generator -e aws
-```
-
-Deleting APIs frees compute resources and allow Cortex to scale down to the minimum number of instances you specified during cluster creation. `cortex delete` will not spin down your cluster.
