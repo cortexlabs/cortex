@@ -242,7 +242,9 @@ class Predictor:
             validations = PYTHON_CLASS_VALIDATION
 
         try:
-            impl = self._load_module("cortex_predictor", os.path.join(project_dir, self.path))
+            predictor_class = self._get_class_impl(
+                "cortex_predictor", os.path.join(project_dir, self.path), target_class_name
+            )
         except CortexException as e:
             e.wrap("error in " + self.path)
             raise
@@ -250,17 +252,6 @@ class Predictor:
             refresh_logger()
 
         try:
-            classes = inspect.getmembers(impl, inspect.isclass)
-            predictor_class = None
-            for class_df in classes:
-                if class_df[0] == target_class_name:
-                    if predictor_class is not None:
-                        raise UserException(
-                            f"multiple definitions for {target_class_name} class found; please check your imports and class definitions and ensure that there is only one Predictor class definition"
-                        )
-                    predictor_class = class_df[1]
-            if predictor_class is None:
-                raise UserException(f"{target_class_name} class is not defined")
             _validate_impl(predictor_class, validations, self.api_spec)
             if self.type == PythonPredictorType:
                 _validate_python_predictor_with_models(predictor_class, self.api_spec)
@@ -269,24 +260,32 @@ class Predictor:
             raise
         return predictor_class
 
-    def _load_module(self, module_name, impl_path):
+    def _get_class_impl(self, module_name, impl_path, target_class_name):
         if impl_path.endswith(".pickle"):
             try:
-                impl = imp.new_module(module_name)
-
                 with open(impl_path, "rb") as pickle_file:
-                    pickled_dict = dill.load(pickle_file)
-                    for key in pickled_dict:
-                        setattr(impl, key, pickled_dict[key])
+                    return dill.load(pickle_file)
             except Exception as e:
                 raise UserException("unable to load pickle", str(e)) from e
-        else:
-            try:
-                impl = imp.load_source(module_name, impl_path)
-            except Exception as e:
-                raise UserException(str(e)) from e
 
-        return impl
+        try:
+            impl = imp.load_source(module_name, impl_path)
+        except Exception as e:
+            raise UserException(str(e)) from e
+
+        classes = inspect.getmembers(impl, inspect.isclass)
+        predictor_class = None
+        for class_df in classes:
+            if class_df[0] == target_class_name:
+                if predictor_class is not None:
+                    raise UserException(
+                        f"multiple definitions for {target_class_name} class found; please check your imports and class definitions and ensure that there is only one Predictor class definition"
+                    )
+                predictor_class = class_df[1]
+        if predictor_class is None:
+            raise UserException(f"{target_class_name} class is not defined")
+
+        return predictor_class
 
     def _is_model_caching_enabled(self) -> bool:
         """
@@ -519,7 +518,7 @@ def model_downloader(
         f"downloading from bucket {bucket_name}/{model_path}, model {model_name} of version {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
     )
 
-    s3_client = S3(bucket_name, client_config={})
+    s3_client = S3(bucket_name)
 
     # validate upstream S3 model
     sub_paths, ts = s3_client.search(model_path)
