@@ -39,10 +39,10 @@ class Client:
         self.env = env
 
     # CORTEX_VERSION_MINOR x5
-    def deploy(  # TODO remove config_file
+    def deploy(
         self,
-        config: dict,
-        cls=None,  # TODO rename to predictor
+        api_spec: dict,
+        predictor=None,
         pip_dependencies=[],
         conda_dependencies=[],
         project_dir: Optional[str] = None,
@@ -53,24 +53,44 @@ class Client:
         Deploy an API.
 
         Args:
-            config: A dictionary defining a single Cortex API. Schema can be found here:
+            api_spec: A dictionary defining a single Cortex API. Schema can be found here:
                 → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
                 → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
                 → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
-            cls: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+            predictor: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
                 → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
                 → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
+            pip_dependencies: A list of PyPI dependencies that will be installed before running your predictor class.
+            conda_dependencies: A list of Conda dependencies that will be installed before running your predictor class.
+            project_dir: Path to a python project.
             force: Override any in-progress api updates.
             wait: Streams logs until the APIs are ready.
 
         Returns:
             Deployment status, API specification, and endpoint for each API.
         """
+
+        if project_dir is not None and predictor is not None:
+            raise ValueError(
+                "`predictor` and `project_dir` parameters cannot be specified at the same time, please choose one"
+            )
+
+        if project_dir is not None:
+            cortex_yaml_path = os.path.join(project_dir, f".cortex-{uuid.uuid4()}.yaml")
+
+            with util.open_temporarily(cortex_yaml_path, "w") as f:
+                yaml.dump([api_spec], f)  # write a list
+                return self._deploy(cortex_yaml_path, force, wait)
+
         project_dir = Path.home() / ".cortex" / "deployments" / str(uuid.uuid4())
         with util.open_tempdir(str(project_dir)):
-            if cls is None:
+            cortex_yaml_path = os.path.join(project_dir, "cortex.yaml")
+
+            if predictor is None:
                 # for deploying a traffic splitter
-                return self.deploy_project(config, project_dir, wait=wait, force=force)
+                with open(cortex_yaml_path, "w") as f:
+                    yaml.dump([api_spec], f)  # write a list
+                    return self._deploy(cortex_yaml_path, force=force, wait=wait)
 
             # Change if PYTHONVERSION changes
             expected_version = "3.6"
@@ -78,11 +98,10 @@ class Client:
             if actual_version < expected_version:
                 raise Exception("cortex is only supported for python versions >= 3.6")  # unexpected
             if actual_version > expected_version:
-                is_python_set = False
-                for conda_dep in conda_dependencies:
-                    if "::python=" in conda_dep:
-                        is_python_set = True
-                        break
+                is_python_set = any(
+                    conda_dep.startswith("python=") or "::python=" in conda_dep
+                    for conda_dep in conda_dependencies
+                )
 
                 if not is_python_set:
                     conda_dependencies = [
@@ -97,73 +116,24 @@ class Client:
                 with open(project_dir / "conda-packages.txt", "w") as conda_file:
                     conda_file.write("\n".join(conda_dependencies))
 
-            if config.get("predictor") is None:
-                raise ValueError("`predictor` key must be defined in the `config` dictionary")
-
             with open(project_dir / "predictor.pickle", "wb") as pickle_file:
-                dill.dump(cls, pickle_file)
-                config["predictor"]["path"] = "predictor.pickle"
+                dill.dump(predictor, pickle_file)
+                if api_spec.get("predictor") is None:
+                    api_spec["predictor"] = {}
 
-            return self.deploy_project(config, project_dir, wait=wait, force=force)
+                if predictor.__name__ == "PythonPredictor":
+                    predictor_type = "python"
+                if predictor.__name__ == "TensorFlowPredictor":
+                    predictor_type = "tensorflow"
+                if predictor.__name__ == "ONNXPredictor":
+                    predictor_type = "onnx"
 
-    # CORTEX_VERSION_MINOR x3
-    def deploy_project(
-        self,
-        config: Optional[dict] = None,
-        project_dir: Optional[str] = None,
-        config_file: Optional[str] = None,
-        force: bool = False,
-        wait: bool = False,
-    ) -> list:
-        """
-        Deploy an API from a python project.
+                api_spec["predictor"]["path"] = "predictor.pickle"
+                api_spec["predictor"]["type"] = predictor_type
 
-        Args:
-            config: A dictionary defining a single Cortex API. Specify either this paramater or the `config_file` paramater but not both.
-            Schema can be found here:
-                → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
-                → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
-                → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
-            project_dir: Directory to a Python project containing your predictor implementation. Required if `config` is specified.
-            config_file: Local path to a yaml file defining Cortex APIs. Specify either this paramater or the `config` paramater but not both.
-            force: Override any in-progress api updates.
-            wait: Streams logs until the APIs are ready.
-
-        Returns:
-            Deployment status, API specification, and endpoint for each API.
-        """
-
-        if config is not None and config_file is not None:
-            raise ValueError(
-                "`config` and `config_file` parameters cannot be specified at the same time, please choose one"
-            )
-
-        if config_file is not None:
-            return self._deploy(config_file, force, wait)
-
-        if config is not None:
-            if project_dir is None:
-                raise ValueError(
-                    "`project_dir` parameter must be provided when using the `config` paramater"
-                )
-
-            if type(config) is not dict:
-                raise ValueError(
-                    "`config` parameter must be a dictionary defining a single Cortex API"
-                )
-
-            if not os.path.exists(project_dir):
-                raise ValueError(f"{project_dir} is not a valid directory")
-
-            cortex_yaml_path = os.path.join(project_dir, f".cortex-{uuid.uuid4()}.yaml")
-
-            with util.open_temporarily(cortex_yaml_path, "w") as f:
-                yaml.dump([config], f)  # write a list
-                return self._deploy(cortex_yaml_path, force, wait)
-
-        raise ValueError(
-            "can not deploy API(s) because API configuration was not specified; please specify either `config` or `config_field`"
-        )
+            with open(cortex_yaml_path, "w") as f:
+                yaml.dump([api_spec], f)  # write a list
+                return self._deploy(cortex_yaml_path, force=force, wait=wait)
 
     def _deploy(
         self,
