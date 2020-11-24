@@ -167,7 +167,7 @@ When using the `models.dir` field, the directory provided may contain multiple s
 In this case, there are two models in the directory, one of which is named "text-generator", and the other is named "sentiment-analyzer".
 
 <!-- CORTEX_VERSION_MINOR -->
-Additional examples can be seen in the [multi model guide](../../guides/multi-model.md) and in [examples/model-caching](https://github.com/cortexlabs/cortex/tree/master/examples/model-caching) (remove the `cache_size` and `disk_cache_size` configurations in `cortex.yaml` to disable [multi model caching](#multi-model-caching)).
+Additional examples can be seen in the [multi model guide](../../guides/multi-model.md) and in [examples/model-caching](https://github.com/cortexlabs/cortex/tree/0.23/examples/model-caching) (remove the `cache_size` and `disk_cache_size` configurations in `cortex.yaml` to disable [multi model caching](#multi-model-caching)).
 
 ## Live model reloading
 
@@ -181,7 +181,7 @@ The following is a list of events that will trigger the API to update its model(
 * A file in the model directory is updated in-place.
 
 <!-- CORTEX_VERSION_MINOR -->
-Examples can be seen in [examples/live-reloading](https://github.com/cortexlabs/cortex/tree/master/examples/live-reloading).
+Examples can be seen in [examples/live-reloading](https://github.com/cortexlabs/cortex/tree/0.23/examples/live-reloading).
 
 Usage varies based on the predictor type:
 
@@ -392,7 +392,7 @@ The model cache is a two-layer cache, configured by the following parameters in 
 Both of these fields must be specified, in addition to either the `dir` or `paths` field (which specifies the model paths, see above for documentation). Multi model caching is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
 
 <!-- CORTEX_VERSION_MINOR -->
-See [examples/model-caching](https://github.com/cortexlabs/cortex/tree/master/examples/model-caching) for examples.
+See [examples/model-caching](https://github.com/cortexlabs/cortex/tree/0.23/examples/model-caching) for examples.
 
 ### Caveats
 

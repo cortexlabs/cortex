@@ -111,12 +111,12 @@ Deploy an API.
 **Arguments**:
 
 - `api_spec` - A dictionary defining a single Cortex API. Schema can be found here:
-  → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
-  → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
-  → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
+  → Realtime API: https://docs.cortex.dev/v/0.23/deployments/realtime-api/api-configuration
+  → Batch API: https://docs.cortex.dev/v/0.23/deployments/batch-api/api-configuration
+  → Traffic Splitter: https://docs.cortex.dev/v/0.23/deployments/realtime-api/traffic-splitter
 - `predictor` - A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
-  → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
-  → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
+  → Realtime API: https://docs.cortex.dev/v/0.23/deployments/realtime-api/predictors
+  → Batch API: https://docs.cortex.dev/v/0.23/deployments/batch-api/predictors
 - `pip_dependencies` - A list of PyPI dependencies that will be installed before running your predictor class.
 - `conda_dependencies` - A list of Conda dependencies that will be installed before running your predictor class.
 - `project_dir` - Path to a python project.

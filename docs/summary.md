@@ -2,9 +2,9 @@
 
 * [Deploy machine learning models to production](../README.md)
 * [Install](aws/install.md)
-* [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
+* [Tutorial](https://docs.cortex.dev/v/0.23/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
+* [Examples](https://github.com/cortexlabs/cortex/tree/0.23/examples)  <!-- CORTEX_VERSION_MINOR -->
 * [Contact us](contact.md)
 
 ## Running Cortex on AWS

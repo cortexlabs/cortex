@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-CORTEX_VERSION=master
+CORTEX_VERSION=0.23.0
 REGISTRY_URL=quay.io
 
 image=$1

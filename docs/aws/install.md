@@ -18,7 +18,7 @@ cortex env default aws
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-Try the [tutorial](../../examples/pytorch/text-generator/README.md) or deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
+Try the [tutorial](../../examples/pytorch/text-generator/README.md) or deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/0.23/examples).
 
 ## Configure Cortex
 
@@ -63,7 +63,7 @@ nat_gateway: none
 api_load_balancer_scheme: internet-facing
 
 # operator load balancer scheme [internet-facing | internal]
-# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/aws/vpc-peering)
+# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/0.23/aws/vpc-peering)
 operator_load_balancer_scheme: internet-facing
 
 # API Gateway [public (API Gateway will be used by default, can be disabled per API) | none (API Gateway will be disabled for all APIs)]
@@ -86,19 +86,19 @@ The docker images used by the Cortex cluster can also be overridden, although th
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
-image_operator: quay.io/cortexlabs/operator:master
-image_manager: quay.io/cortexlabs/manager:master
-image_downloader: quay.io/cortexlabs/downloader:master
-image_request_monitor: quay.io/cortexlabs/request-monitor:master
-image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
-image_metrics_server: quay.io/cortexlabs/metrics-server:master
-image_inferentia: quay.io/cortexlabs/inferentia:master
-image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:master
-image_nvidia: quay.io/cortexlabs/nvidia:master
-image_fluentd: quay.io/cortexlabs/fluentd:master
-image_statsd: quay.io/cortexlabs/statsd:master
-image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
-image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
+image_operator: quay.io/cortexlabs/operator:0.23.0
+image_manager: quay.io/cortexlabs/manager:0.23.0
+image_downloader: quay.io/cortexlabs/downloader:0.23.0
+image_request_monitor: quay.io/cortexlabs/request-monitor:0.23.0
+image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:0.23.0
+image_metrics_server: quay.io/cortexlabs/metrics-server:0.23.0
+image_inferentia: quay.io/cortexlabs/inferentia:0.23.0
+image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:0.23.0
+image_nvidia: quay.io/cortexlabs/nvidia:0.23.0
+image_fluentd: quay.io/cortexlabs/fluentd:0.23.0
+image_statsd: quay.io/cortexlabs/statsd:0.23.0
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.23.0
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.23.0
 ```
 
 The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and in your [Batch API configuration](../deployments/batch-api/api-configuration.md).
