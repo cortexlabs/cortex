@@ -2,6 +2,21 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
+## Spin up Cortex on your AWS account
+
+First, make sure [Docker](https://docs.docker.com/install) is running on your machine.
+
+```bash
+# install the CLI
+pip install cortex
+
+# spin up Cortex on your AWS account
+cortex cluster up # || cortex cluster up --config cluster.yaml (see configuration options below)
+
+# set the default environment
+cortex env default aws
+```
+
 ## Configure Cortex
 
 ```yaml
@@ -87,20 +102,6 @@ image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 ```
 
-## Spin up Cortex on your AWS account
-
-First, make sure [Docker](https://docs.docker.com/install) is running on your machine.
-
-```bash
-# install the CLI
-pip install cortex
-
-# spin up Cortex on your AWS account
-cortex cluster up # || cortex cluster up --config cluster.yaml (see configuration options below)
-
-# set the default environment
-cortex env default aws
-```
 
 ## Advanced
 
