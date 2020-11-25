@@ -14,7 +14,7 @@ In our example, we assume the installation of the Ubuntu distribution.
 
 ## Step 2
 
-Install and configure the Docker Desktop Engine app to use WSL 2 as its backend by following the setps in the [Docker Desktop WSL 2 backend guide](https://docs.docker.com/docker-for-windows/wsl/).
+Install and configure the Docker Desktop Engine app to use WSL 2 as its backend by following the steps in the [Docker Desktop WSL 2 backend guide](https://docs.docker.com/docker-for-windows/wsl/).
 
 ## Step 3
 

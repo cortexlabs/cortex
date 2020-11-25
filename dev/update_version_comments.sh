@@ -40,7 +40,7 @@ if [ "$git_branch" = "master" ]; then
   if [[ "$OSTYPE" == "darwin"* ]]; then
     cd "$ROOT" && find . -type f \
     ! -path "./build/lint.sh" \
-    ! -path "./dev/update_version_comments.sh" \
+    ! -path "./dev/*" \
     ! -path "./vendor/*" \
     ! -path "./bin/*" \
     ! -path "./.git/*" \
@@ -50,7 +50,7 @@ if [ "$git_branch" = "master" ]; then
   else
     cd "$ROOT" && find . -type f \
     ! -path "./build/lint.sh" \
-    ! -path "./dev/update_version_comments.sh" \
+    ! -path "./dev/*" \
     ! -path "./vendor/*" \
     ! -path "./bin/*" \
     ! -path "./.git/*" \
@@ -71,7 +71,7 @@ fi
 if [[ "$OSTYPE" == "darwin"* ]]; then
   cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
-  ! -path "./dev/update_version_comments.sh" \
+  ! -path "./dev/*" \
   ! -path "./vendor/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
@@ -81,7 +81,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
-  ! -path "./dev/update_version_comments.sh" \
+  ! -path "./dev/*" \
   ! -path "./vendor/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
@@ -93,7 +93,7 @@ fi
 if [[ "$OSTYPE" == "darwin"* ]]; then
   cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
-  ! -path "./dev/update_version_comments.sh" \
+  ! -path "./dev/*" \
   ! -path "./vendor/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
@@ -103,7 +103,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
-  ! -path "./dev/update_version_comments.sh" \
+  ! -path "./dev/*" \
   ! -path "./vendor/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \

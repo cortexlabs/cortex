@@ -58,6 +58,7 @@ Flags:
   -e, --env string      environment to use (default "local")
   -w, --watch           re-run the command every 2 seconds
   -o, --output string   output format: one of pretty|json (default "pretty")
+  -v, --verbose         show additional information (only applies to pretty output format)
   -h, --help            help for get
 ```
 
@@ -197,10 +198,10 @@ Flags:
 ### cluster export
 
 ```text
-download the code and configuration for all APIs deployed in a cluster
+download the code and configuration for APIs
 
 Usage:
-  cortex cluster export [flags]
+  cortex cluster export [API_NAME] [API_ID] [flags]
 
 Flags:
   -c, --config string       path to a cluster configuration file

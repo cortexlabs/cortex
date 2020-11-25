@@ -31,7 +31,7 @@ It is possible to configure Cortex to use the images from Quay instead of Docker
 
 ### Update your cluster configuration file
 
-Add the following to your [cluster configuration file](../cluster-management/config.md) (e.g. `cluster.yaml`). In the image paths below, make sure to set `<VERSION>` to your cluster's version.
+Add the following to your [cluster configuration file](../aws/install.md) (e.g. `cluster.yaml`). In the image paths below, make sure to set `<VERSION>` to your cluster's version.
 
 ```yaml
 # cluster.yaml

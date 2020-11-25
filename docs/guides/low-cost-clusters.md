@@ -4,7 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Here are some tips for keeping costs down when running small clusters:
 
-* Consider using [spot instances](../cluster-management/spot-instances.md).
+* Consider using [spot instances](../aws/spot.md).
 
 * CPUs are cheaper than GPUs, so if there is low request volume and low latency is not critical, running on CPU instances will be more cost effective.
 
