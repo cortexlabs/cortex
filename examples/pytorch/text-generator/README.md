@@ -4,7 +4,7 @@ _WARNING: you are on the master branch; please refer to examples on the branch c
 
 This example shows how to deploy a realtime text generation API using a GPT-2 model from Hugging Face's transformers library.
 
-## Implement your predictor
+## Implement your Predictor
 
 1. Create a Python file named `predictor.py`.
 2. Define a Predictor class with a constructor that loads and initializes the model.
@@ -30,7 +30,7 @@ class PythonPredictor:
         return self.tokenizer.decode(prediction[0])
 ```
 
-## Specify your Python dependencies
+## Specify Python dependencies
 
 Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
 
@@ -93,7 +93,6 @@ status   last update   avg request   2XX
 live     1m            -             -
 
 endpoint: http://localhost:8889
-...
 ```
 
 You can also stream logs from your API:
@@ -112,7 +111,7 @@ Cortex can automatically provision infrastructure on your AWS account and deploy
 $ cortex cluster up
 ```
 
-This creates a Cortex cluster in your AWS account, which will take approximately 15 minutes. After your cluster is created, you can deploy your model to your cluster by using the same code and configuration as before:
+This creates a Cortex cluster in your AWS account, which will take approximately 15 minutes. After your cluster is created, you can deploy to your cluster by using the same code and configuration as before:
 
 ```python
 import cortex
@@ -128,13 +127,7 @@ api_spec = {
   }
 }
 
-cx.deploy(api_spec, project_dir=".", wait=True)
-
-import requests
-
-endpoint = cx.get_api("text-generator")["endpoint"]
-payload = {"text": "hello world"}
-print(requests.post(endpoint, payload).text)
+cx.deploy(api_spec, project_dir=".")
 ```
 
 Monitor the status of your APIs using `cortex get` using your CLI:
@@ -166,7 +159,7 @@ api_spec = {
   }
 }
 
-cx.deploy(api_spec, project_dir=".", wait=True)
+cx.deploy(api_spec, project_dir=".")
 ```
 
 As your new API is initializing, the old API will continue to respond to prediction requests. Once the API's status will become "live" (with one up-to-date replica), traffic will be routed to the updated version. You can track the status of your API using `cortex get`:
