@@ -43,7 +43,7 @@ transformers==3.0.*
 
 ## Deploy your model locally
 
-You can create APIs from any Python runtime (e.g. the Python shell or a Jupyter Notebook):
+You can create APIs from any Python runtime (e.g. the Python shell or a Jupyter notebook):
 
 ```python
 import cortex
@@ -128,10 +128,8 @@ api_spec = {
   }
 }
 
-# deploy your the Predictor implementation and API configuration to create a web API
 cx.deploy(api_spec, project_dir=".", wait=True)
 
-## Make a request to your AWS API
 import requests
 
 endpoint = cx.get_api("text-generator")["endpoint"]
@@ -151,74 +149,9 @@ local   text-generator   live     1            1           17m           3.1285 
 
 The output above indicates that one replica of your API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and will spin down replicas if there is unused capacity.
 
-## Updating an API
-
-When you make a change to your Predictor or your API configuration, you can update your api by re-running `cx.deploy()`.
-
-Let's modify `predictor.py` to set the length of the generated text based on a query parameter:
-
-```python
-# predictor.py
-
-import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
-
-
-class PythonPredictor:
-    def __init__(self, config):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-        self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
-
-    def predict(self, payload, query_params):  # this line is updated
-        input_length = len(payload["text"].split())
-        output_length = int(query_params.get("length", 20))  # this line is added
-        tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
-        prediction = self.model.generate(tokens, max_length=input_length + output_length, do_sample=True)  # this line is updated
-        return self.tokenizer.decode(prediction[0])
-```
-
-```python
-import cortex
-
-cx = cortex.client("aws")
-
-api_spec = {
-  "name": "text-generator",
-  "kind": "RealtimeAPI",
-  "predictor": {
-    "type": "python",
-    "path": "predictor.py"
-  }
-}
-
-# deploy your the Predictor implementation and API configuration to create a web API
-cx.deploy(api_spec, project_dir=".", wait=True)
-
-# make a request to your updated AWS API
-import requests
-
-endpoint = cx.get_api("text-generator")["endpoint"]
-payload = {"text": "hello world"}
-print(requests.post(endpoint, payload).text)
-
-# cx.delete_api("text-generator")
-```
-
-You can track the status of your API using `cortex get`:
-
-```bash
-$ cortex get --env aws --watch
-
-realtime api     status     up-to-date   stale   requested   last update   avg request   2XX
-text-generator   updating   0            1       1           29s           -             -
-```
-
-As your new implementation is initializing, the old implementation will continue to be used to respond to prediction requests. Eventually the API's status will become "live" (with one up-to-date replica), and traffic will be routed to the updated version.
-
 ## Run on GPUs
 
-If your cortex cluster is using GPU instances (configured during cluster creation), you can run your text generator API on GPUs. Add the `compute` field to your API configuration:
+If your cortex cluster is using GPU instances (configured during cluster creation), you can run your text generator API on GPUs. Add the `compute` field to your API configuration and re-run `deploy`:
 
 ```python
 api_spec = {
@@ -236,4 +169,11 @@ api_spec = {
 cx.deploy(api_spec, project_dir=".", wait=True)
 ```
 
-You can use `cortex get` to check the status of your API, and once it's live, prediction requests should be faster.
+As your new API is initializing, the old API will continue to respond to prediction requests. Once the API's status will become "live" (with one up-to-date replica), traffic will be routed to the updated version. You can track the status of your API using `cortex get`:
+
+```bash
+$ cortex get --env aws --watch
+
+realtime api     status     up-to-date   stale   requested   last update   avg request   2XX
+text-generator   updating   0            1       1           29s           -             -
+```
