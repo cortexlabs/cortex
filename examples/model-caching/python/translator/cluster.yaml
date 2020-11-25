@@ -17,3 +17,8 @@ max_instances: 2
 
 # disk storage size per instance (GB) (default: 50)
 instance_volume_size: 125
+
+# whether to disable API gateway cluster-wide
+# if set to "public" (the default), each API can specify whether to use API Gateway
+# if set to "none", no APIs will be allowed to use API Gateway
+api_gateway: none  # must be "public" or "none"
