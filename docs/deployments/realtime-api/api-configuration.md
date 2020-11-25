@@ -60,7 +60,7 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../../aws/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -123,7 +123,7 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../../aws/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
 
 ## ONNX Predictor
 
@@ -179,4 +179,4 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
+See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../../aws/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).

@@ -1,8 +1,8 @@
-# Set up REST API Gateway
+# REST API Gateway
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-When `api_gateway: public` is set in your API's `networking` configuration (which is the default setting), Cortex will create an "HTTP" API Gateway in AWS for your API (see the [networking docs](../deployments/networking.md) for more information).
+When `api_gateway: public` is set in your API's `networking` configuration (which is the default setting), Cortex will create an "HTTP" API Gateway in AWS for your API (see the [networking docs](networking.md) for more information).
 
 However, there may be situations where you need to use AWS's "REST" API Gateway, e.g. to enforce IAM-based auth. Until [#1197](https://github.com/cortexlabs/cortex/issues/1197) is resolved, a REST API Gateway can be used by following these steps.
 
@@ -16,7 +16,7 @@ If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: i
 
 Disable the default API Gateway:
 
-* If you haven't created your cluster yet, you can set `api_gateway: none` in your [cluster configuration file](../cluster-management/config.md) before creating your cluster.
+* If you haven't created your cluster yet, you can set `api_gateway: none` in your [cluster configuration file](install.md) before creating your cluster.
 * If you have already created your cluster, you can set `api_gateway: none` in the `networking` field of your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and/or [Batch API configuration](../deployments/batch-api/api-configuration.md), and then re-deploy your API.
 
 ### Step 2
@@ -95,7 +95,7 @@ Delete the API Gateway before spinning down your Cortex cluster:
 
 Disable the default API Gateway:
 
-* If you haven't created your cluster yet, you can set `api_gateway: none` in your [cluster configuration file](../cluster-management/config.md) before creating your cluster.
+* If you haven't created your cluster yet, you can set `api_gateway: none` in your [cluster configuration file](install.md) before creating your cluster.
 * If you have already created your cluster, you can set `api_gateway: none` in the `networking` field of your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and/or [Batch API configuration](../deployments/batch-api/api-configuration.md), and then re-deploy your API.
 
 ### Step 2
