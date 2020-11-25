@@ -5,7 +5,6 @@
 
 <!-- Delete on release branches -->
 <!-- CORTEX_VERSION_README_MINOR -->
-
 [install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.23/examples) • [community](https://gitter.im/cortexlabs/cortex)
 
 # Deploy machine learning models to production
