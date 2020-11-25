@@ -43,12 +43,12 @@ transformers==3.0.*
 
 ## Deploy your model locally
 
-You can create APIs from any Python runtime (e.g. the Python shell or a Jupyter notebook):
+You can create APIs from any Python runtime that has access to Docker (e.g. the Python shell or a Jupyter notebook):
 
 ```python
 import cortex
 
-cx = cortex.client("local")
+cx_local = cortex.client("local")
 
 api_spec = {
   "name": "text-generator",
@@ -59,7 +59,7 @@ api_spec = {
   }
 }
 
-cx.deploy(api_spec, project_dir=".", wait=True)
+cx_local.deploy(api_spec, project_dir=".", wait=True)
 ```
 
 ## Consume your API
@@ -67,11 +67,9 @@ cx.deploy(api_spec, project_dir=".", wait=True)
 ```python
 import requests
 
-endpoint = cx.get_api("text-generator")["endpoint"]
+endpoint = cx_local.get_api("text-generator")["endpoint"]
 payload = {"text": "hello world"}
 print(requests.post(endpoint, payload).text)
-
-# cx.delete_api("text-generator")
 ```
 
 ## Manage your APIs using the CLI
@@ -89,6 +87,7 @@ Show additional information for your API (e.g. its endpoint) using `cortex get <
 
 ```bash
 $ cortex get text-generator
+
 status   last update   avg request   2XX
 live     1m            -             -
 
@@ -116,7 +115,7 @@ This creates a Cortex cluster in your AWS account, which will take approximately
 ```python
 import cortex
 
-cx = cortex.client("aws")
+cx_aws = cortex.client("aws")
 
 api_spec = {
   "name": "text-generator",
@@ -127,7 +126,7 @@ api_spec = {
   }
 }
 
-cx.deploy(api_spec, project_dir=".")
+cx_aws.deploy(api_spec, project_dir=".")
 ```
 
 Monitor the status of your APIs using `cortex get` using your CLI:
@@ -142,31 +141,52 @@ local   text-generator   live     1            1           17m           3.1285 
 
 The output above indicates that one replica of your API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and will spin down replicas if there is unused capacity.
 
+Show additional information for your API (e.g. its endpoint) using `cortex get <api_name>`:
+
+```bash
+$ cortex get text-generator --env aws
+
+status   up-to-date   requested   last update   avg request   2XX
+live     1            1           1m            -             -
+
+endpoint: https://***.execute-api.us-west-2.amazonaws.com/text-generator
+```
+
 ## Run on GPUs
 
-If your cortex cluster is using GPU instances (configured during cluster creation), you can run your text generator API on GPUs. Add the `compute` field to your API configuration and re-run `deploy`:
+If your cortex cluster is using GPU instances (configured during cluster creation) or if you are running locally with an nvidia GPU, you can run your text generator API on GPUs. Add the `compute` field to your API configuration and re-deploy:
 
 ```python
 api_spec = {
-  'name': 'text-generator',
-  'kind': 'RealtimeAPI',
+  "name": "text-generator",
+  "kind": "RealtimeAPI",
   "predictor": {
     "type": "python",
     "path": "predictor.py"
   },
-  'compute': {
-    'gpu': 1
+  "compute": {
+    "gpu": 1
   }
 }
 
-cx.deploy(api_spec, project_dir=".")
+cx_aws.deploy(api_spec, project_dir=".")
 ```
 
-As your new API is initializing, the old API will continue to respond to prediction requests. Once the API's status will become "live" (with one up-to-date replica), traffic will be routed to the updated version. You can track the status of your API using `cortex get`:
+As your new API is initializing, the old API will continue to respond to prediction requests. Once the API's status becomes "live" (with one up-to-date replica), traffic will be routed to the updated version. You can track the status of your API using `cortex get`:
 
 ```bash
 $ cortex get --env aws --watch
 
 realtime api     status     up-to-date   stale   requested   last update   avg request   2XX
 text-generator   updating   0            1       1           29s           -             -
+```
+
+## Cleanup
+
+Deleting APIs will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster creation:
+
+```python
+cx_local.delete_api("text-generator")
+
+cx_aws.delete_api("text-generator")
 ```
