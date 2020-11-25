@@ -104,6 +104,8 @@ Delete an environment configured on this machine.
 
 ## deploy
 
+<!-- CORTEX_VERSION_MINOR x5 -->
+
 ```python
  | deploy(api_spec: dict, predictor=None, pip_dependencies=[], conda_dependencies=[], project_dir: Optional[str] = None, force: bool = False, wait: bool = False) -> list
 ```
@@ -119,8 +121,8 @@ Deploy an API.
 - `predictor` - A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
   → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
   → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
-- `pip_dependencies` - A list of PyPI dependencies that will be installed before running your predictor class.
-- `conda_dependencies` - A list of Conda dependencies that will be installed before running your predictor class.
+- `pip_dependencies` - A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
+- `conda_dependencies` - A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
 - `project_dir` - Path to a python project.
 - `force` - Override any in-progress api updates.
 - `wait` - Streams logs until the APIs are ready.

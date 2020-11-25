@@ -115,7 +115,7 @@ if [ "$is_release_branch" = "true" ]; then
   # Check for no master version warnings
   output=$(cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
-  ! -path "./dev/update_version_comments.sh" \
+  ! -path "./dev/*" \
   ! -path "./vendor/*" \
   ! -path "**/.vscode/*" \
   ! -path "**/__pycache__/*" \

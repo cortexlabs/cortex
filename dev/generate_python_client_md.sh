@@ -60,4 +60,8 @@ sed -i "s/#### /## /g" $ROOT/docs/miscellaneous/python-client.md
 sed -i 's/[[:space:]]*$//' $ROOT/docs/miscellaneous/python-client.md
 truncate -s -1 $ROOT/docs/miscellaneous/python-client.md
 
+# Cortex version comment
+sed -i "s/^## deploy/## deploy\n\n<!-- CORTEX_VERSION_MINOR x5 -->/g" $ROOT/docs/miscellaneous/python-client.md
+
 pip3 uninstall -y cortex
+rm -rf $ROOT/pkg/workloads/cortex/client/cortex.egg-info
