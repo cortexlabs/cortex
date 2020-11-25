@@ -24,6 +24,7 @@ Also, take note of your AWS account ID. The account ID can be found in the _My A
 
 You can use the script below to push the Cortex images to your ECR registry. Make sure to update the `ecr_region`, `aws_account_id`, and `cortex_version` variables at the top of the file. Copy-paste the contents into a new file (e.g. `ecr.sh`), and then run `chmod +x ecr.sh`, followed by `./ecr.sh`. It is recommended to run this from an EC2 instance in the same region as your ECR repository, since it will be much faster.
 
+<!-- CORTEX_VERSION_README -->
 ```bash
 #!/bin/bash
 set -euo pipefail
@@ -31,7 +32,7 @@ set -euo pipefail
 # user set variables
 ecr_region="us-west-2"
 aws_account_id="620970939130"  # example account ID
-cortex_version="0.22.1"
+cortex_version="0.23.0"
 
 source_registry="quay.io/cortexlabs"
 destination_ecr_prefix="cortexlabs"

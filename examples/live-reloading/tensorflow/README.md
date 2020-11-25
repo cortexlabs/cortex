@@ -1,6 +1,6 @@
 ## Live-reloading model APIs
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)_
+_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.23.*, run `git checkout -b 0.23` or switch to the `0.23` branch on GitHub)_
 
 The model live-reloading feature is automatically enabled <sup>1</sup> for the TensorFlow predictors. This means that any TensorFLow examples found in the [examples](../..) directory will already have this running.
 
